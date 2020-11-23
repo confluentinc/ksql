@@ -942,71 +942,7 @@
       ]
     },
     {
-      "name": "MAP - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
-      "statements": [
-        "CREATE STREAM INPUT (K MAP<STRING, INT> KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
-      ],
-      "inputs": [
-        {"topic": "input_topic", "key": {"a": 1, "b": 2, "c": 3}, "value": {"FOO": 10}},
-        {"topic": "input_topic", "key": {"a": 1, "b": 2, "c": null}, "value": {"FOO": 10}},
-        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": {"a": 1, "b": 2, "c": 3}, "value": {"FOO": 10}},
-        {"topic": "OUTPUT", "key": {"a": 1, "b": 2, "c": null}, "value": {"FOO": 10}},
-        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
-      ]
-    },
-    {
-      "name": "MAP - key - no inference - with coercion",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
-      "statements": [
-        "CREATE STREAM INPUT (K MAP<STRING, STRING> KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
-      ],
-      "inputs": [
-        {"topic": "input_topic", "key": {"a": 1, "b": 2, "c": 3}, "value": {"FOO": 10}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": {"a": "1", "b": "2", "c": "3"}, "value": {"FOO": 10}}
-      ]
-    },
-    {
-      "name": "MAP - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
-      "statements": [
-        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
-      ],
-      "topics": [
-        {
-          "name": "input_topic",
-          "keySchema": {"type": "map", "values": ["null", "int"]},
-          "keyFormat": "AVRO"
-
-        }
-      ],
-      "inputs": [
-        {"topic": "input_topic", "key": {"a": 1, "b": 2, "c": 3}, "value": {"FOO": 10}},
-        {"topic": "input_topic", "key": {"a": 1, "b": 2, "c": null}, "value": {"FOO": 10}},
-        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": {"a": 1, "b": 2, "c": 3}, "value": {"FOO": 10}},
-        {"topic": "OUTPUT", "key": {"a": 1, "b": 2, "c": null}, "value": {"FOO": 10}},
-        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
-      ]
-    },
-    {
-      "name": "map with non-string keys fails - key - C*",
+      "name": "MAP - key - C*",
       "properties": {
         "ksql.key.format.enabled": true
       },
@@ -1015,21 +951,48 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Avro only supports MAPs with STRING keys"
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `K`. Column type: MAP<INTEGER, DOUBLE>"
       }
     },
     {
-      "name": "map with non-string keys fails - key - C*AS",
+      "name": "nested MAP type - key - C*",
       "properties": {
         "ksql.key.format.enabled": true
       },
       "statements": [
-        "CREATE STREAM INPUT (k INT, v DOUBLE) WITH (kafka_topic='input_topic', value_format='AVRO');",
-        "CREATE STREAM OUTPUT WITH (key_format='AVRO') AS SELECT * FROM INPUT PARTITION BY MAP(k:=v);"
+        "CREATE STREAM INPUT (K ARRAY<MAP<INT, DOUBLE>> KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Avro only supports MAPs with STRING keys"
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `K`. Column type: ARRAY<MAP<INTEGER, DOUBLE>>"
+      }
+    },
+    {
+      "name": "MAP - key - C*AS",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (k STRING KEY, v STRING) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY MAP(k:=v);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `KSQL_COL_0`. Column type: MAP<STRING, STRING>"
+      }
+    },
+    {
+      "name": "nested MAP type - key - C*AS",
+      "properties": {
+        "ksql.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (k STRING KEY, v STRING) WITH (kafka_topic='input_topic', format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY STRUCT(f := MAP(k:=v));"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `KSQL_COL_0`. Column type: STRUCT<`F` MAP<STRING, STRING>>"
       }
     },
     {

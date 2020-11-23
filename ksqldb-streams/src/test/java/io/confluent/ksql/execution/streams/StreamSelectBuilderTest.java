@@ -139,7 +139,7 @@ public class StreamSelectBuilderTest {
 
     // Then:
     assertThat(result.getStream(), is(resultKStream));
-    assertThat(result.getKeySerdeFactory(), is(executionKeyFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test

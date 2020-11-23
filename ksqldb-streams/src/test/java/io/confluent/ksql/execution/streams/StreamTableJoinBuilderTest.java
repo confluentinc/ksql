@@ -148,7 +148,7 @@ public class StreamTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKStream, rightKTable, resultStream);
     assertThat(result.getStream(), is(resultStream));
-    assertThat(result.getKeySerdeFactory(), is(executionKeyFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test
@@ -167,7 +167,7 @@ public class StreamTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKStream, rightKTable, resultStream);
     assertThat(result.getStream(), is(resultStream));
-    assertThat(result.getKeySerdeFactory(), is(executionKeyFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test
@@ -198,7 +198,7 @@ public class StreamTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKStream, rightKTable, resultStream);
     assertThat(result.getStream(), is(resultStream));
-    assertThat(result.getKeySerdeFactory(), is(executionKeyFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test
@@ -217,7 +217,7 @@ public class StreamTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKStream, rightKTable, resultStream);
     assertThat(result.getStream(), is(resultStream));
-    assertThat(result.getKeySerdeFactory(), is(executionKeyFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test

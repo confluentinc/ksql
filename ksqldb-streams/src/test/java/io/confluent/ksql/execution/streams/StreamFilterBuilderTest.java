@@ -111,7 +111,7 @@ public class StreamFilterBuilderTest {
 
     // Then:
     assertThat(result.getStream(), is(filteredKStream));
-    assertThat(result.getKeySerdeFactory(), is(executionKeyFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test

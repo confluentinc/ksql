@@ -47,8 +47,8 @@ public interface ExecutionKeyFactory<K> {
   ExecutionKeyFactory<K> withQueryBuilder(KsqlQueryBuilder builder);
 
   /**
-   * This method can construct a new key given the contents of the old key and the
-   * desired Struct representation of the new key. This is helpful if we intended
+   * This method can construct a new key given the old key and the
+   * desired contents of the new key. This is helpful if we intended
    * to maintain information from the previous key (e.g. the windowing information)
    * when constructing a new key.
    *

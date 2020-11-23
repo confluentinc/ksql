@@ -38,7 +38,7 @@ public final class KStreamHolder<K> {
     this.schema = Objects.requireNonNull(schema, "schema");
   }
 
-  public ExecutionKeyFactory<K> getKeySerdeFactory() {
+  public ExecutionKeyFactory<K> getExecutionKeyFactory() {
     return executionKeyFactory;
   }
 

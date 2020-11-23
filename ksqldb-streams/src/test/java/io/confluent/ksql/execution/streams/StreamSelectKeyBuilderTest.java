@@ -133,7 +133,7 @@ public class StreamSelectKeyBuilderTest {
     when(stream.getStream()).thenReturn(kstream);
     when(stream.getSchema()).thenReturn(SOURCE_SCHEMA);
 
-    when(stream.getKeySerdeFactory()).thenReturn(keyFactory);
+    when(stream.getExecutionKeyFactory()).thenReturn(keyFactory);
     when(keyFactory.withQueryBuilder(any())).thenReturn(keyFactory);
     when(keyFactory.buildKeySerde(any(), any(), any()))
         .thenAnswer(inv -> queryBuilder.buildKeySerde(
@@ -157,7 +157,8 @@ public class StreamSelectKeyBuilderTest {
     // Then:
     verify(paramBuilder).build(
         SOURCE_SCHEMA,
-        stream.getKeySerdeFactory(), KEY,
+        stream.getExecutionKeyFactory(),
+        KEY,
         CONFIG,
         functionRegistry,
         processingLogger
@@ -233,7 +234,7 @@ public class StreamSelectKeyBuilderTest {
         .build(stream, selectKey, queryBuilder, paramBuilder);
 
     // Then:
-    result.getKeySerdeFactory().buildKeySerde(
+    result.getExecutionKeyFactory().buildKeySerde(
         FormatInfo.of(FormatFactory.JSON.name()),
         PhysicalSchema.from(SOURCE_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
         queryContext

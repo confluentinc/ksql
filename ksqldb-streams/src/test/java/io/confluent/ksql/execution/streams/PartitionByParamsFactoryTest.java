@@ -121,6 +121,8 @@ public class PartitionByParamsFactoryTest {
   private UdfFactory failingUdfFactory;
   @Mock
   private UdfFactory constantUdfFactory;
+  @Mock
+  private KsqlQueryBuilder queryBuilder;
 
   private final Struct key = new Struct(ConnectSchemas.columnsToConnectSchema(SCHEMA.key()));
   private final GenericRow value = new GenericRow();
@@ -401,25 +403,7 @@ public class PartitionByParamsFactoryTest {
   }
 
   private PartitionByParams<Struct> partitionBy(final Expression expression) {
-    final ExecutionKeyFactory<Struct> factory = new ExecutionKeyFactory<Struct>() {
-      @Override
-      public Serde<Struct> buildKeySerde(
-          final FormatInfo format,
-          final PhysicalSchema physicalSchema,
-          final QueryContext queryContext) {
-        return null;
-      }
-
-      @Override
-      public ExecutionKeyFactory<Struct> withQueryBuilder(final KsqlQueryBuilder builder) {
-        return null;
-      }
-
-      @Override
-      public Struct constructNewKey(final Struct oldKey, final Struct newKey) {
-        return newKey;
-      }
-    };
+    final ExecutionKeyFactory<Struct> factory = ExecutionKeyFactory.unwindowed(queryBuilder);
 
     return PartitionByParamsFactory
         .build(

@@ -153,7 +153,7 @@ public class StreamSelectKeyBuilderV1Test {
     final KStreamHolder<Struct> result = selectKey.build(planBuilder);
 
     // Then:
-    result.getKeySerdeFactory().buildKeySerde(
+    result.getExecutionKeyFactory().buildKeySerde(
         FormatInfo.of(FormatFactory.JSON.name()),
         PhysicalSchema.from(SOURCE_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
         queryContext

@@ -173,14 +173,14 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     if (keyFormat.isWindowed()) {
       final String errorMsg = "Implicit repartitioning of windowed sources is not supported. "
           + "See https://github.com/confluentinc/ksql/issues/4385.";
-      final String additionalMsg =
-          " As a result, ksqlDB does not support joins on windowed sources with "
-              + "Schema-Registry-enabled key formats (AVRO, JSON_SR, PROTOBUF) at this time. "
-              + "Please repartition your sources to use a different key format before performing "
-              + "the join.";
+      final String additionalMsg = forceRepartition
+          ? " As a result, ksqlDB does not support joins on windowed sources with "
+          + "Schema-Registry-enabled key formats (AVRO, JSON_SR, PROTOBUF) at this time. "
+          + "Please repartition your sources to use a different key format before performing "
+          + "the join."
+          : "";
       throw new KsqlException(errorMsg + additionalMsg);
     }
-
     final KeyFormat newKeyFormat = forceInternalKeyFormat
         .map(newFmt -> KeyFormat.of(
             newFmt,

@@ -58,7 +58,7 @@ public final class StreamSelectKeyBuilder {
 
     final PartitionByParams<K> params = paramsBuilder.build(
         sourceSchema,
-        stream.getKeySerdeFactory(),
+        stream.getExecutionKeyFactory(),
         selectKey.getKeyExpression(),
         queryBuilder.getKsqlConfig(),
         queryBuilder.getFunctionRegistry(),
@@ -75,7 +75,7 @@ public final class StreamSelectKeyBuilder {
     return new KStreamHolder<>(
         reKeyed,
         params.getSchema(),
-        stream.getKeySerdeFactory().withQueryBuilder(queryBuilder)
+        stream.getExecutionKeyFactory().withQueryBuilder(queryBuilder)
     );
   }
 

@@ -387,7 +387,7 @@ SELECT o.order_id, o.total_amount, o.customer_name, s.shipment_id, s.warehouse
 For more information on joins, see
 [Join Event Streams with ksqlDB](../developer-guide/joins/join-streams-and-tables.md).
 
-### Late arriving events
+### out-of-order events
 
 Frequently, events that belong to a window can arrive late, for example, over slow networks, 
 and a grace period may be required to ensure the events are accepted into the window. 

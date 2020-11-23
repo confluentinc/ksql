@@ -66,7 +66,7 @@ Joins and Windows
 ksqlDB enables grouping records that have the same key for stateful
 operations, like joins, into *windows*. You specify a retention period
 for the window, and this retention period controls how long ksqlDB waits
-for out-of-order and late-arriving records. If a record arrives after
+for out-of-order and out-of-order records. If a record arrives after
 the window's retention period has passed, the record is discarded and
 isn't processed in that window.
 

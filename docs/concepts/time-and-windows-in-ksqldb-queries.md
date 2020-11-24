@@ -403,7 +403,8 @@ SELECT orderzip_code, TOPK(order_total, 5) FROM orders
   EMIT CHANGES;
 ```
 
-Events that arrive later than the grace period are dropped and not included in the aggregate result.
+Events that arrive after the grace period has passed are called *late* and aren't
+included in the aggregation result.
 
 ### Window retention 
 

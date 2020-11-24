@@ -22,14 +22,19 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.Analysis;
+import io.confluent.ksql.analyzer.RewrittenAnalysis;
+import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -39,9 +44,12 @@ import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.planner.RequiredColumns;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
+import javax.xml.crypto.Data;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -64,12 +72,32 @@ public class FinalProjectNodeTest {
   private static final UnqualifiedColumnReferenceExp COL0_REF =
       new UnqualifiedColumnReferenceExp(COL0);
 
+  private static final LogicalSchema INPUT_SCHEMA = LogicalSchema.builder()
+      .keyColumn(K, SqlTypes.STRING)
+      .valueColumn(COL0, SqlTypes.STRING)
+      .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+      .valueColumn(K, SqlTypes.STRING)
+      .build();
+
   @Mock
   private PlanNode source;
   @Mock
   private MetaStore metaStore;
   @Mock
   private Analysis.Into into;
+  @Mock
+  private KsqlConfig ksqlConfig;
+  @Mock
+  private RewrittenAnalysis analysis;
+  @Mock
+  private Analysis.AliasedDataSource aliasedDataSource;
+  @Mock
+  private DataSource dataSource;
+  @Mock
+  private KsqlTopic ksqlTopic;
+  @Mock
+  private KeyFormat keyFormat;
+
 
   private List<SelectItem> selects;
   private FinalProjectNode projectNode;
@@ -84,6 +112,10 @@ public class FinalProjectNodeTest {
         .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
         .valueColumn(K, SqlTypes.STRING)
         .build());
+    when(analysis.getFrom()).thenReturn(aliasedDataSource);
+    when(aliasedDataSource.getDataSource()).thenReturn(dataSource);
+    when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
+    when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
 
     selects = ImmutableList.of(new SingleColumn(COL0_REF, Optional.of(ALIAS)));
 
@@ -92,7 +124,9 @@ public class FinalProjectNodeTest {
         source,
         selects,
         Optional.of(into),
-        metaStore);
+        metaStore,
+        ksqlConfig,
+        analysis);
   }
 
   @Test
@@ -120,7 +154,9 @@ public class FinalProjectNodeTest {
         source,
         selects,
         Optional.of(into),
-        metaStore);
+        metaStore,
+        ksqlConfig,
+        analysis);
 
     // Then:
     verify(source).validateColumns(RequiredColumns.builder().add(syntheticKeyRef).build());
@@ -146,7 +182,9 @@ public class FinalProjectNodeTest {
             source,
             selects,
             Optional.of(into),
-            metaStore)
+            metaStore,
+            ksqlConfig,
+            analysis)
     );
 
     // Then:
@@ -166,7 +204,9 @@ public class FinalProjectNodeTest {
             source,
             selects,
             Optional.of(into),
-            metaStore
+            metaStore,
+            ksqlConfig,
+            analysis
         )
     );
 
@@ -190,7 +230,9 @@ public class FinalProjectNodeTest {
             source,
             selects,
             Optional.of(into),
-            metaStore
+            metaStore,
+            ksqlConfig,
+            analysis
         )
     );
 
@@ -198,4 +240,30 @@ public class FinalProjectNodeTest {
     assertThat(e.getMessage(), containsString("The projection contains a key column (`K`) more " +
         "than once, aliased as: GRACE and PETER"));
   }
+
+  @Test
+  public void shouldBuildPullQueryIntermediateSchema() {
+    // Given:
+    when(analysis.isPullQuery()).thenReturn(true);
+    selects = ImmutableList.of(new SingleColumn(K_REF, Optional.of(ALIAS)));
+    when(keyFormat.isWindowed()).thenReturn(false);
+
+    // When:
+    final FinalProjectNode projectNode = new FinalProjectNode(
+        NODE_ID,
+        source,
+        selects,
+        Optional.of(into),
+        metaStore,
+        ksqlConfig,
+        analysis
+    );
+    final LogicalSchema intermediateSchema = projectNode.buildPullQueryIntermediateSchema();
+
+    // Then:
+    verify(projectNode, times(1)).buildPullQueryIntermediateSchema();
+    final LogicalSchema expectedSchema = INPUT_SCHEMA.withPseudoAndKeyColsInValue(false);
+    assertThat(expectedSchema, is(intermediateSchema));
+  }
+
 }

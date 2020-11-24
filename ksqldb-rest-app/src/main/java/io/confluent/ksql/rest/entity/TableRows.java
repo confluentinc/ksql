@@ -87,6 +87,7 @@ public class TableRows {
     final int expectedSize = schema.key().size() + schema.value().size();
     final int actualSize = row.size();
 
+    System.out.println("-----> row = " + row + " , expected schema = " + schema);
     if (expectedSize != actualSize) {
       throw new IllegalArgumentException("column count mismatch."
           + " expected: " + expectedSize

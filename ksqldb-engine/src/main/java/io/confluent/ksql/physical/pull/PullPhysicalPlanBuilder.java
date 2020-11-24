@@ -16,25 +16,20 @@
 package io.confluent.ksql.physical.pull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.context.QueryLoggerUtil.QueryType;
-import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
-import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.Select;
-import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.physical.pull.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.pull.operators.DataSourceOperator;
 import io.confluent.ksql.physical.pull.operators.KeyedTableLookupOperator;
@@ -45,24 +40,22 @@ import io.confluent.ksql.physical.pull.operators.WhereInfo;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
+import io.confluent.ksql.planner.plan.FinalProjectNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
-import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Struct;
 
 /**
  * Traverses the logical plan top-down and creates a physical plan for pull queries.
@@ -137,8 +130,8 @@ public class PullPhysicalPlanBuilder {
     while (true) {
 
       AbstractPhysicalOperator currentPhysicalOp = null;
-      if (currentLogicalNode instanceof ProjectNode) {
-        currentPhysicalOp = translateProjectNode((ProjectNode)currentLogicalNode);
+      if (currentLogicalNode instanceof FinalProjectNode) {
+        currentPhysicalOp = translateProjectNode((FinalProjectNode)currentLogicalNode);
       } else if (currentLogicalNode instanceof FilterNode) {
         currentPhysicalOp = translateFilterNode((FilterNode)currentLogicalNode);
       } else if (currentLogicalNode instanceof DataSourceNode) {
@@ -146,8 +139,9 @@ public class PullPhysicalPlanBuilder {
             (DataSourceNode) currentLogicalNode);
         dataSourceOperator = (DataSourceOperator)currentPhysicalOp;
       } else {
-        throw new KsqlException("Error in translating logical to physical plan for pull queries: "
-                                    + "unrecognized logical node.");
+        throw new KsqlException(String.format(
+            "Error in translating logical to physical plan for pull queries: unrecognized logical"
+                + " node %s.", currentLogicalNode));
       }
 
       if (prevPhysicalOp == null) {
@@ -171,28 +165,15 @@ public class PullPhysicalPlanBuilder {
     }
     return new PullPhysicalPlan(
         rootPhysicalOp,
-        ((ProjectOperator)rootPhysicalOp).getOutputSchema(),
+        ((FinalProjectNode)(rootPhysicalOp).getLogicalNode())
+            .getPullQueryOutputSchema().get(),
         queryId,
         keys,
         mat,
         dataSourceOperator);
   }
 
-  private ProjectOperator translateProjectNode(final ProjectNode logicalNode) {
-    final LogicalSchema outputSchema;
-    boolean isStar = false;
-    if (isSelectStar(statement.getStatement().getSelect())) {
-      isStar = true;
-      outputSchema = buildSelectStarSchema(mat.schema(), mat.windowType().isPresent());
-    } else {
-      final List<SelectExpression> projection = analysis.getSelectItems().stream()
-          .map(SingleColumn.class::cast)
-          .map(si -> SelectExpression
-              .of(si.getAlias().orElseThrow(IllegalStateException::new), si.getExpression()))
-          .collect(Collectors.toList());
-
-      outputSchema = selectOutputSchema(projection, mat.windowType());
-    }
+  private ProjectOperator translateProjectNode(final FinalProjectNode logicalNode) {
     final ProcessingLogger logger = processingLogContext
         .getLoggerFactory()
         .getLogger(
@@ -200,21 +181,10 @@ public class PullPhysicalPlanBuilder {
                 QueryType.PULL_QUERY, contextStacker.push("PROJECT").getQueryContext())
         );
 
-    final boolean noSystemColumns = analysis.getSelectColumnNames().stream()
-        .noneMatch(SystemColumns::isSystemColumn);
-    final boolean noKeyColumns = analysis.getSelectColumnNames().stream()
-        .noneMatch(mat.schema()::isKeyColumn);
-
     return new ProjectOperator(
-      config,
-      metaStore,
       logger,
-      mat,
-      logicalNode,
-      outputSchema,
-      isStar,
-      noSystemColumns,
-      noKeyColumns);
+      logicalNode
+    );
   }
 
   private SelectOperator translateFilterNode(final FilterNode logicalNode) {
@@ -247,65 +217,19 @@ public class PullPhysicalPlanBuilder {
     }
   }
 
-  private LogicalSchema selectOutputSchema(
-      final List<SelectExpression> selectExpressions,
-      final Optional<WindowType> windowType
-  ) {
-    final Builder schemaBuilder = LogicalSchema.builder();
+  private Struct asKeyStruct(final Object keyValue, final PhysicalSchema physicalSchema) {
+    final ConnectSchema keySchema = ConnectSchemas
+        .columnsToConnectSchema(physicalSchema.keySchema().columns());
 
-    // Copy meta & key columns into the value schema as SelectValueMapper expects it:
-    final LogicalSchema schema = mat.schema()
-        .withPseudoAndKeyColsInValue(windowType.isPresent());
+    final Field keyField = Iterables.getOnlyElement(keySchema.fields());
 
-    final ExpressionTypeManager expressionTypeManager =
-        new ExpressionTypeManager(schema, metaStore);
-
-    for (final SelectExpression select : selectExpressions) {
-      final SqlType type = expressionTypeManager.getExpressionSqlType(select.getExpression());
-
-      if (mat.schema().isKeyColumn(select.getAlias())
-          || select.getAlias().equals(SystemColumns.WINDOWSTART_NAME)
-          || select.getAlias().equals(SystemColumns.WINDOWEND_NAME)
-      ) {
-        schemaBuilder.keyColumn(select.getAlias(), type);
-      } else {
-        schemaBuilder.valueColumn(select.getAlias(), type);
-      }
-    }
-    return schemaBuilder.build();
-  }
-
-  private static boolean isSelectStar(final Select select) {
-    final boolean someStars = select.getSelectItems().stream()
-        .anyMatch(s -> s instanceof AllColumns);
-
-    if (someStars && select.getSelectItems().size() != 1) {
-      throw new KsqlException("Pull queries only support wildcards in the projects "
-                                  + "if they are the only expression");
-    }
-
-    return someStars;
+    final Struct key = new Struct(keySchema);
+    key.put(keyField, keyValue);
+    return key;
   }
 
   private QueryId uniqueQueryId() {
     return new QueryId("query_" + System.currentTimeMillis());
-  }
-
-  private LogicalSchema buildSelectStarSchema(
-      final LogicalSchema schema,
-      final boolean windowed
-  ) {
-    final Builder builder = LogicalSchema.builder()
-        .keyColumns(schema.key());
-
-    if (windowed) {
-      builder.keyColumn(SystemColumns.WINDOWSTART_NAME, SqlTypes.BIGINT);
-      builder.keyColumn(SystemColumns.WINDOWEND_NAME, SqlTypes.BIGINT);
-    }
-
-    return builder
-        .valueColumns(schema.value())
-        .build();
   }
 
   private KsqlException notMaterializedException(final SourceName sourceTable) {

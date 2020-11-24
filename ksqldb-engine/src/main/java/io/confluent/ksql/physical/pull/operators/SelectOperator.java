@@ -16,6 +16,7 @@
 package io.confluent.ksql.physical.pull.operators;
 
 import io.confluent.ksql.planner.plan.FilterNode;
+import io.confluent.ksql.planner.plan.PlanNode;
 import java.util.List;
 import java.util.Objects;
 
@@ -41,6 +42,11 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
   @Override
   public void close() {
 
+  }
+
+  @Override
+  public PlanNode getLogicalNode() {
+    return logicalNode;
   }
 
   @Override

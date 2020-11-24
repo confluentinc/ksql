@@ -68,7 +68,7 @@ public class AnalysisTest {
 
   @Before
   public void setUp() {
-    analysis = new Analysis(Optional.of(refinementInfo), sourceSchemasFactory);
+    analysis = new Analysis(Optional.of(refinementInfo), sourceSchemasFactory, false);
 
     when(dataSource.getSchema()).thenReturn(SOURCE_SCHEMA);
   }

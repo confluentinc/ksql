@@ -77,7 +77,7 @@ public class LoggingHandler implements Handler<RoutingContext> {
   }
 
   private static Map<String, Double> getSkipRequestPaths(final KsqlRestConfig config) {
-    // Already validated as having a double value
+    // Already validated as having double values
     return config.getStringAsMap(KSQL_LOGGING_RATE_LIMITED_REQUEST_PATHS_CONFIG)
         .entrySet().stream()
         .collect(ImmutableMap.toImmutableMap(Entry::getKey,

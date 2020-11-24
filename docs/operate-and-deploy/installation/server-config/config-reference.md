@@ -609,7 +609,7 @@ messages. By default, this property has the value `false`.
 
 ### ksql.logging.skipped.response.codes
 
-A comma-separated list of HTTP response codes to skip when doing
+A comma-separated list of HTTP response codes to skip during server
 request logging. This is useful for ignoring certain 4XX errors that you
 might not want to show up in the logs.
 

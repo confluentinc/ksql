@@ -89,6 +89,7 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import java.util.Arrays;
@@ -301,7 +302,7 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable<?> resultSchemaKTable = initialSchemaKTable.selectKey(
         valueFormat.getFormatInfo(),
-        new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
+        new UnqualifiedColumnReferenceExp(ColumnName.of("COL0")),
         Optional.empty(),
         childContextStacker,
         true
@@ -325,7 +326,7 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable<?> resultSchemaKTable = initialSchemaKTable.selectKey(
         valueFormat.getFormatInfo(),
-        new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
+        new UnqualifiedColumnReferenceExp(ColumnName.of("COL0")),
         Optional.empty(),
         childContextStacker,
         true
@@ -339,10 +340,32 @@ public class SchemaKTableTest {
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
                 InternalFormats.of(keyFormat.getFormatInfo(), valueFormat.getFormatInfo()),
-                new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"))
+                new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))
             )
         )
     );
+  }
+
+  @Test
+  public void shouldFailSelectKeyForceRepartitionOnNonKeyColumn() {
+    // Given:
+    final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
+
+    // When:
+    final UnsupportedOperationException e = assertThrows(
+        UnsupportedOperationException.class,
+        () -> initialSchemaKTable.selectKey(
+            valueFormat.getFormatInfo(),
+            new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
+            Optional.empty(),
+            childContextStacker,
+            true
+    ));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Cannot repartition a TABLE source."));
   }
 
   @Test

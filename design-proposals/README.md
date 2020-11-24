@@ -81,6 +81,6 @@ Next KLIP number: **44**
 | KLIP-37: System Tables                                                                               | Proposal | | | |
 | [KLIP-38: Variable Substitution](klip-38-variable-substitution.md)                                   | Merged         | 0.14.0            | 6.1.0      | [Discussion](https://github.com/confluentinc/ksql/pull/6259) |
 | KLIP-40: Prepared Statements for Java Client                                                         | Proposal | | | |
-| KLIP-41: ksqlDB .NET Client                                                                          | Proposal | | | |
+| [KLIP-41: ksqlDB .NET Client](klip-41-ksqldb-.net-client.md)                                         | Proposal | | | [Discussion](https://github.com/confluentinc/ksql/pull/6613)|
 | KLIP-42: Schema Migrations Tool                                                                      | Proposal | | | |
 | KLIP-43: TIMESTAMP data type support                                                                      | Proposal | | | |

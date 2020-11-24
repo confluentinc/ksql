@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.api.server;
 
-import static io.confluent.ksql.rest.server.KsqlRestConfig.KSQL_LOGGING_RATE_LIMITED_REQUEST_PATHS_CONFIG;
-import static io.confluent.ksql.rest.server.KsqlRestConfig.KSQL_LOGGING_SKIPPED_RESPONSE_CODES_CONFIG;
+import static io.confluent.ksql.rest.server.KsqlRestConfig.KSQL_LOGGING_SERVER_RATE_LIMITED_REQUEST_PATHS_CONFIG;
+import static io.confluent.ksql.rest.server.KsqlRestConfig.KSQL_LOGGING_SERVER_SKIPPED_RESPONSE_CODES_CONFIG;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
@@ -67,21 +67,6 @@ public class LoggingHandler implements Handler<RoutingContext> {
     this.logger = logger;
     this.clock = clock;
     this.rateLimiterFactory = rateLimiterFactory;
-  }
-
-  private static Set<Integer> getSkipResponseCodes(final KsqlRestConfig config) {
-    // Already validated as all ints
-    return config.getList(KSQL_LOGGING_SKIPPED_RESPONSE_CODES_CONFIG)
-        .stream()
-        .map(Integer::parseInt).collect(ImmutableSet.toImmutableSet());
-  }
-
-  private static Map<String, Double> getSkipRequestPaths(final KsqlRestConfig config) {
-    // Already validated as having double values
-    return config.getStringAsMap(KSQL_LOGGING_RATE_LIMITED_REQUEST_PATHS_CONFIG)
-        .entrySet().stream()
-        .collect(ImmutableMap.toImmutableMap(Entry::getKey,
-            entry -> Double.parseDouble(entry.getValue())));
   }
 
   @Override
@@ -140,6 +125,21 @@ public class LoggingHandler implements Handler<RoutingContext> {
       doLog(status, message);
     });
     routingContext.next();
+  }
+
+  private static Set<Integer> getSkipResponseCodes(final KsqlRestConfig config) {
+    // Already validated as all ints
+    return config.getList(KSQL_LOGGING_SERVER_SKIPPED_RESPONSE_CODES_CONFIG)
+        .stream()
+        .map(Integer::parseInt).collect(ImmutableSet.toImmutableSet());
+  }
+
+  private static Map<String, Double> getSkipRequestPaths(final KsqlRestConfig config) {
+    // Already validated as having double values
+    return config.getStringAsMap(KSQL_LOGGING_SERVER_RATE_LIMITED_REQUEST_PATHS_CONFIG)
+        .entrySet().stream()
+        .collect(ImmutableMap.toImmutableMap(Entry::getKey,
+            entry -> Double.parseDouble(entry.getValue())));
   }
 
   private void doLog(final int status, final String message) {

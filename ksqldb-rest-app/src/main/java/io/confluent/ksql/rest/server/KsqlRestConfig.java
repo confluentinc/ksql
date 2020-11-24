@@ -322,14 +322,14 @@ public class KsqlRestConfig extends AbstractConfig {
       "The key store certificate alias to be used for internal client requests. If not set, "
           + "the system will fall back on the Vert.x default choice";
 
-  public static final String KSQL_LOGGING_SKIPPED_RESPONSE_CODES_CONFIG =
-      KSQL_CONFIG_PREFIX + "logging.skipped.response.codes";
-  private static final String KSQL_LOGGING_SKIPPED_RESPONSE_CODES_DOC =
+  public static final String KSQL_LOGGING_SERVER_SKIPPED_RESPONSE_CODES_CONFIG =
+      KSQL_CONFIG_PREFIX + "logging.server.skipped.response.codes";
+  private static final String KSQL_LOGGING_SERVER_SKIPPED_RESPONSE_CODES_DOC =
       "A list of HTTP response codes to skip during server request logging";
 
-  public static final String KSQL_LOGGING_RATE_LIMITED_REQUEST_PATHS_CONFIG =
-      KSQL_CONFIG_PREFIX + "logging.rate.limited.request.paths";
-  private static final String KSQL_LOGGING_RATE_LIMITED_REQUEST_PATHS_DOC =
+  public static final String KSQL_LOGGING_SERVER_RATE_LIMITED_REQUEST_PATHS_CONFIG =
+      KSQL_CONFIG_PREFIX + "logging.server.rate.limited.request.paths";
+  private static final String KSQL_LOGGING_SERVER_RATE_LIMITED_REQUEST_PATHS_DOC =
       "A list of path:rate_limit pairs, to rate limit the server request logging";
 
   private static final ConfigDef CONFIG_DEF;
@@ -619,19 +619,19 @@ public class KsqlRestConfig extends AbstractConfig {
             ConfigDef.Importance.LOW,
             KSQL_AUTHENTICATION_PLUGIN_DOC
         ).define(
-            KSQL_LOGGING_SKIPPED_RESPONSE_CODES_CONFIG,
+            KSQL_LOGGING_SERVER_SKIPPED_RESPONSE_CODES_CONFIG,
             Type.LIST,
             "",
             intList(),
             ConfigDef.Importance.LOW,
-            KSQL_LOGGING_SKIPPED_RESPONSE_CODES_DOC
+            KSQL_LOGGING_SERVER_SKIPPED_RESPONSE_CODES_DOC
         ).define(
-            KSQL_LOGGING_RATE_LIMITED_REQUEST_PATHS_CONFIG,
+            KSQL_LOGGING_SERVER_RATE_LIMITED_REQUEST_PATHS_CONFIG,
             Type.STRING,
             "",
             mapWithDoubleValue(),
             ConfigDef.Importance.LOW,
-            KSQL_LOGGING_RATE_LIMITED_REQUEST_PATHS_DOC
+            KSQL_LOGGING_SERVER_RATE_LIMITED_REQUEST_PATHS_DOC
         );
   }
 

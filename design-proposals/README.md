@@ -29,7 +29,7 @@ This is the guts of our improvement proposal process:
 1. Submit a Pull Request from your branch to KSQL:
     1. make sure the title is `docs: klip-<number>: <title>`
     1. update the table entry below from the Proposal Intent step with a link to your KLIP
-1. Share a link to the PR in the `#ksqldb-dev` channel on the [confluent community slack](https://slackpass.io/confluentcommunity).
+1. Share a link to the PR in the `#ksqldb` channel on the [confluent community slack](https://slackpass.io/confluentcommunity).
 1. The design discussion will happen on the pull request
 1. The KLIP is approved and merged if at least two people with write access approve the change
 

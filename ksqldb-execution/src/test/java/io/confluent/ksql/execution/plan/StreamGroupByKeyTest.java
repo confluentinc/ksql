@@ -15,7 +15,7 @@
 package io.confluent.ksql.execution.plan;
 
 import com.google.common.testing.EqualsTester;
-import org.apache.kafka.connect.data.Struct;
+import io.confluent.ksql.GenericKey;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -29,9 +29,9 @@ public class StreamGroupByKeyTest {
   @Mock
   private ExecutionStepPropertiesV1 properties2;
   @Mock
-  private ExecutionStep<KStreamHolder<Struct>> source1;
+  private ExecutionStep<KStreamHolder<GenericKey>> source1;
   @Mock
-  private ExecutionStep<KStreamHolder<Struct>> source2;
+  private ExecutionStep<KStreamHolder<GenericKey>> source2;
   @Mock
   private Formats formats1;
   @Mock

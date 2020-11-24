@@ -41,6 +41,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.ddl.commands.CreateSourceFactory.SerdeFeaturessSupplier;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
@@ -85,7 +86,6 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -158,7 +158,7 @@ public class CreateSourceFactoryTest {
   @Mock
   private ValueSerdeFactory valueSerdeFactory;
   @Mock
-  private Serde<Struct> keySerde;
+  private Serde<GenericKey> keySerde;
   @Mock
   private Serde<GenericRow> valueSerde;
 

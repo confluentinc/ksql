@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.execution.streams;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -59,7 +60,6 @@ import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.JoinWindows;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -371,7 +371,7 @@ public final class ExecutionStepFactory {
 
   public static StreamGroupByKey streamGroupByKey(
       final QueryContext.Stacker stacker,
-      final ExecutionStep<KStreamHolder<Struct>> sourceStep,
+      final ExecutionStep<KStreamHolder<GenericKey>> sourceStep,
       final Formats formats
   ) {
     final QueryContext queryContext = stacker.getQueryContext();

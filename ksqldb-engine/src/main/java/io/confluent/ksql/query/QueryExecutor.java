@@ -36,7 +36,7 @@ import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterializationFactory;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory;
 import io.confluent.ksql.execution.streams.metrics.RocksDBMetricsCollector;
-import io.confluent.ksql.execution.util.StructKeyUtil;
+import io.confluent.ksql.execution.util.KeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -287,7 +287,7 @@ public final class QueryExecutor {
           ? stream.filter((k, v) -> v != null)
           : stream;
 
-      filtered.foreach((k, v) -> queue.acceptRow(StructKeyUtil.asList(k), v));
+      filtered.foreach((k, v) -> queue.acceptRow(KeyUtil.asList(k), v));
     } else {
       throw new IllegalStateException("Unexpected type built from execution plan");
     }

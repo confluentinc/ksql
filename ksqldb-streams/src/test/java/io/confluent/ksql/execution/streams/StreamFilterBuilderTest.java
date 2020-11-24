@@ -7,14 +7,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.KStreamHolder;
-import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
@@ -25,7 +26,6 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Named;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
@@ -42,7 +42,7 @@ public class StreamFilterBuilderTest {
   @Mock
   private SqlPredicate sqlPredicate;
   @Mock
-  private KsqlTransformer<Struct, Optional<GenericRow>> predicate;
+  private KsqlTransformer<GenericKey, Optional<GenericRow>> predicate;
   @Mock
   private KsqlQueryBuilder queryBuilder;
   @Mock
@@ -58,20 +58,20 @@ public class StreamFilterBuilderTest {
   @Mock
   private ExecutionStepPropertiesV1 sourceProperties;
   @Mock
-  private KStream<Struct, GenericRow> sourceKStream;
+  private KStream<GenericKey, GenericRow> sourceKStream;
   @Mock
-  private KStream<Struct, GenericRow> filteredKStream;
+  private KStream<GenericKey, GenericRow> filteredKStream;
   @Mock
   private Expression filterExpression;
   @Mock
-  private ExecutionKeyFactory<Struct> executionKeyFactory;
+  private ExecutionKeyFactory<GenericKey> executionKeyFactory;
 
   private final QueryContext queryContext = new QueryContext.Stacker()
       .push("bar")
       .getQueryContext();
 
   private PlanBuilder planBuilder;
-  private StreamFilter<Struct> step;
+  private StreamFilter<GenericKey> step;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -107,7 +107,7 @@ public class StreamFilterBuilderTest {
   @Test
   public void shouldFilterSourceStream() {
     // When:
-    final KStreamHolder<Struct> result = step.build(planBuilder);
+    final KStreamHolder<GenericKey> result = step.build(planBuilder);
 
     // Then:
     assertThat(result.getStream(), is(filteredKStream));
@@ -117,7 +117,7 @@ public class StreamFilterBuilderTest {
   @Test
   public void shouldReturnCorrectSchema() {
     // When:
-    final KStreamHolder<Struct> result = step.build(planBuilder);
+    final KStreamHolder<GenericKey> result = step.build(planBuilder);
 
     // Then:
     assertThat(result.getSchema(), is(schema));

@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.builder;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
@@ -40,7 +41,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
 
@@ -150,7 +150,7 @@ public final class KsqlQueryBuilder {
         .push(context);
   }
 
-  public Serde<Struct> buildKeySerde(
+  public Serde<GenericKey> buildKeySerde(
       final FormatInfo format, final PhysicalSchema schema, final QueryContext queryContext
   ) {
     final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryId, queryContext);
@@ -172,7 +172,7 @@ public final class KsqlQueryBuilder {
     );
   }
 
-  public Serde<Windowed<Struct>> buildKeySerde(
+  public Serde<Windowed<GenericKey>> buildKeySerde(
       final FormatInfo format,
       final WindowInfo window,
       final PhysicalSchema schema,

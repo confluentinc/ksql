@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.physical.pull;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.physical.pull.operators.AbstractPhysicalOperator;
@@ -24,7 +25,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.connect.data.Struct;
 
 /**
  * Represents the physical plan for pull queries. It is a tree of physical operators that gets
@@ -36,7 +36,7 @@ public class PullPhysicalPlan {
   private final AbstractPhysicalOperator root;
   private final LogicalSchema schema;
   private final QueryId queryId;
-  private final List<Struct> keys;
+  private final List<GenericKey> keys;
   private final Materialization mat;
   private final DataSourceOperator dataSourceOperator;
 
@@ -44,7 +44,7 @@ public class PullPhysicalPlan {
       final AbstractPhysicalOperator root,
       final LogicalSchema schema,
       final QueryId queryId,
-      final List<Struct> keys,
+      final List<GenericKey> keys,
       final Materialization mat,
       final DataSourceOperator dataSourceOperator
   ) {
@@ -95,7 +95,7 @@ public class PullPhysicalPlan {
     return mat;
   }
 
-  public List<Struct> getKeys() {
+  public List<GenericKey> getKeys() {
     return keys;
   }
 

@@ -22,6 +22,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
@@ -30,25 +31,15 @@ import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.ks.KsLocator;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import org.apache.kafka.connect.data.Struct;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressWarnings({"UnstableApiUsage", "unchecked"})
 @RunWith(MockitoJUnitRunner.class)
 public class KeyedTableLookupOperatorTest {
-
-  private final List<KsqlPartitionLocation> multipleKeysPartitionLocations = new ArrayList<>();
 
   @Mock
   private KsqlNode node1;
@@ -63,13 +54,13 @@ public class KeyedTableLookupOperatorTest {
   @Mock
   private DataSourceNode logicalNode;
   @Mock
-  private Struct KEY1;
+  private GenericKey KEY1;
   @Mock
-  private Struct KEY2;
+  private GenericKey KEY2;
   @Mock
-  private Struct KEY3;
+  private GenericKey KEY3;
   @Mock
-  private Struct KEY4;
+  private GenericKey KEY4;
   @Mock
   private Row ROW1;
   @Mock

@@ -15,13 +15,13 @@
 
 package io.confluent.ksql.execution.streams.materialization.ks;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -63,35 +63,35 @@ public final class SessionStoreCacheBypass {
 
   interface SessionStoreCacheBypassFetcher {
 
-    KeyValueIterator<Windowed<Struct>, GenericRow> fetch(
-        ReadOnlySessionStore<Struct, GenericRow> store,
-        Struct key
+    KeyValueIterator<Windowed<GenericKey>, GenericRow> fetch(
+        ReadOnlySessionStore<GenericKey, GenericRow> store,
+        GenericKey key
     );
   }
 
   @SuppressWarnings("unchecked")
-  public static KeyValueIterator<Windowed<Struct>, GenericRow> fetch(
-      final ReadOnlySessionStore<Struct, GenericRow> store,
-      final Struct key
+  public static KeyValueIterator<Windowed<GenericKey>, GenericRow> fetch(
+      final ReadOnlySessionStore<GenericKey, GenericRow> store,
+      final GenericKey key
   ) {
     Objects.requireNonNull(key, "key can't be null");
 
     final StateStoreProvider provider;
     final String storeName;
-    final QueryableStoreType<ReadOnlySessionStore<Struct, GenericRow>> storeType;
+    final QueryableStoreType<ReadOnlySessionStore<GenericKey, GenericRow>> storeType;
     try {
       provider = (StateStoreProvider) PROVIDER_FIELD.get(store);
       storeName = (String) STORE_NAME_FIELD.get(store);
-      storeType = (QueryableStoreType<ReadOnlySessionStore<Struct, GenericRow>>)
+      storeType = (QueryableStoreType<ReadOnlySessionStore<GenericKey, GenericRow>>)
           STORE_TYPE_FIELD.get(store);
     } catch (final IllegalAccessException e) {
       throw new RuntimeException("Stream internals changed unexpectedly!", e);
     }
-    final List<ReadOnlySessionStore<Struct, GenericRow>> stores
+    final List<ReadOnlySessionStore<GenericKey, GenericRow>> stores
         = provider.stores(storeName, storeType);
-    for (final ReadOnlySessionStore<Struct, GenericRow> sessionStore : stores) {
+    for (final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore : stores) {
       try {
-        final KeyValueIterator<Windowed<Struct>, GenericRow> result
+        final KeyValueIterator<Windowed<GenericKey>, GenericRow> result
             = fetchUncached(sessionStore, key);
         // returns the first non-empty iterator
         if (!result.hasNext()) {
@@ -109,21 +109,21 @@ public final class SessionStoreCacheBypass {
   }
 
   @SuppressWarnings("unchecked")
-  private static KeyValueIterator<Windowed<Struct>, GenericRow> fetchUncached(
-      final ReadOnlySessionStore<Struct, GenericRow> sessionStore,
-      final Struct key
+  private static KeyValueIterator<Windowed<GenericKey>, GenericRow> fetchUncached(
+      final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore,
+      final GenericKey key
   ) {
     if (sessionStore instanceof MeteredSessionStore) {
-      final StateSerdes<Struct, GenericRow> serdes;
+      final StateSerdes<GenericKey, GenericRow> serdes;
       try {
-        serdes = (StateSerdes<Struct, GenericRow>) SERDES_FIELD.get(sessionStore);
+        serdes = (StateSerdes<GenericKey, GenericRow>) SERDES_FIELD.get(sessionStore);
       } catch (final IllegalAccessException e) {
         throw new RuntimeException("Stream internals changed unexpectedly!", e);
       }
 
       final Bytes rawKey = Bytes.wrap(serdes.rawKey(key));
       SessionStore<Bytes, byte[]> wrapped
-          = ((MeteredSessionStore<Struct, GenericRow>) sessionStore).wrapped();
+          = ((MeteredSessionStore<GenericKey, GenericRow>) sessionStore).wrapped();
       // Unwrap state stores until we get to the last SessionStore, which is past the caching
       // layer.
       while (wrapped instanceof WrappedStateStore) {
@@ -144,12 +144,12 @@ public final class SessionStoreCacheBypass {
   }
 
   private static final class DeserializingIterator
-      implements KeyValueIterator<Windowed<Struct>, GenericRow> {
+      implements KeyValueIterator<Windowed<GenericKey>, GenericRow> {
     private final KeyValueIterator<Windowed<Bytes>, byte[]> fetch;
-    private final StateSerdes<Struct, GenericRow> serdes;
+    private final StateSerdes<GenericKey, GenericRow> serdes;
 
     private DeserializingIterator(final KeyValueIterator<Windowed<Bytes>, byte[]> fetch,
-        final StateSerdes<Struct, GenericRow> serdes) {
+        final StateSerdes<GenericKey, GenericRow> serdes) {
       this.fetch = fetch;
       this.serdes = serdes;
     }
@@ -160,7 +160,7 @@ public final class SessionStoreCacheBypass {
     }
 
     @Override
-    public Windowed<Struct> peekNextKey() {
+    public Windowed<GenericKey> peekNextKey() {
       final Windowed<Bytes> windowed = fetch.peekNextKey();
       return new Windowed<>(serdes.keyFrom(windowed.key().get()), windowed.window());
     }
@@ -171,22 +171,22 @@ public final class SessionStoreCacheBypass {
     }
 
     @Override
-    public KeyValue<Windowed<Struct>, GenericRow> next() {
-      final Windowed<Struct> key = peekNextKey();
+    public KeyValue<Windowed<GenericKey>, GenericRow> next() {
+      final Windowed<GenericKey> key = peekNextKey();
       final KeyValue<Windowed<Bytes>, byte[]> next = fetch.next();
       return KeyValue.pair(key, serdes.valueFrom(next.value));
     }
   }
 
   private static class EmptyKeyValueIterator
-      implements KeyValueIterator<Windowed<Struct>, GenericRow> {
+      implements KeyValueIterator<Windowed<GenericKey>, GenericRow> {
 
     @Override
     public void close() {
     }
 
     @Override
-    public Windowed<Struct> peekNextKey() {
+    public Windowed<GenericKey> peekNextKey() {
       throw new NoSuchElementException();
     }
 
@@ -196,7 +196,7 @@ public final class SessionStoreCacheBypass {
     }
 
     @Override
-    public KeyValue<Windowed<Struct>, GenericRow> next() {
+    public KeyValue<Windowed<GenericKey>, GenericRow> next() {
       throw new NoSuchElementException();
     }
   }

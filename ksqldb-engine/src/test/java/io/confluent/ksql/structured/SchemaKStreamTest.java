@@ -16,6 +16,7 @@
 package io.confluent.ksql.structured;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
@@ -82,6 +83,8 @@ public class SchemaKStreamTest {
       .getNewMetaStore(new InternalFunctionRegistry());
   private final KeyFormat keyFormat = KeyFormat
       .nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of());
+  private final KeyFormat windowedKeyFormat = KeyFormat
+      .windowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of(), WindowInfo.of(WindowType.SESSION, Optional.empty()));
   private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()),
       SerdeFeatures.of());
   private final QueryContext.Stacker queryContext
@@ -152,6 +155,28 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(result, is(initialSchemaKStream));
+  }
+
+  @Test
+  public void shouldFailIfForceRepartitionWindowedStream() {
+    // Given:
+    givenInitialKStreamOf(
+        "SELECT col0, col2, col3 FROM test1 PARTITION BY col0 EMIT CHANGES;",
+        windowedKeyFormat);
+
+    // When:
+    final KsqlException e = assertThrows(KsqlException.class, () -> initialSchemaKStream
+        .selectKey(
+            valueFormat.getFormatInfo(),
+            new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
+            Optional.empty(),
+            childContextStacker,
+            true)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Implicit repartitioning of windowed sources is not supported. See https://github.com/confluentinc/ksql/issues/4385."));
   }
 
   @Test
@@ -541,6 +566,10 @@ public class SchemaKStreamTest {
   }
 
   private PlanNode givenInitialKStreamOf(final String selectQuery) {
+    return givenInitialKStreamOf(selectQuery, keyFormat);
+  }
+
+  private PlanNode givenInitialKStreamOf(final String selectQuery, final KeyFormat keyFormat) {
     final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(
         ksqlConfig,
         selectQuery,

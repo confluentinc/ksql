@@ -152,7 +152,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final Stacker contextStacker,
       final boolean forceRepartition
   ) {
-    if (!forceRepartition && repartitionNotNeeded(ImmutableList.of(keyExpression))) {
+    final boolean repartitionNeeded = repartitionNeeded(ImmutableList.of(keyExpression));
+    if (!forceRepartition && !repartitionNeeded) {
       return this;
     }
 
@@ -163,7 +164,9 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     }
 
     // Table repartitioning is only supported for internal use in enabling joins
-    if (!forceRepartition) {
+    // where we know that the key will be semantically equivalent, but may be serialized
+    // differently (thus ensuring all keys are routed to the same partitions)
+    if (!forceRepartition || repartitionNeeded) {
       throw new UnsupportedOperationException("Cannot repartition a TABLE source. "
           + "If this is a join, make sure that the criteria uses the TABLE's key column "
           + Iterables.getOnlyElement(schema.key()).name().text() + " instead of "

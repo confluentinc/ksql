@@ -30,13 +30,13 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.schema.ksql.SqlTypeWalker.Visitor;
-import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.stream.Stream;
@@ -308,7 +308,8 @@ public class SqlTypeWalkerTest {
   public void shouldStartWalkingFromField() {
     // Given:
     final SqlPrimitiveType type = SqlTypes.BOOLEAN;
-    final Field field = Field.of("name", type);
+    final Field field = mock(Field.class);
+    when(field.type()).thenReturn(type);
     when(visitor.visitBoolean(any())).thenReturn("Expected");
     when(visitor.visitField(any(), any())).thenReturn(22);
 

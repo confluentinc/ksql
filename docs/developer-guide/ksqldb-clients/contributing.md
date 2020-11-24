@@ -192,6 +192,6 @@ To get started:
 - Testing: Besides unit tests in the relevant language, there should also be integration tests to spin up a ksqlDB server and validate client behavior.
 - Add a new docs page for the client with example usage to the [ksqlDB clients page](index.md).
 
-Don't hesitate to reach out in the #ksqldb-dev channel of our community Slack
+Don't hesitate to reach out in the #ksqldb channel of our community Slack
 (found of the [Confluent Community Slack](https://launchpass.com/confluentcommunity))
 for guidance at any point in the process. Thanks for your contribution!

@@ -497,7 +497,7 @@ public class CreateSourcePropertiesTest {
   }
 
   @Test
-  public void shouldGetKeyFormatFromAvroFormatWithAvroName() {
+  public void shouldSetAvroNameOnAvroKeyFormat() {
     // Given:
     final CreateSourceProperties props = CreateSourceProperties
         .from(ImmutableMap.<String, Literal>builder()
@@ -509,7 +509,7 @@ public class CreateSourcePropertiesTest {
     assertThat(props.getKeyFormat(SourceName.of("foo")).get().getFormat(), is("AVRO"));
     assertThat(props.getKeyFormat(
         SourceName.of("foo")).get().getProperties(),
-        hasEntry(AvroFormat.FULL_SCHEMA_NAME, "io.confluent.ksql.avro_schemas.foo_key"));
+        hasEntry(AvroFormat.FULL_SCHEMA_NAME, "io.confluent.ksql.avro_schemas.FooKey"));
   }
 
   @Test

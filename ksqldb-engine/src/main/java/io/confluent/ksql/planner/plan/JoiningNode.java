@@ -36,7 +36,7 @@ public interface JoiningNode {
   /**
    * Get any <b>required</b> key format.
    *
-   * <p>Table's, which don't yet support changing key format, <i>require</i> the join key format
+   * <p>Tables, which don't yet support changing key format, <i>require</i> the join key format
    * to be their key format.
    *
    * @return the required key format, if there is one.

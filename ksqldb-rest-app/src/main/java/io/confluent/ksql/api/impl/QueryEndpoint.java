@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.utils.Time;
 
@@ -59,19 +60,22 @@ public class QueryEndpoint {
   private final RoutingFilterFactory routingFilterFactory;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RateLimiter rateLimiter;
+  private final ExecutorService pullExecutorService;
 
   public QueryEndpoint(
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
       final RoutingFilterFactory routingFilterFactory,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final RateLimiter rateLimiter
+      final RateLimiter rateLimiter,
+      final ExecutorService pullExecutorService
   ) {
     this.ksqlEngine = ksqlEngine;
     this.ksqlConfig = ksqlConfig;
     this.routingFilterFactory = routingFilterFactory;
     this.pullQueryMetrics = pullQueryMetrics;
     this.rateLimiter = rateLimiter;
+    this.pullExecutorService = pullExecutorService;
   }
 
   public QueryPublisher createQueryPublisher(
@@ -133,6 +137,7 @@ public class QueryEndpoint {
         statement,
         routingFilterFactory,
         routingOptions,
+        pullExecutorService,
         pullQueryMetrics
     );
 

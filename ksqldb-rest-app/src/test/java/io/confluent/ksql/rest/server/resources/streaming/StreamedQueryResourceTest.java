@@ -109,6 +109,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -220,7 +221,8 @@ public class StreamedQueryResourceTest {
         denyListPropertyValidator,
         Optional.empty(),
         routingFilterFactory,
-        rateLimiter
+        rateLimiter,
+        Executors.newFixedThreadPool(1)
     );
 
     testResource.configure(VALID_CONFIG);
@@ -301,10 +303,11 @@ public class StreamedQueryResourceTest {
         denyListPropertyValidator,
         Optional.empty(),
         routingFilterFactory,
-        pullQueryRateLimiter
+        pullQueryRateLimiter,
+        Executors.newFixedThreadPool(1)
     );
     testResource.configure(VALID_CONFIG);
-    when(mockKsqlEngine.executePullQuery(any(), any(), any(), any(), any())).thenReturn(pullQueryResult);
+    when(mockKsqlEngine.executePullQuery(any(), any(), any(), any(), any(), any())).thenReturn(pullQueryResult);
     when(pullQueryResult.getTableRows()).thenReturn(Collections.emptyList());
     when(pullQueryResult.getSchema()).thenReturn(schema);
     when(pullQueryResult.getQueryId()).thenReturn(queryId);
@@ -346,7 +349,8 @@ public class StreamedQueryResourceTest {
         denyListPropertyValidator,
         Optional.empty(),
         routingFilterFactory,
-        rateLimiter
+        rateLimiter,
+        Executors.newFixedThreadPool(1)
     );
 
     // When:
@@ -509,7 +513,8 @@ public class StreamedQueryResourceTest {
         denyListPropertyValidator,
         Optional.empty(),
         routingFilterFactory,
-        rateLimiter
+        rateLimiter,
+        Executors.newFixedThreadPool(1)
       );
     final Map<String, Object> props = new HashMap<>(ImmutableMap.of(
         StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"

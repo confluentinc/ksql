@@ -68,6 +68,7 @@ import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 /**
@@ -142,6 +143,7 @@ final class EngineExecutor {
       final ConfiguredStatement<Query> statement,
       final RoutingFilterFactory routingFilterFactory,
       final RoutingOptions routingOptions,
+      final ExecutorService executorService,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics
   ) {
 
@@ -164,12 +166,11 @@ final class EngineExecutor {
           ksqlConfig,
           analysis,
           statement);
-
-      try (HARouting routing = new HARouting(
-          ksqlConfig, physicalPlan, routingFilterFactory, routingOptions, statement, serviceContext,
-          physicalPlan.getOutputSchema(), physicalPlan.getQueryId(), pullQueryMetrics)) {
-        return routing.handlePullQuery();
-      }
+      final HARouting routing = new HARouting(
+          physicalPlan, routingFilterFactory, routingOptions, statement, serviceContext,
+          physicalPlan.getOutputSchema(), physicalPlan.getQueryId(), executorService,
+          pullQueryMetrics);
+      return routing.handlePullQuery();
     } catch (final Exception e) {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
       throw new KsqlStatementException(

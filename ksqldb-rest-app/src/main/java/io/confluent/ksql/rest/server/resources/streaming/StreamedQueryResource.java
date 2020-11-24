@@ -65,6 +65,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
@@ -89,8 +90,9 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final DenyListPropertyValidator denyListPropertyValidator;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RoutingFilterFactory routingFilterFactory;
+  private final RateLimiter rateLimiter;
   private KsqlConfig ksqlConfig;
-  private RateLimiter rateLimiter;
+  private final ExecutorService pullExecutorService;
 
   @SuppressWarnings("checkstyle:ParameterNumber")
   public StreamedQueryResource(
@@ -104,7 +106,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
-      final RateLimiter rateLimiter
+      final RateLimiter rateLimiter,
+      final ExecutorService pullExecutorService
   ) {
     this(
         ksqlEngine,
@@ -118,7 +121,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
         denyListPropertyValidator,
         pullQueryMetrics,
         routingFilterFactory,
-        rateLimiter
+        rateLimiter,
+        pullExecutorService
     );
   }
 
@@ -137,7 +141,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
-      final RateLimiter rateLimiter
+      final RateLimiter rateLimiter,
+      final ExecutorService pullExecutorService
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -156,6 +161,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
+    this.pullExecutorService = Objects.requireNonNull(pullExecutorService, "pullExecutorService");
   }
 
   @Override
@@ -313,6 +319,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         configured,
         routingFilterFactory,
         routingOptions,
+        pullExecutorService,
         pullQueryMetrics
     );
     final TableRows tableRows = new TableRows(

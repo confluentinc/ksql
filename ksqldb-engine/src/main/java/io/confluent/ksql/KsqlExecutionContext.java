@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 /**
  * The context in which statements can be executed.
@@ -154,6 +155,7 @@ public interface KsqlExecutionContext {
       ConfiguredStatement<Query> statement,
       RoutingFilterFactory routingFilterFactory,
       RoutingOptions routingOptions,
+      ExecutorService executorService,
       Optional<PullQueryExecutorMetrics> pullQueryMetrics
   );
 

@@ -69,6 +69,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.streams.StreamsConfig;
@@ -143,6 +144,8 @@ public class KsqlRestApplicationTest {
   private RoutingFilterFactory routingFilterFactory;
   @Mock
   private RateLimiter rateLimiter;
+  @Mock
+  private ExecutorService pullExecutorService;
 
   @Mock
   private Vertx vertx;
@@ -503,7 +506,8 @@ public class KsqlRestApplicationTest {
         denyListPropertyValidator,
         Optional.empty(),
         routingFilterFactory,
-        rateLimiter
+        rateLimiter,
+        pullExecutorService
     );
   }
 

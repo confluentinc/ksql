@@ -39,10 +39,10 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlConfig;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.Executors;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -82,8 +82,6 @@ public class HARoutingTest {
   @Mock
   private RoutingFilterFactory routingFilterFactory;
   @Mock
-  private KsqlConfig ksqlConfig;
-  @Mock
   private PullPhysicalPlan pullPhysicalPlan;
   @Mock
   private Materialization materialization;
@@ -101,12 +99,10 @@ public class HARoutingTest {
     when(location2.getNodes()).thenReturn(ImmutableList.of(node2, node1));
     when(location3.getNodes()).thenReturn(ImmutableList.of(node1, node2));
     when(location4.getNodes()).thenReturn(ImmutableList.of(node2, node1));
-    when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG))
-        .thenReturn(1);
 
     haRouting = new HARouting(
-        ksqlConfig, pullPhysicalPlan, routingFilterFactory, routingOptions, statement,
-        serviceContext, logicalSchema, queryId, Optional.empty(), routeQuery);
+        pullPhysicalPlan, routingFilterFactory, routingOptions, statement, serviceContext,
+        logicalSchema, queryId, Executors.newFixedThreadPool(1), Optional.empty(), routeQuery);
 
   }
 

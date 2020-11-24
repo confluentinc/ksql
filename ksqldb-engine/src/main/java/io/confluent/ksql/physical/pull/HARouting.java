@@ -31,7 +31,6 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.confluent.ksql.util.KsqlServerException;
@@ -47,7 +46,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -68,7 +66,6 @@ public final class HARouting implements AutoCloseable {
   private final RouteQuery routeQuery;
 
   public HARouting(
-      final KsqlConfig ksqlConfig,
       final PullPhysicalPlan pullPhysicalPlan,
       final RoutingFilterFactory routingFilterFactory,
       final RoutingOptions routingOptions,
@@ -76,15 +73,15 @@ public final class HARouting implements AutoCloseable {
       final ServiceContext serviceContext,
       final LogicalSchema outputSchema,
       final QueryId queryId,
+      final ExecutorService executorService,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics
   ) {
-    this(ksqlConfig, pullPhysicalPlan, routingFilterFactory, routingOptions, statement,
-         serviceContext, outputSchema, queryId, pullQueryMetrics, HARouting::executeOrRouteQuery);
+    this(pullPhysicalPlan, routingFilterFactory, routingOptions, statement, serviceContext,
+         outputSchema, queryId, executorService, pullQueryMetrics, HARouting::executeOrRouteQuery);
   }
 
   @VisibleForTesting
   HARouting(
-      final KsqlConfig ksqlConfig,
       final PullPhysicalPlan pullPhysicalPlan,
       final RoutingFilterFactory routingFilterFactory,
       final RoutingOptions routingOptions,
@@ -92,6 +89,7 @@ public final class HARouting implements AutoCloseable {
       final ServiceContext serviceContext,
       final LogicalSchema outputSchema,
       final QueryId queryId,
+      final ExecutorService executorService,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RouteQuery routeQuery
   ) {
@@ -103,11 +101,9 @@ public final class HARouting implements AutoCloseable {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.outputSchema = Objects.requireNonNull(outputSchema, "outputSchema");
     this.queryId = Objects.requireNonNull(queryId, "queryId");
+    this.executorService = Objects.requireNonNull(executorService, "executorService");
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
-    this.executorService = Executors.newFixedThreadPool(
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG)
-    );
-    this.routeQuery = Objects.requireNonNull(routeQuery, "routeQuery");
+    this.routeQuery = routeQuery;
   }
 
   public PullQueryResult handlePullQuery() throws InterruptedException {

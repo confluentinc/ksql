@@ -128,6 +128,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -188,6 +189,7 @@ public final class KsqlRestApplication implements Executable {
   private final RoutingFilterFactory routingFilterFactory;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RateLimiter pullQueryRateLimiter;
+  private final ExecutorService pullExecutorService;
 
   // The startup thread that can be interrupted if necessary during shutdown.  This should only
   // happen if startup hangs.
@@ -226,7 +228,8 @@ public final class KsqlRestApplication implements Executable {
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
-      final RateLimiter pullQueryRateLimiter
+      final RateLimiter pullQueryRateLimiter,
+      final ExecutorService pullExecutorService
 
   ) {
     log.debug("Creating instance of ksqlDB API server");
@@ -283,6 +286,7 @@ public final class KsqlRestApplication implements Executable {
     log.debug("ksqlDB API server instance created");
     this.routingFilterFactory = requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.pullQueryRateLimiter = requireNonNull(pullQueryRateLimiter, "pullQueryRateLimiter");
+    this.pullExecutorService = requireNonNull(pullExecutorService, "pullExecutorService");
   }
 
   @Override
@@ -323,7 +327,8 @@ public final class KsqlRestApplication implements Executable {
         denyListPropertyValidator,
         pullQueryMetrics,
         routingFilterFactory,
-        pullQueryRateLimiter
+        pullQueryRateLimiter,
+        pullExecutorService
     );
 
     startAsyncThreadRef.set(Thread.currentThread());
@@ -344,7 +349,8 @@ public final class KsqlRestApplication implements Executable {
           serverMetadataResource,
           wsQueryEndpoint,
           pullQueryMetrics,
-          pullQueryRateLimiter
+          pullQueryRateLimiter,
+          pullExecutorService
       );
       apiServer = new Server(vertx, ksqlRestConfig, endpoints, securityExtension,
           authenticationPlugin, serverState, pullQueryMetrics);
@@ -484,6 +490,14 @@ public final class KsqlRestApplication implements Executable {
       pullQueryMetrics.ifPresent(PullQueryExecutorMetrics::close);
     } catch (final Exception e) {
       log.error("Exception while waiting for pull query metrics to close", e);
+    }
+
+    try {
+      pullExecutorService.shutdown();
+      pullExecutorService.awaitTermination(
+          Duration.ofSeconds(10).toMillis(), TimeUnit.MILLISECONDS);
+    } catch (final InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
 
     try {
@@ -715,6 +729,9 @@ public final class KsqlRestApplication implements Executable {
         heartbeatAgent, lagReportingAgent);
     final RateLimiter pullQueryRateLimiter = RateLimiter.create(
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_MAX_QPS_CONFIG));
+    final ExecutorService pullExecutorService = Executors.newFixedThreadPool(
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG)
+    );
 
     final DenyListPropertyValidator denyListPropertyValidator = new DenyListPropertyValidator(
         ksqlConfig.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));
@@ -739,7 +756,8 @@ public final class KsqlRestApplication implements Executable {
         denyListPropertyValidator,
         pullQueryMetrics,
         routingFilterFactory,
-        pullQueryRateLimiter
+        pullQueryRateLimiter,
+        pullExecutorService
     );
 
     final List<String> managedTopics = new LinkedList<>();
@@ -816,7 +834,8 @@ public final class KsqlRestApplication implements Executable {
         denyListPropertyValidator,
         pullQueryMetrics,
         routingFilterFactory,
-        pullQueryRateLimiter
+        pullQueryRateLimiter,
+        pullExecutorService
     );
   }
 

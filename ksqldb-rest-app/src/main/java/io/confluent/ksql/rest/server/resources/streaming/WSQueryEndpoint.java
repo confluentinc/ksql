@@ -50,6 +50,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeoutException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.utils.Time;
@@ -76,6 +77,7 @@ public class WSQueryEndpoint {
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
+  private final ExecutorService pullExecutorService;
 
   private WebSocketSubscriber<?> subscriber;
 
@@ -94,7 +96,8 @@ public class WSQueryEndpoint {
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
-      final RateLimiter rateLimiter
+      final RateLimiter rateLimiter,
+      final ExecutorService pullExecutorService
   ) {
     this(
         ksqlConfig,
@@ -112,7 +115,8 @@ public class WSQueryEndpoint {
         denyListPropertyValidator,
         pullQueryMetrics,
         routingFilterFactory,
-        rateLimiter
+        rateLimiter,
+        pullExecutorService
     );
   }
 
@@ -134,7 +138,8 @@ public class WSQueryEndpoint {
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
-      final RateLimiter rateLimiter
+      final RateLimiter rateLimiter,
+      final ExecutorService pullExecutorService
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -158,6 +163,7 @@ public class WSQueryEndpoint {
     this.routingFilterFactory = Objects.requireNonNull(
         routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
+    this.pullExecutorService = Objects.requireNonNull(pullExecutorService, "pullExecutorService");
   }
 
   public void executeStreamQuery(final ServerWebSocket webSocket, final MultiMap requestParams,
@@ -291,7 +297,8 @@ public class WSQueryEndpoint {
           pullQueryMetrics,
           startTimeNanos,
           routingFilterFactory,
-          rateLimiter
+          rateLimiter,
+          pullExecutorService
       );
     } else {
       pushQueryPublisher.start(
@@ -355,7 +362,8 @@ public class WSQueryEndpoint {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final long startTimeNanos,
       final RoutingFilterFactory routingFilterFactory,
-      final RateLimiter rateLimiter
+      final RateLimiter rateLimiter,
+      final ExecutorService pullExecutorService
   ) {
     new PullQueryPublisher(
         ksqlEngine,
@@ -364,7 +372,8 @@ public class WSQueryEndpoint {
         pullQueryMetrics,
         startTimeNanos,
         routingFilterFactory,
-        rateLimiter
+        rateLimiter,
+        pullExecutorService
     ).subscribe(streamSubscriber);
   }
 
@@ -401,7 +410,8 @@ public class WSQueryEndpoint {
         Optional<PullQueryExecutorMetrics> pullQueryMetrics,
         long startTimeNanos,
         RoutingFilterFactory routingFilterFactory,
-        RateLimiter rateLimiter);
+        RateLimiter rateLimiter,
+        ExecutorService pullExecutorService);
 
   }
 

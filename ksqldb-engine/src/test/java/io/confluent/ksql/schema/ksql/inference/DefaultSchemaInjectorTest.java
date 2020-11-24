@@ -518,7 +518,7 @@ public class DefaultSchemaInjectorTest {
     verify(schemaSupplier).getKeySchema(
         KAFKA_TOPIC,
         Optional.empty(),
-        FormatInfo.of("AVRO", ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "io.confluent.ksql.avro_schemas.ct_key")),
+        FormatInfo.of("AVRO", ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "io.confluent.ksql.avro_schemas.CtKey")),
         SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
     );
   }

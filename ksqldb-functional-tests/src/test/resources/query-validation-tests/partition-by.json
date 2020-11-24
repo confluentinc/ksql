@@ -927,11 +927,11 @@
           "topics": [
             {
               "name": "OUTPUT",
-              "keyFormat": { "format": "AVRO", "features": [ "UNWRAP_SINGLES" ], "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.OUTPUT_key"}},
+              "keyFormat": { "format": "AVRO", "features": [ "UNWRAP_SINGLES" ], "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.OutputKey"}},
               "valueFormat": { "format": "JSON" },
               "keySchema": {
                 "type": "record",
-                "name": "OUTPUT_key",
+                "name": "OutputKey",
                 "namespace": "io.confluent.ksql.avro_schemas",
                 "fields": [
                   { "name": "F1", "type": [ "null", "int" ], "default": null },
@@ -959,11 +959,11 @@
           "topics": [
             {
               "name": "OUTPUT",
-              "keyFormat": { "format": "AVRO", "features": [ "UNWRAP_SINGLES" ], "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.OUTPUT_key"}},
+              "keyFormat": { "format": "AVRO", "features": [ "UNWRAP_SINGLES" ], "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.OutputKey"}},
               "valueFormat": { "format": "JSON" },
               "keySchema": {
                 "type": "record",
-                "name": "OUTPUT_key",
+                "name": "OutputKey",
                 "namespace": "io.confluent.ksql.avro_schemas",
                 "fields": [
                   { "name": "F1", "type": [ "null", "int" ], "default": null },

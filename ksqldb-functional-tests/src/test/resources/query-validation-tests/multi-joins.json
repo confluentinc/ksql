@@ -1283,12 +1283,12 @@
           "topics" : [
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-L_Join-left-repartition",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"], "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.S1Key"}},
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-L_Join-right-repartition",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"], "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.S1Key"}},
               "valueFormat" : {"format" : "JSON"}
             },
             {
@@ -1308,7 +1308,7 @@
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000028-store-changelog",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"], "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.S1Key"}},
               "valueFormat" : {"format" : "JSON"}
             },
             {

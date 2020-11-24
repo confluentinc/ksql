@@ -59,6 +59,18 @@ public class AvroFormatTest {
     assertThat(e.getMessage(), is("Schema is not compatible with Avro: Illegal initial character: 1AintRight"));
   }
 
+  @Test
+  public void shouldConvertNames() {
+    assertThat(AvroFormat.getKeySchemaName("foo"), is("io.confluent.ksql.avro_schemas.FooKey"));
+    assertThat(AvroFormat.getKeySchemaName("Foo"), is("io.confluent.ksql.avro_schemas.FooKey"));
+    assertThat(AvroFormat.getKeySchemaName("FOO"), is("io.confluent.ksql.avro_schemas.FooKey"));
+    assertThat(AvroFormat.getKeySchemaName("FOO_BAR"), is("io.confluent.ksql.avro_schemas.FooBarKey"));
+    assertThat(AvroFormat.getKeySchemaName("Foo_Bar"), is("io.confluent.ksql.avro_schemas.FooBarKey"));
+    assertThat(AvroFormat.getKeySchemaName("foo_bar"), is("io.confluent.ksql.avro_schemas.FooBarKey"));
+    assertThat(AvroFormat.getKeySchemaName("fOoBaR"), is("io.confluent.ksql.avro_schemas.FoobarKey"));
+    assertThat(AvroFormat.getKeySchemaName("_fOoBaR_"), is("io.confluent.ksql.avro_schemas.FoobarKey"));
+  }
+
   private static SimpleColumn column(final String name) {
     final SimpleColumn column = mock(SimpleColumn.class);
     when(column.name()).thenReturn(ColumnName.of(name));

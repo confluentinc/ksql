@@ -3113,7 +3113,7 @@
       }
     },
     {
-      "name": "stream-table key-to-key - SR-enabled key format",
+      "name": "stream-table key-to-key with necessary repartition - SR-enabled key format",
       "statements": [
         "CREATE TABLE T (ID INT PRIMARY KEY, VAL INT) WITH (kafka_topic='t', key_format='AVRO', value_format='JSON');",
         "CREATE STREAM S (ID INT KEY, FOO INT) WITH (kafka_topic='s', key_format='AVRO', value_format='JSON');",

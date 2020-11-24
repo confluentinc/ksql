@@ -53,11 +53,10 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class HARouting {
+public final class HARouting implements AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(HARouting.class);
   private final ExecutorService executorService;
-  private final KsqlConfig ksqlConfig;
   private final PullPhysicalPlan pullPhysicalPlan;
   private final RoutingFilterFactory routingFilterFactory;
   private final RoutingOptions routingOptions;
@@ -79,7 +78,6 @@ public final class HARouting {
       final QueryId queryId,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics
   ) {
-
     this(ksqlConfig, pullPhysicalPlan, routingFilterFactory, routingOptions, statement,
          serviceContext, outputSchema, queryId, pullQueryMetrics, HARouting::executeOrRouteQuery);
   }
@@ -97,8 +95,6 @@ public final class HARouting {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RouteQuery routeQuery
   ) {
-
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.pullPhysicalPlan = Objects.requireNonNull(pullPhysicalPlan, "pullPhysicalPlan");
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
@@ -108,10 +104,10 @@ public final class HARouting {
     this.outputSchema = Objects.requireNonNull(outputSchema, "outputSchema");
     this.queryId = Objects.requireNonNull(queryId, "queryId");
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
-    executorService = Executors.newFixedThreadPool(
+    this.executorService = Executors.newFixedThreadPool(
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG)
     );
-    this.routeQuery = routeQuery;
+    this.routeQuery = Objects.requireNonNull(routeQuery, "routeQuery");
   }
 
   public PullQueryResult handlePullQuery() throws InterruptedException {
@@ -200,15 +196,21 @@ public final class HARouting {
     }
   }
 
+  @Override
+  public void close() {
+    executorService.shutdown();
+  }
+
   /**
-   * Groups all of the partition locations by the round-th entry in their prioritized list
-   * of host nodes.
+   * Groups all of the partition locations by the round-th entry in their prioritized list of host
+   * nodes.
+   *
    * @param statement the statement from which this request came
    * @param locations the list of partition locations to parse
    * @param round which round this is
    * @return A map of node to list of partition locations
    */
-  private Map<KsqlNode, List<KsqlPartitionLocation>> groupByHost(
+  private static Map<KsqlNode, List<KsqlPartitionLocation>> groupByHost(
       final ConfiguredStatement<Query> statement,
       final List<KsqlPartitionLocation> locations,
       final int round) {

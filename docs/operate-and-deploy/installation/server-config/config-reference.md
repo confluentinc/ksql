@@ -225,10 +225,15 @@ is `KSQL_KSQL_SCHEMA_REGISTRY_URL`.
 ### ksql.service.id
 
 The service ID of the ksqlDB server. This is used to define the ksqlDB
-cluster membership of a ksqlDB Server instance. If multiple ksqlDB servers
-connect to the same {{ site.ak }} cluster (i.e. the same `bootstrap.servers`
-*and* the same `ksql.service.id`) they will form a ksqlDB cluster and
-share the workload.
+cluster membership of a ksqlDB Server instance.
+
+- If multiple ksqlDB servers connect to the same {{ site.ak }} cluster
+  (i.e. the same `bootstrap.servers` *and* the same `ksql.service.id`)
+  they form a ksqlDB cluster and share the workload.
+
+- If multiple ksqlDB servers connect to the same {{ site.ak }} cluster but
+  *don't* have the same `ksql.service.id`, they each get a different command
+  topic and form separate ksqlDB clusters, by `ksql.service.id`.  
 
 By default, the service ID of ksqlDB servers is `default_`. The service ID
 is also used as the prefix for the internal topics created by ksqlDB.

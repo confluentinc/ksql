@@ -193,5 +193,5 @@ To get started:
 - Add a new docs page for the client with example usage to the [ksqlDB clients page](index.md).
 
 Don't hesitate to reach out in the #ksqldb channel of our community Slack
-(found of the [Confluent Community Slack](https://launchpass.com/confluentcommunity))
+(found in the [Confluent Community Slack](https://launchpass.com/confluentcommunity))
 for guidance at any point in the process. Thanks for your contribution!

@@ -389,7 +389,7 @@ For more information on joins, see
 
 ### Out-of-order events
 
-Frequently, events that belong to a window can arrive late, for example, over slow networks, 
+Frequently, events that belong to a window can arrive out-of-order, for example, over slow networks, 
 and a grace period may be required to ensure the events are accepted into the window. 
 ksqlDB enables configuring this behavior, for each of the window types. 
 

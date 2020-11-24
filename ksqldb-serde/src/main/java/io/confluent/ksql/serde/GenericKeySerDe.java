@@ -187,7 +187,7 @@ public final class GenericKeySerDe implements KeySerdeFactory {
 
     if (type instanceof SqlStruct) {
       return ((SqlStruct) type).fields().stream()
-          .map(io.confluent.ksql.schema.ksql.types.Field::type)
+          .map(SqlStruct.Field::type)
           .anyMatch(GenericKeySerDe::containsMapType);
     }
 

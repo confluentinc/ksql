@@ -17,6 +17,7 @@ package io.confluent.ksql.datagen;
 
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.connect.avro.AvroData;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
@@ -40,7 +41,6 @@ import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Struct;
 
 public class RowGenerator {
 
@@ -52,7 +52,6 @@ public class RowGenerator {
   private final Generator generator;
   private final AvroData avroData;
   private final SessionManager sessionManager = new SessionManager();
-  private final ConnectSchema keySchema;
   private final ConnectSchema valueSchema;
   private final LogicalSchema schema;
   private final int keyFieldIndex;
@@ -65,7 +64,6 @@ public class RowGenerator {
     this.generator = Objects.requireNonNull(generator, "generator");
     this.avroData = new AvroData(1);
     this.schema = buildLogicalSchema(generator, avroData, keyFieldName);
-    this.keySchema = ConnectSchemas.columnsToConnectSchema(schema.key());
     this.valueSchema = ConnectSchemas.columnsToConnectSchema(schema.value());
     this.keyFieldIndex = schema.findValueColumn(ColumnName.of(keyFieldName))
         .map(Column::index)
@@ -85,7 +83,7 @@ public class RowGenerator {
     return timestampFieldIndex;
   }
 
-  public Pair<Struct, GenericRow> generateRow() {
+  public Pair<GenericKey, GenericRow> generateRow() {
 
     final Object generatedObject = generator.generate();
 
@@ -152,10 +150,9 @@ public class RowGenerator {
       }
     }
 
-    final Struct keyStruct = new Struct(keySchema);
-    keyStruct.put(KEY_COL_NAME.text(), row.get(keyFieldIndex));
+    final GenericKey key = GenericKey.genericKey(row.get(keyFieldIndex));
 
-    return Pair.of(keyStruct, row);
+    return Pair.of(key, row);
   }
 
   /**

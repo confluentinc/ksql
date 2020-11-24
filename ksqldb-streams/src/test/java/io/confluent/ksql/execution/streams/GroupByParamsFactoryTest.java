@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -27,12 +28,12 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
-import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
@@ -48,7 +49,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.SchemaAndValue;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -158,10 +158,10 @@ public class GroupByParamsFactoryTest {
     when(groupBy0.evaluate(any(), any(), any(), any())).thenReturn(10);
 
     // When:
-    final Struct result = singleParams.getMapper().apply(value);
+    final GenericKey result = singleParams.getMapper().apply(value);
 
     // Then:
-    assertThat(result, is(structKey(ColumnName.of("KSQL_COL_1"), 10)));
+    assertThat(result, is(genericKey(10)));
   }
 
   @Test
@@ -171,10 +171,10 @@ public class GroupByParamsFactoryTest {
     when(groupBy1.evaluate(any(), any(), any(), any())).thenReturn(-100L);
 
     // When:
-    final Struct result = multiParams.getMapper().apply(value);
+    final GenericKey result = multiParams.getMapper().apply(value);
 
     // Then:
-    assertThat(result, is(structKey(ColumnName.of("KSQL_COL_1"), "99|+|-100")));
+    assertThat(result, is(genericKey("99|+|-100")));
   }
 
   @Test
@@ -183,7 +183,7 @@ public class GroupByParamsFactoryTest {
     when(groupBy0.evaluate(any(), any(), any(), any())).thenReturn(null);
 
     // When:
-    final Struct result = singleParams.getMapper().apply(value);
+    final GenericKey result = singleParams.getMapper().apply(value);
 
     // Then:
     assertThat(result, is(nullValue()));
@@ -213,7 +213,7 @@ public class GroupByParamsFactoryTest {
     when(groupBy0.evaluate(any(), any(), any(), any())).thenReturn(null);
 
     // When:
-    final Struct result = multiParams.getMapper().apply(value);
+    final GenericKey result = multiParams.getMapper().apply(value);
 
     // Then:
     assertThat(result, is(nullValue()));
@@ -243,7 +243,7 @@ public class GroupByParamsFactoryTest {
     when(groupBy0.evaluate(any(), any(), any(), any())).thenReturn(null);
 
     // When:
-    final Struct result = multiParams.getMapper().apply(value);
+    final GenericKey result = multiParams.getMapper().apply(value);
 
     // Then:
     assertThat(result, is(nullValue()));
@@ -314,17 +314,5 @@ public class GroupByParamsFactoryTest {
         .keyColumn(ColumnName.of("KSQL_COL_1"), SqlTypes.STRING)
         .valueColumns(SOURCE_SCHEMA.value())
         .build()));
-  }
-
-  private static Struct structKey(final ColumnName keyColName, final String keyValue) {
-    return StructKeyUtil
-        .keyBuilder(keyColName, SqlTypes.STRING)
-        .build(keyValue, 0);
-  }
-
-  private static Struct structKey(final ColumnName keyColName, final int keyValue) {
-    return StructKeyUtil
-        .keyBuilder(keyColName, SqlTypes.INTEGER)
-        .build(keyValue, 0);
   }
 }

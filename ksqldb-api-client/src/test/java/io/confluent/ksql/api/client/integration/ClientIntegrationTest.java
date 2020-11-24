@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.client.AcksPublisher;
 import io.confluent.ksql.api.client.BatchedQueryResult;
@@ -116,8 +117,8 @@ public class ClientIntegrationTest {
       ImmutableList.of("STR", "LONG", "DEC", "ARRAY", "MAP", "STRUCT", "COMPLEX");
   private static final List<ColumnType> TEST_COLUMN_TYPES =
       RowUtil.columnTypesFromStrings(ImmutableList.of("STRING", "BIGINT", "DECIMAL", "ARRAY", "MAP", "STRUCT", "STRUCT"));
-  private static final List<KsqlArray> TEST_EXPECTED_ROWS = convertToClientRows(
-      TEST_DATA_PROVIDER.data(), TEST_DATA_PROVIDER.key());
+  private static final List<KsqlArray> TEST_EXPECTED_ROWS =
+      convertToClientRows(TEST_DATA_PROVIDER.data());
 
   private static final Format KEY_FORMAT = FormatFactory.JSON;
   private static final Format VALUE_FORMAT = FormatFactory.JSON;
@@ -1139,13 +1140,13 @@ public class ClientIntegrationTest {
   }
 
   private static List<KsqlArray> convertToClientRows(
-      final Multimap<Struct, GenericRow> data,
-      final String keyField
+      final Multimap<GenericKey, GenericRow> data
   ) {
     final List<KsqlArray> expectedRows = new ArrayList<>();
-    for (final Map.Entry<Struct, GenericRow> entry : data.entries()) {
+    for (final Map.Entry<GenericKey, GenericRow> entry : data.entries()) {
       final KsqlArray expectedRow = new KsqlArray()
-          .add(entry.getKey().getString(keyField));
+          .add(entry.getKey().get(0));
+
       for (final Object value : entry.getValue().values()) {
         if (value instanceof Struct) {
           expectedRow.add(StructuredTypesDataProvider.structToMap((Struct) value));

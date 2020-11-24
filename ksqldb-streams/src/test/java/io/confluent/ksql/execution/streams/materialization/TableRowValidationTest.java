@@ -15,13 +15,11 @@
 
 package io.confluent.ksql.execution.streams.materialization;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 
 public class TableRowValidationTest {
@@ -33,26 +31,14 @@ public class TableRowValidationTest {
       .valueColumn(ColumnName.of("v1"), SqlTypes.DOUBLE)
       .build();
 
-  private static final Schema KEY_STRUCT_SCHEMA = SchemaBuilder.struct()
-      .field("k0", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("k1", Schema.OPTIONAL_INT32_SCHEMA)
-      .build();
-
-  private static final Struct A_KEY = new Struct(KEY_STRUCT_SCHEMA)
-      .put("k0", "key")
-      .put("k1", 11);
+  private static final GenericKey A_KEY = GenericKey.genericKey("key", 11);
 
   private static final GenericRow A_VALUE = GenericRow.genericRow("v0-v", 1.0d);
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnKeyFieldCountMismatch() {
     // Given:
-    final Schema schemaWithLessFields = SchemaBuilder.struct()
-        .field("k0", Schema.OPTIONAL_STRING_SCHEMA)
-        .build();
-
-    final Struct key = new Struct(schemaWithLessFields)
-        .put("k0", "key");
+    final GenericKey key = GenericKey.genericKey("key");
 
     // When:
     TableRowValidation.validate(SCHEMA, key, A_VALUE);

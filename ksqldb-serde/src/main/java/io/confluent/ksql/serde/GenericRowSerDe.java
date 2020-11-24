@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.serde;
 
-import static java.util.Objects.requireNonNull;
-
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
@@ -27,7 +25,6 @@ import io.confluent.ksql.serde.tracked.TrackedCallback;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -117,81 +114,24 @@ public final class GenericRowSerDe implements ValueSerdeFactory {
       final Serde<List<?>> innerSerde,
       final PersistenceSchema schema
   ) {
-    final Serializer<GenericRow> serializer =
-        new GenericRowSerializer(innerSerde.serializer(), schema.columns().size());
+    final Serializer<GenericRow> serializer = new GenericSerializer<>(
+        GenericRow::values,
+        innerSerde.serializer(),
+        schema.columns().size()
+    );
 
-    final Deserializer<GenericRow> deserializer =
-        new GenericRowDeserializer(innerSerde.deserializer(), schema.columns().size());
+    final Deserializer<GenericRow> deserializer = new GenericDeserializer<>(
+        GenericRowSerDe::createGenericRow,
+        innerSerde.deserializer(),
+        schema.columns().size()
+    );
 
     return Serdes.serdeFrom(serializer, deserializer);
   }
 
-  @VisibleForTesting
-  static class GenericRowSerializer implements Serializer<GenericRow> {
-
-    private final Serializer<List<?>> inner;
-    private final int numColumns;
-
-    GenericRowSerializer(final Serializer<List<?>> inner, final int numColumns) {
-      this.inner = requireNonNull(inner, "inner");
-      this.numColumns = numColumns;
-    }
-
-    @Override
-    public void configure(final Map<String, ?> configs, final boolean isKey) {
-      inner.configure(configs, isKey);
-    }
-
-    @Override
-    public byte[] serialize(final String topic, final GenericRow data) {
-      if (data == null) {
-        return inner.serialize(topic, null);
-      }
-
-      SerdeUtils.throwOnColumnCountMismatch(numColumns, data.size(), true, topic);
-
-      return inner.serialize(topic, data.values());
-    }
-
-    @Override
-    public void close() {
-      inner.close();
-    }
-  }
-
-  @VisibleForTesting
-  static class GenericRowDeserializer implements Deserializer<GenericRow> {
-
-    private final Deserializer<List<?>> inner;
-    private final int numColumns;
-
-    GenericRowDeserializer(final Deserializer<List<?>> inner, final int numColumns) {
-      this.inner = requireNonNull(inner, "inner");
-      this.numColumns = numColumns;
-    }
-
-    @Override
-    public void configure(final Map<String, ?> configs, final boolean isKey) {
-      inner.configure(configs, isKey);
-    }
-
-    @Override
-    public void close() {
-      inner.close();
-    }
-
-    @Override
-    public GenericRow deserialize(final String topic, final byte[] data) {
-      final List<?> values = inner.deserialize(topic, data);
-      if (values == null) {
-        return null;
-      }
-
-      SerdeUtils.throwOnColumnCountMismatch(numColumns, values.size(), false, topic);
-
-      final GenericRow row = new GenericRow(values.size() + ADDITIONAL_CAPACITY);
-      row.appendAll(values);
-      return row;
-    }
+  private static GenericRow createGenericRow(final List<?> values) {
+    final GenericRow row = new GenericRow(values.size() + ADDITIONAL_CAPACITY);
+    row.appendAll(values);
+    return row;
   }
 }

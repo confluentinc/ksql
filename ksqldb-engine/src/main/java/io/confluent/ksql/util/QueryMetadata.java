@@ -158,19 +158,24 @@ public abstract class QueryMetadata {
   protected void uncaughtHandler(final Thread t, final Throwable e) {
     QueryError.Type errorType = Type.UNKNOWN;
     try {
+      errorType = errorClassifier.classify(e);
+    } catch (final Exception classificationException) {
+      LOG.error("Error classifying unhandled exception", classificationException);
+      throw classificationException;
+    } finally {
+      // If error classification throws then we consider the error to be an UNKNOWN error.
+      // We notify listeners and add the error to the errors queue in the finally block to ensure
+      // all listeners and consumers of the error queue (e.g. the API) can see the error. Similarly,
+      // log in finally block to make sure that if there's ever an error in the classification
+      // we still get this in our logs.
       final QueryError queryError =
           new QueryError(
               System.currentTimeMillis(),
               Throwables.getStackTraceAsString(e),
-              errorClassifier.classify(e)
+              errorType
           );
-      errorType = queryError.getType();
-
       queryStateListener.ifPresent(lis -> lis.onError(queryError));
       queryErrors.add(queryError);
-    } finally {
-      // log in finally block to make sure that if there's ever an error in the classification
-      // we still get this in our logs
       LOG.error("Unhandled exception caught in streams thread {}. ({})", t.getName(), errorType, e);
     }
   }

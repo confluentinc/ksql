@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.entity;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -27,8 +28,6 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.TableRow;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
-import io.confluent.ksql.execution.util.StructKeyUtil;
-import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -41,9 +40,6 @@ import org.junit.Test;
 public class TableRowsFactoryTest {
 
   private static final ColumnName K0 = ColumnName.of("k0");
-
-  private static final KeyBuilder KEY_BUILDER = StructKeyUtil
-      .keyBuilder(K0, SqlTypes.STRING);
 
   private static final LogicalSchema SIMPLE_SCHEMA = LogicalSchema.builder()
       .keyColumn(K0, SqlTypes.STRING)
@@ -73,7 +69,7 @@ public class TableRowsFactoryTest {
     final List<? extends TableRow> input = ImmutableList.of(
         Row.of(
             SIMPLE_SCHEMA,
-            KEY_BUILDER.build("x", 0),
+            genericKey("x"),
             genericRow(false),
             ROWTIME
         )
@@ -97,13 +93,13 @@ public class TableRowsFactoryTest {
     final List<? extends TableRow> input = ImmutableList.of(
         WindowedRow.of(
             SIMPLE_SCHEMA,
-            new Windowed<>(KEY_BUILDER.build("x", 0), window0),
+            new Windowed<>(genericKey("x"), window0),
             genericRow(true),
             ROWTIME
         ),
         WindowedRow.of(
             SIMPLE_SCHEMA,
-            new Windowed<>(KEY_BUILDER.build("y", 0), window1),
+            new Windowed<>(genericKey("y"), window1),
             genericRow(false),
             ROWTIME
         )
@@ -126,7 +122,7 @@ public class TableRowsFactoryTest {
     final GenericRow row = genericRow(null, null, null, null);
 
     final Builder<Row> builder = ImmutableList.builder();
-    builder.add(Row.of(SCHEMA_NULL, KEY_BUILDER.build("k", 0), row, ROWTIME));
+    builder.add(Row.of(SCHEMA_NULL, genericKey("k"), row, ROWTIME));
 
     // When:
     final List<List<?>> output = TableRowsFactory.createRows(builder.build());

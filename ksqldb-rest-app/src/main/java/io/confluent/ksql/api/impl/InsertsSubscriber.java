@@ -17,6 +17,7 @@ package io.confluent.ksql.api.impl;
 
 import static io.confluent.ksql.api.impl.KeyValueExtractor.convertColumnNameCase;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
@@ -31,7 +32,6 @@ import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.ValueSerdeFactory;
-import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.VertxUtils;
@@ -46,8 +46,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Struct;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
@@ -62,8 +60,7 @@ public final class InsertsSubscriber extends BaseSubscriber<JsonObject> implemen
 
   private final Producer<byte[], byte[]> producer;
   private final DataSource dataSource;
-  private final ConnectSchema keySchema;
-  private final Serializer<Struct> keySerializer;
+  private final Serializer<GenericKey> keySerializer;
   private final Serializer<GenericRow> valueSerializer;
   private final BufferedPublisher<InsertResult> acksPublisher;
   private final WorkerExecutor workerExecutor;
@@ -92,7 +89,7 @@ public final class InsertsSubscriber extends BaseSubscriber<JsonObject> implemen
     );
 
     final KeySerdeFactory keySerdeFactory = new GenericKeySerDe();
-    final Serde<Struct> keySerde = keySerdeFactory.create(
+    final Serde<GenericKey> keySerde = keySerdeFactory.create(
         dataSource.getKsqlTopic().getKeyFormat().getFormatInfo(),
         physicalSchema.keySchema(),
         ksqlConfig,
@@ -123,7 +120,7 @@ public final class InsertsSubscriber extends BaseSubscriber<JsonObject> implemen
       final Context context,
       final Producer<byte[], byte[]> producer,
       final DataSource dataSource,
-      final Serializer<Struct> keySerializer,
+      final Serializer<GenericKey> keySerializer,
       final Serializer<GenericRow> valueSerializer,
       final BufferedPublisher<InsertResult> acksPublisher,
       final WorkerExecutor workerExecutor
@@ -131,7 +128,6 @@ public final class InsertsSubscriber extends BaseSubscriber<JsonObject> implemen
     super(context);
     this.producer = Objects.requireNonNull(producer);
     this.dataSource = Objects.requireNonNull(dataSource);
-    this.keySchema = ConnectSchemas.columnsToConnectSchema(dataSource.getSchema().key());
     this.keySerializer = Objects.requireNonNull(keySerializer);
     this.valueSerializer = Objects.requireNonNull(valueSerializer);
     this.acksPublisher = Objects.requireNonNull(acksPublisher);
@@ -155,7 +151,7 @@ public final class InsertsSubscriber extends BaseSubscriber<JsonObject> implemen
     try {
       final JsonObject jsonObject = convertColumnNameCase(jsonObjectWithCaseInsensitiveFields);
 
-      final Struct key = extractKey(jsonObject);
+      final GenericKey key = extractKey(jsonObject);
       final GenericRow values = extractValues(jsonObject);
 
       final String topicName = dataSource.getKafkaTopicName();
@@ -205,8 +201,8 @@ public final class InsertsSubscriber extends BaseSubscriber<JsonObject> implemen
     }
   }
 
-  private Struct extractKey(final JsonObject values) {
-    return KeyValueExtractor.extractKey(values, keySchema, SQL_VALUE_COERCER);
+  private GenericKey extractKey(final JsonObject values) {
+    return KeyValueExtractor.extractKey(values, dataSource.getSchema(), SQL_VALUE_COERCER);
   }
 
   private GenericRow extractValues(final JsonObject values) {

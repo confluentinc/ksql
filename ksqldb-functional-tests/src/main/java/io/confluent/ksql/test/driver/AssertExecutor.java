@@ -17,6 +17,7 @@ package io.confluent.ksql.test.driver;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.generic.GenericRecordFactory;
@@ -49,7 +50,6 @@ import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.test.TestRecord;
 
 /**
@@ -162,7 +162,7 @@ public final class AssertExecutor {
       expected = KsqlGenericRecord.of(expected.key, null, expected.ts);
     }
 
-    final Iterator<TestRecord<Struct, GenericRow>> records = driverPipeline
+    final Iterator<TestRecord<GenericKey, GenericRow>> records = driverPipeline
         .getRecordsForTopic(dataSource.getKafkaTopicName());
     if (!records.hasNext()) {
       throwAssertionError(
@@ -176,7 +176,7 @@ public final class AssertExecutor {
       );
     }
 
-    final TestRecord<Struct, GenericRow> actualTestRecord = records.next();
+    final TestRecord<GenericKey, GenericRow> actualTestRecord = records.next();
     final KsqlGenericRecord actual = KsqlGenericRecord.of(
         actualTestRecord.key(),
         actualTestRecord.value(),
@@ -226,9 +226,7 @@ public final class AssertExecutor {
   ) {
     final GenericRow contents = new GenericRow();
     contents.append(expected ? "EXPECTED" : "ACTUAL");
-    for (final Column key : source.getSchema().key()) {
-      contents.append(row.key.get(key.name().text()));
-    }
+    contents.appendAll(row.key.values());
     contents.append(row.ts);
     if (row.value == null) {
       for (final Column ignored : source.getSchema().value()) {

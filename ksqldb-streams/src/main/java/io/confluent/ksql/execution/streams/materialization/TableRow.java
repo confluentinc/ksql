@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.execution.streams.materialization;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
 
 public interface TableRow {
 
@@ -26,7 +26,7 @@ public interface TableRow {
 
   long rowTime();
 
-  Struct key();
+  GenericKey key();
 
   Optional<Window> window();
 

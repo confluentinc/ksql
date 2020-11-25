@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static io.confluent.ksql.GenericKey.genericKey;
+
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
@@ -25,8 +27,7 @@ import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.streams.PartitionByParams.Mapper;
 import io.confluent.ksql.execution.util.ColumnExtractor;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
-import io.confluent.ksql.execution.util.StructKeyUtil;
-import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
+import io.confluent.ksql.execution.util.KeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
@@ -181,11 +182,9 @@ public final class PartitionByParamsFactory {
     // stream processing, in the same way SourceBuilder appends the key and rowtime to the value:
     final boolean appendNewKey = !partitionByCol.isPresent();
 
-    final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(resultSchema);
-
     return (oldK, row) -> {
       final Object newKey = evaluator.evaluate(oldK, row);
-      final K key = executionKeyFactory.constructNewKey(oldK, keyBuilder.build(newKey, 0));
+      final K key = executionKeyFactory.constructNewKey(oldK, genericKey(newKey));
 
       if (row != null && appendNewKey) {
         row.append(newKey);
@@ -244,7 +243,7 @@ public final class PartitionByParamsFactory {
 
     Object evaluate(final Object key, final GenericRow value) {
       final GenericRow row = evaluateOnKeyOnly
-          ? GenericRow.fromList(StructKeyUtil.asList(key))
+          ? GenericRow.fromList(KeyUtil.asList(key))
           : value;
       return expressionMetadata.evaluate(row, null, logger, errorMsg);
     }

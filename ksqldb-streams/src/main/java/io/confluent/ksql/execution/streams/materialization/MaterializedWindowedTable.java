@@ -16,9 +16,9 @@
 package io.confluent.ksql.execution.streams.materialization;
 
 import com.google.common.collect.Range;
+import io.confluent.ksql.GenericKey;
 import java.time.Instant;
 import java.util.List;
-import org.apache.kafka.connect.data.Struct;
 
 /**
  * Materialization of a table with a windowed key
@@ -26,8 +26,8 @@ import org.apache.kafka.connect.data.Struct;
 public interface MaterializedWindowedTable {
 
   /**
-   * Get the values in table of the supplied {@code key}, where the window start time is within
-   * the supplied {@code lower} and {@code upper} bounds.
+   * Get the values in table of the supplied {@code key}, where the window start time is within the
+   * supplied {@code lower} and {@code upper} bounds.
    *
    * @param key the key to look up.
    * @param partition partition to limit the get to
@@ -35,6 +35,6 @@ public interface MaterializedWindowedTable {
    * @param windowEnd the bounds on the window's end time.
    * @return the rows for the key that exist within the range.
    */
-  List<WindowedRow> get(Struct key, int partition, Range<Instant> windowStart,
+  List<WindowedRow> get(GenericKey key, int partition, Range<Instant> windowStart,
       Range<Instant> windowEnd);
 }

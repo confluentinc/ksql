@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.streams.materialization.ks;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.materialization.Locator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
@@ -27,7 +28,6 @@ import java.net.URL;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 
@@ -73,7 +73,7 @@ public final class KsMaterializationFactory {
       final String stateStoreName,
       final KafkaStreams kafkaStreams,
       final LogicalSchema schema,
-      final Serializer<Struct> keySerializer,
+      final Serializer<GenericKey> keySerializer,
       final Optional<WindowInfo> windowInfo,
       final Map<String, ?> streamsProperties,
       final KsqlConfig ksqlConfig,
@@ -128,7 +128,7 @@ public final class KsMaterializationFactory {
     KsLocator create(
         String stateStoreName,
         KafkaStreams kafkaStreams,
-        Serializer<Struct> keySerializer,
+        Serializer<GenericKey> keySerializer,
         URL localHost,
         String applicationId
     );

@@ -14,15 +14,15 @@
  */
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.util.StructKeyUtil;
-import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -74,29 +74,23 @@ public class StructuredTypesDataProvider extends TestDataProvider {
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
       .from(LOGICAL_SCHEMA, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES), SerdeFeatures.of());
 
-  private static final KeyBuilder KEY_BUILDER = StructKeyUtil.keyBuilder(LOGICAL_SCHEMA);
-
   private static final ConnectSchema VALUE_CONNECT_SCHEMA = ConnectSchemas.columnsToConnectSchema(LOGICAL_SCHEMA.value());
   private static final Schema STRUCT_FIELD_SCHEMA = VALUE_CONNECT_SCHEMA.field("STRUCT").schema();
   private static final Schema COMPLEX_FIELD_SCHEMA = VALUE_CONNECT_SCHEMA.field("COMPLEX").schema();
 
-  private static final Multimap<Struct, GenericRow> ROWS = ImmutableListMultimap
-      .<Struct, GenericRow>builder()
-      .put(buildKey("FOO"), genericRow(1L, new BigDecimal("1.11"), Collections.singletonList("a"), Collections.singletonMap("k1", "v1"), generateStruct(2), generateComplexStruct(0)))
-      .put(buildKey("BAR"), genericRow(2L, new BigDecimal("2.22"), Collections.emptyList(), Collections.emptyMap(), generateStruct(3), generateComplexStruct(1)))
-      .put(buildKey("BAZ"), genericRow(3L, new BigDecimal("30.33"), Collections.singletonList("b"), Collections.emptyMap(), generateStruct(null), generateComplexStruct(2)))
-      .put(buildKey("BUZZ"), genericRow(4L, new BigDecimal("40.44"), ImmutableList.of("c", "d"), Collections.emptyMap(), generateStruct(88), generateComplexStruct(3)))
+  private static final Multimap<GenericKey, GenericRow> ROWS = ImmutableListMultimap
+      .<GenericKey, GenericRow>builder()
+      .put(genericKey("FOO"), genericRow(1L, new BigDecimal("1.11"), Collections.singletonList("a"), Collections.singletonMap("k1", "v1"), generateStruct(2), generateComplexStruct(0)))
+      .put(genericKey("BAR"), genericRow(2L, new BigDecimal("2.22"), Collections.emptyList(), Collections.emptyMap(), generateStruct(3), generateComplexStruct(1)))
+      .put(genericKey("BAZ"), genericRow(3L, new BigDecimal("30.33"), Collections.singletonList("b"), Collections.emptyMap(), generateStruct(null), generateComplexStruct(2)))
+      .put(genericKey("BUZZ"), genericRow(4L, new BigDecimal("40.44"), ImmutableList.of("c", "d"), Collections.emptyMap(), generateStruct(88), generateComplexStruct(3)))
       // Additional entries for repeated keys
-      .put(buildKey("BAZ"), genericRow(5L, new BigDecimal("12.0"), ImmutableList.of("e"), ImmutableMap.of("k1", "v1", "k2", "v2"), generateStruct(0), generateComplexStruct(4)))
-      .put(buildKey("BUZZ"), genericRow(6L, new BigDecimal("10.1"), ImmutableList.of("f", "g"), Collections.emptyMap(), generateStruct(null), generateComplexStruct(5)))
+      .put(genericKey("BAZ"), genericRow(5L, new BigDecimal("12.0"), ImmutableList.of("e"), ImmutableMap.of("k1", "v1", "k2", "v2"), generateStruct(0), generateComplexStruct(4)))
+      .put(genericKey("BUZZ"), genericRow(6L, new BigDecimal("10.1"), ImmutableList.of("f", "g"), Collections.emptyMap(), generateStruct(null), generateComplexStruct(5)))
       .build();
 
   public StructuredTypesDataProvider() {
     super("STRUCTURED_TYPES", PHYSICAL_SCHEMA, ROWS);
-  }
-
-  private static Struct buildKey(final String key) {
-    return KEY_BUILDER.build(key, 0);
   }
 
   @SuppressWarnings("unchecked")

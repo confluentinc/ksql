@@ -15,14 +15,15 @@
 
 package io.confluent.ksql.execution.function;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Aggregator;
 import org.apache.kafka.streams.kstream.Merger;
 
 public interface UdafAggregator<K> extends Aggregator<K, GenericRow, GenericRow> {
-  Merger<Struct, GenericRow> getMerger();
+
+  Merger<GenericKey, GenericRow> getMerger();
 
   /**
    * @return a transformer to map the intermediate schema the output schema

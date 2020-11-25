@@ -16,6 +16,7 @@
 package io.confluent.ksql.serde;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.tracked.TrackedCallback;
@@ -23,7 +24,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 
 /**
@@ -43,7 +43,7 @@ public interface KeySerdeFactory {
    * @param tracker optional tracker of serde operations.
    * @return the key serde.
    */
-  Serde<Struct> create(
+  Serde<GenericKey> create(
       FormatInfo format,
       PersistenceSchema schema,
       KsqlConfig ksqlConfig,
@@ -66,7 +66,7 @@ public interface KeySerdeFactory {
    * @param tracker optional tracker of serde operations.
    * @return the key serde.
    */
-  Serde<Windowed<Struct>> create(
+  Serde<Windowed<GenericKey>> create(
       FormatInfo format,
       WindowInfo window,
       PersistenceSchema schema,

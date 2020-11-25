@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.streams.materialization.ks;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Range;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
@@ -27,7 +28,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
@@ -54,13 +54,13 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
 
   @Override
   public List<WindowedRow> get(
-      final Struct key,
+      final GenericKey key,
       final int partition,
       final Range<Instant> windowStartBounds,
       final Range<Instant> windowEndBounds
   ) {
     try {
-      final ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>> store = stateStore
+      final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store = stateStore
           .store(QueryableStoreTypes.timestampedWindowStore(), partition);
 
       final Instant lower = calculateLowerBound(windowStartBounds, windowEndBounds);

@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.generic.GenericRecordFactory;
@@ -63,7 +64,6 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -241,7 +241,7 @@ public class InsertValuesExecutor {
   }
 
   private byte[] serializeKey(
-      final Struct keyValue,
+      final GenericKey keyValue,
       final DataSource dataSource,
       final KsqlConfig config,
       final ServiceContext serviceContext
@@ -254,7 +254,7 @@ public class InsertValuesExecutor {
 
     ensureKeySchemasMatch(physicalSchema.keySchema(), dataSource, serviceContext);
 
-    final Serde<Struct> keySerde = keySerdeFactory.create(
+    final Serde<GenericKey> keySerde = keySerdeFactory.create(
         dataSource.getKsqlTopic().getKeyFormat().getFormatInfo(),
         physicalSchema.keySchema(),
         config,
@@ -288,7 +288,7 @@ public class InsertValuesExecutor {
    * schemaID, meaning that logically identical keys might be routed to
    * different partitions.
    */
-  private void ensureKeySchemasMatch(
+  private static void ensureKeySchemasMatch(
       final PersistenceSchema keySchema,
       final DataSource dataSource,
       final ServiceContext serviceContext

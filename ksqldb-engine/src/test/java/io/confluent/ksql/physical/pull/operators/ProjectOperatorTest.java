@@ -21,7 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.Range;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
@@ -31,7 +31,6 @@ import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper;
 import io.confluent.ksql.execution.transform.select.SelectValueMapperFactory.SelectValueMapperFactorySupplier;
-import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.model.WindowType;
@@ -44,7 +43,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.junit.Test;
@@ -62,8 +60,7 @@ public class ProjectOperatorTest {
       .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
       .build();
 
-  private static final Struct A_KEY = StructKeyUtil
-      .keyBuilder(ColumnName.of("k0"), SqlTypes.STRING).build("k", 0);
+  private static final GenericKey A_KEY = GenericKey.genericKey("k");
   private static final long A_ROWTIME = 12335L;
 
   private static final Window A_WINDOW = Window.of(Instant.now(), Instant.now().plusMillis(10));
@@ -121,8 +118,7 @@ public class ProjectOperatorTest {
     Object result = projectOperator.next();
 
     // Then:
-    final List<Object> expected = new ArrayList<>();
-    row.key().schema().fields().stream().map(row.key()::get).forEach(expected::add);
+    final List<Object> expected = new ArrayList<>(row.key().values());
     expected.addAll(row.value().values());
     assertThat(result, is(expected));
     Mockito.verifyZeroInteractions(selectValueMapper);
@@ -157,8 +153,7 @@ public class ProjectOperatorTest {
     Object result = projectOperator.next();
 
     // Then:
-    final List<Object> expected = new ArrayList<>();
-    windowedRow.key().schema().fields().stream().map(windowedRow.key()::get).forEach(expected::add);
+    final List<Object> expected = new ArrayList<>(windowedRow.key().values());
     expected.add(windowedRow.window().get().start().toEpochMilli());
     expected.add(windowedRow.window().get().end().toEpochMilli());
     expected.addAll(windowedRow.value().values());
@@ -278,9 +273,7 @@ public class ProjectOperatorTest {
     Object result = projectOperator.next();
 
     // Then:
-    final List<Object> expected = new ArrayList<>();
-    row.key().schema().fields().stream().map(row.key()::get).forEach(expected::add);
-    assertThat(result, is(expected));
+    assertThat(result, is(row.key().values()));
   }
 
   @Test
@@ -321,8 +314,7 @@ public class ProjectOperatorTest {
     Object result = projectOperator.next();
 
     // Then:
-    final List<Object> expected = new ArrayList<>();
-    row.key().schema().fields().stream().map(row.key()::get).forEach(expected::add);
+    final List<Object> expected = new ArrayList<>(row.key().values());
     expected.add(row.value().values().get(1));
     assertThat(result, is(expected));
   }
@@ -369,10 +361,8 @@ public class ProjectOperatorTest {
     Object result = projectOperator.next();
 
     // Then:
-    final List<Object> expected = new ArrayList<>();
-    windowedRow.key().schema().fields().stream().map(windowedRow.key()::get).forEach(expected::add);
+    final List<Object> expected = new ArrayList<>(windowedRow.key().values());
     expected.add(windowedRow.value().values().get(1));
     assertThat(result, is(expected));
   }
-
 }

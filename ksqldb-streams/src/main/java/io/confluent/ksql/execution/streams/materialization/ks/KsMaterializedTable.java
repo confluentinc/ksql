@@ -15,13 +15,13 @@
 
 package io.confluent.ksql.execution.streams.materialization.ks;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.apache.kafka.streams.state.ValueAndTimestamp;
@@ -39,11 +39,11 @@ class KsMaterializedTable implements MaterializedTable {
 
   @Override
   public Optional<Row> get(
-      final Struct key,
+      final GenericKey key,
       final int partition
   ) {
     try {
-      final ReadOnlyKeyValueStore<Struct, ValueAndTimestamp<GenericRow>> store = stateStore
+      final ReadOnlyKeyValueStore<GenericKey, ValueAndTimestamp<GenericRow>> store = stateStore
           .store(QueryableStoreTypes.timestampedKeyValueStore(), partition);
 
       return Optional.ofNullable(store.get(key))

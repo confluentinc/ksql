@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.streams.materialization.ks;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Range;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
@@ -26,7 +27,6 @@ import io.confluent.ksql.execution.streams.materialization.ks.SessionStoreCacheB
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -50,13 +50,13 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
 
   @Override
   public List<WindowedRow> get(
-      final Struct key,
+      final GenericKey key,
       final int partition,
       final Range<Instant> windowStart,
       final Range<Instant> windowEnd
   ) {
     try {
-      final ReadOnlySessionStore<Struct, GenericRow> store = stateStore
+      final ReadOnlySessionStore<GenericKey, GenericRow> store = stateStore
           .store(QueryableStoreTypes.sessionStore(), partition);
 
       return findSession(store, key, windowStart, windowEnd);
@@ -66,17 +66,18 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
   }
 
   private List<WindowedRow> findSession(
-      final ReadOnlySessionStore<Struct, GenericRow> store,
-      final Struct key,
+      final ReadOnlySessionStore<GenericKey, GenericRow> store,
+      final GenericKey key,
       final Range<Instant> windowStart,
       final Range<Instant> windowEnd
   ) {
-    try (KeyValueIterator<Windowed<Struct>, GenericRow> it = cacheBypassFetcher.fetch(store, key)) {
+    try (KeyValueIterator<Windowed<GenericKey>, GenericRow> it =
+        cacheBypassFetcher.fetch(store, key)) {
 
       final Builder<WindowedRow> builder = ImmutableList.builder();
 
       while (it.hasNext()) {
-        final KeyValue<Windowed<Struct>, GenericRow> next = it.next();
+        final KeyValue<Windowed<GenericKey>, GenericRow> next = it.next();
         final Window wnd = next.key.window();
 
         if (!windowStart.contains(wnd.startTime())) {

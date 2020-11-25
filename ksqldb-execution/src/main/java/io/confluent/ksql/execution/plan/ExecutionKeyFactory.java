@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.execution.plan;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -22,15 +23,14 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Objects;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 
 /**
  * The {@code ExecutionKeyFactory} is in charge of creating the keys
  * and the Serdes for the keys of any particular execution step.
  *
- * @param <K> the type of the key, usually either {@code Struct}
- *            or {@code Windowed<Struct>}
+ * @param <K> the type of the key, usually either {@code GenericKey}
+ *            or {@code Windowed<GenericKey>}
  */
 @EffectivelyImmutable
 public interface ExecutionKeyFactory<K> {
@@ -54,20 +54,20 @@ public interface ExecutionKeyFactory<K> {
    *
    * @return a new key of type {@code K} given the struct contents of the new key
    */
-  K constructNewKey(K oldKey, Struct newKey);
+  K constructNewKey(K oldKey, GenericKey newKey);
 
-  static ExecutionKeyFactory<Struct> unwindowed(final KsqlQueryBuilder queryBuilder) {
+  static ExecutionKeyFactory<GenericKey> unwindowed(final KsqlQueryBuilder queryBuilder) {
     return new UnwindowedFactory(queryBuilder);
   }
 
-  static ExecutionKeyFactory<Windowed<Struct>> windowed(
+  static ExecutionKeyFactory<Windowed<GenericKey>> windowed(
       final KsqlQueryBuilder queryBuilder,
       final WindowInfo windowInfo
   ) {
     return new WindowedFactory(windowInfo, queryBuilder);
   }
 
-  class UnwindowedFactory implements ExecutionKeyFactory<Struct> {
+  class UnwindowedFactory implements ExecutionKeyFactory<GenericKey> {
 
     private final KsqlQueryBuilder queryBuilder;
 
@@ -76,7 +76,7 @@ public interface ExecutionKeyFactory<K> {
     }
 
     @Override
-    public Serde<Struct> buildKeySerde(
+    public Serde<GenericKey> buildKeySerde(
         final FormatInfo format,
         final PhysicalSchema physicalSchema,
         final QueryContext queryContext
@@ -85,17 +85,17 @@ public interface ExecutionKeyFactory<K> {
     }
 
     @Override
-    public ExecutionKeyFactory<Struct> withQueryBuilder(final KsqlQueryBuilder builder) {
+    public ExecutionKeyFactory<GenericKey> withQueryBuilder(final KsqlQueryBuilder builder) {
       return new UnwindowedFactory(builder);
     }
 
     @Override
-    public Struct constructNewKey(final Struct oldKey, final Struct newKey) {
+    public GenericKey constructNewKey(final GenericKey oldKey, final GenericKey newKey) {
       return newKey;
     }
   }
 
-  class WindowedFactory implements ExecutionKeyFactory<Windowed<Struct>> {
+  class WindowedFactory implements ExecutionKeyFactory<Windowed<GenericKey>> {
 
     private final WindowInfo windowInfo;
     private final KsqlQueryBuilder queryBuilder;
@@ -106,7 +106,7 @@ public interface ExecutionKeyFactory<K> {
     }
 
     @Override
-    public Serde<Windowed<Struct>> buildKeySerde(
+    public Serde<Windowed<GenericKey>> buildKeySerde(
         final FormatInfo format,
         final PhysicalSchema physicalSchema,
         final QueryContext queryContext) {
@@ -114,12 +114,17 @@ public interface ExecutionKeyFactory<K> {
     }
 
     @Override
-    public ExecutionKeyFactory<Windowed<Struct>> withQueryBuilder(final KsqlQueryBuilder builder) {
+    public ExecutionKeyFactory<Windowed<GenericKey>> withQueryBuilder(
+        final KsqlQueryBuilder builder
+    ) {
       return new WindowedFactory(windowInfo, builder);
     }
 
     @Override
-    public Windowed<Struct> constructNewKey(final Windowed<Struct> oldKey, final Struct newKey) {
+    public Windowed<GenericKey> constructNewKey(
+        final Windowed<GenericKey> oldKey,
+        final GenericKey newKey
+    ) {
       return new Windowed<>(newKey, oldKey.window());
     }
   }

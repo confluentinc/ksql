@@ -14,20 +14,19 @@
  */
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
 
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.util.StructKeyUtil;
-import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeFeatures;
-import org.apache.kafka.connect.data.Struct;
 
 /**
  * Provides a table where the changelog contains tombstones.
@@ -42,25 +41,19 @@ public class TombstoneProvider extends TestDataProvider {
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
       .from(LOGICAL_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
-  private static final KeyBuilder KEY_BUILDER = StructKeyUtil.keyBuilder(LOGICAL_SCHEMA);
-
-  private static final Multimap<Struct, GenericRow> ROWS;
+  private static final Multimap<GenericKey, GenericRow> ROWS;
 
   static {
-    final LinkedListMultimap<Struct, GenericRow> rows = LinkedListMultimap.create();
-    rows.put(buildKey(1), genericRow("a"));
-    rows.put(buildKey(1), null);
-    rows.put(buildKey(2), genericRow("b"));
-    rows.put(buildKey(3), genericRow("c"));
-    rows.put(buildKey(2), null);
+    final LinkedListMultimap<GenericKey, GenericRow> rows = LinkedListMultimap.create();
+    rows.put(genericKey(1), genericRow("a"));
+    rows.put(genericKey(1), null);
+    rows.put(genericKey(2), genericRow("b"));
+    rows.put(genericKey(3), genericRow("c"));
+    rows.put(genericKey(2), null);
     ROWS = Multimaps.unmodifiableMultimap(rows);
   }
 
   public TombstoneProvider() {
     super("TOMBSTONE", PHYSICAL_SCHEMA, ROWS);
-  }
-
-  private static Struct buildKey(final int key) {
-    return KEY_BUILDER.build(key, 0);
   }
 }

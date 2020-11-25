@@ -27,16 +27,15 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.execution.streams.materialization.Row;
-import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.apache.kafka.streams.state.ValueAndTimestamp;
@@ -56,14 +55,13 @@ public class KsMaterializedTableTest {
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
       .build();
 
-  private static final Struct A_KEY = StructKeyUtil
-      .keyBuilder(ColumnName.of("K0"), SqlTypes.STRING).build("x", 0);
+  private static final GenericKey A_KEY = GenericKey.genericKey("x");
   private static final int PARTITION = 0;
 
   @Mock
   private KsStateStore stateStore;
   @Mock
-  private ReadOnlyKeyValueStore<Struct, ValueAndTimestamp<GenericRow>> tableStore;
+  private ReadOnlyKeyValueStore<GenericKey, ValueAndTimestamp<GenericRow>> tableStore;
   @Captor
   private ArgumentCaptor<QueryableStoreType<?>> storeTypeCaptor;
 

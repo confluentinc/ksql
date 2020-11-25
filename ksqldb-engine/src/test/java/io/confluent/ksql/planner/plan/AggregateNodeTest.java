@@ -37,6 +37,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -64,7 +65,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.kstream.Aggregator;
@@ -99,7 +99,7 @@ public class AggregateNodeTest {
   @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
   @Mock
-  private Serde<Struct> keySerde;
+  private Serde<GenericKey> keySerde;
   @Mock
   private ProcessorContext ctx;
   @Mock

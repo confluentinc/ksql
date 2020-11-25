@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -45,7 +46,6 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlConfig;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
@@ -83,11 +83,11 @@ public class StreamSelectKeyBuilderTest {
   private static final KsqlConfig CONFIG = new KsqlConfig(ImmutableMap.of());
 
   @Mock
-  private KStream<Struct, GenericRow> kstream;
+  private KStream<GenericKey, GenericRow> kstream;
   @Mock
-  private KStream<Struct, GenericRow> rekeyedKstream;
+  private KStream<GenericKey, GenericRow> rekeyedKstream;
   @Mock
-  private ExecutionStep<KStreamHolder<Struct>> sourceStep;
+  private ExecutionStep<KStreamHolder<GenericKey>> sourceStep;
   @Mock
   private KsqlQueryBuilder queryBuilder;
   @Mock
@@ -95,28 +95,28 @@ public class StreamSelectKeyBuilderTest {
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
-  private KStreamHolder<Struct> stream;
+  private KStreamHolder<GenericKey> stream;
   @Mock
   private PartitionByParamsBuilder paramBuilder;
   @Mock
-  private PartitionByParams<Struct> params;
+  private PartitionByParams<GenericKey> params;
   @Mock
-  private PartitionByParams.Mapper<Struct> mapper;
+  private PartitionByParams.Mapper<GenericKey> mapper;
   @Mock
-  private Struct aKey;
+  private GenericKey aKey;
   @Mock
   private GenericRow aValue;
   @Mock
-  private ExecutionKeyFactory<Struct> keyFactory;
+  private ExecutionKeyFactory<GenericKey> keyFactory;
   @Captor
-  private ArgumentCaptor<KeyValueMapper<Struct, GenericRow, KeyValue<Struct, GenericRow>>> mapperCaptor;
+  private ArgumentCaptor<KeyValueMapper<GenericKey, GenericRow, KeyValue<GenericKey, GenericRow>>> mapperCaptor;
   @Captor
   private ArgumentCaptor<Named> nameCaptor;
 
   private final QueryContext queryContext =
       new QueryContext.Stacker().push("ya").getQueryContext();
 
-  private StreamSelectKey<Struct> selectKey;
+  private StreamSelectKey<GenericKey> selectKey;
 
   @Before
   @SuppressWarnings("unchecked")
@@ -174,8 +174,8 @@ public class StreamSelectKeyBuilderTest {
     // Then:
     verify(kstream).map(mapperCaptor.capture(), any());
 
-    final KeyValueMapper<Struct, GenericRow, KeyValue<Struct, GenericRow>> result = mapperCaptor
-        .getValue();
+    final KeyValueMapper<GenericKey, GenericRow, KeyValue<GenericKey, GenericRow>> result =
+        mapperCaptor.getValue();
 
     // When:
     result.apply(aKey, aValue);
@@ -210,7 +210,7 @@ public class StreamSelectKeyBuilderTest {
   @Test
   public void shouldReturnRekeyedStream() {
     // When:
-    final KStreamHolder<Struct> result = StreamSelectKeyBuilder
+    final KStreamHolder<GenericKey> result = StreamSelectKeyBuilder
         .build(stream, selectKey, queryBuilder, paramBuilder);
 
     // Then:
@@ -220,7 +220,7 @@ public class StreamSelectKeyBuilderTest {
   @Test
   public void shouldReturnCorrectSchema() {
     // When:
-    final KStreamHolder<Struct> result = StreamSelectKeyBuilder
+    final KStreamHolder<GenericKey> result = StreamSelectKeyBuilder
         .build(stream, selectKey, queryBuilder, paramBuilder);
 
     // Then:
@@ -230,7 +230,7 @@ public class StreamSelectKeyBuilderTest {
   @Test
   public void shouldReturnCorrectSerdeFactory() {
     // When:
-    final KStreamHolder<Struct> result = StreamSelectKeyBuilder
+    final KStreamHolder<GenericKey> result = StreamSelectKeyBuilder
         .build(stream, selectKey, queryBuilder, paramBuilder);
 
     // Then:

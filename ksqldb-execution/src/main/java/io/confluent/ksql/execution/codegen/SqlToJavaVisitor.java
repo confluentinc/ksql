@@ -115,7 +115,6 @@ import org.apache.kafka.connect.data.Struct;
 public class SqlToJavaVisitor {
 
   public static final List<String> JAVA_IMPORTS = ImmutableList.of(
-      "org.apache.kafka.connect.data.Struct",
       "io.confluent.ksql.execution.codegen.helpers.ArrayAccess",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction.LazyWhenClause",

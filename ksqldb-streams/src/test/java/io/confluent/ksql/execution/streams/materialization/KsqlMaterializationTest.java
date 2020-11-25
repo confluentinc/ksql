@@ -33,11 +33,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterialization.KsqlMaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterialization.KsqlMaterializedWindowedTable;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterialization.Transform;
-import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -45,7 +45,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
@@ -65,8 +64,8 @@ public class KsqlMaterializationTest {
       .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
       .build();
 
-  private static final Struct A_KEY = StructKeyUtil
-      .keyBuilder(ColumnName.of("k0"), SqlTypes.STRING).build("k", 0);
+  private static final GenericKey A_KEY = GenericKey.genericKey("k");
+
   private static final long A_ROWTIME = 12335L;
 
   private static final Range<Instant> WINDOW_START_BOUNDS = Range.closed(

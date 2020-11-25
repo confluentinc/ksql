@@ -32,6 +32,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
@@ -49,7 +50,6 @@ import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes.SessionWindowedSerde;
 import org.apache.kafka.streams.kstream.WindowedSerdes.TimeWindowedSerde;
@@ -174,7 +174,7 @@ public class GenericKeySerDeTest {
   @Test
   public void shouldReturnLoggingSerdeNonWindowed() {
     // When:
-    final Serde<Struct> result = factory
+    final Serde<GenericKey> result = factory
         .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
             Optional.empty());
 
@@ -215,7 +215,7 @@ public class GenericKeySerDeTest {
   @Test
   public void shouldReturnedTimeWindowedSerdeForNonSessionWindowed() {
     // When:
-    final Serde<Windowed<Struct>> result = factory
+    final Serde<Windowed<GenericKey>> result = factory
         .create(format, TIMED_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
             Optional.empty());
 
@@ -226,7 +226,7 @@ public class GenericKeySerDeTest {
   @Test
   public void shouldReturnedSessionWindowedSerdeForSessionWindowed() {
     // When:
-    final Serde<Windowed<Struct>> result = factory
+    final Serde<Windowed<GenericKey>> result = factory
         .create(format, SESSION_WND, schema, config, srClientFactory, LOGGER_PREFIX,
             processingLogCxt,
             Optional.empty());

@@ -16,7 +16,7 @@
 package io.confluent.ksql.physical.pull;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -52,11 +52,9 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -65,9 +63,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Struct;
 
 /**
  * Traverses the logical plan top-down and creates a physical plan for pull queries.
@@ -75,6 +70,7 @@ import org.apache.kafka.connect.data.Struct;
  * The logical plan should consist of Project, Filter and DataSource nodes only.
  */
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
+@SuppressWarnings("UnstableApiUsage")
 public class PullPhysicalPlanBuilder {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
@@ -89,7 +85,7 @@ public class PullPhysicalPlanBuilder {
   private final Materialization mat;
 
   private WhereInfo whereInfo;
-  private List<Struct> keys;
+  private List<GenericKey> keys;
 
   public PullPhysicalPlanBuilder(
       final MetaStore metaStore,
@@ -147,7 +143,7 @@ public class PullPhysicalPlanBuilder {
         currentPhysicalOp = translateFilterNode((FilterNode)currentLogicalNode);
       } else if (currentLogicalNode instanceof DataSourceNode) {
         currentPhysicalOp = translateDataSourceNode(
-            (DataSourceNode) currentLogicalNode, persistentQueryMetadata);
+            (DataSourceNode) currentLogicalNode);
         dataSourceOperator = (DataSourceOperator)currentPhysicalOp;
       } else {
         throw new KsqlException("Error in translating logical to physical plan for pull queries: "
@@ -227,14 +223,13 @@ public class PullPhysicalPlanBuilder {
   }
 
   private AbstractPhysicalOperator translateDataSourceNode(
-      final DataSourceNode logicalNode,
-      final PersistentQueryMetadata persistentQueryMetadata
+      final DataSourceNode logicalNode
   ) {
     if (whereInfo == null) {
       throw new KsqlException("Pull queries must have a WHERE clause");
     }
     keys = whereInfo.getKeysBound().stream()
-        .map(keyBound -> asKeyStruct(keyBound, persistentQueryMetadata.getPhysicalSchema()))
+        .map(GenericKey::genericKey)
         .collect(ImmutableList.toImmutableList());
 
     if (!whereInfo.isWindowed()) {
@@ -243,17 +238,6 @@ public class PullPhysicalPlanBuilder {
       return new KeyedWindowedTableLookupOperator(
           mat, logicalNode, whereInfo.getWindowBounds().get());
     }
-  }
-
-  private Struct asKeyStruct(final Object keyValue, final PhysicalSchema physicalSchema) {
-    final ConnectSchema keySchema = ConnectSchemas
-        .columnsToConnectSchema(physicalSchema.keySchema().columns());
-
-    final Field keyField = Iterables.getOnlyElement(keySchema.fields());
-
-    final Struct key = new Struct(keySchema);
-    key.put(keyField, keyValue);
-    return key;
   }
 
   private LogicalSchema selectOutputSchema(
@@ -284,7 +268,7 @@ public class PullPhysicalPlanBuilder {
     return schemaBuilder.build();
   }
 
-  private boolean isSelectStar(final Select select) {
+  private static boolean isSelectStar(final Select select) {
     final boolean someStars = select.getSelectItems().stream()
         .anyMatch(s -> s instanceof AllColumns);
 

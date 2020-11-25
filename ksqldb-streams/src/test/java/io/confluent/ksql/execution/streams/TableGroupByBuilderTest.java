@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -22,7 +23,6 @@ import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.streams.TableGroupByBuilder.ParamsFactory;
-import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
@@ -37,7 +37,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KTable;
@@ -88,8 +87,7 @@ public class TableGroupByBuilderTest {
       SerdeFeatures.of()
   );
 
-  private static final Struct KEY = StructKeyUtil
-      .keyBuilder(SystemColumns.ROWKEY_NAME, SqlTypes.STRING).build("key", 0);
+  private static final GenericKey KEY = GenericKey.genericKey("key");
 
   @Mock
   private KsqlQueryBuilder queryBuilder;
@@ -100,33 +98,33 @@ public class TableGroupByBuilderTest {
   @Mock
   private GroupedFactory groupedFactory;
   @Mock
-  private ExecutionStep<KTableHolder<Struct>> sourceStep;
+  private ExecutionStep<KTableHolder<GenericKey>> sourceStep;
   @Mock
-  private Serde<Struct> keySerde;
+  private Serde<GenericKey> keySerde;
   @Mock
   private Serde<GenericRow> valueSerde;
   @Mock
-  private Grouped<Struct, GenericRow> grouped;
+  private Grouped<GenericKey, GenericRow> grouped;
   @Mock
-  private KTable<Struct, GenericRow> sourceTable;
+  private KTable<GenericKey, GenericRow> sourceTable;
   @Mock
-  private KTable<Struct, GenericRow> filteredTable;
+  private KTable<GenericKey, GenericRow> filteredTable;
   @Mock
-  private KGroupedTable<Struct, GenericRow> groupedTable;
+  private KGroupedTable<GenericKey, GenericRow> groupedTable;
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
   private ParamsFactory paramsFactory;
   @Mock
-  private KTableHolder<Struct> tableHolder;
+  private KTableHolder<GenericKey> tableHolder;
   @Mock
   private GroupByParams groupByParams;
   @Mock
-  private Function<GenericRow, Struct> mapper;
+  private Function<GenericRow, GenericKey> mapper;
   @Captor
-  private ArgumentCaptor<Predicate<Struct, GenericRow>> predicateCaptor;
+  private ArgumentCaptor<Predicate<GenericKey, GenericRow>> predicateCaptor;
 
-  private TableGroupBy<Struct> groupBy;
+  private TableGroupBy<GenericKey> groupBy;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -204,7 +202,7 @@ public class TableGroupByBuilderTest {
 
     // Then:
     verify(sourceTable).filter(predicateCaptor.capture());
-    final Predicate<Struct, GenericRow> predicate = predicateCaptor.getValue();
+    final Predicate<GenericKey, GenericRow> predicate = predicateCaptor.getValue();
     assertThat(predicate.test(KEY, new GenericRow()), is(true));
     assertThat(predicate.test(KEY, null), is(false));
   }

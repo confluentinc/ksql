@@ -28,14 +28,12 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.test.driver.TestDriverPipeline.TopicInfo;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Instant;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.TestInputTopic;
 import org.apache.kafka.streams.TestOutputTopic;
 import org.apache.kafka.streams.TopologyTestDriver;
@@ -50,9 +48,7 @@ import org.mockito.junit.MockitoRule;
 
 public class TestDriverPipelineTest {
 
-  private static final Struct KEY = new Struct(
-      SchemaBuilder.struct().field("foo", Schema.STRING_SCHEMA).build()
-  ).put("foo", "key");
+  private static final GenericKey KEY = GenericKey.genericKey("key");
 
   private static final GenericRow ROW1 = new GenericRow(1);
   private static final GenericRow ROW2 = new GenericRow(2);
@@ -60,11 +56,11 @@ public class TestDriverPipelineTest {
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-  private final ListMultimap<String, TestRecord<Struct, GenericRow>> outputs =
+  private final ListMultimap<String, TestRecord<GenericKey, GenericRow>> outputs =
       ArrayListMultimap.create();
 
   @Mock
-  private Serde<Struct> keySerde;
+  private Serde<GenericKey> keySerde;
   @Mock
   private Serde<GenericRow> valueSerde;
 
@@ -80,7 +76,7 @@ public class TestDriverPipelineTest {
   public void shouldHandleSingleTopology() {
     // Given (a topology that pipes a directly to b):
     final TopologyTestDriver driver = mock(TopologyTestDriver.class);
-    final TestInputTopic<Struct, GenericRow> inA = givenInput(driver, "a");
+    final TestInputTopic<GenericKey, GenericRow> inA = givenInput(driver, "a");
     givenOutput(driver, "b");
 
     givenPipe(inA, "b");
@@ -101,10 +97,10 @@ public class TestDriverPipelineTest {
   public void shouldHandleLinearChainTopology() {
     // Given (a topology that pipes a directly to b, and from b to c):
     final TopologyTestDriver driver = mock(TopologyTestDriver.class);
-    final TestInputTopic<Struct, GenericRow> inA = givenInput(driver, "a");
+    final TestInputTopic<GenericKey, GenericRow> inA = givenInput(driver, "a");
     givenOutput(driver, "b");
 
-    final TestInputTopic<Struct, GenericRow> inB = givenInput(driver, "b");
+    final TestInputTopic<GenericKey, GenericRow> inB = givenInput(driver, "b");
     givenOutput(driver, "c");
 
     givenPipe(inA, "b");
@@ -131,8 +127,8 @@ public class TestDriverPipelineTest {
   public void shouldHandleMultiSourceTopology() {
     // Given (a topology that pipes a and b directly to c):
     final TopologyTestDriver driver = mock(TopologyTestDriver.class);
-    final TestInputTopic<Struct, GenericRow> inA = givenInput(driver, "a");
-    final TestInputTopic<Struct, GenericRow> inB = givenInput(driver, "b");
+    final TestInputTopic<GenericKey, GenericRow> inA = givenInput(driver, "a");
+    final TestInputTopic<GenericKey, GenericRow> inB = givenInput(driver, "b");
     givenOutput(driver, "c");
 
     givenPipe(inA, "c");
@@ -159,8 +155,8 @@ public class TestDriverPipelineTest {
     // Given (two topologies that pipe a to b and a to c):
     final TopologyTestDriver driver1 = mock(TopologyTestDriver.class);
     final TopologyTestDriver driver2 = mock(TopologyTestDriver.class);
-    final TestInputTopic<Struct, GenericRow> inA1 = givenInput(driver1, "a");
-    final TestInputTopic<Struct, GenericRow> inA2 = givenInput(driver2, "a");
+    final TestInputTopic<GenericKey, GenericRow> inA1 = givenInput(driver1, "a");
+    final TestInputTopic<GenericKey, GenericRow> inA2 = givenInput(driver2, "a");
 
     givenOutput(driver1, "b");
     givenOutput(driver2, "c");
@@ -196,13 +192,13 @@ public class TestDriverPipelineTest {
     final TopologyTestDriver driver2 = mock(TopologyTestDriver.class);
     final TopologyTestDriver driver3 = mock(TopologyTestDriver.class);
 
-    final TestInputTopic<Struct, GenericRow> inA = givenInput(driver1, "a");
+    final TestInputTopic<GenericKey, GenericRow> inA = givenInput(driver1, "a");
     givenOutput(driver1, "b");
 
-    final TestInputTopic<Struct, GenericRow> inB2 = givenInput(driver2, "b");
+    final TestInputTopic<GenericKey, GenericRow> inB2 = givenInput(driver2, "b");
     givenOutput(driver2, "c");
 
-    final TestInputTopic<Struct, GenericRow> inB3 = givenInput(driver3, "b");
+    final TestInputTopic<GenericKey, GenericRow> inB3 = givenInput(driver3, "b");
     givenOutput(driver3, "d");
 
     givenPipe(inA, "b");
@@ -243,9 +239,9 @@ public class TestDriverPipelineTest {
     final TopologyTestDriver driver1 = mock(TopologyTestDriver.class);
     final TopologyTestDriver driver2 = mock(TopologyTestDriver.class);
 
-    final TestInputTopic<Struct, GenericRow> inA = givenInput(driver1, "a");
+    final TestInputTopic<GenericKey, GenericRow> inA = givenInput(driver1, "a");
     givenOutput(driver1, "b");
-    final TestInputTopic<Struct, GenericRow> inB = givenInput(driver2, "b");
+    final TestInputTopic<GenericKey, GenericRow> inB = givenInput(driver2, "b");
     givenOutput(driver2, "a");
 
     givenPipe(inA, "b");
@@ -267,21 +263,21 @@ public class TestDriverPipelineTest {
     return new TopicInfo(name, keySerde, valueSerde);
   }
 
-  private TestRecord<Struct, GenericRow> fromInv(final InvocationOnMock inv) {
+  private TestRecord<GenericKey, GenericRow> fromInv(final InvocationOnMock inv) {
     return new TestRecord<>(
         inv.getArgument(0),
         inv.getArgument(1),
         Instant.ofEpochMilli(inv.getArgument(2)));
   }
 
-  private void givenPipe(final TestInputTopic<Struct, GenericRow> from, final String to) {
+  private void givenPipe(final TestInputTopic<GenericKey, GenericRow> from, final String to) {
     doAnswer(inv -> outputs.put(to, fromInv(inv)))
         .when(from)
-        .pipeInput(any(Struct.class), any(GenericRow.class), any(long.class));
+        .pipeInput(any(GenericKey.class), any(GenericRow.class), any(long.class));
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
-  private TestInputTopic<Struct, GenericRow> givenInput(
+  private TestInputTopic<GenericKey, GenericRow> givenInput(
       final TopologyTestDriver driver,
       final String topic
   ) {

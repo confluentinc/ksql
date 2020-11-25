@@ -92,7 +92,7 @@ public final class ExecutorUtil {
       } catch (final Exception e) {
         final Throwable cause = e instanceof ExecutionException ? e.getCause() : e;
         if (shouldRetry.test(cause)) {
-          log.info("Retrying request. Retry no: " + retries, e);
+          log.info("Retrying request. Retry no: {} Cause: '{}'", retries, e.getMessage());
           lastException = e;
         } else if (cause instanceof Exception) {
           throw (Exception) cause;

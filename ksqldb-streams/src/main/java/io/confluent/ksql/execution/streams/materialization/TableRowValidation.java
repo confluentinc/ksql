@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.execution.streams.materialization;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import org.apache.kafka.connect.data.Struct;
 
 final class TableRowValidation {
 
@@ -28,18 +28,18 @@ final class TableRowValidation {
 
     void validate(
         LogicalSchema schema,
-        Struct key,
+        GenericKey key,
         GenericRow value
     );
   }
 
   static void validate(
       final LogicalSchema schema,
-      final Struct key,
+      final GenericKey key,
       final GenericRow value
   ) {
     final int expectedKeyCount = schema.key().size();
-    final int actualKeyCount = key.schema().fields().size();
+    final int actualKeyCount = key.values().size();
     if (actualKeyCount != expectedKeyCount) {
       throw new IllegalArgumentException("key column count mismatch."
           + " expected: " + expectedKeyCount

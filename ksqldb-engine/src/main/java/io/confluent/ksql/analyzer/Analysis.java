@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -40,8 +39,9 @@ import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.RefinementInfo;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.WindowInfo;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -72,6 +72,7 @@ public class Analysis implements ImmutableAnalysis {
   private OptionalInt limitClause = OptionalInt.empty();
   private CreateSourceAsProperties withProperties = CreateSourceAsProperties.none();
   private final List<FunctionCall> tableFunctions = new ArrayList<>();
+  private boolean orReplace = false;
 
   public Analysis(final Optional<RefinementInfo> refinementInfo) {
     this(refinementInfo, SourceSchemas::new);
@@ -219,6 +220,15 @@ public class Analysis implements ImmutableAnalysis {
     return allDataSources.get(0);
   }
 
+  @Override
+  public boolean getOrReplace() {
+    return orReplace;
+  }
+
+  public void setOrReplace(final boolean orReplace) {
+    this.orReplace = orReplace;
+  }
+
   void addDataSource(final SourceName alias, final DataSource dataSource) {
     if (!(dataSource instanceof KsqlStream) && !(dataSource instanceof KsqlTable)) {
       throw new IllegalArgumentException("Data source type not supported yet: " + dataSource);
@@ -273,30 +283,35 @@ public class Analysis implements ImmutableAnalysis {
   public static final class Into {
 
     private final SourceName name;
-    private final KsqlTopic topic;
-    private final boolean create;
-    private final ImmutableSet<SerdeOption> defaultSerdeOptions;
+    private final Optional<KsqlTopic> existingTopic;
+    private final Optional<NewTopic> newTopic;
 
-    public static Into of(
+    public static Into existingSink(
         final SourceName name,
-        final boolean create,
-        final KsqlTopic topic,
-        final Set<SerdeOption> defaultSerdeOptions
+        final KsqlTopic topic
     ) {
-      return new Into(name, create, topic, defaultSerdeOptions);
+      return new Into(name, Optional.of(topic), Optional.empty());
+    }
+
+    public static Into newSink(
+        final SourceName name,
+        final String topicName,
+        final Optional<WindowInfo> windowInfo,
+        final FormatInfo keyFormat,
+        final FormatInfo valueFormat
+    ) {
+      final NewTopic newTopic = new NewTopic(topicName, windowInfo, keyFormat, valueFormat);
+      return new Into(name, Optional.empty(), Optional.of(newTopic));
     }
 
     private Into(
         final SourceName name,
-        final boolean create,
-        final KsqlTopic topic,
-        final Set<SerdeOption> defaultSerdeOptions
+        final Optional<KsqlTopic> existingTopic,
+        final Optional<NewTopic> newTopic
     ) {
       this.name = requireNonNull(name, "name");
-      this.create = create;
-      this.topic = requireNonNull(topic, "topic");
-      this.defaultSerdeOptions = ImmutableSet
-          .copyOf(requireNonNull(defaultSerdeOptions, "defaultSerdeOptions"));
+      this.existingTopic = requireNonNull(existingTopic, "existingTopic");
+      this.newTopic = requireNonNull(newTopic, "newTopic");
     }
 
     public SourceName getName() {
@@ -304,15 +319,52 @@ public class Analysis implements ImmutableAnalysis {
     }
 
     public boolean isCreate() {
-      return create;
+      return !existingTopic.isPresent();
     }
 
-    public KsqlTopic getKsqlTopic() {
-      return topic;
+    public Optional<KsqlTopic> getExistingTopic() {
+      return existingTopic;
     }
 
-    public ImmutableSet<SerdeOption> getDefaultSerdeOptions() {
-      return defaultSerdeOptions;
+    public Optional<NewTopic> getNewTopic() {
+      return newTopic;
+    }
+
+    @Immutable
+    public static class NewTopic {
+
+      private final String topicName;
+      private final Optional<WindowInfo> windowInfo;
+      private final FormatInfo keyFormat;
+      private final FormatInfo valueFormat;
+
+      public NewTopic(
+          final String topicName,
+          final Optional<WindowInfo> windowInfo,
+          final FormatInfo keyFormat,
+          final FormatInfo valueFormat
+      ) {
+        this.topicName = requireNonNull(topicName, "topicName");
+        this.windowInfo = requireNonNull(windowInfo, "windowInfo");
+        this.keyFormat = requireNonNull(keyFormat, "keyFormat");
+        this.valueFormat = requireNonNull(valueFormat, "valueFormat");
+      }
+
+      public String getTopicName() {
+        return topicName;
+      }
+
+      public Optional<WindowInfo> getWindowInfo() {
+        return windowInfo;
+      }
+
+      public FormatInfo getKeyFormat() {
+        return keyFormat;
+      }
+
+      public FormatInfo getValueFormat() {
+        return valueFormat;
+      }
     }
   }
 

@@ -20,7 +20,11 @@ import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.INVALI
 import static io.netty.handler.codec.http.websocketx.WebSocketCloseStatus.TRY_AGAIN_LATER;
 
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
+import com.google.common.util.concurrent.RateLimiter;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
+import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
@@ -28,12 +32,11 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
-import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
@@ -49,6 +52,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
+import org.apache.kafka.common.utils.Time;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,8 +72,10 @@ public class WSQueryEndpoint {
   private final Duration commandQueueCatchupTimeout;
   private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final Errors errorHandler;
-  private final PullQueryExecutor pullQueryExecutor;
   private final DenyListPropertyValidator denyListPropertyValidator;
+  private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
+  private final RoutingFilterFactory routingFilterFactory;
+  private final RateLimiter rateLimiter;
 
   private WebSocketSubscriber<?> subscriber;
 
@@ -85,10 +91,13 @@ public class WSQueryEndpoint {
       final Duration commandQueueCatchupTimeout,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final PullQueryExecutor pullQueryExecutor,
-      final DenyListPropertyValidator denyListPropertyValidator
+      final DenyListPropertyValidator denyListPropertyValidator,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final RoutingFilterFactory routingFilterFactory,
+      final RateLimiter rateLimiter
   ) {
-    this(ksqlConfig,
+    this(
+        ksqlConfig,
         statementParser,
         ksqlEngine,
         commandQueue,
@@ -100,8 +109,10 @@ public class WSQueryEndpoint {
         commandQueueCatchupTimeout,
         authorizationValidator,
         errorHandler,
-        pullQueryExecutor,
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        pullQueryMetrics,
+        routingFilterFactory,
+        rateLimiter
     );
   }
 
@@ -120,8 +131,10 @@ public class WSQueryEndpoint {
       final Duration commandQueueCatchupTimeout,
       final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final Errors errorHandler,
-      final PullQueryExecutor pullQueryExecutor,
-      final DenyListPropertyValidator denyListPropertyValidator
+      final DenyListPropertyValidator denyListPropertyValidator,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final RoutingFilterFactory routingFilterFactory,
+      final RateLimiter rateLimiter
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -139,15 +152,19 @@ public class WSQueryEndpoint {
     this.authorizationValidator =
         Objects.requireNonNull(authorizationValidator, "authorizationValidator");
     this.errorHandler = Objects.requireNonNull(errorHandler, "errorHandler");
-    this.pullQueryExecutor = Objects.requireNonNull(pullQueryExecutor, "pullQueryExecutor");
     this.denyListPropertyValidator =
         Objects.requireNonNull(denyListPropertyValidator, "denyListPropertyValidator");
+    this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
+    this.routingFilterFactory = Objects.requireNonNull(
+        routingFilterFactory, "routingFilterFactory");
+    this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
   }
 
   public void executeStreamQuery(final ServerWebSocket webSocket, final MultiMap requestParams,
       final KsqlSecurityContext ksqlSecurityContext) {
 
     try {
+      final long startTimeNanos = Time.SYSTEM.nanoseconds();
 
       activenessRegistrar.updateLastRequestTime();
 
@@ -184,7 +201,7 @@ public class WSQueryEndpoint {
           ksqlSecurityContext);
 
       if (statement instanceof Query) {
-        handleQuery(requestContext, (Query) statement);
+        handleQuery(requestContext, (Query) statement, startTimeNanos);
       } else if (statement instanceof PrintTopic) {
         handlePrintTopic(requestContext, (PrintTopic) statement);
       } else {
@@ -208,16 +225,16 @@ public class WSQueryEndpoint {
     }
   }
 
-  private void validateVersion(final MultiMap requestParams) {
-
-    final String version = requestParams.get(Versions.KSQL_V1_WS_PARAM);
-
+  private static void validateVersion(final MultiMap requestParams) {
+    final String version = requestParams.get("version");
     if (version == null) {
       return;
     }
 
-    if (!Versions.KSQL_V1_WS.equals(version)) {
-      throw new IllegalArgumentException("Received invalid api version: " + version);
+    try {
+      KsqlMediaType.valueOf("JSON", Integer.parseInt(version));
+    } catch (final Exception e) {
+      throw new IllegalArgumentException("Received invalid api version: " + version, e);
     }
   }
 
@@ -250,7 +267,8 @@ public class WSQueryEndpoint {
     }
   }
 
-  private void handleQuery(final RequestContext info, final Query query) {
+  private void handleQuery(final RequestContext info, final Query query,
+      final long startTimeNanos) {
     final Map<String, Object> clientLocalProperties = info.request.getConfigOverrides();
 
     final WebSocketSubscriber<StreamedRow> streamSubscriber =
@@ -260,8 +278,8 @@ public class WSQueryEndpoint {
     final PreparedStatement<Query> statement =
         PreparedStatement.of(info.request.getKsql(), query);
 
-    final ConfiguredStatement<Query> configured =
-        ConfiguredStatement.of(statement, clientLocalProperties, ksqlConfig);
+    final ConfiguredStatement<Query> configured = ConfiguredStatement
+        .of(statement, SessionConfig.of(ksqlConfig, clientLocalProperties));
 
     if (query.isPullQuery()) {
       pullQueryPublisher.start(
@@ -270,7 +288,10 @@ public class WSQueryEndpoint {
           exec,
           configured,
           streamSubscriber,
-          pullQueryExecutor
+          pullQueryMetrics,
+          startTimeNanos,
+          routingFilterFactory,
+          rateLimiter
       );
     } else {
       pushQueryPublisher.start(
@@ -331,13 +352,19 @@ public class WSQueryEndpoint {
       final ListeningScheduledExecutorService ignored,
       final ConfiguredStatement<Query> query,
       final WebSocketSubscriber<StreamedRow> streamSubscriber,
-      final PullQueryExecutor pullQueryExecutor
-
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final long startTimeNanos,
+      final RoutingFilterFactory routingFilterFactory,
+      final RateLimiter rateLimiter
   ) {
     new PullQueryPublisher(
+        ksqlEngine,
         serviceContext,
         query,
-        pullQueryExecutor
+        pullQueryMetrics,
+        startTimeNanos,
+        routingFilterFactory,
+        rateLimiter
     ).subscribe(streamSubscriber);
   }
 
@@ -371,7 +398,10 @@ public class WSQueryEndpoint {
         ListeningScheduledExecutorService exec,
         ConfiguredStatement<Query> query,
         WebSocketSubscriber<StreamedRow> subscriber,
-        PullQueryExecutor pullQueryExecutor);
+        Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+        long startTimeNanos,
+        RoutingFilterFactory routingFilterFactory,
+        RateLimiter rateLimiter);
 
   }
 

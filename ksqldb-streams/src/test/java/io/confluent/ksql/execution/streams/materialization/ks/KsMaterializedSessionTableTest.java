@@ -24,24 +24,25 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Range;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
-import io.confluent.ksql.execution.util.StructKeyUtil;
+import io.confluent.ksql.execution.streams.materialization.ks.SessionStoreCacheBypass.SessionStoreCacheBypassFetcher;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
@@ -62,9 +63,9 @@ public class KsMaterializedSessionTableTest {
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
       .build();
 
-  private static final Struct A_KEY = StructKeyUtil
-      .keyBuilder(ColumnName.of("k0"), SqlTypes.STRING).build("x");
+  private static final GenericKey A_KEY = GenericKey.genericKey("x");
   private static final GenericRow A_VALUE = GenericRow.genericRow("c0l");
+  private static final int PARTITION = 0;
 
   private static final Instant LOWER_INSTANT = Instant.now();
   private static final Instant UPPER_INSTANT = LOWER_INSTANT.plusSeconds(10);
@@ -82,21 +83,23 @@ public class KsMaterializedSessionTableTest {
   @Mock
   private KsStateStore stateStore;
   @Mock
-  private ReadOnlySessionStore<Struct, GenericRow> sessionStore;
+  private ReadOnlySessionStore<GenericKey, GenericRow> sessionStore;
   @Mock
-  private KeyValueIterator<Windowed<Struct>, GenericRow> fetchIterator;
+  private KeyValueIterator<Windowed<GenericKey>, GenericRow> fetchIterator;
+  @Mock
+  private SessionStoreCacheBypassFetcher cacheBypassFetcher;
   private KsMaterializedSessionTable table;
-  private final List<KeyValue<Windowed<Struct>, GenericRow>> sessions = new ArrayList<>();
+  private final List<KeyValue<Windowed<GenericKey>, GenericRow>> sessions = new ArrayList<>();
   private int sessionIdx;
 
   @Before
   public void setUp() {
-    table = new KsMaterializedSessionTable(stateStore);
+    table = new KsMaterializedSessionTable(stateStore, cacheBypassFetcher);
 
-    when(stateStore.store(any())).thenReturn(sessionStore);
+    when(stateStore.store(any(), anyInt())).thenReturn(sessionStore);
     when(stateStore.schema()).thenReturn(SCHEMA);
 
-    when(sessionStore.fetch(any())).thenReturn(fetchIterator);
+    when(cacheBypassFetcher.fetch(any(), any())).thenReturn(fetchIterator);
 
     sessions.clear();
     sessionIdx = 0;
@@ -116,12 +119,12 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldThrowIfGettingStateStoreFails() {
     // Given:
-    when(stateStore.store(any())).thenThrow(new MaterializationTimeOutException("Boom"));
+    when(stateStore.store(any(), anyInt())).thenThrow(new MaterializationTimeOutException("Boom"));
 
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
+        () -> table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
     );
 
     // Then:
@@ -133,12 +136,13 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldThrowIfStoreFetchFails() {
     // Given:
-    when(sessionStore.fetch(any())).thenThrow(new MaterializationTimeOutException("Boom"));
+    when(cacheBypassFetcher.fetch(any(), any()))
+        .thenThrow(new MaterializationTimeOutException("Boom"));
 
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
+        () -> table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS)
     );
 
     // Then:
@@ -151,25 +155,25 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldGetStoreWithCorrectParams() {
     // When:
-    table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
-    verify(stateStore).store(any(SessionStoreType.class));
+    verify(stateStore).store(any(SessionStoreType.class), anyInt());
   }
 
   @Test
   public void shouldFetchWithCorrectParams() {
     // When:
-    table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
-    verify(sessionStore).fetch(A_KEY);
+    verify(cacheBypassFetcher).fetch(sessionStore, A_KEY);
   }
 
   @Test
   public void shouldCloseIterator() {
     // When:
-    table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     verify(fetchIterator).close();
@@ -178,7 +182,7 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldReturnEmptyIfKeyNotPresent() {
     // When:
-    final List<?> result = table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    final List<?> result = table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     assertThat(result, is(empty()));
@@ -190,7 +194,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(LOWER_INSTANT.minusMillis(1), LOWER_INSTANT.minusMillis(1));
 
     // When:
-    final List<?> result = table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    final List<?> result = table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     assertThat(result, is(empty()));
@@ -202,7 +206,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(UPPER_INSTANT.plusMillis(1), UPPER_INSTANT.plusMillis(1));
 
     // When:
-    final List<?> result = table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    final List<?> result = table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
 
     // Then:
     assertThat(result, is(empty()));
@@ -220,7 +224,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(LOWER_INSTANT, wend);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, startBounds, Range.all());
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, startBounds, Range.all());
 
     // Then:
     assertThat(result, contains(WindowedRow.of(
@@ -242,7 +246,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(LOWER_INSTANT, LOWER_INSTANT.plusMillis(1));
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, startBounds, Range.all());
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, startBounds, Range.all());
 
     // Then:
     assertThat(result, is(empty()));
@@ -260,7 +264,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(UPPER_INSTANT, wend);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, startBounds, Range.all());
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, startBounds, Range.all());
 
     // Then:
     assertThat(result, contains(WindowedRow.of(
@@ -282,7 +286,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(UPPER_INSTANT, UPPER_INSTANT.plusMillis(1));
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, startBounds, Range.all());
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, startBounds, Range.all());
 
     // Then:
     assertThat(result, is(empty()));
@@ -295,7 +299,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(LOWER_INSTANT.plusMillis(1), wend);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS, Range.all());
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, Range.all());
 
     // Then:
     assertThat(result, contains(WindowedRow.of(
@@ -318,7 +322,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(wstart, LOWER_INSTANT);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, Range.all(), endBounds);
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, Range.all(), endBounds);
 
     // Then:
     assertThat(result, contains(WindowedRow.of(
@@ -340,7 +344,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(LOWER_INSTANT.minusMillis(1), LOWER_INSTANT);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, Range.all(), endBounds);
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, Range.all(), endBounds);
 
     // Then:
     assertThat(result, is(empty()));
@@ -358,7 +362,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(wstart, UPPER_INSTANT);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, Range.all(), endBounds);
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, Range.all(), endBounds);
 
     // Then:
     assertThat(result, contains(WindowedRow.of(
@@ -380,7 +384,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(UPPER_INSTANT.minusMillis(1), UPPER_INSTANT);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, Range.all(), endBounds);
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, Range.all(), endBounds);
 
     // Then:
     assertThat(result, is(empty()));
@@ -394,7 +398,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(wstart, wend);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, Range.all(), WINDOW_END_BOUNDS);
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, Range.all(), WINDOW_END_BOUNDS);
 
     // Then:
     assertThat(result, contains(WindowedRow.of(
@@ -416,7 +420,8 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(UPPER_INSTANT.plusMillis(1), UPPER_INSTANT.plusSeconds(1));
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS,
+        WINDOW_END_BOUNDS);
 
     // Then:
     assertThat(result, contains(
@@ -442,7 +447,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(Instant.now().minusSeconds(1000), Instant.now().plusSeconds(1000));
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, Range.all(), Range.all());
+    final List<WindowedRow> result = table.get(A_KEY, PARTITION, Range.all(), Range.all());
 
     // Then:
     assertThat(result, hasSize(2));
@@ -455,7 +460,7 @@ public class KsMaterializedSessionTableTest {
     sessions.add(new KeyValue<>(sessionKey(start, end), A_VALUE));
   }
 
-  private static Windowed<Struct> sessionKey(
+  private static Windowed<GenericKey> sessionKey(
       final Instant sessionStart,
       final Instant sessionEnd
   ) {

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
@@ -25,7 +26,6 @@ import java.util.function.Supplier;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.utils.Time;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
 public class UdafAggregateFunction<I, A, O> extends BaseAggregateFunction<I, A, O> {
@@ -64,7 +64,7 @@ public class UdafAggregateFunction<I, A, O> extends BaseAggregateFunction<I, A, 
   }
 
   @Override
-  public Merger<Struct, A> getMerger() {
+  public Merger<GenericKey, A> getMerger() {
     return (key, v1, v2) -> timed(mergeSensor, () -> udaf.merge(v1, v2));
   }
 

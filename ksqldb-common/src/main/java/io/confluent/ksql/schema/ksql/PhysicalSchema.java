@@ -17,14 +17,9 @@ package io.confluent.ksql.schema.ksql;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.properties.with.CommonCreateConfigs;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.serde.SerdeFeatures;
 import java.util.Objects;
-import java.util.Set;
-import org.apache.kafka.connect.data.ConnectSchema;
 
 /**
  * Physical KSQL schema.
@@ -36,15 +31,15 @@ import org.apache.kafka.connect.data.ConnectSchema;
 public final class PhysicalSchema {
 
   private final LogicalSchema logicalSchema;
-  private final ImmutableSet<SerdeOption> serdeOptions;
   private final PersistenceSchema keySchema;
   private final PersistenceSchema valueSchema;
 
   public static PhysicalSchema from(
       final LogicalSchema logicalSchema,
-      final Set<SerdeOption> serdeOptions
+      final SerdeFeatures keyFeatures,
+      final SerdeFeatures valueFeatures
   ) {
-    return new PhysicalSchema(logicalSchema, serdeOptions);
+    return new PhysicalSchema(logicalSchema, keyFeatures, valueFeatures);
   }
 
   /**
@@ -52,13 +47,6 @@ public final class PhysicalSchema {
    */
   public LogicalSchema logicalSchema() {
     return logicalSchema;
-  }
-
-  /**
-   * @return the serde options of this physical schema.
-   */
-  public Set<SerdeOption> serdeOptions() {
-    return serdeOptions;
   }
 
   /**
@@ -77,12 +65,12 @@ public final class PhysicalSchema {
 
   private PhysicalSchema(
       final LogicalSchema logicalSchema,
-      final Set<SerdeOption> serdeOptions
+      final SerdeFeatures keyFeatures,
+      final SerdeFeatures valueFeatures
   ) {
     this.logicalSchema = requireNonNull(logicalSchema, "logicalSchema");
-    this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
-    this.keySchema = buildKeyPhysical(logicalSchema.keyConnectSchema());
-    this.valueSchema = buildValuePhysical(logicalSchema.valueConnectSchema(), serdeOptions);
+    this.keySchema = PersistenceSchema.from(logicalSchema.key(), keyFeatures);
+    this.valueSchema = PersistenceSchema.from(logicalSchema.value(), valueFeatures);
   }
 
   @Override
@@ -94,41 +82,20 @@ public final class PhysicalSchema {
       return false;
     }
     final PhysicalSchema that = (PhysicalSchema) o;
-    return Objects.equals(logicalSchema, that.logicalSchema)
-        && Objects.equals(serdeOptions, that.serdeOptions)
+    return Objects.equals(keySchema, that.keySchema)
         && Objects.equals(valueSchema, that.valueSchema);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(logicalSchema, serdeOptions);
+    return Objects.hash(keySchema, valueSchema);
   }
 
   @Override
   public String toString() {
     return "PhysicalSchema{"
-        + "logicalSchema=" + logicalSchema
-        + ", serdeOptions=" + serdeOptions
+        + "keySchema=" + keySchema
+        + ", valueSchema=" + valueSchema
         + '}';
-  }
-
-  private static PersistenceSchema buildKeyPhysical(
-      final ConnectSchema keyConnectSchema
-  ) {
-    return PersistenceSchema.from(keyConnectSchema, false);
-  }
-
-  private static PersistenceSchema buildValuePhysical(
-      final ConnectSchema valueConnectSchema,
-      final Set<SerdeOption> serdeOptions
-  ) {
-    final boolean singleField = valueConnectSchema.fields().size() == 1;
-    final boolean unwrapSingle = serdeOptions.contains(SerdeOption.UNWRAP_SINGLE_VALUES);
-    if (unwrapSingle && !singleField) {
-      throw new KsqlException("'" + CommonCreateConfigs.WRAP_SINGLE_VALUE + "' "
-          + "is only valid for single-field value schemas");
-    }
-
-    return PersistenceSchema.from(valueConnectSchema, unwrapSingle);
   }
 }

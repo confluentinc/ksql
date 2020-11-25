@@ -15,23 +15,30 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
-import io.confluent.ksql.execution.util.StructKeyUtil;
-import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
+import io.confluent.ksql.execution.streams.PartitionByParams.Mapper;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
@@ -40,14 +47,13 @@ import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
-import java.util.function.BiFunction;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.junit.Before;
 import org.junit.Test;
@@ -109,8 +115,10 @@ public class PartitionByParamsFactoryTest {
   private UdfFactory failingUdfFactory;
   @Mock
   private UdfFactory constantUdfFactory;
+  @Mock
+  private KsqlQueryBuilder queryBuilder;
 
-  private final Struct key = new Struct(SCHEMA.keyConnectSchema());
+  private final GenericKey key = genericKey(OLD_KEY);
   private final GenericRow value = new GenericRow();
 
   @Before
@@ -121,7 +129,6 @@ public class PartitionByParamsFactoryTest {
     when(functionRegistry.getUdfFactory(CONSTANT_UDF_NAME)).thenReturn(constantUdfFactory);
     when(constantUdfFactory.getFunction(any())).thenReturn(CONSTANT_UDF_FUNC);
 
-    key.put(COL0.text(), OLD_KEY);
     value
         .append(COL1_VALUE) // COL1
         .append(10L)        // COL2
@@ -209,10 +216,31 @@ public class PartitionByParamsFactoryTest {
   }
 
   @Test
+  public void shouldBuildResultSchemaWhenPartitioningByNull() {
+    // Given:
+    final Expression partitionBy = new NullLiteral();
+
+    // When:
+    final LogicalSchema resultSchema = PartitionByParamsFactory.buildSchema(
+        SCHEMA,
+        partitionBy,
+        functionRegistry
+    );
+
+    // Then:
+    assertThat(resultSchema, is(LogicalSchema.builder()
+        .valueColumn(COL1, SqlTypes.INTEGER)
+        .valueColumn(COL2, SqlTypes.INTEGER)
+        .valueColumn(COL3, COL3_TYPE)
+        .valueColumn(SystemColumns.ROWTIME_NAME, SqlTypes.BIGINT)
+        .valueColumn(COL0, SqlTypes.STRING)
+        .build()));
+  }
+
+  @Test
   public void shouldLogOnErrorExtractingNewKey() {
     // Given:
-    final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper =
-        partitionBy(FAILING_UDF).getMapper();
+    final Mapper<GenericKey> mapper = partitionBy(FAILING_UDF).getMapper();
 
     // When:
     mapper.apply(key, value);
@@ -224,43 +252,86 @@ public class PartitionByParamsFactoryTest {
   @Test
   public void shouldPartitionByNullAnyRowsWhereFailedToExtractKey() {
     // Given:
-    final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper =
+    final Mapper<GenericKey> mapper =
         partitionBy(FAILING_UDF).getMapper();
 
     // When:
-    final KeyValue<Struct, GenericRow> result = mapper.apply(key, value);
+    final KeyValue<GenericKey, GenericRow> result = mapper.apply(key, value);
 
     // Then:
-    final KeyBuilder keyBuilder = StructKeyUtil
-        .keyBuilder(ColumnName.of("KSQL_COL_0"), SqlTypes.INTEGER);
-
-    assertThat(result.key, is(keyBuilder.build(null)));
+    assertThat(result.key, is(genericKey((Object) null)));
   }
 
   @Test
   public void shouldSetNewKey() {
     // Given:
-    final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper =
+    final Mapper<GenericKey> mapper =
         partitionBy(new UnqualifiedColumnReferenceExp(COL1)).getMapper();
 
     // When:
-    final KeyValue<Struct, GenericRow> result = mapper.apply(key, value);
+    final KeyValue<GenericKey, GenericRow> result = mapper.apply(key, value);
 
     // Then:
-    final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(COL1, SqlTypes.INTEGER);
-    assertThat(result.key, is(keyBuilder.build(COL1_VALUE)));
+    assertThat(result.key, is(genericKey((COL1_VALUE))));
+  }
+
+  @Test
+  public void shouldPropagateNullValueWhenPartitioningByKey() {
+    // Given:
+    final Mapper<GenericKey> mapper =
+        partitionBy(new UnqualifiedColumnReferenceExp(COL0)).getMapper();
+
+    // When:
+    final KeyValue<GenericKey, GenericRow> result = mapper.apply(key, null);
+
+    // Then:
+    assertThat(result.key, is(genericKey((OLD_KEY))));
+    assertThat(result.value, is(nullValue()));
+  }
+
+  @Test
+  public void shouldPropagateNullValueWhenPartitioningByKeyExpression() {
+    // Given:
+    final Mapper<GenericKey> mapper =
+        partitionBy(new ArithmeticBinaryExpression(
+            Operator.ADD,
+            new UnqualifiedColumnReferenceExp(COL0),
+            new StringLiteral("-foo"))
+        ).getMapper();
+
+    // When:
+    final KeyValue<GenericKey, GenericRow> result = mapper.apply(key, null);
+
+    // Then:
+    assertThat(result.key, is(genericKey((OLD_KEY + "-foo"))));
+    assertThat(result.value, is(nullValue()));
   }
 
   @Test
   public void shouldNotChangeValueIfPartitioningByColumnReference() {
     // Given:
-    final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper =
+    final Mapper<GenericKey> mapper =
         partitionBy(new UnqualifiedColumnReferenceExp(COL1)).getMapper();
 
     final ImmutableList<Object> originals = ImmutableList.copyOf(value.values());
 
     // When:
-    final KeyValue<Struct, GenericRow> result = mapper.apply(key, value);
+    final KeyValue<GenericKey, GenericRow> result = mapper.apply(key, value);
+
+    // Then:
+    assertThat(result.value, is(GenericRow.fromList(originals)));
+  }
+
+  @Test
+  public void shouldNotChangeValueIfPartitioningByKeyColumnReference() {
+    // Given:
+    final Mapper<GenericKey> mapper =
+        partitionBy(new UnqualifiedColumnReferenceExp(COL0)).getMapper();
+
+    final ImmutableList<Object> originals = ImmutableList.copyOf(value.values());
+
+    // When:
+    final KeyValue<GenericKey, GenericRow> result = mapper.apply(key, value);
 
     // Then:
     assertThat(result.value, is(GenericRow.fromList(originals)));
@@ -269,7 +340,7 @@ public class PartitionByParamsFactoryTest {
   @Test
   public void shouldAppendNewKeyColumnToValueIfNotPartitioningByColumnReference() {
     // Given:
-    final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper =
+    final Mapper<GenericKey> mapper =
         partitionBy(new FunctionCall(
             CONSTANT_UDF_NAME,
             ImmutableList.of(new UnqualifiedColumnReferenceExp(COL1)))
@@ -278,15 +349,56 @@ public class PartitionByParamsFactoryTest {
     final ImmutableList<Object> originals = ImmutableList.copyOf(value.values());
 
     // When:
-    final KeyValue<Struct, GenericRow> result = mapper.apply(key, value);
+    final KeyValue<GenericKey, GenericRow> result = mapper.apply(key, value);
 
     // Then:
     assertThat(result.value, is(GenericRow.fromList(originals).append(ConstantUdf.VALUE)));
   }
 
-  private PartitionByParams partitionBy(final Expression expression) {
+  @Test
+  public void shouldAppendNewKeyColumnToValueIfPartitioningByKeyExpression() {
+    // Given:
+    final Mapper<GenericKey> mapper =
+        partitionBy(new ArithmeticBinaryExpression(
+            Operator.ADD,
+            new UnqualifiedColumnReferenceExp(COL0),
+            new StringLiteral("-foo"))
+        ).getMapper();
+
+    final ImmutableList<Object> originals = ImmutableList.copyOf(value.values());
+
+    // When:
+    final KeyValue<GenericKey, GenericRow> result = mapper.apply(key, value);
+
+    // Then:
+    assertThat(result.value, is(GenericRow.fromList(originals).append(OLD_KEY + "-foo")));
+  }
+
+  @Test
+  public void shouldNotChangeValueIfPartitioningByNull() {
+    // Given:
+    final Mapper<GenericKey> mapper = partitionBy(new NullLiteral()).getMapper();
+
+    final ImmutableList<Object> originals = ImmutableList.copyOf(value.values());
+
+    // When:
+    final KeyValue<GenericKey, GenericRow> result = mapper.apply(key, value);
+
+    // Then:
+    assertThat(result.value, is(GenericRow.fromList(originals)));
+  }
+
+  private PartitionByParams<GenericKey> partitionBy(final Expression expression) {
+    final ExecutionKeyFactory<GenericKey> factory = ExecutionKeyFactory.unwindowed(queryBuilder);
+
     return PartitionByParamsFactory
-        .build(SCHEMA, expression,  KSQL_CONFIG, functionRegistry, logger);
+        .build(
+            SCHEMA,
+            factory,
+            expression,
+            KSQL_CONFIG,
+            functionRegistry,
+            logger);
   }
 
   public static class FailingUdf implements Kudf {

@@ -28,7 +28,7 @@ import org.apache.kafka.test.TestUtils;
 /**
  * Util class for working with test key & trust stores.
  */
-final class KeyStoreUtil {
+public final class KeyStoreUtil {
   private KeyStoreUtil() {
   }
 
@@ -43,9 +43,8 @@ final class KeyStoreUtil {
       final File tempFile = TestUtils.tempFile();
       final Path path = tempFile.toPath();
 
-      putStore(path, base64EncodedStore);
+      putStore(name, path, base64EncodedStore);
 
-      System.out.println("Wrote temporary " + name + " for testing: " + path);
       return path;
     } catch (final Exception e) {
       throw new RuntimeException("Failed to create temporary store", e);
@@ -57,10 +56,13 @@ final class KeyStoreUtil {
    * @param path                the path to write to.
    * @param base64EncodedStore  the base64 encoded store content.
    */
-  static void putStore(final Path path, final String base64EncodedStore) {
+  public static void putStore(final String name, final Path path, final String base64EncodedStore) {
     try {
       final byte[] decoded = Base64.getDecoder().decode(base64EncodedStore);
+
       Files.write(path, decoded);
+      System.out.println("Wrote temporary " + name + " for testing: " + path);
+
     } catch (final Exception e) {
       throw new RuntimeException("Failed to put store", e);
     }

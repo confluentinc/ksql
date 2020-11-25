@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.execution.plan;
 
-import org.apache.kafka.connect.data.Struct;
+import io.confluent.ksql.GenericKey;
 import org.apache.kafka.streams.kstream.Windowed;
 
 /**
@@ -31,42 +31,44 @@ public interface PlanBuilder {
 
   KGroupedStreamHolder visitStreamGroupByKey(StreamGroupByKey streamGroupByKey);
 
-  KTableHolder<Struct> visitStreamAggregate(StreamAggregate streamAggregate);
+  KTableHolder<GenericKey> visitStreamAggregate(StreamAggregate streamAggregate);
 
   <K> KStreamHolder<K> visitStreamSelect(StreamSelect<K> streamSelect);
 
   <K> KStreamHolder<K> visitFlatMap(StreamFlatMap<K> streamFlatMap);
 
-  KStreamHolder<Struct> visitStreamSelectKey(StreamSelectKeyV1 streamSelectKey);
+  KStreamHolder<GenericKey> visitStreamSelectKey(StreamSelectKeyV1 streamSelectKey);
 
-  KStreamHolder<Struct> visitStreamSelectKey(StreamSelectKey streamSelectKey);
+  <K> KStreamHolder<K> visitStreamSelectKey(StreamSelectKey<K> streamSelectKey);
 
   <K> KStreamHolder<K> visitStreamSink(StreamSink<K> streamSink);
 
-  KStreamHolder<Struct> visitStreamSource(StreamSource streamSource);
+  KStreamHolder<GenericKey> visitStreamSource(StreamSource streamSource);
 
-  KStreamHolder<Windowed<Struct>> visitWindowedStreamSource(
+  KStreamHolder<Windowed<GenericKey>> visitWindowedStreamSource(
       WindowedStreamSource windowedStreamSource);
 
   <K> KStreamHolder<K> visitStreamStreamJoin(StreamStreamJoin<K> streamStreamJoin);
 
   <K> KStreamHolder<K> visitStreamTableJoin(StreamTableJoin<K> streamTableJoin);
 
-  KTableHolder<Struct> visitTableSource(TableSource tableSource);
+  KTableHolder<GenericKey> visitTableSource(TableSource tableSource);
 
-  KTableHolder<Windowed<Struct>> visitWindowedTableSource(
+  KTableHolder<Windowed<GenericKey>> visitWindowedTableSource(
       WindowedTableSource windowedTableSource);
 
-  KTableHolder<Windowed<Struct>> visitStreamWindowedAggregate(
+  KTableHolder<Windowed<GenericKey>> visitStreamWindowedAggregate(
       StreamWindowedAggregate streamWindowedAggregate);
 
-  KTableHolder<Struct> visitTableAggregate(TableAggregate tableAggregate);
+  KTableHolder<GenericKey> visitTableAggregate(TableAggregate tableAggregate);
 
   <K> KTableHolder<K> visitTableFilter(TableFilter<K> tableFilter);
 
   <K> KGroupedTableHolder visitTableGroupBy(TableGroupBy<K> tableGroupBy);
 
   <K> KTableHolder<K> visitTableSelect(TableSelect<K> tableSelect);
+
+  <K> KTableHolder<K> visitTableSelectKey(TableSelectKey<K> tableSelectKey);
 
   <K> KTableHolder<K> visitTableSink(TableSink<K> tableSink);
 

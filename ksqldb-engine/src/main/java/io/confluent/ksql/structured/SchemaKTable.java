@@ -17,9 +17,11 @@ package io.confluent.ksql.structured;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
@@ -37,15 +39,17 @@ import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.RefinementInfo;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import org.apache.kafka.connect.data.Struct;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class SchemaKTable<K> extends SchemaKStream<K> {
@@ -71,19 +75,22 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
   @Override
   public SchemaKTable<K> into(
-      final String kafkaTopicName,
-      final ValueFormat valueFormat,
-      final Set<SerdeOption> options,
+      final KsqlTopic topic,
       final QueryContext.Stacker contextStacker,
       final Optional<TimestampColumn> timestampColumn
   ) {
+    if (!keyFormat.getWindowInfo().equals(topic.getKeyFormat().getWindowInfo())) {
+      throw new IllegalArgumentException("Can't change windowing");
+    }
+
     final TableSink<K> step = ExecutionStepFactory.tableSink(
         contextStacker,
         sourceTableStep,
-        Formats.of(keyFormat, valueFormat, options),
-        kafkaTopicName,
+        Formats.from(topic),
+        topic.getKafkaTopicName(),
         timestampColumn
     );
+
     return new SchemaKTable<>(
         step,
         resolveSchema(step),
@@ -136,20 +143,68 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     );
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressFBWarnings("UC_USELESS_CONDITION")
   @Override
-  public SchemaKStream<Struct> selectKey(
+  public SchemaKTable<K> selectKey(
+      final FormatInfo valueFormat,
       final Expression keyExpression,
-      final Stacker contextStacker
+      final Optional<FormatInfo> forceInternalKeyFormat,
+      final Stacker contextStacker,
+      final boolean forceRepartition
   ) {
-    if (repartitionNotNeeded(ImmutableList.of(keyExpression))) {
-      return (SchemaKStream<Struct>) this;
+    final boolean repartitionNeeded = repartitionNeeded(ImmutableList.of(keyExpression));
+    if (!forceRepartition && !repartitionNeeded) {
+      return this;
     }
 
-    throw new UnsupportedOperationException("Cannot repartition a TABLE source. "
-        + "If this is a join, make sure that the criteria uses the TABLE's key column "
-        + Iterables.getOnlyElement(schema.key()).name().text() + " instead of "
-        + keyExpression);
+    if (schema.key().size() > 1) {
+      // let's throw a better error message in the case of multi-column tables
+      throw new UnsupportedOperationException("Cannot repartition a TABLE source. If this is "
+          + "a join, joins on tables with multiple columns is not yet supported.");
+    }
+
+    // Table repartitioning is only supported for internal use in enabling joins
+    // where we know that the key will be semantically equivalent, but may be serialized
+    // differently (thus ensuring all keys are routed to the same partitions)
+    if (!forceRepartition || repartitionNeeded) {
+      throw new UnsupportedOperationException("Cannot repartition a TABLE source. "
+          + "If this is a join, make sure that the criteria uses the TABLE's key column "
+          + Iterables.getOnlyElement(schema.key()).name().text() + " instead of "
+          + keyExpression);
+    }
+
+    if (keyFormat.isWindowed()) {
+      final String errorMsg = "Implicit repartitioning of windowed sources is not supported. "
+          + "See https://github.com/confluentinc/ksql/issues/4385.";
+      final String additionalMsg = forceRepartition
+          ? " As a result, ksqlDB does not support joins on windowed sources with "
+          + "Schema-Registry-enabled key formats (AVRO, JSON_SR, PROTOBUF) at this time. "
+          + "Please repartition your sources to use a different key format before performing "
+          + "the join."
+          : "";
+      throw new KsqlException(errorMsg + additionalMsg);
+    }
+    final KeyFormat newKeyFormat = forceInternalKeyFormat
+        .map(newFmt -> KeyFormat.of(
+            newFmt,
+            SerdeFeaturesFactory.buildInternal(FormatFactory.of(newFmt)),
+            keyFormat.getWindowInfo()))
+        .orElse(keyFormat);
+
+    final ExecutionStep<KTableHolder<K>> step = ExecutionStepFactory.tableSelectKey(
+        contextStacker,
+        sourceTableStep,
+        InternalFormats.of(newKeyFormat.getFormatInfo(), valueFormat),
+        keyExpression
+    );
+
+    return new SchemaKTable<>(
+        step,
+        resolveSchema(step),
+        newKeyFormat,
+        ksqlConfig,
+        functionRegistry
+    );
   }
 
   @Override
@@ -163,16 +218,17 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
   @Override
   public SchemaKGroupedTable groupBy(
-      final ValueFormat valueFormat,
+      final FormatInfo valueFormat,
       final List<Expression> groupByExpressions,
       final Stacker contextStacker
   ) {
-    final KeyFormat groupedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
+    final KeyFormat groupedKeyFormat = KeyFormat
+        .nonWindowed(keyFormat.getFormatInfo(), SerdeFeatures.of());
 
     final TableGroupBy<K> step = ExecutionStepFactory.tableGroupBy(
         contextStacker,
         sourceTableStep,
-        Formats.of(groupedKeyFormat, valueFormat, SerdeOption.none()),
+        InternalFormats.of(groupedKeyFormat.getFormatInfo(), valueFormat),
         groupByExpressions
     );
 
@@ -189,6 +245,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final ColumnName keyColName,
       final Stacker contextStacker
   ) {
+    throwOnJoinKeyFormatsMismatch(schemaKTable);
+
     final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.INNER,
@@ -196,6 +254,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         sourceTableStep,
         schemaKTable.getSourceTableStep()
     );
+
     return new SchemaKTable<>(
         step,
         resolveSchema(step, schemaKTable),
@@ -210,6 +269,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final ColumnName keyColName,
       final Stacker contextStacker
   ) {
+    throwOnJoinKeyFormatsMismatch(schemaKTable);
+
     final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.LEFT,
@@ -217,6 +278,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         sourceTableStep,
         schemaKTable.getSourceTableStep()
     );
+
     return new SchemaKTable<>(
         step,
         resolveSchema(step, schemaKTable),
@@ -231,6 +293,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final ColumnName keyColName,
       final QueryContext.Stacker contextStacker
   ) {
+    throwOnJoinKeyFormatsMismatch(schemaKTable);
+
     final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.OUTER,
@@ -238,6 +302,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         sourceTableStep,
         schemaKTable.getSourceTableStep()
     );
+
     return new SchemaKTable<>(
         step,
         resolveSchema(step, schemaKTable),
@@ -249,14 +314,14 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
   public SchemaKTable<K> suppress(
       final RefinementInfo refinementInfo,
-      final ValueFormat valueFormat,
+      final FormatInfo valueFormat,
       final Stacker contextStacker
   ) {
     final TableSuppress<K> step = ExecutionStepFactory.tableSuppress(
         contextStacker,
         sourceTableStep,
         refinementInfo,
-        Formats.of(keyFormat, valueFormat, SerdeOption.none())
+        InternalFormats.of(keyFormat.getFormatInfo(), valueFormat)
     );
 
     return new SchemaKTable<>(

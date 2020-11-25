@@ -17,6 +17,7 @@ package io.confluent.ksql.api.perf;
 
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_COLUMN_NAMES;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_COLUMN_TYPES;
+import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_KEY;
 import static io.confluent.ksql.api.perf.RunnerUtils.DEFAULT_ROW;
 
 import io.confluent.ksql.api.auth.ApiSecurityContext;
@@ -31,6 +32,7 @@ import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.vertx.core.Context;
@@ -129,11 +131,13 @@ public class QueryStreamRunner extends BasePerfRunner {
     }
 
     @Override
-    public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
+    public CompletableFuture<EndpointResponse> executeQueryRequest(
+        KsqlRequest request,
         WorkerExecutor workerExecutor,
         CompletableFuture<Void> connectionClosedFuture,
         ApiSecurityContext apiSecurityContext,
-        Optional<Boolean> isInternalRequest) {
+        Optional<Boolean> isInternalRequest,
+        KsqlMediaType mediaType) {
       return null;
     }
 
@@ -265,7 +269,7 @@ public class QueryStreamRunner extends BasePerfRunner {
     public void run() {
       while (!closed) {
         for (int i = 0; i < SEND_BATCH_SIZE; i++) {
-          queue.acceptRow(DEFAULT_ROW);
+          queue.acceptRow(DEFAULT_KEY, DEFAULT_ROW);
         }
       }
     }

@@ -114,7 +114,10 @@ public final class GenericsUtil {
     }
 
     if (schema instanceof MapType) {
-      return SqlTypes.map(applyResolved(((MapType) schema).value(), resolved));
+      final MapType mapType = (MapType) schema;
+      final SqlType keyType = applyResolved(mapType.key(), resolved);
+      final SqlType valueType = applyResolved(mapType.value(), resolved);
+      return SqlTypes.map(keyType, valueType);
     }
 
     if (schema instanceof StructType) {
@@ -203,8 +206,10 @@ public final class GenericsUtil {
     }
 
     if (schema instanceof MapType) {
-      return resolveGenerics(
-          mapping, ((MapType) schema).value(), ((SqlMap) instance).getValueType());
+      final SqlMap sqlMap = (SqlMap) instance;
+      final MapType mapType = (MapType) schema;
+      return resolveGenerics(mapping, mapType.key(), sqlMap.getKeyType())
+          && resolveGenerics(mapping, mapType.value(), sqlMap.getValueType());
     }
 
     if (schema instanceof StructType) {
@@ -251,5 +256,4 @@ public final class GenericsUtil {
 
     return true;
   }
-
 }

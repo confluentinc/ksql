@@ -21,7 +21,6 @@ import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.DecimalUtil;
-
 import java.util.Objects;
 
 /**
@@ -40,17 +39,6 @@ public final class Column implements SimpleColumn {
   private final SqlType type;
   private final Namespace namespace;
   private final int index;
-
-  /**
-   * @deprecated do not use in new code. Will be removed soon.
-   */
-  @Deprecated
-  public static Column legacyKeyFieldColumn(
-      final ColumnName name,
-      final SqlType type
-  ) {
-    return Column.of(name, type, Namespace.VALUE, Integer.MAX_VALUE);
-  }
 
   /**
    * @param name the name of the field.

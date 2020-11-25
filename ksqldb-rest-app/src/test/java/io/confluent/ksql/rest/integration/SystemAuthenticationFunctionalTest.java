@@ -76,6 +76,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(Enclosed.class)
 public class SystemAuthenticationFunctionalTest {
 
+  private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
   private static final TemporaryFolder TMP = new TemporaryFolder();
 
   static {
@@ -88,7 +89,7 @@ public class SystemAuthenticationFunctionalTest {
 
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
-  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
+  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.sourceName();
   private static final BiFunction<Integer, String, SocketAddress> LOCALHOST_FACTORY =
       (port, host) -> SocketAddress.inetSocketAddress(port, "localhost");
 
@@ -111,7 +112,7 @@ public class SystemAuthenticationFunctionalTest {
       .put(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .put(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, 1)
       .put(KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG, 1000)
-      .putAll(ServerKeyStore.keyStoreProps())
+      .putAll(SERVER_KEY_STORE.keyStoreProps())
       .build();
 
   private static Map<String, String> internalKeyStoreProps(boolean node1) {
@@ -137,7 +138,7 @@ public class SystemAuthenticationFunctionalTest {
   private static void commonClassSetup(final IntegrationTestHarness TEST_HARNESS,
       final TestKsqlRestApp REST_APP_0) {
     TEST_HARNESS.ensureTopics(2, PAGE_VIEW_TOPIC);
-    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, FormatFactory.JSON);
+    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, FormatFactory.KAFKA, FormatFactory.JSON);
     RestIntegrationTestUtil.createStream(REST_APP_0, PAGE_VIEWS_PROVIDER, Optional.of(USER1));
     RestIntegrationTestUtil.makeKsqlRequest(
         REST_APP_0,

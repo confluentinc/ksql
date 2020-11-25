@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlConfigTestUtil;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -46,7 +47,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -54,10 +55,10 @@ import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.apache.kafka.common.metrics.Metrics;
 import org.junit.rules.ExternalResource;
 
@@ -122,12 +123,21 @@ public class TemporaryEngine extends ExternalResource {
       final DataSourceType type,
       final String name
   ) {
+    return givenSource(type, name, Collections.emptySet());
+  }
+
+  @SuppressWarnings("unchecked")
+  public <T extends DataSource> T givenSource(
+      final DataSourceType type,
+      final String name,
+      final Set<SourceName> sourceReferences
+      ) {
     givenKafkaTopic(name);
 
     final KsqlTopic topic = new KsqlTopic(
         name,
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
     );
 
     final DataSource source;
@@ -138,7 +148,6 @@ public class TemporaryEngine extends ExternalResource {
                 "statement",
                 SourceName.of(name),
                 SCHEMA,
-                SerdeOption.none(),
                 Optional.empty(),
                 false,
                 topic
@@ -150,7 +159,6 @@ public class TemporaryEngine extends ExternalResource {
                 "statement",
                 SourceName.of(name),
                 SCHEMA,
-                SerdeOption.none(),
                 Optional.empty(),
                 false,
                 topic
@@ -160,6 +168,7 @@ public class TemporaryEngine extends ExternalResource {
         throw new IllegalArgumentException(type.toString());
     }
     metaStore.putSource(source, false);
+    metaStore.addSourceReferences(source.getName(), sourceReferences);
 
     return (T) source;
   }
@@ -170,10 +179,8 @@ public class TemporaryEngine extends ExternalResource {
   }
 
   public ConfiguredStatement<?> configure(final String sql) {
-    return ConfiguredStatement.of(
-        getEngine().prepare(new DefaultKsqlParser().parse(sql).get(0)),
-        new HashMap<>(),
-        ksqlConfig);
+    return ConfiguredStatement.of(getEngine().prepare(new DefaultKsqlParser().parse(sql).get(0)),
+        SessionConfig.of(ksqlConfig, ImmutableMap.of()));
   }
 
   public KsqlConfig getKsqlConfig() {

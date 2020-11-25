@@ -32,7 +32,8 @@ public class ComparisonExpression extends Expression {
     LESS_THAN_OR_EQUAL("<="),
     GREATER_THAN(">"),
     GREATER_THAN_OR_EQUAL(">="),
-    IS_DISTINCT_FROM("IS DISTINCT FROM");
+    IS_DISTINCT_FROM("IS DISTINCT FROM"),
+    IS_NOT_DISTINCT_FROM("IS NOT DISTINCT FROM");
 
     private final String value;
 

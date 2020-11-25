@@ -434,7 +434,8 @@ public final class StatementRewriter<C> {
       return new InsertInto(
           node.getLocation(),
           node.getTarget(),
-          (Query) rewriter.apply(node.getQuery(), context)
+          (Query) rewriter.apply(node.getQuery(), context),
+          node.getProperties()
       );
     }
 
@@ -477,7 +478,8 @@ public final class StatementRewriter<C> {
       return new RegisterType(
           node.getLocation(),
           node.getName(),
-          (Type) processExpression(node.getType(), context)
+          (Type) processExpression(node.getType(), context),
+          node.getIfNotExists()
       );
     }
   }

@@ -15,19 +15,31 @@
 
 package io.confluent.ksql.serde.json;
 
-import io.confluent.connect.json.JsonSchemaData;
-import io.confluent.kafka.schemaregistry.ParsedSchema;
-import io.confluent.kafka.schemaregistry.json.JsonSchema;
-import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
+import com.google.common.collect.ImmutableSet;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.connect.ConnectFormat;
-import org.apache.kafka.connect.data.Schema;
+import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
+import io.confluent.ksql.util.KsqlConfig;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.ConnectSchema;
 
 public class JsonFormat extends ConnectFormat {
 
-  public static final String NAME = JsonSchema.TYPE;
+  private static final ImmutableSet<SerdeFeature> SUPPORTED_FEATURES = ImmutableSet.of(
+      SerdeFeature.WRAP_SINGLES,
+      SerdeFeature.UNWRAP_SINGLES
+  );
 
-  private final JsonSchemaData jsonData = new JsonSchemaData();
+  @Override
+  public Set<SerdeFeature> supportedFeatures() {
+    return SUPPORTED_FEATURES;
+  }
+
+  public static final String NAME = "JSON";
 
   @Override
   public String name() {
@@ -35,22 +47,22 @@ public class JsonFormat extends ConnectFormat {
   }
 
   @Override
-  public boolean supportsSchemaInference() {
-    return false;
+  protected ConnectSchemaTranslator getConnectSchemaTranslator(
+      final Map<String, String> formatProps
+  ) {
+    throw new UnsupportedOperationException(name() + " does not implement Schema Registry support");
   }
 
   @Override
-  public KsqlSerdeFactory getSerdeFactory(final FormatInfo info) {
-    return new KsqlJsonSerdeFactory(false);
-  }
-
-  @Override
-  protected Schema toConnectSchema(final ParsedSchema schema) {
-    return jsonData.toConnectSchema((JsonSchema) schema);
-  }
-
-  @Override
-  protected ParsedSchema fromConnectSchema(final Schema schema, final FormatInfo formatInfo) {
-    return jsonData.fromConnectSchema(schema);
+  protected <T> Serde<T> getConnectSerde(
+      final ConnectSchema connectSchema,
+      final Map<String, String> formatProps,
+      final KsqlConfig config,
+      final Supplier<SchemaRegistryClient> srFactory,
+      final Class<T> targetType,
+      final boolean isKey
+  ) {
+    return new KsqlJsonSerdeFactory(false)
+        .createSerde(connectSchema, config, srFactory, targetType, isKey);
   }
 }

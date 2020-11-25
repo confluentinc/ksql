@@ -29,14 +29,12 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KTableHolder;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.TableSuppress;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.execution.streams.TableSuppressBuilder.PhysicalSchemaFactory;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.RefinementInfo;
-import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Set;
 import java.util.function.BiFunction;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -72,7 +70,7 @@ public class TableSuppressBuilderTest {
   @Mock
   private Formats internalFormats;
   @Mock
-  private KeySerdeFactory<Struct> keySerdeFactory;
+  private ExecutionKeyFactory<Struct> executionKeyFactory;
   @Mock
   private  PhysicalSchema physicalSchema;
   @Mock
@@ -93,7 +91,8 @@ public class TableSuppressBuilderTest {
       .getQueryContext();
 
   private TableSuppress<Struct> tableSuppress;
-  private BiFunction<LogicalSchema, Set<SerdeOption>, PhysicalSchema> physicalSchemaFactory;
+  @Mock
+  private PhysicalSchemaFactory physicalSchemaFactory;
   private BiFunction<Serde<Struct>, Serde<GenericRow>, Materialized> materializedFactory;
   private Long maxBytes = 300L;
   private TableSuppressBuilder builder;
@@ -106,11 +105,11 @@ public class TableSuppressBuilderTest {
   public void init() {
     final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(queryContext);
 
-    physicalSchemaFactory = (a,b) -> physicalSchema;
+    when(physicalSchemaFactory.create(any(), any(), any())).thenReturn(physicalSchema);
     materializedFactory = (a,b) -> materialized;
 
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
-    when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(executionKeyFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(ksqlConfig.getLong(any())).thenReturn(maxBytes);
 
@@ -127,7 +126,7 @@ public class TableSuppressBuilderTest {
   @SuppressWarnings("unchecked")
   public void shouldSuppressSourceTable() {
     // When:
-    final KTableHolder<Struct> result = builder.build(tableHolder, tableSuppress, queryBuilder, keySerdeFactory, physicalSchemaFactory, materializedFactory);
+    final KTableHolder<Struct> result = builder.build(tableHolder, tableSuppress, queryBuilder, executionKeyFactory, physicalSchemaFactory, materializedFactory);
 
     // Then:
     assertThat(result, is(suppressedtable));

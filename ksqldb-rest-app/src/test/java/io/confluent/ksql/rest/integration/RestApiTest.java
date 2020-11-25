@@ -50,11 +50,11 @@ import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
-import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.services.ServiceContext;
@@ -63,6 +63,8 @@ import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
 import io.confluent.ksql.util.PageViewDataProvider;
+import io.confluent.ksql.util.TestDataProvider;
+import io.confluent.ksql.util.TombstoneProvider;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
@@ -74,14 +76,18 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.ws.rs.core.MediaType;
 import org.apache.hc.core5.http.HttpStatus;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
+import org.junit.rules.Timeout;
 
 @Category({IntegrationTest.class})
 public class RestApiTest {
@@ -92,9 +98,11 @@ public class RestApiTest {
 
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
-  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
+  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.sourceName();
 
-  private static final String APPLICATION_JSON_TYPE = "application/json";
+  private static final TestDataProvider TOMBSTONE_PROVIDER = new TombstoneProvider();
+  private static final String TOMBSTONE_TOPIC = TOMBSTONE_PROVIDER.topicName();
+  private static final String TOMBSTONE_TABLE = TOMBSTONE_PROVIDER.sourceName();
 
   private static final String AGG_TABLE = "AGG_TABLE";
   private static final Credentials SUPER_USER = VALID_USER1;
@@ -139,7 +147,12 @@ public class RestApiTest {
               )
               .withAcl(
                   NORMAL_USER,
-                  resource(TOPIC, "AGG_TABLE"),
+                  resource(TOPIC, AGG_TABLE),
+                  ops(ALL)
+              )
+              .withAcl(
+                  NORMAL_USER,
+                  resource(TOPIC, TOMBSTONE_TOPIC),
                   ops(ALL)
               )
               .withAcl(
@@ -166,23 +179,35 @@ public class RestApiTest {
   @ClassRule
   public static final RuleChain CHAIN = RuleChain.outerRule(TEST_HARNESS).around(REST_APP);
 
+  @Rule
+  public final Timeout timeout = Timeout.seconds(60);
+
   private ServiceContext serviceContext;
 
   @BeforeClass
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
 
-    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, FormatFactory.JSON);
+    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, FormatFactory.KAFKA, FormatFactory.JSON);
+    TEST_HARNESS.produceRows(TOMBSTONE_TOPIC, TOMBSTONE_PROVIDER, FormatFactory.KAFKA, FormatFactory.JSON);
 
     RestIntegrationTestUtil.createStream(REST_APP, PAGE_VIEWS_PROVIDER);
+    RestIntegrationTestUtil.createTable(REST_APP, TOMBSTONE_PROVIDER);
 
     makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
         + "SELECT USERID, COUNT(1) AS COUNT FROM " + PAGE_VIEW_STREAM + " GROUP BY USERID;"
     );
   }
 
+  @Before
+  public void setUp() {
+    verifyNoPushQueries();
+  }
+
   @After
   public void tearDown() {
+    verifyNoPushQueries();
+
     if (serviceContext != null) {
       serviceContext.close();
     }
@@ -194,15 +219,12 @@ public class RestApiTest {
   }
 
   @Test
-  public void shouldExecutePushQueryOverWebSocketWithV1ContentType() {
-    // Given:
-    verifyNumPushQueries(0);
-
+  public void shouldExecutePushQueryThatReturnsStreamOverWebSocketWithV1ContentType() {
     // When:
     final List<String> messages = makeWebSocketRequest(
         "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + LIMIT + ";",
-        Versions.KSQL_V1_JSON,
-        Versions.KSQL_V1_JSON
+        KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        KsqlMediaType.KSQL_V1_JSON.mediaType()
     );
 
     // Then:
@@ -213,19 +235,44 @@ public class RestApiTest {
         + "{\"name\":\"USERID\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
         + "{\"name\":\"VIEWTIME\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
         + "]"));
-    verifyNumPushQueries(0);
+    assertThat(messages.get(1), is(
+        "{\"row\":{\"columns\":[\"PAGE_1\",\"USER_1\",1]}}"
+    ));
+    assertThat(messages.get(2), is(
+        "{\"row\":{\"columns\":[\"PAGE_2\",\"USER_2\",2]}}"
+    ));
   }
 
   @Test
-  public void shouldExecutePushQueryOverWebSocketWithJsonContentType() {
-    // Given:
-    verifyNumPushQueries(0);
+  public void shouldExecutePushQueryThatReturnsTableOverWebSocketWithV1ContentType() {
+    // When:
+    final List<String> messages = makeWebSocketRequest(
+        "SELECT VAL from " + TOMBSTONE_TABLE + " EMIT CHANGES LIMIT " + LIMIT + ";",
+        KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        KsqlMediaType.KSQL_V1_JSON.mediaType()
+    );
 
+    // Then:
+    assertThat(messages, hasSize(HEADER + LIMIT));
+    assertValidJsonMessages(messages);
+    assertThat(messages.get(0), is("["
+        + "{\"name\":\"VAL\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}}"
+        + "]"));
+    assertThat(messages.get(1), is(
+        "{\"row\":{\"columns\":[\"a\"]}}"
+    ));
+    assertThat(messages.get(2), is(
+        "{\"row\":{\"columns\":[\"b\"]}}"
+    ));
+  }
+
+  @Test
+  public void shouldExecutePushQueryThatReturnsStreamOverWebSocketWithJsonContentType() {
     // When:
     final List<String> messages = makeWebSocketRequest(
         "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + LIMIT + ";",
-        "application/json",
-        "application/json"
+        MediaType.APPLICATION_JSON,
+        MediaType.APPLICATION_JSON
     );
 
     // Then:
@@ -236,7 +283,35 @@ public class RestApiTest {
         + "{\"name\":\"USERID\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
         + "{\"name\":\"VIEWTIME\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
         + "]"));
-    verifyNumPushQueries(0);
+    assertThat(messages.get(1), is(
+        "{\"row\":{\"columns\":[\"PAGE_1\",\"USER_1\",1]}}"
+    ));
+    assertThat(messages.get(2), is(
+        "{\"row\":{\"columns\":[\"PAGE_2\",\"USER_2\",2]}}"
+    ));
+  }
+
+  @Test
+  public void shouldExecutePushQueryThatReturnsTableOverWebSocketWithJsonContentType() {
+    // When:
+    final List<String> messages = makeWebSocketRequest(
+        "SELECT VAL from " + TOMBSTONE_TABLE + " EMIT CHANGES LIMIT " + LIMIT + ";",
+        MediaType.APPLICATION_JSON,
+        MediaType.APPLICATION_JSON
+    );
+
+    // Then:
+    assertThat(messages, hasSize(HEADER + LIMIT));
+    assertValidJsonMessages(messages);
+    assertThat(messages.get(0), is("["
+        + "{\"name\":\"VAL\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}}"
+        + "]"));
+    assertThat(messages.get(1), is(
+        "{\"row\":{\"columns\":[\"a\"]}}"
+    ));
+    assertThat(messages.get(2), is(
+        "{\"row\":{\"columns\":[\"b\"]}}"
+    ));
   }
 
   @Test
@@ -302,14 +377,25 @@ public class RestApiTest {
   }
 
   @Test
-  public void shouldExecutePushQueryOverRest() {
-    // Given:
-    verifyNumPushQueries(0);
+  public void shouldRejectPushQueryWithUnsupportedMediaType() {
+    // When:
+    final int response = failingRestQueryRequest(
+        "SELECT USERID, PAGEID, VIEWTIME from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT "
+            + LIMIT + ";",
+        "unsupported/type"
+    );
 
+    // Then:
+    assertThat(response, is(HttpStatus.SC_NOT_ACCEPTABLE));
+  }
+
+  @Test
+  public void shouldExecutePushQueryThatReturnsStreamOverRestV1() {
     // When:
     final String response = rawRestQueryRequest(
         "SELECT USERID, PAGEID, VIEWTIME from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT "
-            + LIMIT + ";"
+            + LIMIT + ";",
+        KsqlMediaType.KSQL_V1_JSON.mediaType()
     );
 
     // Then:
@@ -319,12 +405,79 @@ public class RestApiTest {
         .collect(Collectors.toList());
     assertThat(messages, hasSize(HEADER + LIMIT + FOOTER));
     assertThat(messages.get(0),
-        is("[{\"header\":{\"queryId\":\"none\",\"schema\":\"`USERID` STRING, `PAGEID` STRING, `VIEWTIME` BIGINT\"}},"));
+        startsWith("[{\"header\":{\"queryId\":\""));
+    assertThat(messages.get(0),
+        endsWith("\",\"schema\":\"`USERID` STRING, `PAGEID` STRING, `VIEWTIME` BIGINT\"}},"));
     assertThat(messages.get(1), is("{\"row\":{\"columns\":[\"USER_1\",\"PAGE_1\",1]}},"));
     assertThat(messages.get(2), is("{\"row\":{\"columns\":[\"USER_2\",\"PAGE_2\",2]}},"));
     assertThat(messages.get(3), is("{\"finalMessage\":\"Limit Reached\"}]"));
+  }
 
-    verifyNumPushQueries(0);
+  @Test
+  public void shouldExecutePushQueryThatReturnsTableOverRestV1() {
+    // When:
+    final String response = rawRestQueryRequest(
+        "SELECT VAL from " + TOMBSTONE_TABLE + " EMIT CHANGES LIMIT " + LIMIT + ";",
+        KsqlMediaType.KSQL_V1_JSON.mediaType()
+    );
+
+    // Then:
+    assertThat(parseRawRestQueryResponse(response), hasSize(HEADER + LIMIT + FOOTER));
+    final List<String> messages = Arrays.stream(response.split(System.lineSeparator()))
+        .filter(s -> !s.isEmpty())
+        .collect(Collectors.toList());
+    assertThat(messages, hasSize(HEADER + LIMIT + FOOTER));
+    assertThat(messages.get(0),
+        startsWith("[{\"header\":{\"queryId\":\""));
+    assertThat(messages.get(0), endsWith("\",\"schema\":\"`VAL` STRING\"}},"));
+    assertThat(messages.get(1), is("{\"row\":{\"columns\":[\"a\"]}},"));
+    assertThat(messages.get(2), is("{\"row\":{\"columns\":[null],\"tombstone\":true}},"));
+    assertThat(messages.get(3), is("{\"finalMessage\":\"Limit Reached\"}]"));
+  }
+
+  @Test
+  public void shouldExecutePushQueryThatReturnsStreamOverRest() {
+    // When:
+    final String response = rawRestQueryRequest(
+        "SELECT USERID, PAGEID, VIEWTIME from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT "
+            + LIMIT + ";",
+        MediaType.APPLICATION_JSON
+    );
+
+    // Then:
+    assertThat(parseRawRestQueryResponse(response), hasSize(HEADER + LIMIT + FOOTER));
+    final List<String> messages = Arrays.stream(response.split(System.lineSeparator()))
+        .filter(s -> !s.isEmpty())
+        .collect(Collectors.toList());
+    assertThat(messages, hasSize(HEADER + LIMIT + FOOTER));
+    assertThat(messages.get(0),
+        startsWith("[{\"header\":{\"queryId\":\""));
+    assertThat(messages.get(0),endsWith("\",\"schema\":\"`USERID` STRING, `PAGEID` STRING, `VIEWTIME` BIGINT\"}},"));
+    assertThat(messages.get(1), is("{\"row\":{\"columns\":[\"USER_1\",\"PAGE_1\",1]}},"));
+    assertThat(messages.get(2), is("{\"row\":{\"columns\":[\"USER_2\",\"PAGE_2\",2]}},"));
+    assertThat(messages.get(3), is("{\"finalMessage\":\"Limit Reached\"}]"));
+  }
+
+  @Test
+  public void shouldExecutePushQueryThatReturnsTableOverRest() {
+    // When:
+    final String response = rawRestQueryRequest(
+        "SELECT VAL from " + TOMBSTONE_TABLE + " EMIT CHANGES LIMIT " + LIMIT + ";",
+        MediaType.APPLICATION_JSON
+    );
+
+    // Then:
+    assertThat(parseRawRestQueryResponse(response), hasSize(HEADER + LIMIT + FOOTER));
+    final List<String> messages = Arrays.stream(response.split(System.lineSeparator()))
+        .filter(s -> !s.isEmpty())
+        .collect(Collectors.toList());
+    assertThat(messages, hasSize(HEADER + LIMIT + FOOTER));
+    assertThat(messages.get(0),
+        startsWith("[{\"header\":{\"queryId\":\""));
+    assertThat(messages.get(0),endsWith("\",\"schema\":\"`VAL` STRING\"}},"));
+    assertThat(messages.get(1), is("{\"row\":{\"columns\":[\"a\"]}},"));
+    assertThat(messages.get(2), is("{\"row\":{\"columns\":[null],\"tombstone\":true}},"));
+    assertThat(messages.get(3), is("{\"finalMessage\":\"Limit Reached\"}]"));
   }
 
   @Test
@@ -332,8 +485,8 @@ public class RestApiTest {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT * from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-        Versions.KSQL_V1_JSON,
-        Versions.KSQL_V1_JSON
+        KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        KsqlMediaType.KSQL_V1_JSON.mediaType()
     );
 
     // Then:
@@ -353,8 +506,8 @@ public class RestApiTest {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-        APPLICATION_JSON_TYPE,
-        APPLICATION_JSON_TYPE
+        MediaType.APPLICATION_JSON,
+        MediaType.APPLICATION_JSON
     );
 
     // Then:
@@ -374,8 +527,8 @@ public class RestApiTest {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-        APPLICATION_JSON_TYPE,
-        APPLICATION_JSON_TYPE
+        MediaType.APPLICATION_JSON,
+        MediaType.APPLICATION_JSON
     );
 
     // Then:
@@ -394,8 +547,8 @@ public class RestApiTest {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
         "SELECT COUNT from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-        APPLICATION_JSON_TYPE,
-        APPLICATION_JSON_TYPE
+        MediaType.APPLICATION_JSON,
+        MediaType.APPLICATION_JSON
     );
 
     // Then:
@@ -414,8 +567,8 @@ public class RestApiTest {
     // Given:
     final Supplier<List<String>> call = () -> {
       final String response = rawRestQueryRequest(
-          "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';"
-      );
+          "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
+          MediaType.APPLICATION_JSON);
       return Arrays.asList(response.split(System.lineSeparator()));
     };
 
@@ -461,8 +614,8 @@ public class RestApiTest {
   public void shouldReportErrorOnInvalidPullQueryOverRest() {
     // When:
     final String response = rawRestQueryRequest(
-        "SELECT * from " + AGG_TABLE + ";"
-    );
+        "SELECT * from " + AGG_TABLE + ";",
+        MediaType.APPLICATION_JSON);
 
     // Then:
     assertThat(response, containsString("Missing WHERE clause"));
@@ -473,8 +626,8 @@ public class RestApiTest {
     // When:
     final List<String> messages = makeWebSocketRequest(
         "PRINT '" + PAGE_VIEW_TOPIC + "' FROM BEGINNING LIMIT " + LIMIT + ";",
-        APPLICATION_JSON_TYPE,
-        APPLICATION_JSON_TYPE);
+        MediaType.APPLICATION_JSON,
+        MediaType.APPLICATION_JSON);
 
     // Then:
     assertThat(messages, hasSize(LIMIT));
@@ -484,7 +637,10 @@ public class RestApiTest {
   public void shouldDeleteTopic() {
     // Given:
     makeKsqlRequest("CREATE STREAM X AS SELECT * FROM " + PAGE_VIEW_STREAM + ";");
-    final String query = REST_APP.getPersistentQueries().iterator().next();
+    final String query = REST_APP.getPersistentQueries().stream()
+        .filter(q -> q.startsWith("CSAS_X_"))
+        .findFirst()
+        .orElseThrow(IllegalStateException::new);
     makeKsqlRequest("TERMINATE " + query + ";");
 
     assertThat("Expected topic X to be created", topicExists("X"));
@@ -502,16 +658,12 @@ public class RestApiTest {
     KsqlRequest ksqlRequest = new KsqlRequest("SELECT * from " + AGG_TABLE + " EMIT CHANGES;",
         Collections.emptyMap(), Collections.emptyMap(), null);
 
-    verifyNumPushQueries(0);
-
     // When:
     HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
         HttpVersion.HTTP_2, HttpMethod.POST, "/query", ksqlRequest);
 
     // Then:
     assertThat(resp.statusCode(), is(405));
-
-    verifyNumPushQueries(0);
   }
 
   private boolean topicExists(final String topicName) {
@@ -529,8 +681,15 @@ public class RestApiTest {
     RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
   }
 
-  private static String rawRestQueryRequest(final String sql) {
-    return RestIntegrationTestUtil.rawRestQueryRequest(REST_APP, sql, Optional.empty());
+  private static String rawRestQueryRequest(final String sql, final String mediaType) {
+    return RestIntegrationTestUtil.rawRestQueryRequest(REST_APP, sql, mediaType)
+        .body()
+        .toString();
+  }
+
+  private static int failingRestQueryRequest(final String sql, final String mediaType) {
+    return RestIntegrationTestUtil.rawRestQueryRequest(REST_APP, sql, mediaType)
+        .statusCode();
   }
 
   private static List<Map<String, Object>> parseRawRestQueryResponse(final String response) {
@@ -577,8 +736,7 @@ public class RestApiTest {
     }
   }
 
-  private static void verifyNumPushQueries(final int numPushQueries) {
-    assertThatEventually(REST_APP::getTransientQueries, hasSize(numPushQueries));
+  private static void verifyNoPushQueries() {
+    assertThatEventually(REST_APP::getTransientQueries, hasSize(0));
   }
-
 }

@@ -5,11 +5,21 @@
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
       "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(6, 4)",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`ROWKEY` STRING KEY, `DEC` DECIMAL(6, 4)",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {
@@ -55,31 +65,31 @@
       "topic" : "OUTPUT",
       "key" : "",
       "value" : {
-        "DEC" : 10
+        "DEC" : 10.0000
       }
     }, {
       "topic" : "OUTPUT",
       "key" : "",
       "value" : {
-        "DEC" : 1
+        "DEC" : 1.0000
       }
     }, {
       "topic" : "OUTPUT",
       "key" : "",
       "value" : {
-        "DEC" : 0.1
+        "DEC" : 0.1000
       }
     }, {
       "topic" : "OUTPUT",
       "key" : "",
       "value" : {
-        "DEC" : 0.01
+        "DEC" : 0.0100
       }
     }, {
       "topic" : "OUTPUT",
       "key" : "",
       "value" : {
-        "DEC" : 0.001
+        "DEC" : 0.0010
       }
     }, {
       "topic" : "OUTPUT",
@@ -106,7 +116,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
@@ -114,15 +126,15 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -131,9 +143,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.execution;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
@@ -85,7 +86,7 @@ public final class ListSourceExecutor {
     final List<SourceDescriptionWithWarnings> descriptions = sources.stream()
         .map(
             s -> describeSource(
-                statement.getConfig(),
+                statement.getSessionConfig().getConfig(false),
                 executionContext,
                 serviceContext,
                 s.getName(),
@@ -161,7 +162,7 @@ public final class ListSourceExecutor {
   ) {
     final ShowColumns showColumns = statement.getStatement();
     final SourceDescriptionWithWarnings descriptionWithWarnings = describeSource(
-        statement.getConfig(),
+        statement.getSessionConfig().getConfig(false),
         executionContext,
         serviceContext,
         showColumns.getTable(),
@@ -221,7 +222,9 @@ public final class ListSourceExecutor {
 
     Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescription =
         Optional.empty();
-    List<QueryOffsetSummary> queryOffsetSummaries = new ArrayList<>();
+    List<QueryOffsetSummary> queryOffsetSummaries = Collections.emptyList();
+    List<String> sourceConstraints = Collections.emptyList();
+
     final List<KsqlWarning> warnings = new LinkedList<>();
     if (extended) {
       try {
@@ -229,6 +232,7 @@ public final class ListSourceExecutor {
             serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName())
         );
         queryOffsetSummaries = queryOffsetSummaries(ksqlConfig, serviceContext, writeQueries);
+        sourceConstraints = getSourceConstraints(name, ksqlEngine.getMetaStore());
       } catch (final KafkaException | KafkaResponseGetFailedException e) {
         warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
       }
@@ -242,9 +246,19 @@ public final class ListSourceExecutor {
             readQueries,
             writeQueries,
             topicDescription,
-            queryOffsetSummaries
+            queryOffsetSummaries,
+            sourceConstraints
         )
     );
+  }
+
+  private static List<String> getSourceConstraints(
+      final SourceName sourceName,
+      final MetaStore metaStore
+  ) {
+    return metaStore.getSourceConstraints(sourceName).stream()
+        .map(SourceName::text)
+        .collect(Collectors.toList());
   }
 
   private static List<QueryOffsetSummary> queryOffsetSummaries(
@@ -342,7 +356,9 @@ public final class ListSourceExecutor {
     return new Stream(
         dataSource.getName().text(),
         dataSource.getKsqlTopic().getKafkaTopicName(),
-        dataSource.getKsqlTopic().getValueFormat().getFormat().name()
+        dataSource.getKsqlTopic().getKeyFormat().getFormat(),
+        dataSource.getKsqlTopic().getValueFormat().getFormat(),
+        dataSource.getKsqlTopic().getKeyFormat().isWindowed()
     );
   }
 
@@ -350,7 +366,8 @@ public final class ListSourceExecutor {
     return new Table(
         dataSource.getName().text(),
         dataSource.getKsqlTopic().getKafkaTopicName(),
-        dataSource.getKsqlTopic().getValueFormat().getFormat().name(),
+        dataSource.getKsqlTopic().getKeyFormat().getFormat(),
+        dataSource.getKsqlTopic().getValueFormat().getFormat(),
         dataSource.getKsqlTopic().getKeyFormat().isWindowed()
     );
   }

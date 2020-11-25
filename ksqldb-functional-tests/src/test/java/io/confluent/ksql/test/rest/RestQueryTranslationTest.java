@@ -16,18 +16,21 @@
 package io.confluent.ksql.test.rest;
 
 
+import static io.confluent.ksql.test.util.ThreadTestUtil.filterBuilder;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
-import io.confluent.common.utils.TestUtils;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.loader.TestFile;
 import io.confluent.ksql.test.model.TestFileContext;
+import io.confluent.ksql.test.util.ThreadTestUtil;
+import io.confluent.ksql.test.util.ThreadTestUtil.ThreadSnapshot;
+import io.confluent.ksql.test.utils.TestUtils;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -35,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import kafka.zookeeper.ZooKeeperClientException;
@@ -77,9 +81,14 @@ public class RestQueryTranslationTest {
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(
           KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG,
-          TestUtils.tempDirectory().getPath()
+          TestUtils.tempDirectory().toAbsolutePath().toString()
+      )
+      .withProperty(
+          KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
+          StreamsConfig.EXACTLY_ONCE // To stabilize tests
       )
       .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+      .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "set")
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .build();
 
@@ -88,6 +97,8 @@ public class RestQueryTranslationTest {
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS)
       .around(REST_APP);
+
+  private static final AtomicReference<ThreadSnapshot> STARTING_THREADS = new AtomicReference<>();
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
@@ -98,7 +109,7 @@ public class RestQueryTranslationTest {
   }
 
   @Rule
-  public final Timeout timeout = Timeout.seconds(30);
+  public final Timeout timeout = Timeout.seconds(60);
 
   private final RestTestCase testCase;
 
@@ -116,6 +127,17 @@ public class RestQueryTranslationTest {
     REST_APP.closePersistentQueries();
     REST_APP.dropSourcesExcept();
     TEST_HARNESS.getKafkaCluster().deleteAllTopics(TestKsqlRestApp.getCommandTopicName());
+
+    if (STARTING_THREADS.get() == null) {
+      // Only set once one full run completed to ensure all persistent threads created:
+      STARTING_THREADS.set(ThreadTestUtil.threadSnapshot(filterBuilder()
+          .excludeTerminated()
+          // There is a pool of ksql worker threads that grows over time, but is capped.
+          .nameMatches(name -> !name.startsWith("ksql-workers"))
+          .build()));
+    } else {
+      STARTING_THREADS.get().assertSameThreads();
+    }
   }
 
   @Test

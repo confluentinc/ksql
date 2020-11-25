@@ -27,6 +27,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -39,6 +40,7 @@ import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.MapperInfo;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
@@ -53,12 +55,11 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
@@ -92,7 +93,8 @@ public class TableAggregateBuilderTest {
   );
   private static final PhysicalSchema PHYSICAL_AGGREGATE_SCHEMA = PhysicalSchema.from(
       AGGREGATE_SCHEMA,
-      SerdeOption.none()
+      SerdeFeatures.of(),
+      SerdeFeatures.of()
   );
   private static final FunctionCall AGG0 = new FunctionCall(
       FunctionName.of("AGG0"),
@@ -111,11 +113,11 @@ public class TableAggregateBuilderTest {
   private static final FormatInfo VALUE_FORMAT = FormatInfo.of(FormatFactory.JSON.name());
 
   @Mock
-  private KGroupedTable<Struct, GenericRow> groupedTable;
+  private KGroupedTable<GenericKey, GenericRow> groupedTable;
   @Mock
-  private KTable<Struct, GenericRow> aggregated;
+  private KTable<GenericKey, GenericRow> aggregated;
   @Mock
-  private KTable<Struct, GenericRow> aggregatedWithResults;
+  private KTable<GenericKey, GenericRow> aggregatedWithResults;
   @Mock
   private KsqlQueryBuilder queryBuilder;
   @Mock
@@ -127,19 +129,19 @@ public class TableAggregateBuilderTest {
   @Mock
   private KudafInitializer initializer;
   @Mock
-  private KudafAggregator<Struct> aggregator;
+  private KudafAggregator<GenericKey> aggregator;
   @Mock
-  private KsqlTransformer<Struct, GenericRow> resultMapper;
+  private KsqlTransformer<GenericKey, GenericRow> resultMapper;
   @Mock
   private KudafUndoAggregator undoAggregator;
   @Mock
   private MaterializedFactory materializedFactory;
   @Mock
-  private Serde<Struct> keySerde;
+  private Serde<GenericKey> keySerde;
   @Mock
   private Serde<GenericRow> valueSerde;
   @Mock
-  private Materialized<Struct, GenericRow, KeyValueStore<Bytes, byte[]>> materialized;
+  private Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> materialized;
   @Mock
   private ExecutionStep<KGroupedTableHolder> sourceStep;
   @Mock
@@ -162,7 +164,7 @@ public class TableAggregateBuilderTest {
     when(aggregateParams.getAggregateSchema()).thenReturn(AGGREGATE_SCHEMA);
     when(aggregateParams.getSchema()).thenReturn(AGGREGATE_SCHEMA);
     when(aggregator.getResultMapper()).thenReturn(resultMapper);
-    when(materializedFactory.<Struct, KeyValueStore<Bytes, byte[]>>create(any(), any(), any()))
+    when(materializedFactory.<GenericKey, KeyValueStore<Bytes, byte[]>>create(any(), any(), any()))
         .thenReturn(materialized);
     when(groupedTable.aggregate(any(), any(), any(), any(Materialized.class))).thenReturn(
         aggregated);
@@ -171,7 +173,7 @@ public class TableAggregateBuilderTest {
     aggregate = new TableAggregate(
         new ExecutionStepPropertiesV1(CTX),
         sourceStep,
-        io.confluent.ksql.execution.plan.Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
+        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeFeatures.of(), SerdeFeatures.of()),
         NON_AGG_COLUMNS,
         FUNCTIONS
     );
@@ -193,7 +195,7 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldBuildAggregateCorrectly() {
     // When:
-    final KTableHolder<Struct> result = aggregate.build(planBuilder);
+    final KTableHolder<GenericKey> result = aggregate.build(planBuilder);
 
     // Then:
     assertThat(result.getTable(), is(aggregatedWithResults));
@@ -206,7 +208,7 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldReturnCorrectSchema() {
     // When:
-    final KTableHolder<Struct> result = aggregate.build(planBuilder);
+    final KTableHolder<GenericKey> result = aggregate.build(planBuilder);
 
     // Then:
     assertThat(result.getSchema(), is(AGGREGATE_SCHEMA));
@@ -284,7 +286,7 @@ public class TableAggregateBuilderTest {
     final KsqlTransformer<Object, GenericRow> mapper = aggMapInfo.getMapper(name -> null);
 
     // Given:
-    final Struct key = mock(Struct.class);
+    final GenericKey key = mock(GenericKey.class);
     final GenericRow value = mock(GenericRow.class);
 
     // When:

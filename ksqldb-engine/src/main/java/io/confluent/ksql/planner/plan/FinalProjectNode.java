@@ -23,19 +23,23 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.udf.AsValue;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.Name;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.planner.RequiredColumns;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -68,7 +72,7 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
     this.schema = result.left;
     this.selectExpressions = ImmutableList.copyOf(result.right);
 
-    validate();
+    throwOnEmptyValueOrUnknownColumns();
   }
 
   @Override
@@ -103,7 +107,8 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
         SelectionUtil.buildProjectionSchema(parentSchema, selectExpressions, metaStore);
 
     if (into.isPresent()) {
-      // Persistent queries have key columns as key columns - so final projection can exclude them:
+      // Persistent queries have key columns as value columns - final projection can exclude them:
+      final Map<ColumnName, Set<ColumnName>> seenKeyColumns = new HashMap<>();
       selectExpressions.removeIf(se -> {
         if (se.getExpression() instanceof UnqualifiedColumnReferenceExp) {
           final ColumnName columnName = ((UnqualifiedColumnReferenceExp) se.getExpression())
@@ -114,10 +119,28 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
             return true;
           }
 
-          return parentSchema.isKeyColumn(columnName);
+          if (parentSchema.isKeyColumn(columnName)) {
+            seenKeyColumns.computeIfAbsent(columnName, k -> new HashSet<>()).add(se.getAlias());
+            return true;
+          }
         }
         return false;
       });
+
+      for (final Entry<ColumnName, Set<ColumnName>> seenKey : seenKeyColumns.entrySet()) {
+        if (seenKey.getValue().size() > 1) {
+          final String keys = GrammaticalJoiner.and().join(
+              seenKey.getValue().stream().map(Name::text).sorted());
+          throw new KsqlException("The projection contains a key column (" + seenKey.getKey()
+              + ") more than once, aliased as: "
+              + keys + "."
+              + System.lineSeparator()
+              + "Each key column must only be in the projection once. "
+              + "If you intended to copy the key into the value, then consider using the "
+              + AsValue.NAME + " function to indicate which key reference should be copied."
+          );
+        }
+      }
     }
 
     final LogicalSchema nodeSchema;
@@ -139,18 +162,8 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
     return Pair.of(nodeSchema, selectExpressions);
   }
 
-  private void validate() {
+  private void throwOnEmptyValueOrUnknownColumns() {
     final LogicalSchema schema = getSchema();
-
-    if (schema.key().size() > 1) {
-      final String keys = GrammaticalJoiner.and().join(schema.key().stream().map(Column::name));
-      throw new KsqlException("The projection contains the key column more than once: " + keys + "."
-          + System.lineSeparator()
-          + "Each key column must only be in the projection once. "
-          + "If you intended to copy the key into the value, then consider using the "
-          + AsValue.NAME + " function to indicate which key reference should be copied."
-      );
-    }
 
     if (schema.value().isEmpty()) {
       throw new KsqlException("The projection contains no value columns.");

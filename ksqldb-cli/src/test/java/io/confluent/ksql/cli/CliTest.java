@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.cli;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_ACCEPTABLE;
@@ -42,6 +43,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.cli.console.Console;
@@ -63,12 +65,13 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.entity.StreamedRow.DataRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.KsqlConfig;
@@ -139,8 +142,8 @@ public class CliTest {
           KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention + 1)
       .build();
 
-  @ClassRule
-  public static final TemporaryFolder TMP = new TemporaryFolder();
+  @Rule
+  public final TemporaryFolder TMP = new TemporaryFolder();
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain
@@ -188,9 +191,9 @@ public class CliTest {
         DELIMITED_TOPIC
     );
 
-    TEST_HARNESS.produceRows(JSON_TOPIC, ORDER_DATA_PROVIDER, FormatFactory.JSON);
+    TEST_HARNESS.produceRows(JSON_TOPIC, ORDER_DATA_PROVIDER, FormatFactory.KAFKA, FormatFactory.JSON);
     TEST_HARNESS.produceRecord(DELIMITED_TOPIC, null, null);
-    TEST_HARNESS.produceRows(DELIMITED_TOPIC, new ItemDataProvider(), FormatFactory.DELIMITED);
+    TEST_HARNESS.produceRows(DELIMITED_TOPIC, new ItemDataProvider(), FormatFactory.KAFKA, FormatFactory.DELIMITED);
 
     try (Cli cli = Cli.build(1L, 1000L, OutputFormat.JSON, restClient)) {
       createKStream(ORDER_DATA_PROVIDER, cli);
@@ -200,7 +203,7 @@ public class CliTest {
   @Before
   public void setUp() {
     REST_APP.closePersistentQueries();
-    REST_APP.dropSourcesExcept(ORDER_DATA_PROVIDER.kstreamName());
+    REST_APP.dropSourcesExcept(ORDER_DATA_PROVIDER.sourceName());
 
     streamName = KsqlIdentifierTestUtil.uniqueIdentifierName();
     tableName = KsqlIdentifierTestUtil.uniqueIdentifierName();
@@ -241,8 +244,8 @@ public class CliTest {
     }
   }
 
-  private static void createKStream(final TestDataProvider<?> dataProvider, final Cli cli) {
-    run("CREATE STREAM " + dataProvider.kstreamName()
+  private static void createKStream(final TestDataProvider dataProvider, final Cli cli) {
+    run("CREATE STREAM " + dataProvider.sourceName()
             + " (" + dataProvider.ksqlSchemaString(false) + ")"
             + " WITH (value_format = 'json', kafka_topic = '" + dataProvider.topicName() + "');",
         cli);
@@ -265,7 +268,7 @@ public class CliTest {
   private void testCreateStreamAsSelect(
       final String selectQuery,
       final PhysicalSchema resultSchema,
-      final Map<String, GenericRow> expectedResults
+      final Map<GenericKey, GenericRow> expectedResults
   ) {
     final String queryString = "CREATE STREAM " + streamName + " AS " + selectQuery;
 
@@ -280,6 +283,7 @@ public class CliTest {
       TEST_HARNESS.verifyAvailableUniqueRows(
           streamName,
           is(expectedResults),
+          FormatFactory.KAFKA,
           FormatFactory.JSON,
           resultSchema
       );
@@ -387,7 +391,7 @@ public class CliTest {
 
     assertRunListCommand(
         "streams",
-        isRow(ORDER_DATA_PROVIDER.kstreamName(), ORDER_DATA_PROVIDER.topicName(), "JSON")
+        isRow(ORDER_DATA_PROVIDER.sourceName(), ORDER_DATA_PROVIDER.topicName(), "KAFKA", "JSON", "false")
     );
 
     assertRunListCommand("tables", is(EMPTY_RESULT));
@@ -427,6 +431,76 @@ public class CliTest {
     assertThat(terminal.getOutputString(), containsString(", key: <null>, value: <null>"));
     assertThat(terminal.getOutputString(),
         containsString(", key: ITEM_1, value: home cinema"));
+  }
+
+  @Test
+  public void testDisableVariableSubstitution() {
+    // Given:
+    assertRunCommand(
+        "set '" + KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE + "' = 'false';", is(EMPTY_RESULT));
+    assertRunCommand("define topicName = '" + DELIMITED_TOPIC + "';", is(EMPTY_RESULT));
+
+    // When:
+    run("PRINT ${topicName} FROM BEGINNING INTERVAL 1 LIMIT 2;", localCli);
+
+    // Then:
+    assertThatEventually(() -> terminal.getOutputString(),
+        containsString("Failed to Describe Kafka Topic(s): [${topicName}]"));
+    assertThatEventually(() -> terminal.getOutputString(),
+        containsString("Caused by: This server does not host this topic-partition."));
+  }
+
+  @Test
+  public void testVariableSubstitution() {
+    // Given:
+    assertRunCommand(
+        "set '" + KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE + "' = 'true';", is(EMPTY_RESULT));
+    assertRunCommand("define topicName = '" + DELIMITED_TOPIC + "';", is(EMPTY_RESULT));
+
+    // When:
+    run("PRINT ${topicName} FROM BEGINNING INTERVAL 1 LIMIT 2;", localCli);
+
+    // Then:
+    assertThatEventually(() -> terminal.getOutputString(),
+        containsString("Value format: KAFKA_STRING"));
+    assertThat(terminal.getOutputString(), containsString("Key format: KAFKA_STRING"));
+    assertThat(terminal.getOutputString(), containsString(", key: <null>, value: <null>"));
+    assertThat(terminal.getOutputString(),
+        containsString(", key: ITEM_1, value: home cinema"));
+  }
+
+  @Test
+  public void testVariableDefineUndefine() {
+    assertRunCommand("define var1 = '1';", is(EMPTY_RESULT));
+    assertRunCommand("define var2 = '2';", is(EMPTY_RESULT));
+    assertRunCommand("define var3 = '3';", is(EMPTY_RESULT));
+
+    assertRunCommand("undefine var1;", is(EMPTY_RESULT));
+
+    assertRunListCommand("variables", hasRows(
+        row(
+            "var2",
+            "2"
+        ),
+        row(
+            "var3",
+            "3"
+        )
+    ));
+  }
+
+  @Test
+  public void testAddVariablesToCli() {
+    // Given
+    localCli.addSessionVariables(ImmutableMap.of("env", "qa"));
+
+    // Then
+    assertRunListCommand("variables", hasRows(
+        row(
+            "env",
+            "qa"
+        )
+    ));
   }
 
   @Test
@@ -485,7 +559,7 @@ public class CliTest {
   @Test
   public void shouldPrintCorrectSchemaForDescribeStream() {
     assertRunCommand(
-        "describe " + ORDER_DATA_PROVIDER.kstreamName() + ";",
+        "describe " + ORDER_DATA_PROVIDER.sourceName() + ";",
         containsRows(
             row("ORDERID", "VARCHAR(STRING)  (key)"),
             row("ORDERTIME", "BIGINT"),
@@ -500,7 +574,7 @@ public class CliTest {
   @Test
   public void testPersistentSelectStar() {
     testCreateStreamAsSelect(
-        "SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";",
+        "SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + ";",
         ORDER_DATA_PROVIDER.schema(),
         ORDER_DATA_PROVIDER.finalData()
     );
@@ -508,29 +582,29 @@ public class CliTest {
 
   @Test
   public void testSelectProject() {
-    final Map<String, GenericRow> expectedResults = ImmutableMap
-        .<String, GenericRow>builder()
-        .put("ORDER_1", genericRow(
+    final Map<GenericKey, GenericRow> expectedResults = ImmutableMap
+        .<GenericKey, GenericRow>builder()
+        .put(genericKey("ORDER_1"), genericRow(
             "ITEM_1",
             10.0,
             ImmutableList.of(100.0, 110.99, 90.0)))
-        .put("ORDER_2", genericRow(
+        .put(genericKey("ORDER_2"), genericRow(
             "ITEM_2",
             20.0,
             ImmutableList.of(10.0, 10.99, 9.0)))
-        .put("ORDER_3", genericRow(
+        .put(genericKey("ORDER_3"), genericRow(
             "ITEM_3",
             30.0,
             ImmutableList.of(10.0, 10.99, 91.0)))
-        .put("ORDER_4", genericRow(
+        .put(genericKey("ORDER_4"), genericRow(
             "ITEM_4",
             40.0,
             ImmutableList.of(10.0, 140.99, 94.0)))
-        .put("ORDER_5", genericRow(
+        .put(genericKey("ORDER_5"), genericRow(
             "ITEM_5",
             50.0,
             ImmutableList.of(160.0, 160.99, 98.0)))
-        .put("ORDER_6", genericRow(
+        .put(genericKey("ORDER_6"), genericRow(
             "ITEM_8",
             80.0,
             ImmutableList.of(1100.0, 1110.99, 970.0)))
@@ -543,12 +617,13 @@ public class CliTest {
             .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.DOUBLE)
             .valueColumn(ColumnName.of("PRICEARRAY"), SqlTypes.array(SqlTypes.DOUBLE))
             .build(),
-        SerdeOption.none()
+        SerdeFeatures.of(),
+        SerdeFeatures.of()
     );
 
     testCreateStreamAsSelect(
         "SELECT ORDERID, ITEMID, ORDERUNITS, PRICEARRAY "
-            + "FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";",
+            + "FROM " + ORDER_DATA_PROVIDER.sourceName() + ";",
         resultSchema,
         expectedResults
     );
@@ -556,8 +631,8 @@ public class CliTest {
 
   @Test
   public void testSelectFilter() {
-    final Map<String, GenericRow> expectedResults = ImmutableMap.of(
-        "ORDER_6",
+    final Map<GenericKey, GenericRow> expectedResults = ImmutableMap.of(
+        genericKey("ORDER_6"),
         genericRow(
             8L,
             "ITEM_8",
@@ -569,7 +644,7 @@ public class CliTest {
     );
 
     testCreateStreamAsSelect(
-        "SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName()
+        "SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName()
             + " WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';",
         ORDER_DATA_PROVIDER.schema(),
         expectedResults
@@ -578,13 +653,13 @@ public class CliTest {
 
   @Test
   public void testTransientSelect() {
-    final Multimap<String, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
-    final List<Object> row1 = Iterables.getFirst(streamData.get("ORDER_1"), genericRow()).values();
-    final List<Object> row2 = Iterables.getFirst(streamData.get("ORDER_2"), genericRow()).values();
-    final List<Object> row3 = Iterables.getFirst(streamData.get("ORDER_3"), genericRow()).values();
+    final Multimap<GenericKey, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
+    final List<Object> row1 = Iterables.getFirst(streamData.get(genericKey("ORDER_1")), genericRow()).values();
+    final List<Object> row2 = Iterables.getFirst(streamData.get(genericKey("ORDER_2")), genericRow()).values();
+    final List<Object> row3 = Iterables.getFirst(streamData.get(genericKey("ORDER_3")), genericRow()).values();
 
     selectWithLimit(
-        "SELECT ORDERID, ITEMID FROM " + ORDER_DATA_PROVIDER.kstreamName() + " EMIT CHANGES",
+        "SELECT ORDERID, ITEMID FROM " + ORDER_DATA_PROVIDER.sourceName() + " EMIT CHANGES",
         3,
         containsRows(
             row("ORDER_1", row1.get(1).toString()),
@@ -597,7 +672,7 @@ public class CliTest {
   public void shouldHandlePullQuery() {
     // Given:
     run("CREATE TABLE X AS SELECT ITEMID, COUNT(1) AS COUNT "
-            + "FROM " + ORDER_DATA_PROVIDER.kstreamName()
+            + "FROM " + ORDER_DATA_PROVIDER.sourceName()
             + " GROUP BY ITEMID;",
         localCli
     );
@@ -623,7 +698,7 @@ public class CliTest {
   public void shouldOutputPullQueryHeader() {
     // Given:
     run("CREATE TABLE Y AS SELECT ITEMID, COUNT(1) AS COUNT "
-            + "FROM " + ORDER_DATA_PROVIDER.kstreamName()
+            + "FROM " + ORDER_DATA_PROVIDER.sourceName()
             + " GROUP BY ITEMID;",
         localCli
     );
@@ -641,13 +716,13 @@ public class CliTest {
 
   @Test
   public void testTransientContinuousSelectStar() {
-    final Multimap<String, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
-    final List<Object> row1 = Iterables.getFirst(streamData.get("ORDER_1"), genericRow()).values();
-    final List<Object> row2 = Iterables.getFirst(streamData.get("ORDER_2"), genericRow()).values();
-    final List<Object> row3 = Iterables.getFirst(streamData.get("ORDER_3"), genericRow()).values();
+    final Multimap<GenericKey, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
+    final List<Object> row1 = Iterables.getFirst(streamData.get(genericKey("ORDER_1")), genericRow()).values();
+    final List<Object> row2 = Iterables.getFirst(streamData.get(genericKey("ORDER_2")), genericRow()).values();
+    final List<Object> row3 = Iterables.getFirst(streamData.get(genericKey("ORDER_3")), genericRow()).values();
 
     selectWithLimit(
-        "SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + " EMIT CHANGES",
+        "SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + " EMIT CHANGES",
         3,
         containsRows(
             row(prependWithKey("ORDER_1", row1)),
@@ -659,7 +734,7 @@ public class CliTest {
   @Test
   public void shouldOutputPushQueryHeader() {
     // When:
-    run("SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + " EMIT CHANGES LIMIT 1;", localCli);
+    run("SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + " EMIT CHANGES LIMIT 1;", localCli);
 
     // Then: (note that some of these are truncated because of header wrapping)
     assertThat(terminal.getOutputString(), containsString("ITEMID"));
@@ -682,7 +757,7 @@ public class CliTest {
             + "PRICEARRAY[2]>1000 AS Col4 "
             + "FROM %s "
             + "WHERE ORDERUNITS > 20 AND ITEMID LIKE '%%_8';",
-        ORDER_DATA_PROVIDER.kstreamName()
+        ORDER_DATA_PROVIDER.sourceName()
     );
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
@@ -694,11 +769,12 @@ public class CliTest {
             .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
             .valueColumn(ColumnName.of("COL4"), SqlTypes.BOOLEAN)
             .build(),
-        SerdeOption.none()
+        SerdeFeatures.of(),
+        SerdeFeatures.of()
     );
 
-    final Map<String, GenericRow> expectedResults = ImmutableMap.of(
-        "ORDER_6",
+    final Map<GenericKey, GenericRow> expectedResults = ImmutableMap.of(
+        genericKey("ORDER_6"),
         genericRow("ITEM_8", 800.0, 1110.0, 12.0, true)
     );
 
@@ -708,7 +784,7 @@ public class CliTest {
   @Test
   public void testCreateTable() {
     final String queryString = "CREATE TABLE " + tableName + " AS " +
-        " SELECT ITEMID, COUNT(*) FROM " + ORDER_DATA_PROVIDER.kstreamName() +
+        " SELECT ITEMID, COUNT(*) FROM " + ORDER_DATA_PROVIDER.sourceName() +
         " GROUP BY ITEMID;";
 
     assertRunCommand(
@@ -731,7 +807,7 @@ public class CliTest {
   }
 
   @Test
-  public void shouldPrintErrorIfCantConnectToRestServer() throws Exception {
+  public void shouldPrintErrorIfCantConnectToRestServerOnRunInteractively() throws Exception {
     givenRunInteractivelyWillExit();
 
     final KsqlRestClient mockRestClient = givenMockRestClient();
@@ -743,6 +819,35 @@ public class CliTest {
 
     assertThat(terminal.getOutputString(),
                containsString("Please ensure that the URL provided is for an active KSQL server."));
+  }
+
+  @Test
+  public void shouldPrintErrorIfCantConnectToRestServerOnRunCommand() throws Exception {
+    givenRunInteractivelyWillExit();
+
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.getServerInfo())
+        .thenThrow(new KsqlRestClientException("Boom", new IOException("")));
+
+    new Cli(1L, 1L, mockRestClient, console)
+        .runCommand("this is a command");
+
+    assertThat(terminal.getOutputString(),
+        containsString("Please ensure that the URL provided is for an active KSQL server."));
+  }
+
+  @Test
+  public void shouldPrintErrorIfCantConnectToRestServerOnRunScript() throws Exception {
+    // Given
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.getServerInfo())
+        .thenThrow(new KsqlRestClientException("Boom", new IOException("")));
+
+    new Cli(1L, 1L, mockRestClient, console)
+        .runScript("script_file_ignored");
+
+    assertThat(terminal.getOutputString(),
+        containsString("Please ensure that the URL provided is for an active KSQL server."));
   }
 
   @Test
@@ -908,7 +1013,7 @@ public class CliTest {
   public void shouldExplainQueryId() {
     // Given:
     localCli.handleLine("CREATE STREAM " + streamName + " "
-        + "AS SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";");
+        + "AS SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + ";");
 
     final String queryId = extractQueryId(terminal.getOutputString());
 
@@ -946,11 +1051,27 @@ public class CliTest {
   }
 
   @Test
-  public void shouldRunScript() throws Exception {
+  public void shouldSubstituteVariablesOnRunCommand()  {
+    // Given:
+    final StringBuilder builder = new StringBuilder();
+    builder.append("SET '" + KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE + "' = 'true';");
+    builder.append("DEFINE var = '" + ORDER_DATA_PROVIDER.sourceName() + "';");
+    builder.append("CREATE STREAM shouldRunCommand AS SELECT * FROM ${var};");
+
+    // When:
+    localCli.runCommand(builder.toString());
+
+    // Then:
+    assertThat(terminal.getOutputString(),
+        containsString("Created query with ID CSAS_SHOULDRUNCOMMAND"));
+  }
+
+  @Test
+  public void shouldRunScriptOnRunInteractively() throws Exception {
     // Given:
     final File scriptFile = TMP.newFile("script.sql");
     Files.write(scriptFile.toPath(), (""
-        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + ORDER_DATA_PROVIDER.kstreamName() + ";"
+        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + ";"
         + "").getBytes(StandardCharsets.UTF_8));
 
     when(lineSupplier.get())
@@ -959,6 +1080,22 @@ public class CliTest {
 
     // When:
     localCli.runInteractively();
+
+    // Then:
+    assertThat(terminal.getOutputString(),
+        containsString("Created query with ID CSAS_SHOULDRUNSCRIPT"));
+  }
+
+  @Test
+  public void shouldRunScriptOnRunScript() throws Exception {
+    // Given:
+    final File scriptFile = TMP.newFile("script.sql");
+    Files.write(scriptFile.toPath(), (""
+        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + ";"
+        + "").getBytes(StandardCharsets.UTF_8));
+
+    // When:
+    localCli.runScript(scriptFile.getPath());
 
     // Then:
     assertThat(terminal.getOutputString(),
@@ -1101,7 +1238,7 @@ public class CliTest {
 
   private void runCliSpecificCommand(final String command) {
     when(lineSupplier.get()).thenReturn(command).thenReturn("");
-    console.readLine();
+    console.nextNonCliCommand();
   }
 
   private void givenRunInteractivelyWillExit() {
@@ -1113,7 +1250,7 @@ public class CliTest {
 
     when(mockRestClient.getServerInfo()).thenReturn(RestResponse.successful(
         OK.code(),
-        new ServerInfo("1.x", "testClusterId", "testServiceId")
+        new ServerInfo("1.x", "testClusterId", "testServiceId", "status")
     ));
 
     when(mockRestClient.getServerAddress()).thenReturn(new URI("http://someserver:8008"));
@@ -1240,8 +1377,8 @@ public class CliTest {
     }
 
     @Override
-    public void addRow(final GenericRow row) {
-      addRow(row.values());
+    public void addRow(final DataRow row) {
+      addRow(row.getColumns());
     }
 
     private void addRow(final List<?> row) {

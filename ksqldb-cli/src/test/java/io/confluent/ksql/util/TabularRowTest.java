@@ -15,28 +15,31 @@
 
 package io.confluent.ksql.util;
 
-import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isEmptyString;
-import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.cli.console.CliConfig;
-import io.confluent.ksql.cli.console.CliConfig.OnOff;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.util.List;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TabularRowTest {
 
-  @Mock
-  private CliConfig config;
+  private boolean shouldWrap;
+  private int width;
+
+  @Before
+  public void setUp() {
+    shouldWrap = false;
+    width = 0;
+  }
 
   @Test
   public void shouldFormatHeader() {
@@ -47,7 +50,7 @@ public class TabularRowTest {
         .build();
 
     // When:
-    final String formatted = TabularRow.createHeader(20, schema, config).toString();
+    final String formatted = TabularRow.createHeader(20, schema.columns(), shouldWrap, width).toString();
 
     // Then:
     assertThat(formatted, is(""
@@ -65,7 +68,7 @@ public class TabularRowTest {
         .build();
 
     // When:
-    final String formatted = TabularRow.createHeader(20, schema, config).toString();
+    final String formatted = TabularRow.createHeader(20, schema.columns(), shouldWrap, width).toString();
 
     // Then:
     assertThat(formatted, is(""
@@ -81,10 +84,10 @@ public class TabularRowTest {
     // Given:
     givenWrappingEnabled();
 
-    final GenericRow value = genericRow("foo", "bar");
+    final List<?> value = ImmutableList.of("foo", "bar");
 
     // When:
-    final String formatted = TabularRow.createRow(20, value, config).toString();
+    final String formatted = TabularRow.createRow(20, value, shouldWrap, width).toString();
 
     // Then:
     assertThat(formatted, is("|foo     |bar     |"));
@@ -95,10 +98,10 @@ public class TabularRowTest {
     // Given:
     givenWrappingEnabled();
 
-    final GenericRow value = genericRow("foo", "bar is a long string");
+    final List<?> value = ImmutableList.of("foo", "bar is a long string");
 
     // When:
-    final String formatted = TabularRow.createRow(20, value, config).toString();
+    final String formatted = TabularRow.createRow(20, value, shouldWrap, width).toString();
 
     // Then:
     assertThat(formatted, is(""
@@ -112,10 +115,10 @@ public class TabularRowTest {
     // Given:
     givenWrappingDisabled();
 
-    final GenericRow value = genericRow("foo", "bar is a long string");
+    final List<?> value = ImmutableList.of("foo", "bar is a long string");
 
     // When:
-    final String formatted = TabularRow.createRow(20, value, config).toString();
+    final String formatted = TabularRow.createRow(20, value, shouldWrap, width).toString();
 
     // Then:
     assertThat(formatted, is(""
@@ -127,13 +130,13 @@ public class TabularRowTest {
     // Given:
     givenWrappingDisabled();
 
-    final GenericRow value = genericRow(
+    final List<?> value = ImmutableList.of(
         "foo",
         "bar                                                                               foo"
     );
 
     // When:
-    final String formatted = TabularRow.createRow(20, value, config).toString();
+    final String formatted = TabularRow.createRow(20, value, shouldWrap, width).toString();
 
     // Then:
     assertThat(formatted, is(""
@@ -145,13 +148,13 @@ public class TabularRowTest {
     // Given:
     givenWrappingDisabled();
 
-    final GenericRow value = genericRow(
+    final List<?> value = ImmutableList.of(
         "foo",
         "bar                                                                                  "
     );
 
     // When:
-    final String formatted = TabularRow.createRow(20, value, config).toString();
+    final String formatted = TabularRow.createRow(20, value, shouldWrap, width).toString();
 
     // Then:
     assertThat(formatted, is(""
@@ -166,7 +169,7 @@ public class TabularRowTest {
         .build();
 
     // When:
-    final String formatted = TabularRow.createHeader(20, schema, config).toString();
+    final String formatted = TabularRow.createHeader(20, schema.columns(), shouldWrap, width).toString();
 
     // Then:
     assertThat(formatted, isEmptyString());
@@ -182,7 +185,7 @@ public class TabularRowTest {
         .build();
 
     // When:
-    final String formatted = TabularRow.createHeader(3, schema, config).toString();
+    final String formatted = TabularRow.createHeader(3, schema.columns(), shouldWrap, width).toString();
 
     // Then:
     assertThat(formatted,
@@ -204,7 +207,7 @@ public class TabularRowTest {
         .build();
 
     // When:
-    final String formatted = TabularRow.createHeader(999, schema, config).toString();
+    final String formatted = TabularRow.createHeader(999, schema.columns(), shouldWrap, width).toString();
 
     // Then:
     assertThat(formatted,
@@ -215,14 +218,14 @@ public class TabularRowTest {
   }
 
   private void givenWrappingEnabled() {
-    when(config.getString(CliConfig.WRAP_CONFIG)).thenReturn(OnOff.ON.toString());
+    shouldWrap = true;
   }
 
   private void givenWrappingDisabled() {
-    when(config.getString(CliConfig.WRAP_CONFIG)).thenReturn("Not ON");
+    shouldWrap = false;
   }
 
   private void givenCustomColumnWidth(int width) {
-    when(config.getInt(CliConfig.COLUMN_WIDTH_CONFIG)).thenReturn(width);
+    this.width = width;
   }
 }

@@ -15,29 +15,35 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import static com.google.common.util.concurrent.RateLimiter.create;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.physical.pull.PullQueryResult;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TableRows;
-import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
-import io.confluent.ksql.rest.server.execution.PullQueryResult;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,10 +57,13 @@ import org.mockito.stubbing.Answer;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PullQueryPublisherTest {
+  private static final long TIME_NANOS = 12345;
 
-  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .keyColumn(ColumnName.of("id"), SqlTypes.INTEGER)
-      .valueColumn(ColumnName.of("bob"), SqlTypes.BIGINT)
+  private static final LogicalSchema PULL_SCHEMA = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("id"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("bob"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("foo"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("bar"), SqlTypes.DOUBLE)
       .build();
 
   @Mock
@@ -66,9 +75,19 @@ public class PullQueryPublisherTest {
   @Mock
   private Subscriber<Collection<StreamedRow>> subscriber;
   @Mock
-  private PullQueryExecutor pullQueryExecutor;
+  private List<List<?>> tableRows;
   @Mock
   private TableRows entity;
+  @Mock
+  private PullQueryResult pullQueryResult;
+  @Mock
+  private QueryId queryId;
+  @Mock
+  private RoutingFilterFactory routingFilterFactory;
+  @Mock
+  private SessionConfig sessionConfig;
+  @Mock
+  private KsqlConfig ksqlConfig;
   @Captor
   private ArgumentCaptor<Subscription> subscriptionCaptor;
 
@@ -78,13 +97,24 @@ public class PullQueryPublisherTest {
   @Before
   public void setUp() {
     publisher = new PullQueryPublisher(
+        engine,
         serviceContext,
         statement,
-        pullQueryExecutor);
+        Optional.empty(),
+        TIME_NANOS,
+        routingFilterFactory,
+        create(1));
 
-    PullQueryResult result = new PullQueryResult(entity, Optional.empty());
-    when(pullQueryExecutor.execute(any(), any(), any(), any())).thenReturn(result);
-    when(entity.getSchema()).thenReturn(SCHEMA);
+    when(statement.getStatementText()).thenReturn("");
+    when(statement.getSessionConfig()).thenReturn(sessionConfig);
+    when(sessionConfig.getConfig(false)).thenReturn(ksqlConfig);
+    when(sessionConfig.getOverrides()).thenReturn(ImmutableMap.of());
+    when(pullQueryResult.getQueryId()).thenReturn(queryId);
+    when(pullQueryResult.getSchema()).thenReturn(PULL_SCHEMA);
+    when(pullQueryResult.getTableRows()).thenReturn(tableRows);
+    when(pullQueryResult.getSourceNodes()).thenReturn(Optional.empty());
+    when(engine.executePullQuery(any(), any(), any(), any(), any()))
+        .thenReturn(pullQueryResult);
 
     doAnswer(callRequestAgain()).when(subscriber).onNext(any());
   }
@@ -107,8 +137,7 @@ public class PullQueryPublisherTest {
     subscription.request(1);
 
     // Then:
-    verify(pullQueryExecutor).execute(statement, serviceContext, Optional.empty(),
-        Optional.of(false));
+    verify(engine).executePullQuery(eq(serviceContext), eq(statement), eq(routingFilterFactory), any(), eq(Optional.empty()));
   }
 
   @Test
@@ -121,8 +150,7 @@ public class PullQueryPublisherTest {
 
     // Then:
     verify(subscriber).onNext(any());
-    verify(pullQueryExecutor).execute(statement, serviceContext, Optional.empty(),
-        Optional.of(false));
+    verify(engine).executePullQuery(eq(serviceContext), eq(statement), eq(routingFilterFactory), any(), eq(Optional.empty()));
   }
 
   @Test
@@ -149,7 +177,7 @@ public class PullQueryPublisherTest {
     subscription.request(1);
 
     // Then:
-    verify(subscriber).onSchema(SCHEMA);
+    verify(subscriber).onSchema(PULL_SCHEMA);
   }
 
   @Test
@@ -157,7 +185,7 @@ public class PullQueryPublisherTest {
     // Given:
     givenSubscribed();
     final Throwable e = new RuntimeException("Boom!");
-    when(pullQueryExecutor.execute(any(), any(), any(), any())).thenThrow(e);
+    when(engine.executePullQuery(any(), any(), any(), any(), any())).thenThrow(e);
 
     // When:
     subscription.request(1);
@@ -171,18 +199,20 @@ public class PullQueryPublisherTest {
     // Given:
     givenSubscribed();
 
-    when(entity.getRows()).thenReturn(ImmutableList.of(
+    when(pullQueryResult.getTableRows()).thenReturn(ImmutableList.of(
         ImmutableList.of("a", 1, 2L, 3.0f),
         ImmutableList.of("b", 1, 2L, 3.0f)
     ));
+    when(pullQueryResult.getSourceNodes())
+        .thenReturn(Optional.empty());
 
     // When:
     subscription.request(1);
 
     // Then:
     verify(subscriber).onNext(ImmutableList.of(
-        StreamedRow.row(GenericRow.genericRow("a", 1, 2L, 3.0f)),
-        StreamedRow.row(GenericRow.genericRow("b", 1, 2L, 3.0f))
+        StreamedRow.pushRow(GenericRow.genericRow("a", 1, 2L, 3.0f)),
+        StreamedRow.pushRow(GenericRow.genericRow("b", 1, 2L, 3.0f))
     ));
   }
 

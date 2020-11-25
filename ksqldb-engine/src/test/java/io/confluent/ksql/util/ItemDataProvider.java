@@ -15,18 +15,20 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
 
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 
-public class ItemDataProvider extends TestDataProvider<String> {
+public class ItemDataProvider extends TestDataProvider {
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("ID"), SqlTypes.STRING)
@@ -34,18 +36,18 @@ public class ItemDataProvider extends TestDataProvider<String> {
       .build();
 
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
-      .from(LOGICAL_SCHEMA, SerdeOption.none());
+      .from(LOGICAL_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
-  private static final Multimap<String, GenericRow> ROWS = ImmutableListMultimap
-      .<String, GenericRow>builder()
-      .put("ITEM_1", genericRow("home cinema"))
-      .put("ITEM_2", genericRow("clock radio"))
-      .put("ITEM_3", genericRow("road bike"))
-      .put("ITEM_4", genericRow("mountain bike"))
-      .put("ITEM_5", genericRow("snowboard"))
-      .put("ITEM_6", genericRow("iphone 10"))
-      .put("ITEM_7", genericRow("gopro"))
-      .put("ITEM_8", genericRow("cat"))
+  private static final Multimap<GenericKey, GenericRow> ROWS = ImmutableListMultimap
+      .<GenericKey, GenericRow>builder()
+      .put(genericKey("ITEM_1"), genericRow("home cinema"))
+      .put(genericKey("ITEM_2"), genericRow("clock radio"))
+      .put(genericKey("ITEM_3"), genericRow("road bike"))
+      .put(genericKey("ITEM_4"), genericRow("mountain bike"))
+      .put(genericKey("ITEM_5"), genericRow("snowboard"))
+      .put(genericKey("ITEM_6"), genericRow("iphone 10"))
+      .put(genericKey("ITEM_7"), genericRow("gopro"))
+      .put(genericKey("ITEM_8"), genericRow("cat"))
       .build();
 
   public ItemDataProvider() {

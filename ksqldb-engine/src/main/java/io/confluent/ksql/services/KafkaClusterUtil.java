@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.DescribeClusterOptions;
@@ -51,9 +52,11 @@ public final class KafkaClusterUtil {
       );
 
       return authorizedOperations.authorizedOperations().get() != null;
-    } catch (final UnsupportedVersionException e) {
-      return false;
     } catch (final Exception e) {
+      if (ExceptionUtils.indexOfType(e, UnsupportedVersionException.class) != -1) {
+        LOG.info("Received nested unsupported version error testing authorized operations api", e);
+        return false;
+      }
       throw new KsqlServerException("Could not get Kafka authorized operations!", e);
     }
   }

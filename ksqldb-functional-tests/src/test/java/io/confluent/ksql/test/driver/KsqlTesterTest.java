@@ -16,13 +16,17 @@
 package io.confluent.ksql.test.driver;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.ServiceInfo;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.generic.GenericRecordFactory;
 import io.confluent.ksql.engine.generic.KsqlGenericRecord;
+import io.confluent.ksql.format.DefaultFormatInjector;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -31,6 +35,7 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AssertStatement;
 import io.confluent.ksql.parser.tree.AssertStream;
+import io.confluent.ksql.parser.tree.AssertTombstone;
 import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
@@ -41,22 +46,23 @@ import io.confluent.ksql.properties.PropertyOverrider;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.serde.GenericKeySerDe;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.test.KsqlTestException;
 import io.confluent.ksql.test.driver.TestDriverPipeline.TopicInfo;
 import io.confluent.ksql.test.parser.SqlTestLoader;
-import io.confluent.ksql.test.parser.SqlTestLoader.SqlTest;
 import io.confluent.ksql.test.parser.TestDirective;
 import io.confluent.ksql.test.parser.TestStatement;
 import io.confluent.ksql.test.tools.TestFunctionRegistry;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -64,17 +70,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -93,6 +102,9 @@ public class KsqlTesterTest {
       .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
       .build();
 
+  @Rule
+  public final TemporaryFolder tmpFolder = TemporaryFolder.builder().build();
+
   // parameterized
   private final Path file;
   private final List<TestStatement> statements;
@@ -101,6 +113,7 @@ public class KsqlTesterTest {
   private ServiceContext serviceContext;
   private KsqlEngine engine;
   private KsqlConfig config;
+  private Injector formatInjector;
   private TestDriverPipeline driverPipeline;
   private FakeKafkaTopicClient topicClient;
 
@@ -110,7 +123,7 @@ public class KsqlTesterTest {
   // populated during execution to handle the expected exception
   // scenario - don't use Matchers because they do not create very
   // user friendly error messages
-  private Class<? extends Exception> expectedException;
+  private Class<? extends Throwable> expectedException;
   private String expectedMessage;
 
   @Parameterized.Parameters(name = "{0}")
@@ -118,10 +131,16 @@ public class KsqlTesterTest {
     final Path testDir = Paths.get(KsqlTesterTest.class.getResource(TEST_DIR).getFile());
     final SqlTestLoader loader = new SqlTestLoader(testDir);
     return loader.load()
-        .map(SqlTest::asObjectArray)
+        .map(test -> new Object[]{
+            "(" + test.getFile().getParent().toFile().getName()
+                + "/" + test.getFile().toFile().getName() + ") "
+                + test.getName(),
+            test.getFile(),
+            test.getStatements()})
         .toArray(Object[][]::new);
   }
 
+  @SuppressWarnings("unused")
   public KsqlTesterTest(final String testCase, final Path file, final List<TestStatement> statements) {
     this.file = Objects.requireNonNull(file, "file");
     this.statements = statements;
@@ -133,6 +152,7 @@ public class KsqlTesterTest {
     this.topicClient = new FakeKafkaTopicClient();
     this.serviceContext = TestServiceContext.create(topicClient, () -> srClient);
     this.config = new KsqlConfig(BASE_CONFIG);
+    this.formatInjector = new DefaultFormatInjector();
 
     final MetaStoreImpl metaStore = new MetaStoreImpl(TestFunctionRegistry.INSTANCE.get());
     this.engine = new KsqlEngine(
@@ -161,18 +181,28 @@ public class KsqlTesterTest {
     for (final TestStatement testStatement : statements) {
       try {
         testStatement.consume(this::execute, this::doAssert, this::directive);
-      } catch (final Exception e) {
+      } catch (final Throwable e) {
         handleExpectedException(testStatement, e);
         return;
       }
+    }
+
+    if (expectedException != null || expectedMessage != null) {
+      final String clazz = expectedException == null ? "<any>" : expectedException.getName();
+      final String msg = expectedMessage == null ? "<any>" : expectedMessage;
+      throw new KsqlTestException(
+          Iterables.getLast(statements),
+          file,
+          "Did not get expected exception of type " + clazz + " with message " + msg
+      );
     }
   }
 
   @SuppressWarnings("unchecked")
   private void execute(final ParsedStatement parsedStatement) {
     final PreparedStatement<?> engineStatement = engine.prepare(parsedStatement);
-    final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-        engineStatement, overrides, config);
+    final ConfiguredStatement<?> configured = ConfiguredStatement
+        .of(engineStatement, SessionConfig.of(config, overrides));
 
     createTopics(engineStatement);
 
@@ -187,9 +217,10 @@ public class KsqlTesterTest {
       return;
     }
 
+    final ConfiguredStatement<?> injected = formatInjector.inject(configured);
     final ExecuteResult result = engine.execute(
         serviceContext,
-        configured);
+        injected);
 
     // is DDL statement
     if (!result.getQuery().isPresent()) {
@@ -200,9 +231,10 @@ public class KsqlTesterTest {
     final Topology topology = query.getTopology();
     final Properties properties = new Properties();
     properties.putAll(query.getStreamsProperties());
+    properties.put(StreamsConfig.STATE_DIR_CONFIG, tmpFolder.getRoot().getAbsolutePath());
 
     final TopologyTestDriver driver = new TopologyTestDriver(topology, properties);
-    query.closeAndThen(qm -> driver.close());
+    query.onStop(deleteState -> closeDriver(driver, properties, deleteState));
 
     final List<TopicInfo> inputTopics = query
         .getSourceNames()
@@ -219,6 +251,38 @@ public class KsqlTesterTest {
     );
 
     driverPipeline.addDriver(driver, inputTopics, outputInfo);
+  }
+
+  private void closeDriver(
+      final TopologyTestDriver driver,
+      final Properties properties,
+      final boolean deleteState
+  ) {
+    // this is a hack that lets us close the driver (releasing the lock on the state
+    // directory) without actually cleaning up the resources. This essentially simulates
+    // the behavior we have in QueryMetadata#close vs QueryMetadata#stop
+    //
+    // in production we have the additional safeguard of changelog topics, but the
+    // test driver doesn't support pre-loading state stores from changelog topics,
+    // so we're stuck with the solution of preserving the state store
+    final String appId = properties.getProperty(StreamsConfig.APPLICATION_ID_CONFIG);
+    final File stateDir = tmpFolder.getRoot().toPath().resolve(appId).toFile();
+    final File tmp = tmpFolder.getRoot().toPath().resolve("tmp_" + appId).toFile();
+
+    try {
+      if (!deleteState && stateDir.exists()) {
+        FileUtils.copyDirectory(stateDir, tmp);
+      }
+
+      driver.close();
+
+      if (tmp.exists()) {
+        FileUtils.copyDirectory(tmp, stateDir);
+        FileUtils.deleteDirectory(tmp);
+      }
+    } catch (final IOException e) {
+      throw new KsqlException(e);
+    }
   }
 
   private void createTopics(final PreparedStatement<?> engineStatement) {
@@ -265,37 +329,42 @@ public class KsqlTesterTest {
     );
   }
 
-  private void doAssert(final AssertStatement assertStatement) {
-    if (assertStatement instanceof AssertValues) {
-      AssertExecutor.assertValues(engine, config, (AssertValues) assertStatement, driverPipeline);
-    } else if (assertStatement instanceof AssertStream) {
-      AssertExecutor.assertStream(((AssertStream) assertStatement));
-    } else if (assertStatement instanceof AssertTable) {
-      AssertExecutor.assertTable(((AssertTable) assertStatement));
+  private void doAssert(final AssertStatement statement) {
+    if (statement instanceof AssertValues) {
+      AssertExecutor.assertValues(engine, config, (AssertValues) statement, driverPipeline);
+    } else if (statement instanceof AssertTombstone) {
+      AssertExecutor.assertTombstone(engine, config, (AssertTombstone) statement, driverPipeline);
+    } else if (statement instanceof AssertStream) {
+      AssertExecutor.assertStream(engine, config, ((AssertStream) statement));
+    } else if (statement instanceof AssertTable) {
+      AssertExecutor.assertTable(engine, config, ((AssertTable) statement));
     }
   }
 
-  private Serde<Struct> keySerde(final DataSource sinkSource) {
-    return sinkSource.getKsqlTopic().getKeyFormat()
-        .getFormat()
-        .getSerdeFactory(
-            sinkSource.getKsqlTopic().getKeyFormat().getFormatInfo()
-        ).createSerde(
-            PersistenceSchema.from(
-                sinkSource.getSchema().keyConnectSchema(),
-                sinkSource.getSerdeOptions().contains(SerdeOption.UNWRAP_SINGLE_VALUES)),
-            config,
-            serviceContext.getSchemaRegistryClientFactory(),
-            Struct.class
-        );
+  private Serde<GenericKey> keySerde(final DataSource sinkSource) {
+    final PersistenceSchema schema = PersistenceSchema.from(
+        sinkSource.getSchema().key(),
+        sinkSource.getKsqlTopic().getKeyFormat().getFeatures()
+    );
+
+    return new GenericKeySerDe().create(
+        sinkSource.getKsqlTopic().getKeyFormat().getFormatInfo(),
+        schema,
+        config,
+        serviceContext.getSchemaRegistryClientFactory(),
+        "",
+        NoopProcessingLogContext.INSTANCE,
+        Optional.empty()
+    );
   }
 
   private Serde<GenericRow> valueSerde(final DataSource sinkSource) {
     return GenericRowSerDe.from(
         sinkSource.getKsqlTopic().getValueFormat().getFormatInfo(),
         PersistenceSchema.from(
-            sinkSource.getSchema().valueConnectSchema(),
-            sinkSource.getSerdeOptions().contains(SerdeOption.UNWRAP_SINGLE_VALUES)),
+            sinkSource.getSchema().value(),
+            sinkSource.getKsqlTopic().getValueFormat().getFeatures()
+        ),
         config,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
@@ -319,7 +388,7 @@ public class KsqlTesterTest {
     }
   }
 
-  private void handleExpectedException(final TestStatement testStatement, final Exception e) {
+  private void handleExpectedException(final TestStatement testStatement, final Throwable e) {
     if (expectedException == null && expectedMessage == null) {
       throw new KsqlTestException(testStatement, file, e);
     }

@@ -19,8 +19,8 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.Formats;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.streams.timestamp.KsqlTimestampExtractor;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
@@ -52,13 +52,17 @@ public final class SinkBuilder {
       final Optional<TimestampColumn> timestampColumn,
       final String topicName,
       final KStream<K, GenericRow> stream,
-      final KeySerdeFactory<K> keySerdeFactory,
+      final ExecutionKeyFactory<K> executionKeyFactory,
       final QueryContext queryContext,
       final KsqlQueryBuilder queryBuilder
   ) {
-    final PhysicalSchema physicalSchema = PhysicalSchema.from(schema, formats.getOptions());
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(
+        schema,
+        formats.getKeyFeatures(),
+        formats.getValueFeatures()
+    );
 
-    final Serde<K> keySerde = keySerdeFactory.buildKeySerde(
+    final Serde<K> keySerde = executionKeyFactory.buildKeySerde(
         formats.getKeyFormat(),
         physicalSchema,
         queryContext

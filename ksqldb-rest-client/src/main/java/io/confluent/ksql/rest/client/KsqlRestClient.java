@@ -215,6 +215,10 @@ public final class KsqlRestClient implements Closeable {
     return localProperties.unset(property);
   }
 
+  public Object getProperty(final String property) {
+    return localProperties.get(property);
+  }
+
   private KsqlTarget target() {
     return client.target(getServerAddress());
   }
@@ -230,7 +234,11 @@ public final class KsqlRestClient implements Closeable {
 
   private static URI parseUri(final String serverAddress) {
     try {
-      return new URL(serverAddress).toURI();
+      final URL url = new URL(serverAddress);
+      if (url.getPort() == -1) {
+        return new URL(serverAddress.concat(":") + url.getDefaultPort()).toURI();
+      }
+      return url.toURI();
     } catch (final Exception e) {
       throw new KsqlRestClientException(
           "The supplied serverAddress is invalid: " + serverAddress, e);

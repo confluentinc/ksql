@@ -7,12 +7,15 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.execution.ddl.commands.AlterSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.DropTypeCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.ddl.commands.RegisterTypeCommand;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -20,17 +23,21 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.tree.CreateAsSelect;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.MetaStoreFixture;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.Before;
@@ -41,9 +48,12 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class DdlCommandExecTest {
+  private static final Set<SourceName> NO_QUERY_SOURCES = Collections.emptySet(); 
   private static final String SQL_TEXT = "some ksql";
   private static final SourceName STREAM_NAME = SourceName.of("s1");
+  private static final SourceName OTHER_STREAM_NAME = SourceName.of("other-s1");
   private static final SourceName TABLE_NAME = SourceName.of("t1");
+  private static final SourceName OTHER_TABLE_NAME = SourceName.of("other-t1");
   private static final String TOPIC_NAME = "topic";
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("K0"), SqlTypes.BIGINT)
@@ -56,14 +66,20 @@ public class DdlCommandExecTest {
       .valueColumn(ColumnName.of("F2"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("F3"), SqlTypes.STRING)
       .build();
-  private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()));
-  private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()));
-  private static final Set<SerdeOption> SERDE_OPTIONS = SerdeOption.none();
+  private static final ValueFormat VALUE_FORMAT = ValueFormat
+      .of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
+  private static final KeyFormat KEY_FORMAT = KeyFormat
+      .nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of());
+  private static final SourceName EXISTING_STREAM = SourceName.of("TEST0");
+  private static final SourceName EXISTING_TABLE = SourceName.of("TEST2");
+  private static final List<Column> NEW_COLUMNS = SCHEMA.columns();
 
   private CreateStreamCommand createStream;
   private CreateTableCommand createTable;
   private DropSourceCommand dropSource;
   private DropTypeCommand dropType;
+  private RegisterTypeCommand registerType;
+  private AlterSourceCommand alterSource;
 
   private final MutableMetaStore metaStore
       = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
@@ -74,6 +90,8 @@ public class DdlCommandExecTest {
   private KsqlStream source;
   @Mock
   private WindowInfo windowInfo;
+  @Mock
+  private SqlType type;
 
   private DdlCommandExec cmdExec;
 
@@ -88,6 +106,7 @@ public class DdlCommandExecTest {
 
     cmdExec = new DdlCommandExec(metaStore);
     dropType = new DropTypeCommand("type");
+    registerType = new RegisterTypeCommand(type,"type");
   }
 
   @Test
@@ -96,7 +115,7 @@ public class DdlCommandExecTest {
     givenCreateStream();
 
     // When:
-    cmdExec.execute(SQL_TEXT, createStream, false);
+    cmdExec.execute(SQL_TEXT, createStream, false, NO_QUERY_SOURCES);
 
     // Then:
     assertThat(metaStore.getSource(STREAM_NAME).getSqlExpression(), is(SQL_TEXT));
@@ -106,11 +125,11 @@ public class DdlCommandExecTest {
   public void shouldAddStreamWithReplace() {
     // Given:
     givenCreateStream();
-    cmdExec.execute(SQL_TEXT, createStream, false);
+    cmdExec.execute(SQL_TEXT, createStream, false, NO_QUERY_SOURCES);
 
     // When:
     givenCreateStream(SCHEMA2, true);
-    cmdExec.execute(SQL_TEXT, createStream, false);
+    cmdExec.execute(SQL_TEXT, createStream, false, NO_QUERY_SOURCES);
 
     // Then:
     assertThat(metaStore.getSource(STREAM_NAME).getSchema(), is(SCHEMA2));
@@ -122,10 +141,36 @@ public class DdlCommandExecTest {
     givenCreateStream();
 
     // When:
-    cmdExec.execute(SQL_TEXT, createStream, true);
+    cmdExec.execute(SQL_TEXT, createStream, true, NO_QUERY_SOURCES);
 
     // Then:
     assertThat(metaStore.getSource(STREAM_NAME).isCasTarget(), is(true));
+  }
+
+  @Test
+  public void shouldThrowOnDropStreamWhenConstraintExist() {
+    // Given:
+    final CreateStreamCommand stream1 = buildCreateStream(SourceName.of("s1"), SCHEMA, false);
+    final CreateStreamCommand stream2 = buildCreateStream(SourceName.of("s2"), SCHEMA, false);
+    final CreateStreamCommand stream3 = buildCreateStream(SourceName.of("s3"), SCHEMA, false);
+    cmdExec.execute(SQL_TEXT, stream1, true, Collections.emptySet());
+    cmdExec.execute(SQL_TEXT, stream2, true, Collections.singleton(SourceName.of("s1")));
+    cmdExec.execute(SQL_TEXT, stream3, true, Collections.singleton(SourceName.of("s1")));
+
+    // When:
+    final DropSourceCommand dropStream = buildDropSourceCommand(SourceName.of("s1"));
+    final Exception e = assertThrows(
+        KsqlReferentialIntegrityException.class,
+        () -> cmdExec.execute(SQL_TEXT, dropStream, false, Collections.emptySet())
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Cannot drop s1."));
+    assertThat(e.getMessage(),
+        containsString("The following streams and/or tables read from this source: [s2, s3]."));
+    assertThat(e.getMessage(),
+        containsString("You need to drop them before dropping s1."));
   }
 
   @Test
@@ -134,7 +179,7 @@ public class DdlCommandExecTest {
     givenCreateStream();
 
     // When:
-    cmdExec.execute(SQL_TEXT, createStream, false);
+    cmdExec.execute(SQL_TEXT, createStream, false, NO_QUERY_SOURCES);
 
     // Then:
     assertThat(
@@ -149,7 +194,7 @@ public class DdlCommandExecTest {
     givenCreateWindowedStream();
 
     // When:
-    cmdExec.execute(SQL_TEXT, createStream, false);
+    cmdExec.execute(SQL_TEXT, createStream, false, NO_QUERY_SOURCES);
 
     // Then:
     assertThat(
@@ -164,7 +209,7 @@ public class DdlCommandExecTest {
     givenCreateWindowedTable();
 
     // When:
-    cmdExec.execute(SQL_TEXT, createTable, false);
+    cmdExec.execute(SQL_TEXT, createTable, false, NO_QUERY_SOURCES);
 
     // Then:
     assertThat(
@@ -179,7 +224,7 @@ public class DdlCommandExecTest {
     givenCreateTable();
 
     // When:
-    cmdExec.execute(SQL_TEXT, createTable, false);
+    cmdExec.execute(SQL_TEXT, createTable, false, NO_QUERY_SOURCES);
 
     // Then:
     assertThat(metaStore.getSource(TABLE_NAME).getSqlExpression(), is(SQL_TEXT));
@@ -191,7 +236,7 @@ public class DdlCommandExecTest {
     givenCreateTable();
 
     // When:
-    cmdExec.execute(SQL_TEXT, createTable, false);
+    cmdExec.execute(SQL_TEXT, createTable, false, NO_QUERY_SOURCES);
 
     // Then:
     assertThat(
@@ -206,10 +251,120 @@ public class DdlCommandExecTest {
     givenCreateTable();
 
     // When:
-    cmdExec.execute(SQL_TEXT, createTable, true);
+    cmdExec.execute(SQL_TEXT, createTable, true, NO_QUERY_SOURCES);
 
     // Then:
     assertThat(metaStore.getSource(TABLE_NAME).isCasTarget(), is(true));
+  }
+
+  @Test
+  public void shouldThrowOnDropTableWhenConstraintExist() {
+    // Given:
+    final CreateTableCommand table1 = buildCreateTable(SourceName.of("t1"));
+    final CreateTableCommand table2 = buildCreateTable(SourceName.of("t2"));
+    final CreateTableCommand table3 = buildCreateTable(SourceName.of("t3"));
+    cmdExec.execute(SQL_TEXT, table1, true, Collections.emptySet());
+    cmdExec.execute(SQL_TEXT, table2, true, Collections.singleton(SourceName.of("t1")));
+    cmdExec.execute(SQL_TEXT, table3, true, Collections.singleton(SourceName.of("t1")));
+
+    // When:
+    final DropSourceCommand dropStream = buildDropSourceCommand(SourceName.of("t1"));
+    final Exception e = assertThrows(
+        KsqlReferentialIntegrityException.class,
+        () -> cmdExec.execute(SQL_TEXT, dropStream, false, Collections.emptySet())
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Cannot drop t1."));
+    assertThat(e.getMessage(),
+        containsString("The following streams and/or tables read from this source: [t2, t3]."));
+    assertThat(e.getMessage(),
+        containsString("You need to drop them before dropping t1."));
+  }
+
+  @Test
+  public void shouldAlterStream() {
+    // Given:
+    alterSource = new AlterSourceCommand(EXISTING_STREAM, DataSourceType.KSTREAM.getKsqlType(), NEW_COLUMNS);
+
+    // When:
+    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, alterSource, false, NO_QUERY_SOURCES);
+
+    // Then:
+    assertThat(result.isSuccess(), is(true));
+    assertThat(metaStore.getSource(EXISTING_STREAM).getSchema().columns().size(), is(9));
+    assertThat(metaStore.getSource(EXISTING_STREAM).getSqlExpression(), is("sqlexpression\nsome ksql"));
+  }
+
+  @Test
+  public void shouldAlterTable() {
+    // Given:
+    alterSource = new AlterSourceCommand(EXISTING_TABLE, DataSourceType.KTABLE.getKsqlType(), NEW_COLUMNS);
+
+    // When:
+    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, alterSource, false, NO_QUERY_SOURCES);
+
+    // Then:
+    assertThat(result.isSuccess(), is(true));
+    assertThat(metaStore.getSource(EXISTING_TABLE).getSchema().columns().size(), is(8));
+    assertThat(metaStore.getSource(EXISTING_TABLE).getSqlExpression(), is("sqlexpression\nsome ksql"));
+  }
+
+  @Test
+  public void shouldThrowOnAlterMissingSource() {
+    // Given:
+    alterSource = new AlterSourceCommand(STREAM_NAME, DataSourceType.KSTREAM.getKsqlType(), NEW_COLUMNS);
+
+    // When:
+    final KsqlException e = assertThrows(KsqlException.class,
+        () -> cmdExec.execute(SQL_TEXT, alterSource, false, NO_QUERY_SOURCES));
+
+    // Then:
+    assertThat(e.getMessage(), is("Source s1 does not exist."));
+  }
+
+  @Test
+  public void shouldThrowOnMismatchedDatasourceType() {
+    // Given:
+    alterSource = new AlterSourceCommand(EXISTING_STREAM, DataSourceType.KTABLE.getKsqlType(), NEW_COLUMNS);
+
+    // When:
+    final KsqlException e = assertThrows(KsqlException.class,
+        () -> cmdExec.execute(SQL_TEXT, alterSource, false, NO_QUERY_SOURCES));
+
+    // Then:
+    assertThat(e.getMessage(), is("Incompatible data source type is STREAM, but statement was ALTER TABLE"));
+  }
+
+  @Test
+  public void shouldThrowOnAlterCAS() {
+    // Given:
+    givenCreateStream();
+    cmdExec.execute(SQL_TEXT, createStream, true, NO_QUERY_SOURCES);
+    alterSource = new AlterSourceCommand(STREAM_NAME, DataSourceType.KSTREAM.getKsqlType(), NEW_COLUMNS);
+
+    // When:
+    final KsqlException e = assertThrows(KsqlException.class,
+        () -> cmdExec.execute(SQL_TEXT, alterSource, false, NO_QUERY_SOURCES));
+
+    // Then:
+    assertThat(e.getMessage(), is("ALTER command is not supported for CREATE ... AS statements."));
+  }
+
+  @Test
+  public void shouldThrowOnAddExistingColumn() {
+    // Given:
+    givenCreateStream();
+    cmdExec.execute(SQL_TEXT, createStream, false, NO_QUERY_SOURCES);
+    alterSource = new AlterSourceCommand(STREAM_NAME, DataSourceType.KSTREAM.getKsqlType(), SCHEMA2.columns());
+
+    // When:
+    final KsqlException e = assertThrows(KsqlException.class,
+        () -> cmdExec.execute(SQL_TEXT, alterSource, false, NO_QUERY_SOURCES));
+
+    // Then:
+    assertThat(e.getMessage(), is("Cannot add column `F1` to schema. A column with the same name already exists."));
   }
 
   @Test
@@ -218,7 +373,7 @@ public class DdlCommandExecTest {
     givenDropSourceCommand(STREAM_NAME);
 
     // When:
-    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, dropSource, false);
+    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, dropSource, false, NO_QUERY_SOURCES);
 
     // Then:
     assertThat(result.isSuccess(), is(true));
@@ -232,7 +387,7 @@ public class DdlCommandExecTest {
     givenDropSourceCommand(STREAM_NAME);
 
     // When:
-    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, dropSource, false);
+    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, dropSource, false, NO_QUERY_SOURCES);
 
     // Then
     assertThat(result.isSuccess(), is(true));
@@ -243,12 +398,35 @@ public class DdlCommandExecTest {
   }
 
   @Test
+  public void shouldRegisterType() {
+    // When:
+    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, registerType, false, NO_QUERY_SOURCES);
+
+    // Then:
+    assertThat("Expected successful resolution", result.isSuccess());
+    assertThat(result.getMessage(), is("Registered custom type with name 'type' and SQL type " + type));
+  }
+
+  @Test
+  public void shouldNotRegisterExistingType() {
+    // Given:
+    metaStore.registerType("type", SqlTypes.STRING);
+
+    // When:
+    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, registerType, false, NO_QUERY_SOURCES);
+
+    // Then:
+    assertThat("Expected successful resolution", result.isSuccess());
+    assertThat(result.getMessage(), is("type is already registered with type STRING"));
+  }
+
+  @Test
   public void shouldDropExistingType() {
     // Given:
     metaStore.registerType("type", SqlTypes.STRING);
 
     // When:
-    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, dropType, false);
+    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, dropType, false, NO_QUERY_SOURCES);
 
     // Then:
     assertThat(metaStore.resolveType("type").isPresent(), is(false));
@@ -262,7 +440,7 @@ public class DdlCommandExecTest {
     metaStore.deleteType("type");
 
     // When:
-    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, dropType, false);
+    final DdlCommandResult result = cmdExec.execute(SQL_TEXT, dropType, false, NO_QUERY_SOURCES);
 
     // Then:
     assertThat("Expected successful execution", result.isSuccess());
@@ -273,18 +451,23 @@ public class DdlCommandExecTest {
   public void shouldFailAddDuplicateStreamWithoutReplace() {
     // Given:
     givenCreateStream();
-    cmdExec.execute(SQL_TEXT, createStream, false);
+    cmdExec.execute(SQL_TEXT, createStream, false, NO_QUERY_SOURCES);
 
     // When:
     givenCreateStream(SCHEMA2, false);
-    final KsqlException e = assertThrows(KsqlException.class, () -> cmdExec.execute(SQL_TEXT, createStream, false));
+    final KsqlException e = assertThrows(KsqlException.class,
+        () -> cmdExec.execute(SQL_TEXT, createStream, false, NO_QUERY_SOURCES));
 
     // Then:
     assertThat(e.getMessage(), containsString("A stream with the same name already exists"));
   }
 
   private void givenDropSourceCommand(final SourceName name) {
-    dropSource = new DropSourceCommand(name);
+    dropSource = buildDropSourceCommand(name);
+  }
+
+  private DropSourceCommand buildDropSourceCommand(final SourceName name) {
+    return new DropSourceCommand(name);
   }
 
   private void givenCreateStream() {
@@ -292,15 +475,25 @@ public class DdlCommandExecTest {
   }
 
   private void givenCreateStream(final LogicalSchema schema, final boolean allowReplace) {
-    createStream = new CreateStreamCommand(
-        STREAM_NAME,
+    createStream = buildCreateStream(STREAM_NAME, schema, allowReplace);
+  }
+
+  private CreateStreamCommand buildCreateStream(
+      final SourceName streamName,
+      final LogicalSchema schema,
+      final boolean allowReplace
+  ) {
+    return new CreateStreamCommand(
+        streamName,
         schema,
         Optional.of(timestampColumn),
         "topic",
-        io.confluent.ksql.execution.plan.Formats.of(
-            KEY_FORMAT,
-            VALUE_FORMAT,
-            SERDE_OPTIONS),
+        Formats.of(
+            KEY_FORMAT.getFormatInfo(),
+            VALUE_FORMAT.getFormatInfo(),
+            SerdeFeatures.of(),
+            SerdeFeatures.of()
+        ),
         Optional.empty(),
         Optional.of(allowReplace)
     );
@@ -312,10 +505,12 @@ public class DdlCommandExecTest {
         SCHEMA,
         Optional.of(timestampColumn),
         "topic",
-        io.confluent.ksql.execution.plan.Formats.of(
-            KEY_FORMAT,
-            VALUE_FORMAT,
-            SERDE_OPTIONS),
+        Formats.of(
+            KEY_FORMAT.getFormatInfo(),
+            VALUE_FORMAT.getFormatInfo(),
+            SerdeFeatures.of(),
+            SerdeFeatures.of()
+        ),
         Optional.of(windowInfo),
         Optional.of(false)
     );
@@ -327,10 +522,11 @@ public class DdlCommandExecTest {
         SCHEMA,
         Optional.of(timestampColumn),
         TOPIC_NAME,
-        io.confluent.ksql.execution.plan.Formats.of(
-            KEY_FORMAT,
-            VALUE_FORMAT,
-            SERDE_OPTIONS
+        Formats.of(
+            KEY_FORMAT.getFormatInfo(),
+            VALUE_FORMAT.getFormatInfo(),
+            SerdeFeatures.of(),
+            SerdeFeatures.of()
         ),
         Optional.of(windowInfo),
         Optional.of(false)
@@ -338,15 +534,20 @@ public class DdlCommandExecTest {
   }
 
   private void givenCreateTable() {
-    createTable = new CreateTableCommand(
-        TABLE_NAME,
+    createTable = buildCreateTable(TABLE_NAME);
+  }
+
+  private CreateTableCommand buildCreateTable(final SourceName sourceName) {
+    return new CreateTableCommand(
+        sourceName,
         SCHEMA,
         Optional.of(timestampColumn),
         TOPIC_NAME,
-        io.confluent.ksql.execution.plan.Formats.of(
-            KEY_FORMAT,
-            VALUE_FORMAT,
-            SERDE_OPTIONS
+        Formats.of(
+            KEY_FORMAT.getFormatInfo(),
+            VALUE_FORMAT.getFormatInfo(),
+            SerdeFeatures.of(),
+            SerdeFeatures.of()
         ),
         Optional.empty(),
         Optional.of(false)

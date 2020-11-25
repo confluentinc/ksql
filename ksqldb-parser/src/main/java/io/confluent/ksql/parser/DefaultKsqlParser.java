@@ -27,8 +27,6 @@ import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.RecognitionException;
-import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
@@ -37,19 +35,7 @@ import org.antlr.v4.runtime.misc.ParseCancellationException;
 public class DefaultKsqlParser implements KsqlParser {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener() {
-    @Override
-    public void syntaxError(
-        final Recognizer<?, ?> recognizer,
-        final Object offendingSymbol,
-        final int line,
-        final int charPositionInLine,
-        final String message,
-        final RecognitionException e
-    ) {
-      throw new ParsingException(message, e, line, charPositionInLine);
-    }
-  };
+  private static final BaseErrorListener ERROR_VALIDATOR = new SyntaxErrorValidator();
 
   @Override
   public List<ParsedStatement> parse(final String sql) {
@@ -102,10 +88,10 @@ public class DefaultKsqlParser implements KsqlParser {
     final SqlBaseParser sqlBaseParser = new SqlBaseParser(tokenStream);
 
     sqlBaseLexer.removeErrorListeners();
-    sqlBaseLexer.addErrorListener(ERROR_LISTENER);
+    sqlBaseLexer.addErrorListener(ERROR_VALIDATOR);
 
     sqlBaseParser.removeErrorListeners();
-    sqlBaseParser.addErrorListener(ERROR_LISTENER);
+    sqlBaseParser.addErrorListener(ERROR_VALIDATOR);
 
     final Function<SqlBaseParser, ParserRuleContext> parseFunction = SqlBaseParser::statements;
 

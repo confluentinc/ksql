@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -23,8 +24,10 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
-import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
@@ -35,11 +38,14 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.avro.AvroSchemas;
+import io.confluent.ksql.serde.SchemaTranslator;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
@@ -63,7 +69,7 @@ public class KsqlResourceFunctionalTest {
 
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
-  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
+  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.sourceName();
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
@@ -71,6 +77,7 @@ public class KsqlResourceFunctionalTest {
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
+      .withProperty(KsqlConfig.KSQL_KEY_FORMAT_ENABLED, true)
       .build();
 
   @ClassRule
@@ -158,22 +165,39 @@ public class KsqlResourceFunctionalTest {
             .keyColumn(ColumnName.of("AUTHOR"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("TITLE"), SqlTypes.STRING)
             .build(),
-        SerdeOption.none()
+        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
+        SerdeFeatures.of()
     );
 
-    TEST_HARNESS.getSchemaRegistryClient()
-        .register(
-            "books" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
-            new AvroSchema(AvroSchemas.getAvroSchema(
-                schema.valueSchema(),
-                "books_value"
-            ))
-        );
+    final SchemaTranslator translator = new AvroFormat()
+        .getSchemaTranslator(ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "books_value"));
+
+    final ParsedSchema keySchema = translator.toParsedSchema(
+        PersistenceSchema.from(
+            schema.logicalSchema().key(),
+            schema.keySchema().features()
+        )
+    );
+    TEST_HARNESS.getSchemaRegistryClient().register(
+        KsqlConstants.getSRSubject("books", true),
+        keySchema
+    );
+
+    final ParsedSchema valueSchema = translator.toParsedSchema(
+        PersistenceSchema.from(
+            schema.logicalSchema().value(),
+            schema.valueSchema().features()
+        )
+    );
+    TEST_HARNESS.getSchemaRegistryClient().register(
+        KsqlConstants.getSRSubject("books", false),
+        valueSchema
+    );
 
     // When:
     final List<KsqlEntity> results = makeKsqlRequest(""
         + "CREATE STREAM books (author VARCHAR KEY, title VARCHAR) "
-        + "WITH (kafka_topic='books', value_format='avro', partitions=1);"
+        + "WITH (kafka_topic='books', format='avro', partitions=1);"
         + " "
         + "INSERT INTO BOOKS (ROWTIME, author, title) VALUES (123, 'Metamorphosis', 'Franz Kafka');"
     );
@@ -184,28 +208,29 @@ public class KsqlResourceFunctionalTest {
     TEST_HARNESS.verifyAvailableRows(
         "books",
         contains(matches(
-            "Metamorphosis",
+            genericKey("Metamorphosis"),
             genericRow("Franz Kafka"),
             0,
             0L,
             123L)),
+        FormatFactory.AVRO,
         FormatFactory.AVRO,
         schema
     );
   }
 
   @SuppressWarnings("SameParameterValue")
-  private static Matcher<ConsumerRecord<String, GenericRow>> matches(
-      final String key,
+  private static Matcher<ConsumerRecord<GenericKey, GenericRow>> matches(
+      final GenericKey key,
       final GenericRow value,
       final int partition,
       final long offset,
       final long timestamp
   ) {
-    return new TypeSafeMatcher<ConsumerRecord<String, GenericRow>>() {
+    return new TypeSafeMatcher<ConsumerRecord<GenericKey, GenericRow>>() {
       @Override
-      protected boolean matchesSafely(final ConsumerRecord<String, GenericRow> item) {
-        return item.key().equalsIgnoreCase(key)
+      protected boolean matchesSafely(final ConsumerRecord<GenericKey, GenericRow> item) {
+        return item.key().equals(key)
             && item.value().equals(value)
             && item.offset() == offset
             && item.partition() == partition

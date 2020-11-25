@@ -137,6 +137,24 @@
           {"name": "SESSION_STARTS", "type": "stream", "schema": "USER_ID INT KEY, COUNT BIGINT"}
         ]
       }
+    },
+    {
+      "name": "non-KAFKA key format",
+      "statements": [
+        "CREATE STREAM INPUT (A DECIMAL(4,2)) WITH (kafka_topic='INPUT', format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT A, COUNT() AS COUNT FROM INPUT WINDOW SESSION (30 SECONDS) group by A;"
+      ],
+      "inputs": [
+        {"topic": "INPUT", "value": {"A": 12.30}, "timestamp": 10},
+        {"topic": "INPUT", "value": {"A": 12.30}, "timestamp": 11},
+        {"topic": "INPUT", "value": {"A": 1.00}, "timestamp": 12}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 12.30, "value": {"COUNT": 1}, "timestamp":  10, "window": {"start": 10, "end": 10, "type": "session"}},
+        {"topic": "OUTPUT", "key": 12.30, "value": null, "timestamp":  10, "window": {"start": 10, "end": 10, "type": "session"}},
+        {"topic": "OUTPUT", "key": 12.30, "value": {"COUNT": 2}, "timestamp":  11, "window": {"start": 10, "end": 11, "type": "session"}},
+        {"topic": "OUTPUT", "key": 1.00, "value": {"COUNT": 1}, "timestamp":  12, "window": {"start": 12, "end": 12, "type": "session"}}
+      ]
     }
   ]
 }

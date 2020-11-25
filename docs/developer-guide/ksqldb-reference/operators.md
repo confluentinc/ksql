@@ -11,25 +11,6 @@ Operators
 
 ksqlDB supports the following operators in value expressions.
 
-  - [Arithmetic](#arithmetic)
-  - [Concatenation](#concatenation)
-  - [Source Dereference](#source-dereference)
-  - [Subscript](#subscript)
-  - [STRUCT dereference](#struct-dereference)
-
-The explanation for each operator includes a supporting example based on
-the following table:
-
-```sql
-CREATE TABLE USERS (
-    USERID BIGINT PRIMARY KEY,
-    FIRST_NAME STRING,
-    LAST_NAME STRING,
-    NICKNAMES ARRAY<STRING>,
-    ADDRESS STRUCT<STREET_NAME STRING, HOUSE_NUM INTEGER>
-) WITH (KAFKA_TOPIC='users', VALUE_FORMAT='AVRO');
-```
-
 Arithmetic
 ----------
 
@@ -64,6 +45,17 @@ SELECT USERID,
   FROM INVALID_USERS_LOGINS_PER_HOST
   WHERE INVALID_LOGIN_COUNT>=4
   EMIT CHANGES;
+```
+
+In
+--
+
+The IN operator enables specifying multiple values in a `WHERE` clause.
+
+It provides the equivalent of multiple `OR` conditions.
+
+```sql
+SELECT * FROM USERS WHERE USERID IN (1543, 6256, 87569);
 ```
 
 Source Dereference
@@ -103,4 +95,3 @@ SELECT USERID, USERS.ADDRESS->STREET, U.ADDRESS->STREET FROM USERS U EMIT CHANGE
 ```
 
 For more information on nested data, see [STRUCT](../syntax-reference.md#struct).
-

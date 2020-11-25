@@ -24,18 +24,131 @@
       ]
     },
     {
-      "name": "earliest by offset with nulls",
+      "name": "null first - single - ignoring nulls",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, true) AS L0 FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"F0": null}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": 13}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": null}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": 13}}
+      ]
+    },
+    {
+      "name": "null first - multiple - ignoring nulls",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, 2) AS L0 FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"F0": null}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": 13}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": []}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": [13]}}
+      ]
+    },
+    {
+      "name": "null first - single - not ignoring nulls",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, false) AS L0 FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"F0": null}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": 13}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": null}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": null}}
+      ]
+    },
+    {
+      "name": "null first - multiple - not ignoring nulls",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, 2, false) AS L0 FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"F0": null}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": 13}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": [null]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": [null,13]}}
+      ]
+    },
+    {
+      "name": "nulls later - single - nulls ignored",
       "statements": [
         "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0) AS L0 FROM INPUT GROUP BY ID;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"F0": 12}},
-        {"topic": "test_topic", "key": 0, "value": {"F0": null}}
+        {"topic": "test_topic", "key": 0, "value": {"F0": null}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": 13}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": 0, "value": {"L0": 12}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": 12}},
         {"topic": "OUTPUT", "key": 0, "value": {"L0": 12}}
+      ]
+    },
+    {
+      "name": "nulls later - multiple - nulls ignored",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, 2) AS L0 FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"F0": 12}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": null}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": 13}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": [12]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": [12]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": [12,13]}}
+      ]
+    },
+    {
+      "name": "null later - single - nulls not ignored",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, false) AS L0 FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"F0": 12}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": null}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": 13}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": 12}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": 12}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": 12}}
+      ]
+    },
+    {
+      "name": "null later - multiple - nulls not ignored",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, 2, false) AS L0 FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"F0": 12}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": null}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": 13}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": [12]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": [12,null]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": [12,null]}}
       ]
     },
     {
@@ -51,6 +164,190 @@
       "outputs": [
         {"topic": "OUTPUT", "key": 0, "value": {"L0": null}},
         {"topic": "OUTPUT", "key": 0, "value": {"L0": null}}
+      ]
+    },
+    {
+      "name": "earliest n by offset",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT, F1 BIGINT, F2 DOUBLE, F3 BOOLEAN, F4 STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, 2) AS L0, EARLIEST_BY_OFFSET(F1, 2) AS L1, EARLIEST_BY_OFFSET(F2, 2) AS L2, EARLIEST_BY_OFFSET(F3, 2) AS L3, EARLIEST_BY_OFFSET(F4, 2) AS L4 FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"F0": 12, "F1": 1000, "F2": 1.23, "F3": true, "F4": "foo"}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": 12, "F1": 1000, "F2": 1.23, "F3": true, "F4": "foo"}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": 21, "F1": 2000, "F2": 2.23, "F3": false, "F4": "bar"}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": 21, "F1": 2000, "F2": 2.23, "F3": false, "F4": "bar"}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": 31, "F1": 3000, "F2": 3.23, "F3": false, "F4": "baz"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": [12], "L1": [1000], "L2": [1.23], "L3": [true], "L4": ["foo"]}},
+        {"topic": "OUTPUT", "key": 1, "value": {"L0": [12], "L1": [1000], "L2": [1.23], "L3": [true], "L4": ["foo"]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": [12,21], "L1": [1000,2000], "L2": [1.23,2.23], "L3": [true,false], "L4": ["foo","bar"]}},
+        {"topic": "OUTPUT", "key": 1, "value": {"L0": [12,21], "L1": [1000,2000], "L2": [1.23,2.23], "L3": [true,false], "L4": ["foo","bar"]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": [12,21], "L1": [1000,2000], "L2": [1.23,2.23], "L3": [true,false], "L4": ["foo","bar"]}}
+      ]
+    },
+    {
+      "name": "earliest n by offset with nulls",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0,2) AS L0 FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"F0": 12}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": [12]}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": [12]}}
+      ]
+    },
+    {
+      "name": "earliest n by offset with all nulls",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0,2) AS L0 FROM INPUT GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"F0": null}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": []}},
+        {"topic": "OUTPUT", "key": 0, "value": {"L0": []}}
+      ]
+    },
+    {
+      "name": "merging session windows",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0) AS L0 FROM INPUT WINDOW nWINDOW SESSION (1 SECONDS) GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 0, "key": 0, "value": {"F0": 1}},
+        {"topic": "test_topic", "timestamp": 1500, "key": 0, "value": {"F0": 3}},
+        {"topic": "test_topic", "timestamp": 700, "key": 0, "value": {"F0": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 0, "type": "session"}, "value": {"L0": 1}},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 1500, "end": 1500, "type": "session"}, "value": {"L0": 3}},
+        {"topic": "OUTPUT", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 0, "type": "session"}, "value": null},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 1500, "end": 1500, "type": "session"}, "value": null},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 0, "end": 1500, "type": "session"}, "value": {"L0": 1}}
+      ]
+    },
+    {
+      "name": "merging session windows - with nulls ignored",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, true) AS L0 FROM INPUT WINDOW SESSION (1 SECONDS) GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 0, "key": 0, "value": {"F0": null}},
+        {"topic": "test_topic", "timestamp": 1500, "key": 0, "value": {"F0": 1}},
+        {"topic": "test_topic", "timestamp": 700, "key": 0, "value": {"F0": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 0, "type": "session"}, "value": {"L0": null}},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 1500, "end": 1500, "type": "session"}, "value": {"L0": 1}},
+        {"topic": "OUTPUT", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 0, "type": "session"}, "value": null},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 1500, "end": 1500, "type": "session"}, "value": null},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 0, "end": 1500, "type": "session"}, "value": {"L0": 1}}
+      ]
+    },
+    {
+      "name": "merging session windows - with nulls not ignored",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, false) AS L0 FROM INPUT WINDOW SESSION (1 SECONDS) GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 0, "key": 0, "value": {"F0": null}},
+        {"topic": "test_topic", "timestamp": 1500, "key": 0, "value": {"F0": 1}},
+        {"topic": "test_topic", "timestamp": 700, "key": 0, "value": {"F0": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 0, "type": "session"}, "value": {"L0": null}},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 1500, "end": 1500, "type": "session"}, "value": {"L0": 1}},
+        {"topic": "OUTPUT", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 0, "type": "session"}, "value": null},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 1500, "end": 1500, "type": "session"}, "value": null},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 0, "end": 1500, "type": "session"}, "value": {"L0": null}}
+      ]
+    },
+    {
+      "name": "merging session windows - all nulls",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, false) AS L0 FROM INPUT WINDOW SESSION (1 SECONDS) GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 0, "key": 0, "value": {"F0": null}},
+        {"topic": "test_topic", "timestamp": 1500, "key": 0, "value": {"F0": null}},
+        {"topic": "test_topic", "timestamp": 700, "key": 0, "value": {"F0": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 0, "type": "session"}, "value": {"L0": null}},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 1500, "end": 1500, "type": "session"}, "value": {"L0": null}},
+        {"topic": "OUTPUT", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 0, "type": "session"}, "value": null},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 1500, "end": 1500, "type": "session"}, "value": null},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 0, "end": 1500, "type": "session"}, "value": {"L0": null}}
+      ]
+    },
+    {
+      "name": "merging session windows - with nulls ignored - N",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, 2, true) AS L0 FROM INPUT WINDOW SESSION (1 SECONDS) GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 0, "key": 0, "value": {"F0": null}},
+        {"topic": "test_topic", "timestamp": 1500, "key": 0, "value": {"F0": 1}},
+        {"topic": "test_topic", "timestamp": 700, "key": 0, "value": {"F0": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 0, "type": "session"}, "value": {"L0": []}},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 1500, "end": 1500, "type": "session"}, "value": {"L0": [1]}},
+        {"topic": "OUTPUT", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 0, "type": "session"}, "value": null},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 1500, "end": 1500, "type": "session"}, "value": null},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 0, "end": 1500, "type": "session"}, "value": {"L0": [1]}}
+      ]
+    },
+    {
+      "name": "merging session windows - with nulls not ignored - N",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, 2, false) AS L0 FROM INPUT WINDOW SESSION (1 SECONDS) GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 0, "key": 0, "value": {"F0": null}},
+        {"topic": "test_topic", "timestamp": 1500, "key": 0, "value": {"F0": 1}},
+        {"topic": "test_topic", "timestamp": 700, "key": 0, "value": {"F0": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 0, "type": "session"}, "value": {"L0": [null]}},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 1500, "end": 1500, "type": "session"}, "value": {"L0": [1]}},
+        {"topic": "OUTPUT", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 0, "type": "session"}, "value": null},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 1500, "end": 1500, "type": "session"}, "value": null},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 0, "end": 1500, "type": "session"}, "value": {"L0": [null,1]}}
+      ]
+    },
+    {
+      "name": "merging session windows - all nulls - N",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, EARLIEST_BY_OFFSET(F0, 2, false) AS L0 FROM INPUT WINDOW SESSION (1 SECONDS) GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 0, "key": 0, "value": {"F0": null}},
+        {"topic": "test_topic", "timestamp": 1500, "key": 0, "value": {"F0": null}},
+        {"topic": "test_topic", "timestamp": 700, "key": 0, "value": {"F0": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 0, "type": "session"}, "value": {"L0": [null]}},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 1500, "end": 1500, "type": "session"}, "value": {"L0": [null]}},
+        {"topic": "OUTPUT", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 0, "type": "session"}, "value": null},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 1500, "end": 1500, "type": "session"}, "value": null},
+        {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 0, "end": 1500, "type": "session"}, "value": {"L0": [null,null]}}
       ]
     }
   ]

@@ -26,6 +26,7 @@ public final class LoggingDeserializer<T> implements Deserializer<T> {
 
   private final Deserializer<T> delegate;
   private final ProcessingLogger processingLogger;
+  private boolean isKey;
 
   public LoggingDeserializer(
       final Deserializer<T> delegate,
@@ -37,6 +38,7 @@ public final class LoggingDeserializer<T> implements Deserializer<T> {
 
   @Override
   public void configure(final Map<String, ?> configs, final boolean isKey) {
+    this.isKey = isKey;
     delegate.configure(configs, isKey);
   }
 
@@ -59,7 +61,7 @@ public final class LoggingDeserializer<T> implements Deserializer<T> {
     } catch (final RuntimeException e) {
       return new DelayedResult<T>(
           e,
-          new DeserializationError(e, Optional.ofNullable(bytes), topic),
+          new DeserializationError(e, Optional.ofNullable(bytes), topic, isKey),
           processingLogger
       );
     }

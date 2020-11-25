@@ -120,7 +120,8 @@ SET 'auto.offset.reset' = 'earliest';
 
 The WINDOW clause lets you control how to group input records *that have
 the same key* into so-called *windows* for operations like aggregations
-or joins. Windows are tracked per record key.
+or joins. Windows are tracked per record key. For more information, see 
+[Time and Windows in ksqlDB](../../concepts/time-and-windows-in-ksqldb-queries.md).
 
 Windowing adds two additional system columns to the data, which provide
 the window bounds: `WINDOWSTART` and `WINDOWEND`.
@@ -185,6 +186,19 @@ SELECT windowstart, windowend, item_id, SUM(quantity)
   EMIT CHANGES;
 ```
 
+#### Late arriving events
+
+Accept events for up to two hours after the window ends. Events that arrive
+later than the grace period are dropped and not included in the aggregate
+result.
+
+```sql
+SELECT orderzip_code, TOPK(order_total, 5) FROM orders
+  WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS) 
+  GROUP BY order_zipcode
+  EMIT CHANGES;
+```
+
 #### EMIT
 
 The EMIT clause lets you control the output refinement of your push query. The output refinement is
@@ -197,8 +211,3 @@ ksqlDB supports the following output refinement types.
 This is the standard output refinement for push queries, for when we would like to see all changes 
 happening.
 
-#### FINAL
-
-This is for when we want to emit only the final result of a windowed aggregation, and suppress the 
-intermediate results until the window closes. Note that this output refinement is supported only 
-for windowed aggregations.

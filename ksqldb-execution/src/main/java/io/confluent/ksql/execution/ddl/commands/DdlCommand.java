@@ -29,7 +29,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
     @Type(value = CreateTableCommand.class, name = "createTableV1"),
     @Type(value = RegisterTypeCommand.class, name = "registerTypeV1"),
     @Type(value = DropSourceCommand.class, name = "dropSourceV1"),
-    @Type(value = DropTypeCommand.class, name = "dropTypeV1")
+    @Type(value = DropTypeCommand.class, name = "dropTypeV1"),
+    @Type(value = AlterSourceCommand.class, name = "alterSourceV1")
 })
 public interface DdlCommand {
   DdlCommandResult execute(Executor executor);

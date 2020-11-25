@@ -1,4 +1,4 @@
-site_name: ksqlDB
+site_name: ksqlDB Documentation
 site_url: https://docs.ksqldb.io/en/latest/
 site_description: ksqlDB documentation
 site_author: Confluent
@@ -10,14 +10,16 @@ edit_uri: ""
 docs_dir: docs
 
 theme:
-    name: material    
+    name: material
     favicon: img/favicon.ico # should match asset for main ksqldb.io site
     logo: img/logo.png # should match asset for main ksqldb.io site
+    custom_dir: docs/overrides
     features:
       - tabs
 
 extra_css:
   - stylesheets/extra.css
+  - https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.2/css/all.min.css
 
 extra_javascript:
   - js/extra.js
@@ -26,13 +28,12 @@ extra_javascript:
 nav:
   - Overview: index.md
   - Getting started: quickstart.md # links to Derek's quickstart at ksqldb.io
+  - Apache Kafka primer: overview/apache-kafka-primer.md
   - Concepts:
     - Concepts: concepts/index.md
     - Events: concepts/events.md
     - Collections:
       - Collections Overview: concepts/collections/index.md
-      - Streams: concepts/collections/streams.md
-      - Tables: concepts/collections/tables.md
       - Inserting events: concepts/collections/inserting-events.md
     - Stream Processing: concepts/stream-processing.md
     - Materialized Views: concepts/materialized-views.md
@@ -53,6 +54,7 @@ nav:
     - Serialization: developer-guide/serialization.md
     - Processing Guarantees: concepts/processing-guarantees.md
     - Relationship to Kafka Streams: concepts/ksqldb-and-kafka-streams.md
+    - Evolving Production Queries: concepts/upgrades.md
   - Developer Guide:
     - Develop ksqlDB Applications: developer-guide/index.md
     - Develop with ksqlDB clients: developer-guide/ksqldb-clients/index.md
@@ -60,6 +62,7 @@ nav:
     - Create a Table: developer-guide/create-a-table.md
     - Aggregate Streaming Events: developer-guide/aggregate-streaming-data.md
     - Transform a Stream: developer-guide/transform-a-stream-with-ksqldb.md
+    - Variable Substitution: developer-guide/variable-substitution.md
     - Example Queries: tutorials/examples.md
     - Test and Debug:
       - Test and Debug Index: developer-guide/test-and-debug/index.md
@@ -76,6 +79,11 @@ nav:
       - Control the case of identifiers: how-to-guides/control-the-case-of-identifiers.md
   - Reference:
     - Syntax Reference: developer-guide/syntax-reference.md
+    - The SQL language:
+        - SQL syntax:
+          - Lexical structure: reference/sql/syntax/lexical-structure.md
+        - Data definition: reference/sql/data-definition.md
+        - Appendix: reference/sql/appendix.md
     - Statements:
       - SQL quick reference: developer-guide/ksqldb-reference/quick-reference.md
       - Statement Index: developer-guide/ksqldb-reference/index.md
@@ -109,6 +117,7 @@ nav:
       - SHOW TYPES: developer-guide/ksqldb-reference/show-types.md
       - SPOOL: developer-guide/ksqldb-reference/spool.md
       - TERMINATE: developer-guide/ksqldb-reference/terminate.md
+      - Type Coercion: developer-guide/ksqldb-reference/type-coercion.md
     - Operators: developer-guide/ksqldb-reference/operators.md
     - Functions:
       - Functions Index: developer-guide/ksqldb-reference/functions.md
@@ -126,6 +135,7 @@ nav:
       - Terminate a cluster: developer-guide/ksqldb-rest-api/terminate-endpoint.md
     - Clients:
       - Java Client: developer-guide/ksqldb-clients/java-client.md
+      - Contribute a new client: developer-guide/ksqldb-clients/contributing.md
   - Operate and Deploy:
       - Operations Index: operate-and-deploy/index.md
       - Deploy:
@@ -153,7 +163,7 @@ nav:
       - ksqlDB with Embedded Connect: tutorials/embedded-connect.md
       - Integrate with PostgreSQL: tutorials/connect-integration.md
   - Troubleshooting: troubleshoot-ksqldb.md
-  - Frequently Asked Questions: faq.md
+  - Frequently asked questions: faq.md
 
 markdown_extensions:
     - toc:
@@ -167,6 +177,7 @@ markdown_extensions:
     - mdx_gh_links:
         user: confluentinc
         repo: ksqldb
+    - mdx_truly_sane_lists
 
 plugins:
     - search
@@ -175,6 +186,8 @@ plugins:
     - redirects:
         redirect_maps:
             developer-guide/implement-a-udf.md: how-to-guides/create-a-user-defined-function.md
+            concepts/collections/streams.md: reference/sql/data-definition.md
+            concepts/collections/tables.md: reference/sql/data-definition.md
 
 extra:
     site:
@@ -206,13 +219,14 @@ extra:
         zk: ZooKeeper
 
         # Build-related string tokens
-        kafkaversion: 2.5
-        kafkarelease: 5.5.0-ccs
-        ksqldbversion: 0.11.0
-        ksqldbcpversion: 6.1.0-beta200715032424
-        release: 0.11.0
-        cprelease: 5.5.0
-        releasepostbranch: 5.5.0-post
-        scalaversion: 2.12
-        version: 5.5
+        kafkaversion: 2.6
+        kafkarelease: 6.0.0-ccs
+        ksqldbversion: 0.14.0
+        ksqldbcpversion: 6.1.0-beta200825192044
+        release: 0.14.0
+        cprelease: 6.0.0
+        releasepostbranch: 6.0.0-post
+        scalaversion: 2.13
+        version: 6.0
         voluble_version: 0.3.1
+        jdbc_connector_version: 10.0.0

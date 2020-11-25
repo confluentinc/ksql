@@ -170,7 +170,10 @@ final class AdminResponseHandlers {
           .map(o -> new StreamInfoImpl(
               o.getString("name"),
               o.getString("topic"),
-              o.getString("format")))
+              o.getString("keyFormat", "KAFKA"),
+              o.getString("valueFormat", o.getString("format", "UNKNOWN")),
+              o.getBoolean("isWindowed", false)
+          ))
           .collect(Collectors.toList())
       );
     } catch (Exception e) {
@@ -194,7 +197,8 @@ final class AdminResponseHandlers {
           .map(o -> new TableInfoImpl(
               o.getString("name"),
               o.getString("topic"),
-              o.getString("format"),
+              o.getString("keyFormat", "KAFKA"),
+              o.getString("valueFormat", o.getString("format", "UNKNOWN")),
               o.getBoolean("isWindowed")))
           .collect(Collectors.toList())
       );
@@ -313,7 +317,10 @@ final class AdminResponseHandlers {
               ? Optional.empty()
               : Optional.of(source.getString("timestamp")),
           Optional.ofNullable(source.getString("windowType")),
-          source.getString("statement")
+          source.getString("statement"),
+          source.getJsonArray("sourceConstraints").stream()
+              .map(o -> (String)o)
+              .collect(Collectors.toList())
       ));
     } catch (Exception e) {
       return Optional.empty();

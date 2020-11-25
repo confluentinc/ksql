@@ -5,15 +5,30 @@
   "schemas" : {
     "CTAS_INNER_JOIN_0.INNER_JOIN" : {
       "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_INNER_JOIN_0.KafkaTopic_Right.Source" : {
       "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_INNER_JOIN_0.KafkaTopic_Left.Source" : {
       "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `NAME` STRING, `VALUE` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {
@@ -152,21 +167,15 @@
     "statements" : [ "CREATE TABLE TEST (ROWKEY BIGINT PRIMARY KEY, ID BIGINT, NAME STRING, VALUE BIGINT) WITH (KAFKA_TOPIC='left_topic', KEY='ID', VALUE_FORMAT='JSON');", "CREATE TABLE TEST_TABLE (ROWKEY BIGINT PRIMARY KEY, ID BIGINT, F1 STRING, F2 BIGINT) WITH (KAFKA_TOPIC='right_topic', KEY='ID', VALUE_FORMAT='JSON');", "CREATE TABLE INNER_JOIN AS SELECT\n  T.ID T_ID,\n  T.NAME NAME,\n  T.VALUE VALUE,\n  TT.F1 F1,\n  TT.F2 F2\nFROM TEST T\nINNER JOIN TEST_TABLE TT ON ((T.ID = TT.ID))\nEMIT CHANGES;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST_TABLE",
-        "type" : "TABLE",
-        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "INNER_JOIN",
         "type" : "TABLE",
         "schema" : "`ROWKEY` BIGINT KEY, `T_ID` BIGINT, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST",
         "type" : "TABLE",
@@ -174,15 +183,25 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST_TABLE",
+        "type" : "TABLE",
+        "schema" : "`ROWKEY` BIGINT KEY, `ID` BIGINT, `F1` STRING, `F2` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "INNER_JOIN",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -191,9 +210,7 @@
         }, {
           "name" : "left_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -202,9 +219,7 @@
         }, {
           "name" : "right_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

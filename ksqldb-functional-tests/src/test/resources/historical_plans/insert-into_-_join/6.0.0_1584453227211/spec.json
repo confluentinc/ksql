@@ -5,23 +5,48 @@
   "schemas" : {
     "InsertQuery_1.OUTPUT" : {
       "schema" : "`ROWKEY` STRING KEY, `DATA_1` STRING, `DATA_2` STRING",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "InsertQuery_1.KafkaTopic_Left.Source" : {
       "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "InsertQuery_1.Join" : {
+      "schema" : "`ROWKEY` STRING KEY, `S1_DATA` STRING, `S1_ROWTIME` BIGINT, `S1_ROWKEY` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "InsertQuery_1.KafkaTopic_Right.Source" : {
       "schema" : "`ROWKEY` STRING KEY, `DATA` STRING",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "InsertQuery_1.Join.Right" : {
       "schema" : "`ROWKEY` STRING KEY, `S2_DATA` STRING, `S2_ROWTIME` BIGINT, `S2_ROWKEY` STRING",
-      "serdeOptions" : [ ]
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "InsertQuery_1.Join.Left" : {
       "schema" : "`ROWKEY` STRING KEY, `S1_DATA` STRING, `S1_ROWTIME` BIGINT, `S1_ROWKEY` STRING",
-      "serdeOptions" : [ ]
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {
@@ -66,7 +91,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "SOURCE1",
         "type" : "STREAM",
@@ -74,7 +101,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "SOURCE2",
         "type" : "STREAM",
@@ -82,15 +111,15 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "stream-source",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"
@@ -99,9 +128,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_InsertQuery_1-KSTREAM-JOINTHIS-0000000008-store-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"
@@ -109,9 +136,7 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"
@@ -120,9 +145,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_InsertQuery_1-KSTREAM-JOINOTHER-0000000009-store-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"
@@ -130,9 +153,7 @@
         }, {
           "name" : "insert-source",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"

@@ -13,7 +13,7 @@ Synopsis
 --------
 
 ```sql
-CREATE TABLE table_name
+CREATE [OR REPLACE] TABLE table_name
   [WITH ( property_name = expression [, ...] )]
   AS SELECT  select_expr [, ...]
   FROM from_item
@@ -69,23 +69,28 @@ The primary key of the resulting table is determined by the following rules, in 
  
 The projection must include all columns required in the result, including any primary key columns.
 
-For supported [serialization formats](../developer-guide/serialization.md),
+For supported [serialization formats](../../developer-guide/serialization.md),
 ksqlDB can integrate with the [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
 ksqlDB registers the value schema of the new table with {{ site.sr }} automatically. 
 The schema is registered under the subject `<topic-name>-value`.
+
+Specify the WINDOW clause to create a windowed aggregation. For more information,
+see [Time and Windows in ksqlDB](../../concepts/time-and-windows-in-ksqldb-queries.md).
 
 The WITH clause supports the following properties:
 
 |     Property      |                                             Description                                              |
 | ----------------- | ---------------------------------------------------------------------------------------------------- |
 | KAFKA_TOPIC       | The name of the Kafka topic that backs this table. If this property is not set, then the name of the table will be used as default. |
-| VALUE_FORMAT      | Specifies the serialization format of the message value in the topic. For supported formats, see [Serialization Formats](../serialization.md#serialization-formats). If this property is not set, then the format of the input stream/table is used. |
+| KEY_FORMAT        | Specifies the serialization format of the message key in the topic. For supported formats, see [Serialization Formats](../serialization.md#serialization-formats). If this property is not set, the format from the left-most input stream/table is used. |
+| VALUE_FORMAT      | Specifies the serialization format of the message value in the topic. For supported formats, see [Serialization Formats](../serialization.md#serialization-formats). If this property is not set, the format from the left-most input stream/table is used. |
+| FORMAT            | Specifies the serialization format of both the message key and value in the topic. It is not valid to supply this property alongside either `KEY_FORMAT` or `VALUE_FORMAT`. For supported formats, see [Serialization Formats](../serialization.md#serialization-formats). |
 | VALUE_DELIMITER   | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter, defaults to ','. For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not an actual space or tab character. |
-| PARTITIONS        | The number of partitions in the backing topic. If this property is not set, then the number of partitions of the input stream/table will be used. In join queries, the property values are taken from the left-side stream or table. |
-| REPLICAS          | The replication factor for the topic. If this property is not set, then the number of replicas of the input stream or table will be used. In join queries, the property values are taken from the left-side stream or table. |
+| PARTITIONS        | The number of partitions in the backing topic. If this property is not set, then the number of partitions of the input stream/table will be used. In join queries, the property values are taken from the left-most stream or table. |
+| REPLICAS          | The replication factor for the topic. If this property is not set, then the number of replicas of the input stream or table will be used. In join queries, the property values are taken from the left-most stream or table. |
 | TIMESTAMP         | Sets a column within this stream's schema to be used as the default source of `ROWTIME` for any downstream queries. Downstream queries that use time-based operations, such as windowing, will process records in this stream based on the timestamp in this column. The column will be used to set the timestamp on any records emitted to Kafka. Timestamps have a millisecond accuracy. If not supplied, the `ROWTIME` of the source stream is used. <br>**Note**: This doesn't affect the processing of the query that populates this stream. For example, given the following statement:<br><pre>CREATE STREAM foo WITH (TIMESTAMP='t2') AS<br>&#0009;SELECT * FROM bar<br>&#0009;WINDOW TUMBLING (size 10 seconds);<br>&#0009;EMIT CHANGES;</pre>The window into which each row of `bar` is placed is determined by bar's `ROWTIME`, not `t2`. |
 | TIMESTAMP_FORMAT  | Used in conjunction with TIMESTAMP. If not set the timestamp column must be of type `bigint`. If it is set, then the TIMESTAMP column must be of type varchar and have a format that can be parsed with the Java `DateTimeFormatter`. If your timestamp format has characters requiring single quotes, you can escape them with two successive single quotes, `''`, for example: `'yyyy-MM-dd''T''HH:mm:ssX'`. For more information on timestamp formats, see [DateTimeFormatter](https://cnfl.io/java-dtf). |
-| WRAP_SINGLE_VALUE | Controls how values are serialized where the values schema contains only a single column. The setting controls how the query will serialize values with a single-column schema.<br>If set to `true`, ksqlDB will serialize the column as a named column within a record.<br>If set to `false`, ksqlDB will serialize the column as an anonymous value.<br>If not supplied, the system default, defined by [ksql.persistence.wrap.single.values](../../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencewrapsinglevalues) and defaulting to `true`, is used.<br>**Note:** `null` values have special meaning in ksqlDB. Care should be taken when dealing with single-column schemas where the value can be `null`. For more information, see [Single column (un)wrapping](../serialization.md#single-field-unwrapping).<br>**Note:** Supplying this property for formats that do not support wrapping, for example `DELIMITED`, or when the value schema has multiple columns, will result in an error. |
+| WRAP_SINGLE_VALUE | Controls how values are serialized where the values schema contains only a single column. The setting controls how the query will serialize values with a single-column schema.<br>If set to `true`, ksqlDB will serialize the column as a named column within a record.<br>If set to `false`, ksqlDB will serialize the column as an anonymous value.<br>If not supplied, the system default, defined by [ksql.persistence.wrap.single.values](../../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencewrapsinglevalues), then the format's default is used.<br>**Note:** `null` values have special meaning in ksqlDB. Care should be taken when dealing with single-column schemas where the value can be `null`. For more information, see [Single column (un)wrapping](../serialization.md#single-field-unwrapping).<br>**Note:** Supplying this property for formats that do not support wrapping, for example `DELIMITED`, or when the value schema has multiple columns, will result in an error. |
 
 
 !!! note
@@ -95,8 +100,8 @@ The WITH clause supports the following properties:
     - Avro and Protobuf field names are not case sensitive in ksqlDB. This matches the ksqlDB
     column name behavior.
 
-Example
--------
+Examples
+--------
 
 ```sql
 -- Derive a new view from an existing table:
@@ -107,8 +112,10 @@ CREATE TABLE derived AS
     d
   FROM source
   WHERE A is not null;
+```
 
--- Or, join a stream of play events to a songs table, windowing weekly, to create a weekly chart:
+```sql
+-- Join a stream of play events to a songs table, windowing weekly, to create a weekly chart:
 CREATE TABLE weeklyMusicCharts AS
    SELECT
       s.songName,
@@ -117,4 +124,22 @@ CREATE TABLE weeklyMusicCharts AS
       JOIN songs s ON p.song_id = s.id
    WINDOW TUMBLING (7 DAYS)
    GROUP BY s.songName;
+```
+
+```sql
+-- Window retention: configure the number of windows in the past that ksqlDB retains.
+CREATE TABLE pageviews_per_region AS
+  SELECT regionid, COUNT(*) FROM pageviews
+  WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS, RETENTION 7 DAYS, GRACE PERIOD 30 MINUTES)
+  WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6'
+  GROUP BY regionid
+  EMIT CHANGES;
+```
+
+```sql
+-- Late arriving events: accept events for up to two hours after the window ends.
+SELECT orderzip_code, TOPK(order_total, 5) FROM orders
+  WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS) 
+  GROUP BY order_zipcode
+  EMIT CHANGES;
 ```

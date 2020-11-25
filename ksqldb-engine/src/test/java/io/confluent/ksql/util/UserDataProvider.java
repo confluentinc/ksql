@@ -14,18 +14,21 @@
  */
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
 
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 
-public class UserDataProvider extends TestDataProvider<String> {
+public class UserDataProvider extends TestDataProvider {
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
@@ -35,18 +38,22 @@ public class UserDataProvider extends TestDataProvider<String> {
       .build();
 
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
-      .from(LOGICAL_SCHEMA, SerdeOption.none());
+      .from(LOGICAL_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
-  private static final Multimap<String, GenericRow> ROWS = ImmutableListMultimap
-      .<String, GenericRow>builder()
-      .put("USER_0", genericRow(0L, "FEMALE", "REGION_0"))
-      .put("USER_1", genericRow(1L, "MALE", "REGION_1"))
-      .put("USER_2", genericRow(2L, "FEMALE", "REGION_1"))
-      .put("USER_3", genericRow(3L, "MALE", "REGION_0"))
-      .put("USER_4", genericRow(4L, "MALE", "REGION_4"))
+  private static final Multimap<GenericKey, GenericRow> ROWS = ImmutableListMultimap
+      .<GenericKey, GenericRow>builder()
+      .put(genericKey("USER_0"), genericRow(0L, "FEMALE", "REGION_0"))
+      .put(genericKey("USER_1"), genericRow(1L, "MALE", "REGION_1"))
+      .put(genericKey("USER_2"), genericRow(2L, "FEMALE", "REGION_1"))
+      .put(genericKey("USER_3"), genericRow(3L, "MALE", "REGION_0"))
+      .put(genericKey("USER_4"), genericRow(4L, "MALE", "REGION_4"))
       .build();
 
   public UserDataProvider() {
     super("USER", PHYSICAL_SCHEMA, ROWS);
+  }
+
+  public String getStringKey(final int position) {
+    return (String) Iterables.get(data().keySet(), position).get(0);
   }
 }

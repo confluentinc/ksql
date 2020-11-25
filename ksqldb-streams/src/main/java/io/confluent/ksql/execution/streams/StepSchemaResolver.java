@@ -38,6 +38,7 @@ import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableSelect;
+import io.confluent.ksql.execution.plan.TableSelectKey;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.TableSuppress;
@@ -75,8 +76,8 @@ public final class StepSchemaResolver {
       .put(StreamGroupBy.class, StepSchemaResolver::handleStreamGroupBy)
       .put(StreamGroupByKey.class, StepSchemaResolver::sameSchema)
       .put(StreamSelect.class, StepSchemaResolver::handleStreamSelect)
-      .put(StreamSelectKeyV1.class, StepSchemaResolver::handleSelectKeyV1)
-      .put(StreamSelectKey.class, StepSchemaResolver::handleSelectKey)
+      .put(StreamSelectKeyV1.class, StepSchemaResolver::handleStreamSelectKeyV1)
+      .put(StreamSelectKey.class, StepSchemaResolver::handleStreamSelectKey)
       .put(StreamSink.class, StepSchemaResolver::sameSchema)
       .put(StreamSource.class, StepSchemaResolver::handleSource)
       .put(WindowedStreamSource.class, StepSchemaResolver::handleWindowedSource)
@@ -84,6 +85,7 @@ public final class StepSchemaResolver {
       .put(TableFilter.class, StepSchemaResolver::sameSchema)
       .put(TableGroupBy.class, StepSchemaResolver::handleTableGroupBy)
       .put(TableSelect.class, StepSchemaResolver::handleTableSelect)
+      .put(TableSelectKey.class, StepSchemaResolver::handleTableSelectKey)
       .put(TableSuppress.class, StepSchemaResolver::sameSchema)
       .put(TableSink.class, StepSchemaResolver::sameSchema)
       .put(TableSource.class, StepSchemaResolver::handleSource)
@@ -213,7 +215,7 @@ public final class StepSchemaResolver {
     return buildSelectSchema(schema, step.getKeyColumnNames(), step.getSelectExpressions());
   }
 
-  private LogicalSchema handleSelectKeyV1(
+  private LogicalSchema handleStreamSelectKeyV1(
       final LogicalSchema sourceSchema,
       final StreamSelectKeyV1 step
   ) {
@@ -229,7 +231,7 @@ public final class StepSchemaResolver {
         .build();
   }
 
-  private LogicalSchema handleSelectKey(
+  private LogicalSchema handleStreamSelectKey(
       final LogicalSchema sourceSchema,
       final StreamSelectKey step
   ) {
@@ -293,6 +295,17 @@ public final class StepSchemaResolver {
       final TableSelect<?> step
   ) {
     return buildSelectSchema(schema, step.getKeyColumnNames(), step.getSelectExpressions());
+  }
+
+  private LogicalSchema handleTableSelectKey(
+      final LogicalSchema sourceSchema,
+      final TableSelectKey step
+  ) {
+    return PartitionByParamsFactory.buildSchema(
+        sourceSchema,
+        step.getKeyExpression(),
+        functionRegistry
+    );
   }
 
   private LogicalSchema sameSchema(final LogicalSchema schema, final ExecutionStep<?> step) {

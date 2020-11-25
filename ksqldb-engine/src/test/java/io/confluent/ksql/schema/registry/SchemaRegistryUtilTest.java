@@ -16,6 +16,7 @@
 package io.confluent.ksql.schema.registry;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -23,8 +24,10 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -40,13 +43,15 @@ public class SchemaRegistryUtilTest {
   public void shouldDeleteChangeLogTopicSchema() throws Exception {
     // Given:
     when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableList.of(
+        APP_ID + "SOME-changelog-key",
         APP_ID + "SOME-changelog-value"
     ));
 
     // When:
-    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient, false);
 
     // Then not exception:
+    verify(schemaRegistryClient).deleteSubject(APP_ID + "SOME-changelog-key");
     verify(schemaRegistryClient).deleteSubject(APP_ID + "SOME-changelog-value");
   }
 
@@ -54,25 +59,47 @@ public class SchemaRegistryUtilTest {
   public void shouldDeleteRepartitionTopicSchema() throws Exception {
     // Given:
     when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableList.of(
+        APP_ID + "SOME-repartition-key",
         APP_ID + "SOME-repartition-value"
     ));
 
     // When:
-    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient, false);
 
     // Then not exception:
+    verify(schemaRegistryClient).deleteSubject(APP_ID + "SOME-repartition-key");
     verify(schemaRegistryClient).deleteSubject(APP_ID + "SOME-repartition-value");
+  }
+
+  @Test
+  public void shouldHardDeleteIfFlagSet() throws Exception {
+    // Given:
+    when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableList.of(
+        APP_ID + "SOME-repartition-key",
+        APP_ID + "SOME-repartition-value"
+    ));
+
+    // When:
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient, true);
+
+    // Then not exception:
+    final InOrder inOrder = inOrder(schemaRegistryClient);
+    inOrder.verify(schemaRegistryClient).deleteSubject(APP_ID + "SOME-repartition-key");
+    inOrder.verify(schemaRegistryClient).deleteSubject(APP_ID + "SOME-repartition-key", true);
+    inOrder.verify(schemaRegistryClient).deleteSubject(APP_ID + "SOME-repartition-value");
+    inOrder.verify(schemaRegistryClient).deleteSubject(APP_ID + "SOME-repartition-value", true);
   }
 
   @Test
   public void shouldNotDeleteOtherSchemasForThisApplicationId() throws Exception {
     // Given:
     when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableList.of(
+        APP_ID + "SOME-other-key",
         APP_ID + "SOME-other-value"
     ));
 
     // When:
-    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient, false);
 
     // Then not exception:
     verify(schemaRegistryClient, never()).deleteSubject(any());
@@ -82,11 +109,12 @@ public class SchemaRegistryUtilTest {
   public void shouldNotDeleteOtherSchemas() throws Exception {
     // Given:
     when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableList.of(
+        "SOME-other-key",
         "SOME-other-value"
     ));
 
     // When:
-    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient, false);
 
     // Then not exception:
     verify(schemaRegistryClient, never()).deleteSubject(any());
@@ -98,7 +126,7 @@ public class SchemaRegistryUtilTest {
     when(schemaRegistryClient.getAllSubjects()).thenThrow(new RuntimeException("Boom!"));
 
     // When:
-    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient, false);
 
     // Then not exception:
     verify(schemaRegistryClient).getAllSubjects();
@@ -108,15 +136,35 @@ public class SchemaRegistryUtilTest {
   public void shouldNotThrowIfDeleteSubjectThrows() throws Exception {
     // Given:
     when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableList.of(
+        APP_ID + "SOME-changelog-key",
         APP_ID + "SOME-changelog-value"
     ));
 
     when(schemaRegistryClient.deleteSubject(any())).thenThrow(new RuntimeException("Boom!"));
 
     // When:
-    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient);
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient, false);
 
     // Then not exception:
-    verify(schemaRegistryClient, times(5)).deleteSubject(any());
+    verify(schemaRegistryClient, times(5)).deleteSubject(APP_ID + "SOME-changelog-key");
+    verify(schemaRegistryClient, times(5)).deleteSubject(APP_ID + "SOME-changelog-value");
+  }
+
+  @Test
+  public void shouldNotRetryIf40401() throws Exception {
+    // Given:
+    when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableList.of(
+        APP_ID + "SOME-changelog-key",
+        APP_ID + "SOME-changelog-value"
+    ));
+
+    when(schemaRegistryClient.deleteSubject(any())).thenThrow(new RestClientException("foo", 404, 40401));
+
+    // When:
+    SchemaRegistryUtil.cleanupInternalTopicSchemas(APP_ID, schemaRegistryClient, false);
+
+    // Then not exception (only tried once):
+    verify(schemaRegistryClient, times(1)).deleteSubject(APP_ID + "SOME-changelog-key");
+    verify(schemaRegistryClient, times(1)).deleteSubject(APP_ID + "SOME-changelog-value");
   }
 }

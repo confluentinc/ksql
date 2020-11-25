@@ -53,7 +53,7 @@ public class LagReportingAgentFunctionalTest {
 
   private static final PageViewDataProvider PAGE_VIEWS_PROVIDER = new PageViewDataProvider();
   private static final String PAGE_VIEW_TOPIC = PAGE_VIEWS_PROVIDER.topicName();
-  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.kstreamName();
+  private static final String PAGE_VIEW_STREAM = PAGE_VIEWS_PROVIDER.sourceName();
   private static final int NUM_ROWS = PAGE_VIEWS_PROVIDER.data().size();
 
   private static final QueryStateStoreId STORE_0 = QueryStateStoreId.of(
@@ -114,7 +114,7 @@ public class LagReportingAgentFunctionalTest {
   public static void setUpClass() {
     TEST_HARNESS.deleteInternalTopics("KSQL");
     TEST_HARNESS.ensureTopics(2, PAGE_VIEW_TOPIC);
-    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, FormatFactory.JSON);
+    TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEWS_PROVIDER, FormatFactory.KAFKA, FormatFactory.JSON);
     RestIntegrationTestUtil.createStream(REST_APP_0, PAGE_VIEWS_PROVIDER);
     RestIntegrationTestUtil.makeKsqlRequest(
         REST_APP_0,

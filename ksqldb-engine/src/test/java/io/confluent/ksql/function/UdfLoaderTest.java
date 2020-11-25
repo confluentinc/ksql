@@ -222,7 +222,7 @@ public class UdfLoaderTest {
     // Then:
     assertThat(
         function.getReturnType(args),
-        equalTo(SqlTypes.map(SqlTypes.STRING))
+        equalTo(SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING))
     );
   }
 

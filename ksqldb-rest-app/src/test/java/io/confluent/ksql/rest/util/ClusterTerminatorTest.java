@@ -45,6 +45,8 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -57,6 +59,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -461,9 +464,13 @@ public class ClusterTerminatorTest {
 
     final KsqlTopic topic = mock(KsqlTopic.class);
     when(topic.getKafkaTopicName()).thenReturn(kafkaTopicName);
-    when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(format.name())));
+    when(topic.getKeyFormat()).thenReturn(KeyFormat.of(FormatInfo.of(format.name()),
+        SerdeFeatures.of(), Optional.empty()));
+    when(topic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(format.name()),
+        SerdeFeatures.of()));
 
     final DataSource source = mock(DataSource.class);
+    when(source.getKafkaTopicName()).thenReturn(kafkaTopicName);
     when(source.getKsqlTopic()).thenReturn(topic);
     when(source.isCasTarget()).thenReturn(sink);
 
@@ -477,20 +484,22 @@ public class ClusterTerminatorTest {
 
   private void givenSchemasForTopicsExistInSchemaRegistry(final String... topicNames) throws Exception {
     final Collection<String> subjectNames = Stream.of(topicNames)
-        .map(topicName -> topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX)
+        .flatMap(topicName -> Stream.of(
+            KsqlConstants.getSRSubject(topicName, true),
+            KsqlConstants.getSRSubject(topicName, false)))
         .collect(Collectors.toList());
     when(schemaRegistryClient.getAllSubjects()).thenReturn(subjectNames);
   }
 
   private void verifySchemaDeletedForTopics(final String... topicNames) throws Exception {
     for (final String topicName : topicNames) {
-      verify(schemaRegistryClient).deleteSubject(
-          topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+      verify(schemaRegistryClient).deleteSubject(KsqlConstants.getSRSubject(topicName, true));
+      verify(schemaRegistryClient).deleteSubject(KsqlConstants.getSRSubject(topicName, false));
     }
   }
 
   private void verifySchemaNotDeletedForTopic(final String topicName) throws Exception {
-    verify(schemaRegistryClient, never()).deleteSubject(
-        topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
+    verify(schemaRegistryClient, never()).deleteSubject(KsqlConstants.getSRSubject(topicName, true));
+    verify(schemaRegistryClient, never()).deleteSubject(KsqlConstants.getSRSubject(topicName, false));
   }
 }

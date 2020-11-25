@@ -122,12 +122,12 @@ public class JLineReader implements io.confluent.ksql.cli.console.LineReader {
   private static class KsqlExpander extends DefaultExpander {
 
     private static final String EXPANDED_CS =
-        "CREATE STREAM s (field1 type1, field2 type2) "
-            + "WITH (KAFKA_TOPIC='topic-name', VALUE_FORMAT='json');";
+        "CREATE STREAM s (field1 type1 KEY, field2 type2) "
+            + "WITH (KAFKA_TOPIC='topic-name', FORMAT='json');";
 
     private static final String EXPANDED_CT =
-        "CREATE TABLE t (field1 type1, field2 type2) "
-            + "WITH (KAFKA_TOPIC='topic-name', VALUE_FORMAT='json');";
+        "CREATE TABLE t (field1 type1 PRIMARY KEY, field2 type2) "
+            + "WITH (KAFKA_TOPIC='topic-name', FORMAT='json');";
 
     private static final Map<String, String> shortcuts = ImmutableMap.of(
         "cs", EXPANDED_CS,

@@ -22,7 +22,7 @@ When to use embedded Connect
 
 ksqlDB natively integrates with {{ site.kconnect }} by either communicating
 with an external {{ site.kconnect }} cluster or by running {{ site.kconnect }}
-embedded within the KSQL server process. Each of these modes is best suited
+embedded within the ksqlDB server process. Each of these modes is best suited
 for the following environments:
 
 * **Embedded** - Suitable for development, testing, and simpler production
@@ -142,7 +142,7 @@ is via [Confluent Hub Client](https://docs.confluent.io/current/connect/managing
 To download the JDBC connector, use the following command, ensuring that the `confluent-hub-components` directory exists first:
 
 ```bash
-confluent-hub install --component-dir confluent-hub-components --no-prompt confluentinc/kafka-connect-jdbc:{{ site.cprelease }}
+confluent-hub install --component-dir confluent-hub-components --no-prompt confluentinc/kafka-connect-jdbc:{{ site.jdbc_connector_version }}
 ```
 This command downloads the JDBC connector into the directory `./confluent-hub-components`.
 

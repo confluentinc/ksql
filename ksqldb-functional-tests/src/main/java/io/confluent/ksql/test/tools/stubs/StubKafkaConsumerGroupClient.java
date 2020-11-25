@@ -65,4 +65,9 @@ public class StubKafkaConsumerGroupClient implements KafkaConsumerGroupClient {
       );
     }
   }
+
+  @Override
+  public void deleteConsumerGroups(final Set<String> groups) {
+    // do nothing
+  }
 }

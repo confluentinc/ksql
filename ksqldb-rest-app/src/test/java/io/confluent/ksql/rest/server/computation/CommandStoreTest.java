@@ -28,12 +28,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.CommandTopic;
+import io.confluent.ksql.rest.server.CommandTopicBackup;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -51,6 +53,8 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.record.RecordBatch;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serializer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -78,6 +82,14 @@ public class CommandStoreTest {
   private CommandTopic commandTopic;
   @Mock
   private Producer<CommandId, Command> transactionalProducer;
+  @Mock
+  private Serializer<CommandId> commandIdSerializer;
+  @Mock
+  private Serializer<Command> commandSerializer;
+  @Mock
+  private Deserializer<CommandId> commandIdDeserializer;
+  @Mock
+  private CommandTopicBackup commandTopicBackup;
 
   private final CommandId commandId =
       new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
@@ -135,7 +147,11 @@ public class CommandStoreTest {
         sequenceNumberFutureStore,
         Collections.emptyMap(),
         Collections.emptyMap(),
-        TIMEOUT
+        TIMEOUT,
+        commandIdSerializer,
+        commandSerializer,
+        commandIdDeserializer,
+        commandTopicBackup
     );
   }
 
@@ -176,6 +192,7 @@ public class CommandStoreTest {
   @Test
   public void shouldEnqueueNewAfterHandlingExistingCommand() {
     // Given:
+    when(commandIdDeserializer.deserialize(any(), any())).thenReturn(commandId);
     commandStore.enqueueCommand(commandId, command, transactionalProducer);
     commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
 
@@ -188,16 +205,19 @@ public class CommandStoreTest {
     // Given:
     when(transactionalProducer.send(any(ProducerRecord.class))).thenAnswer(
         invocation -> {
-          final QueuedCommand queuedCommand = commandStore.getNewCommands(NEW_CMDS_TIMEOUT).get(0);
-          assertThat(queuedCommand.getCommandId(), equalTo(commandId));
-          assertThat(queuedCommand.getStatus().isPresent(), equalTo(true));
+          final QueuedCommand command = commandStore.getNewCommands(NEW_CMDS_TIMEOUT).get(0);
           assertThat(
-              queuedCommand.getStatus().get().getStatus().getStatus(),
+              command.getAndDeserializeCommandId(),
+              equalTo(commandId));
+          assertThat(command.getStatus().isPresent(), equalTo(true));
+          assertThat(
+              command.getStatus().get().getStatus().getStatus(),
               equalTo(CommandStatus.Status.QUEUED));
-          assertThat(queuedCommand.getOffset(), equalTo(0L));
+          assertThat(command.getOffset(), equalTo(0L));
           return testFuture;
         }
     );
+    when(commandIdDeserializer.deserialize(any(),any())).thenReturn(commandId);
 
     // When:
     commandStore.enqueueCommand(commandId, command, transactionalProducer);
@@ -209,20 +229,26 @@ public class CommandStoreTest {
   @Test
   public void shouldFilterNullCommands() {
     // Given:
-    final ConsumerRecords<CommandId, Command> records = buildRecords(
+    final ConsumerRecords<byte[], byte[]> records = buildRecords(
         commandId, null,
         commandId, command);
+    final Deserializer<Command> commandDeserializer = mock(Deserializer.class);
+    when(commandDeserializer.deserialize(any(), any())).thenReturn(command);
     when(commandTopic.getNewCommands(any())).thenReturn(records);
 
-    // When:
-    final List<QueuedCommand> commands = commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
+    // When:	
+    final List<QueuedCommand> commands =
+        commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
 
     // Then:
     assertThat(commands, hasSize(1));
-    assertThat(commands.get(0).getCommandId(), equalTo(commandId));
-    assertThat(commands.get(0).getCommand(), equalTo(command));
+    assertThat(
+        commands.get(0).getAndDeserializeCommandId(),
+        equalTo(commandId));
+    assertThat(
+        commands.get(0).getAndDeserializeCommand(commandDeserializer),
+        equalTo(command));
   }
-
 
   @Test
   public void shouldDistributeCommand() {
@@ -342,14 +368,30 @@ public class CommandStoreTest {
     verify(commandTopic).start();
   }
 
-  private static ConsumerRecords<CommandId, Command> buildRecords(final Object... args) {
+  @Test
+  public void shouldSuccessfullyAbortAndRetry() {
+    // Given:
+    commandStore.enqueueCommand(commandId, command, transactionalProducer);
+
+    // When/Then:
+    commandStore.abortCommand(commandId);
+    commandStore.enqueueCommand(commandId, command, transactionalProducer);
+  }
+
+  private static ConsumerRecords<byte[], byte[]> buildRecords(final Object... args) {
     assertThat(args.length % 2, equalTo(0));
-    final List<ConsumerRecord<CommandId, Command>> records = new ArrayList<>();
+    final List<ConsumerRecord<byte[], byte[]>> records = new ArrayList<>();
     for (int i = 0; i < args.length; i += 2) {
       assertThat(args[i], instanceOf(CommandId.class));
       assertThat(args[i + 1], anyOf(is(nullValue()), instanceOf(Command.class)));
+
       records.add(
-          new ConsumerRecord<>(COMMAND_TOPIC_NAME, 0, 0, (CommandId) args[i], (Command) args[i + 1]));
+          new ConsumerRecord<>(
+              COMMAND_TOPIC_NAME,
+              0,
+              0,
+              InternalTopicSerdes.serializer().serialize(null, args[i]),
+              args[i + 1] == null ? null : InternalTopicSerdes.serializer().serialize(null, args[i + 1])));
     }
     return new ConsumerRecords<>(Collections.singletonMap(COMMAND_TOPIC_PARTITION, records));
   }

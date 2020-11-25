@@ -35,6 +35,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.test.util.ClassFinder;
 import io.confluent.ksql.test.util.ImmutableTester;
@@ -56,8 +57,8 @@ public class MetaStoreModelTest {
       .<Class<?>, Object>builder()
       .put(KsqlTopic.class, new KsqlTopic(
           "bob",
-          KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-          ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
+          KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+          ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
       ))
       .put(ColumnName.class, ColumnName.of("f0"))
       .put(SourceName.class, SourceName.of("f0"))
@@ -69,8 +70,11 @@ public class MetaStoreModelTest {
           .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
           .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
           .build())
-      .put(KeyFormat.class, KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())))
-      .put(ValueFormat.class, ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name())))
+      .put(KeyFormat.class, KeyFormat
+          .nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()))
+      .put(ValueFormat.class, ValueFormat
+          .of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of()))
+      .put(SerdeFeatures.class, SerdeFeatures.of())
       .build();
 
   private final Class<?> modelClass;

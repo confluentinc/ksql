@@ -33,6 +33,7 @@ import io.confluent.ksql.api.utils.ReceiveStream;
 import io.confluent.ksql.api.utils.SendStream;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.rest.entity.PushQueryId;
+import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
@@ -44,14 +45,44 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ApiTest extends BaseApiTest {
 
-  protected static final Logger log = LoggerFactory.getLogger(ApiTest.class);
-
   protected static final List<JsonObject> DEFAULT_INSERT_ROWS = generateInsertRows();
+
+  @Test
+  @CoreApiTest
+  public void shouldExecuteInfoRquest() throws Exception {
+    // When
+    HttpResponse<Buffer> response = sendGetRequest("/info");
+
+    // Then
+    assertThat(response.statusCode(), is(200));
+    assertThat(response.statusMessage(), is("OK"));
+    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
+    assertThat(queryResponse.responseObject.getJsonObject("KsqlServerInfo").getString("version"),
+        is(AppInfo.getVersion()));
+    assertThat(queryResponse.responseObject.getJsonObject("KsqlServerInfo").getString("kafkaClusterId"),
+        is("kafka-cluster-id"));
+    assertThat(queryResponse.responseObject.getJsonObject("KsqlServerInfo").getString("ksqlServiceId"),
+        is("ksql-service-id"));
+  }
+
+  @Test
+  @CoreApiTest
+  public void shouldExecuteServerMetadataIdRequest() throws Exception {
+    // When
+    HttpResponse<Buffer> response = sendGetRequest("/v1/metadata/id");
+
+    // Then
+    assertThat(response.statusCode(), is(200));
+    assertThat(response.statusMessage(), is("OK"));
+    QueryResponse queryResponse = new QueryResponse(response.bodyAsString());
+    assertThat(queryResponse.responseObject.getJsonObject("scope").getJsonObject("clusters")
+            .getString("kafka-cluster"), is("kafka-cluster-id"));
+    assertThat(queryResponse.responseObject.getJsonObject("scope").getJsonObject("clusters")
+            .getString("ksql-cluster"), is("ksql-service-id"));
+  }
 
   @Test
   @CoreApiTest
@@ -63,7 +94,7 @@ public class ApiTest extends BaseApiTest {
     requestBody.put("properties", properties);
 
     // When
-    HttpResponse<Buffer> response = sendRequest("/query-stream", requestBody.toBuffer());
+    HttpResponse<Buffer> response = sendPostRequest("/query-stream", requestBody.toBuffer());
 
     // Then
     assertThat(response.statusCode(), is(200));
@@ -220,7 +251,7 @@ public class ApiTest extends BaseApiTest {
     JsonObject requestBody = new JsonObject().put("foo", "bar");
 
     // When
-    HttpResponse<Buffer> response = sendRequest("/query-stream", requestBody.toBuffer());
+    HttpResponse<Buffer> response = sendPostRequest("/query-stream", requestBody.toBuffer());
 
     // Then
     assertThat(response.statusCode(), is(400));
@@ -238,7 +269,7 @@ public class ApiTest extends BaseApiTest {
     testEndpoints.setRowsBeforePublisherError(DEFAULT_JSON_ROWS.size() - 1);
 
     // When
-    HttpResponse<Buffer> response = sendRequest("/query-stream",
+    HttpResponse<Buffer> response = sendPostRequest("/query-stream",
         DEFAULT_PUSH_QUERY_REQUEST_BODY.toBuffer());
 
     // Then
@@ -285,7 +316,7 @@ public class ApiTest extends BaseApiTest {
 
     VertxCompletableFuture<HttpResponse<Void>> responseFuture = new VertxCompletableFuture<>();
     // Make the request to stream a query
-    sendRequest("/query-stream", (request) ->
+    sendPostRequest("/query-stream", (request) ->
         request
             .as(BodyCodec.pipe(writeStream))
             .sendJsonObject(DEFAULT_PUSH_QUERY_REQUEST_BODY, responseFuture)
@@ -314,7 +345,7 @@ public class ApiTest extends BaseApiTest {
 
     // Now send another request to close the query
     JsonObject closeQueryRequestBody = new JsonObject().put("queryId", queryId);
-    HttpResponse<Buffer> closeQueryResponse = sendRequest("/close-query",
+    HttpResponse<Buffer> closeQueryResponse = sendPostRequest("/close-query",
         closeQueryRequestBody.toBuffer());
     assertThat(closeQueryResponse.statusCode(), is(200));
 
@@ -335,7 +366,7 @@ public class ApiTest extends BaseApiTest {
     JsonObject closeQueryRequestBody = new JsonObject().put("foo", "bar");
 
     // When
-    HttpResponse<Buffer> response = sendRequest("/close-query",
+    HttpResponse<Buffer> response = sendPostRequest("/close-query",
         closeQueryRequestBody.toBuffer());
 
     // Then
@@ -355,7 +386,7 @@ public class ApiTest extends BaseApiTest {
     JsonObject closeQueryRequestBody = new JsonObject().put("queryId", "xyzfasgf");
 
     // When
-    HttpResponse<Buffer> response = sendRequest("/close-query",
+    HttpResponse<Buffer> response = sendPostRequest("/close-query",
         closeQueryRequestBody.toBuffer());
 
     // Then
@@ -380,7 +411,7 @@ public class ApiTest extends BaseApiTest {
     }
 
     // When
-    HttpResponse<Buffer> response = sendRequest("/inserts-stream", requestBody);
+    HttpResponse<Buffer> response = sendPostRequest("/inserts-stream", requestBody);
 
     // Then
     assertThat(response.statusCode(), is(200));
@@ -411,7 +442,7 @@ public class ApiTest extends BaseApiTest {
     // When
 
     // Make an HTTP request but keep the request body and response streams open
-    sendRequest("/inserts-stream", (request) ->
+    sendPostRequest("/inserts-stream", (request) ->
         request
             .as(BodyCodec.pipe(writeStream))
             .sendStream(readStream, fut)
@@ -464,7 +495,7 @@ public class ApiTest extends BaseApiTest {
     JsonObject requestBody = new JsonObject();
 
     // When
-    HttpResponse<Buffer> response = sendRequest("/inserts-stream",
+    HttpResponse<Buffer> response = sendPostRequest("/inserts-stream",
         requestBody.toBuffer().appendString("\n"));
 
     // Then
@@ -494,7 +525,7 @@ public class ApiTest extends BaseApiTest {
 
     // When
 
-    HttpResponse<Buffer> response = sendRequest("/inserts-stream", requestBody);
+    HttpResponse<Buffer> response = sendPostRequest("/inserts-stream", requestBody);
 
     // Then
 
@@ -533,7 +564,7 @@ public class ApiTest extends BaseApiTest {
 
     // When
 
-    HttpResponse<Buffer> response = sendRequest("/inserts-stream", requestBody);
+    HttpResponse<Buffer> response = sendPostRequest("/inserts-stream", requestBody);
 
     // Then
 
@@ -758,7 +789,7 @@ public class ApiTest extends BaseApiTest {
     JsonObject requestBody = new JsonObject().put("sql", query);
 
     // When
-    HttpResponse<Buffer> response = sendRequest("/query-stream",
+    HttpResponse<Buffer> response = sendPostRequest("/query-stream",
         requestBody.toBuffer());
 
     // Then
@@ -778,7 +809,7 @@ public class ApiTest extends BaseApiTest {
     JsonObject requestBody = new JsonObject().put("sql", query);
 
     // When
-    HttpResponse<Buffer> response = sendRequest("/query-stream",
+    HttpResponse<Buffer> response = sendPostRequest("/query-stream",
         requestBody.toBuffer());
 
     // Then

@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Range;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.model.WindowType;
@@ -28,7 +29,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
 
 /**
  * {@link Materialization} implementation responsible for handling HAVING and SELECT clauses.
@@ -134,8 +134,8 @@ class KsqlMaterialization implements Materialization {
     }
 
     @Override
-    public Optional<Row> get(final Struct key) {
-      return table.get(key)
+    public Optional<Row> get(final GenericKey key, final int partition) {
+      return table.get(key, partition)
           .flatMap(row -> filterAndTransform(key, row.value(), row.rowTime())
               .map(v -> row.withValue(v, schema()))
           );
@@ -152,11 +152,12 @@ class KsqlMaterialization implements Materialization {
 
     @Override
     public List<WindowedRow> get(
-        final Struct key,
+        final GenericKey key,
+        final int partition,
         final Range<Instant> windowStart,
         final Range<Instant> windowEnd
     ) {
-      final List<WindowedRow> result = table.get(key, windowStart, windowEnd);
+      final List<WindowedRow> result = table.get(key, partition, windowStart, windowEnd);
 
       final Builder<WindowedRow> builder = ImmutableList.builder();
 

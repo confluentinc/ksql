@@ -18,28 +18,31 @@ package io.confluent.ksql.api.client.impl;
 import com.google.common.testing.EqualsTester;
 import org.junit.Test;
 
+@SuppressWarnings("UnstableApiUsage")
 public class TableInfoImplTest {
 
   @Test
   public void shouldImplementHashCodeAndEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new TableInfoImpl("name", "topic", "JSON", true),
-            new TableInfoImpl("name", "topic", "JSON", true)
+            new TableInfoImpl("name", "topic", "KAFKA", "JSON", true),
+            new TableInfoImpl("name", "topic", "KAFKA", "JSON", true)
         )
         .addEqualityGroup(
-            new TableInfoImpl("other_name", "topic", "JSON", true)
+            new TableInfoImpl("other_name", "topic", "KAFKA", "JSON", true)
         )
         .addEqualityGroup(
-            new TableInfoImpl("name", "other_topic", "JSON", true)
+            new TableInfoImpl("name", "other_topic", "KAFKA", "JSON", true)
         )
         .addEqualityGroup(
-            new TableInfoImpl("name", "topic", "AVRO", true)
+            new TableInfoImpl("name", "other_topic", "AVRO", "JSON", true)
         )
         .addEqualityGroup(
-            new TableInfoImpl("name", "topic", "JSON", false)
+            new TableInfoImpl("name", "topic", "KAFKA", "AVRO", true)
+        )
+        .addEqualityGroup(
+            new TableInfoImpl("name", "topic", "KAFKA", "JSON", false)
         )
         .testEquals();
   }
-
 }

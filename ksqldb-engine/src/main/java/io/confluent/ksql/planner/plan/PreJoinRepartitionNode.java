@@ -15,8 +15,22 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.util.Repartitioning;
+import java.util.Optional;
 
 /**
  * Node to handle an implicit repartition required to enable a join.
@@ -24,7 +38,15 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
  * <p>Any join that is not on the key of the stream requires ksql to perform an
  * implicit repartition step before joining.
  */
-public class PreJoinRepartitionNode extends RepartitionNode {
+public class PreJoinRepartitionNode extends SingleSourcePlanNode implements JoiningNode {
+
+  private final Expression partitionBy;
+  private final LogicalSchema schema;
+  private final Optional<JoinNode> joiningNode;
+  private final ValueFormat valueFormat;
+  private Optional<FormatInfo> forcedInternalKeyFormat = Optional.empty();
+  private boolean forceRepartition = false;
+  private boolean keyFormatSet = false;
 
   public PreJoinRepartitionNode(
       final PlanNodeId id,
@@ -32,6 +54,133 @@ public class PreJoinRepartitionNode extends RepartitionNode {
       final LogicalSchema schema,
       final Expression partitionBy
   ) {
-    super(id, source, schema, partitionBy);
+    super(id, source.getNodeOutputType(), source.getSourceName(), source);
+    this.schema = requireNonNull(schema, "schema");
+    this.partitionBy = requireNonNull(partitionBy, "partitionBy");
+
+    if (source instanceof JoiningNode) {
+      if (!(source instanceof JoinNode)) {
+        throw new IllegalStateException(
+            "PreJoinRepartitionNode preceded by non-JoinNode JoiningNode: " + source.getClass());
+      }
+      this.joiningNode = Optional.of((JoinNode) source);
+    } else {
+      this.joiningNode = Optional.empty();
+    }
+
+    this.valueFormat = JoiningNode.getValueFormatForSource(this);
+  }
+
+  @Override
+  public LogicalSchema getSchema() {
+    return schema;
+  }
+
+  @Override
+  public Optional<RequiredFormat> getRequiredKeyFormat() {
+    if (joiningNode.isPresent()) {
+      return joiningNode.get().getRequiredKeyFormat();
+    }
+
+    final DataSource dataSource = Iterators.getOnlyElement(getSourceNodes().iterator())
+        .getDataSource();
+
+    if (dataSource.getDataSourceType() != DataSourceType.KTABLE) {
+      return Optional.empty();
+    }
+
+    return Optional.of(RequiredFormat.of(getSourceKeyFormat(), dataSource.getName()));
+  }
+
+  @Override
+  public Optional<FormatInfo> getPreferredKeyFormat() {
+    if (requiresRepartition()) {
+      return Optional.empty();
+    }
+
+    if (joiningNode.isPresent()) {
+      return joiningNode.get().getPreferredKeyFormat();
+    }
+
+    return Optional.of(getSourceKeyFormat());
+  }
+
+  @Override
+  public void setKeyFormat(final FormatInfo format) {
+    final Optional<FormatInfo> requiredParentJoinFormat = maybeForceInternalKeyFormat(format);
+
+    if (joiningNode.isPresent()) {
+      if (requiredParentJoinFormat.isPresent()) {
+        joiningNode.get().setKeyFormat(requiredParentJoinFormat.get());
+      } else {
+        joiningNode.get().resolveKeyFormats();
+      }
+    }
+
+    keyFormatSet = true;
+  }
+
+  @Override
+  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
+    if (!keyFormatSet) {
+      throw new IllegalStateException("PreJoinRepartitionNode must set key format");
+    }
+
+    return getSource().buildStream(builder)
+        .selectKey(
+            valueFormat.getFormatInfo(),
+            partitionBy,
+            forcedInternalKeyFormat,
+            builder.buildNodeContext(getId().toString()),
+            forceRepartition
+        );
+  }
+
+  private boolean requiresRepartition() {
+    return Repartitioning.repartitionNeeded(getSource().getSchema(), ImmutableList.of(partitionBy));
+  }
+
+  // Only safe to call this if joiningNode is empty.
+  private FormatInfo getSourceKeyFormat() {
+    return Iterators.getOnlyElement(getSourceNodes().iterator())
+        .getDataSource().getKsqlTopic().getKeyFormat().getFormatInfo();
+  }
+
+  /**
+   * Evaluates whether this node should repartition, based on the desired key format
+   *
+   * @param format key format being set on this node
+   * @return if applicable, the format that must be set on this node's parent JoinNode
+   */
+  private Optional<FormatInfo> maybeForceInternalKeyFormat(final FormatInfo format) {
+    // Force repartition in case of schema inference, to avoid misses due to key schema ID mismatch
+    // See https://github.com/confluentinc/ksql/issues/6332 for context, and
+    // https://github.com/confluentinc/ksql/issues/6648 for a potential optimization
+    if (FormatFactory.of(format).supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
+      forceRepartition = true;
+    }
+
+    if (requiresRepartition() || forceRepartition) {
+      // Node is repartitioning already:
+      forcedInternalKeyFormat = Optional.of(format);
+      return Optional.empty();
+    }
+
+    if (joiningNode.isPresent()) {
+      final Optional<FormatInfo> preferred = joiningNode.get().getPreferredKeyFormat();
+      if (!preferred.isPresent() || preferred.get().equals(format)) {
+        // Parent node can handle any key format change
+        return Optional.of(format);
+      } else {
+        forcedInternalKeyFormat = Optional.of(format);
+        return Optional.empty();
+      }
+    }
+
+    if (!format.equals(getSourceKeyFormat())) {
+      forcedInternalKeyFormat = Optional.of(format);
+    }
+
+    return Optional.empty();
   }
 }

@@ -23,8 +23,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import org.apache.kafka.connect.data.Struct;
 
 /**
  * Factory class for {@link TableRows}
@@ -60,9 +58,7 @@ public final class TableRowsFactory {
   }
 
   private static List<?> createRow(final TableRow row) {
-    final List<Object> rowList = new ArrayList<>();
-
-    keyFields(row.key()).forEach(rowList::add);
+    final List<Object> rowList = new ArrayList<>(row.key().values());
 
     row.window().ifPresent(window -> {
       rowList.add(window.start().toEpochMilli());
@@ -72,9 +68,5 @@ public final class TableRowsFactory {
     rowList.addAll(row.value().values());
 
     return rowList;
-  }
-
-  private static Stream<?> keyFields(final Struct key) {
-    return key.schema().fields().stream().map(key::get);
   }
 }

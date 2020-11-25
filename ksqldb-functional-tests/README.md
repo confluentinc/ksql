@@ -41,12 +41,12 @@ The expected topologies are stored alongside the query plans described above.
 `QueryTranslationTest` supports running a subset of test files, for example following example:
 
 ```
-mvn test -pl ksql-functional-tests -Dtest=QueryTranslationTest -Dksql.test.files=sum.json
+mvn test -pl ksqldb-functional-tests -Dtest=QueryTranslationTest -Dksql.test.files=sum.json
 ```
 
 or
 ```
-mvn test -pl ksql-functional-tests -Dtest=QueryTranslationTest -Dksql.test.files=sum.json,substring.json
+mvn test -pl ksqldb-functional-tests -Dtest=QueryTranslationTest -Dksql.test.files=sum.json,substring.json
 ```
 
 The above commands can execute only a single test (sum.json) or multiple tests (sum.json and substring.json).
@@ -282,7 +282,7 @@ A test can define a set of post conditions that must be met for the test to pass
       "topics": [
         {
           "name" : "OUTPUT",
-          "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
+          "keyFormat" : {"format" : "KAFKA"},
           "valueFormat" : {"format" : "DELIMITED"},
           "partitions" : 4
         }
@@ -306,9 +306,11 @@ A post condition can define the list of sources that must exist in the metastore
 {
   "name": "S1",
   "type": "table",
-  "schema": "ID BIGINT KEY, FOO STRING, KSQL_COL_1 BIGINT",
+  "schema": "ID BIGINT KEY, FOO STRING",
   "keyFormat": {"format": "KAFKA"},
-  "serdeOptions": ["UNWRAP_SINGLE_VALUES"]
+  "valueFormat": "JSON",
+  "keyFeatures": ["UNWRAP_SINGLES"],
+  "valueFeatures": ["WRAP_SINGLES"]
 }
 ```
 
@@ -320,7 +322,9 @@ Each source can define the following attributes:
 | type         | (Required) Specifies if the source is a STREAM or TABLE. |
 | schema       | (Optional) Specifies the SQL schema for the source. |
 | keyFormat    | (Optional) Key serialization format for the source. |
-| serdeOptions | (Optional) List of expected serde options for the source. |
+| valueFormat  | (Optional) Value serialization format for the source. |
+| keyFeatures  | (Optional) List of expected key serde features for the source. |
+| valueFeatures| (Optional) List of expected value serde features for the source. |
 
 #### Topics
 
@@ -332,8 +336,8 @@ A post condition can define a check against the set of topics the case creates
   "topics": [
     {
       "name" : "OUTPUT",
-      "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
-      "valueFormat" : {"format" : "DELIMITED"},
+      "keyFormat" : {"format" : "KAFKA", "features": ["UNWRAP_SINGLES"]},
+      "valueFormat" : {"format" : "DELIMITED", "features": ["WRAP_SINGLES"]},
       "partitions" : 4
     }
   ]
@@ -352,8 +356,8 @@ The topics object can define the following attributes:
 ```json
 {
   "name" : "OUTPUT",
-  "keyFormat" : {"formatInfo" : {"format" : "KAFKA"}},
-  "valueFormat" : {"format" : "DELIMITED"},
+  "keyFormat" : {"format" : "KAFKA", "features": ["UNWRAP_SINGLES"]},
+  "valueFormat" : {"format" : "DELIMITED", "features": ["WRAP_SINGLES"]},
   "partitions" : 4
 }
 ```

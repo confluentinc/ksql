@@ -30,13 +30,13 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.schema.ksql.SqlTypeWalker.Visitor;
-import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.stream.Stream;
@@ -155,17 +155,18 @@ public class SqlTypeWalkerTest {
   @Test
   public void shouldVisitMap() {
     // Given:
-    final SqlMap type = SqlTypes.map(SqlTypes.INTEGER);
+    final SqlMap type = SqlTypes.map(SqlTypes.BIGINT, SqlTypes.INTEGER);
 
+    when(visitor.visitBigInt(any())).thenReturn("Expected-key");
     when(visitor.visitInt(any())).thenReturn("Expected-value");
-    when(visitor.visitMap(any(), any())).thenReturn("Expected");
+    when(visitor.visitMap(any(), any(), any())).thenReturn("Expected");
 
     // When:
     final String result = SqlTypeWalker.visit(type, visitor);
 
     // Then:
     verify(visitor).visitInt(same(SqlTypes.INTEGER));
-    verify(visitor).visitMap(same(type), eq("Expected-value"));
+    verify(visitor).visitMap(same(type), eq("Expected-key"), eq("Expected-value"));
     assertThat(result, is("Expected"));
   }
 
@@ -307,7 +308,8 @@ public class SqlTypeWalkerTest {
   public void shouldStartWalkingFromField() {
     // Given:
     final SqlPrimitiveType type = SqlTypes.BOOLEAN;
-    final Field field = Field.of("name", type);
+    final Field field = mock(Field.class);
+    when(field.type()).thenReturn(type);
     when(visitor.visitBoolean(any())).thenReturn("Expected");
     when(visitor.visitField(any(), any())).thenReturn(22);
 
@@ -341,7 +343,7 @@ public class SqlTypeWalkerTest {
   private static Stream<SqlType> structuredTypes() {
     return Stream.of(
         SqlTypes.array(SqlTypes.BIGINT),
-        SqlTypes.map(SqlTypes.STRING),
+        SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING),
         SqlTypes
             .struct()
             .field("f0", SqlTypes.BIGINT)

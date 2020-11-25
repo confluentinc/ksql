@@ -26,9 +26,13 @@ import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
+import io.confluent.ksql.execution.util.ColumnExtractor;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -37,6 +41,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
+import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AstNode;
@@ -58,10 +63,9 @@ import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.serde.kafka.KafkaFormat;
+import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.UnknownSourceException;
 import java.util.HashMap;
@@ -93,22 +97,17 @@ class Analyzer {
 
   private final MetaStore metaStore;
   private final String topicPrefix;
-  private final Set<SerdeOption> defaultSerdeOptions;
 
   /**
    * @param metaStore the metastore to use.
    * @param topicPrefix the prefix to use for topic names where an explicit name is not specified.
-   * @param defaultSerdeOptions the default serde options.
    */
   Analyzer(
       final MetaStore metaStore,
-      final String topicPrefix,
-      final Set<SerdeOption> defaultSerdeOptions
+      final String topicPrefix
   ) {
     this.metaStore = requireNonNull(metaStore, "metaStore");
     this.topicPrefix = requireNonNull(topicPrefix, "topicPrefix");
-    this.defaultSerdeOptions = ImmutableSet
-        .copyOf(requireNonNull(defaultSerdeOptions, "defaultSerdeOptions"));
   }
 
   /**
@@ -148,7 +147,9 @@ class Analyzer {
     }
 
     private void analyzeNonStdOutSink(final Sink sink) {
-      analysis.setProperties(sink.getProperties());
+      final CreateSourceAsProperties props = sink.getProperties();
+
+      analysis.setProperties(props);
 
       if (!sink.shouldCreateSink()) {
         final DataSource existing = metaStore.getSource(sink.getName());
@@ -157,81 +158,91 @@ class Analyzer {
               + sink.getName().toString(FormatOptions.noEscape()));
         }
 
-        analysis.setInto(Into.of(
-            sink.getName(),
-            false,
-            existing.getKsqlTopic(),
-            defaultSerdeOptions
-        ));
+        analysis.setInto(Into.existingSink(sink.getName(), existing.getKsqlTopic()));
         return;
       }
 
-      final String topicName = sink.getProperties().getKafkaTopic()
+      final String topicName = props.getKafkaTopic()
           .orElseGet(() -> topicPrefix + sink.getName().text());
 
-      final KeyFormat keyFormat = buildKeyFormat();
-      final Format format = getValueFormat(sink);
+      final KsqlTopic srcTopic = analysis
+          .getFrom()
+          .getDataSource()
+          .getKsqlTopic();
 
-      final Map<String, String> sourceProperties = new HashMap<>();
-      if (format.name().equals(getSourceInfo().getFormat())) {
-        getSourceInfo().getProperties().forEach((k, v) -> {
+      final FormatInfo keyFmtInfo = buildKeyFormatInfo(
+          props.getKeyFormat(),
+          props.getKeyFormatProperties(),
+          srcTopic.getKeyFormat().getFormatInfo()
+      );
+
+      final FormatInfo valueFmtInfo = buildFormatInfo(
+          props.getValueFormat(),
+          props.getValueFormatProperties(),
+          srcTopic.getValueFormat().getFormatInfo()
+      );
+
+      final Optional<WindowInfo> explicitWindowInfo = analysis.getWindowExpression()
+          .map(WindowExpression::getKsqlWindowExpression)
+          .map(KsqlWindowExpression::getWindowInfo);
+
+      final Optional<WindowInfo> windowInfo = explicitWindowInfo.isPresent()
+          ? explicitWindowInfo
+          : srcTopic.getKeyFormat().getWindowInfo();
+
+      analysis
+          .setInto(Into.newSink(sink.getName(), topicName, windowInfo, keyFmtInfo, valueFmtInfo));
+
+      analysis.setOrReplace(sink.shouldReplace());
+    }
+
+    private FormatInfo buildKeyFormatInfo(
+        final Optional<String> explicitFormat,
+        final Map<String, String> formatProperties,
+        final FormatInfo sourceFormat
+    ) {
+      final boolean partitioningByNull = analysis.getPartitionBy()
+          .map(pb -> pb.getExpression() instanceof NullLiteral)
+          .orElse(false);
+
+      if (partitioningByNull) {
+        final boolean nonNoneExplicitFormat = explicitFormat
+            .map(fmt -> !fmt.equalsIgnoreCase(NoneFormat.NAME))
+            .orElse(false);
+
+        if (nonNoneExplicitFormat) {
+          throw new KsqlException("Key format specified for stream without key columns.");
+        }
+
+        return FormatInfo.of(NoneFormat.NAME);
+      }
+
+      return buildFormatInfo(explicitFormat, formatProperties, sourceFormat);
+    }
+
+    private FormatInfo buildFormatInfo(
+        final Optional<String> explicitFormat,
+        final Map<String, String> formatProperties,
+        final FormatInfo sourceFormat
+    ) {
+      final String formatName = explicitFormat.orElse(sourceFormat.getFormat());
+      final Format format = FormatFactory.fromName(formatName);
+
+      final Map<String, String> props = new HashMap<>();
+      if (formatName.equals(sourceFormat.getFormat())) {
+        sourceFormat.getProperties().forEach((k, v) -> {
           if (format.getInheritableProperties().contains(k)) {
-            sourceProperties.put(k, v);
+            props.put(k, v);
           }
         });
       }
 
       // overwrite any inheritable properties if they were explicitly
       // specified in the statement
-      sourceProperties.putAll(sink.getProperties().getFormatProperties());
+      props.putAll(formatProperties);
 
-      final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(
-          format.name(),
-          sourceProperties
-      ));
-
-      final KsqlTopic intoKsqlTopic = new KsqlTopic(
-          topicName,
-          keyFormat,
-          valueFormat
-      );
-
-      analysis.setInto(Into.of(
-          sink.getName(),
-          true,
-          intoKsqlTopic,
-          defaultSerdeOptions
-      ));
+      return FormatInfo.of(formatName, props);
     }
-
-    private KeyFormat buildKeyFormat() {
-      final Optional<KsqlWindowExpression> ksqlWindow = analysis.getWindowExpression()
-          .map(WindowExpression::getKsqlWindowExpression);
-
-      return ksqlWindow
-          .map(w -> KeyFormat.windowed(
-              FormatInfo.of(FormatFactory.KAFKA.name()), w.getWindowInfo()))
-          .orElseGet(() -> analysis
-              .getFrom()
-              .getDataSource()
-              .getKsqlTopic()
-              .getKeyFormat());
-    }
-
-    private Format getValueFormat(final Sink sink) {
-      return sink.getProperties().getValueFormat()
-          .orElseGet(() -> FormatFactory.of(getSourceInfo()));
-    }
-
-    private FormatInfo getSourceInfo() {
-      return analysis
-          .getFrom()
-          .getDataSource()
-          .getKsqlTopic()
-          .getValueFormat()
-          .getFormatInfo();
-    }
-
 
     @Override
     protected AstNode visitQuery(
@@ -306,10 +317,21 @@ class Analyzer {
       final JoinNode.JoinType joinType = getJoinType(node);
 
       final JoinOn joinOn = (JoinOn) node.getCriteria();
-      final ComparisonExpression comparisonExpression = (ComparisonExpression) joinOn
-          .getExpression();
+      final Expression joinExp = joinOn.getExpression();
+      if (!(joinExp instanceof ComparisonExpression)) {
+        // add in a special check for multi-column joins so that we can throw
+        // an even more useful error message
+        if (joinExp instanceof LogicalBinaryExpression
+            && isEqualityJoin(((LogicalBinaryExpression) joinExp).getLeft())
+            && isEqualityJoin(((LogicalBinaryExpression) joinExp).getRight())) {
+          throw new KsqlException("JOINs on multiple conditions are not yet supported: " + joinExp);
+        }
 
-      if (comparisonExpression.getType() != ComparisonExpression.Type.EQUAL) {
+        throw new KsqlException("Unsupported join expression: " + joinExp);
+      }
+      final ComparisonExpression comparisonExpression = (ComparisonExpression) joinExp;
+
+      if (!(isEqualityJoin(joinExp))) {
         throw new KsqlException("Only equality join criteria is supported.");
       }
 
@@ -353,6 +375,11 @@ class Analyzer {
       analysis.addJoin(flipped ? joinInfo.flip() : joinInfo);
 
       return null;
+    }
+
+    private boolean isEqualityJoin(final Expression exp) {
+      return exp instanceof ComparisonExpression
+          && ((ComparisonExpression) exp).getType() == Type.EQUAL;
     }
 
     private void throwOnJoinWithoutSource(
@@ -495,13 +522,15 @@ class Analyzer {
 
       final Optional<AliasedDataSource> existing = analysis.getSourceByName(source.getName());
       if (existing.isPresent()) {
-        throw new KsqlException(
-            "Can not join '"
+        final String errorMsg = analysis.getAllDataSources().size() > 1
+            ? "N-way joins do not support multiple occurrences of the same source. "
+                + "Source: '" + sourceName.toString(FormatOptions.noEscape()) + "'."
+            : "Can not join '"
                 + sourceName.toString(FormatOptions.noEscape())
                 + "' to '"
                 + existing.get().getDataSource().getName().toString(FormatOptions.noEscape())
-                + "': self joins are not yet supported."
-        );
+                + "': self joins are not yet supported.";
+        throw new KsqlException(errorMsg);
       }
       analysis.addDataSource(node.getAlias(), source);
       return node;
@@ -581,7 +610,7 @@ class Analyzer {
     public void validate() {
       final String kafkaSources = analysis.getAllDataSources().stream()
           .filter(s -> s.getDataSource().getKsqlTopic().getValueFormat().getFormat()
-              == FormatFactory.KAFKA)
+                  .equals(KafkaFormat.NAME))
           .map(AliasedDataSource::getAlias)
           .map(SourceName::text)
           .collect(Collectors.joining(", "));

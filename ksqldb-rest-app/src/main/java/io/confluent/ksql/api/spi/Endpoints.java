@@ -21,6 +21,7 @@ import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.vertx.core.Context;
@@ -78,9 +79,11 @@ public interface Endpoints {
   CompletableFuture<EndpointResponse> executeTerminate(ClusterTerminateRequest request,
       WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext);
 
-  CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
-      WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
-      ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest);
+  CompletableFuture<EndpointResponse> executeQueryRequest(
+      KsqlRequest request, WorkerExecutor workerExecutor,
+      CompletableFuture<Void> connectionClosedFuture, ApiSecurityContext apiSecurityContext,
+      Optional<Boolean> isInternalRequest,
+      KsqlMediaType mediaType);
 
   CompletableFuture<EndpointResponse> executeInfo(ApiSecurityContext apiSecurityContext);
 

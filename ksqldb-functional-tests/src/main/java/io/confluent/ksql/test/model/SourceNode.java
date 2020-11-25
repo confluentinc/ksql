@@ -18,6 +18,7 @@ package io.confluent.ksql.test.model;
 import static org.hamcrest.Matchers.allOf;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -30,7 +31,7 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.SchemaParser;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.test.model.matchers.MetaStoreMatchers;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.utils.JsonParsingUtil;
@@ -50,20 +51,26 @@ public final class SourceNode {
   private final String type;
   private final Optional<String> schema;
   private final Optional<KeyFormatNode> keyFormat;
-  private final Optional<Set<SerdeOption>> serdeOptions;
+  private final Optional<String> valueFormat;
+  private final Optional<Set<SerdeFeature>> keyFeatures;
+  private final Optional<Set<SerdeFeature>> valueFeatures;
 
   public SourceNode(
       final String name,
       final String type,
       final Optional<String> schema,
       final Optional<KeyFormatNode> keyFormat,
-      final Optional<Set<SerdeOption>> serdeOptions
+      final Optional<String> valueFormat,
+      final Optional<Set<SerdeFeature>> keyFeatures,
+      final Optional<Set<SerdeFeature>> valueFeatures
   ) {
     this.name = Objects.requireNonNull(name, "name");
     this.type = Objects.requireNonNull(type, "type");
     this.schema = Objects.requireNonNull(schema, "schema");
     this.keyFormat = Objects.requireNonNull(keyFormat, "keyFormat");
-    this.serdeOptions = Objects.requireNonNull(serdeOptions, "serdeOptions");
+    this.valueFormat = Objects.requireNonNull(valueFormat, "valueFormat");
+    this.keyFeatures = Objects.requireNonNull(keyFeatures, "keyFeatures");
+    this.valueFeatures = Objects.requireNonNull(valueFeatures, "valueFeatures");
 
     if (this.name.isEmpty()) {
       throw new InvalidFieldException("name", "missing or empty");
@@ -85,13 +92,22 @@ public final class SourceNode {
     return keyFormat;
   }
 
+  public Optional<String> getValueFormat() {
+    return valueFormat;
+  }
+
   public Optional<String> getSchema() {
     return schema;
   }
 
-  @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  public Optional<Set<SerdeOption>> getSerdeOptions() {
-    return serdeOptions;
+  @JsonInclude(Include.NON_EMPTY)
+  public Optional<Set<SerdeFeature>> getKeyFeatures() {
+    return keyFeatures;
+  }
+
+  @JsonInclude(Include.NON_EMPTY)
+  public Optional<Set<SerdeFeature>> getValueFeatures() {
+    return valueFeatures;
   }
 
   @SuppressWarnings("unchecked")
@@ -112,20 +128,35 @@ public final class SourceNode {
         .map(MetaStoreMatchers::hasSchema)
         .orElse(null);
 
-    final Matcher<DataSource> keyFormatMatcher = keyFormat
+    final Matcher<DataSource> keyFmtMatcher = keyFormat
         .map(KeyFormatNode::build)
         .map(MetaStoreMatchers::hasKeyFormat)
         .orElse(null);
 
-    final Matcher<DataSource> serdeOptionsMatcher = serdeOptions
-        .map(options -> Matchers.containsInAnyOrder(options.toArray()))
-        .map(MetaStoreMatchers::hasSerdeOptions)
+    final Matcher<DataSource> valueFmtMatcher = valueFormat
+        .map(Matchers::is)
+        .map(MetaStoreMatchers::hasValueFormat)
         .orElse(null);
 
-    final Matcher<DataSource>[] matchers = Stream
-        .of(nameMatcher, typeMatcher, schemaMatcher, keyFormatMatcher, serdeOptionsMatcher)
-        .filter(Objects::nonNull)
-        .toArray(Matcher[]::new);
+    final Matcher<DataSource> keyFeatsMatcher = keyFeatures
+        .map(features -> Matchers.containsInAnyOrder(features.toArray()))
+        .map(MetaStoreMatchers::hasKeySerdeFeatures)
+        .orElse(null);
+
+    final Matcher<DataSource> valFeatsMatcher = valueFeatures
+        .map(features -> Matchers.containsInAnyOrder(features.toArray()))
+        .map(MetaStoreMatchers::hasValueSerdeFeatures)
+        .orElse(null);
+
+    final Matcher<DataSource>[] matchers = Stream.of(
+        nameMatcher,
+        typeMatcher,
+        schemaMatcher,
+        keyFmtMatcher,
+        valueFmtMatcher,
+        keyFeatsMatcher,
+        valFeatsMatcher
+    ).filter(Objects::nonNull).toArray(Matcher[]::new);
 
     return allOf(matchers);
   }
@@ -143,12 +174,14 @@ public final class SourceNode {
         && type.equals(that.type)
         && schema.equals(that.schema)
         && keyFormat.equals(that.keyFormat)
-        && serdeOptions.equals(that.serdeOptions);
+        && keyFeatures.equals(that.keyFeatures)
+        && valueFormat.equals(that.valueFormat)
+        && valueFeatures.equals(that.valueFeatures);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, type, schema, keyFormat, serdeOptions);
+    return Objects.hash(name, type, schema, keyFormat, valueFormat, keyFeatures, valueFeatures);
   }
 
   private static Class<? extends DataSource> toType(final String type) {
@@ -187,10 +220,26 @@ public final class SourceNode {
       final Optional<KeyFormatNode> keyFormat = JsonParsingUtil
           .getOptional("keyFormat", node, jp, KeyFormatNode.class);
 
-      final Optional<Set<SerdeOption>> serdeOptions = JsonParsingUtil
-          .getOptional("serdeOptions", node, jp, new TypeReference<Set<SerdeOption>>() { });
+      final Optional<String> valueFormat = JsonParsingUtil
+          .getOptional("valueFormat", node, jp, String.class);
 
-      return new SourceNode(name, type, rawSchema, keyFormat, serdeOptions);
+      final Optional<Set<SerdeFeature>> keyFeatures = JsonParsingUtil
+          .getOptional("keyFeatures", node, jp, new TypeReference<Set<SerdeFeature>>() {
+          });
+
+      final Optional<Set<SerdeFeature>> valueFeatures = JsonParsingUtil
+          .getOptional("valueFeatures", node, jp, new TypeReference<Set<SerdeFeature>>() {
+          });
+
+      return new SourceNode(
+          name,
+          type,
+          rawSchema,
+          keyFormat,
+          valueFormat,
+          keyFeatures,
+          valueFeatures
+      );
     }
   }
 
@@ -200,7 +249,9 @@ public final class SourceNode {
         dataSource.getDataSourceType().getKsqlType(),
         Optional.of(dataSource.getSchema().toString()),
         Optional.of(KeyFormatNode.fromKeyFormat(dataSource.getKsqlTopic().getKeyFormat())),
-        Optional.of(dataSource.getSerdeOptions())
+        Optional.of(dataSource.getKsqlTopic().getValueFormat().getFormatInfo().getFormat()),
+        Optional.of(dataSource.getKsqlTopic().getKeyFormat().getFeatures().all()),
+        Optional.of(dataSource.getKsqlTopic().getValueFormat().getFeatures().all())
     );
   }
 }

@@ -33,7 +33,7 @@ public final class TableSinkBuilder {
         tableSink.getTimestampColumn(),
         tableSink.getTopicName(),
         table.getTable().toStream(),
-        table.getKeySerdeFactory(),
+        table.getExecutionKeyFactory(),
         tableSink.getProperties().getQueryContext(),
         queryBuilder
     );

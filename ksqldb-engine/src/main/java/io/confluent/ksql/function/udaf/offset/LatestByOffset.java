@@ -15,20 +15,24 @@
 
 package io.confluent.ksql.function.udaf.offset;
 
-import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.SEQ_FIELD;
-import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_BOOLEAN;
-import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_DOUBLE;
-import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_INTEGER;
-import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_LONG;
-import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.STRUCT_STRING;
-import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.VAL_FIELD;
-import static io.confluent.ksql.function.udaf.KudafByOffsetUtils.compareStructs;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.INTERMEDIATE_STRUCT_COMPARATOR;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_BOOLEAN;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_DOUBLE;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_INTEGER;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_LONG;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_STRING;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.VAL_FIELD;
 
+import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
 import io.confluent.ksql.util.KsqlConstants;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
@@ -40,7 +44,7 @@ import org.apache.kafka.connect.data.Struct;
 public final class LatestByOffset {
 
   static final String DESCRIPTION =
-      "This function returns the most recent value for the column, computed by offset.";
+      "This function returns the most recent N values for the column, computed by offset.";
 
   private LatestByOffset() {
   }
@@ -50,46 +54,152 @@ public final class LatestByOffset {
   @UdafFactory(description = "return the latest value of an integer column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL INT>")
   public static Udaf<Integer, Struct, Integer> latestInteger() {
-    return latest(STRUCT_INTEGER);
+    return latestInteger(true);
+  }
+
+  @UdafFactory(description = "return the latest value of an integer column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL INT>")
+  public static Udaf<Integer, Struct, Integer> latestInteger(final boolean ignoreNulls) {
+    return latest(STRUCT_INTEGER, ignoreNulls);
+  }
+
+  @UdafFactory(description = "return the latest N value of an integer column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL INT>>")
+  public static Udaf<Integer, List<Struct>, List<Integer>> latestIntegers(final int latestN) {
+    return latestIntegers(latestN, true);
+  }
+
+  @UdafFactory(description = "return the latest N value of an integer column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL INT>>")
+  public static Udaf<Integer, List<Struct>, List<Integer>> latestIntegers(
+      final int latestN,
+      final boolean ignoreNulls
+  ) {
+    return latestN(STRUCT_INTEGER, latestN, ignoreNulls);
   }
 
   @UdafFactory(description = "return the latest value of an big integer column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL BIGINT>")
   public static Udaf<Long, Struct, Long> latestLong() {
-    return latest(STRUCT_LONG);
+    return latestLong(true);
+  }
+
+  @UdafFactory(description = "return the latest value of an big integer column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL BIGINT>")
+  public static Udaf<Long, Struct, Long> latestLong(final boolean ignoreNulls) {
+    return latest(STRUCT_LONG, ignoreNulls);
+  }
+
+  @UdafFactory(description = "return the latest N value of an big integer column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BIGINT>>")
+  public static Udaf<Long, List<Struct>, List<Long>> latestLongs(final int latestN) {
+    return latestLongs(latestN, true);
+  }
+
+  @UdafFactory(description = "return the latest N value of an big integer column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BIGINT>>")
+  public static Udaf<Long, List<Struct>, List<Long>> latestLongs(
+      final int latestN,
+      final boolean ignoreNulls
+  ) {
+    return latestN(STRUCT_LONG, latestN, ignoreNulls);
   }
 
   @UdafFactory(description = "return the latest value of a double column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL DOUBLE>")
   public static Udaf<Double, Struct, Double> latestDouble() {
-    return latest(STRUCT_DOUBLE);
+    return latestDouble(true);
+  }
+
+  @UdafFactory(description = "return the latest value of a double column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL DOUBLE>")
+  public static Udaf<Double, Struct, Double> latestDouble(final boolean ignoreNulls) {
+    return latest(STRUCT_DOUBLE, ignoreNulls);
+  }
+
+  @UdafFactory(description = "return the latest N values of a double column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL DOUBLE>>")
+  public static Udaf<Double, List<Struct>, List<Double>> latestDoubles(final int latestN) {
+    return latestDoubles(latestN, true);
+  }
+
+  @UdafFactory(description = "return the latest N values of a double column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL DOUBLE>>")
+  public static Udaf<Double, List<Struct>, List<Double>> latestDoubles(
+      final int latestN,
+      final boolean ignoreNulls
+  ) {
+    return latestN(STRUCT_DOUBLE, latestN, ignoreNulls);
   }
 
   @UdafFactory(description = "return the latest value of a boolean column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL BOOLEAN>")
   public static Udaf<Boolean, Struct, Boolean> latestBoolean() {
-    return latest(STRUCT_BOOLEAN);
+    return latestBoolean(true);
+  }
+
+  @UdafFactory(description = "return the latest value of a boolean column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL BOOLEAN>")
+  public static Udaf<Boolean, Struct, Boolean> latestBoolean(final boolean ignoreNulls) {
+    return latest(STRUCT_BOOLEAN, ignoreNulls);
+  }
+
+  @UdafFactory(description = "return the latest N value of a boolean column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BOOLEAN>>")
+  public static Udaf<Boolean, List<Struct>, List<Boolean>> latestBooleans(final int latestN) {
+    return latestBooleans(latestN, true);
+  }
+
+  @UdafFactory(description = "return the latest N value of a boolean column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL BOOLEAN>>")
+  public static Udaf<Boolean, List<Struct>, List<Boolean>> latestBooleans(
+      final int latestN,
+      final boolean ignoreNulls
+  ) {
+    return latestN(STRUCT_BOOLEAN, latestN, ignoreNulls);
   }
 
   @UdafFactory(description = "return the latest value of a string column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL STRING>")
   public static Udaf<String, Struct, String> latestString() {
-    return latest(STRUCT_STRING);
+    return latestString(true);
   }
 
+  @UdafFactory(description = "return the latest value of a string column",
+      aggregateSchema = "STRUCT<SEQ BIGINT, VAL STRING>")
+  public static Udaf<String, Struct, String> latestString(final boolean ignoreNulls) {
+    return latest(STRUCT_STRING, ignoreNulls);
+  }
+
+  @UdafFactory(description = "return the latest N value of a string column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL STRING>>")
+  public static Udaf<String, List<Struct>, List<String>> latestStrings(final int latestN) {
+    return latestStrings(latestN, true);
+  }
+
+  @UdafFactory(description = "return the latest N value of a string column",
+      aggregateSchema = "ARRAY<STRUCT<SEQ BIGINT, VAL STRING>>")
+  public static Udaf<String, List<Struct>, List<String>> latestStrings(
+      final int latestN,
+      final boolean ignoreNulls
+  ) {
+    return latestN(STRUCT_STRING, latestN, ignoreNulls);
+  }
+
+  @VisibleForTesting
   static <T> Struct createStruct(final Schema schema, final T val) {
-    final Struct struct = new Struct(schema);
-    struct.put(SEQ_FIELD, generateSequence());
-    struct.put(VAL_FIELD, val);
-    return struct;
+    return KudafByOffsetUtils.createStruct(schema, generateSequence(), val);
   }
 
   private static long generateSequence() {
     return sequence.getAndIncrement();
   }
 
-  @UdafFactory(description = "Latest by offset")
-  static <T> Udaf<T, Struct, T> latest(final Schema structSchema) {
+  @VisibleForTesting
+  static <T> Udaf<T, Struct, T> latest(
+      final Schema structSchema,
+      final boolean ignoreNulls
+  ) {
     return new Udaf<T, Struct, T>() {
 
       @Override
@@ -99,18 +209,18 @@ public final class LatestByOffset {
 
       @Override
       public Struct aggregate(final T current, final Struct aggregate) {
-        if (current == null) {
+        if (current == null && ignoreNulls) {
           return aggregate;
-        } else {
-          return createStruct(structSchema, current);
         }
+
+        return createStruct(structSchema, current);
       }
 
       @Override
       public Struct merge(final Struct aggOne, final Struct aggTwo) {
         // When merging we need some way of evaluating the "latest' one.
         // We do this by keeping track of the sequence of when it was originally processed
-        if (compareStructs(aggOne, aggTwo) >= 0) {
+        if (INTERMEDIATE_STRUCT_COMPARATOR.compare(aggOne, aggTwo) >= 0) {
           return aggOne;
         } else {
           return aggTwo;
@@ -125,4 +235,52 @@ public final class LatestByOffset {
     };
   }
 
+  @VisibleForTesting
+  static <T> Udaf<T, List<Struct>, List<T>> latestN(
+      final Schema structSchema,
+      final int latestN,
+      final boolean ignoreNulls
+  ) {
+
+    if (latestN <= 0) {
+      throw new KsqlFunctionException("earliestN must be 1 or greater");
+    }
+
+    return new Udaf<T, List<Struct>, List<T>>() {
+      @Override
+      public List<Struct> initialize() {
+        return new ArrayList<>(latestN);
+      }
+
+      @Override
+      public List<Struct> aggregate(final T current, final List<Struct> aggregate) {
+        if (current == null && ignoreNulls) {
+          return aggregate;
+        }
+
+        aggregate.add(createStruct(structSchema, current));
+        final int currentSize = aggregate.size();
+        if (currentSize > latestN) {
+          return aggregate.subList(currentSize - latestN, currentSize);
+        }
+        return aggregate;
+      }
+
+      @Override
+      public List<Struct> merge(final List<Struct> aggOne, final List<Struct> aggTwo) {
+        final List<Struct> merged = new ArrayList<>(aggOne.size() + aggTwo.size());
+        merged.addAll(aggOne);
+        merged.addAll(aggTwo);
+        merged.sort(INTERMEDIATE_STRUCT_COMPARATOR);
+        final int start = merged.size() > latestN ? (merged.size() - latestN) : 0;
+        return merged.subList(start, merged.size());
+      }
+
+      @Override
+      @SuppressWarnings("unchecked")
+      public List<T> map(final List<Struct> agg) {
+        return (List<T>) agg.stream().map(s -> s.get(VAL_FIELD)).collect(Collectors.toList());
+      }
+    };
+  }
 }

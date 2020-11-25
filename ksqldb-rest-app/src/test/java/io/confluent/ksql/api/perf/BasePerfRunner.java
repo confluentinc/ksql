@@ -171,7 +171,7 @@ public abstract class BasePerfRunner {
     final ServerState serverState = new ServerState();
     serverState.setReady();
     server = new Server(vertx, serverConfig, endpoints, new KsqlDefaultSecurityExtension(),
-        Optional.empty(), serverState);
+        Optional.empty(), serverState, Optional.empty());
     server.start();
     client = createClient();
   }

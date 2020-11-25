@@ -19,16 +19,18 @@ import static java.util.Objects.requireNonNull;
 import static org.easymock.EasyMock.niceMock;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.RunningQuery;
+import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
@@ -52,10 +54,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Stack;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
@@ -92,7 +98,9 @@ public class TestKsqlRestApp extends ExternalResource {
   protected final Optional<BasicCredentials> credentials;
   protected Optional<URL> internalListener;
   protected KsqlExecutionContext ksqlEngine;
+  protected KsqlRestConfig ksqlRestConfig;
   protected KsqlRestApplication ksqlRestApplication;
+  protected long lastCommandSequenceNumber = -1L;
 
   static {
     // Increase the default - it's low (100)
@@ -232,16 +240,19 @@ public class TestKsqlRestApp extends ExternalResource {
 
       final Set<String> streams = getStreams(client);
       streams.removeAll(except);
-      dropStreams(streams, client);
-
       final Set<String> tables = getTables(client);
       tables.removeAll(except);
-      dropTables(tables, client);
+
+      dropSources(streams, tables, client);
     }
   }
 
   public ServiceContext getServiceContext() {
     return serviceContext.get();
+  }
+
+  public KsqlRestConfig getKsqlRestConfig() {
+    return ksqlRestConfig;
   }
 
   @Override
@@ -273,6 +284,7 @@ public class TestKsqlRestApp extends ExternalResource {
       throw new RuntimeException(e);
     }
     ksqlRestApplication = null;
+    lastCommandSequenceNumber = -1;
   }
 
   protected void initialize() {
@@ -280,21 +292,20 @@ public class TestKsqlRestApp extends ExternalResource {
       after();
     }
 
-    final KsqlRestConfig config = buildConfig(bootstrapServers, baseConfig);
+    ksqlRestConfig = buildConfig(bootstrapServers, baseConfig);
 
     try {
-
       Vertx vertx = Vertx.vertx();
       ksqlRestApplication = KsqlRestApplication.buildApplication(
           metricsPrefix,
-          config,
+          ksqlRestConfig,
           (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
           3,
           serviceContext.get(),
-          MockSchemaRegistryClient::new,
+          () -> serviceContext.get().getSchemaRegistryClient(),
           vertx,
           InternalKsqlClientFactory.createInternalClient(
-              KsqlRestApplication.toClientProps(config.originals()),
+              KsqlRestApplication.toClientProps(ksqlRestConfig.originals()),
               SocketAddress::inetSocketAddress,
               vertx));
 
@@ -332,16 +343,16 @@ public class TestKsqlRestApp extends ExternalResource {
     }
   }
 
-  private static Set<String> getPersistentQueries(final KsqlRestClient client) {
+  private Set<String> getPersistentQueries(final KsqlRestClient client) {
     return getQueries(client, KsqlQueryType.PERSISTENT);
   }
 
-  private static Set<String> getTransientQueries(final KsqlRestClient client) {
+  private Set<String> getTransientQueries(final KsqlRestClient client) {
     return getQueries(client, KsqlQueryType.PUSH);
   }
 
-  private static Set<String> getQueries(final KsqlRestClient client, final KsqlQueryType queryType) {
-    final RestResponse<KsqlEntityList> response = client.makeKsqlRequest("SHOW QUERIES;");
+  private Set<String> getQueries(final KsqlRestClient client, final KsqlQueryType queryType) {
+    final RestResponse<KsqlEntityList> response = makeKsqlRequest(client, "SHOW QUERIES;");
     if (response.isErroneous()) {
       throw new AssertionError("Failed to get persistent queries."
           + " msg:" + response.getErrorMessage());
@@ -355,15 +366,15 @@ public class TestKsqlRestApp extends ExternalResource {
         .collect(Collectors.toSet());
   }
 
-  private static void terminateQueries(final Set<String> queryIds, final KsqlRestClient client) {
+  private void terminateQueries(final Set<String> queryIds, final KsqlRestClient client) {
     final HashSet<String> remaining = new HashSet<>(queryIds);
     while (!remaining.isEmpty()) {
       KsqlErrorMessage lastError = null;
       final Set<String> toRemove = new HashSet<>();
 
       for (final String queryId : remaining) {
-        final RestResponse<KsqlEntityList> response = client
-            .makeKsqlRequest("TERMINATE " + queryId + ";");
+        final RestResponse<KsqlEntityList> response =
+            makeKsqlRequest(client, "TERMINATE " + queryId + ";");
 
         if (response.isSuccessful()) {
           toRemove.add(queryId);
@@ -380,8 +391,8 @@ public class TestKsqlRestApp extends ExternalResource {
     }
   }
 
-  private static Set<String> getStreams(final KsqlRestClient client) {
-    final RestResponse<KsqlEntityList> res = client.makeKsqlRequest("SHOW STREAMS;");
+  private Set<String> getStreams(final KsqlRestClient client) {
+    final RestResponse<KsqlEntityList> res = makeKsqlRequest(client, "SHOW STREAMS;");
     if (res.isErroneous()) {
       throw new AssertionError("Failed to get streams."
           + " msg:" + res.getErrorMessage());
@@ -392,8 +403,8 @@ public class TestKsqlRestApp extends ExternalResource {
         .collect(Collectors.toSet());
   }
 
-  private static Set<String> getTables(final KsqlRestClient client) {
-    final RestResponse<KsqlEntityList> res = client.makeKsqlRequest("SHOW TABLES;");
+  private Set<String> getTables(final KsqlRestClient client) {
+    final RestResponse<KsqlEntityList> res = makeKsqlRequest(client, "SHOW TABLES;");
     if (res.isErroneous()) {
       throw new AssertionError("Failed to get tables."
           + " msg:" + res.getErrorMessage());
@@ -404,28 +415,109 @@ public class TestKsqlRestApp extends ExternalResource {
         .collect(Collectors.toSet());
   }
 
-  private static void dropStreams(final Set<String> streams, final KsqlRestClient client) {
-    for (final String stream : streams) {
-      final RestResponse<KsqlEntityList> res = client
-          .makeKsqlRequest("DROP STREAM `" + stream + "`;");
+  private void dropSources(
+      final Set<String> streams,
+      final Set<String> tables,
+      final KsqlRestClient client
+  ) {
+    final Set<String> sourcesDropped = new HashSet<>(streams.size() + tables.size());
 
-      if (res.isErroneous()) {
-        throw new AssertionError("Failed to drop stream " + stream + "."
-            + " msg:" + res.getErrorMessage());
+    Iterables.concat(streams, tables).forEach(source -> {
+      if (!sourcesDropped.contains(source)) {
+        final Iterator<String> dropInOrder = getOrderedSourcesToDrop(source, client);
+        dropInOrder.forEachRemaining(s -> {
+          if (streams.contains(s)) {
+            dropStream(s, client);
+          } else {
+            dropTable(s, client);
+          }
+          sourcesDropped.add(s);
+        });
       }
+    });
+  }
+
+  private void dropStream(final String stream, final KsqlRestClient client) {
+    final RestResponse<KsqlEntityList> res =
+        makeKsqlRequest(client, "DROP STREAM `" + stream + "`;");
+
+    if (res.isErroneous()) {
+      throw new AssertionError("Failed to drop stream " + stream + "."
+          + " msg:" + res.getErrorMessage());
     }
   }
 
-  private static void dropTables(final Set<String> tables, final KsqlRestClient client) {
-    for (final String table : tables) {
-      final RestResponse<KsqlEntityList> res = client
-          .makeKsqlRequest("DROP TABLE `" + table + "`;");
+  private void dropTable(final String table, final KsqlRestClient client) {
+    final RestResponse<KsqlEntityList> res =
+        makeKsqlRequest(client, "DROP TABLE `" + table + "`;");
 
-      if (res.isErroneous()) {
-        throw new AssertionError("Failed to drop table " + table + "."
-            + " msg:" + res.getErrorMessage());
+    if (res.isErroneous()) {
+      throw new AssertionError("Failed to drop table " + table + "."
+          + " msg:" + res.getErrorMessage());
+    }
+  }
+
+  /**
+   * Returns an ordered list of sources to drop. Sources may have referenced sources that havea a
+   * DROP constraint against this source. If that's the case, this method walks through the each
+   * linked source and builds a list of sources that must be dropped in order.
+   *
+   * Example:
+   * - CREATE STREAM 'a';
+   * - CREATE STREAM 'b' AS SELECT FROM 'a';
+   * - CREATE STREAM 'c' AS SELECT FROM 'b';
+   *
+   * In the above example. the source 'a' has a drop constraint reference from 'b', and 'b' has
+   * a drop constraint reference from 'c'. Source 'a' cannot be dropped until all the child sources
+   * are dropped. This method will return a list with ['c', 'b', 'a'], which tells the caller to
+   * drop 'c' first, 'b' second, and 'a' third.
+   */
+  private Iterator<String> getOrderedSourcesToDrop(
+      final String source,
+      final KsqlRestClient client
+  ) {
+    final Set<String> visited = new LinkedHashSet<>();
+    final Stack<String> stack = new Stack<>();
+
+    stack.push(source);
+    while (!stack.isEmpty()) {
+      String s = stack.pop();
+      if (!visited.contains(s)) {
+        visited.add(s);
+
+        final RestResponse<KsqlEntityList> res =
+            makeKsqlRequest(client, "DESCRIBE EXTENDED `" + s + "`;");
+
+        if (res.isErroneous()) {
+          throw new AssertionError("Failed to describe stream " + s + "."
+              + " msg:" + res.getErrorMessage());
+        }
+
+        final List<String> sourceConstraints = ((SourceDescriptionEntity)(res.getResponse().get(0)))
+            .getSourceDescription().getSourceConstraints();
+
+        sourceConstraints.forEach(name -> stack.push(name));
       }
     }
+
+    return visited.stream().collect(Collectors.toCollection(LinkedList::new)).descendingIterator();
+  }
+
+  private RestResponse<KsqlEntityList> makeKsqlRequest(
+      final KsqlRestClient client,
+      final String request
+  ) {
+    final RestResponse<KsqlEntityList> response =
+        client.makeKsqlRequest(request, lastCommandSequenceNumber);
+
+    lastCommandSequenceNumber = response.getResponse().stream()
+        .filter(entity -> entity instanceof CommandStatusEntity)
+        .map(entity -> (CommandStatusEntity)entity)
+        .mapToLong(CommandStatusEntity::getCommandSequenceNumber)
+        .max()
+        .orElse(lastCommandSequenceNumber);
+
+    return response;
   }
 
   private static KsqlRestConfig buildConfig(

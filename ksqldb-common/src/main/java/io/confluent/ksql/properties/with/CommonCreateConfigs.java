@@ -17,6 +17,8 @@ package io.confluent.ksql.properties.with;
 
 import io.confluent.ksql.configdef.ConfigValidators;
 import io.confluent.ksql.serde.Delimiter;
+import io.confluent.ksql.util.KsqlException;
+import java.util.Map;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.NonEmptyString;
@@ -38,14 +40,15 @@ public final class CommonCreateConfigs {
   // Persistence Props:
   public static final String VALUE_AVRO_SCHEMA_FULL_NAME = "VALUE_AVRO_SCHEMA_FULL_NAME";
   public static final String VALUE_FORMAT_PROPERTY = "VALUE_FORMAT";
+  public static final String KEY_FORMAT_PROPERTY = "KEY_FORMAT";
+  public static final String FORMAT_PROPERTY = "FORMAT";
   public static final String WRAP_SINGLE_VALUE = "WRAP_SINGLE_VALUE";
 
   public static final String VALUE_DELIMITER_PROPERTY = "VALUE_DELIMITER";
 
-  static void addToConfigDef(
+  public static void addToConfigDef(
       final ConfigDef configDef,
-      final boolean topicNameRequired,
-      final boolean valueFormatRequired
+      final boolean topicNameRequired
   ) {
     configDef
         .define(
@@ -79,7 +82,7 @@ public final class CommonCreateConfigs {
         .define(
             VALUE_FORMAT_PROPERTY,
             ConfigDef.Type.STRING,
-            valueFormatRequired ? ConfigDef.NO_DEFAULT_VALUE : null,
+            null,
             Importance.HIGH,
             "The format of the serialized value"
         )
@@ -129,7 +132,40 @@ public final class CommonCreateConfigs {
             "The delimiter to use when VALUE_FORMAT='DELIMITED'. Supports single "
               + "character to be a delimiter, defaults to ','. For space and tab delimited values "
               + "you must use the special values 'SPACE' or 'TAB', not an actual space or tab "
-              + "character.");
+              + "character.")
+        .define(
+            KEY_FORMAT_PROPERTY,
+            ConfigDef.Type.STRING,
+            null,
+            Importance.HIGH,
+            "The format of the serialized key"
+        )
+        .define(
+            FORMAT_PROPERTY,
+            ConfigDef.Type.STRING,
+            null,
+            Importance.HIGH,
+            "The format of the serialized key and value");
+  }
+
+  public static void validateKeyValueFormats(final Map<String, Object> configs) {
+    final Object value = configs.get(FORMAT_PROPERTY);
+    if (value == null) {
+      return;
+    }
+
+    if (configs.get(KEY_FORMAT_PROPERTY) != null) {
+      throw new KsqlException("Cannot supply both '" + KEY_FORMAT_PROPERTY + "' and '"
+          + FORMAT_PROPERTY + "' properties, as '" + FORMAT_PROPERTY + "' sets both key and value "
+          + "formats. Either use just '" + FORMAT_PROPERTY + "', or use '" + KEY_FORMAT_PROPERTY
+          + "' and '" + VALUE_FORMAT_PROPERTY + "'.");
+    }
+    if (configs.get(VALUE_FORMAT_PROPERTY) != null) {
+      throw new KsqlException("Cannot supply both '" + VALUE_FORMAT_PROPERTY + "' and '"
+          + FORMAT_PROPERTY + "' properties, as '" + FORMAT_PROPERTY + "' sets both key and value "
+          + "formats. Either use just '" + FORMAT_PROPERTY + "', or use '" + KEY_FORMAT_PROPERTY
+          + "' and '" + VALUE_FORMAT_PROPERTY + "'.");
+    }
   }
 
   private CommonCreateConfigs() {

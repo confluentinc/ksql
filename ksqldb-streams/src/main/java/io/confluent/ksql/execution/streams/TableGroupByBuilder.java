@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.streams;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
@@ -33,7 +34,6 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import java.util.List;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.KGroupedTable;
@@ -86,9 +86,11 @@ public final class TableGroupByBuilder {
 
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
         params.getSchema(),
-        formats.getOptions()
+        formats.getKeyFeatures(),
+        formats.getValueFeatures()
     );
-    final Serde<Struct> keySerde = queryBuilder.buildKeySerde(
+
+    final Serde<GenericKey> keySerde = queryBuilder.buildKeySerde(
         formats.getKeyFormat(),
         physicalSchema,
         queryContext
@@ -98,13 +100,13 @@ public final class TableGroupByBuilder {
         physicalSchema,
         queryContext
     );
-    final Grouped<Struct, GenericRow> grouped = groupedFactory.create(
+    final Grouped<GenericKey, GenericRow> grouped = groupedFactory.create(
         StreamsUtil.buildOpName(queryContext),
         keySerde,
         valSerde
     );
 
-    final KGroupedTable<Struct, GenericRow> groupedTable = table.getTable()
+    final KGroupedTable<GenericKey, GenericRow> groupedTable = table.getTable()
         .filter((k, v) -> v != null)
         .groupBy(new TableKeyValueMapper<>(params.getMapper()), grouped);
 
@@ -112,16 +114,16 @@ public final class TableGroupByBuilder {
   }
 
   public static final class TableKeyValueMapper<K>
-      implements KeyValueMapper<K, GenericRow, KeyValue<Struct, GenericRow>> {
+      implements KeyValueMapper<K, GenericRow, KeyValue<GenericKey, GenericRow>> {
 
-    private final Function<GenericRow, Struct> groupByMapper;
+    private final Function<GenericRow, GenericKey> groupByMapper;
 
-    private TableKeyValueMapper(final Function<GenericRow, Struct> groupByMapper) {
+    private TableKeyValueMapper(final Function<GenericRow, GenericKey> groupByMapper) {
       this.groupByMapper = requireNonNull(groupByMapper, "groupByMapper");
     }
 
     @Override
-    public KeyValue<Struct, GenericRow> apply(final K key, final GenericRow value) {
+    public KeyValue<GenericKey, GenericRow> apply(final K key, final GenericRow value) {
       return new KeyValue<>(groupByMapper.apply(value), value);
     }
   }

@@ -21,6 +21,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.api.auth.AuthenticationPlugin;
 import io.confluent.ksql.api.spi.Endpoints;
+import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.entity.PushQueryId;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.state.ServerState;
@@ -78,14 +79,17 @@ public class Server {
   private final Optional<AuthenticationPlugin> authenticationPlugin;
   private final ServerState serverState;
   private final List<URI> listeners = new ArrayList<>();
+  private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private URI internalListener;
   private WorkerExecutor workerExecutor;
   private FileWatcher fileWatcher;
 
-  public Server(final Vertx vertx, final KsqlRestConfig config, final Endpoints endpoints,
+  public Server(
+      final Vertx vertx, final KsqlRestConfig config, final Endpoints endpoints,
       final KsqlSecurityExtension securityExtension,
       final Optional<AuthenticationPlugin> authenticationPlugin,
-      final ServerState serverState) {
+      final ServerState serverState,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics) {
     this.vertx = Objects.requireNonNull(vertx);
     this.config = Objects.requireNonNull(config);
     this.endpoints = Objects.requireNonNull(endpoints);
@@ -93,6 +97,7 @@ public class Server {
     this.authenticationPlugin = Objects.requireNonNull(authenticationPlugin);
     this.serverState = Objects.requireNonNull(serverState);
     this.maxPushQueryCount = config.getInt(KsqlRestConfig.MAX_PUSH_QUERIES);
+    this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
     if (!OpenSsl.isAvailable()) {
       log.warn("OpenSSL does not appear to be installed. ksqlDB will fall back to using the JDK "
           + "TLS implementation. OpenSSL is recommended for better performance.");
@@ -126,7 +131,7 @@ public class Server {
         final ServerVerticle serverVerticle = new ServerVerticle(endpoints,
             createHttpServerOptions(config, listener.getHost(), listener.getPort(),
                 listener.getScheme().equalsIgnoreCase("https"), isInternalListener.orElse(false)),
-            this, isInternalListener);
+            this, isInternalListener, pullQueryMetrics);
         vertx.deployVerticle(serverVerticle, vcf);
         final int index = i;
         final CompletableFuture<String> deployFuture = vcf.thenApply(s -> {
@@ -313,6 +318,33 @@ public class Server {
   ) {
     options.setUseAlpn(true).setSsl(true);
 
+    configureTlsKeyStore(ksqlRestConfig, options, keyStoreAlias);
+    configureTlsTrustStore(ksqlRestConfig, options);
+
+    final List<String> enabledProtocols =
+        ksqlRestConfig.getList(KsqlRestConfig.SSL_ENABLED_PROTOCOLS_CONFIG);
+    if (!enabledProtocols.isEmpty()) {
+      options.setEnabledSecureTransportProtocols(new HashSet<>(enabledProtocols));
+    }
+
+    final List<String> cipherSuites =
+        ksqlRestConfig.getList(KsqlRestConfig.SSL_CIPHER_SUITES_CONFIG);
+    if (!cipherSuites.isEmpty()) {
+      // Vert.x does not yet support a method for setting cipher suites, so we use the following
+      // workaround instead. See https://github.com/eclipse-vertx/vert.x/issues/1507.
+      final Set<String> enabledCipherSuites = options.getEnabledCipherSuites();
+      enabledCipherSuites.clear();
+      enabledCipherSuites.addAll(cipherSuites);
+    }
+
+    options.setClientAuth(clientAuth);
+  }
+
+  private static void configureTlsKeyStore(
+      final KsqlRestConfig ksqlRestConfig,
+      final HttpServerOptions options,
+      final String keyStoreAlias
+  ) {
     final String keyStorePath = ksqlRestConfig
         .getString(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
     final Password keyStorePassword = ksqlRestConfig
@@ -336,17 +368,27 @@ public class Server {
             new PfxOptions().setPath(keyStorePath).setPassword(keyStorePassword.value()));
       }
     }
+  }
 
+  private static void configureTlsTrustStore(
+      final KsqlRestConfig ksqlRestConfig,
+      final HttpServerOptions options
+  ) {
     final String trustStorePath = ksqlRestConfig
         .getString(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
     final Password trustStorePassword = ksqlRestConfig
         .getPassword(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
     if (trustStorePath != null && !trustStorePath.isEmpty()) {
-      options.setTrustStoreOptions(
-          new JksOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
+      final String trustStoreType =
+          ksqlRestConfig.getString(KsqlRestConfig.SSL_TRUSTSTORE_TYPE_CONFIG);
+      if (trustStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_JKS)) {
+        options.setTrustStoreOptions(
+            new JksOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
+      } else if (trustStoreType.equals(KsqlRestConfig.SSL_STORE_TYPE_PKCS12)) {
+        options.setPfxTrustOptions(
+            new PfxOptions().setPath(trustStorePath).setPassword(trustStorePassword.value()));
+      }
     }
-
-    options.setClientAuth(clientAuth);
   }
 
   private static List<URI> parseListeners(final KsqlRestConfig config) {

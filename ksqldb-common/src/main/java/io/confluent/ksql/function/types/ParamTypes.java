@@ -17,11 +17,11 @@ package io.confluent.ksql.function.types;
 
 import static io.confluent.ksql.schema.ksql.SchemaConverters.functionToSqlBaseConverter;
 
-import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -55,11 +55,10 @@ public final class ParamTypes {
     }
 
     if (actual.baseType() == SqlBaseType.MAP && declared instanceof MapType) {
-      return areCompatible(
-          ((SqlMap) actual).getValueType(),
-          ((MapType) declared).value(),
-          allowCast
-      );
+      final SqlMap sqlType = (SqlMap) actual;
+      final MapType mapType = (MapType) declared;
+      return areCompatible(sqlType.getKeyType(), mapType.key(), allowCast)
+          && areCompatible(sqlType.getValueType(), mapType.value(), allowCast);
     }
 
     if (actual.baseType() == SqlBaseType.STRUCT && declared instanceof StructType) {

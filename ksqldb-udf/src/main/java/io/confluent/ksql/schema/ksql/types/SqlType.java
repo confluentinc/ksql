@@ -35,7 +35,5 @@ public abstract class SqlType {
     return baseType;
   }
 
-  public abstract void validateValue(Object value);
-
   public abstract String toString(FormatOptions formatOptions);
 }

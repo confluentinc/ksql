@@ -26,7 +26,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.SerdeOption;
 import java.util.Optional;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -118,7 +117,6 @@ public class StructuredDataSourceTest {
         "sql",
         SourceName.of("A"),
         SOME_SCHEMA,
-        SerdeOption.none(),
         Optional.empty(),
         true,
         topic
@@ -127,7 +125,6 @@ public class StructuredDataSourceTest {
         "sql",
         SourceName.of("B"),
         SOME_SCHEMA,
-        SerdeOption.none(),
         Optional.empty(),
         true,
         topic
@@ -142,43 +139,12 @@ public class StructuredDataSourceTest {
   }
 
   @Test
-  public void shouldEnforceSameSerdeOptions() {
-    // Given:
-    final KsqlStream<String> streamA = new KsqlStream<>(
-        "sql",
-        SourceName.of("A"),
-        SOME_SCHEMA,
-        SerdeOption.none(),
-        Optional.empty(),
-        true,
-        topic
-    );
-    final KsqlStream<String> streamB = new KsqlStream<>(
-        "sql",
-        SourceName.of("A"),
-        SOME_SCHEMA,
-        SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES),
-        Optional.empty(),
-        true,
-        topic
-    );
-
-    // When:
-    final Optional<String> err = streamA.canUpgradeTo(streamB);
-
-    // Then:
-    assertThat(err.isPresent(), is(true));
-    assertThat(err.get(), containsString("has serdeOptions = [] which is not upgradeable to [UNWRAP_SINGLE_VALUES]"));
-  }
-
-  @Test
   public void shouldEnforceSameTimestampColumn() {
     // Given:
     final KsqlStream<String> streamA = new KsqlStream<>(
         "sql",
         SourceName.of("A"),
         SOME_SCHEMA,
-        SerdeOption.none(),
         Optional.empty(),
         true,
         topic
@@ -187,7 +153,6 @@ public class StructuredDataSourceTest {
         "sql",
         SourceName.of("A"),
         SOME_SCHEMA,
-        SerdeOption.none(),
         Optional.of(new TimestampColumn(ColumnName.of("foo"), Optional.empty())),
         true,
         topic
@@ -208,7 +173,6 @@ public class StructuredDataSourceTest {
         "sql",
         SourceName.of("A"),
         SOME_SCHEMA,
-        SerdeOption.none(),
         Optional.empty(),
         true,
         topic
@@ -217,7 +181,6 @@ public class StructuredDataSourceTest {
         "sql",
         SourceName.of("A"),
         SOME_SCHEMA,
-        SerdeOption.none(),
         Optional.empty(),
         true,
         topic2
@@ -238,7 +201,6 @@ public class StructuredDataSourceTest {
         "sql",
         SourceName.of("A"),
         SOME_SCHEMA,
-        SerdeOption.none(),
         Optional.empty(),
         true,
         topic
@@ -247,7 +209,6 @@ public class StructuredDataSourceTest {
         "sql",
         SourceName.of("A"),
         SOME_SCHEMA,
-        SerdeOption.none(),
         Optional.empty(),
         true,
         topic
@@ -280,7 +241,7 @@ public class StructuredDataSourceTest {
 
     // Then:
     assertThat(s.isPresent(), is(true));
-    assertThat(s.get(), containsString("The following columns are changed or missing: [`f1` BIGINT]"));
+    assertThat(s.get(), containsString("The following columns are changed, missing or reordered: [`f1` BIGINT]"));
   }
 
   @Test
@@ -301,7 +262,7 @@ public class StructuredDataSourceTest {
 
     // Then:
     assertThat(s.isPresent(), is(true));
-    assertThat(s.get(), containsString("The following columns are changed or missing: [`f0` BIGINT]"));
+    assertThat(s.get(), containsString("The following columns are changed, missing or reordered: [`f0` BIGINT]"));
   }
 
   /**
@@ -316,12 +277,16 @@ public class StructuredDataSourceTest {
           "some SQL",
           SourceName.of("some name"),
           schema,
-          SerdeOption.none(),
           Optional.empty(),
           DataSourceType.KSTREAM,
           false,
           topic
       );
+    }
+
+    @Override
+    public DataSource with(String sql, LogicalSchema schema) {
+      return new TestStructuredDataSource(schema);
     }
   }
 }

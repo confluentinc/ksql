@@ -18,8 +18,6 @@ package io.confluent.ksql.schema.ksql.types;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.JavaToSqlTypeConverter;
-import io.confluent.ksql.schema.utils.DataException;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.schema.utils.SchemaException;
 import java.util.Objects;
@@ -76,20 +74,6 @@ public final class SqlPrimitiveType extends SqlType {
 
   private SqlPrimitiveType(final SqlBaseType baseType) {
     super(baseType);
-  }
-
-  @Override
-  public void validateValue(final Object value) {
-    if (value == null) {
-      return;
-    }
-
-    final SqlBaseType actualType = JavaToSqlTypeConverter.instance()
-        .toSqlType(value.getClass());
-
-    if (!baseType().equals(actualType)) {
-      throw new DataException("Expected " + baseType() + ", got " + actualType);
-    }
   }
 
   @Override

@@ -42,6 +42,16 @@ public final class SelectValueMapperFactory {
     this.codeGenerator = requireNonNull(codeGenerator, "codeGenerator");
   }
 
+  @VisibleForTesting
+  public interface SelectValueMapperFactorySupplier {
+    <K> SelectValueMapper<K> create(
+        List<SelectExpression> selectExpressions,
+        LogicalSchema sourceSchema,
+        KsqlConfig ksqlConfig,
+        FunctionRegistry functionRegistry
+    );
+  }
+
   public static <K> SelectValueMapper<K> create(
       final List<SelectExpression> selectExpressions,
       final LogicalSchema sourceSchema,

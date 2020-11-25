@@ -25,13 +25,13 @@ import static io.confluent.ksql.rest.integration.HighAvailabilityTestUtil.waitFo
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.apache.kafka.streams.StreamsConfig.CONSUMER_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
@@ -53,7 +53,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.UserDataProvider;
@@ -63,6 +63,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
@@ -98,11 +99,13 @@ public class PullQueryRoutingFunctionalTest {
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
   private static final TemporaryFolder TMP = new TemporaryFolder();
   private static final int BASE_TIME = 1_000_000;
-  private final static String KEY = Iterables.get(USER_PROVIDER.data().keySet(), 0);
+  private final static String KEY = USER_PROVIDER.getStringKey(0);
+  private final static String KEY1 = USER_PROVIDER.getStringKey(1);
   private final AtomicLong timestampSupplier = new AtomicLong(BASE_TIME);
   private String output;
   private String queryId;
   private String sql;
+  private String sqlMultipleKeys;
   private String topic;
 
   private static final Map<String, ?> LAG_FILTER_6 =
@@ -115,7 +118,8 @@ public class PullQueryRoutingFunctionalTest {
           .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
           .valueColumn(ColumnName.of("COUNT"), SqlTypes.BIGINT)
           .build(),
-      SerdeOption.none()
+      SerdeFeatures.of(),
+      SerdeFeatures.of()
   );
 
   private static final Map<String, Object> COMMON_CONFIG = ImmutableMap.<String, Object>builder()
@@ -212,6 +216,7 @@ public class PullQueryRoutingFunctionalTest {
     TEST_HARNESS.produceRows(
         topic,
         USER_PROVIDER,
+        FormatFactory.KAFKA,
         FormatFactory.JSON,
         timestampSupplier::getAndIncrement
     );
@@ -228,6 +233,8 @@ public class PullQueryRoutingFunctionalTest {
     //Create table
     output = KsqlIdentifierTestUtil.uniqueIdentifierName();
     sql = "SELECT * FROM " + output + " WHERE USERID = '" + KEY + "';";
+    sqlMultipleKeys = "SELECT * FROM " + output + " WHERE USERID IN ('"
+        + KEY + "', '" + KEY1 + "');";
     List<KsqlEntity> res = makeAdminRequestWithResponse(
         REST_APP_0,
         "CREATE TABLE " + output + " AS"
@@ -274,7 +281,7 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(host.getHost(), is(clusterFormation.active.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.active.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(KEY, 1)));
   }
 
 
@@ -307,7 +314,7 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(host.getHost(), is(clusterFormation.active.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.active.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(KEY, 1)));
   }
 
   @Test
@@ -339,7 +346,52 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
     assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(KEY, 1)));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldQueryStandbyWhenActiveDeadStandbyAliveQueryIssuedToRouter_multipleKeys()
+      throws Exception {
+    // Given:
+    ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
+    waitForClusterToBeDiscovered(clusterFormation.router.getApp(), 3);
+    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
+        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3));
+
+    // Partition off the active
+    clusterFormation.active.getShutoffs().shutOffAll();
+
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.router.getApp(),
+        clusterFormation.standBy.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsUp);
+    waitForRemoteServerToChangeStatus(
+        clusterFormation.router.getApp(),
+        clusterFormation.active.getHost(),
+        HighAvailabilityTestUtil::remoteServerIsDown);
+
+    // When:
+    final List<StreamedRow> rows_0 = makePullQueryRequest(clusterFormation.router.getApp(),
+        sqlMultipleKeys);
+
+    // Then:
+    assertThat(rows_0, hasSize(HEADER + 2));
+    KsqlHostInfoEntity host = rows_0.get(1).getSourceHost().get();
+    assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
+    assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
+    host = rows_0.get(2).getSourceHost().get();
+    assertThat(host.getHost(), is(clusterFormation.standBy.getHost().getHost()));
+    assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
+
+    List<List<?>> values = rows_0.stream()
+        .skip(HEADER)
+        .map(sr -> {
+          assertThat(sr.getRow(), is(not(Optional.empty())));
+          return sr.getRow().get().getColumns();
+        })
+        .collect(Collectors.toList());
+    assertThat(values, containsInAnyOrder(ImmutableList.of(KEY, 1), ImmutableList.of(KEY1, 1)));
   }
 
   @Test
@@ -371,6 +423,7 @@ public class PullQueryRoutingFunctionalTest {
     TEST_HARNESS.produceRows(
         topic,
         USER_PROVIDER,
+        FormatFactory.KAFKA,
         FormatFactory.JSON,
         timestampSupplier::getAndIncrement
     );
@@ -404,7 +457,7 @@ public class PullQueryRoutingFunctionalTest {
     assertThat(host.getPort(), is(clusterFormation.standBy.getHost().getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     // This line ensures that we've not processed the new data
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(KEY, 1)));
 
     KsqlErrorMessage errorMessage = makePullQueryRequestWithError(
         clusterFormation.router.getApp(), sql, LAG_FILTER_3);
@@ -494,6 +547,7 @@ public class PullQueryRoutingFunctionalTest {
     TEST_HARNESS.verifyAvailableUniqueRows(
         output.toUpperCase(),
         USER_PROVIDER.data().size(),
+        FormatFactory.KAFKA,
         FormatFactory.JSON,
         AGGREGATE_SCHEMA
     );

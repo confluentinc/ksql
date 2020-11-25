@@ -30,7 +30,6 @@ import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
@@ -48,7 +47,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
@@ -93,8 +92,8 @@ public class PullQuerySingleNodeFunctionalTest {
   private static final UserDataProvider USER_PROVIDER = new UserDataProvider();
   private static final int HEADER = 1;
   private static final int BASE_TIME = 1_000_000;
-  private final static String KEY = Iterables.get(USER_PROVIDER.data().keySet(), 0);
-  private final static String KEY_3 = Iterables.get(USER_PROVIDER.data().keySet(), 3);
+  private final static String KEY = USER_PROVIDER.getStringKey(0);
+  private final static String KEY_3 = USER_PROVIDER.getStringKey(3);
   private static final Map<String, ?> LAG_FILTER_3 =
       ImmutableMap.of(KsqlConfig.KSQL_QUERY_PULL_MAX_ALLOWED_OFFSET_LAG_CONFIG, "3");
 
@@ -103,7 +102,8 @@ public class PullQuerySingleNodeFunctionalTest {
           .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
           .valueColumn(ColumnName.of("COUNT"), SqlTypes.BIGINT)
           .build(),
-      SerdeOption.none()
+      SerdeFeatures.of(),
+      SerdeFeatures.of()
   );
 
   private static final Map<String, Object> COMMON_CONFIG = ImmutableMap.<String, Object>builder()
@@ -179,6 +179,7 @@ public class PullQuerySingleNodeFunctionalTest {
     TEST_HARNESS.produceRows(
         topic,
         USER_PROVIDER,
+        FormatFactory.KAFKA,
         FormatFactory.JSON,
         timestampSupplier::getAndIncrement
     );
@@ -212,7 +213,7 @@ public class PullQuerySingleNodeFunctionalTest {
   }
 
   @Test
-  public void restoreAfterClearState() throws Exception {
+  public void restoreAfterClearState() {
     waitForStreamsMetadataToInitialize(REST_APP_0, ImmutableList.of(host0), queryId);
     waitForRemoteServerToChangeStatus(REST_APP_0, host0, HighAvailabilityTestUtil
         .lagsReported(host0, Optional.empty(), 5));
@@ -227,7 +228,7 @@ public class PullQuerySingleNodeFunctionalTest {
     assertThat(host.getHost(), is(host0.getHost()));
     assertThat(host.getPort(), is(host0.getPort()));
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(KEY, 1)));
 
     // Stop the server and blow away the state
     LOG.info("Shutting down the server " + host0.toString());
@@ -260,7 +261,7 @@ public class PullQuerySingleNodeFunctionalTest {
     assertThat(host.getPort(), is(host0.getPort()));
     assertThat(sameRows.get(1).getRow(), is(not(Optional.empty())));
     // Still haven't gotten the update yet
-    assertThat(sameRows.get(1).getRow().get().values(), is(ImmutableList.of(KEY, 1)));
+    assertThat(sameRows.get(1).getRow().get().getColumns(), is(ImmutableList.of(KEY, 1)));
 
     // Row not found!
     final List<StreamedRow> headerOnly = makePullQueryRequest(
@@ -287,7 +288,7 @@ public class PullQuerySingleNodeFunctionalTest {
     assertThat(host.getHost(), is(host0.getHost()));
     assertThat(host.getPort(), is(host0.getPort()));
     assertThat(updatedRows.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(updatedRows.get(1).getRow().get().values(), is(ImmutableList.of(KEY_3, 1)));
+    assertThat(updatedRows.get(1).getRow().get().getColumns(), is(ImmutableList.of(KEY_3, 1)));
   }
 
   private static String extractQueryId(final String outputString) {
@@ -308,6 +309,7 @@ public class PullQuerySingleNodeFunctionalTest {
     testHarness.verifyAvailableUniqueRows(
         output.toUpperCase(),
         USER_PROVIDER.data().size(),
+        FormatFactory.KAFKA,
         FormatFactory.JSON,
         AGGREGATE_SCHEMA
     );

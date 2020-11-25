@@ -5,11 +5,21 @@
   "schemas" : {
     "CSAS_S_0.KsqlTopic.Source" : {
       "schema" : "`C1` INTEGER",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     },
     "CSAS_S_0.S" : {
       "schema" : "`C1` INTEGER",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
     }
   },
   "testCase" : {
@@ -30,7 +40,7 @@
     } ],
     "topics" : [ {
       "name" : "input",
-      "schema" : {
+      "valueSchema" : {
         "type" : "record",
         "name" : "blah",
         "fields" : [ {
@@ -38,7 +48,7 @@
           "type" : "int"
         } ]
       },
-      "format" : "AVRO",
+      "valueFormat" : "AVRO",
       "replicas" : 3,
       "numPartitions" : 5
     }, {
@@ -59,7 +69,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST",
         "type" : "STREAM",
@@ -67,15 +79,15 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "AVRO",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "S",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"
@@ -84,9 +96,7 @@
         }, {
           "name" : "input",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "AVRO"

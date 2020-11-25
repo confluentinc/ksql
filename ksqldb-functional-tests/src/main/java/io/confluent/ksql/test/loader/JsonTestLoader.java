@@ -20,7 +20,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.model.TestFileContext;
-import io.confluent.ksql.test.model.TestLocation;
 import io.confluent.ksql.test.tools.Test;
 import io.confluent.ksql.test.tools.TestJsonMapper;
 import java.io.BufferedReader;
@@ -146,10 +145,8 @@ public final class JsonTestLoader<T extends Test> implements TestLoader<T> {
         .stream()
         .filter(e -> e.getValue().size() > 1)
         .map(e -> "test name: '" + e.getKey()
-            + "' found in files: " + e.getValue().stream()
-            .map(Test::getTestLocation)
-            .map(TestLocation::toString)
-            .collect(Collectors.joining(",")))
+            + "' found in file: " + e.getValue().get(0).getTestLocation().toString()
+        )
         .collect(Collectors.joining(System.lineSeparator()));
 
     if (!duplicates.isEmpty()) {

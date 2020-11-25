@@ -30,7 +30,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.Formats;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.streams.timestamp.KsqlTimestampExtractor;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -40,7 +40,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
@@ -75,13 +75,13 @@ public class SinkBuilderTest {
 
   private static final FormatInfo KEY_FORMAT = FormatInfo.of(FormatFactory.KAFKA.name());
   private static final FormatInfo VALUE_FORMAT = FormatInfo.of(FormatFactory.JSON.name());
-  private static final PhysicalSchema PHYSICAL_SCHEMA =
-      PhysicalSchema.from(SCHEMA.withoutPseudoAndKeyColsInValue(), SerdeOption.none());
+  private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
+      .from(SCHEMA.withoutPseudoAndKeyColsInValue(), SerdeFeatures.of(), SerdeFeatures.of());
 
   @Mock
   private KsqlQueryBuilder queryBuilder;
   @Mock
-  private KeySerdeFactory<Struct> keySerdeFactory;
+  private ExecutionKeyFactory<Struct> executionKeyFactory;
   @Mock
   private KStream<Struct, GenericRow> kStream;
   @Mock
@@ -103,7 +103,7 @@ public class SinkBuilderTest {
 
   @Before
   public void setup() {
-    when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(executionKeyFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
 
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valSerde);
     when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
@@ -112,16 +112,16 @@ public class SinkBuilderTest {
 
   @Test
   public void shouldBuildKeySerdeCorrectly() {
-    // Given/When
+    // When
     buildDefaultSinkBuilder();
 
     // Then:
-    verify(keySerdeFactory).buildKeySerde(KEY_FORMAT, PHYSICAL_SCHEMA, queryContext);
+    verify(executionKeyFactory).buildKeySerde(KEY_FORMAT, PHYSICAL_SCHEMA, queryContext);
   }
 
   @Test
   public void shouldBuildValueSerdeCorrectly() {
-    // Given/When
+    // When
     buildDefaultSinkBuilder();
 
     // Then:
@@ -134,7 +134,7 @@ public class SinkBuilderTest {
 
   @Test
   public void shouldWriteOutStreamWithCorrectSerdes() {
-    // Given/When
+    // When
     buildDefaultSinkBuilder();
 
     // Then
@@ -143,7 +143,7 @@ public class SinkBuilderTest {
 
   @Test
   public void shouldWriteOutStreamToCorrectTopic() {
-    // Given/When
+    // When
     buildDefaultSinkBuilder();
 
     // Then
@@ -152,14 +152,14 @@ public class SinkBuilderTest {
 
   @Test
   public void shouldBuildStreamUsingTransformTimestampWhenTimestampIsSpecified() {
-    // Given/When
+    // When
     SinkBuilder.build(
         SCHEMA,
-        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
+        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeFeatures.of(), SerdeFeatures.of()),
         Optional.of(new TimestampColumn(ColumnName.of("BLUE"), Optional.empty())),
         TOPIC,
         kStream,
-        keySerdeFactory,
+        executionKeyFactory,
         queryContext,
         queryBuilder
     );
@@ -173,7 +173,7 @@ public class SinkBuilderTest {
 
   @Test
   public void shouldBuildStreamWithoutTransformTimestampWhenNoTimestampIsSpecified() {
-    // Given/When
+    // When
     buildDefaultSinkBuilder();
 
     // Then
@@ -279,11 +279,11 @@ public class SinkBuilderTest {
   private void buildDefaultSinkBuilder() {
     SinkBuilder.build(
         SCHEMA,
-        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
+        Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeFeatures.of(), SerdeFeatures.of()),
         Optional.empty(),
         TOPIC,
         kStream,
-        keySerdeFactory,
+        executionKeyFactory,
         queryContext,
         queryBuilder
     );

@@ -144,7 +144,7 @@ services:
       # Configuration to embed Kafka Connect support.
       KSQL_CONNECT_GROUP_ID: "ksql-connect-cluster"
       KSQL_CONNECT_BOOTSTRAP_SERVERS: "broker:9092"
-      KSQL_CONNECT_KEY_CONVERTER: "io.confluent.connect.avro.AvroConverter"
+      KSQL_CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
       KSQL_CONNECT_VALUE_CONVERTER: "io.confluent.connect.avro.AvroConverter"
       KSQL_CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
       KSQL_CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
@@ -386,6 +386,7 @@ docker-compose down
 
 In practice, you won't want to query your materialized views from the ksqlDB prompt.
 It's much more useful to query them from within your applications. To do that, you can
+use the [Java client for ksqlDB](../../developer-guide/ksqldb-clients/java-client/) or
 submit queries to ksqlDB's servers through its [REST API](../../developer-guide/api/).
 
 Next steps

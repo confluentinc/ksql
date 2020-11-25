@@ -20,17 +20,17 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.serde.SerdeSupplier;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Schema.Type;
 
 public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
 
@@ -41,26 +41,19 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
   }
 
   @Override
-  public Serializer<Object> getSerializer(final SchemaRegistryClient schemaRegistryClient) {
+  public Serializer<Object> getSerializer(
+      final SchemaRegistryClient schemaRegistryClient,
+      final boolean isKey
+  ) {
     return new RowSerializer();
   }
 
   @Override
-  public Deserializer<Object> getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
+  public Deserializer<Object> getDeserializer(
+      final SchemaRegistryClient schemaRegistryClient,
+      final boolean isKey
+  ) {
     return new RowDeserializer();
-  }
-
-  private SqlType getColumnType(final boolean isKey) {
-    final List<Column> columns = isKey ? schema.key() : schema.value();
-    if (columns.isEmpty()) {
-      throw new IllegalStateException("No columns in schema");
-    }
-
-    if (columns.size() != 1) {
-      throw new IllegalStateException("KAFKA format only supports single column schemas.");
-    }
-
-    return columns.get(0).type();
   }
 
   private Serde<?> getSerde(final boolean isKey) {
@@ -79,17 +72,20 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
   }
 
   private static Serde<?> getSerde(final SqlType sqlType) {
-    final Type connectType = SchemaConverters.sqlToConnectConverter()
-        .toConnectSchema(sqlType)
-        .type();
-
-    switch (connectType) {
-      case INT32:
+    switch (sqlType.baseType()) {
+      case INTEGER:
         return Serdes.Integer();
-      case INT64:
-        return Serdes.Long();
-      case FLOAT64:
-        return Serdes.Double();
+      case BIGINT:
+        return Serdes.serdeFrom(
+            new TestNumberSerializer<>(Serdes.Long().serializer(), Long.class, Number::longValue),
+            new TestBigIntDeserializer(Serdes.Long().deserializer())
+        );
+      case DOUBLE:
+        return Serdes.serdeFrom(
+            new TestNumberSerializer<>(Serdes.Double().serializer(), Double.class,
+                Number::doubleValue),
+            new TestDoubleDeserializer(Serdes.Double().deserializer())
+        );
       case STRING:
         return Serdes.String();
       default:
@@ -134,6 +130,135 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
         throw new TestFrameworkException("Failed to deserialize " + type + ". "
             + e.getMessage(), e);
       }
+    }
+  }
+
+  /**
+   * Serializer that handles coercion to {@link Double}.
+   *
+   * <p>The QTT tests are written in JSON. When the input values are read from the JSON file
+   * numbers can be deserialized as an {@link Integer}, {@link Long}, or {@link BigDecimal}. The
+   * value needs converting to the correct type before serializing.
+   */
+  private static class TestNumberSerializer<T extends Number> implements Serializer<Object> {
+
+    private final Class<T> type;
+    private final Serializer<T> inner;
+    private final Function<Number, T> coercer;
+
+    TestNumberSerializer(
+        final Serializer<T> inner,
+        final Class<T> type,
+        final Function<Number, T> coercer
+    ) {
+      this.inner = requireNonNull(inner, "inner");
+      this.type = requireNonNull(type, "type");
+      this.coercer = requireNonNull(coercer, "coercer");
+    }
+
+    @Override
+    public void configure(final Map<String, ?> configs, final boolean isKey) {
+      inner.configure(configs, isKey);
+    }
+
+    @Override
+    public byte[] serialize(final String topicName, final Object value) {
+      final T coerced = coerce(value);
+      return inner.serialize(topicName, coerced);
+    }
+
+    @Override
+    public void close() {
+      inner.close();
+    }
+
+    private T coerce(final Object value) {
+      if (value == null) {
+        return null;
+      }
+
+      if (value instanceof Number) {
+        return coercer.apply((Number) value);
+      }
+
+      throw new TestFrameworkException("Can't serialize " + value + " as " + type.getSimpleName());
+    }
+  }
+
+  /**
+   * Deserializer that handles coercion from {@link Long} to {@link Integer}.
+   *
+   * <p>The QTT tests are written in JSON. When the expected values are read from the JSON file
+   * small numbers are deserialized as {@link Integer Integers}. This is not an issue. However, the
+   * deserializer needs to return the same if the actual value matches the expected value.
+   */
+  private static class TestBigIntDeserializer implements Deserializer<Object> {
+
+    private final Deserializer<Long> inner;
+
+    TestBigIntDeserializer(final Deserializer<Long> inner) {
+      this.inner = requireNonNull(inner, "inner");
+    }
+
+    @Override
+    public void configure(final Map<String, ?> configs, final boolean isKey) {
+      inner.configure(configs, isKey);
+    }
+
+    @Override
+    public Number deserialize(final String topicName, final byte[] bytes) {
+      final Long deserialized = inner.deserialize(topicName, bytes);
+      if (deserialized == null) {
+        return null;
+      }
+
+      if (Integer.MIN_VALUE < deserialized && deserialized < Integer.MAX_VALUE) {
+        return (int) (long) deserialized;
+      }
+
+      return deserialized;
+    }
+
+    @Override
+    public void close() {
+      inner.close();
+    }
+  }
+
+  /**
+   * Deserializer that handles coercion from {@link Double} to {@link BigDecimal}.
+   *
+   * <p>The QTT tests are written in JSON. When the expected values are read from the JSON file
+   * doubles are deserialized as {@link BigDecimal BigDecimals}. This is not an issue as BigDecimal
+   * is more accurate. However, the deserializer needs to return a `BigDecimal` so that the actual
+   * value matches the expected value.
+   */
+  private static class TestDoubleDeserializer implements Deserializer<Object> {
+
+    private final Deserializer<Double> inner;
+
+    TestDoubleDeserializer(final Deserializer<Double> inner) {
+      this.inner = requireNonNull(inner, "inner");
+    }
+
+    @Override
+    public void configure(final Map<String, ?> configs, final boolean isKey) {
+      inner.configure(configs, isKey);
+    }
+
+    @Override
+    public BigDecimal deserialize(final String topicName, final byte[] bytes) {
+      final Double deserialized = inner.deserialize(topicName, bytes);
+      if (deserialized == null) {
+        return null;
+      }
+
+      return BigDecimal.valueOf(deserialized);
+    }
+
+    @Override
+    public void close() {
+      inner.close();
     }
   }
 }

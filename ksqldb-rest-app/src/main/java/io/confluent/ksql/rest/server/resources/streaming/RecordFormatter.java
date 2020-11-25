@@ -157,7 +157,8 @@ public final class RecordFormatter {
   private String formatRecord(final ConsumerRecord<Bytes, Bytes> record) {
     return "rowtime: " + formatRowTime(record.timestamp())
         + ", " + "key: " + keyDeserializers.format(record.key())
-        + ", value: " + valueDeserializers.format(record.value());
+        + ", value: " + valueDeserializers.format(record.value())
+        + ", partition: " + record.partition();
   }
 
   private static String formatRowTime(final long timestamp) {

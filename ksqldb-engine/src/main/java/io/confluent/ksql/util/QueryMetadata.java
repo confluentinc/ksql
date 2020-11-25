@@ -24,6 +24,7 @@ import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError;
+import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -58,22 +59,24 @@ public abstract class QueryMetadata {
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private final Map<String, Object> streamsProperties;
   private final Map<String, Object> overriddenProperties;
-  private Consumer<QueryMetadata> closeCallback;
+  protected final Consumer<QueryMetadata> closeCallback;
   private final Set<SourceName> sourceNames;
   private final LogicalSchema logicalSchema;
-  private final Long closeTimeout;
+  private final Duration closeTimeout;
   private final QueryId queryId;
   private final QueryErrorClassifier errorClassifier;
   private final Queue<QueryError> queryErrors;
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
   private boolean everStarted = false;
-  private boolean closed = false;
+  protected boolean closed = false;
   private UncaughtExceptionHandler uncaughtExceptionHandler = this::uncaughtHandler;
   private KafkaStreams kafkaStreams;
+  private Consumer<Boolean> onStop = (ignored) -> { };
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
+  @SuppressWarnings("deprecation") // https://github.com/confluentinc/ksql/issues/6639
   QueryMetadata(
       final String statementString,
       final LogicalSchema logicalSchema,
@@ -105,7 +108,7 @@ public abstract class QueryMetadata {
     this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
     this.sourceNames = Objects.requireNonNull(sourceNames, "sourceNames");
     this.logicalSchema = Objects.requireNonNull(logicalSchema, "logicalSchema");
-    this.closeTimeout = closeTimeout;
+    this.closeTimeout = Duration.ofMillis(closeTimeout);
     this.queryId = Objects.requireNonNull(queryId, "queryId");
     this.errorClassifier = Objects.requireNonNull(errorClassifier, "errorClassifier");
     this.queryErrors = EvictingQueue.create(maxQueryErrorsQueueSize);
@@ -142,21 +145,40 @@ public abstract class QueryMetadata {
     queryStateListener.onChange(kafkaStreams.state(), kafkaStreams.state());
   }
 
-  public void closeAndThen(final Consumer<QueryMetadata> andThen) {
-    this.closeCallback = closeCallback.andThen(andThen);
+  /**
+   * Set a callback to execute when the query stops. This is run on {@link #stop()}
+   * as well as {@link #close()}, unlike the {@link #closeCallback}, which is only
+   * executed on {@code close}.
+   *
+   * <p>{@code onStop} accepts true iff the callback is being called from {@code close}.
+   */
+  public void onStop(final Consumer<Boolean> onStop) {
+    this.onStop = onStop;
   }
 
-  private void uncaughtHandler(final Thread t, final Throwable e) {
-    LOG.error("Unhandled exception caught in streams thread {}.", t.getName(), e);
-    final QueryError queryError =
-        new QueryError(
-            System.currentTimeMillis(),
-            Throwables.getStackTraceAsString(e),
-            errorClassifier.classify(e)
-        );
-
-    queryStateListener.ifPresent(lis -> lis.onError(queryError));
-    queryErrors.add(queryError);
+  protected void uncaughtHandler(final Thread t, final Throwable e) {
+    QueryError.Type errorType = Type.UNKNOWN;
+    try {
+      errorType = errorClassifier.classify(e);
+    } catch (final Exception classificationException) {
+      LOG.error("Error classifying unhandled exception", classificationException);
+      throw classificationException;
+    } finally {
+      // If error classification throws then we consider the error to be an UNKNOWN error.
+      // We notify listeners and add the error to the errors queue in the finally block to ensure
+      // all listeners and consumers of the error queue (e.g. the API) can see the error. Similarly,
+      // log in finally block to make sure that if there's ever an error in the classification
+      // we still get this in our logs.
+      final QueryError queryError =
+          new QueryError(
+              System.currentTimeMillis(),
+              Throwables.getStackTraceAsString(e),
+              errorType
+          );
+      queryStateListener.ifPresent(lis -> lis.onError(queryError));
+      queryErrors.add(queryError);
+      LOG.error("Unhandled exception caught in streams thread {}. ({})", t.getName(), errorType, e);
+    }
   }
 
   public Map<String, Object> getOverriddenProperties() {
@@ -167,6 +189,7 @@ public abstract class QueryMetadata {
     return statementString;
   }
 
+  @SuppressWarnings("deprecation") // https://github.com/confluentinc/ksql/issues/6639
   public void setUncaughtExceptionHandler(final UncaughtExceptionHandler handler) {
     this.uncaughtExceptionHandler = handler;
     kafkaStreams.setUncaughtExceptionHandler(handler);
@@ -261,7 +284,7 @@ public abstract class QueryMetadata {
   }
 
   protected void closeKafkaStreams() {
-    kafkaStreams.close(Duration.ofMillis(closeTimeout));
+    kafkaStreams.close(closeTimeout);
   }
 
   protected KafkaStreams buildKafkaStreams() {
@@ -278,7 +301,9 @@ public abstract class QueryMetadata {
    *
    * @see #close()
    */
-  public abstract void stop();
+  public synchronized void stop() {
+    doClose(false);
+  }
 
   /**
    * Closes the {@code QueryMetadata} and cleans up any of
@@ -289,10 +314,9 @@ public abstract class QueryMetadata {
    */
   public void close() {
     doClose(true);
-    closeCallback.accept(this);
   }
 
-  protected void doClose(final boolean cleanUp) {
+  private void doClose(final boolean cleanUp) {
     closed = true;
     closeKafkaStreams();
 
@@ -301,6 +325,11 @@ public abstract class QueryMetadata {
     }
 
     queryStateListener.ifPresent(QueryStateListener::close);
+
+    if (cleanUp) {
+      closeCallback.accept(this);
+    }
+    onStop.accept(cleanUp);
   }
 
   public void start() {

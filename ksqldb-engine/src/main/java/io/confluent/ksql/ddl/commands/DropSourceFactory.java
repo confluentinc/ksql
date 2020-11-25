@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -29,7 +28,6 @@ import java.util.Objects;
 public final class DropSourceFactory {
   private final MetaStore metaStore;
 
-  @VisibleForTesting
   DropSourceFactory(final MetaStore metaStore) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
   }

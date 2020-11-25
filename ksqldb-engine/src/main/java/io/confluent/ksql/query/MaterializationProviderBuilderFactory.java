@@ -17,6 +17,7 @@ package io.confluent.ksql.query;
 
 import static java.util.Objects.requireNonNull;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterializationFactory;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
@@ -32,7 +33,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaStreams;
 
 public final class MaterializationProviderBuilderFactory {
@@ -85,13 +85,14 @@ public final class MaterializationProviderBuilderFactory {
       final Map<String, Object> streamsProperties,
       final String applicationId
   ) {
-    final Serializer<Struct> keySerializer = new GenericKeySerDe().create(
+    final Serializer<GenericKey> keySerializer = new GenericKeySerDe().create(
         keyFormat.getFormatInfo(),
         schema.keySchema(),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         "",
-        NoopProcessingLogContext.INSTANCE
+        NoopProcessingLogContext.INSTANCE,
+        Optional.empty()
     ).serializer();
 
     final Optional<KsMaterialization> ksMaterialization = ksMaterializationFactory

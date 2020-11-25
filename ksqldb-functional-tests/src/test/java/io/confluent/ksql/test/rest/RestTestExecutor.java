@@ -47,6 +47,7 @@ import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.TopicInfoCache;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.RetryUtil;
@@ -60,12 +61,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 import org.slf4j.Logger;
@@ -165,7 +168,8 @@ public class RestTestExecutor implements Closeable {
         testCase.getTopics(),
         testCase.getOutputRecords(),
         testCase.getInputRecords(),
-        TestFunctionRegistry.INSTANCE.get()
+        TestFunctionRegistry.INSTANCE.get(),
+        new KsqlConfig(testCase.getProperties())
     );
 
     topics.forEach(topic -> {
@@ -184,10 +188,18 @@ public class RestTestExecutor implements Closeable {
           createJob
       );
 
-      topic.getSchema().ifPresent(schema -> {
+      topic.getKeySchema().ifPresent(schema -> {
         try {
           serviceContext.getSchemaRegistryClient()
-              .register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
+              .register(KsqlConstants.getSRSubject(topic.getName(), true), schema);
+        } catch (final Exception e) {
+          throw new RuntimeException(e);
+        }
+      });
+      topic.getValueSchema().ifPresent(schema -> {
+        try {
+          serviceContext.getSchemaRegistryClient()
+              .register(KsqlConstants.getSRSubject(topic.getName(), false), schema);
         } catch (final Exception e) {
           throw new RuntimeException(e);
         }
@@ -205,18 +217,19 @@ public class RestTestExecutor implements Closeable {
           topicInfo.getKeySerializer(),
           topicInfo.getValueSerializer()
       )) {
-        for (int idx = 0; idx < records.size(); idx++) {
-          final Record record = records.get(idx);
+        final List<Future<RecordMetadata>> futures = records.stream()
+            .map(record -> new ProducerRecord<>(
+                topicName,
+                null,
+                record.timestamp().orElse(0L),
+                record.key(),
+                record.value()
+            ))
+            .map(producer::send)
+            .collect(Collectors.toList());
 
-          final Record coerced = topicInfo.coerceRecord(record, idx);
-
-          producer.send(new ProducerRecord<>(
-              topicName,
-              null,
-              coerced.timestamp().orElse(0L),
-              coerced.key(),
-              coerced.value()
-          ));
+        for (final Future<RecordMetadata> future : futures) {
+          future.get();
         }
       } catch (final Exception e) {
         throw new RuntimeException("Failed to send record to " + topicName, e);

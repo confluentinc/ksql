@@ -17,6 +17,7 @@ package io.confluent.ksql.datagen;
 
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.connect.avro.AvroData;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
@@ -24,6 +25,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
+import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.util.Pair;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -39,7 +41,6 @@ import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Struct;
 
 public class RowGenerator {
 
@@ -51,8 +52,8 @@ public class RowGenerator {
   private final Generator generator;
   private final AvroData avroData;
   private final SessionManager sessionManager = new SessionManager();
-  private final ConnectSchema keySchema;
   private final ConnectSchema valueSchema;
+  private final LogicalSchema schema;
   private final int keyFieldIndex;
   private final Optional<Integer> timestampFieldIndex;
 
@@ -62,32 +63,27 @@ public class RowGenerator {
       final Optional<String> timestampFieldName) {
     this.generator = Objects.requireNonNull(generator, "generator");
     this.avroData = new AvroData(1);
-    final LogicalSchema ksqlSchema = buildLogicalSchema(generator, avroData, keyFieldName);
-    this.keySchema = ksqlSchema.keyConnectSchema();
-    this.valueSchema = ksqlSchema.valueConnectSchema();
-    this.keyFieldIndex = ksqlSchema.findValueColumn(ColumnName.of(keyFieldName))
+    this.schema = buildLogicalSchema(generator, avroData, keyFieldName);
+    this.valueSchema = ConnectSchemas.columnsToConnectSchema(schema.value());
+    this.keyFieldIndex = schema.findValueColumn(ColumnName.of(keyFieldName))
         .map(Column::index)
         .orElseThrow(IllegalStateException::new);
     this.timestampFieldIndex = timestampFieldName.isPresent()
-        ? ksqlSchema.findValueColumn(ColumnName.of(timestampFieldName.get()))
+        ? schema.findValueColumn(ColumnName.of(timestampFieldName.get()))
         .map(column -> Optional.of(column.index()))
         .orElseThrow(IllegalStateException::new)
         : Optional.empty();
   }
 
-  public ConnectSchema keySchema() {
-    return keySchema;
-  }
-
-  public ConnectSchema valueSchema() {
-    return valueSchema;
+  public LogicalSchema schema() {
+    return schema;
   }
 
   public Optional<Integer> getTimestampFieldIndex() {
     return timestampFieldIndex;
   }
 
-  public Pair<Struct, GenericRow> generateRow() {
+  public Pair<GenericKey, GenericRow> generateRow() {
 
     final Object generatedObject = generator.generate();
 
@@ -154,10 +150,9 @@ public class RowGenerator {
       }
     }
 
-    final Struct keyStruct = new Struct(keySchema);
-    keyStruct.put(KEY_COL_NAME.text(), row.get(keyFieldIndex));
+    final GenericKey key = GenericKey.genericKey(row.get(keyFieldIndex));
 
-    return Pair.of(keyStruct, row);
+    return Pair.of(key, row);
   }
 
   /**

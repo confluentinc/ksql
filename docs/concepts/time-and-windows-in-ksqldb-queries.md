@@ -216,6 +216,8 @@ ksqlDB tracks windows per record key.
       "keyed", for subsequent operations. When you use the GROUP BY clause in
       a query, windowing enables you to further sub-group the records of a
       key.
+      
+      Windowing queries must group by the keys that are selected in the query.
 
 When using windows in your SQL queries, aggregate functions are applied
 only to the records that occur within a specific time window. Records
@@ -424,21 +426,3 @@ CREATE TABLE pageviews_per_region AS
 Note that the specified retention period should be larger than the sum of window size and any grace
 period.
 
-### Window Final Results
-
-In ksqlDB, windowed aggregations update their results continuously. As new data arrives for 
-a window, freshly computed results are emitted downstream. For many applications, this is ideal, 
-since fresh results are always available, and ksqlDB is designed to make programming 
-continuous computations seamless. However, some applications need to take action only on the final 
-result of a windowed computation. Common examples of this are sending alerts or delivering results 
-to a system that doesn’t support updates.
-
-Suppose that you have an hourly windowed count of events per user. If you want to send an alert 
-when a user has less than three events in an hour, you have a real challenge. All users would match 
-this condition at first, until they accrue enough events, so you can’t simply send an alert when 
-someone matches the condition; you have to wait until you know you won’t see any more events for a 
-particular window, and then send the alert.
-
-ksqlDB offers a clean way to define this logic: after defining your windowed aggregation, 
-you can suppress the intermediate results, emitting the final count for each user when the window 
-is closed.

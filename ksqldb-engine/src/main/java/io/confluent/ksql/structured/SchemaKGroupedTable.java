@@ -15,12 +15,12 @@
 
 package io.confluent.ksql.structured;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.execution.function.UdafUtil;
 import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
@@ -30,9 +30,9 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Struct;
 
 public class SchemaKGroupedTable extends SchemaKGroupedStream {
 
@@ -69,11 +68,11 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
   }
 
   @Override
-  public SchemaKTable<Struct> aggregate(
+  public SchemaKTable<GenericKey> aggregate(
       final List<ColumnName> nonAggregateColumns,
       final List<FunctionCall> aggregations,
       final Optional<WindowExpression> windowExpression,
-      final ValueFormat valueFormat,
+      final FormatInfo valueFormat,
       final QueryContext.Stacker contextStacker
   ) {
     if (windowExpression.isPresent()) {
@@ -99,7 +98,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
     final TableAggregate step = ExecutionStepFactory.tableAggregate(
         contextStacker,
         sourceTableStep,
-        Formats.of(keyFormat, valueFormat, SerdeOption.none()),
+        InternalFormats.of(keyFormat.getFormatInfo(), valueFormat),
         nonAggregateColumns,
         aggregations
     );

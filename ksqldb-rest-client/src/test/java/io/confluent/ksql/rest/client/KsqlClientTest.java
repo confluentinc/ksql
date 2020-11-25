@@ -44,7 +44,6 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
@@ -71,6 +70,8 @@ import org.junit.Test;
 import org.reactivestreams.Subscription;
 
 public class KsqlClientTest {
+
+  private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
 
   private Vertx vertx;
   private FakeApiServer server;
@@ -191,7 +192,7 @@ public class KsqlClientTest {
 
     // Given:
     ServerInfo expectedResponse = new ServerInfo("someversion",
-        "kafkaclusterid", "ksqlserviceid");
+        "kafkaclusterid", "ksqlserviceid", "status");
     server.setResponseObject(expectedResponse);
 
     // When:
@@ -292,7 +293,7 @@ public class KsqlClientTest {
     List<StreamedRow> expectedResponse = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
       GenericRow row = GenericRow.genericRow("foo", 123, true);
-      StreamedRow sr = StreamedRow.row(row);
+      StreamedRow sr = StreamedRow.pushRow(row);
       expectedResponse.add(sr);
     }
     server.setResponseBuffer(createResponseBuffer(expectedResponse));
@@ -328,7 +329,7 @@ public class KsqlClientTest {
 
     // Then:
     assertThat(response.getResponse(), is(ImmutableList.of(
-        StreamedRow.row(GenericRow.genericRow(new BigDecimal("1.000"), new BigDecimal("12.100")))
+        StreamedRow.pushRow(GenericRow.genericRow(new BigDecimal("1.000"), new BigDecimal("12.100")))
     )));
   }
 
@@ -687,7 +688,7 @@ public class KsqlClientTest {
     List<StreamedRow> expectedResponse = new ArrayList<>();
     for (int i = 0; i < numRows; i++) {
       GenericRow row = GenericRow.genericRow("foo", 123, true);
-      StreamedRow sr = StreamedRow.row(row);
+      StreamedRow sr = StreamedRow.pushRow(row);
       expectedResponse.add(sr);
     }
     if (limitReached) {
@@ -731,9 +732,9 @@ public class KsqlClientTest {
         .setHost("localhost")
         .setSsl(true)
         .setKeyStoreOptions(new JksOptions()
-            .setPath(ServerKeyStore.keyStoreProps().get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG))
+            .setPath(SERVER_KEY_STORE.keyStoreProps().get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG))
             .setPassword(
-                ServerKeyStore.keyStoreProps().get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)));
+                SERVER_KEY_STORE.keyStoreProps().get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)));
 
     startServer(serverOptions);
     serverUri = URI.create("https://localhost:" + server.getPort());

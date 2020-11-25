@@ -8,6 +8,7 @@ import static java.util.Objects.requireNonNull;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.google.common.collect.ImmutableList;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
@@ -49,7 +50,7 @@ public class SchemaTranslationTest {
   private static final String DDL_STATEMENT = "CREATE STREAM " + TOPIC_NAME
       + " (ROWKEY STRING KEY) WITH (KAFKA_TOPIC='" + TOPIC_NAME + "', VALUE_FORMAT='AVRO');";
 
-  private static final Topic OUTPUT_TOPIC = new Topic(OUTPUT_TOPIC_NAME, Optional.empty());
+  private static final Topic OUTPUT_TOPIC = new Topic(OUTPUT_TOPIC_NAME, Optional.empty(), Optional.empty());
 
   private final TestCase testCase;
 
@@ -83,6 +84,7 @@ public class SchemaTranslationTest {
       final Record record = new Record(
           TOPIC_NAME,
           "test-key",
+          JsonNodeFactory.instance.textNode("test-key"),
           avroToValueSpec(avro, avroSchema, true),
           spec,
           Optional.of(0L),
@@ -100,6 +102,7 @@ public class SchemaTranslationTest {
             r -> new Record(
                 OUTPUT_TOPIC_NAME,
                 "test-key",
+                JsonNodeFactory.instance.textNode("test-key"),
                 r.value(),
                 r.getJsonValue().orElse(null),
                 Optional.of(0L),
@@ -167,7 +170,7 @@ public class SchemaTranslationTest {
       final String testName = buildTestName(originalFileName, name, "");
 
       try {
-        final Topic srcTopic = new Topic(TOPIC_NAME, Optional.of(schema));
+        final Topic srcTopic = new Topic(TOPIC_NAME, Optional.empty(), Optional.of(schema));
 
         final List<Record> inputRecords = generateInputRecords(schema.rawSchema());
         final List<Record> outputRecords = getOutputRecords(inputRecords);

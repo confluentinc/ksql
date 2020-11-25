@@ -18,24 +18,24 @@ package io.confluent.ksql.execution.streams.materialization;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.TableRowValidation.Validator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
 
 public final class Row implements TableRow {
 
   private final LogicalSchema schema;
-  private final Struct key;
+  private final GenericKey key;
   private final GenericRow value;
   private final long rowTime;
   private final Validator validator;
 
   public static Row of(
       final LogicalSchema schema,
-      final Struct key,
+      final GenericKey key,
       final GenericRow value,
       final long rowTime
   ) {
@@ -45,7 +45,7 @@ public final class Row implements TableRow {
   @VisibleForTesting
   Row(
       final LogicalSchema schema,
-      final Struct key,
+      final GenericKey key,
       final GenericRow value,
       final long rowTime,
       final Validator validator
@@ -70,7 +70,7 @@ public final class Row implements TableRow {
   }
 
   @Override
-  public Struct key() {
+  public GenericKey key() {
     return key;
   }
 

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.integration;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -22,6 +23,7 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
@@ -32,7 +34,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.TestDataProvider;
@@ -72,7 +74,7 @@ public class ReplaceIntTest {
   }
 
   @Test
-  public void shouldReplaceDDL() throws InterruptedException {
+  public void shouldReplaceDDL()  {
     // When:
     ksqlContext.sql(
         String.format(
@@ -97,20 +99,25 @@ public class ReplaceIntTest {
             "CREATE STREAM project WITH(kafka_topic='%s') AS SELECT k, col1 FROM source;",
             outputTopic));
 
-    TEST_HARNESS.produceRows(inputTopic, new Provider("1", "A", 1), FormatFactory.JSON);
-    assertForSource("PROJECT", outputTopic, ImmutableMap.of("1", GenericRow.genericRow("A")));
+    TEST_HARNESS.produceRows(inputTopic, new Provider("1", "A", 1), FormatFactory.KAFKA,
+        FormatFactory.JSON);
+    assertForSource("PROJECT", outputTopic,
+        ImmutableMap.of(genericKey("1"), GenericRow.genericRow("A")));
 
     // When:
     ksqlContext.sql(
         String.format(
             "CREATE OR REPLACE STREAM project WITH(kafka_topic='%s') AS SELECT k, col1, col2 FROM source;",
             outputTopic));
-    TEST_HARNESS.produceRows(inputTopic, new Provider("2", "B", 2), FormatFactory.JSON);
+    TEST_HARNESS.produceRows(inputTopic, new Provider("2", "B", 2), FormatFactory.KAFKA,
+        FormatFactory.JSON);
 
     // Then:
-    final Map<String, GenericRow> expected = ImmutableMap.of(
-        "1", GenericRow.genericRow("A", null),  // this row is leftover from the original query
-        "2", GenericRow.genericRow("B", 2)      // this row is an artifact from the new query
+    final Map<GenericKey, GenericRow> expected = ImmutableMap.of(
+        genericKey("1"), GenericRow.genericRow("A", null),
+        // this row is leftover from the original query
+        genericKey("2"), GenericRow.genericRow("B", 2)
+        // this row is an artifact from the new query
     );
     assertForSource("PROJECT", outputTopic, expected);
   }
@@ -124,20 +131,26 @@ public class ReplaceIntTest {
             "CREATE STREAM project WITH(kafka_topic='%s') AS SELECT k, col1 FROM source;",
             outputTopic));
 
-    TEST_HARNESS.produceRows(inputTopic, new Provider("1", "A", 1), FormatFactory.JSON);
-    assertForSource("PROJECT", outputTopic, ImmutableMap.of("1", GenericRow.genericRow("A")));
+    TEST_HARNESS.produceRows(inputTopic, new Provider("1", "A", 1), FormatFactory.KAFKA,
+        FormatFactory.JSON);
+    assertForSource("PROJECT", outputTopic,
+        ImmutableMap.of(genericKey("1"), GenericRow.genericRow("A")));
 
     // When:
     ksqlContext.sql(
         String.format(
-            "CREATE OR REPLACE STREAM project WITH(kafka_topic='%s') AS SELECT k, col1 FROM source WHERE col1 <> 'A';", outputTopic));
-    TEST_HARNESS.produceRows(inputTopic, new Provider("2", "A", 2), FormatFactory.JSON); // this row should be filtered out
-    TEST_HARNESS.produceRows(inputTopic, new Provider("3", "C", 3), FormatFactory.JSON);
+            "CREATE OR REPLACE STREAM project WITH(kafka_topic='%s') AS SELECT k, col1 FROM source WHERE col1 <> 'A';",
+            outputTopic));
+    TEST_HARNESS.produceRows(inputTopic, new Provider("2", "A", 2), FormatFactory.KAFKA,
+        FormatFactory.JSON); // this row should be filtered out
+    TEST_HARNESS.produceRows(inputTopic, new Provider("3", "C", 3), FormatFactory.KAFKA,
+        FormatFactory.JSON);
 
     // Then:
-    final Map<String, GenericRow> expected = ImmutableMap.of(
-        "1", GenericRow.genericRow("A"),  // this row is leftover from the original query
-        "3", GenericRow.genericRow("C")   // this row is an artifact from the new query
+    final Map<GenericKey, GenericRow> expected = ImmutableMap.of(
+        genericKey("1"), GenericRow.genericRow("A"),
+        // this row is leftover from the original query
+        genericKey("3"), GenericRow.genericRow("C")   // this row is an artifact from the new query
     );
     assertForSource("PROJECT", outputTopic, expected);
   }
@@ -145,18 +158,22 @@ public class ReplaceIntTest {
   private void assertForSource(
       final String sourceName,
       final String topic,
-      final Map<String, GenericRow> expected
+      final Map<GenericKey, GenericRow> expected
   ) {
     DataSource source = ksqlContext.getMetaStore().getSource(SourceName.of(sourceName));
-    PhysicalSchema resultSchema = PhysicalSchema.from(source.getSchema(), source.getSerdeOptions());
+    PhysicalSchema resultSchema = PhysicalSchema.from(
+        source.getSchema(),
+        source.getKsqlTopic().getKeyFormat().getFeatures(),
+        source.getKsqlTopic().getValueFormat().getFeatures()
+    );
 
     assertThat(
-        TEST_HARNESS.verifyAvailableUniqueRows(topic, expected.size(), FormatFactory.JSON, resultSchema),
+        TEST_HARNESS.verifyAvailableUniqueRows(topic, expected.size(), FormatFactory.KAFKA, FormatFactory.JSON, resultSchema),
         is(expected)
     );
   }
 
-  private static class Provider extends TestDataProvider<String> {
+  private static class Provider extends TestDataProvider {
 
     private static final String SQL = "k VARCHAR KEY, col1 VARCHAR, col2 INT";
     private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
@@ -166,15 +183,19 @@ public class ReplaceIntTest {
         .build();
 
     public Provider(final String k, final String col1, final int col2) {
-      super("SOURCE", PhysicalSchema.from(LOGICAL_SCHEMA, SerdeOption.none()), rows(k, col1, col2));
+      super(
+          "SOURCE",
+          PhysicalSchema.from(LOGICAL_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
+          rows(k, col1, col2)
+      );
     }
 
-    private static Multimap<String, GenericRow> rows(
+    private static Multimap<GenericKey, GenericRow> rows(
         final String key,
         final String col1,
         final Integer col2
     ) {
-      return ImmutableListMultimap.of(key, GenericRow.genericRow(col1, col2));
+      return ImmutableListMultimap.of(genericKey(key), GenericRow.genericRow(col1, col2));
     }
   }
 

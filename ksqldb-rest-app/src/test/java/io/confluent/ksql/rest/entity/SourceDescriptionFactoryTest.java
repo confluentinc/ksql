@@ -16,9 +16,11 @@
 package io.confluent.ksql.rest.entity;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
@@ -34,7 +36,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import java.util.Arrays;
 import java.util.Collections;
@@ -77,15 +79,14 @@ public class SourceDescriptionFactoryTest {
 
     final KsqlTopic topic = new KsqlTopic(
         kafkaTopicName,
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
     );
 
     return new KsqlStream<>(
         "query",
         SourceName.of("stream"),
         schema,
-        SerdeOption.none(),
         timestampColumn,
         false,
         topic
@@ -120,6 +121,7 @@ public class SourceDescriptionFactoryTest {
         Collections.emptyList(),
         Collections.emptyList(),
         Optional.empty(),
+        Collections.emptyList(),
         Collections.emptyList());
 
     // Then:
@@ -144,10 +146,31 @@ public class SourceDescriptionFactoryTest {
         Collections.emptyList(),
         Collections.emptyList(),
         Optional.empty(),
+        Collections.emptyList(),
         Collections.emptyList());
 
     // Then:
     assertThat(sourceDescription.getTimestamp(), is(""));
+  }
+
+  @Test
+  public void shouldReturnSourceConstraints() {
+    // Given:
+    final String kafkaTopicName = "kafka";
+    final DataSource dataSource = buildDataSource(kafkaTopicName, Optional.empty());
+
+    // When
+    final SourceDescription sourceDescription = SourceDescriptionFactory.create(
+        dataSource,
+        true,
+        Collections.emptyList(),
+        Collections.emptyList(),
+        Optional.empty(),
+        Collections.emptyList(),
+        ImmutableList.of("s1", "s2"));
+
+    // Then:
+    assertThat(sourceDescription.getSourceConstraints(), hasItems("s1", "s2"));
   }
 
   @Test
@@ -167,6 +190,7 @@ public class SourceDescriptionFactoryTest {
         Collections.emptyList(),
         Collections.emptyList(),
         Optional.empty(),
+        Collections.emptyList(),
         Collections.emptyList());
 
     // Then:

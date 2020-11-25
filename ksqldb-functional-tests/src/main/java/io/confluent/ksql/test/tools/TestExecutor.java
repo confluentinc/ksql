@@ -22,15 +22,19 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.matchers.JUnitMatchers.isThrowable;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.common.utils.TestUtils;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
@@ -40,6 +44,8 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
+import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
+import io.confluent.ksql.serde.protobuf.ProtobufFormat;
 import io.confluent.ksql.services.DefaultConnectClient;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.DisabledKsqlClient;
@@ -47,11 +53,13 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.model.SchemaNode;
 import io.confluent.ksql.test.model.SourceNode;
+import io.confluent.ksql.test.model.WindowData;
 import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.tools.stubs.StubKafkaClientSupplier;
 import io.confluent.ksql.test.tools.stubs.StubKafkaConsumerGroupClient;
 import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.test.tools.stubs.StubKafkaTopicClient;
+import io.confluent.ksql.test.utils.TestUtils;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -62,7 +70,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -71,8 +78,11 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
+import org.apache.kafka.streams.kstream.Windowed;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 
@@ -87,7 +97,6 @@ public class TestExecutor implements Closeable {
       .put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 0)
       .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
       .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
-      .put(StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 0L)
       .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
       .build();
 
@@ -96,9 +105,24 @@ public class TestExecutor implements Closeable {
   private final Map<String, ?> config = baseConfig();
   private final StubKafkaService kafka;
   private final TopologyBuilder topologyBuilder;
+  private final boolean validateResults;
   private final TopicInfoCache topicInfoCache;
 
-  public static TestExecutor create(final Optional<String> extensionDir) {
+  /**
+   * Create instance.
+   *
+   * <p>If {@code validateResults} is {@code true} the test will fail if the results are as
+   * expected. This is the norm. If {@code false} the test will not fail if the results differ. This
+   * is useful when re-writing the historical plans.
+   *
+   * @param validateResults flag to indicate if results should be validated.
+   * @param extensionDir Optional extension directory.
+   * @return the executor.
+   */
+  public static TestExecutor create(
+      final boolean validateResults,
+      final Optional<String> extensionDir
+  ) {
     final StubKafkaService kafkaService = StubKafkaService.create();
     final StubKafkaClientSupplier kafkaClientSupplier = new StubKafkaClientSupplier();
     final ServiceContext serviceContext = getServiceContext(kafkaClientSupplier);
@@ -107,7 +131,8 @@ public class TestExecutor implements Closeable {
         kafkaService,
         serviceContext,
         getKsqlEngine(serviceContext, extensionDir),
-        TestExecutorUtil::buildStreamsTopologyTestDrivers
+        TestExecutorUtil::buildStreamsTopologyTestDrivers,
+        validateResults
     );
   }
 
@@ -116,12 +141,14 @@ public class TestExecutor implements Closeable {
       final StubKafkaService kafka,
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
-      final TopologyBuilder topologyBuilder
+      final TopologyBuilder topologyBuilder,
+      final boolean validateResults
   ) {
     this.kafka = requireNonNull(kafka, "stubKafkaService");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
     this.topologyBuilder = requireNonNull(topologyBuilder, "topologyBuilder");
+    this.validateResults = validateResults;
     this.topicInfoCache = new TopicInfoCache(ksqlEngine, serviceContext.getSchemaRegistryClient());
   }
 
@@ -131,12 +158,11 @@ public class TestExecutor implements Closeable {
   ) {
     topicInfoCache.clear();
 
-    final KsqlConfig currentConfigs = new KsqlConfig(config);
-    final Map<String, String> persistedConfigs = testCase.persistedProperties();
-    final KsqlConfig ksqlConfig = persistedConfigs.isEmpty() ? currentConfigs :
-        currentConfigs.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
+    final KsqlConfig ksqlConfig = testCase.applyPersistedProperties(new KsqlConfig(config));
 
     try {
+      System.setProperty(KsqlQueryBuilder.KSQL_TEST_TRACK_SERDE_TOPICS, "true");
+
       final List<TopologyTestDriverContainer> topologyTestDrivers = topologyBuilder
           .buildStreamsTopologyTestDrivers(
               testCase,
@@ -154,7 +180,9 @@ public class TestExecutor implements Closeable {
           .collect(Collectors.toSet());
 
       for (final TopologyTestDriverContainer topologyTestDriverContainer : topologyTestDrivers) {
-        verifyTopology(testCase);
+        if (validateResults) {
+          verifyTopology(testCase);
+        }
 
         final Set<Topic> topicsFromInput = topologyTestDriverContainer.getSourceTopics()
             .stream()
@@ -197,11 +225,18 @@ public class TestExecutor implements Closeable {
                 ? OptionalInt.empty()
                 : OptionalInt.of(topic.getNumPartitions());
 
+            final Optional<SchemaMetadata> keyMetadata = SchemaRegistryUtil.getLatestSchema(
+                serviceContext.getSchemaRegistryClient(), ti.getTopicName(), true);
+            final Optional<SchemaMetadata> valueMetadata = SchemaRegistryUtil.getLatestSchema(
+                serviceContext.getSchemaRegistryClient(), ti.getTopicName(), false);
+
             return new PostTopicNode(
                 ti.getTopicName(),
                 ti.getKeyFormat(),
                 ti.getValueFormat(),
-                partitions
+                partitions,
+                fromSchemaMetadata(keyMetadata),
+                fromSchemaMetadata(valueMetadata)
             );
           })
           .collect(Collectors.toList());
@@ -210,7 +245,9 @@ public class TestExecutor implements Closeable {
           .map(SourceNode::fromDataSource)
           .collect(Collectors.toList());
 
-      testCase.getPostConditions().verify(ksqlEngine.getMetaStore(), knownTopics);
+      if (validateResults) {
+        testCase.getPostConditions().verify(ksqlEngine.getMetaStore(), knownTopics);
+      }
 
       listener.runComplete(knownTopics, knownSources);
 
@@ -221,6 +258,24 @@ public class TestExecutor implements Closeable {
       }
 
       assertThat(e, isThrowable(expectedExceptionMatcher.get()));
+    } finally {
+      System.clearProperty(KsqlQueryBuilder.KSQL_TEST_TRACK_SERDE_TOPICS);
+    }
+  }
+
+  private static JsonNode fromSchemaMetadata(final Optional<SchemaMetadata> metadata) {
+    if (!metadata.isPresent()) {
+      return NullNode.getInstance();
+    }
+
+    if (ProtobufFormat.NAME.equals(metadata.get().getSchemaType())) {
+      return JsonNodeFactory.instance.textNode(metadata.get().getSchema());
+    }
+
+    try {
+      return TestJsonMapper.INSTANCE.get().readTree(metadata.get().getSchema());
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -235,19 +290,106 @@ public class TestExecutor implements Closeable {
     final Map<String, List<Record>> expectedByTopic = testCase.getOutputRecords().stream()
         .collect(Collectors.groupingBy(Record::getTopicName));
 
-    final Map<String, List<ProducerRecord<?, ?>>> actualByTopic = expectedByTopic.keySet().stream()
+    final Map<String, List<ProducerRecord<byte[], byte[]>>> actualByTopic = expectedByTopic.keySet()
+        .stream()
         .collect(Collectors.toMap(Function.identity(), kafka::readRecords));
 
-    expectedByTopic.forEach((kafkaTopic, expectedRecords) ->
+    expectedByTopic.forEach((kafkaTopic, expectedRecords) -> {
+      final TopicInfo topicInfo = topicInfoCache.get(kafkaTopic);
+
+      final List<ProducerRecord<?, ?>> actualRecords = actualByTopic
+          .getOrDefault(kafkaTopic, ImmutableList.of())
+          .stream()
+          .map(rec -> deserialize(rec, topicInfo))
+          .collect(Collectors.toList());
+
+      if (validateResults) {
         validateTopicData(
             kafkaTopic,
             expectedRecords,
-            actualByTopic.getOrDefault(kafkaTopic, ImmutableList.of()),
+            actualRecords,
             ranWithInsertStatements
-        ));
+        );
+      }
+    });
   }
 
-  private void validateTopicData(
+  private ProducerRecord<?, ?> deserialize(
+      final ProducerRecord<byte[], byte[]> rec,
+      final TopicInfo topicInfo
+  ) {
+    final Object key;
+    final Object value;
+
+    try {
+      key = topicInfo.getKeyDeserializer().deserialize(rec.topic(), rec.key());
+    } catch (final Exception e) {
+      throw new AssertionError("Failed to deserialize key: " + e.getMessage()
+          + System.lineSeparator()
+          + "rec: " + rec,
+          e
+      );
+    }
+
+    try {
+      value = topicInfo.getValueDeserializer().deserialize(rec.topic(), rec.value());
+    } catch (final Exception e) {
+      throw new AssertionError("Failed to deserialize value: " + e.getMessage()
+          + System.lineSeparator()
+          + "rec: " + rec,
+          e
+      );
+    }
+
+    return new ProducerRecord<>(
+        rec.topic(),
+        rec.partition(),
+        rec.timestamp(),
+        key,
+        value,
+        rec.headers()
+    );
+  }
+
+  private ProducerRecord<byte[], byte[]> serialize(
+      final ProducerRecord<?, ?> rec
+  ) {
+    final TopicInfo topicInfo = topicInfoCache.get(rec.topic());
+
+    final byte[] key;
+    final byte[] value;
+
+    try {
+      key = topicInfo.getKeySerializer().serialize(rec.topic(), rec.key());
+    } catch (final Exception e) {
+      throw new AssertionError("Failed to serialize value: " + e.getMessage()
+          + System.lineSeparator()
+          + "rec: " + rec,
+          e
+      );
+    }
+
+    try {
+      value = topicInfo.getValueSerializer().serialize(rec.topic(), rec.value());
+    } catch (final Exception e) {
+      throw new AssertionError("Failed to serialize value: " + e.getMessage()
+          + System.lineSeparator()
+          + "rec: " + rec,
+          e
+      );
+    }
+
+    return new ProducerRecord<>(
+        rec.topic(),
+        rec.partition(),
+        rec.timestamp(),
+        key,
+        value,
+        rec.headers()
+    );
+  }
+
+  private static void validateTopicData(
       final String topicName,
       final List<Record> expected,
       final Collection<ProducerRecord<?, ?>> actual,
@@ -258,14 +400,12 @@ public class TestExecutor implements Closeable {
           + "> records but it was <" + actual.size() + ">\n" + getActualsForErrorMessage(actual));
     }
 
-    final TopicInfo topicInfo = topicInfoCache.get(topicName);
-
     final Iterator<Record> expectedIt = expected.iterator();
     final Iterator<ProducerRecord<?, ?>> actualIt = actual.iterator();
 
     int i = 0;
     while (actualIt.hasNext() && expectedIt.hasNext()) {
-      final Record expectedRecord = topicInfo.coerceRecord(expectedIt.next(), i);
+      final Record expectedRecord = expectedIt.next();
       final ProducerRecord<?, ?> actualProducerRecord = actualIt.next();
 
       validateCreatedMessage(
@@ -309,7 +449,8 @@ public class TestExecutor implements Closeable {
           testCase.getGeneratedSchemas().entrySet().stream()
               .collect(Collectors.toMap(
                   Entry::getKey,
-                  e -> SchemaNode.fromPhysicalSchema(e.getValue())));
+                  e -> SchemaNode.fromSchemaInfo(e.getValue())));
+
       for (final Map.Entry<String, SchemaNode> e : expected.getSchemas().entrySet()) {
         assertThat("Schemas used by topology differ "
                 + "from those used by previous versions"
@@ -329,21 +470,14 @@ public class TestExecutor implements Closeable {
       final TestCase testCase,
       final TopologyTestDriverContainer testDriver
   ) {
-    int inputRecordIndex = 0;
     for (final Record record : testCase.getInputRecords()) {
       if (testDriver.getSourceTopicNames().contains(record.getTopicName())) {
-
-        final TopicInfo topicInfo = topicInfoCache.get(record.getTopicName());
-
-        final Record coerced = topicInfo.coerceRecord(record, inputRecordIndex);
-
         processSingleRecord(
-            coerced.asProducerRecord(),
+            serialize(record.asProducerRecord()),
             testDriver,
             ImmutableSet.copyOf(kafka.getAllTopics())
         );
       }
-      ++inputRecordIndex;
     }
   }
 
@@ -360,17 +494,16 @@ public class TestExecutor implements Closeable {
   }
 
   private void processSingleRecord(
-      final ProducerRecord<?, ?> producedRecord,
+      final ProducerRecord<byte[], byte[]> producedRecord,
       final TopologyTestDriverContainer testDriver,
       final Set<Topic> possibleSinkTopics
   ) {
     final String topicName = producedRecord.topic();
-    final TopicInfo topicInfo = topicInfoCache.get(topicName);
 
     final ConsumerRecord<byte[], byte[]> consumerRecord =
         new org.apache.kafka.streams.test.ConsumerRecordFactory<>(
-            topicInfo.getKeySerializer(),
-            topicInfo.getValueSerializer()
+            new ByteArraySerializer(),
+            new ByteArraySerializer()
         ).create(
             topicName,
             producedRecord.key(),
@@ -402,36 +535,18 @@ public class TestExecutor implements Closeable {
       final TopologyTestDriver topologyTestDriver,
       final Topic sinkTopic
   ) {
-    int idx = 0;
     while (true) {
-      final ProducerRecord<?, ?> producerRecord = readOutput(topologyTestDriver, sinkTopic, idx++);
+      final ProducerRecord<byte[], byte[]> producerRecord = topologyTestDriver.readOutput(
+          sinkTopic.getName(),
+          new ByteArrayDeserializer(),
+          new ByteArrayDeserializer()
+      );
+
       if (producerRecord == null) {
         break;
       }
 
       kafka.writeRecord(producerRecord);
-    }
-  }
-
-  private ProducerRecord<?, ?> readOutput(
-      final TopologyTestDriver topologyTestDriver,
-      final Topic sinkTopic,
-      final int idx
-  ) {
-    try {
-      final TopicInfo topicInfo = topicInfoCache.get(sinkTopic.getName());
-
-      return topologyTestDriver.readOutput(
-          sinkTopic.getName(),
-          topicInfo.getKeyDeserializer(),
-          topicInfo.getValueDeserializer()
-      );
-    } catch (final Exception e) {
-      throw new AssertionError("Topic " + sinkTopic.getName()
-          + ": Failed to read record " + idx
-          + ". " + e.getMessage(),
-          e
-      );
     }
   }
 
@@ -484,16 +599,17 @@ public class TestExecutor implements Closeable {
   public static Map<String, ?> baseConfig() {
     return ImmutableMap.<String, Object>builder()
         .putAll(BASE_CONFIG)
-        .put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath())
+        .put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().toAbsolutePath().toString())
         .build();
   }
 
-  private static void writeInputIntoTopics(
+  private void writeInputIntoTopics(
       final List<Record> inputRecords,
       final StubKafkaService kafka
   ) {
     inputRecords.stream()
         .map(Record::asProducerRecord)
+        .map(this::serialize)
         .forEach(kafka::writeRecord);
   }
 
@@ -508,7 +624,7 @@ public class TestExecutor implements Closeable {
     final Object actualValue = actualProducerRecord.value();
     final long actualTimestamp = actualProducerRecord.timestamp();
 
-    final Object expectedKey = expectedRecord.key();
+    final JsonNode expectedKey = expectedRecord.getJsonKey().orElse(NullNode.getInstance());
     final JsonNode expectedValue = expectedRecord.getJsonValue()
         .orElseThrow(() -> new KsqlServerException(
             "could not get expected value from test record: " + expectedRecord));
@@ -520,8 +636,16 @@ public class TestExecutor implements Closeable {
             + "with timestamp=" + expectedTimestamp
             + " but was " + getProducerRecordInString(actualProducerRecord));
 
-    if (!Objects.equals(actualKey, expectedKey)) {
-      throw error;
+    if (expectedRecord.getWindow() != null) {
+      final Windowed<?> windowed = (Windowed<?>) actualKey;
+      if (!new WindowData(windowed).equals(expectedRecord.getWindow())
+          || !ExpectedRecordComparator.matches(((Windowed<?>) actualKey).key(), expectedKey)) {
+        throw error;
+      }
+    } else {
+      if (!ExpectedRecordComparator.matches(actualKey, expectedKey)) {
+        throw error;
+      }
     }
 
     if (!ExpectedRecordComparator.matches(actualValue, expectedValue)) {

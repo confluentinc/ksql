@@ -29,7 +29,7 @@ This is the guts of our improvement proposal process:
 1. Submit a Pull Request from your branch to KSQL:
     1. make sure the title is `docs: klip-<number>: <title>`
     1. update the table entry below from the Proposal Intent step with a link to your KLIP
-1. Share a link to the PR in the `#ksqldb-dev` channel on the [confluent community slack](https://slackpass.io/confluentcommunity).
+1. Share a link to the PR in the `#ksqldb` channel on the [confluent community slack](https://slackpass.io/confluentcommunity).
 1. The design discussion will happen on the pull request
 1. The KLIP is approved and merged if at least two people with write access approve the change
 
@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **34**
+Next KLIP number: **44**
 
 | KLIP                                                                                                 | Status         | Community Release | CP Release | Discussion PR |
 |------------------------------------------------------------------------------------------------------|:--------------:|:-----------------:|:----------:|:--------------|
@@ -58,7 +58,7 @@ Next KLIP number: **34**
 | [KLIP-15: KSQLDB new API and Client](klip-15-new-api-and-client.md)                                  | Proposal       |                   |            |               |
 | [KLIP-16: Introduce 'K$' dynamic views                                                               | Proposal       |                   |            |               |
 | [KLIP-17: Remove 'INSERT INTO' in favour of SQL Union](klip-17-sql-union.md)                         | Proposed       |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/4125) |
-| [KLIP-18: Distributed Metastore](klip-18-distributed-metastore .md)                                  | Proposal       |                   |            |               |
+| [KLIP-18: Distributed Metastore](klip-18-distributed-metastore.md)                                   | Proposal       |                   |            |               |
 | [KLIP-19: Introduce Materialize Views](klip-19-materialize-views.md)                                 | Proposal       |                   |            |               |
 | [KLIP-20: Remove 'TERMINATE' statements](klip-20_remove_terminate.md)                                | Proposal       |                   |            |               |
 | [KLIP-21: Correct 'INSERT VALUES' semantics](klip-21_correct_insert_values_semantics.md)             | Proposal       |                   |            |               |
@@ -70,8 +70,17 @@ Next KLIP number: **34**
 | [KLIP-27: Enhanced UDF Configuration Options](klip-27-enhanced-udf-configuration-options.md)         | Proposal       |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/5269) |
 | [KLIP-28: Introduce 'CREATE OR REPLACE' for Query Upgrades](klip-28-create-or-replace.md)            | Approved       |  0.12.0           |            | [Discussion](https://github.com/confluentinc/ksql/pull/5611)              |
 | [KLIP-29: Explicit Table Primary Keys and Key-less Streams]( klip-29-explicit-keys.md)               | Merged         | 0.10.0            | 6.0.0      | [Discussion](https://github.com/confluentinc/ksql/pull/5530) |
-| KLIP-30: Lambda Functions                                                                            | Proposal         |             |       | [Discussion](https://github.com/confluentinc/ksql/pull/5661) |
+| [KLIP-30: Lambda Functions](klip-30-lambda-functions.md)               | Proposal         |             |       | [Discussion](https://github.com/confluentinc/ksql/pull/5661) |
 | [KLIP-31: Metastore Backups](klip-31-metastore-backups.md)              | Merged |  0.11.0           |  6.0.0     | [Discussion](https://github.com/confluentinc/ksql/pull/5741)|
 | [KLIP-32: SQL-based testing tool](klip-32-sql-testing-tool.md)                                      | Proposal | | | |
-| KLIP-33: Key format.                                                                  |  | | | |
-
+| [KLIP-33: Key format](klip-33-key-format.md)                                                         | Approved | | | [Discussion](https://github.com/confluentinc/ksql/pull/6017) |
+| KLIP-34: Optional WITH for CREATE TABLE and CREATE STREAM                                            | Proposal | | | [Discussion](https://github.com/confluentinc/ksql/pull/6065) |
+| KLIP-35: Dynamic Processing Log Levels                                                               | Proposal | | | |
+| [KLIP-36: GRACE period for stream-stream joins](klip-36-grace-stream-stream-joins.md)                | Approved | | | [Discussion](https://github.com/confluentinc/ksql/pull/6175)|
+| KLIP-36: GRACE period for stream-stream joins                                                        | Proposal | | | |
+| KLIP-37: System Tables                                                                               | Proposal | | | |
+| [KLIP-38: Variable Substitution](klip-38-variable-substitution.md)                                   | Merged         | 0.14.0            | 6.1.0      | [Discussion](https://github.com/confluentinc/ksql/pull/6259) |
+| KLIP-40: Prepared Statements for Java Client                                                         | Proposal | | | |
+| [KLIP-41: ksqlDB .NET Client](klip-41-ksqldb-.net-client.md)                                         | Proposal | | | [Discussion](https://github.com/confluentinc/ksql/pull/6613)|
+| KLIP-42: Schema Migrations Tool                                                                      | Proposal | | | |
+| KLIP-43: TIMESTAMP data type support                                                                      | Proposal | | | |

@@ -16,21 +16,22 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.collect.Lists;
-import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.rest.server.computation.Command;
-import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
+import io.confluent.ksql.rest.server.resources.CommandTopicCorruptionException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +40,7 @@ public class CommandTopic {
   private static final Logger log = LoggerFactory.getLogger(CommandTopic.class);
   private final TopicPartition commandTopicPartition;
 
-  private Consumer<CommandId, Command> commandConsumer = null;
+  private Consumer<byte[], byte[]> commandConsumer;
   private final String commandTopicName;
   private CommandTopicBackup commandTopicBackup;
 
@@ -52,8 +53,8 @@ public class CommandTopic {
         commandTopicName,
         new KafkaConsumer<>(
             Objects.requireNonNull(kafkaConsumerProperties, "kafkaClientProperties"),
-            InternalTopicSerdes.deserializer(CommandId.class),
-            InternalTopicSerdes.deserializer(Command.class)
+            new ByteArrayDeserializer(),
+            new ByteArrayDeserializer()
         ),
         commandTopicBackup
     );
@@ -61,7 +62,7 @@ public class CommandTopic {
 
   CommandTopic(
       final String commandTopicName,
-      final Consumer<CommandId, Command> commandConsumer,
+      final Consumer<byte[], byte[]> commandConsumer,
       final CommandTopicBackup commandTopicBackup
   ) {
     this.commandTopicPartition = new TopicPartition(commandTopicName, 0);
@@ -79,14 +80,25 @@ public class CommandTopic {
     commandConsumer.assign(Collections.singleton(commandTopicPartition));
   }
 
-  public Iterable<ConsumerRecord<CommandId, Command>> getNewCommands(final Duration timeout) {
-    final Iterable<ConsumerRecord<CommandId, Command>> iterable = commandConsumer.poll(timeout);
+  public Iterable<ConsumerRecord<byte[], byte[]>> getNewCommands(final Duration timeout) {
+    final Iterable<ConsumerRecord<byte[], byte[]>> iterable = commandConsumer.poll(timeout);
+    final List<ConsumerRecord<byte[], byte[]>> records = new ArrayList<>();
 
     if (iterable != null) {
-      iterable.forEach(record -> backupRecord(record));
+      for (ConsumerRecord<byte[], byte[]> record : iterable) {
+        try {
+          backupRecord(record);
+        } catch (final CommandTopicCorruptionException e) {
+          log.warn("Backup is out of sync with the current command topic. "
+              + "Backups will not work until the previous command topic is "
+              + "restored or all backup files are deleted.", e);
+          return records;
+        }
+        records.add(record);
+      }
     }
 
-    return iterable;
+    return records;
   }
 
   public List<QueuedCommand> getRestoreCommands(final Duration duration) {
@@ -96,12 +108,19 @@ public class CommandTopic {
         Collections.singletonList(commandTopicPartition));
 
     log.debug("Reading prior command records");
-    ConsumerRecords<CommandId, Command> records =
+    ConsumerRecords<byte[], byte[]> records =
         commandConsumer.poll(duration);
     while (!records.isEmpty()) {
       log.debug("Received {} records from poll", records.count());
-      for (final ConsumerRecord<CommandId, Command> record : records) {
-        backupRecord(record);
+      for (final ConsumerRecord<byte[], byte[]> record : records) {
+        try {
+          backupRecord(record);
+        } catch (final CommandTopicCorruptionException e) {
+          log.warn("Backup is out of sync with the current command topic. "
+              + "Backups will not work until the previous command topic is "
+              + "restored or all backup files are deleted.", e);
+          return restoreCommands;
+        }
 
         if (record.value() == null) {
           continue;
@@ -136,7 +155,7 @@ public class CommandTopic {
     commandTopicBackup.close();
   }
 
-  private void backupRecord(final ConsumerRecord<CommandId, Command> record) {
+  private void backupRecord(final ConsumerRecord<byte[], byte[]> record) {
     commandTopicBackup.writeRecord(record);
   }
 }

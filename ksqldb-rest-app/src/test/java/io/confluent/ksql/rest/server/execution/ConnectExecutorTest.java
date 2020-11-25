@@ -28,6 +28,7 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateConnector;
@@ -36,11 +37,13 @@ import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.WarningEntity;
 import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.hc.core5.http.HttpStatus;
@@ -58,15 +61,23 @@ public class ConnectExecutorTest {
   private static final KsqlConfig CONFIG = new KsqlConfig(ImmutableMap.of());
 
   private static final CreateConnector CREATE_CONNECTOR = new CreateConnector(
-      "foo", ImmutableMap.of("foo", new StringLiteral("bar")), Type.SOURCE);
+      "foo", ImmutableMap.of("foo", new StringLiteral("bar")), Type.SOURCE,
+      false);
 
   private static final ConfiguredStatement<CreateConnector> CREATE_CONNECTOR_CONFIGURED =
-      ConfiguredStatement.of(
-          PreparedStatement.of(
-              "CREATE SOURCE CONNECTOR foo WITH ('foo'='bar');",
-              CREATE_CONNECTOR),
-          ImmutableMap.of(),
-          CONFIG);
+      ConfiguredStatement.of(PreparedStatement.of(
+          "CREATE SOURCE CONNECTOR foo WITH ('foo'='bar');",
+          CREATE_CONNECTOR), SessionConfig.of(CONFIG, ImmutableMap.of()));
+
+  private static final CreateConnector CREATE_DUPLICATE_CONNECTOR = new CreateConnector(
+      "foo", ImmutableMap.of("foo", new StringLiteral("bar")), Type.SOURCE,
+      true);
+
+  private static final ConfiguredStatement<CreateConnector> CREATE_DUPLICATE_CONNECTOR_CONFIGURED =
+      ConfiguredStatement.of(PreparedStatement.of(
+          "CREATE SOURCE CONNECTOR IF NOT EXISTS foo WITH ('foo'='bar');",
+          CREATE_DUPLICATE_CONNECTOR), SessionConfig.of(CONFIG, ImmutableMap.of())
+      );
 
   @Mock
   private ServiceContext serviceContext;
@@ -85,7 +96,8 @@ public class ConnectExecutorTest {
     givenSuccess();
 
     // When:
-    ConnectExecutor.execute(CREATE_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext);
+    ConnectExecutor
+        .execute(CREATE_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext);
 
     // Then:
     verify(connectClient).create(eq("foo"), (Map<String, String>) argThat(hasEntry("foo", "bar")));
@@ -119,6 +131,36 @@ public class ConnectExecutorTest {
     assertThat(entity.get(), instanceOf(ErrorEntity.class));
   }
 
+  @Test
+  public void shouldReturnWarningWhenIfNotExistsSetConnectorExists() {
+    //Given:
+    givenConnectorExists();
+
+    //When
+    final Optional<KsqlEntity> entity = ConnectExecutor
+        .execute(CREATE_DUPLICATE_CONNECTOR_CONFIGURED,
+            mock(SessionProperties.class), null, serviceContext);
+    //Then
+    assertThat("Expected non-empty response", entity.isPresent());
+    assertThat(entity.get(), instanceOf(WarningEntity.class));
+  }
+
+  @Test
+  public void shouldReturnErrorIfConnectorExists() {
+    //Given:
+    when(connectClient.create(anyString(), anyMap()))
+        .thenReturn(
+            ConnectResponse.failure("Connector foo already exists", HttpStatus.SC_CONFLICT));
+
+    // When:
+    final Optional<KsqlEntity> entity = ConnectExecutor
+        .execute(CREATE_CONNECTOR_CONFIGURED, mock(SessionProperties.class), null, serviceContext);
+
+    // Then:
+    assertThat("Expected non-empty response", entity.isPresent());
+    assertThat(entity.get(), instanceOf(ErrorEntity.class));
+  }
+
   private void givenSuccess() {
     when(connectClient.create(anyString(), anyMap()))
         .thenReturn(ConnectResponse.success(
@@ -127,6 +169,7 @@ public class ConnectExecutorTest {
                 ImmutableMap.of(),
                 ImmutableList.of(),
                 ConnectorType.SOURCE), HttpStatus.SC_OK));
+
   }
 
   private void givenError() {
@@ -134,4 +177,9 @@ public class ConnectExecutorTest {
         .thenReturn(ConnectResponse.failure("error!", HttpStatus.SC_BAD_REQUEST));
   }
 
+  private void givenConnectorExists() {
+    when(connectClient.connectors())
+        .thenReturn(ConnectResponse.success(
+            Arrays.asList("foo", "bar"), HttpStatus.SC_OK));
+  }
 }

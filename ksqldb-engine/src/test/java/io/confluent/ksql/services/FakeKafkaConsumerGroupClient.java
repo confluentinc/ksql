@@ -3,6 +3,7 @@ package io.confluent.ksql.services;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,8 @@ import org.apache.kafka.common.TopicPartition;
 public class FakeKafkaConsumerGroupClient implements KafkaConsumerGroupClient {
 
   private static final List<String> groups = ImmutableList.of("cg1", "cg2");
+
+  private Set<String> deletedConsumerGroups = new HashSet<>();
 
   @Override
   public List<String> listGroups() {
@@ -48,5 +51,14 @@ public class FakeKafkaConsumerGroupClient implements KafkaConsumerGroupClient {
           new RuntimeException()
       );
     }
+  }
+
+  @Override
+  public void deleteConsumerGroups(final Set<String> groups) {
+    deletedConsumerGroups.addAll(groups);
+  }
+
+  public Set<String> getDeletedConsumerGroups() {
+    return ImmutableSet.copyOf(deletedConsumerGroups);
   }
 }

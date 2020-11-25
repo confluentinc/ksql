@@ -19,6 +19,7 @@ import static io.confluent.ksql.util.SandboxUtil.requireSandbox;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -35,6 +36,7 @@ import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -76,6 +78,17 @@ public class RequestValidator {
         distributedStatementValidator, "distributedStatementValidator");
   }
 
+  private boolean isVariableSubstitutionEnabled(final SessionProperties sessionProperties) {
+    final Object substitutionEnabled = sessionProperties.getMutableScopedProperties()
+        .get(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE);
+
+    if (substitutionEnabled != null && substitutionEnabled instanceof Boolean) {
+      return (boolean) substitutionEnabled;
+    }
+
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE);
+  }
+
   /**
    * Validates the messages against a snapshot in time of the KSQL engine.
    *
@@ -103,9 +116,15 @@ public class RequestValidator {
 
     int numPersistentQueries = 0;
     for (final ParsedStatement parsed : statements) {
-      final PreparedStatement<?> prepared = ctx.prepare(parsed);
-      final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-          prepared, sessionProperties.getMutableScopedProperties(), ksqlConfig);
+      final PreparedStatement<?> prepared = ctx.prepare(
+          parsed,
+          (isVariableSubstitutionEnabled(sessionProperties)
+              ? sessionProperties.getSessionVariables()
+              : Collections.emptyMap())
+      );
+      final ConfiguredStatement<?> configured = ConfiguredStatement.of(prepared,
+          SessionConfig.of(ksqlConfig, sessionProperties.getMutableScopedProperties())
+      );
 
       numPersistentQueries +=
           validate(serviceContext, configured, sessionProperties, ctx, injector);

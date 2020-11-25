@@ -22,17 +22,21 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.MaterializationProviderBuilderFactory;
+import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.query.QuerySchemas;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -42,6 +46,7 @@ import org.apache.kafka.streams.Topology;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -81,6 +86,8 @@ public class PersistentQueryMetadataTest {
   private QueryErrorClassifier queryErrorClassifier;
   @Mock
   private ExecutionStep<?> physicalPlan;
+  @Mock
+  private ProcessingLogger processingLogger;
 
   private PersistentQueryMetadata query;
 
@@ -109,7 +116,8 @@ public class PersistentQueryMetadataTest {
         CLOSE_TIMEOUT,
         queryErrorClassifier,
         physicalPlan,
-        10
+        10,
+        processingLogger
     );
   }
 
@@ -125,6 +133,7 @@ public class PersistentQueryMetadataTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation") // https://github.com/confluentinc/ksql/issues/6639
   public void shouldRestartKafkaStreams() {
     final KafkaStreams newKafkaStreams = mock(KafkaStreams.class);
     final MaterializationProvider newMaterializationProvider = mock(MaterializationProvider.class);
@@ -140,7 +149,8 @@ public class PersistentQueryMetadataTest {
     // Then:
     final InOrder inOrder = inOrder(kafkaStreams, newKafkaStreams);
     inOrder.verify(kafkaStreams).close(any());
-    inOrder.verify(newKafkaStreams).setUncaughtExceptionHandler(any());
+    inOrder.verify(newKafkaStreams).setUncaughtExceptionHandler(
+        any(Thread.UncaughtExceptionHandler.class));
     inOrder.verify(newKafkaStreams).start();
 
     assertThat(query.getKafkaStreams(), is(newKafkaStreams));
@@ -157,5 +167,25 @@ public class PersistentQueryMetadataTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("is already closed, cannot restart."));
+  }
+
+  @Test
+  public void shouldCallProcessingLoggerOnError() {
+    // Given:
+    final Thread thread = mock(Thread.class);
+    final Throwable error = mock(Throwable.class);
+    final ArgumentCaptor<ProcessingLogger.ErrorMessage> errorMessageCaptor =
+        ArgumentCaptor.forClass(ProcessingLogger.ErrorMessage.class);
+    when(queryErrorClassifier.classify(error)).thenReturn(QueryError.Type.SYSTEM);
+
+    // When:
+    query.uncaughtHandler(thread, error);
+
+    // Then:
+    verify(processingLogger).error(errorMessageCaptor.capture());
+    assertThat(
+        KafkaStreamsThreadError.of(
+            "Unhandled exception caught in streams thread", thread, error),
+        is(errorMessageCaptor.getValue()));
   }
 }

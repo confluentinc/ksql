@@ -23,251 +23,281 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.testing.EqualsTester;
+import com.google.common.testing.NullPointerTester;
+import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.utils.DataException;
 import io.confluent.ksql.schema.utils.FormatOptions;
-import io.confluent.ksql.types.KsqlStruct;
 import java.util.Optional;
 import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
+import org.junit.runner.RunWith;
 
+@SuppressWarnings("UnstableApiUsage")
+@RunWith(Enclosed.class)
 public class SqlStructTest {
 
-  @SuppressWarnings("UnstableApiUsage")
-  @Test
-  public void shouldImplementHashCodeAndEqualsProperly() {
-    new EqualsTester()
-        .addEqualityGroup(
-            SqlStruct.builder().field("f0", SqlTypes.INTEGER).build(),
-            SqlStruct.builder().field("f0", SqlTypes.INTEGER).build()
-        )
-        .addEqualityGroup(
-            SqlStruct.builder().field("f1", SqlTypes.INTEGER).build()
-        )
-        .addEqualityGroup(
-            SqlStruct.builder().field("f0", SqlTypes.BIGINT).build()
-        )
-        .testEquals();
+  public static class StructTest {
+
+    @Test
+    public void shouldImplementHashCodeAndEqualsProperly() {
+      new EqualsTester()
+          .addEqualityGroup(
+              SqlStruct.builder().field("f0", SqlTypes.INTEGER).build(),
+              SqlStruct.builder().field("f0", SqlTypes.INTEGER).build()
+          )
+          .addEqualityGroup(
+              SqlStruct.builder().field("f1", SqlTypes.INTEGER).build()
+          )
+          .addEqualityGroup(
+              SqlStruct.builder().field("f0", SqlTypes.BIGINT).build()
+          )
+          .testEquals();
+    }
+
+    @Test
+    public void shouldReturnSqlType() {
+      assertThat(SqlStruct.builder().field("f0", SqlTypes.BIGINT).build().baseType(),
+          is(SqlBaseType.STRUCT));
+    }
+
+    @Test
+    public void shouldReturnFields() {
+      // When:
+      final SqlStruct struct = SqlStruct.builder()
+          .field("f0", SqlTypes.BIGINT)
+          .field("f1", SqlTypes.DOUBLE)
+          .build();
+
+      // Then:
+      assertThat(struct.fields(), contains(
+          new Field("f0", SqlTypes.BIGINT, 0),
+          new Field("f1", SqlTypes.DOUBLE, 1)
+      ));
+    }
+
+    @Test
+    public void shouldNotThrowIfNoFields() {
+      SqlStruct.builder().build();
+    }
+
+    @Test
+    public void shouldThrowOnDuplicateFieldName() {
+      // When:
+      final DataException e = assertThrows(
+          DataException.class,
+          () -> SqlStruct.builder()
+              .field("F0", SqlPrimitiveType.of(SqlBaseType.BOOLEAN))
+              .field("F0", SqlPrimitiveType.of(SqlBaseType.INTEGER))
+      );
+
+      // Then:
+      assertThat(e.getMessage(), containsString(
+          "Duplicate field names found in STRUCT: '`F0` BOOLEAN' and '`F0` INTEGER'"
+      ));
+    }
+
+    @Test
+    public void shouldNotThrowIfTwoFieldsHaveSameNameButDifferentCase() {
+      // When:
+      final SqlStruct struct = SqlStruct.builder()
+          .field("f0", SqlPrimitiveType.of(SqlBaseType.BOOLEAN))
+          .field("F0", SqlPrimitiveType.of(SqlBaseType.BOOLEAN))
+          .build();
+
+      // Then: did not throw
+      assertThat(struct.fields(), contains(
+          new Field("f0", SqlTypes.BOOLEAN, 0),
+          new Field("F0", SqlTypes.BOOLEAN, 1)
+      ));
+    }
+
+    @Test
+    public void shouldImplementToString() {
+      // Given:
+      final SqlStruct struct = SqlStruct.builder()
+          .field("f0", SqlTypes.BIGINT)
+          .field("F1", SqlTypes.array(SqlTypes.DOUBLE))
+          .build();
+
+      // When:
+      final String sql = struct.toString();
+
+      // Then:
+      assertThat(sql, is(
+          "STRUCT<"
+              + "`f0` " + SqlTypes.BIGINT
+              + ", `F1` " + SqlTypes.array(SqlTypes.DOUBLE)
+              + ">"
+      ));
+    }
+
+    @Test
+    public void shouldImplementToStringForEmptyStruct() {
+      // Given:
+      final SqlStruct emptyStruct = SqlStruct.builder().build();
+
+      // When:
+      final String sql = emptyStruct.toString();
+
+      // Then:
+      assertThat(sql, is("STRUCT< >"));
+    }
+
+    @Test
+    public void shouldImplementToStringWithReservedWordHandling() {
+      // Given:
+      final SqlStruct struct = SqlStruct.builder()
+          .field("f0", SqlTypes.BIGINT)
+          .field("F1", SqlTypes.array(SqlTypes.DOUBLE))
+          .build();
+
+      final FormatOptions formatOptions = FormatOptions.of(word -> word.equals("F1"));
+
+      // When:
+      final String sql = struct.toString(formatOptions);
+
+      // Then:
+      assertThat(sql, is(
+          "STRUCT<"
+              + "f0 " + SqlTypes.BIGINT
+              + ", `F1` " + SqlTypes.array(SqlTypes.DOUBLE)
+              + ">"
+      ));
+    }
+
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
+    @Test
+    public void shouldGetKnownField() {
+      // Given:
+      final SqlStruct schema = SqlTypes.struct()
+          .field("f0", SqlTypes.BIGINT)
+          .build();
+
+      // When:
+      final Optional<SqlStruct.Field> result = schema.field("f0");
+
+      // Then:
+      assertThat(result, is(not(Optional.empty())));
+      assertThat(result.get().name(), is("f0"));
+    }
+
+    @Test
+    public void shouldReturnEmptyForUnknownField() {
+      // Given:
+      final SqlStruct schema = SqlTypes.struct()
+          .field("f0", SqlTypes.BIGINT)
+          .build();
+
+      // When:
+      final Optional<SqlStruct.Field> result = schema.field("unknown");
+
+      // Then:
+      assertThat(result, is(Optional.empty()));
+    }
+
+    @Test
+    public void shouldReturnEmptyForFieldIfWrongCase() {
+      // Given:
+      final SqlStruct schema = SqlTypes.struct()
+          .field("f0", SqlTypes.BIGINT)
+          .build();
+
+      // When:
+      final Optional<SqlStruct.Field> result = schema.field("F0");
+
+      // Then:
+      assertThat(result, is(Optional.empty()));
+    }
   }
 
-  @Test
-  public void shouldReturnSqlType() {
-    assertThat(SqlStruct.builder().field("f0", SqlTypes.BIGINT).build().baseType(),
-        is(SqlBaseType.STRUCT));
-  }
+  public static class FieldTest {
 
-  @Test
-  public void shouldReturnFields() {
-    // When:
-    final SqlStruct struct = SqlStruct.builder()
-        .field("f0", SqlTypes.BIGINT)
-        .field("f1", SqlTypes.DOUBLE)
-        .build();
+    @Test
+    public void shouldThrowNPE() {
+      new NullPointerTester()
+          .setDefault(SqlType.class, SqlTypes.BIGINT)
+          .setDefault(String.class, "field0")
+          .testAllPublicStaticMethods(Field.class);
+    }
 
-    // Then:
-    assertThat(struct.fields(), contains(
-        Field.of("f0", SqlTypes.BIGINT),
-        Field.of("f1", SqlTypes.DOUBLE)
-    ));
-  }
+    @Test
+    public void shouldImplementEqualsProperly() {
+      new EqualsTester()
+          .addEqualityGroup(
+              new Field("someName", SqlTypes.INTEGER, 2),
+              new Field("someName", SqlTypes.INTEGER, 2)
+          )
+          .addEqualityGroup(
+              new Field("someName".toUpperCase(), SqlTypes.INTEGER, 2)
+          )
+          .addEqualityGroup(
+              new Field("different", SqlTypes.INTEGER, 2)
+          )
+          .addEqualityGroup(
+              new Field("someName", SqlTypes.DOUBLE, 2)
+          )
+          .addEqualityGroup(
+              new Field("someName", SqlTypes.INTEGER, 1)
+          )
+          .testEquals();
+    }
 
-  @Test
-  public void shouldNotThrowIfNoFields() {
-    SqlStruct.builder().build();
-  }
+    @Test
+    public void shouldReturnName() {
+      assertThat(new Field("SomeName", SqlTypes.BOOLEAN, 0).name(),
+          is("SomeName"));
+    }
 
-  @Test
-  public void shouldThrowOnDuplicateFieldName() {
-    // When:
-    final DataException e = assertThrows(
-        DataException.class,
-        () -> SqlStruct.builder()
-            .field("F0", SqlPrimitiveType.of(SqlBaseType.BOOLEAN))
-            .field("F0", SqlPrimitiveType.of(SqlBaseType.INTEGER))
-    );
+    @Test
+    public void shouldReturnType() {
+      assertThat(new Field("SomeName", SqlTypes.BOOLEAN, 0).type(), is(SqlTypes.BOOLEAN));
+    }
 
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Duplicate field names found in STRUCT: '`F0` BOOLEAN' and '`F0` INTEGER'"
-    ));
-  }
+    @Test
+    public void shouldToString() {
+      assertThat(new Field("SomeName", SqlTypes.BOOLEAN, 0).toString(),
+          is("`SomeName` BOOLEAN"));
+    }
 
-  @Test
-  public void shouldNotThrowIfTwoFieldsHaveSameNameButDifferentCase() {
-    // When:
-    SqlStruct.builder()
-        .field("f0", SqlPrimitiveType.of(SqlBaseType.BOOLEAN))
-        .field("F0", SqlPrimitiveType.of(SqlBaseType.BOOLEAN))
-        .build();
+    @Test
+    public void shouldToStringWithReservedWords() {
+      // Given:
+      final FormatOptions options = FormatOptions.of(
+          identifier -> identifier.equals("reserved")
+              || identifier.equals("word")
+              || identifier.equals("reserved.name")
+      );
 
-    // Then: did not throw.
-  }
+      // Then:
+      assertThat(new Field("not-reserved", SqlTypes.BIGINT, 0).toString(options),
+          is("not-reserved BIGINT"));
 
-  @Test
-  public void shouldImplementToString() {
-    // Given:
-    final SqlStruct struct = SqlStruct.builder()
-        .field("f0", SqlTypes.BIGINT)
-        .field("F1", SqlTypes.array(SqlTypes.DOUBLE))
-        .build();
+      assertThat(new Field("reserved", SqlTypes.BIGINT, 0).toString(options),
+          is("`reserved` BIGINT"));
+    }
 
-    // When:
-    final String sql = struct.toString();
+    @Test
+    public void shouldThrowIfNameIsEmpty() {
+      // When:
+      final IllegalArgumentException e = assertThrows(
+          IllegalArgumentException.class,
+          () -> new Field("", SqlTypes.STRING, 0)
+      );
 
-    // Then:
-    assertThat(sql, is(
-        "STRUCT<"
-            + "`f0` " + SqlTypes.BIGINT
-            + ", `F1` " + SqlTypes.array(SqlTypes.DOUBLE)
-            + ">"
-    ));
-  }
+      // Then:
+      assertThat(e.getMessage(), containsString("name is empty"));
+    }
 
-  @Test
-  public void shouldImplementToStringForEmptyStruct() {
-    // Given:
-    final SqlStruct emptyStruct = SqlStruct.builder().build();
+    @Test
+    public void shouldThrowIfNameIsNotTrimmed() {
+      // When:
+      final IllegalArgumentException e = assertThrows(
+          IllegalArgumentException.class,
+          () -> new Field(" bar ", SqlTypes.STRING, 0)
+      );
 
-    // When:
-    final String sql = emptyStruct.toString();
-
-    // Then:
-    assertThat(sql, is("STRUCT< >"));
-  }
-
-  @Test
-  public void shouldImplementToStringWithReservedWordHandling() {
-    // Given:
-    final SqlStruct struct = SqlStruct.builder()
-        .field("f0", SqlTypes.BIGINT)
-        .field("F1", SqlTypes.array(SqlTypes.DOUBLE))
-        .build();
-
-    final FormatOptions formatOptions = FormatOptions.of(word -> word.equals("F1"));
-
-    // When:
-    final String sql = struct.toString(formatOptions);
-
-    // Then:
-    assertThat(sql, is(
-        "STRUCT<"
-            + "f0 " + SqlTypes.BIGINT
-            + ", `F1` " + SqlTypes.array(SqlTypes.DOUBLE)
-            + ">"
-    ));
-  }
-
-  @Test
-  public void shouldThrowIfValueNotStruct() {
-    // Given:
-    final SqlStruct schema = SqlTypes.struct()
-        .field("f0", SqlTypes.BIGINT)
-        .build();
-
-    // When:
-    final DataException e = assertThrows(
-        DataException.class,
-        () -> schema.validateValue(10L)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Expected STRUCT, got BIGINT"
-    ));
-  }
-
-  @Test
-  public void shouldThrowIfValueHasSchema() {
-    // Given:
-    final SqlStruct schema = SqlTypes.struct()
-        .field("f0", SqlTypes.BIGINT)
-        .build();
-
-    final SqlStruct mismatching = SqlTypes.struct()
-        .field("f0", SqlTypes.DOUBLE)
-        .build();
-
-    final KsqlStruct value = KsqlStruct.builder(mismatching)
-        .set("f0", Optional.of(10.0D))
-        .build();
-
-    // When:
-    final DataException e = assertThrows(
-        DataException.class,
-        () -> schema.validateValue(value)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Expected STRUCT<`f0` BIGINT>, got STRUCT<`f0` DOUBLE>"
-    ));
-  }
-
-  @Test
-  public void shouldNotThrowWhenValidatingNullValue() {
-    // Given:
-    final SqlStruct schema = SqlTypes.struct()
-        .field("f0", SqlTypes.BIGINT)
-        .build();
-
-    // When:
-    schema.validateValue(null);
-  }
-
-  @Test
-  public void shouldValidateValue() {
-    // Given:
-    final SqlStruct schema = SqlTypes.struct()
-        .field("f0", SqlTypes.BIGINT)
-        .build();
-
-    final KsqlStruct value = KsqlStruct.builder(schema)
-        .set("f0", Optional.of(10L))
-        .build();
-
-    // When:
-    schema.validateValue(value);
-  }
-
-  @SuppressWarnings("OptionalGetWithoutIsPresent")
-  @Test
-  public void shouldGetKnownField() {
-    // Given:
-    final SqlStruct schema = SqlTypes.struct()
-        .field("f0", SqlTypes.BIGINT)
-        .build();
-
-    // When:
-    final Optional<Field> result = schema.field("f0");
-
-    // Then:
-    assertThat(result, is(not(Optional.empty())));
-    assertThat(result.get().name(), is("f0"));
-  }
-
-  @Test
-  public void shouldReturnEmptyForUnknownField() {
-    // Given:
-    final SqlStruct schema = SqlTypes.struct()
-        .field("f0", SqlTypes.BIGINT)
-        .build();
-
-    // When:
-    final Optional<Field> result = schema.field("unknown");
-
-    // Then:
-    assertThat(result, is(Optional.empty()));
-  }
-
-  @Test
-  public void shouldReturnEmptyForFieldIfWrongCase() {
-    // Given:
-    final SqlStruct schema = SqlTypes.struct()
-        .field("f0", SqlTypes.BIGINT)
-        .build();
-
-    // When:
-    final Optional<Field> result = schema.field("F0");
-
-    // Then:
-    assertThat(result, is(Optional.empty()));
+      // Then:
+      assertThat(e.getMessage(), containsString("name is not trimmed"));
+    }
   }
 }

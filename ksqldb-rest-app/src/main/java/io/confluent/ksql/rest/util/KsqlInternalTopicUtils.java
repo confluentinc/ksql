@@ -40,7 +40,8 @@ public final class KsqlInternalTopicUtils {
 
   private static final ImmutableMap<String, ?> INTERNAL_TOPIC_CONFIG = ImmutableMap.of(
       TopicConfig.RETENTION_MS_CONFIG, INTERNAL_TOPIC_RETENTION_MS,
-      TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE
+      TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE,
+      TopicConfig.UNCLEAN_LEADER_ELECTION_ENABLE_CONFIG, false
   );
 
   private KsqlInternalTopicUtils() {
@@ -85,7 +86,6 @@ public final class KsqlInternalTopicUtils {
         ImmutableMap.<String, Object>builder()
             .putAll(INTERNAL_TOPIC_CONFIG)
             .put(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, minInSyncReplicas)
-            .put(TopicConfig.UNCLEAN_LEADER_ELECTION_ENABLE_CONFIG, false)
             .build()
     );
   }

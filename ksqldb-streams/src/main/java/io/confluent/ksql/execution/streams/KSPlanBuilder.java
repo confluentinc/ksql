@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.streams;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
@@ -38,6 +39,7 @@ import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableSelect;
+import io.confluent.ksql.execution.plan.TableSelectKey;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.TableSuppress;
@@ -46,7 +48,6 @@ import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import java.util.Objects;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 
 /**
@@ -101,7 +102,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   @Override
   public KGroupedStreamHolder visitStreamGroupByKey(
       final StreamGroupByKey streamGroupByKey) {
-    final KStreamHolder<Struct> source = streamGroupByKey.getSource().build(this);
+    final KStreamHolder<GenericKey> source = streamGroupByKey.getSource().build(this);
     return new StreamGroupByBuilder(
         queryBuilder,
         streamsFactories.getGroupedFactory()
@@ -112,7 +113,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public KTableHolder<Struct> visitStreamAggregate(
+  public KTableHolder<GenericKey> visitStreamAggregate(
       final StreamAggregate streamAggregate) {
     final KGroupedStreamHolder source = streamAggregate.getSource().build(this);
     return StreamAggregateBuilder.build(
@@ -138,7 +139,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public KStreamHolder<Struct> visitStreamSelectKey(
+  public KStreamHolder<GenericKey> visitStreamSelectKey(
       final StreamSelectKeyV1 streamSelectKey
   ) {
     final KStreamHolder<?> source = streamSelectKey.getSource().build(this);
@@ -146,10 +147,10 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public KStreamHolder<Struct> visitStreamSelectKey(
-      final StreamSelectKey streamSelectKey
+  public <K> KStreamHolder<K> visitStreamSelectKey(
+      final StreamSelectKey<K> streamSelectKey
   ) {
-    final KStreamHolder<?> source = streamSelectKey.getSource().build(this);
+    final KStreamHolder<K> source = streamSelectKey.getSource().build(this);
     return StreamSelectKeyBuilder.build(source, streamSelectKey, queryBuilder);
   }
 
@@ -161,7 +162,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public KStreamHolder<Struct> visitStreamSource(final StreamSource streamSource) {
+  public KStreamHolder<GenericKey> visitStreamSource(final StreamSource streamSource) {
     return SourceBuilder.buildStream(
         queryBuilder,
         streamSource,
@@ -170,7 +171,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public KStreamHolder<Windowed<Struct>> visitWindowedStreamSource(
+  public KStreamHolder<Windowed<GenericKey>> visitWindowedStreamSource(
       final WindowedStreamSource windowedStreamSource) {
     return SourceBuilder.buildWindowedStream(
         queryBuilder,
@@ -206,7 +207,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public KTableHolder<Struct> visitTableSource(final TableSource tableSource) {
+  public KTableHolder<GenericKey> visitTableSource(final TableSource tableSource) {
     return SourceBuilder.buildTable(
         queryBuilder,
         tableSource,
@@ -216,7 +217,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public KTableHolder<Windowed<Struct>> visitWindowedTableSource(
+  public KTableHolder<Windowed<GenericKey>> visitWindowedTableSource(
       final WindowedTableSource windowedTableSource
   ) {
     return SourceBuilder.buildWindowedTable(
@@ -228,7 +229,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public KTableHolder<Windowed<Struct>> visitStreamWindowedAggregate(
+  public KTableHolder<Windowed<GenericKey>> visitStreamWindowedAggregate(
       final StreamWindowedAggregate aggregate) {
     final KGroupedStreamHolder source = aggregate.getSource().build(this);
     return StreamAggregateBuilder.build(
@@ -241,7 +242,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public KTableHolder<Struct> visitTableAggregate(final TableAggregate aggregate) {
+  public KTableHolder<GenericKey> visitTableAggregate(final TableAggregate aggregate) {
     final KGroupedTableHolder source = aggregate.getSource().build(this);
     return TableAggregateBuilder.build(
         source,
@@ -279,6 +280,17 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
+  public <K> KTableHolder<K> visitTableSelectKey(final TableSelectKey<K> tableSelectKey) {
+    final KTableHolder<K> source = tableSelectKey.getSource().build(this);
+    return TableSelectKeyBuilder.build(
+        source,
+        tableSelectKey,
+        queryBuilder,
+        streamsFactories.getMaterializedFactory()
+    );
+  }
+
+  @Override
   public <K> KTableHolder<K> visitTableSink(final TableSink<K> tableSink) {
     final KTableHolder<K> source = tableSink.getSource().build(this);
     TableSinkBuilder.build(source, tableSink, queryBuilder);
@@ -292,7 +304,7 @@ public final class KSPlanBuilder implements PlanBuilder {
         source,
         tableSuppress,
         queryBuilder,
-        source.getKeySerdeFactory()
+        source.getExecutionKeyFactory()
     );
   }
 

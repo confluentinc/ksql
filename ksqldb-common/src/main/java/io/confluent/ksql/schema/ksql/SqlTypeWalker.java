@@ -16,13 +16,13 @@
 package io.confluent.ksql.schema.ksql;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
 import java.util.Map;
@@ -89,7 +89,7 @@ public final class SqlTypeWalker {
       return visitType(type);
     }
 
-    default S visitMap(final SqlMap type, final S value) {
+    default S visitMap(final SqlMap type, final S key, final S value) {
       return visitType(type);
     }
 
@@ -132,8 +132,9 @@ public final class SqlTypeWalker {
       final SqlType type
   ) {
     final SqlMap map = (SqlMap) type;
+    final S key = visit(map.getKeyType(), visitor);
     final S value = visit(map.getValueType(), visitor);
-    return visitor.visitMap(map, value);
+    return visitor.visitMap(map, key, value);
   }
 
   private static <S, F> S visitStruct(

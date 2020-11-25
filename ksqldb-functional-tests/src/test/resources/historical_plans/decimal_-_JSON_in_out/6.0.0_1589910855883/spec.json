@@ -5,11 +5,21 @@
   "schemas" : {
     "CSAS_TEST2_0.TEST2" : {
       "schema" : "`ID` STRING KEY, `DEC` DECIMAL(21, 19)",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_TEST2_0.KsqlTopic.Source" : {
       "schema" : "`ID` STRING KEY, `DEC` DECIMAL(21, 19)",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {
@@ -40,29 +50,31 @@
     "statements" : [ "CREATE STREAM TEST (ID STRING KEY, dec DECIMAL(21,19)) WITH (kafka_topic='test', value_format='JSON');", "CREATE STREAM TEST2 AS SELECT * FROM TEST;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST2",
-        "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `DEC` DECIMAL(21, 19)",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "TEST",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `DEC` DECIMAL(21, 19)",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST2",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `DEC` DECIMAL(21, 19)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -71,9 +83,7 @@
         }, {
           "name" : "TEST2",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

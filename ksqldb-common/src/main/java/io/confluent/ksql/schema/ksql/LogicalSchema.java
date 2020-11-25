@@ -27,10 +27,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
-import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.utils.FormatOptions;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.DuplicateColumnException;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -41,9 +40,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 
 /**
  * Immutable KSQL logical schema.
@@ -63,14 +59,6 @@ public final class LogicalSchema {
 
   public Builder asBuilder() {
     return new Builder(columns);
-  }
-
-  public ConnectSchema keyConnectSchema() {
-    return toConnectSchema(key());
-  }
-
-  public ConnectSchema valueConnectSchema() {
-    return toConnectSchema(value());
   }
 
   /**
@@ -148,6 +136,24 @@ public final class LogicalSchema {
    */
   public LogicalSchema withoutPseudoAndKeyColsInValue() {
     return rebuild(false, false);
+  }
+
+  /**
+   * Remove all non-key columns from the value, and copy all key columns into the value.
+   * 
+   * @return the new schema
+   */
+  public LogicalSchema withKeyColsOnly() {
+    final List<Column> key = byNamespace().get(Namespace.KEY);
+
+    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
+    builder.addAll(key);
+    int valueIndex = 0;
+    for (final Column c : key) {
+      builder.add(Column.of(c.name(), c.type(), VALUE, valueIndex++));
+    }
+
+    return new LogicalSchema(builder.build());
   }
 
   /**
@@ -280,20 +286,6 @@ public final class LogicalSchema {
     return c -> c.namespace() == ns;
   }
 
-  private static ConnectSchema toConnectSchema(
-      final List<Column> columns
-  ) {
-    final SqlToConnectTypeConverter converter = SchemaConverters.sqlToConnectConverter();
-
-    final SchemaBuilder builder = SchemaBuilder.struct();
-    for (final Column column : columns) {
-      final Schema colSchema = converter.toConnectSchema(column.type());
-      builder.field(column.name().text(), colSchema);
-    }
-
-    return (ConnectSchema) builder.build();
-  }
-
   public static final class Builder {
 
     private final ImmutableList.Builder<Column> columns = ImmutableList.builder();
@@ -346,13 +338,13 @@ public final class LogicalSchema {
       switch (column.namespace()) {
         case KEY:
           if (!seenKeys.add(column.name())) {
-            throw new KsqlException("Duplicate key columns found in schema: " + column);
+            throw new DuplicateColumnException(column.namespace(), column);
           }
           break;
 
         case VALUE:
           if (!seenValues.add(column.name())) {
-            throw new KsqlException("Duplicate value columns found in schema: " + column);
+            throw new DuplicateColumnException(column.namespace(), column);
           }
           break;
 

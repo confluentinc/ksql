@@ -22,15 +22,25 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.name.ColumnName;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.connect.data.Struct;
+import javax.annotation.Nonnull;
 
 @Immutable
-public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
+public class StreamAggregate implements ExecutionStep<KTableHolder<GenericKey>> {
+
+  private static final ImmutableList<Property> MUST_MATCH = ImmutableList.of(
+      new Property("class", Object::getClass),
+      new Property("properties", ExecutionStep::getProperties),
+      new Property("internal format", s -> ((StreamAggregate) s).internalFormats),
+      new Property("columns not part of aggregate", s -> ((StreamAggregate) s).nonAggregateColumns),
+      new Property("aggregate functions", s -> ((StreamAggregate) s).aggregationFunctions)
+  );
+
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KGroupedStreamHolder> source;
   private final Formats internalFormats;
@@ -89,8 +99,14 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
   }
 
   @Override
-  public KTableHolder<Struct> build(final PlanBuilder builder) {
+  public KTableHolder<GenericKey> build(final PlanBuilder builder) {
     return builder.visitStreamAggregate(this);
+  }
+
+  @Override
+  public void validateUpgrade(@Nonnull final ExecutionStep<?> to) {
+    mustMatch(to, MUST_MATCH);
+    getSource().validateUpgrade(((StreamAggregate) to).source);
   }
 
   @Override

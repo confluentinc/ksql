@@ -47,6 +47,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.ConsumerPartitionOffsets;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
@@ -65,11 +66,10 @@ import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryOffsetSummary;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
+import io.confluent.ksql.rest.entity.QueryTopicOffsetSummary;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
-import io.confluent.ksql.rest.entity.ConsumerPartitionOffsets;
-import io.confluent.ksql.rest.entity.QueryTopicOffsetSummary;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -124,7 +124,7 @@ public class ConsoleTest {
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("foo"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("bar"), SqlTypes.STRING)
-      .build();
+      .build().withPseudoAndKeyColsInValue(false);
 
   private final TestTerminal terminal;
   private final Console console;
@@ -147,6 +147,7 @@ public class ConsoleTest {
       2,
       1,
       "statement",
+      Collections.emptyList(),
       Collections.emptyList());
 
   @Mock
@@ -187,17 +188,35 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testPrintGenericStreamedRow() {
+  public void testPrintDataRow() {
     // Given:
-    final StreamedRow row = StreamedRow.row(genericRow("col_1", "col_2"));
+    final StreamedRow row = StreamedRow.pushRow(genericRow("col_1", "col_2"));
 
     // When:
     console.printStreamedRow(row);
 
     // Then:
+    assertThat(terminal.getOutputString(), containsString("col_1"));
+    assertThat(terminal.getOutputString(), containsString("col_2"));
+  }
+
+  @Test
+  public void testPrintTableTombstone() {
+    // Given:
+    console.printStreamedRow(StreamedRow.header(new QueryId("id"), SCHEMA));
+
+    final StreamedRow row = StreamedRow.tombstone(genericRow(null, "v_0", null));
+
+    // When:
+    console.printStreamedRow(row);
+
+    // Then:
+    assertThat(terminal.getOutputString(), containsString("v_0"));
+
     if (console.getOutputFormat() == OutputFormat.TABULAR) {
-      assertThat(terminal.getOutputString(), containsString("col_1"));
-      assertThat(terminal.getOutputString(), containsString("col_2"));
+      assertThat(terminal.getOutputString(), containsString("<TOMBSTONE>"));
+    } else {
+      assertThat(terminal.getOutputString(), containsString("\"tombstone\" : true"));
     }
   }
 
@@ -496,7 +515,7 @@ public class ConsoleTest {
         SqlTypes.DOUBLE,
         SqlTypes.STRING,
         SqlTypes.array(SqlTypes.STRING),
-        SqlTypes.map(SqlTypes.BIGINT),
+        SqlTypes.map(SqlTypes.STRING, SqlTypes.BIGINT),
         SqlTypes.struct()
             .field("a", SqlTypes.DOUBLE)
             .build()
@@ -529,6 +548,7 @@ public class ConsoleTest {
                 1,
                 1,
                 "sql statement",
+                Collections.emptyList(),
                 Collections.emptyList()),
             Collections.emptyList()
         )
@@ -661,7 +681,8 @@ public class ConsoleTest {
           + "    \"partitions\" : 1," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"sql statement\"," + NEWLINE
-          + "    \"queryOffsetSummaries\" : [ ]" + NEWLINE
+          + "    \"queryOffsetSummaries\" : [ ]," + NEWLINE
+          + "    \"sourceConstraints\" : [ ]" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
@@ -800,7 +821,8 @@ public class ConsoleTest {
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"statement\"," + NEWLINE
-          + "    \"queryOffsetSummaries\" : [ ]" + NEWLINE
+          + "    \"queryOffsetSummaries\" : [ ]," + NEWLINE
+          + "    \"sourceConstraints\" : [ ]" + NEWLINE
           + "  } ]," + NEWLINE
           + "  \"topics\" : [ \"a-jdbc-topic\" ]," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
@@ -832,50 +854,13 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testPrintStreamsList() {
+  public void shouldPrintStreamsList() {
     // Given:
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
-        new StreamsList("e",
-            ImmutableList.of(new SourceInfo.Stream("TestStream", "TestTopic", "AVRO")))
-    ));
-
-    // When:
-    console.printKsqlEntityList(entityList);
-
-    // Then:
-    final String output = terminal.getOutputString();
-    if (console.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, is("[ {" + NEWLINE
-          + "  \"@type\" : \"streams\"," + NEWLINE
-          + "  \"statementText\" : \"e\"," + NEWLINE
-          + "  \"streams\" : [ {" + NEWLINE
-          + "    \"type\" : \"STREAM\"," + NEWLINE
-          + "    \"name\" : \"TestStream\"," + NEWLINE
-          + "    \"topic\" : \"TestTopic\"," + NEWLINE
-          + "    \"format\" : \"AVRO\"" + NEWLINE
-          + "  } ]," + NEWLINE
-          + "  \"warnings\" : [ ]" + NEWLINE
-          + "} ]" + NEWLINE));
-    } else {
-      assertThat(output, is("" + NEWLINE
-          + " Stream Name | Kafka Topic | Format " + NEWLINE
-          + "------------------------------------" + NEWLINE
-          + " TestStream  | TestTopic   | AVRO   " + NEWLINE
-          + "------------------------------------" + NEWLINE));
-    }
-  }
-
-  @Test
-  public void testSortedPrintStreamsList() {
-    // Given:
-    final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
-            new StreamsList("e",
-                    ImmutableList.of(
-                            new SourceInfo.Stream("B", "TestTopic", "AVRO"),
-                            new SourceInfo.Stream("A", "TestTopic", "AVRO"),
-                            new SourceInfo.Stream("Z", "TestTopic", "AVRO"),
-                            new SourceInfo.Stream("C", "TestTopic", "AVRO")
-                    ))
+        new StreamsList("e", ImmutableList.of(
+            new SourceInfo.Stream("B", "t2", "KAFKA", "AVRO", false),
+            new SourceInfo.Stream("A", "t1", "JSON", "JSON", true)
+        ))
     ));
 
     // When:
@@ -890,85 +875,38 @@ public class ConsoleTest {
           + "  \"streams\" : [ {" + NEWLINE
           + "    \"type\" : \"STREAM\"," + NEWLINE
           + "    \"name\" : \"B\"," + NEWLINE
-          + "    \"topic\" : \"TestTopic\"," + NEWLINE
-          + "    \"format\" : \"AVRO\"" + NEWLINE
+          + "    \"topic\" : \"t2\"," + NEWLINE
+          + "    \"keyFormat\" : \"KAFKA\"," + NEWLINE
+          + "    \"valueFormat\" : \"AVRO\"," + NEWLINE
+          + "    \"isWindowed\" : false" + NEWLINE
           + "  }, {" + NEWLINE
           + "    \"type\" : \"STREAM\"," + NEWLINE
           + "    \"name\" : \"A\"," + NEWLINE
-          + "    \"topic\" : \"TestTopic\"," + NEWLINE
-          + "    \"format\" : \"AVRO\"" + NEWLINE
-          + "  }, {" + NEWLINE
-          + "    \"type\" : \"STREAM\"," + NEWLINE
-          + "    \"name\" : \"Z\"," + NEWLINE
-          + "    \"topic\" : \"TestTopic\"," + NEWLINE
-          + "    \"format\" : \"AVRO\"" + NEWLINE
-          + "  }, {" + NEWLINE
-          + "    \"type\" : \"STREAM\"," + NEWLINE
-          + "    \"name\" : \"C\"," + NEWLINE
-          + "    \"topic\" : \"TestTopic\"," + NEWLINE
-          + "    \"format\" : \"AVRO\"" + NEWLINE
+          + "    \"topic\" : \"t1\"," + NEWLINE
+          + "    \"keyFormat\" : \"JSON\"," + NEWLINE
+          + "    \"valueFormat\" : \"JSON\"," + NEWLINE
+          + "    \"isWindowed\" : true" + NEWLINE
           + "  } ]," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
     } else {
       assertThat(output, is("" + NEWLINE
-          + " Stream Name | Kafka Topic | Format " + NEWLINE
-          + "------------------------------------" + NEWLINE
-          + " A           | TestTopic   | AVRO   " + NEWLINE
-          + " B           | TestTopic   | AVRO   " + NEWLINE
-          + " C           | TestTopic   | AVRO   " + NEWLINE
-          + " Z           | TestTopic   | AVRO   " + NEWLINE
-          + "------------------------------------" + NEWLINE));
+          + " Stream Name | Kafka Topic | Key Format | Value Format | Windowed " + NEWLINE
+          + "------------------------------------------------------------------" + NEWLINE
+          + " A           | t1          | JSON       | JSON         | true     " + NEWLINE
+          + " B           | t2          | KAFKA      | AVRO         | false    " + NEWLINE
+          + "------------------------------------------------------------------" + NEWLINE));
     }
   }
 
   @Test
-  public void testPrintTablesList() {
+  public void shouldPrintTablesList() {
     // Given:
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
-        new TablesList("e",
-            ImmutableList.of(new SourceInfo.Table("TestTable", "TestTopic", "JSON", false)))
-    ));
-
-    // When:
-    console.printKsqlEntityList(entityList);
-
-    // Then:
-    final String output = terminal.getOutputString();
-    if (console.getOutputFormat() == OutputFormat.JSON) {
-      assertThat(output, is("[ {" + NEWLINE
-          + "  \"@type\" : \"tables\"," + NEWLINE
-          + "  \"statementText\" : \"e\"," + NEWLINE
-          + "  \"tables\" : [ {" + NEWLINE
-          + "    \"type\" : \"TABLE\"," + NEWLINE
-          + "    \"name\" : \"TestTable\"," + NEWLINE
-          + "    \"topic\" : \"TestTopic\"," + NEWLINE
-          + "    \"format\" : \"JSON\"," + NEWLINE
-          + "    \"isWindowed\" : false" + NEWLINE
-          + "  } ]," + NEWLINE
-          + "  \"warnings\" : [ ]" + NEWLINE
-          + "} ]" + NEWLINE));
-    } else {
-      assertThat(output, is("" + NEWLINE
-          + " Table Name | Kafka Topic | Format | Windowed " + NEWLINE
-          + "----------------------------------------------" + NEWLINE
-          + " TestTable  | TestTopic   | JSON   | false    " + NEWLINE
-          + "----------------------------------------------" + NEWLINE));
-    }
-  }
-
-  @Test
-  public void testSortedPrintTablesList() {
-    // Given:
-    final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
-            new TablesList("e",
-                    ImmutableList.of(
-                            new SourceInfo.Table("B", "TestTopic", "JSON", false),
-                            new SourceInfo.Table("A", "TestTopic", "JSON", false),
-                            new SourceInfo.Table("Z", "TestTopic", "JSON", false),
-                            new SourceInfo.Table("C", "TestTopic", "JSON", false)
-                    )
-            )
+        new TablesList("e", ImmutableList.of(
+            new SourceInfo.Table("B", "t2", "JSON", "JSON", true),
+            new SourceInfo.Table("A", "t1", "KAFKA", "AVRO", false)
+        ))
     ));
 
     // When:
@@ -983,39 +921,27 @@ public class ConsoleTest {
           + "  \"tables\" : [ {" + NEWLINE
           + "    \"type\" : \"TABLE\"," + NEWLINE
           + "    \"name\" : \"B\"," + NEWLINE
-          + "    \"topic\" : \"TestTopic\"," + NEWLINE
-          + "    \"format\" : \"JSON\"," + NEWLINE
-          + "    \"isWindowed\" : false" + NEWLINE
+          + "    \"topic\" : \"t2\"," + NEWLINE
+          + "    \"keyFormat\" : \"JSON\"," + NEWLINE
+          + "    \"valueFormat\" : \"JSON\"," + NEWLINE
+          + "    \"isWindowed\" : true" + NEWLINE
           + "  }, {" + NEWLINE
           + "    \"type\" : \"TABLE\"," + NEWLINE
           + "    \"name\" : \"A\"," + NEWLINE
-          + "    \"topic\" : \"TestTopic\"," + NEWLINE
-          + "    \"format\" : \"JSON\"," + NEWLINE
-          + "    \"isWindowed\" : false" + NEWLINE
-          + "  }, {" + NEWLINE
-          + "    \"type\" : \"TABLE\"," + NEWLINE
-          + "    \"name\" : \"Z\"," + NEWLINE
-          + "    \"topic\" : \"TestTopic\"," + NEWLINE
-          + "    \"format\" : \"JSON\"," + NEWLINE
-          + "    \"isWindowed\" : false" + NEWLINE
-          + "  }, {" + NEWLINE
-          + "    \"type\" : \"TABLE\"," + NEWLINE
-          + "    \"name\" : \"C\"," + NEWLINE
-          + "    \"topic\" : \"TestTopic\"," + NEWLINE
-          + "    \"format\" : \"JSON\"," + NEWLINE
+          + "    \"topic\" : \"t1\"," + NEWLINE
+          + "    \"keyFormat\" : \"KAFKA\"," + NEWLINE
+          + "    \"valueFormat\" : \"AVRO\"," + NEWLINE
           + "    \"isWindowed\" : false" + NEWLINE
           + "  } ]," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
     } else {
       assertThat(output, is("" + NEWLINE
-          + " Table Name | Kafka Topic | Format | Windowed " + NEWLINE
-          + "----------------------------------------------" + NEWLINE
-          + " A          | TestTopic   | JSON   | false    " + NEWLINE
-          + " B          | TestTopic   | JSON   | false    " + NEWLINE
-          + " C          | TestTopic   | JSON   | false    " + NEWLINE
-          + " Z          | TestTopic   | JSON   | false    " + NEWLINE
-          + "----------------------------------------------" + NEWLINE));
+          + " Table Name | Kafka Topic | Key Format | Value Format | Windowed " + NEWLINE
+          + "-----------------------------------------------------------------" + NEWLINE
+          + " A          | t1          | KAFKA      | AVRO         | false    " + NEWLINE
+          + " B          | t2          | JSON       | JSON         | true     " + NEWLINE
+          + "-----------------------------------------------------------------" + NEWLINE));
     }
   }
 
@@ -1175,7 +1101,7 @@ public class ConsoleTest {
                 "stats",
                 "errors",
                 true,
-                "kafka",
+                "json",
                 "avro",
                 "kadka-topic",
                 2, 1,
@@ -1200,7 +1126,8 @@ public class ConsoleTest {
                     new QueryOffsetSummary(
                         "consumer2",
                         ImmutableList.of())
-                )),
+                ),
+                ImmutableList.of("S1", "S2")),
             Collections.emptyList()
         ))
     );
@@ -1262,7 +1189,7 @@ public class ConsoleTest {
           + "    \"statistics\" : \"stats\"," + NEWLINE
           + "    \"errorStats\" : \"errors\"," + NEWLINE
           + "    \"extended\" : true," + NEWLINE
-          + "    \"keyFormat\" : \"kafka\"," + NEWLINE
+          + "    \"keyFormat\" : \"json\"," + NEWLINE
           + "    \"valueFormat\" : \"avro\"," + NEWLINE
           + "    \"topic\" : \"kadka-topic\"," + NEWLINE
           + "    \"partitions\" : 2," + NEWLINE
@@ -1300,7 +1227,8 @@ public class ConsoleTest {
           + "    }, {" + NEWLINE
           + "      \"groupId\" : \"consumer2\"," + NEWLINE
           + "      \"topicSummaries\" : [ ]" + NEWLINE
-          + "    } ]" + NEWLINE
+          + "    } ]," + NEWLINE
+          + "    \"sourceConstraints\" : [ \"S1\", \"S2\" ]" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
           + "} ]" + NEWLINE));
@@ -1309,7 +1237,7 @@ public class ConsoleTest {
           + "Name                 : TestSource" + NEWLINE
           + "Type                 : TABLE" + NEWLINE
           + "Timestamp field      : 2000-01-01" + NEWLINE
-          + "Key format           : kafka" + NEWLINE
+          + "Key format           : json" + NEWLINE
           + "Value format         : avro" + NEWLINE
           + "Kafka topic          : kadka-topic (partitions: 2, replication: 1)" + NEWLINE
           + "Statement            : sql statement text" + NEWLINE
@@ -1319,6 +1247,11 @@ public class ConsoleTest {
           + " ROWKEY | VARCHAR(STRING)  (primary key) " + NEWLINE
           + " f_0    | VARCHAR(STRING)                " + NEWLINE
           + "-----------------------------------------" + NEWLINE
+          + "" + NEWLINE
+          + "Sources that have a DROP constraint on this source" + NEWLINE
+          + "--------------------------------------------------" + NEWLINE
+          + "S1" + NEWLINE
+          + "S2" + NEWLINE
           + "" + NEWLINE
           + "Queries that read from this TABLE" + NEWLINE
           + "-----------------------------------" + NEWLINE
@@ -1566,7 +1499,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of()), any());
@@ -1580,7 +1513,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg1")), any());
@@ -1594,7 +1527,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg 1")), any());
@@ -1608,7 +1541,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg 1")), any());
@@ -1622,7 +1555,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
@@ -1636,7 +1569,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
@@ -1650,7 +1583,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
@@ -1664,7 +1597,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.nextNonCliCommand();
 
     // Then:
     verify(cliCommand, never()).execute(any(), any());
@@ -1678,7 +1611,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    final String result = console.readLine();
+    final String result = console.nextNonCliCommand();
 
     // Then:
     assertThat(result, is("not a CLI command;"));
@@ -1692,7 +1625,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    final String result = console.readLine();
+    final String result = console.nextNonCliCommand();
 
     // Then:
     assertThat(result, is("not a CLI command;"));

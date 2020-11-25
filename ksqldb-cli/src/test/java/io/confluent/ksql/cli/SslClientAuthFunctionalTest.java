@@ -16,6 +16,7 @@
 package io.confluent.ksql.cli;
 
 import static io.confluent.ksql.serde.FormatFactory.JSON;
+import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -54,6 +55,8 @@ import org.junit.rules.RuleChain;
 @Category({IntegrationTest.class})
 public class SslClientAuthFunctionalTest {
 
+  private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
+
   private static final String TOPIC_NAME = new OrderDataProvider().topicName();
 
   private static final String JSON_KSQL_REQUEST = UrlEscapers.urlFormParameterEscaper()
@@ -63,10 +66,9 @@ public class SslClientAuthFunctionalTest {
 
   public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
-  @SuppressWarnings("deprecation")
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
-      .withProperties(ServerKeyStore.keyStoreProps())
+      .withProperties(SERVER_KEY_STORE.keyStoreProps())
       .withProperty(KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_CONFIG,
           KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUIRED)
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "https://localhost:0")
@@ -84,7 +86,7 @@ public class SslClientAuthFunctionalTest {
   public static void classSetUp() {
     final OrderDataProvider dataProvider = new OrderDataProvider();
     TEST_HARNESS.getKafkaCluster().createTopics(TOPIC_NAME);
-    TEST_HARNESS.produceRows(dataProvider.topicName(), dataProvider, JSON);
+    TEST_HARNESS.produceRows(dataProvider.topicName(), dataProvider, KAFKA, JSON);
   }
 
   @Before
@@ -94,15 +96,13 @@ public class SslClientAuthFunctionalTest {
 
   @Test
   public void shouldNotBeAbleToUseCliIfClientDoesNotProvideCertificate() {
-
     // Given:
     givenClientConfiguredWithoutCertificate();// Then:
-
 
     // When:
     final Exception e = assertThrows(
         KsqlRestClientException.class,
-        () -> canMakeCliRequest()
+        this::canMakeCliRequest
     );
 
     // Then:
@@ -123,7 +123,7 @@ public class SslClientAuthFunctionalTest {
   }
 
   @Test
-  public void shouldNotBeAbleToUseWssIfClientDoesNotTrustServerCert() throws Exception {
+  public void shouldNotBeAbleToUseWssIfClientDoesNotTrustServerCert() {
     // Given:
     givenClientConfiguredWithoutCertificate();
 
@@ -147,9 +147,9 @@ public class SslClientAuthFunctionalTest {
 
   private void givenClientConfiguredWithCertificate() {
 
-    String clientCertPath = ServerKeyStore.keyStoreProps()
+    String clientCertPath = SERVER_KEY_STORE.keyStoreProps()
         .get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
-    String clientCertPassword = ServerKeyStore.keyStoreProps()
+    String clientCertPassword = SERVER_KEY_STORE.keyStoreProps()
         .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
 
     // HTTP:

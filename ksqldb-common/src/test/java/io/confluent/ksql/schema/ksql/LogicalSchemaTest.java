@@ -43,7 +43,6 @@ import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Test;
 
@@ -286,7 +285,7 @@ public class LogicalSchemaTest {
             .field("a", BIGINT)
             .build())
         .valueColumn(ColumnName.of("f7"), SqlTypes.array(STRING))
-        .valueColumn(ColumnName.of("f8"), SqlTypes.map(STRING))
+        .valueColumn(ColumnName.of("f8"), SqlTypes.map(SqlTypes.STRING, STRING))
         .build();
 
     // When:
@@ -543,6 +542,27 @@ public class LogicalSchemaTest {
   }
 
   @Test
+  public void shouldRemoveAllButKeyCols() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
+        .valueColumn(F0, BIGINT)
+        .valueColumn(F1, BIGINT)
+        .build()
+        .withPseudoAndKeyColsInValue(false);
+
+    // When
+    final LogicalSchema result = schema.withKeyColsOnly();
+
+    // Then:
+    assertThat(result, is(LogicalSchema.builder()
+        .keyColumn(K0, INTEGER)
+        .valueColumn(K0, INTEGER)
+        .build()
+    ));
+  }
+
+  @Test
   public void shouldMatchMetaColumnName() {
     assertThat(SystemColumns.isPseudoColumn(ROWTIME_NAME), is(true));
     assertThat(SOME_SCHEMA.isKeyColumn(ROWTIME_NAME), is(false));
@@ -600,44 +620,6 @@ public class LogicalSchemaTest {
     // Then:
     assertThat(e.getMessage(),
         containsString("Duplicate value columns found in schema: `value` BIGINT"));
-  }
-
-  @Test
-  public void shouldGetKeyConnectSchema() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(F0, DOUBLE)
-        .valueColumn(F0, BIGINT)
-        .build();
-
-    // When:
-    final ConnectSchema result = schema.keyConnectSchema();
-
-    // Then:
-    final List<org.apache.kafka.connect.data.Field> fields = result.fields();
-    assertThat(fields, contains(
-        connectField("f0", 0, Schema.OPTIONAL_FLOAT64_SCHEMA)
-    ));
-  }
-
-  @Test
-  public void shouldGetValueConnectSchema() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn(F0, STRING)
-        .valueColumn(F0, BIGINT)
-        .valueColumn(F1, STRING)
-        .build();
-
-    // When:
-    final ConnectSchema result = schema.valueConnectSchema();
-
-    // Then:
-    final List<org.apache.kafka.connect.data.Field> fields = result.fields();
-    assertThat(fields, contains(
-        connectField("f0", 0, Schema.OPTIONAL_INT64_SCHEMA),
-        connectField("f1", 1, Schema.OPTIONAL_STRING_SCHEMA)
-    ));
   }
 
   @Test

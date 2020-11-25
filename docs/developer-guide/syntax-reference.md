@@ -99,6 +99,31 @@ You can create your own aggregation logic by implementing a User Defined
 Aggregation Function (UDAF). For more information, see
 [UDAFs](../concepts/functions.md#udafs).
 
+Aggregations return results per partition. To get results across all partitions,
+you can use PARTITION BY with a fixed key, for example:
+
+```sql
+CREATE STREAM allplaycounts AS
+  SELECT 'fixed_key', COUNT(*) FROM
+    playcountsstream PARTITION BY 'fixed_key';
+```
+
+Also, you can get results across all partitions as part of the aggregate query,
+instead of requiring a separate step to partition by a fixed key. In the
+following example, GROUP BY causes COUNT to aggregate over all records.
+
+```sql
+SELECT 'totalCount', COUNT(*) FROM
+  ksql_processing_log GROUP BY 'totalCount';
+```
+
+Grouping by a single constant indicates that ksqlDB uses one partition
+containing all of the records for the aggregation. If you're creating a
+persistent query, you can set the partition count of the sink topic to *1*
+by using WITH(PARTITIONS=1). We recommend this if you're grouping by a fixed
+key because otherwise all but one of the sink topic's partitions will be unused
+and empty.
+
 ### Window
 
 The WINDOW clause controls how to group input records that have the same key
@@ -216,24 +241,11 @@ statement by using the syntax `ARRAY<ElementType>`. For example,
 `ARRAY<INT>` defines an array of integers.
 
 Also, you can output an array from a query by using a SELECT statement.
-The following example creates an array from a stream named `s1`. 
+The following example creates an array from a stream named `s1` using
+the [`ARRAY` constructor function](ksqldb-reference/scalar-functions.md#array).
 
 ```sql
-SELECT ARRAY[1, 2] FROM s1 EMIT CHANGES;
-```
-
-Starting in version 0.7.1, the built-in AS_ARRAY function syntax for
-creating arrays doesn't work. Replace AS_ARRAY with the ARRAY constructor
-syntax. For example, replace this legacy query:
-
-```sql
-CREATE STREAM OUTPUT AS SELECT cube_explode(as_array(col1, col2)) VAL1, ABS(col3) VAL2 FROM TEST;
-```
-
-With this query:
-
-```sql
-CREATE STREAM OUTPUT AS SELECT cube_explode(array[col1, col2]) VAL1, ABS(col3) VAL2 FROM TEST;
+SELECT ARRAY[s1.colA, s1.colB, s1.colC] FROM s1 EMIT CHANGES;
 ```
 
 ### Map

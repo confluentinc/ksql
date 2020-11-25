@@ -23,6 +23,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -30,6 +31,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -62,6 +64,7 @@ import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
+import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.PushQueryId;
 import io.confluent.ksql.rest.entity.Queries;
@@ -84,6 +87,7 @@ import io.vertx.ext.web.client.WebClient;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -920,6 +924,7 @@ public class ClientTest extends BaseApiTest {
             4,
             1,
             "statement",
+            Collections.emptyList(),
             Collections.emptyList()),
         Collections.emptyList());
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
@@ -1151,8 +1156,8 @@ public class ClientTest extends BaseApiTest {
   public void shouldListStreams() throws Exception {
     // Given
     final List<SourceInfo.Stream> expectedStreams = new ArrayList<>();
-    expectedStreams.add(new SourceInfo.Stream("stream1", "topic1", "JSON"));
-    expectedStreams.add(new SourceInfo.Stream("stream2", "topic2", "AVRO"));
+    expectedStreams.add(new SourceInfo.Stream("stream1", "topic1", "KAFKA", "JSON", true));
+    expectedStreams.add(new SourceInfo.Stream("stream2", "topic2", "JSON", "AVRO", false));
     final StreamsList entity = new StreamsList("list streams;", expectedStreams);
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
@@ -1163,18 +1168,22 @@ public class ClientTest extends BaseApiTest {
     assertThat(streams, hasSize(expectedStreams.size()));
     assertThat(streams.get(0).getName(), is("stream1"));
     assertThat(streams.get(0).getTopic(), is("topic1"));
-    assertThat(streams.get(0).getFormat(), is("JSON"));
+    assertThat(streams.get(0).getKeyFormat(), is("KAFKA"));
+    assertThat(streams.get(0).getValueFormat(), is("JSON"));
+    assertThat(streams.get(0).isWindowed(), is(true));
     assertThat(streams.get(1).getName(), is("stream2"));
     assertThat(streams.get(1).getTopic(), is("topic2"));
-    assertThat(streams.get(1).getFormat(), is("AVRO"));
+    assertThat(streams.get(1).getKeyFormat(), is("JSON"));
+    assertThat(streams.get(1).getValueFormat(), is("AVRO"));
+    assertThat(streams.get(1).isWindowed(), is(false));
   }
 
   @Test
   public void shouldListTables() throws Exception {
     // Given
     final List<SourceInfo.Table> expectedTables = new ArrayList<>();
-    expectedTables.add(new SourceInfo.Table("table1", "topic1", "JSON", true));
-    expectedTables.add(new SourceInfo.Table("table2", "topic2", "AVRO", false));
+    expectedTables.add(new SourceInfo.Table("table1", "topic1", "KAFKA", "JSON", true));
+    expectedTables.add(new SourceInfo.Table("table2", "topic2", "JSON", "AVRO", false));
     final TablesList entity = new TablesList("list tables;", expectedTables);
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
@@ -1185,12 +1194,56 @@ public class ClientTest extends BaseApiTest {
     assertThat(tables, hasSize(expectedTables.size()));
     assertThat(tables.get(0).getName(), is("table1"));
     assertThat(tables.get(0).getTopic(), is("topic1"));
-    assertThat(tables.get(0).getFormat(), is("JSON"));
+    assertThat(tables.get(0).getKeyFormat(), is("KAFKA"));
+    assertThat(tables.get(0).getValueFormat(), is("JSON"));
     assertThat(tables.get(0).isWindowed(), is(true));
     assertThat(tables.get(1).getName(), is("table2"));
     assertThat(tables.get(1).getTopic(), is("topic2"));
-    assertThat(tables.get(1).getFormat(), is("AVRO"));
+    assertThat(tables.get(1).getKeyFormat(), is("JSON"));
+    assertThat(tables.get(1).getValueFormat(), is("AVRO"));
     assertThat(tables.get(1).isWindowed(), is(false));
+  }
+
+  @Test
+  public void shouldListStreamsFromOldServer() throws Exception {
+    // Given
+    final List<LegacyStreamInfo> expectedStreams = ImmutableList.of(
+        new LegacyStreamInfo("stream1", "topic1", "JSON")
+    );
+    final LegacyStreamsList entity = new LegacyStreamsList("list streams;", expectedStreams);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final List<StreamInfo> streams = javaClient.listStreams().get();
+
+    // Then
+    assertThat(streams, hasSize(expectedStreams.size()));
+    assertThat(streams.get(0).getName(), is("stream1"));
+    assertThat(streams.get(0).getTopic(), is("topic1"));
+    assertThat(streams.get(0).getKeyFormat(), is("KAFKA"));
+    assertThat(streams.get(0).getValueFormat(), is("JSON"));
+    assertThat(streams.get(0).isWindowed(), is(false));
+  }
+
+  @Test
+  public void shouldListTablesFromOldServer() throws Exception {
+    // Given
+    final List<LegacyTableInfo> expectedTables = ImmutableList.of(
+        new LegacyTableInfo("table1", "topic1", "JSON", true)
+    );
+    final LegacyTablesList entity = new LegacyTablesList("list tables;", expectedTables);
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final List<TableInfo> tables = javaClient.listTables().get();
+
+    // Then
+    assertThat(tables, hasSize(expectedTables.size()));
+    assertThat(tables.get(0).getName(), is("table1"));
+    assertThat(tables.get(0).getTopic(), is("topic1"));
+    assertThat(tables.get(0).getKeyFormat(), is("KAFKA"));
+    assertThat(tables.get(0).getValueFormat(), is("JSON"));
+    assertThat(tables.get(0).isWindowed(), is(true));
   }
 
   @Test
@@ -1301,7 +1354,8 @@ public class ClientTest extends BaseApiTest {
             4,
             1,
             "sql",
-            Collections.emptyList()
+            Collections.emptyList(),
+            ImmutableList.of("s1", "s2")
         );
     final SourceDescriptionEntity entity = new SourceDescriptionEntity(
         "describe source;", sd, Collections.emptyList());
@@ -1333,6 +1387,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(description.timestampColumn(), is(Optional.empty()));
     assertThat(description.windowType(), is(Optional.of("TUMBLING")));
     assertThat(description.sqlStatement(), is("sql"));
+    assertThat(description.getSourceConstraints(), hasItems("s1", "s2"));
   }
 
   protected Client createJavaClient() {
@@ -1495,5 +1550,74 @@ public class ClientTest extends BaseApiTest {
       rows.add(row);
     }
     return rows;
+  }
+
+  @SuppressWarnings({"FieldCanBeLocal", "unused"})
+  private static class LegacyStreamInfo extends KsqlEntity {
+
+    @JsonProperty("name")
+    private final String name;
+
+    @JsonProperty("topic")
+    private final String topic;
+
+    @JsonProperty("format")
+    private final String format;
+
+    public LegacyStreamInfo(final String name, final String topic, final String format) {
+      super("sql text");
+      this.name = name;
+      this.topic = topic;
+      this.format = format;
+    }
+  }
+
+  @SuppressWarnings({"FieldCanBeLocal", "unused"})
+  private static class LegacyTableInfo extends KsqlEntity {
+
+    @JsonProperty("name")
+    private final String name;
+
+    @JsonProperty("topic")
+    private final String topic;
+
+    @JsonProperty("format")
+    private final String format;
+
+    @JsonProperty("isWindowed")
+    private final boolean windowed;
+
+    public LegacyTableInfo(final String name, final String topic, final String format,
+        final boolean windowed) {
+      super("sql text");
+      this.name = name;
+      this.topic = topic;
+      this.format = format;
+      this.windowed = windowed;
+    }
+  }
+
+  @SuppressWarnings({"FieldCanBeLocal", "unused"})
+  private static class LegacyStreamsList extends KsqlEntity {
+
+    @JsonProperty("streams")
+    private final Collection<LegacyStreamInfo> streams;
+
+    public LegacyStreamsList(final String sql, final List<LegacyStreamInfo> streams) {
+      super(sql);
+      this.streams = streams;
+    }
+  }
+
+  @SuppressWarnings({"FieldCanBeLocal", "unused"})
+  private static class LegacyTablesList extends KsqlEntity {
+
+    @JsonProperty("tables")
+    private final Collection<LegacyTableInfo> tables;
+
+    public LegacyTablesList(final String sql, final List<LegacyTableInfo> tables) {
+      super(sql);
+      this.tables = tables;
+    }
   }
 }

@@ -33,7 +33,7 @@ statements
     ;
 
 testStatement
-    : (singleStatement | assertStatement ';') EOF?
+    : (singleStatement | assertStatement ';' | runScript ';') EOF?
     ;
 
 singleStatement
@@ -53,6 +53,7 @@ statement
     | (LIST | SHOW) FUNCTIONS                                               #listFunctions
     | (LIST | SHOW) (SOURCE | SINK)? CONNECTORS                             #listConnectors
     | (LIST | SHOW) TYPES                                                   #listTypes
+    | (LIST | SHOW) VARIABLES                                               #listVariables
     | DESCRIBE EXTENDED? sourceName                                         #showColumns
     | DESCRIBE FUNCTION identifier                                          #describeFunction
     | DESCRIBE CONNECTOR identifier                                         #describeConnector
@@ -62,6 +63,8 @@ statement
     | TERMINATE ALL                                                         #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty
+    | DEFINE variableName EQ variableValue                                  #defineVariable
+    | UNDEFINE variableName                                                 #undefineVariable
     | CREATE (OR REPLACE)? STREAM (IF NOT EXISTS)? sourceName
                 (tableElements)?
                 (WITH tableProperties)?                                     #createStream
@@ -72,21 +75,28 @@ statement
                     (WITH tableProperties)?                                 #createTable
     | CREATE (OR REPLACE)? TABLE (IF NOT EXISTS)? sourceName
             (WITH tableProperties)? AS query                                #createTableAs
-    | CREATE (SINK | SOURCE) CONNECTOR identifier WITH tableProperties      #createConnector
-    | INSERT INTO sourceName query                                          #insertInto
+    | CREATE (SINK | SOURCE) CONNECTOR (IF NOT EXISTS)? identifier
+             WITH tableProperties                                           #createConnector
+    | INSERT INTO sourceName (WITH tableProperties)? query                  #insertInto
     | INSERT INTO sourceName (columns)? VALUES values                       #insertValues
     | DROP STREAM (IF EXISTS)? sourceName (DELETE TOPIC)?                   #dropStream
     | DROP TABLE (IF EXISTS)? sourceName (DELETE TOPIC)?                    #dropTable
-    | DROP CONNECTOR identifier                                             #dropConnector
+    | DROP CONNECTOR (IF EXISTS)? identifier                                #dropConnector
     | EXPLAIN  (statement | identifier)                                     #explain
-    | CREATE TYPE identifier AS type                                        #registerType
+    | CREATE TYPE (IF NOT EXISTS)? identifier AS type                       #registerType
     | DROP TYPE (IF EXISTS)? identifier                                     #dropType
+    | ALTER (STREAM | TABLE) sourceName alterOption (',' alterOption)*      #alterSource
     ;
 
 assertStatement
     : ASSERT VALUES sourceName (columns)? VALUES values                     #assertValues
+    | ASSERT NULL VALUES sourceName (columns)? KEY values                   #assertTombstone
     | ASSERT STREAM sourceName (tableElements)? (WITH tableProperties)?     #assertStream
     | ASSERT TABLE sourceName (tableElements)? (WITH tableProperties)?      #assertTable
+    ;
+
+runScript
+    : RUN SCRIPT STRING
     ;
 
 query
@@ -104,6 +114,10 @@ query
 resultMaterialization
     : CHANGES
     | FINAL
+    ;
+
+alterOption
+    : ADD (COLUMN)? identifier type
     ;
 
 tableElements
@@ -319,11 +333,20 @@ whenClause
     ;
 
 identifier
-    : IDENTIFIER             #unquotedIdentifier
+    : VARIABLE               #variableIdentifier
+    | IDENTIFIER             #unquotedIdentifier
     | QUOTED_IDENTIFIER      #quotedIdentifierAlternative
     | nonReserved            #unquotedIdentifier
     | BACKQUOTED_IDENTIFIER  #backQuotedIdentifier
     | DIGIT_IDENTIFIER       #digitIdentifier
+    ;
+
+variableName
+    : IDENTIFIER
+    ;
+
+variableValue
+    : STRING
     ;
 
 sourceName
@@ -341,6 +364,7 @@ literal
     | number                                                                         #numericLiteral
     | booleanValue                                                                   #booleanLiteral
     | STRING                                                                         #stringLiteral
+    | VARIABLE                                                                       #variableLiteral
     ;
 
 nonReserved
@@ -358,7 +382,9 @@ nonReserved
     | FINAL
     | ESCAPE
     | REPLACE
-    | ASSERT | OFFSET
+    | ASSERT
+    | ALTER
+    | ADD
     ;
 
 EMIT: 'EMIT';
@@ -467,6 +493,8 @@ RENAME: 'RENAME';
 ARRAY: 'ARRAY';
 MAP: 'MAP';
 SET: 'SET';
+DEFINE: 'DEFINE';
+UNDEFINE: 'UNDEFINE';
 RESET: 'RESET';
 SESSION: 'SESSION';
 SAMPLE: 'SAMPLE';
@@ -489,6 +517,9 @@ VIEW: 'VIEW';
 PRIMARY: 'PRIMARY';
 REPLACE: 'REPLACE';
 ASSERT: 'ASSERT';
+ADD: 'ADD';
+ALTER: 'ALTER';
+VARIABLES: 'VARIABLES';
 
 IF: 'IF';
 
@@ -549,6 +580,10 @@ TIME_WITH_TIME_ZONE
 
 TIMESTAMP_WITH_TIME_ZONE
     : 'TIMESTAMP' WS 'WITH' WS 'TIME' WS 'ZONE'
+    ;
+
+VARIABLE
+    : '${' IDENTIFIER '}'
     ;
 
 fragment EXPONENT

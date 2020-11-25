@@ -32,6 +32,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.RefinementInfo;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Map;
 import java.util.Optional;
@@ -178,13 +179,14 @@ public class AnalysisTest {
 
   private static void givenNoneWindowedSource(final KsqlStream<?> dataSource) {
     final KsqlTopic topic = mock(KsqlTopic.class);
-    when(topic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(A_FORMAT));
+    when(topic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(A_FORMAT, SerdeFeatures.of()));
     when(dataSource.getKsqlTopic()).thenReturn(topic);
   }
 
   private static void givenWindowedSource(final KsqlStream<?> dataSource) {
     final KsqlTopic topic = mock(KsqlTopic.class);
-    when(topic.getKeyFormat()).thenReturn(KeyFormat.windowed(A_FORMAT, A_WINDOW));
+    when(topic.getKeyFormat()).thenReturn(
+        KeyFormat.windowed(A_FORMAT, SerdeFeatures.of(), A_WINDOW));
     when(dataSource.getKsqlTopic()).thenReturn(topic);
   }
 }

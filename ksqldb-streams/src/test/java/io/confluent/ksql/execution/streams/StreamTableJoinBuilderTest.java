@@ -22,7 +22,7 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.name.ColumnName;
@@ -31,7 +31,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Joined;
@@ -65,12 +65,13 @@ public class StreamTableJoinBuilderTest {
       .build();
 
   private static final PhysicalSchema LEFT_PHYSICAL =
-      PhysicalSchema.from(LEFT_SCHEMA, SerdeOption.none());
+      PhysicalSchema.from(LEFT_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
-  private static final io.confluent.ksql.execution.plan.Formats LEFT_FMT = Formats.of(
+  private static final Formats LEFT_FMT = Formats.of(
       FormatInfo.of(FormatFactory.KAFKA.name()),
       FormatInfo.of(FormatFactory.JSON.name()),
-      SerdeOption.none()
+      SerdeFeatures.of(),
+      SerdeFeatures.of()
   );
 
   private final QueryContext CTX =
@@ -93,7 +94,7 @@ public class StreamTableJoinBuilderTest {
   @Mock
   private KsqlQueryBuilder queryBuilder;
   @Mock
-  private KeySerdeFactory<Struct> keySerdeFactory;
+  private ExecutionKeyFactory<Struct> executionKeyFactory;
   @Mock
   private Serde<Struct> keySerde;
   @Mock
@@ -105,14 +106,14 @@ public class StreamTableJoinBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(executionKeyFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(eq(FormatInfo.of(FormatFactory.JSON.name())), any(), any()))
         .thenReturn(leftSerde);
     when(joinedFactory.create(any(Serde.class), any(), any(), any())).thenReturn(joined);
     when(left.build(any())).thenReturn(
-        new KStreamHolder<>(leftKStream, LEFT_SCHEMA, keySerdeFactory));
+        new KStreamHolder<>(leftKStream, LEFT_SCHEMA, executionKeyFactory));
     when(right.build(any())).thenReturn(
-        KTableHolder.unmaterialized(rightKTable, RIGHT_SCHEMA, keySerdeFactory));
+        KTableHolder.unmaterialized(rightKTable, RIGHT_SCHEMA, executionKeyFactory));
 
     when(leftKStream.leftJoin(any(KTable.class), any(), any())).thenReturn(resultStream);
     when(leftKStream.join(any(KTable.class), any(), any())).thenReturn(resultStream);
@@ -147,7 +148,7 @@ public class StreamTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKStream, rightKTable, resultStream);
     assertThat(result.getStream(), is(resultStream));
-    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test
@@ -166,7 +167,7 @@ public class StreamTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKStream, rightKTable, resultStream);
     assertThat(result.getStream(), is(resultStream));
-    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test
@@ -197,7 +198,7 @@ public class StreamTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKStream, rightKTable, resultStream);
     assertThat(result.getStream(), is(resultStream));
-    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test
@@ -216,7 +217,7 @@ public class StreamTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKStream, rightKTable, resultStream);
     assertThat(result.getStream(), is(resultStream));
-    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test
@@ -277,7 +278,7 @@ public class StreamTableJoinBuilderTest {
     join.build(planBuilder);
 
     // Then:
-    verify(keySerdeFactory).buildKeySerde(LEFT_FMT.getKeyFormat(), LEFT_PHYSICAL, CTX);
+    verify(executionKeyFactory).buildKeySerde(LEFT_FMT.getKeyFormat(), LEFT_PHYSICAL, CTX);
   }
 
   @Test

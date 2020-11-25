@@ -19,26 +19,23 @@ import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.select.SelectValueMapperFactory;
-import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
 import java.util.List;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -47,9 +44,7 @@ import org.mockito.junit.MockitoRule;
 
 public class SelectValueMapperIntegrationTest {
 
-  private static final Struct NON_WINDOWED_KEY = StructKeyUtil
-      .keyBuilder(ColumnName.of("K"), SqlTypes.STRING)
-      .build("someKey");
+  private static final GenericKey NON_WINDOWED_KEY = GenericKey.genericKey("someKey");
 
   private final MetaStore metaStore = MetaStoreFixture
       .getNewMetaStore(TestFunctionRegistry.INSTANCE.get());
@@ -67,7 +62,7 @@ public class SelectValueMapperIntegrationTest {
   @Test
   public void shouldSelectChosenColumns() {
     // Given:
-    final KsqlTransformer<Struct, GenericRow> selectTransformer =
+    final KsqlTransformer<GenericKey, GenericRow> selectTransformer =
         givenSelectMapperFor(
             "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;"
         );
@@ -86,7 +81,7 @@ public class SelectValueMapperIntegrationTest {
   @Test
   public void shouldApplyUdfsToColumns() {
     // Given:
-    final KsqlTransformer<Struct, GenericRow> selectTransformer =
+    final KsqlTransformer<GenericKey, GenericRow> selectTransformer =
         givenSelectMapperFor(
             "SELECT col0, col1, col2, CEIL(col3) FROM test1 WHERE col0 > 100 EMIT CHANGES;"
         );
@@ -102,14 +97,14 @@ public class SelectValueMapperIntegrationTest {
     assertThat(row, is(genericRow(2L, "foo", "whatever", 7.0D)));
   }
 
-  private KsqlTransformer<Struct, GenericRow> givenSelectMapperFor(
+  private KsqlTransformer<GenericKey, GenericRow> givenSelectMapperFor(
       final String query) {
     final PlanNode planNode = AnalysisTestUtil.buildLogicalPlan(ksqlConfig, query, metaStore);
     final ProjectNode projectNode = (ProjectNode) planNode.getSources().get(0);
     final LogicalSchema schema = planNode.getLeftmostSourceNode().getSchema();
     final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
 
-    return SelectValueMapperFactory.<Struct>create(
+    return SelectValueMapperFactory.<GenericKey>create(
         selectExpressions,
         schema,
         ksqlConfig,

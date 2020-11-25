@@ -5,11 +5,21 @@
   "schemas" : {
     "CSAS_REPARTITIONED_0.KsqlTopic.Source" : {
       "schema" : "`K` STRING KEY, `ID` BIGINT, `SHOULDTHROW` BOOLEAN",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CSAS_REPARTITIONED_0.REPARTITIONED" : {
       "schema" : "`KSQL_COL_0` INTEGER KEY, `ID` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {
@@ -67,29 +77,31 @@
     "statements" : [ "CREATE STREAM TEST (K STRING KEY, ID bigint, shouldThrow BOOLEAN) with (kafka_topic='test_topic', value_format = 'json');", "CREATE STREAM REPARTITIONED AS select bad_udf(shouldThrow), ID from TEST partition by bad_udf(shouldThrow);" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `ID` BIGINT, `SHOULDTHROW` BOOLEAN",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "REPARTITIONED",
         "type" : "STREAM",
         "schema" : "`KSQL_COL_0` INTEGER KEY, `ID` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`K` STRING KEY, `ID` BIGINT, `SHOULDTHROW` BOOLEAN",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "REPARTITIONED",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -98,9 +110,7 @@
         }, {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

@@ -60,12 +60,16 @@ import io.confluent.ksql.execution.windows.SessionWindowExpression;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.metastore.TypeRegistry;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.SqlBaseParser.AlterOptionContext;
+import io.confluent.ksql.parser.SqlBaseParser.AlterSourceContext;
 import io.confluent.ksql.parser.SqlBaseParser.ArrayConstructorContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertStreamContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertTableContext;
+import io.confluent.ksql.parser.SqlBaseParser.AssertTombstoneContext;
 import io.confluent.ksql.parser.SqlBaseParser.AssertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
@@ -90,10 +94,14 @@ import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.WindowUnitContext;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
+import io.confluent.ksql.parser.properties.with.InsertIntoProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.AlterOption;
+import io.confluent.ksql.parser.tree.AlterSource;
 import io.confluent.ksql.parser.tree.AssertStatement;
 import io.confluent.ksql.parser.tree.AssertStream;
+import io.confluent.ksql.parser.tree.AssertTombstone;
 import io.confluent.ksql.parser.tree.AssertValues;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.CreateConnector.Type;
@@ -101,6 +109,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.DropConnector;
@@ -123,6 +132,7 @@ import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.ListTypes;
+import io.confluent.ksql.parser.tree.ListVariables;
 import io.confluent.ksql.parser.tree.PartitionBy;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
@@ -140,6 +150,7 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
+import io.confluent.ksql.parser.tree.UndefineVariable;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
@@ -333,7 +344,8 @@ public class AstBuilder {
           getLocation(context),
           name,
           properties,
-          type
+          type,
+          context.EXISTS() != null
       );
     }
 
@@ -341,10 +353,13 @@ public class AstBuilder {
     public Node visitInsertInto(final SqlBaseParser.InsertIntoContext context) {
       final SourceName targetName = ParserUtil.getSourceName(context.sourceName());
       final Query query = withinPersistentQuery(() -> visitQuery(context.query()));
+      final Map<String, Literal> properties = processTableProperties(context.tableProperties());
+
       return new InsertInto(
           getLocation(context),
           targetName,
-          query);
+          query,
+          InsertIntoProperties.from(properties));
     }
 
     @Override
@@ -394,6 +409,7 @@ public class AstBuilder {
     public Node visitDropConnector(final DropConnectorContext context) {
       return new DropConnector(
           getLocation(context),
+          context.EXISTS() != null,
           ParserUtil.getIdentifierText(context.identifier())
       );
     }
@@ -671,6 +687,26 @@ public class AstBuilder {
     }
 
     @Override
+    public Node visitAlterSource(final AlterSourceContext ctx) {
+      return new AlterSource(
+          ParserUtil.getSourceName(ctx.sourceName()),
+          ctx.STREAM() != null ? DataSourceType.KSTREAM : DataSourceType.KTABLE,
+          ctx.alterOption()
+              .stream()
+              .map(gf -> (AlterOption) visit(gf))
+              .collect(Collectors.toList())
+      );
+    }
+
+    @Override
+    public Node visitAlterOption(final AlterOptionContext ctx) {
+      return new AlterOption(
+          getIdentifierText(ctx.identifier()),
+          typeParser.getType(ctx.type())
+      );
+    }
+
+    @Override
     public Node visitListTypes(final ListTypesContext ctx) {
       return new ListTypes(getLocation(ctx));
     }
@@ -702,6 +738,11 @@ public class AstBuilder {
     }
 
     @Override
+    public Node visitListVariables(final SqlBaseParser.ListVariablesContext context) {
+      return new ListVariables(getLocation(context));
+    }
+
+    @Override
     public Node visitSetProperty(final SqlBaseParser.SetPropertyContext context) {
       final String propertyName = ParserUtil.unquote(context.STRING(0).getText(), "'");
       final String propertyValue = ParserUtil.unquote(context.STRING(1).getText(), "'");
@@ -712,6 +753,19 @@ public class AstBuilder {
     public Node visitUnsetProperty(final SqlBaseParser.UnsetPropertyContext context) {
       final String propertyName = ParserUtil.unquote(context.STRING().getText(), "'");
       return new UnsetProperty(getLocation(context), propertyName);
+    }
+
+    @Override
+    public Node visitDefineVariable(final SqlBaseParser.DefineVariableContext context) {
+      final String variableName = context.variableName().getText();
+      final String variableValue = ParserUtil.unquote(context.variableValue().getText(), "'");
+      return new DefineVariable(getLocation(context), variableName, variableValue);
+    }
+
+    @Override
+    public Node visitUndefineVariable(final SqlBaseParser.UndefineVariableContext context) {
+      final String variableName = context.variableName().getText();
+      return new UndefineVariable(getLocation(context), variableName);
     }
 
     @Override
@@ -1235,7 +1289,8 @@ public class AstBuilder {
       return new RegisterType(
           getLocation(context),
           ParserUtil.getIdentifierText(context.identifier()),
-          typeParser.getType(context.type())
+          typeParser.getType(context.type()),
+          context.EXISTS() != null
       );
     }
 
@@ -1262,6 +1317,31 @@ public class AstBuilder {
           visit(context.values().valueExpression(), Expression.class));
 
       return new AssertValues(targetLocation, insertValues);
+    }
+
+    @Override
+    public Node visitAssertTombstone(final AssertTombstoneContext context) {
+      final SourceName targetName = ParserUtil.getSourceName(context.sourceName());
+      final Optional<NodeLocation> targetLocation = getLocation(context.sourceName());
+
+      final List<ColumnName> keyColumns;
+      if (context.columns() != null) {
+        keyColumns = context.columns().identifier()
+            .stream()
+            .map(ParserUtil::getIdentifierText)
+            .map(ColumnName::of)
+            .collect(Collectors.toList());
+      } else {
+        keyColumns = ImmutableList.of();
+      }
+
+      final InsertValues insertValues = new InsertValues(
+          targetLocation,
+          targetName,
+          keyColumns,
+          visit(context.values().valueExpression(), Expression.class));
+
+      return new AssertTombstone(targetLocation, insertValues);
     }
 
     @Override

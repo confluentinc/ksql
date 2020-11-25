@@ -18,6 +18,8 @@ package io.confluent.ksql.api.client.integration;
 import static io.confluent.ksql.api.client.util.ClientTestUtil.shouldReceiveRows;
 import static io.confluent.ksql.api.client.util.ClientTestUtil.subscribeAndWait;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_KEY_FORMAT_ENABLED;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -35,6 +37,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.client.AcksPublisher;
 import io.confluent.ksql.api.client.BatchedQueryResult;
@@ -66,8 +69,10 @@ import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeature;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Vertx;
@@ -106,14 +111,17 @@ public class ClientIntegrationTest {
 
   private static final StructuredTypesDataProvider TEST_DATA_PROVIDER = new StructuredTypesDataProvider();
   private static final String TEST_TOPIC = TEST_DATA_PROVIDER.topicName();
-  private static final String TEST_STREAM = TEST_DATA_PROVIDER.kstreamName();
+  private static final String TEST_STREAM = TEST_DATA_PROVIDER.sourceName();
   private static final int TEST_NUM_ROWS = TEST_DATA_PROVIDER.data().size();
   private static final List<String> TEST_COLUMN_NAMES =
       ImmutableList.of("STR", "LONG", "DEC", "ARRAY", "MAP", "STRUCT", "COMPLEX");
   private static final List<ColumnType> TEST_COLUMN_TYPES =
       RowUtil.columnTypesFromStrings(ImmutableList.of("STRING", "BIGINT", "DECIMAL", "ARRAY", "MAP", "STRUCT", "STRUCT"));
-  private static final List<KsqlArray> TEST_EXPECTED_ROWS = convertToClientRows(
-      TEST_DATA_PROVIDER.data());
+  private static final List<KsqlArray> TEST_EXPECTED_ROWS =
+      convertToClientRows(TEST_DATA_PROVIDER.data());
+
+  private static final Format KEY_FORMAT = FormatFactory.JSON;
+  private static final Format VALUE_FORMAT = FormatFactory.JSON;
 
   private static final String AGG_TABLE = "AGG_TABLE";
   private static final String AN_AGG_KEY = "FOO";
@@ -122,18 +130,19 @@ public class ClientIntegrationTest {
           .keyColumn(ColumnName.of("STR"), SqlTypes.STRING)
           .valueColumn(ColumnName.of("LONG"), SqlTypes.BIGINT)
           .build(),
-      SerdeOption.none()
+      SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
+      SerdeFeatures.of()
   );
 
-  private static final TestDataProvider<String> EMPTY_TEST_DATA_PROVIDER = new TestDataProvider<>(
+  private static final TestDataProvider EMPTY_TEST_DATA_PROVIDER = new TestDataProvider(
       "EMPTY_STRUCTURED_TYPES", TEST_DATA_PROVIDER.schema(), ImmutableListMultimap.of());
   private static final String EMPTY_TEST_TOPIC = EMPTY_TEST_DATA_PROVIDER.topicName();
-  private static final String EMPTY_TEST_STREAM = EMPTY_TEST_DATA_PROVIDER.kstreamName();
+  private static final String EMPTY_TEST_STREAM = EMPTY_TEST_DATA_PROVIDER.sourceName();
 
-  private static final TestDataProvider<String> EMPTY_TEST_DATA_PROVIDER_2 = new TestDataProvider<>(
+  private static final TestDataProvider EMPTY_TEST_DATA_PROVIDER_2 = new TestDataProvider(
       "EMPTY_STRUCTURED_TYPES_2", TEST_DATA_PROVIDER.schema(), ImmutableListMultimap.of());
   private static final String EMPTY_TEST_TOPIC_2 = EMPTY_TEST_DATA_PROVIDER_2.topicName();
-  private static final String EMPTY_TEST_STREAM_2 = EMPTY_TEST_DATA_PROVIDER_2.kstreamName();
+  private static final String EMPTY_TEST_STREAM_2 = EMPTY_TEST_DATA_PROVIDER_2.sourceName();
 
   private static final String PUSH_QUERY = "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES;";
   private static final String PULL_QUERY = "SELECT * from " + AGG_TABLE + " WHERE STR='" + AN_AGG_KEY + "';";
@@ -170,6 +179,8 @@ public class ClientIntegrationTest {
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+      .withProperty(KSQL_KEY_FORMAT_ENABLED, true)
+      .withProperty(KSQL_DEFAULT_KEY_FORMAT_CONFIG, "JSON")
       .build();
 
   @ClassRule
@@ -181,7 +192,7 @@ public class ClientIntegrationTest {
   @BeforeClass
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(TEST_TOPIC, EMPTY_TEST_TOPIC, EMPTY_TEST_TOPIC_2);
-    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, FormatFactory.JSON);
+    TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT);
     RestIntegrationTestUtil.createStream(REST_APP, TEST_DATA_PROVIDER);
     RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER);
     RestIntegrationTestUtil.createStream(REST_APP, EMPTY_TEST_DATA_PROVIDER_2);
@@ -193,7 +204,8 @@ public class ClientIntegrationTest {
     TEST_HARNESS.verifyAvailableUniqueRows(
         AGG_TABLE,
         4, // Only unique keys are counted
-        FormatFactory.JSON,
+        KEY_FORMAT,
+        VALUE_FORMAT,
         AGG_SCHEMA
     );
   }
@@ -830,7 +842,9 @@ public class ClientIntegrationTest {
     final List<TableInfo> tables = client.listTables().get();
 
     // Then
-    assertThat("" + tables, tables, contains(tableInfo(AGG_TABLE, AGG_TABLE, "JSON", false)));
+    assertThat("" + tables, tables, contains(
+        tableInfo(AGG_TABLE, AGG_TABLE, KEY_FORMAT.name(), VALUE_FORMAT.name(), false)
+    ));
   }
 
   @SuppressWarnings("unchecked")
@@ -862,7 +876,7 @@ public class ClientIntegrationTest {
 
     // Then
     assertThat(queries.get(0).getQueryType(), is(QueryType.PERSISTENT));
-    assertThat(queries.get(0).getId(), is("CTAS_" + AGG_TABLE + "_0"));
+    assertThat(queries.get(0).getId(), is("CTAS_" + AGG_TABLE + "_5"));
     assertThat(queries.get(0).getSql(), is(
         "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
             + "  " + TEST_STREAM + ".STR STR,\n"
@@ -890,11 +904,11 @@ public class ClientIntegrationTest {
       assertThat(description.fields().get(i).isKey(), is(isKey));
     }
     assertThat(description.topic(), is(TEST_TOPIC));
-    assertThat(description.keyFormat(), is("KAFKA"));
+    assertThat(description.keyFormat(), is("JSON"));
     assertThat(description.valueFormat(), is("JSON"));
     assertThat(description.readQueries(), hasSize(1));
     assertThat(description.readQueries().get(0).getQueryType(), is(QueryType.PERSISTENT));
-    assertThat(description.readQueries().get(0).getId(), is("CTAS_" + AGG_TABLE + "_0"));
+    assertThat(description.readQueries().get(0).getId(), is("CTAS_" + AGG_TABLE + "_5"));
     assertThat(description.readQueries().get(0).getSql(), is(
         "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
             + "  " + TEST_STREAM + ".STR STR,\n"
@@ -908,14 +922,13 @@ public class ClientIntegrationTest {
     assertThat(description.timestampColumn(), is(Optional.empty()));
     assertThat(description.windowType(), is(Optional.empty()));
     assertThat(description.sqlStatement(), is(
-        "CREATE STREAM " + TEST_STREAM + " (`STR` STRING KEY, `LONG` BIGINT, "
-            + "`DEC` DECIMAL(4, 2), `ARRAY` ARRAY<STRING>, `MAP` MAP<STRING, STRING>, "
-            + "`STRUCT` STRUCT<`F1` INTEGER>, `COMPLEX` STRUCT<`DECIMAL` DECIMAL(2, 1), "
-            + "`STRUCT` STRUCT<`F1` STRING, `F2` INTEGER>, `ARRAY_ARRAY` ARRAY<ARRAY<STRING>>, "
-            + "`ARRAY_STRUCT` ARRAY<STRUCT<`F1` STRING>>, `ARRAY_MAP` ARRAY<MAP<STRING, INTEGER>>, "
-            + "`MAP_ARRAY` MAP<STRING, ARRAY<STRING>>, `MAP_MAP` MAP<STRING, MAP<STRING, INTEGER>>, "
-            + "`MAP_STRUCT` MAP<STRING, STRUCT<`F1` STRING>>>) WITH "
-            + "(kafka_topic='" + TEST_TOPIC + "', value_format='json');"));
+        "CREATE STREAM " + TEST_STREAM + " (STR STRING KEY, LONG BIGINT, DEC DECIMAL(4, 2), "
+            + "ARRAY ARRAY<STRING>, MAP MAP<STRING, STRING>, STRUCT STRUCT<F1 INTEGER>, "
+            + "COMPLEX STRUCT<`DECIMAL` DECIMAL(2, 1), STRUCT STRUCT<F1 STRING, F2 INTEGER>, "
+            + "ARRAY_ARRAY ARRAY<ARRAY<STRING>>, ARRAY_STRUCT ARRAY<STRUCT<F1 STRING>>, "
+            + "ARRAY_MAP ARRAY<MAP<STRING, INTEGER>>, MAP_ARRAY MAP<STRING, ARRAY<STRING>>, "
+            + "MAP_MAP MAP<STRING, MAP<STRING, INTEGER>>, MAP_STRUCT MAP<STRING, STRUCT<F1 STRING>>>) "
+            + "WITH (KAFKA_TOPIC='STRUCTURED_TYPES_TOPIC', KEY_FORMAT='JSON', VALUE_FORMAT='JSON');"));
   }
 
   @Test
@@ -1126,11 +1139,14 @@ public class ClientIntegrationTest {
     assertThat(obj.toString(), is(obj.toJsonString()));
   }
 
-  private static List<KsqlArray> convertToClientRows(final Multimap<String, GenericRow> data) {
+  private static List<KsqlArray> convertToClientRows(
+      final Multimap<GenericKey, GenericRow> data
+  ) {
     final List<KsqlArray> expectedRows = new ArrayList<>();
-    for (final Map.Entry<String, GenericRow> entry : data.entries()) {
+    for (final Map.Entry<GenericKey, GenericRow> entry : data.entries()) {
       final KsqlArray expectedRow = new KsqlArray()
-          .add(entry.getKey());
+          .add(entry.getKey().get(0));
+
       for (final Object value : entry.getValue().values()) {
         if (value instanceof Struct) {
           expectedRow.add(StructuredTypesDataProvider.structToMap((Struct) value));
@@ -1148,13 +1164,23 @@ public class ClientIntegrationTest {
   }
 
   private static Matcher<? super StreamInfo> streamForProvider(
-      final TestDataProvider<?> testDataProvider
+      final TestDataProvider testDataProvider
   ) {
-    return streamInfo(testDataProvider.kstreamName(), testDataProvider.topicName(), "JSON");
+    return streamInfo(
+        testDataProvider.sourceName(),
+        testDataProvider.topicName(),
+        KEY_FORMAT.name(),
+        VALUE_FORMAT.name(),
+        false
+    );
   }
 
   private static Matcher<? super StreamInfo> streamInfo(
-      final String streamName, final String topicName, final String format
+      final String streamName,
+      final String topicName,
+      final String keyFormat,
+      final String valueFormat,
+      final boolean isWindowed
   ) {
     return new TypeSafeDiagnosingMatcher<StreamInfo>() {
       @Override
@@ -1167,7 +1193,13 @@ public class ClientIntegrationTest {
         if (!topicName.equals(actual.getTopic())) {
           return false;
         }
-        if (!format.equals(actual.getFormat())) {
+        if (!keyFormat.equals(actual.getValueFormat())) {
+          return false;
+        }
+        if (!valueFormat.equals(actual.getValueFormat())) {
+          return false;
+        }
+        if (isWindowed != actual.isWindowed()) {
           return false;
         }
         return true;
@@ -1176,13 +1208,18 @@ public class ClientIntegrationTest {
       @Override
       public void describeTo(final Description description) {
         description.appendText(String.format(
-            "streamName: %s. topicName: %s. format: %s", streamName, topicName, format));
+            "tableName: %s. topicName: %s. keyFormat: %s. valueFormat: %s. isWindowed: %s",
+            streamName, topicName, keyFormat, valueFormat, isWindowed));
       }
     };
   }
 
   private static Matcher<? super TableInfo> tableInfo(
-      final String tableName, final String topicName, final String format, final boolean isWindowed
+      final String tableName,
+      final String topicName,
+      final String keyFormat,
+      final String valueFormat,
+      final boolean isWindowed
   ) {
     return new TypeSafeDiagnosingMatcher<TableInfo>() {
       @Override
@@ -1195,7 +1232,10 @@ public class ClientIntegrationTest {
         if (!topicName.equals(actual.getTopic())) {
           return false;
         }
-        if (!format.equals(actual.getFormat())) {
+        if (!keyFormat.equals(actual.getKeyFormat())) {
+          return false;
+        }
+        if (!valueFormat.equals(actual.getValueFormat())) {
           return false;
         }
         if (isWindowed != actual.isWindowed()) {
@@ -1207,8 +1247,8 @@ public class ClientIntegrationTest {
       @Override
       public void describeTo(final Description description) {
         description.appendText(String.format(
-            "tableName: %s. topicName: %s. format: %s. isWindowed: %s",
-            tableName, topicName, format, isWindowed));
+            "tableName: %s. topicName: %s. keyFormat: %s. valueFormat: %s. isWindowed: %s",
+            tableName, topicName, keyFormat, valueFormat, isWindowed));
       }
     };
   }

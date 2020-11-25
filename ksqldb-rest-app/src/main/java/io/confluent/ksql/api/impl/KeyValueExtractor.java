@@ -15,45 +15,48 @@
 
 package io.confluent.ksql.api.impl;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.util.ParserUtil;
+import io.confluent.ksql.util.JsonUtil;
 import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Struct;
 
 public final class KeyValueExtractor {
 
   private KeyValueExtractor() {
   }
 
-  public static Struct extractKey(final JsonObject values, final LogicalSchema logicalSchema,
-      final SqlValueCoercer sqlValueCoercer) {
-    final Struct key = new Struct(logicalSchema.keyConnectSchema());
-    for (final Field field : key.schema().fields()) {
-      final Object value = values.getValue(field.name());
+  public static GenericKey extractKey(
+      final JsonObject values,
+      final LogicalSchema logicalSchema,
+      final SqlValueCoercer sqlValueCoercer
+  ) {
+    final List<Column> keyColumns = logicalSchema.key();
+    final GenericKey.Builder builder = GenericKey.builder(logicalSchema);
+    for (final Column keyColumn : keyColumns) {
+      final Object value = values.getValue(keyColumn.name().text());
       if (value == null) {
-        throw new KsqlApiException("Key field must be specified: " + field.name(),
+        throw new KsqlApiException("Key field must be specified: " + keyColumn.name().text(),
             Errors.ERROR_CODE_BAD_REQUEST);
       }
-      final Object coercedValue = coerceObject(value,
-          SchemaConverters.connectToSqlConverter().toSqlType(field.schema()),
-          sqlValueCoercer);
-      key.put(field, coercedValue);
+      final Object coercedValue = coerceObject(value, keyColumn.type(), sqlValueCoercer);
+      builder.append(coercedValue);
     }
-    return key;
+    return builder.build();
   }
 
-  public static GenericRow extractValues(final JsonObject values, final LogicalSchema logicalSchema,
-      final SqlValueCoercer sqlValueCoercer) {
+  public static GenericRow extractValues(
+      final JsonObject values,
+      final LogicalSchema logicalSchema,
+      final SqlValueCoercer sqlValueCoercer
+  ) {
     final List<Column> valColumns = logicalSchema.value();
     final List<Object> vals = new ArrayList<>(valColumns.size());
     for (Column column : valColumns) {
@@ -68,7 +71,7 @@ public final class KeyValueExtractor {
 
   static JsonObject convertColumnNameCase(final JsonObject jsonObjectWithCaseInsensitiveFields) {
     try {
-      return ParserUtil.convertJsonFieldCase(jsonObjectWithCaseInsensitiveFields);
+      return JsonUtil.convertJsonFieldCase(jsonObjectWithCaseInsensitiveFields);
     } catch (IllegalArgumentException e) {
       throw new KsqlApiException(e.getMessage(), Errors.ERROR_CODE_BAD_REQUEST);
     }

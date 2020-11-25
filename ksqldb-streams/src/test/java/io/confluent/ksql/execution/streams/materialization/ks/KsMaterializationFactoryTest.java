@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory.LocatorFactory;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory.MaterializationFactory;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory.StateStoreFactory;
@@ -38,7 +39,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
@@ -62,7 +62,7 @@ public class KsMaterializationFactoryTest {
   @Mock
   private KafkaStreams kafkaStreams;
   @Mock
-  private Serializer<Struct> keySerializer;
+  private Serializer<GenericKey> keySerializer;
 
   @Mock
   private LocatorFactory locatorFactory;

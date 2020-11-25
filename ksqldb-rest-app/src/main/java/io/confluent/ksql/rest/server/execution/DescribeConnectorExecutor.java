@@ -31,7 +31,6 @@ import io.confluent.ksql.rest.entity.SourceDescriptionFactory;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -132,6 +131,7 @@ public final class DescribeConnectorExecutor {
               ImmutableList.of(),
               ImmutableList.of(),
               Optional.empty(),
+              ImmutableList.of(),
               ImmutableList.of()))
           .collect(Collectors.toList());
     } else {

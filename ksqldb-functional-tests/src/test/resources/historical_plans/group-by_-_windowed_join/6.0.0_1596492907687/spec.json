@@ -5,27 +5,64 @@
   "schemas" : {
     "CTAS_TEST_0.Join.Left" : {
       "schema" : "`B_ID` STRING KEY, `B_ID` STRING, `B_ROWTIME` BIGINT",
-      "serdeOptions" : [ ]
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_TEST_0.Aggregate.Aggregate.Materialize" : {
       "schema" : "`A_ID` STRING KEY, `A_ID` STRING, `B_ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT, `KSQL_AGG_VARIABLE_1` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_TEST_0.TEST" : {
       "schema" : "`A_ID` STRING KEY, `COUNT` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA",
+        "windowInfo" : {
+          "type" : "TUMBLING",
+          "size" : 60.000000000
+        }
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_TEST_0.Aggregate.GroupBy" : {
       "schema" : "`A_ID` STRING KEY, `A_ID` STRING, `B_ROWTIME` BIGINT",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     },
     "CTAS_TEST_0.KafkaTopic_Right.Source" : {
       "schema" : "`ID` STRING KEY, `REGIONID` STRING",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_TEST_0.Join" : {
+      "schema" : "`B_ID` STRING KEY, `B_ID` STRING, `B_ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      }
     },
     "CTAS_TEST_0.KafkaTopic_Left.Source" : {
       "schema" : "`ID` STRING",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {
@@ -59,24 +96,6 @@
     "outputs" : [ {
       "topic" : "TEST",
       "key" : "1",
-      "value" : null,
-      "window" : {
-        "start" : 0,
-        "end" : 60000,
-        "type" : "TIME"
-      }
-    }, {
-      "topic" : "TEST",
-      "key" : "1",
-      "value" : null,
-      "window" : {
-        "start" : 0,
-        "end" : 60000,
-        "type" : "TIME"
-      }
-    }, {
-      "topic" : "TEST",
-      "key" : "1",
       "value" : {
         "COUNT" : 3
       },
@@ -108,7 +127,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "B",
         "type" : "STREAM",
@@ -116,7 +137,9 @@
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       }, {
         "name" : "TEST",
         "type" : "TABLE",
@@ -126,19 +149,15 @@
           "windowType" : "TUMBLING",
           "windowSize" : 60000
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "JSON",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_TEST_0-Join-repartition",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
-            "windowInfo" : {
-              "type" : "TUMBLING",
-              "size" : 60.000000000
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -146,9 +165,7 @@
         }, {
           "name" : "a",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -157,9 +174,7 @@
         }, {
           "name" : "b",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -168,9 +183,7 @@
         }, {
           "name" : "TEST",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "TUMBLING",
               "size" : 60.000000000
@@ -183,13 +196,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_TEST_0-KafkaTopic_Right-Reduce-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
-            "windowInfo" : {
-              "type" : "TUMBLING",
-              "size" : 60.000000000
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -197,9 +204,7 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_TEST_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            },
+            "format" : "KAFKA",
             "windowInfo" : {
               "type" : "TUMBLING",
               "size" : 60.000000000

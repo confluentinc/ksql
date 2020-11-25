@@ -103,6 +103,8 @@ public class StreamSelect<K> implements ExecutionStep<KStreamHolder<K>> {
 
   @Override
   public StepType type() {
+    // the list of column names is verified in the schema compatibility
+    // check when inserting into the metastore (See DataSource#canUpgradeTo)
     return StepType.PASSIVE;
   }
 

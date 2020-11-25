@@ -17,12 +17,17 @@ package io.confluent.ksql.engine;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
+import io.confluent.ksql.execution.streams.RoutingOptions;
+import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
@@ -32,7 +37,9 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Sandbox;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * An execution context that can execute statements without changing the core engine's state
@@ -81,6 +88,11 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
+  public Set<QueryId> getQueriesWithSink(final SourceName sourceName) {
+    return engineContext.getQueriesWithSink(sourceName);
+  }
+
+  @Override
   public List<QueryMetadata> getAllLiveQueries() {
     return ImmutableList.of();
   }
@@ -91,8 +103,11 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
-  public PreparedStatement<?> prepare(final ParsedStatement stmt) {
-    return engineContext.prepare(stmt);
+  public PreparedStatement<?> prepare(
+      final ParsedStatement stmt,
+      final Map<String, String> variablesMap
+  ) {
+    return engineContext.prepare(stmt, variablesMap);
   }
 
   @Override
@@ -103,8 +118,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
     return EngineExecutor.create(
         engineContext,
         serviceContext,
-        statement.getConfig(),
-        statement.getConfigOverrides()
+        statement.getSessionConfig()
     ).plan(statement);
   }
 
@@ -116,8 +130,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
     return EngineExecutor.create(
         engineContext,
         serviceContext,
-        ksqlPlan.getConfig(),
-        ksqlPlan.getOverrides()
+        ksqlPlan.getConfig()
     ).execute(ksqlPlan.getPlan());
   }
 
@@ -128,24 +141,40 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   ) {
     return execute(
         serviceContext,
-        ConfiguredKsqlPlan.of(
-            plan(serviceContext, statement),
-            statement.getConfigOverrides(),
-            statement.getConfig()
-        )
+        ConfiguredKsqlPlan.of(plan(serviceContext, statement), statement.getSessionConfig())
     );
   }
 
   @Override
   public TransientQueryMetadata executeQuery(
       final ServiceContext serviceContext,
-      final ConfiguredStatement<Query> statement
+      final ConfiguredStatement<Query> statement,
+      final boolean excludeTombstones
   ) {
     return EngineExecutor.create(
         engineContext,
         serviceContext,
-        statement.getConfig(),
-        statement.getConfigOverrides()
-    ).executeQuery(statement);
+        statement.getSessionConfig()
+    ).executeQuery(statement, excludeTombstones);
+  }
+
+  @Override
+  public PullQueryResult executePullQuery(
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<Query> statement,
+      final RoutingFilterFactory routingFilterFactory,
+      final RoutingOptions routingOptions,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+  ) {
+    return EngineExecutor.create(
+        engineContext,
+        serviceContext,
+        statement.getSessionConfig()
+    ).executePullQuery(
+        statement,
+        routingFilterFactory,
+        routingOptions,
+        pullQueryMetrics
+    );
   }
 }

@@ -29,10 +29,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <ksql.version>@{project.version}</ksql.version>
-        <junit.jupiter.version>5.4.1</junit.jupiter.version>
-        <maven.shade.version>3.2.1</maven.shade.version>
-        <!-- JUnit 5 requires Surefire version 2.22.1 or higher -->
-        <maven.surefire.version>2.22.1</maven.surefire.version>
+        <maven.surefire.version>3.0.0-M4</maven.surefire.version>
     </properties>
 
     <repositories>
@@ -73,19 +70,6 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>${maven.shade.version}</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven.surefire.version}</version>
             </plugin>
@@ -101,9 +85,9 @@
         </dependency>
         <!-- Test dependencies -->
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>${junit.jupiter.version}</version>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

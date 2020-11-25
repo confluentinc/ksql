@@ -21,6 +21,27 @@ SELECT [...], aggregate_function
   WINDOW HOPPING (SIZE <time_span> <time_units>, ADVANCE BY <time_span> <time_units>) [...]
 ```
 
+## ALTER STREAM
+Add new columns to a stream. This is not supported for streams defined using queries
+(`CREATE STREAM ... AS`).
+
+```sql
+ALTER STREAM stream_name
+  ADD [COLUMN] column_name data_type
+  ADD [COLUMN] ... ...
+  ...
+```
+
+## ALTER TABLE
+Add new columns to a table. This is not supported for table defined using queries
+(`CREATE TABLE ... AS`)
+```sql
+ALTER TABLE stream_name
+  ADD [COLUMN] column_name data_type
+  ADD [COLUMN] ... ...
+  ...
+```
+
 ## AND / OR
 Logical AND/OR operators in a WHERE clause. For more information, see
 [SELECT](../../ksqldb-reference/select-push-query/#example).
@@ -257,20 +278,6 @@ CREATE STREAM stream_name
   EMIT CHANGES;
 ```
 
-## EMIT FINAL
-Specify a push query with a suppressed output refinement in a SELECT statement on a 
-windowed aggregation. 
-For more information, see [Push Queries](../../concepts/queries/push).
-
-```sql
-CREATE TABLE table_name
-  AS SELECT  select_expr_with_aggregation [, ...]
-  FROM from_stream
-  [ WINDOW window_expression ]
-  [ GROUP BY grouping_expression ]
-  EMIT FINAL;
-```
-
 ## EXPLAIN
 Show the execution plan for a SQL expression or running query. For more
 information, see [EXPLAIN](../../ksqldb-reference/explain).
@@ -292,8 +299,9 @@ SELECT column_name(s)
 ```
 
 ## GROUP BY
-Group records in a window. Required by the WINDOW clause. For more information,
-see [Time and Windows in ksqlDB](../../concepts/time-and-windows-in-ksqldb-queries).
+Group records in a window. Required by the WINDOW clause. Windowing queries
+must group by the keys that are selected in the query. For more information,
+see [Time and Windows in ksqlDB](../../../concepts/time-and-windows-in-ksqldb-queries#windows-in-sql-queries).
 
 ```sql hl_lines="4"
 SELECT column_name, aggregate_function(column_name)
@@ -331,16 +339,6 @@ Test whether a stream or table is present in ksqlDB.
 ```sql
 DROP STREAM [IF EXISTS] stream_name [DELETE TOPIC];
 DROP TABLE  [IF EXISTS] table_name  [DELETE TOPIC];
-```
-
-## IN
-Specify multiple values in a WHERE clause.
-
-```sql hl_lines="4"
-SELECT column_name(s)
-  FROM stream_name | table_name
-  WHERE column_name
-  IN (value1,value2,..)
 ```
 
 ## INNER JOIN
@@ -399,7 +397,7 @@ Match a string with the specified pattern.
 ```sql hl_lines="3"
   SELECT select_expr [., ...]
     FROM from_stream | from_table
-    WHERE condition LIKE pattern_string;
+    WHERE exp LIKE pattern_string;
 ```
 
 The LIKE operator is used for prefix or suffix matching. ksqlDB supports
@@ -413,6 +411,23 @@ SELECT user_id
   FROM users
   WHERE user_id LIKE 'santa%'
   EMIT CHANGES;
+```
+
+## IN
+Specifies multiple `OR` conditions.
+
+```sql hl_lines"3"
+  SELECT select_expr [., ...]
+    FROM from_stream | from_table
+    WHERE exp IN (exp0, exp1, exp2);
+```
+
+The above is equivalent to:
+
+```sql hl_lines"3"
+  SELECT select_expr [., ...]
+    FROM from_stream | from_table
+    WHERE exp = exp0 OR exp = exp1 OR exp = exp2;
 ```
 
 ## PARTITION BY

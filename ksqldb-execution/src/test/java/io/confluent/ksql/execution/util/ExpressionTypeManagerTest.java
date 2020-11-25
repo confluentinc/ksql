@@ -220,7 +220,7 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Cannot compare COL5 (MAP<STRING, DOUBLE>) to COL6 (STRUCT<`NUMBER` BIGINT, "
+        "Cannot compare COL5 (MAP<BIGINT, DOUBLE>) to COL6 (STRUCT<`NUMBER` BIGINT, "
             + "`STREET` STRING, `CITY` STRING, `STATE` STRING, `ZIPCODE` BIGINT>) "
             + "with GREATER_THAN"
     ));
@@ -239,7 +239,7 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Cannot compare COL5 (MAP<STRING, DOUBLE>) to COL6 "
+        "Cannot compare COL5 (MAP<BIGINT, DOUBLE>) to COL6 "
             + "(STRUCT<`NUMBER` BIGINT, `STREET` STRING, `CITY` STRING, `STATE` STRING, "
             + "`ZIPCODE` BIGINT>) with EQUAL"
     ));
@@ -276,6 +276,18 @@ public class ExpressionTypeManagerTest {
     final SqlType exprType0 = expressionTypeManager.getExpressionSqlType(expression);
     assertThat(exprType0, is(SqlTypes.BOOLEAN));
   }
+
+  @Test
+  public void shouldEvaluateBooleanSchemaForInExpression() {
+    final Expression expression = new InPredicate(
+        TestExpressions.COL0,
+        new InListExpression(ImmutableList.of(new StringLiteral("key1"))));
+
+    final SqlType exprType0 = expressionTypeManager.getExpressionSqlType(expression);
+
+    assertThat(exprType0, is(SqlTypes.BOOLEAN));
+  }
+
 
   @Test
   public void shouldEvaluateTypeForUDF() {
@@ -432,7 +444,7 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Cannot construct an array with mismatching types"));
+        "invalid input syntax for type BIGINT: \"foo\"."));
   }
 
   @Test
@@ -440,7 +452,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     Expression expression = new CreateMapExpression(
         ImmutableMap.of(
-            COL1, new UnqualifiedColumnReferenceExp(COL0)
+            COL3, new UnqualifiedColumnReferenceExp(COL0)
         )
     );
 
@@ -448,28 +460,7 @@ public class ExpressionTypeManagerTest {
     final SqlType type = expressionTypeManager.getExpressionSqlType(expression);
 
     // Then:
-    assertThat(type, is(SqlTypes.map(SqlTypes.BIGINT)));
-  }
-
-  @Test
-  public void shouldThrowOnMapOfNonStringKeys() {
-    // Given:
-    Expression expression = new CreateMapExpression(
-        ImmutableMap.of(
-            new IntegerLiteral(1),
-            new UnqualifiedColumnReferenceExp(COL0)
-        )
-    );
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> expressionTypeManager.getExpressionSqlType(expression)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Only STRING keys are supported in maps"));
+    assertThat(type, is(SqlTypes.map(SqlTypes.DOUBLE, SqlTypes.BIGINT)));
   }
 
   @Test
@@ -492,7 +483,7 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Cannot construct a map with mismatching value types"));
+        "invalid input syntax for type BIGINT: \"bar\""));
   }
 
   @Test
@@ -757,7 +748,7 @@ public class ExpressionTypeManagerTest {
   }
 
   @Test
-  public void shouldThrowOnIn() {
+  public void shouldReturnBooleanForInPredicate() {
     // Given:
     final Expression expression = new InPredicate(
         TestExpressions.COL0,
@@ -765,10 +756,10 @@ public class ExpressionTypeManagerTest {
     );
 
     // When:
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> expressionTypeManager.getExpressionSqlType(expression)
-    );
+    final SqlType result = expressionTypeManager.getExpressionSqlType(expression);
+
+    // Then:
+    assertThat(result, is(SqlTypes.BOOLEAN));
   }
 
   @Test

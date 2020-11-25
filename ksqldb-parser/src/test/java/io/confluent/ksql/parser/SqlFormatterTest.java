@@ -36,11 +36,9 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -50,7 +48,7 @@ import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.JoinedSource;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
-import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.ListVariables;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -67,7 +65,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
@@ -128,7 +126,7 @@ public class SqlFormatterTest {
       .valueColumn(ColumnName.of("ITEMINFO"), ITEM_INFO_STRUCT)
       .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("ARRAYCOL"), SqlTypes.array(SqlTypes.DOUBLE))
-      .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(SqlTypes.DOUBLE))
+      .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE))
       .valueColumn(ColumnName.of("ADDRESS"), addressSchema)
       .valueColumn(ColumnName.of("SIZE"), SqlTypes.INTEGER) // Reserved word
       .build();
@@ -175,15 +173,14 @@ public class SqlFormatterTest {
 
     final KsqlTopic ksqlTopicOrders = new KsqlTopic(
         "orders_topic",
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
     );
 
     final KsqlStream<?> ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         SourceName.of("ADDRESS"),
         ORDERS_SCHEMA,
-        SerdeOption.none(),
         Optional.empty(),
         false,
         ksqlTopicOrders
@@ -193,14 +190,13 @@ public class SqlFormatterTest {
 
     final KsqlTopic ksqlTopicItems = new KsqlTopic(
         "item_topic",
-        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
-        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()))
+        KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()),
+        ValueFormat.of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of())
     );
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         SourceName.of("ITEMID"),
         ITEM_INFO_SCHEMA,
-        SerdeOption.none(),
         Optional.empty(),
         false,
         ksqlTopicItems
@@ -212,7 +208,6 @@ public class SqlFormatterTest {
         "sqlexpression",
         SourceName.of("TABLE"),
         TABLE_SCHEMA,
-        SerdeOption.none(),
         Optional.empty(),
         false,
         ksqlTopicItems
@@ -675,6 +670,26 @@ public class SqlFormatterTest {
   }
 
   @Test
+  public void shouldFormatDefineStatement() {
+    final String statementString = "DEFINE _topic='t1';";
+    final Statement statement = parseSingle(statementString);
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("DEFINE _topic='t1'"));
+  }
+
+  @Test
+  public void shouldFormatUndefineStatement() {
+    final String statementString = "UNDEFINE _topic;";
+    final Statement statement = parseSingle(statementString);
+
+    final String result = SqlFormatter.formatSql(statement);
+
+    assertThat(result, is("UNDEFINE _topic"));
+  }
+
+  @Test
   public void shouldFormatExplainQuery() {
     final String statementString = "EXPLAIN foo;";
     final Statement statement = parseSingle(statementString);
@@ -788,6 +803,18 @@ public class SqlFormatterTest {
 
     // Then:
     assertThat(formatted, is("SHOW TABLES EXTENDED"));
+  }
+
+  @Test
+  public void shouldFormatShowVariables() {
+    // Given:
+    final ListVariables listVariables = new ListVariables(Optional.empty());
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(listVariables);
+
+    // Then:
+    assertThat(formatted, is("SHOW VARIABLES"));
   }
 
   @Test
@@ -1055,6 +1082,21 @@ public class SqlFormatterTest {
         + "WINDOW TUMBLING ( SIZE 7 DAYS , GRACE PERIOD 1 DAYS ) \n"
         + "GROUP BY ITEMID\n"
         + "EMIT FINAL"));
+  }
+
+  @Test
+  public void shouldFormatAlterStatement() {
+    // Given:
+    final String statementString = "ALTER STREAM FOO ADD COLUMN A STRING, ADD COLUMN B INT;";
+    final Statement statement = parseSingle(statementString);
+
+    // When:
+    final String result = SqlFormatter.formatSql(statement);
+
+    // Then:
+    assertThat(result, is("ALTER STREAM FOO\n"
+        + "ADD COLUMN A STRING,\n"
+        + "ADD COLUMN B INTEGER;"));
   }
 
   private Statement parseSingle(final String statementString) {

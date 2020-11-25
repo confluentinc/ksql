@@ -135,6 +135,23 @@ public class KsqlConfig extends AbstractConfig {
       + "in interactive mode. Once this limit is reached, any further persistent queries will not "
       + "be accepted.";
 
+  public static final String KSQL_KEY_FORMAT_ENABLED = "ksql.key.format.enabled";
+  public static final Boolean KSQL_KEY_FORMAT_ENABLED_DEFAULT = false;
+  public static final String KSQL_KEY_FORMAT_ENABLED_DOC =
+      "Feature flag for non-Kafka key formats";
+
+  public static final String KSQL_DEFAULT_KEY_FORMAT_CONFIG = "ksql.persistence.default.format.key";
+  private static final String KSQL_DEFAULT_KEY_FORMAT_DEFAULT = "KAFKA";
+  private static final String KSQL_DEFAULT_KEY_FORMAT_DOC =
+      "Key format that will be used by default if none is specified in the WITH properties of "
+          + "CREATE STREAM/TABLE statements.";
+
+  public static final String KSQL_DEFAULT_VALUE_FORMAT_CONFIG =
+      "ksql.persistence.default.format.value";
+  private static final String KSQL_DEFAULT_VALUE_FORMAT_DOC =
+      "Value format that will be used by default if none is specified in the WITH properties of "
+          + "CREATE STREAM/TABLE statements.";
+
   public static final String KSQL_WRAP_SINGLE_VALUES =
       "ksql.persistence.wrap.single.values";
 
@@ -216,6 +233,12 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PULL_MAX_QPS_DOC = "The maximum qps allowed for pull "
       + "queries. Once the limit is hit, queries will fail immediately";
 
+  public static final String KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG
+      = "ksql.query.pull.thread.pool.size";
+  public static final Integer KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT = 100;
+  public static final String KSQL_QUERY_PULL_THREAD_POOL_SIZE_DOC =
+      "Size of thread pool used for sending/executing pull queries";
+
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
       "When casting a SQLType to string, if false, use String.valueof(), else if true use"
@@ -288,15 +311,9 @@ public class KsqlConfig extends AbstractConfig {
       + "uncaught error and subsequent error causes in the Kafka Streams applications.";
 
   public static final String KSQL_CREATE_OR_REPLACE_ENABLED = "ksql.create.or.replace.enabled";
-  public static final Boolean KSQL_CREATE_OR_REPLACE_ENABLED_DEFAULT = false;
+  public static final Boolean KSQL_CREATE_OR_REPLACE_ENABLED_DEFAULT = true;
   public static final String KSQL_CREATE_OR_REPLACE_ENABLED_DOC =
       "Feature flag for CREATE OR REPLACE";
-
-  public static final String KSQL_ENABLE_METASTORE_BACKUP = "ksql.enable.metastore.backup";
-  public static final Boolean KSQL_ENABLE_METASTORE_BACKUP_DEFAULT = false;
-  public static final String KSQL_ENABLE_METASTORE_BACKUP_DOC = "Enable the KSQL metastore "
-      + "backup service. The backup replays the KSQL command_topic to a file located in the "
-      + "same KSQL node.";
 
   public static final String KSQL_METASTORE_BACKUP_LOCATION = "ksql.metastore.backup.location";
   public static final String KSQL_METASTORE_BACKUP_LOCATION_DEFAULT = "";
@@ -304,7 +321,7 @@ public class KsqlConfig extends AbstractConfig {
       + "KSQL metastore backup files are located.";
 
   public static final String KSQL_SUPPRESS_ENABLED = "ksql.suppress.enabled";
-  public static final Boolean KSQL_SUPPRESS_ENABLED_DEFAULT = true;
+  public static final Boolean KSQL_SUPPRESS_ENABLED_DEFAULT = false;
   public static final String KSQL_SUPPRESS_ENABLED_DOC =
       "Feature flag for suppression, specifically EMIT FINAL";
 
@@ -314,14 +331,6 @@ public class KsqlConfig extends AbstractConfig {
       "Bound the number of bytes that the buffer can use for suppression. Negative size means the"
       + " buffer will be unbounded. If the maximum capacity is exceeded, the query will be"
       + " terminated";
-
-  // Defaults for config NOT defined by this class's ConfigDef:
-  static final ImmutableMap<String, ?> NON_KSQL_DEFAULTS = ImmutableMap
-      .<String, Object>builder()
-      // Improve join predictability by generally allowing a second poll to ensure both sizes
-      // of a join have data. See https://github.com/confluentinc/ksql/issues/5537.
-      .put(KSQL_STREAMS_PREFIX + StreamsConfig.MAX_TASK_IDLE_MS_CONFIG, 500L)
-      .build();
 
   public static final String KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS
       = "ksql.query.retry.backoff.initial.ms";
@@ -350,6 +359,12 @@ public class KsqlConfig extends AbstractConfig {
       "ksql.properties.overrides.denylist";
   private static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC = "Comma-separated list of "
       + "properties that KSQL users cannot override.";
+
+  public static final String KSQL_VARIABLE_SUBSTITUTION_ENABLE
+      = "ksql.variable.substitution.enable";
+  public static final boolean KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT = true;
+  public static final String KSQL_VARIABLE_SUBSTITUTION_ENABLE_DOC
+      = "Enable variable substitution on SQL statements.";
 
   private enum ConfigGeneration {
     LEGACY,
@@ -523,6 +538,7 @@ public class KsqlConfig extends AbstractConfig {
             SCHEMA_REGISTRY_URL_PROPERTY,
             ConfigDef.Type.STRING,
             "",
+            new ConfigDef.NonNullValidator(),
             ConfigDef.Importance.MEDIUM,
             "The URL for the schema registry"
         ).define(
@@ -592,9 +608,27 @@ public class KsqlConfig extends AbstractConfig {
             ConfigDef.Importance.LOW,
             KSQL_SECURITY_EXTENSION_DOC
         ).define(
+            KSQL_KEY_FORMAT_ENABLED,
+            Type.BOOLEAN,
+            KSQL_KEY_FORMAT_ENABLED_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_KEY_FORMAT_ENABLED_DOC
+        ).define(
+            KSQL_DEFAULT_KEY_FORMAT_CONFIG,
+            Type.STRING,
+            KSQL_DEFAULT_KEY_FORMAT_DEFAULT,
+            ConfigDef.Importance.LOW,
+            KSQL_DEFAULT_KEY_FORMAT_DOC
+        ).define(
+            KSQL_DEFAULT_VALUE_FORMAT_CONFIG,
+            Type.STRING,
+            null,
+            ConfigDef.Importance.LOW,
+            KSQL_DEFAULT_VALUE_FORMAT_DOC
+        ).define(
             KSQL_WRAP_SINGLE_VALUES,
             ConfigDef.Type.BOOLEAN,
-            true,
+            null,
             ConfigDef.Importance.LOW,
             "Controls how KSQL will serialize a value whose schema contains only a "
                 + "single column. The setting only sets the default for `CREATE STREAM`, "
@@ -725,6 +759,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_MAX_QPS_DOC
         )
         .define(
+            KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG,
+            Type.INT,
+            KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_THREAD_POOL_SIZE_DOC
+        )
+        .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,
             Type.STRING,
             "",
@@ -737,13 +778,6 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_CREATE_OR_REPLACE_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_CREATE_OR_REPLACE_ENABLED_DOC
-        )
-        .define(
-            KSQL_ENABLE_METASTORE_BACKUP,
-            Type.BOOLEAN,
-            KSQL_ENABLE_METASTORE_BACKUP_DEFAULT,
-            Importance.LOW,
-            KSQL_ENABLE_METASTORE_BACKUP_DOC
         )
         .define(
             KSQL_METASTORE_BACKUP_LOCATION,
@@ -800,6 +834,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_STATUS_RUNNING_THRESHOLD_SECS_DOC
+        )
+        .define(
+            KSQL_VARIABLE_SUBSTITUTION_ENABLE,
+            Type.BOOLEAN,
+            KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT,
+            Importance.LOW,
+            KSQL_VARIABLE_SUBSTITUTION_ENABLE_DOC
         )
         .withClientSslSupport();
 
@@ -877,7 +918,7 @@ public class KsqlConfig extends AbstractConfig {
   }
 
   private KsqlConfig(final ConfigGeneration generation, final Map<?, ?> props) {
-    super(configDef(generation), addNonKsqlDefaults(props));
+    super(configDef(generation), props);
 
     final Map<String, Object> streamsConfigDefaults = new HashMap<>();
     streamsConfigDefaults.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, KsqlConstants
@@ -904,12 +945,6 @@ public class KsqlConfig extends AbstractConfig {
             generation == ConfigGeneration.CURRENT
                 ? config.defaultValueCurrent : config.defaultValueLegacy));
     this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults, originals());
-  }
-
-  private static Map<?, ?> addNonKsqlDefaults(final Map<?, ?> props) {
-    final Map<Object, Object> withDefaults = new HashMap<>(props);
-    NON_KSQL_DEFAULTS.forEach(withDefaults::putIfAbsent);
-    return withDefaults;
   }
 
   private boolean getBooleanConfig(final String config, final boolean defaultValue) {

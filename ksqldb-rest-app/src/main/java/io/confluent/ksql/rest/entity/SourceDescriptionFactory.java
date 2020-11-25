@@ -35,7 +35,8 @@ public final class SourceDescriptionFactory {
       final List<RunningQuery> readQueries,
       final List<RunningQuery> writeQueries,
       final Optional<TopicDescription> topicDescription,
-      final List<QueryOffsetSummary> offsetSummaries
+      final List<QueryOffsetSummary> offsetSummaries,
+      final List<String> sourceConstraints
   ) {
     return new SourceDescription(
         dataSource.getName().toString(FormatOptions.noEscape()),
@@ -54,12 +55,13 @@ public final class SourceDescriptionFactory {
             ? MetricCollectors.getAndFormatStatsFor(
             dataSource.getKafkaTopicName(), true) : ""),
         extended,
-        dataSource.getKsqlTopic().getKeyFormat().getFormat().name(),
-        dataSource.getKsqlTopic().getValueFormat().getFormat().name(),
+        dataSource.getKsqlTopic().getKeyFormat().getFormatInfo().getFormat(),
+        dataSource.getKsqlTopic().getValueFormat().getFormatInfo().getFormat(),
         dataSource.getKafkaTopicName(),
         topicDescription.map(td -> td.partitions().size()).orElse(0),
         topicDescription.map(td -> td.partitions().get(0).replicas().size()).orElse(0),
         dataSource.getSqlExpression(),
-        offsetSummaries);
+        offsetSummaries,
+        sourceConstraints);
   }
 }

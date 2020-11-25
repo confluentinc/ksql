@@ -37,6 +37,7 @@ import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableSelect;
+import io.confluent.ksql.execution.plan.TableSelectKey;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.TableSuppress;
@@ -85,6 +86,7 @@ public class PlanSummary {
           .put(TableFilter.class, "FILTER")
           .put(TableGroupBy.class, "GROUP_BY")
           .put(TableSelect.class, "PROJECT")
+          .put(TableSelectKey.class, "REKEY")
           .put(TableSink.class, "SINK")
           .put(TableTableJoin.class, "JOIN")
           .put(TableSource.class, "SOURCE")

@@ -18,18 +18,15 @@ package io.confluent.ksql.execution.streams;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.util.StructKeyUtil;
-import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -37,7 +34,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
-import org.apache.kafka.connect.data.Struct;
 
 final class GroupByParamsFactory {
 
@@ -119,22 +115,16 @@ final class GroupByParamsFactory {
     return result;
   }
 
-  private static KeyBuilder keyBuilder(final LogicalSchema schema) {
-    final Column keyCol = Iterables.getOnlyElement(schema.key());
-    return StructKeyUtil.keyBuilder(keyCol.name(), keyCol.type());
-  }
-
   private interface Grouper {
 
     LogicalSchema getSchema();
 
-    Struct apply(GenericRow row);
+    GenericKey apply(GenericRow row);
   }
 
   private static final class SingleExpressionGrouper implements Grouper {
 
     private final LogicalSchema schema;
-    private final KeyBuilder keyBuilder;
     private final ExpressionMetadata groupBy;
     private final ProcessingLogger logger;
 
@@ -145,7 +135,6 @@ final class GroupByParamsFactory {
     ) {
       this.schema = singleExpressionSchema(sourceSchema, groupBy);
       this.groupBy = requireNonNull(groupBy, "groupBy");
-      this.keyBuilder = keyBuilder(schema);
       this.logger = Objects.requireNonNull(logger, "logger");
     }
 
@@ -155,12 +144,13 @@ final class GroupByParamsFactory {
     }
 
     @Override
-    public Struct apply(final GenericRow row) {
+    public GenericKey apply(final GenericRow row) {
       final Object key = processColumn(0, groupBy, row, logger);
       if (key == null) {
         return null;
       }
-      return keyBuilder.build(key);
+
+      return GenericKey.genericKey(key);
     }
 
     private static LogicalSchema singleExpressionSchema(
@@ -181,7 +171,6 @@ final class GroupByParamsFactory {
   private static final class MultiExpressionGrouper implements Grouper {
 
     private final LogicalSchema schema;
-    private final KeyBuilder keyBuilder;
     private final ImmutableList<ExpressionMetadata> groupBys;
     private final ProcessingLogger logger;
 
@@ -192,7 +181,6 @@ final class GroupByParamsFactory {
     ) {
       this.schema = multiExpressionSchema(sourceSchema);
       this.groupBys = ImmutableList.copyOf(requireNonNull(groupBys, "groupBys"));
-      this.keyBuilder = keyBuilder(schema);
       this.logger = Objects.requireNonNull(logger, "logger");
 
       if (this.groupBys.isEmpty()) {
@@ -206,7 +194,7 @@ final class GroupByParamsFactory {
     }
 
     @Override
-    public Struct apply(final GenericRow row) {
+    public GenericKey apply(final GenericRow row) {
       final StringBuilder key = new StringBuilder();
       for (int i = 0; i < groupBys.size(); i++) {
         final Object result = processColumn(i, groupBys.get(i), row, logger);
@@ -221,7 +209,7 @@ final class GroupByParamsFactory {
         key.append(result);
       }
 
-      return keyBuilder.build(key.toString());
+      return GenericKey.genericKey(key.toString());
     }
   }
 

@@ -14,18 +14,20 @@
  */
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
 
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.SerdeFeatures;
 
-public class PageViewDataProvider extends TestDataProvider<String> {
+public class PageViewDataProvider extends TestDataProvider {
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("PAGEID"), SqlTypes.STRING)
@@ -34,18 +36,18 @@ public class PageViewDataProvider extends TestDataProvider<String> {
       .build();
 
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
-      .from(LOGICAL_SCHEMA, SerdeOption.none());
+      .from(LOGICAL_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
-  private static final Multimap<String, GenericRow> ROWS = ImmutableListMultimap
-      .<String, GenericRow>builder()
-      .put("PAGE_1", genericRow("USER_1", 1L))
-      .put("PAGE_2", genericRow("USER_2", 2L))
-      .put("PAGE_3", genericRow("USER_4", 3L))
-      .put("PAGE_4", genericRow("USER_3", 4L))
-      .put("PAGE_5", genericRow("USER_0", 5L))
+  private static final Multimap<GenericKey, GenericRow> ROWS = ImmutableListMultimap
+      .<GenericKey, GenericRow>builder()
+      .put(genericKey("PAGE_1"), genericRow("USER_1", 1L))
+      .put(genericKey("PAGE_2"), genericRow("USER_2", 2L))
+      .put(genericKey("PAGE_3"), genericRow("USER_4", 3L))
+      .put(genericKey("PAGE_4"), genericRow("USER_3", 4L))
+      .put(genericKey("PAGE_5"), genericRow("USER_0", 5L))
       // Duplicate page views from different users.
-      .put("PAGE_5", genericRow("USER_2", 6L))
-      .put("PAGE_5", genericRow("USER_3", 7L))
+      .put(genericKey("PAGE_5"), genericRow("USER_2", 6L))
+      .put(genericKey("PAGE_5"), genericRow("USER_3", 7L))
       .build();
 
   public PageViewDataProvider() {

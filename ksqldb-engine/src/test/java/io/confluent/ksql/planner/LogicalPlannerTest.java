@@ -22,6 +22,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
+
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -36,15 +38,15 @@ import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.planner.plan.PreJoinRepartitionNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.planner.plan.RepartitionNode;
 import io.confluent.ksql.planner.plan.SuppressNode;
+import io.confluent.ksql.planner.plan.UserRepartitionNode;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,7 +60,7 @@ public class LogicalPlannerTest {
   @Before
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(TestFunctionRegistry.INSTANCE.get());
-    ksqlConfig = new KsqlConfig(Collections.emptyMap());
+    ksqlConfig = new KsqlConfig(ImmutableMap.of(KsqlConfig.KSQL_SUPPRESS_ENABLED, true));
 
   }
 
@@ -103,11 +105,11 @@ public class LogicalPlannerTest {
     final PlanNode leftSource =
         logicalPlan.getSources().get(0).getSources().get(0).getSources().get(0);
     assertThat(leftSource, instanceOf(ProjectNode.class));
-    assertThat(leftSource.getSources().get(0), instanceOf(RepartitionNode.class));
+    assertThat(leftSource.getSources().get(0), instanceOf(PreJoinRepartitionNode.class));
     final PlanNode rightSource =
         logicalPlan.getSources().get(0).getSources().get(0).getSources().get(1);
     assertThat(rightSource, instanceOf(ProjectNode.class));
-    assertThat(rightSource.getSources().get(0), instanceOf(RepartitionNode.class));
+    assertThat(rightSource.getSources().get(0), instanceOf(PreJoinRepartitionNode.class));
 
     assertThat(logicalPlan.getSchema().value().size(), equalTo(4));
   }
@@ -133,10 +135,10 @@ public class LogicalPlannerTest {
     final JoinNode joinNode = (JoinNode) filterNode.getSources().get(0);
     final PlanNode leftSource = joinNode.getSources().get(0);
     assertThat(leftSource, instanceOf(ProjectNode.class));
-    assertThat(leftSource.getSources().get(0), instanceOf(RepartitionNode.class));
+    assertThat(leftSource.getSources().get(0), instanceOf(PreJoinRepartitionNode.class));
     final PlanNode rightSource = joinNode.getSources().get(0);
     assertThat(rightSource, instanceOf(ProjectNode.class));
-    assertThat(rightSource.getSources().get(0), instanceOf(RepartitionNode.class));
+    assertThat(rightSource.getSources().get(0), instanceOf(PreJoinRepartitionNode.class));
   }
 
   @Test
@@ -232,7 +234,9 @@ public class LogicalPlannerTest {
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
     // Then:
-    final RepartitionNode repart = (RepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
+    final UserRepartitionNode repart = (UserRepartitionNode) logicalPlan
+        .getSources().get(0).getSources().get(0);
+
     assertThat(
         repart.getPartitionBy(),
         equalTo(new UnqualifiedColumnReferenceExp(ColumnName.of("T1_COL1")))

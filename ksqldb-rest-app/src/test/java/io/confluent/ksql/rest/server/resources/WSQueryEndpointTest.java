@@ -15,38 +15,38 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
+import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
-import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.ServerWebSocket;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.time.Duration;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
 @RunWith(MockitoJUnitRunner.class)
 public class WSQueryEndpointTest {
@@ -58,13 +58,15 @@ public class WSQueryEndpointTest {
   private KsqlSecurityContext ksqlSecurityContext;
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
+  @Mock
+  private KsqlConfig ksqlConfig;
 
   private WSQueryEndpoint wsQueryEndpoint;
 
   @Before
   public void setUp() {
     wsQueryEndpoint = new WSQueryEndpoint(
-        mock(KsqlConfig.class),
+        ksqlConfig,
         mock(StatementParser.class),
         mock(KsqlEngine.class),
         mock(CommandQueue.class),
@@ -73,8 +75,10 @@ public class WSQueryEndpointTest {
         mock(Duration.class),
         Optional.empty(),
         mock(Errors.class),
-        mock(PullQueryExecutor.class),
-        denyListPropertyValidator
+        denyListPropertyValidator,
+        Optional.empty(),
+        mock(RoutingFilterFactory.class),
+        mock(RateLimiter.class)
     );
   }
 

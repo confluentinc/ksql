@@ -5,11 +5,21 @@
   "schemas" : {
     "CSAS_OUT_0.KsqlTopic.Source" : {
       "schema" : "`ID` STRING KEY, `FOO` DECIMAL(4, 2)",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     },
     "CSAS_OUT_0.OUT" : {
       "schema" : "`ID` STRING KEY, `KSQL_COL_0` DECIMAL(5, 3)",
-      "serdeOptions" : [ ]
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {
@@ -52,29 +62,31 @@
     "statements" : [ "CREATE STREAM TEST (ID STRING KEY, foo DECIMAL(4,2)) WITH (kafka_topic='test_topic', value_format='DELIMITED');", "CREATE STREAM OUT AS SELECT ID, cast(foo AS DECIMAL(5,3)) FROM TEST;" ],
     "post" : {
       "sources" : [ {
-        "name" : "TEST",
-        "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `FOO` DECIMAL(4, 2)",
-        "keyFormat" : {
-          "format" : "KAFKA"
-        },
-        "serdeOptions" : [ ]
-      }, {
         "name" : "OUT",
         "type" : "STREAM",
         "schema" : "`ID` STRING KEY, `KSQL_COL_0` DECIMAL(5, 3)",
         "keyFormat" : {
           "format" : "KAFKA"
         },
-        "serdeOptions" : [ ]
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
+      }, {
+        "name" : "TEST",
+        "type" : "STREAM",
+        "schema" : "`ID` STRING KEY, `FOO` DECIMAL(4, 2)",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "valueFormat" : "DELIMITED",
+        "keyFeatures" : [ ],
+        "valueFeatures" : [ ]
       } ],
       "topics" : {
         "topics" : [ {
           "name" : "test_topic",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"
@@ -83,9 +95,7 @@
         }, {
           "name" : "OUT",
           "keyFormat" : {
-            "formatInfo" : {
-              "format" : "KAFKA"
-            }
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "DELIMITED"

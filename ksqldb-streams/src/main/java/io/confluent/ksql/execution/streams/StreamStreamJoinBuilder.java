@@ -47,8 +47,10 @@ public final class StreamStreamJoinBuilder {
     final LogicalSchema leftSchema = left.getSchema();
     final PhysicalSchema leftPhysicalSchema = PhysicalSchema.from(
         leftSchema,
-        leftFormats.getOptions()
+        leftFormats.getKeyFeatures(),
+        leftFormats.getValueFeatures()
     );
+
     final Serde<GenericRow> leftSerde = queryBuilder.buildValueSerde(
         leftFormats.getValueFormat(),
         leftPhysicalSchema,
@@ -58,14 +60,16 @@ public final class StreamStreamJoinBuilder {
     final LogicalSchema rightSchema = right.getSchema();
     final PhysicalSchema rightPhysicalSchema = PhysicalSchema.from(
         rightSchema,
-        rightFormats.getOptions()
+        rightFormats.getKeyFeatures(),
+        rightFormats.getValueFeatures()
     );
+
     final Serde<GenericRow> rightSerde = queryBuilder.buildValueSerde(
         rightFormats.getValueFormat(),
         rightPhysicalSchema,
         stacker.push(RIGHT_SERDE_CTX).getQueryContext()
     );
-    final Serde<K> keySerde = left.getKeySerdeFactory().buildKeySerde(
+    final Serde<K> keySerde = left.getExecutionKeyFactory().buildKeySerde(
         leftFormats.getKeyFormat(),
         leftPhysicalSchema,
         queryContext

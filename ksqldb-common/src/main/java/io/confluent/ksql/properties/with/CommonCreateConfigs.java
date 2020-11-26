@@ -46,15 +46,12 @@ public final class CommonCreateConfigs {
 
   public static final String VALUE_DELIMITER_PROPERTY = "VALUE_DELIMITER";
 
-  public static void addToConfigDef(
-      final ConfigDef configDef,
-      final boolean topicNameRequired
-  ) {
+  public static void addToConfigDef(final ConfigDef configDef) {
     configDef
         .define(
             KAFKA_TOPIC_NAME_PROPERTY,
             ConfigDef.Type.STRING,
-            topicNameRequired ? ConfigDef.NO_DEFAULT_VALUE : null,
+            null,
             new NonEmptyString(),
             Importance.HIGH,
             "The topic that stores the data of the source"

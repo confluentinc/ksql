@@ -121,7 +121,7 @@ public class DefaultSchemaInjector implements Injector {
     }
 
     return Optional.of(getSchema(
-        props.getKafkaTopic(),
+        props.getKafkaTopic().orElseThrow(IllegalStateException::new),
         props.getKeySchemaId(),
         keyFormat,
         SerdeFeaturesFactory.buildInternal(FormatFactory.of(keyFormat)),
@@ -141,7 +141,7 @@ public class DefaultSchemaInjector implements Injector {
     }
 
     return Optional.of(getSchema(
-        props.getKafkaTopic(),
+        props.getKafkaTopic().orElseThrow(IllegalStateException::new),
         props.getValueSchemaId(),
         valueFormat,
         props.getValueSerdeFeatures(),

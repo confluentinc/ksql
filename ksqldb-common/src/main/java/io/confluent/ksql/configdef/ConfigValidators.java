@@ -154,6 +154,19 @@ public final class ConfigValidators {
     };
   }
 
+  public static Validator instanceOf(final Class<?> type) {
+    return (name, val) -> {
+      if (!(val instanceof Class)) {
+        throw new IllegalArgumentException("validator should only be used with CLASS");
+      }
+
+      final Class<?> actual = (Class<?>)val;
+      if (!type.isAssignableFrom(actual)) {
+        throw new ConfigException(name, val, "Not instance of " + type.getCanonicalName());
+      }
+    };
+  }
+
   public static final class ValidCaseInsensitiveString implements Validator {
 
     private final List<String> validStrings;

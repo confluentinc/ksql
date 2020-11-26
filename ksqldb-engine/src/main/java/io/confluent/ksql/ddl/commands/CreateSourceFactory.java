@@ -47,6 +47,7 @@ import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.topic.TopicNaming;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
@@ -104,7 +105,7 @@ public final class CreateSourceFactory {
   ) {
     final SourceName sourceName = statement.getName();
     final CreateSourceProperties props = statement.getProperties();
-    final String topicName = ensureTopicExists(props, serviceContext);
+    final String topicName = resolveSourceTopicName(sourceName, props, ksqlConfig);
     final LogicalSchema schema = buildSchema(statement.getElements());
     final Optional<TimestampColumn> timestampColumn =
         buildTimestampColumn(ksqlConfig, props, schema);
@@ -138,7 +139,7 @@ public final class CreateSourceFactory {
   ) {
     final SourceName sourceName = statement.getName();
     final CreateSourceProperties props = statement.getProperties();
-    final String topicName = ensureTopicExists(props, serviceContext);
+    final String topicName = resolveSourceTopicName(sourceName, props, ksqlConfig);
     final LogicalSchema schema = buildSchema(statement.getElements());
     if (schema.key().isEmpty()) {
       final boolean usingSchemaInference = props.getValueSchemaId().isPresent();
@@ -215,16 +216,19 @@ public final class CreateSourceFactory {
     return props.getWindowType().map(type -> WindowInfo.of(type, props.getWindowSize()));
   }
 
-  private static String ensureTopicExists(
-      final CreateSourceProperties properties,
-      final ServiceContext serviceContext
+  private String resolveSourceTopicName(
+      final SourceName sourceName,
+      final CreateSourceProperties props,
+      final KsqlConfig config
   ) {
-    final String kafkaTopicName = properties.getKafkaTopic();
-    if (!serviceContext.getTopicClient().isTopicExists(kafkaTopicName)) {
-      throw new KsqlException("Kafka topic does not exist: " + kafkaTopicName);
+    final String topicName = TopicNaming
+        .getSourceTopicName(sourceName, props, config, serviceContext.getTopicClient());
+
+    if (!serviceContext.getTopicClient().isTopicExists(topicName)) {
+      throw new KsqlException("Kafka topic does not exist: " + topicName);
     }
 
-    return kafkaTopicName;
+    return topicName;
   }
 
   private static Optional<TimestampColumn> buildTimestampColumn(

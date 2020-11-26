@@ -90,7 +90,6 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -1442,27 +1441,6 @@ public class KsqlEngineTest {
     assertThat(e, rawMessage(is(
         "Invalid result type. Your SELECT query produces a STREAM. "
             + "Please use CREATE STREAM AS SELECT statement instead.")));
-  }
-
-  @Test
-  public void shouldThrowIfStatementMissingTopicConfig() {
-    final List<ParsedStatement> parsed = parse(
-        "CREATE TABLE FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='AVRO', KEY_FORMAT='KAFKA');"
-            + "CREATE STREAM FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='AVRO', KEY_FORMAT='KAFKA');"
-            + "CREATE TABLE FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='JSON', KEY_FORMAT='KAFKA');"
-            + "CREATE STREAM FOO (viewtime BIGINT, pageid VARCHAR) WITH (VALUE_FORMAT='JSON', KEY_FORMAT='KAFKA');"
-    );
-
-    for (final ParsedStatement statement : parsed) {
-
-      try {
-        ksqlEngine.prepare(statement);
-        Assert.fail();
-      } catch (final KsqlStatementException e) {
-        assertThat(e.getMessage(), containsString(
-            "Missing required property \"KAFKA_TOPIC\" which has no default value."));
-      }
-    }
   }
 
   @Test

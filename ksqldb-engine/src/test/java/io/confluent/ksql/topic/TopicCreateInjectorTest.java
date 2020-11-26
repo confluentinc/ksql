@@ -40,7 +40,9 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
+import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -230,14 +232,18 @@ public class TopicCreateInjectorTest {
     // Given:
     givenStatement("CREATE STREAM x (FOO VARCHAR) WITH(value_format='avro', kafka_topic='topic', partitions=2);");
 
+    final CreateSourceProperties props = ((CreateSource) statement.getStatement())
+        .getProperties();
+
     // When:
     injector.inject(statement, builder);
 
     // Then:
+
     verify(builder).withWithClause(
-        Optional.of("topic"),
-        Optional.of(2),
-        Optional.empty()
+        Optional.of(props.getKafkaTopic()),
+        props.getPartitions(),
+        props.getReplicas()
     );
   }
 

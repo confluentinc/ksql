@@ -848,6 +848,22 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldFailIfCreateStatementMissingKafkaTopicName() {
+    // When:
+    final KsqlErrorMessage result = makeFailingRequest(
+        "CREATE STREAM S (foo INT) WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
+        BAD_REQUEST.code());
+
+    // Then:
+    assertThat(result, is(instanceOf(KsqlStatementErrorMessage.class)));
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_BAD_STATEMENT));
+    assertThat(result.getMessage(),
+        containsString("Missing required property \"KAFKA_TOPIC\" which has no default value."));
+    assertThat(((KsqlStatementErrorMessage) result).getStatementText(),
+        is("CREATE STREAM S (foo INT) WITH(KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');"));
+  }
+
+  @Test
   public void shouldReturnForbiddenKafkaAccessIfKsqlTopicAuthorizationException() {
     // Given:
     final String errorMsg = "some error";

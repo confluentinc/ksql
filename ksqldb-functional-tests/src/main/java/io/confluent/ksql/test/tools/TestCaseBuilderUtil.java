@@ -25,8 +25,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.naming.SourceTopicNamingStrategy;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -56,7 +54,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -126,10 +123,7 @@ public final class TestCaseBuilderUtil {
     // Infer topics if not added already:
     final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
     for (String sql : statements) {
-      final Set<String> topicNames = Collections.unmodifiableSet(allTopics.keySet());
-      final Topic topicFromStatement =
-          createTopicFromStatement(sql, metaStore, ksqlConfig, topicNames);
-
+      final Topic topicFromStatement = createTopicFromStatement(sql, metaStore, ksqlConfig);
       if (topicFromStatement != null) {
         allTopics.computeIfPresent(topicFromStatement.getName(), (key, topic) -> {
           final Optional<ParsedSchema> keySchema = Optional.of(topic.getKeySchema())
@@ -158,8 +152,7 @@ public final class TestCaseBuilderUtil {
   private static Topic createTopicFromStatement(
       final String sql,
       final MutableMetaStore metaStore,
-      final KsqlConfig ksqlConfig,
-      final Set<String> topicNames
+      final KsqlConfig ksqlConfig
   ) {
     final KsqlParser parser = new DefaultKsqlParser();
 
@@ -196,10 +189,7 @@ public final class TestCaseBuilderUtil {
       final short rf = props.getReplicas()
           .orElse(Topic.DEFAULT_RF);
 
-      final String topicName =
-          resolveSourceTopicName(props, statement.getName(), topicNames, ksqlConfig);
-
-      return new Topic(topicName, partitions, rf, keySchema, valueSchema);
+      return new Topic(props.getKafkaTopic(), partitions, rf, keySchema, valueSchema);
     };
 
     try {
@@ -232,24 +222,6 @@ public final class TestCaseBuilderUtil {
       e.printStackTrace(System.out);
       return null;
     }
-  }
-
-  private static String resolveSourceTopicName(
-      final CreateSourceProperties props,
-      final SourceName name,
-      final Set<String> topicNames,
-      final KsqlConfig ksqlConfig
-  ) {
-    if (props.getKafkaTopic().isPresent()) {
-      return props.getKafkaTopic().get();
-    }
-
-    final SourceTopicNamingStrategy resolver = ksqlConfig.getConfiguredInstance(
-        KsqlConfig.KSQL_SOURCE_TOPIC_NAMING_STRATEGY_CONFIG,
-        SourceTopicNamingStrategy.class
-    );
-
-    return resolver.resolveExistingTopic(name, topicNames);
   }
 
   private static Optional<ParsedSchema> buildSchema(

@@ -289,8 +289,7 @@ public class KsqlTesterTest {
     if (engineStatement.getStatement() instanceof CreateSource) {
       final CreateSource statement = (CreateSource) engineStatement.getStatement();
       topicClient.preconditionTopicExists(
-          statement.getProperties().getKafkaTopic()
-              .orElse(statement.getName().toString(FormatOptions.noEscape()).toUpperCase()),
+          statement.getProperties().getKafkaTopic(),
           statement.getProperties().getPartitions().orElse(1),
           statement.getProperties().getReplicas().orElse((short) 1),
           ImmutableMap.of()

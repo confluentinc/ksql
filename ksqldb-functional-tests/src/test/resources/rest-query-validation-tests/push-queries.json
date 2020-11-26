@@ -6,12 +6,12 @@
     {
       "name": "only key column",
       "statements": [
-        "CREATE STREAM INPUT (K STRING KEY, ID INT) WITH (value_format='JSON');",
+        "CREATE STREAM INPUT (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT K FROM INPUT EMIT CHANGES LIMIT 2;"
       ],
       "inputs": [
-        {"topic": "Input", "timestamp": 12345, "key": "11", "value": {"id": 100}},
-        {"topic": "Input", "timestamp": 12365, "key": "12", "value": {"id": 101}}
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"id": 101}}
       ],
       "responses": [
         {"admin": {"@type": "currentStatus"}},

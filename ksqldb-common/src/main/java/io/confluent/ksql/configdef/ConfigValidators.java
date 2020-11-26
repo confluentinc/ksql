@@ -101,7 +101,7 @@ public final class ConfigValidators {
       }
 
       final StringBuilder regexBuilder = new StringBuilder();
-      for (Object item : (List<?>)val) {
+      for (Object item : (List)val) {
         if (!(item instanceof String)) {
           throw new IllegalArgumentException("validator should only be used with "
               + "LIST of STRING defs");

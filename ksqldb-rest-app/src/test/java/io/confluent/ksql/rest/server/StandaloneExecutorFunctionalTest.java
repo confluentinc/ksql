@@ -72,8 +72,8 @@ public class StandaloneExecutorFunctionalTest {
   @ClassRule
   public static final TemporaryFolder TMP = new TemporaryFolder();
 
-  private static final String AVRO_TOPIC = "avro_topic";
-  private static final String JSON_TOPIC = "json_topic";
+  private static final String AVRO_TOPIC = "avro-topic";
+  private static final String JSON_TOPIC = "json-topic";
   private static int DATA_SIZE;
   private static int UNIQUE_DATA_SIZE;
   private static PhysicalSchema DATA_SCHEMA;
@@ -225,9 +225,9 @@ public class StandaloneExecutorFunctionalTest {
     givenScript(""
         + "SET 'auto.offset.reset' = 'earliest';"
         + ""
-        + "CREATE STREAM " + AVRO_TOPIC + " (ROWKEY STRING KEY) WITH (value_format='avro');\n"
+        + "CREATE STREAM S (ROWKEY STRING KEY) WITH (kafka_topic='" + AVRO_TOPIC + "', value_format='avro');\n"
         + ""
-        + "CREATE STREAM " + s1 + " AS SELECT * FROM " + AVRO_TOPIC + ";");
+        + "CREATE STREAM " + s1 + " AS SELECT * FROM S;");
 
     // When:
     standalone.startAsync();

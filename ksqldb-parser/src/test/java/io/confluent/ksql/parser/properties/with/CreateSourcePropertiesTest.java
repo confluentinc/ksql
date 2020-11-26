@@ -20,7 +20,6 @@ import static io.confluent.ksql.parser.properties.with.CreateSourceAsProperties.
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.KEY_FORMAT_PROPERTY;
-import static io.confluent.ksql.properties.with.CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_FORMAT_PROPERTY;
 import static io.confluent.ksql.properties.with.CreateConfigs.WINDOW_SIZE_PROPERTY;
@@ -73,7 +72,7 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(MINIMUM_VALID_PROPS);
 
     // Then:
-    assertThat(properties.getKafkaTopic(), is(Optional.of("foo")));
+    assertThat(properties.getKafkaTopic(), is("foo"));
   }
 
   @Test
@@ -324,7 +323,7 @@ public class CreateSourcePropertiesTest {
     final CreateSourceProperties properties = CreateSourceProperties.from(
         ImmutableMap.<String, Literal>builder()
             .putAll(MINIMUM_VALID_PROPS)
-            .put(SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(2))
+            .put(CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(2))
             .build());
 
     // Then:
@@ -384,24 +383,10 @@ public class CreateSourcePropertiesTest {
   }
 
   @Test
-  public void shouldNotFailIfNoKafkaTopicNameIfNotPartitions() {
+  public void shouldFailIfNoKafkaTopicName() {
     // Given:
-    final Map<String, Literal> props = new HashMap<>(MINIMUM_VALID_PROPS);
+    final HashMap<String, Literal> props = new HashMap<>(MINIMUM_VALID_PROPS);
     props.remove(KAFKA_TOPIC_NAME_PROPERTY);
-
-    // When:
-    final CreateSourceProperties result = CreateSourceProperties.from(props);
-
-    // Then: did not throw.
-    assertThat(result.getKafkaTopic(), is(Optional.empty()));
-  }
-
-  @Test
-  public void shouldFailIfNoKafkaTopicNameIfPartitions() {
-    // Given:
-    final Map<String, Literal> props = new HashMap<>(MINIMUM_VALID_PROPS);
-    props.remove(KAFKA_TOPIC_NAME_PROPERTY);
-    props.put(SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(1));
 
     // When:
     final Exception e = assertThrows(
@@ -410,7 +395,7 @@ public class CreateSourcePropertiesTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("'KAFKA_TOPIC' must be provided if 'PARTITIONS' is provided."));
+    assertThat(e.getMessage(), containsString("Missing required property \"KAFKA_TOPIC\" which has no default value."));
   }
 
   @Test

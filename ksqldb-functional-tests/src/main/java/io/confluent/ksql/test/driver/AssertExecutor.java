@@ -70,7 +70,8 @@ public final class AssertExecutor {
           "type"
       )).add(new SourceProperty(
           DataSource::getKafkaTopicName,
-          (cs, cfg) -> cs.getProperties().getKafkaTopic(),
+          (cs, cfg) -> cs.getProperties().getKafkaTopic()
+              .orElse(cs.getName().toString(FormatOptions.noEscape()).toUpperCase()),
           "kafka topic",
           CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY
       )).add(new SourceProperty(

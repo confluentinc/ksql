@@ -3,18 +3,18 @@
     {
       "name": "deserialize anonymous primitive - value",
       "statements": [
-        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM INPUT (K STRING KEY, foo INT) WITH (WRAP_SINGLE_VALUE=false, value_format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
       ],
       "topics": [
         {
-          "name": "input_topic",
+          "name": "input",
           "valueSchema": "int"
         }
       ],
       "inputs": [
-        {"topic": "input_topic", "value": 10},
-        {"topic": "input_topic", "value": null}
+        {"topic": "input", "value": 10},
+        {"topic": "input", "value": null}
       ],
       "outputs": [
         {"topic": "OUTPUT", "value": {"FOO": 10}},

@@ -544,7 +544,7 @@ public class KsqlParserTest {
     assertThat(Iterables.size(result.getElements()), equalTo(7));
     assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo(ColumnName.of("ORDERTIME")));
     assertThat(Iterables.get(result.getElements(), 6).getType().getSqlType().baseType(), equalTo(SqlBaseType.STRUCT));
-    assertThat(result.getProperties().getKafkaTopic(), equalTo("orders_topic"));
+    assertThat(result.getProperties().getKafkaTopic(), equalTo(Optional.of("orders_topic")));
     assertThat(result.getProperties().getValueFormat().map(FormatInfo::getFormat), equalTo(Optional.of("AVRO")));
   }
 
@@ -559,7 +559,7 @@ public class KsqlParserTest {
     assertThat(result.getName(), equalTo(SourceName.of("USERS")));
     assertThat(Iterables.size(result.getElements()), equalTo(4));
     assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo(ColumnName.of("USERTIME")));
-    assertThat(result.getProperties().getKafkaTopic(), equalTo("foo"));
+    assertThat(result.getProperties().getKafkaTopic(), equalTo(Optional.of("foo")));
     assertThat(result.getProperties().getValueFormat().map(FormatInfo::getFormat), equalTo(Optional.of("JSON")));
   }
 
@@ -1167,7 +1167,7 @@ public class KsqlParserTest {
 
     // Then:
     assertThat(result.getName(), equalTo(SourceName.of("ORDERS")));
-    assertThat(result.getProperties().getKafkaTopic(), equalTo("orders_topic"));
+    assertThat(result.getProperties().getKafkaTopic(), equalTo(Optional.of("orders_topic")));
   }
 
   @Test

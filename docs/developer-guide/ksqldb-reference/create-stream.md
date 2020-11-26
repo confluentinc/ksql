@@ -63,7 +63,7 @@ The WITH clause supports the following properties:
 
 |        Property         |                                            Description                                            |
 | ----------------------- | ------------------------------------------------------------------------------------------------- |
-| KAFKA_TOPIC (required)  | The name of the Kafka topic that backs this source. The topic must either already exist in Kafka, or PARTITIONS must be specified to create the topic. Command will fail if the topic exists with different partition/replica counts. |
+| KAFKA_TOPIC             | The name of the Kafka topic that backs this source. The topic must either already exist in Kafka, or PARTITIONS must be specified to create the topic. If neither the topic name or partition count is supplied, ksqlDB will attempt to match the source name to an existing Kafka topic name. The [ksql.persistence.source.topic.naming.strategy](../../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencesourcetopicnamingstrategy) configuration can be used to control this behaviour. |
 | KEY_FORMAT              | Specifies the serialization format of the message key in the topic. For supported formats, see [Serialization Formats](../serialization.md#serialization-formats).<br>If not supplied, the system default, defined by [ksql.persistence.default.format.key](../../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencedefaulformatkey), is used. If the default is also not set the statement will be rejected as invalid. |
 | VALUE_FORMAT            | Specifies the serialization format of the message value in the topic. For supported formats, see [Serialization Formats](../serialization.md#serialization-formats).<br>If not supplied, the system default, defined by [ksql.persistence.default.format.value](../../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencedefaultformatvalue), is used. If the default is also not set the statement will be rejected as invalid. |
 | FORMAT                  | Specifies the serialization format of both the message key and value in the topic. It is not valid to supply this property alongside either `KEY_FORMAT` or `VALUE_FORMAT`. For supported formats, see [Serialization Formats](../serialization.md#serialization-formats). |
@@ -90,6 +90,24 @@ Example
 -------
 
 ```sql
+-- stream, with new topic created:
+CREATE STREAM pageviews (
+    page_id BIGINT,
+    viewtime BIGINT,
+    user_id VARCHAR
+  ) WITH (
+    KAFKA_TOPIC = 'keyless-pageviews-topic',
+    PARTITIONS=12,
+    FORMATS = 'JSON'
+  );
+
+-- stream over existing topic, with declared columns, using default formats and topic naming: 
+CREATE STREAM pageviews (
+    page_id BIGINT,
+    viewtime BIGINT,
+    user_id VARCHAR
+  );
+
 -- stream with a page_id column loaded from the kafka message value:
 CREATE STREAM pageviews (
     page_id BIGINT,

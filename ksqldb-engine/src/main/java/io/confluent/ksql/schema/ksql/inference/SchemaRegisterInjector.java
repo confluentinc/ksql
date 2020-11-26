@@ -98,7 +98,7 @@ public class SchemaRegisterInjector implements Injector {
 
     registerSchemas(
         schema,
-        statement.getProperties().getKafkaTopic(),
+        statement.getProperties().getKafkaTopic().orElseThrow(IllegalStateException::new),
         keyFormat,
         keyFeatures,
         valueFormat,

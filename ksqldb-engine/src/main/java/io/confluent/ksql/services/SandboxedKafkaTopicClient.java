@@ -16,8 +16,10 @@
 package io.confluent.ksql.services;
 
 import static io.confluent.ksql.util.LimitedProxyBuilder.methodParams;
+import static io.confluent.ksql.util.LimitedProxyBuilder.noParams;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.util.LimitedProxyBuilder;
@@ -28,6 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -58,6 +61,7 @@ final class SandboxedKafkaTopicClient {
         .forward("describeTopic", methodParams(String.class), sandbox)
         .forward("describeTopics", methodParams(Collection.class), sandbox)
         .forward("deleteTopics", methodParams(Collection.class), sandbox)
+        .forward("listTopicNames", noParams(), sandbox)
         .forward("listTopicsStartOffsets", methodParams(Collection.class), sandbox)
         .forward("listTopicsEndOffsets", methodParams(Collection.class), sandbox)
         .build();
@@ -119,6 +123,13 @@ final class SandboxedKafkaTopicClient {
     }
 
     return delegate.isTopicExists(topic);
+  }
+
+  private Set<String> listTopicNames() {
+    return ImmutableSet.<String>builder()
+        .addAll(createdTopics.keySet())
+        .addAll(delegate.listTopicNames())
+        .build();
   }
 
   public TopicDescription describeTopic(final String topicName) {

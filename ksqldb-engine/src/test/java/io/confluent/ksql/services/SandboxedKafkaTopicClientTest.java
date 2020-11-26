@@ -19,6 +19,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
@@ -35,6 +36,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
@@ -45,6 +47,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.TopicDescription;
@@ -80,6 +83,7 @@ public class SandboxedKafkaTopicClientTest {
           .ignore("describeTopic", String.class)
           .ignore("describeTopics", Collection.class)
           .ignore("deleteTopics", Collection.class)
+          .ignore("listTopicNames")
           .ignore("listTopicsStartOffsets", Collection.class)
           .ignore("listTopicsEndOffsets", Collection.class)
           .build();
@@ -346,6 +350,19 @@ public class SandboxedKafkaTopicClientTest {
       assertEquals(2, offsets.keySet().size());
       assertEquals(Long.valueOf(99L), offsets.get(new TopicPartition("some topic", 0)));
       assertEquals(Long.valueOf(100L), offsets.get(new TopicPartition("some topic", 1)));
+    }
+
+    @Test
+    public void shouldListTopicNames() {
+      // Given:
+      when(delegate.listTopicNames()).thenReturn(ImmutableSet.of("topicA", "topicB"));
+      sandboxedClient.createTopic("topicC", 1, (short) 3, configs);
+
+      // When:
+      final Set<String> result = sandboxedClient.listTopicNames();
+
+      // Then:
+      assertThat(result, containsInAnyOrder("topicA", "topicB", "topicC"));
     }
 
     @SuppressWarnings("SameParameterValue")

@@ -29,6 +29,8 @@ import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.model.SemanticVersion;
+import io.confluent.ksql.naming.CaseInsensitiveSourceTopicNamingStrategy;
+import io.confluent.ksql.naming.SourceTopicNamingStrategy;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Arrays;
@@ -139,6 +141,11 @@ public class KsqlConfig extends AbstractConfig {
   public static final Boolean KSQL_KEY_FORMAT_ENABLED_DEFAULT = false;
   public static final String KSQL_KEY_FORMAT_ENABLED_DOC =
       "Feature flag for non-Kafka key formats";
+
+  public static final String KSQL_SOURCE_TOPIC_NAMING_STRATEGY_CONFIG =
+      "ksql.persistence.source.topic.naming.strategy";
+  private static final String KSQL_SOURCE_TOPIC_NAMING_STRATEGY_DOC =
+      "Class used to resolve the name of the Kafka topic of a new source";
 
   public static final String KSQL_DEFAULT_KEY_FORMAT_CONFIG = "ksql.persistence.default.format.key";
   private static final String KSQL_DEFAULT_KEY_FORMAT_DEFAULT = "KAFKA";
@@ -613,6 +620,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_KEY_FORMAT_ENABLED_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_KEY_FORMAT_ENABLED_DOC
+        ).define(
+            KSQL_SOURCE_TOPIC_NAMING_STRATEGY_CONFIG,
+            Type.CLASS,
+            CaseInsensitiveSourceTopicNamingStrategy.class.getCanonicalName(),
+            ConfigValidators.instanceOf(SourceTopicNamingStrategy.class),
+            ConfigDef.Importance.LOW,
+            KSQL_SOURCE_TOPIC_NAMING_STRATEGY_DOC
         ).define(
             KSQL_DEFAULT_KEY_FORMAT_CONFIG,
             Type.STRING,

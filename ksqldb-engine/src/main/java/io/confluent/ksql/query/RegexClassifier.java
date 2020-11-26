@@ -82,8 +82,9 @@ public final class RegexClassifier implements QueryErrorClassifier {
   }
 
   private boolean matches(final Throwable e) {
-    return pattern.matcher(e.getClass().getName()).matches()
-        || pattern.matcher(e.getMessage()).matches();
+    final boolean clsMatches = pattern.matcher(e.getClass().getName()).matches();
+    final boolean msgMatches = e.getMessage() != null && pattern.matcher(e.getMessage()).matches();
+    return clsMatches || msgMatches;
   }
 
 }

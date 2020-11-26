@@ -287,25 +287,6 @@ The corresponding environment variable in the
 [ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS`.
 
-### ksql.persistence.source.topic.naming.strategy
-
-Sets the class that will be instantiated to determine the value of the `KAFKA_TOPIC` property if 
-one is not supplied explicitly in [CREATE TABLE](../../../developer-guide/ksqldb-reference/create-table.md)
-or [CREATE STREAM](../../../developer-guide/ksqldb-reference/create-stream.md)
-statements.
-
-ksqlDB ships with three in-built implementations:
-
-* `io.confluent.ksql.naming.CaseInsensitiveSourceTopicNamingStrategy` (Default): matches any existing
-topic with the same name as the source, ignoring case.
-* `io.confluent.ksql.naming.CaseSensitiveSourceTopicNamingStrategy`: matches any existing
-topic with the exact same name as the source.
-* `io.confluent.ksql.naming.ExplicitSourceTopicNamingStrategy`: forces users to explicitly supply
-the topic name in the `WITH` clause.
-
-Users may also implement their own strategy, if needed. Refer to the JavaDocs of 
-`io.confluent.ksql.naming.SourceTopicNamingStrategy` for more info.
-
 ### ksql.persistence.default.format.key
 
 Sets the default value for the `KEY_FORMAT` property if one is

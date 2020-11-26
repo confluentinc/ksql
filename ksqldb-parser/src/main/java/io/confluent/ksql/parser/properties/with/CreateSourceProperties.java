@@ -76,11 +76,10 @@ public final class CreateSourceProperties {
     CommonCreateConfigs.validateKeyValueFormats(props.originals());
     props.validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
     validateWindowInfo();
-    validateTopicInfo();
   }
 
-  public Optional<String> getKafkaTopic() {
-    return Optional.ofNullable(props.getString(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY));
+  public String getKafkaTopic() {
+    return props.getString(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY);
   }
 
   public Optional<Integer> getPartitions() {
@@ -208,12 +207,6 @@ public final class CreateSourceProperties {
     return props.copyOfOriginalLiterals();
   }
 
-  public CreateSourceProperties withTopic(final String topicName) {
-    final Map<String, Literal> originals = props.copyOfOriginalLiterals();
-    originals.put(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(topicName));
-    return new CreateSourceProperties(originals, durationParser);
-  }
-
   @Override
   public String toString() {
     return props.toString();
@@ -254,16 +247,8 @@ public final class CreateSourceProperties {
     }
   }
 
-  private void validateTopicInfo() {
-    final boolean creatingNewTopic = getPartitions().isPresent();
-    if (creatingNewTopic && !getKafkaTopic().isPresent()) {
-      throw new KsqlException("'" + CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY
-          + "' must be provided if '" + CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS
-          + "' is provided.");
-    }
-  }
-
   private Optional<String> getFormatName() {
     return Optional.ofNullable(props.getString(CommonCreateConfigs.FORMAT_PROPERTY));
   }
+
 }

@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.common.config.TopicConfig;
 
 /**
@@ -62,8 +63,7 @@ public class TopicCreateInjector implements Injector {
 
   TopicCreateInjector(
       final KafkaTopicClient topicClient,
-      final MetaStore metaStore
-  ) {
+      final MetaStore metaStore) {
     this.topicClient = Objects.requireNonNull(topicClient, "topicClient");
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
   }
@@ -96,17 +96,14 @@ public class TopicCreateInjector implements Injector {
     return statement;
   }
 
-  @SuppressWarnings("unchecked")
-  private <T extends CreateSource> ConfiguredStatement<T> injectForCreateSource(
-      final ConfiguredStatement<T> statement,
+  private ConfiguredStatement<? extends CreateSource> injectForCreateSource(
+      final ConfiguredStatement<? extends CreateSource> statement,
       final TopicProperties.Builder topicPropertiesBuilder
   ) {
     final CreateSource createSource = statement.getStatement();
     final CreateSourceProperties properties = createSource.getProperties();
-    final KsqlConfig config = statement.getSessionConfig().getConfig(true);
 
-    final String topicName = TopicNaming
-        .getSourceTopicName(createSource.getName(), properties, config, topicClient);
+    final String topicName = properties.getKafkaTopic();
 
     if (topicClient.isTopicExists(topicName)) {
       topicPropertiesBuilder.withSource(() -> topicClient.describeTopic(topicName));
@@ -125,24 +122,16 @@ public class TopicCreateInjector implements Injector {
     topicPropertiesBuilder
         .withName(topicName)
         .withWithClause(
-            properties.getKafkaTopic(),
+            Optional.of(properties.getKafkaTopic()),
             properties.getPartitions(),
             properties.getReplicas());
 
     final String topicCleanUpPolicy = createSource instanceof CreateTable
         ? TopicConfig.CLEANUP_POLICY_COMPACT : TopicConfig.CLEANUP_POLICY_DELETE;
 
-    final TopicProperties info =
-        createTopic(topicPropertiesBuilder, topicCleanUpPolicy, Collections.emptyMap());
+    createTopic(topicPropertiesBuilder, topicCleanUpPolicy);
 
-    final T withTopic = (T) createSource.copyWith(
-        createSource.getElements(),
-        properties.withTopic(info.getTopicName())
-    );
-
-    final String withTopicText = SqlFormatter.formatSql(withTopic);
-
-    return statement.withStatement(withTopicText, withTopic);
+    return statement;
   }
 
   @SuppressWarnings("unchecked")
@@ -199,6 +188,13 @@ public class TopicCreateInjector implements Injector {
     final String withTopicText = SqlFormatter.formatSql(withTopic) + ";";
 
     return statement.withStatement(withTopicText, withTopic);
+  }
+
+  private TopicProperties createTopic(
+      final Builder topicPropertiesBuilder,
+      final String topicCleanUpPolicy
+  ) {
+    return createTopic(topicPropertiesBuilder, topicCleanUpPolicy, Collections.emptyMap());
   }
 
   private TopicProperties createTopic(

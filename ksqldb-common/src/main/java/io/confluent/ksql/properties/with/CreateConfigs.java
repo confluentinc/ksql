@@ -78,7 +78,7 @@ public final class CreateConfigs {
       );
 
   static {
-    CommonCreateConfigs.addToConfigDef(CONFIG_DEF);
+    CommonCreateConfigs.addToConfigDef(CONFIG_DEF, true);
   }
 
   public static final ConfigMetaData CONFIG_METADATA = ConfigMetaData.of(CONFIG_DEF);

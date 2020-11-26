@@ -125,17 +125,11 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
       final KsqlSecurityContext securityContext,
       final CreateSource createSource
   ) {
-    final String sourceTopic = createSource.getProperties()
-        .getKafkaTopic()
-        .orElseThrow(IllegalStateException::new);
-
+    final String sourceTopic = createSource.getProperties().getKafkaTopic();
     accessValidator.checkAccess(securityContext, sourceTopic, AclOperation.READ);
   }
 
-  private static String getSourceTopicName(
-      final MetaStore metaStore,
-      final SourceName streamOrTable
-  ) {
+  private String getSourceTopicName(final MetaStore metaStore, final SourceName streamOrTable) {
     final DataSource dataSource = metaStore.getSource(streamOrTable);
     if (dataSource == null) {
       throw new KsqlException("Cannot validate for topic access from an unknown stream/table: "
@@ -145,7 +139,7 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
     return dataSource.getKafkaTopicName();
   }
 
-  private static String getCreateAsSelectSinkTopic(
+  private String getCreateAsSelectSinkTopic(
       final MetaStore metaStore,
       final CreateAsSelect createAsSelect
   ) {

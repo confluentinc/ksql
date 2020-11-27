@@ -1058,6 +1058,19 @@ If the provided `expression` is NULL, returns `altValue`, otherwise, returns `ex
 Where the parameter type is a complex type, for example `ARRAY` or `STRUCT`, the contents of the
 complex type are not inspected.
 
+### `NULLIF`
+
+Since: -
+
+```sql
+NULLIF(expression1, expression2)
+```
+
+Returns NULL if `expression1` is equal to `expression2`; otherwise, returns `expression1`.
+
+If the parameter type is a complex type, for example, `ARRAY` or `STRUCT`, the contents of the
+complex type are not inspected.
+
 ## Date and time
 
 ### `UNIX_DATE`

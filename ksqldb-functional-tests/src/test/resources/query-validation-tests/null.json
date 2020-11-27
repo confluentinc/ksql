@@ -259,6 +259,37 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Invalid comparison expression 'null' in join '(L.A = null)'. Each side of the join comparision must contain references from exactly one source."
       }
+    },
+    {
+      "name": "null if",
+      "statements": [
+        "CREATE STREAM INPUT (COL0 INT KEY, COL1 STRING, COL2 ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT COL0, NULLIF(COL0, 10) AS A, NULLIF(COL1, 'x') AS B, NULLIF(COL2, ARRAY[1, 2, 3]) AS C FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"COL1": "not null", "COL2": [1, 2, 3]}},
+        {"topic": "test_topic", "key": null, "value": {}},
+        {"topic": "test_topic", "key": null, "value": null},
+        {"topic": "test_topic", "key": 2, "value": {"COL1": "not null", "COL2": [4, 5, 6]}},
+        {"topic": "test_topic", "key": 3, "value": {"COL1": "not null", "COL2": []}},
+        {"topic": "test_topic", "key": 4, "value": {"COL1": null, "COL2": [7,8]}},
+        {"topic": "test_topic", "key": 10, "value": {"COL1": "x", "COL2": [7,8]}},
+        {"topic": "test_topic", "key": 1, "value": {"COL1": "X", "COL2": [7,8]}},
+        {"topic": "test_topic", "key": null, "value": {"COL1": "x", "COL2": [7,8]}},
+        {"topic": "test_topic", "key": null, "value": {"COL1": null, "COL2": [7,8]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"A": 1, "B": "not null", "C": null}},
+        {"topic": "OUTPUT", "key": null, "value": {"A": null, "B": null, "C": null}},
+        {"topic": "OUTPUT", "key": null, "value": null},
+        {"topic": "OUTPUT", "key": 2, "value": {"A": 2, "B": "not null", "C": [4, 5, 6]}},
+        {"topic": "OUTPUT", "key": 3, "value": {"A": 3, "B": "not null", "C": []}},
+        {"topic": "OUTPUT", "key": 4, "value": {"A": 4, "B": null, "C": [7,8]}},
+        {"topic": "OUTPUT", "key": 10, "value": {"A": null, "B": null, "C": [7,8]}},
+        {"topic": "OUTPUT", "key": 1, "value": {"A": 1, "B": "X", "C": [7,8]}},
+        {"topic": "OUTPUT", "key": null, "value": {"A": null, "B": null, "C": [7,8]}},
+        {"topic": "OUTPUT", "key": null, "value": {"A": null, "B": null, "C": [7,8]}}
+      ]
     }
   ]
 }

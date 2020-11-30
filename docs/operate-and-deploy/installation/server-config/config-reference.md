@@ -612,6 +612,19 @@ property has the value `KSQL_PROCESSING_LOG`.
 Toggles whether or not the processing log should include rows in log
 messages. By default, this property has the value `false`.
 
+### ksql.logging.server.skipped.response.codes
+
+A comma-separated list of HTTP response codes to skip during server
+request logging. This is useful for ignoring certain 4XX errors that you
+might not want to show up in the logs.
+
+### ksql.logging.server.rate.limited.request.paths
+
+A list of `path:rate_limit` pairs, to limit the rate of server request
+logging.  This is useful for requests that are coming in at a high rate,
+such as for pull queries. This setting enables seeing the logs when the request rate is low
+and dropping them when they go over the threshold.
+
 ksqlDB-Connect Settings
 -----------------------
 

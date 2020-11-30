@@ -112,6 +112,8 @@ public class ServerVerticle extends AbstractVerticle {
   private Router setupRouter() {
     final Router router = Router.router(vertx);
 
+    router.route().handler(new LoggingHandler(server));
+
     KsqlCorsHandler.setupCorsHandler(server, router);
 
     // /chc endpoints need to be before server state handler but after CORS handler as they

@@ -185,6 +185,12 @@ SELECT windowstart, windowend, item_id, SUM(quantity)
   EMIT CHANGES;
 ```
 
+#### Out-of-order events
+
+Accept events for up to two hours after the window ends. Events that arrive
+after the grace period has passed are dropped and not included in the aggregate
+result.
+
 #### EMIT
 
 The EMIT clause lets you control the output refinement of your push query. The output refinement is
@@ -196,9 +202,3 @@ ksqlDB supports the following output refinement types.
 
 This is the standard output refinement for push queries, for when we would like to see all changes 
 happening.
-
-#### FINAL
-
-This is for when we want to emit only the final result of a windowed aggregation, and suppress the 
-intermediate results until the window closes. Note that this output refinement is supported only 
-for windowed aggregations.

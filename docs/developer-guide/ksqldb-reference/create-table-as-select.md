@@ -7,7 +7,6 @@ keywords: ksqlDB, create, table, push query
 ---
 
 CREATE TABLE AS SELECT
-======================
 
 Synopsis
 --------
@@ -117,4 +116,22 @@ CREATE TABLE weeklyMusicCharts AS
       JOIN songs s ON p.song_id = s.id
    WINDOW TUMBLING (7 DAYS)
    GROUP BY s.songName;
+```
+
+```sql
+-- Window retention: configure the number of windows in the past that ksqlDB retains.
+CREATE TABLE pageviews_per_region AS
+  SELECT regionid, COUNT(*) FROM pageviews
+  WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS, RETENTION 7 DAYS, GRACE PERIOD 30 MINUTES)
+  WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6'
+  GROUP BY regionid
+  EMIT CHANGES;
+```
+
+```sql
+-- out-of-order events: accept events for up to two hours after the window ends.
+SELECT orderzip_code, TOPK(order_total, 5) FROM orders
+  WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS) 
+  GROUP BY order_zipcode
+  EMIT CHANGES;
 ```

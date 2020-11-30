@@ -35,10 +35,10 @@ This version limits the size of the result Array to a maximum of
 1000 entries and any values beyond this limit are silently ignored.
 When using with a window type of `session`, it can sometimes
 happen that two session windows get merged together into one when a
-late-arriving record with a timestamp between the two windows is
+out-of-order record with a timestamp between the two windows is
 processed. In this case the 1000 record limit is calculated by
 first considering all the records from the first window, then the
-late-arriving record, then the records from the second window in
+out-of-order record, then the records from the second window in
 the order they were originally processed.
 
 ## `COLLECT_SET`
@@ -58,10 +58,10 @@ This version limits the size of the result Array to a maximum of
 1000 entries and any values beyond this limit are silently ignored.
 When using with a window type of `session`, it can sometimes
 happen that two session windows get merged together into one when a
-late-arriving record with a timestamp between the two windows is
+out-of-order record with a timestamp between the two windows is
 processed. In this case the 1000 record limit is calculated by
 first considering all the records from the first window, then the
-late-arriving record, then the records from the second window in
+out-of-order record, then the records from the second window in
 the order they were originally processed.
 
 ## `COUNT`
@@ -152,10 +152,10 @@ This version limits the number of distinct values which can be
 counted to 1000, beyond which any additional entries are ignored.
 When using with a window type of `session`, it can sometimes
 happen that two session windows get merged together into one when a
-late-arriving record with a timestamp between the two windows is
+out-of-order record with a timestamp between the two windows is
 processed. In this case the 1000 record limit is calculated by
 first considering all the records from the first window, then the
-late-arriving record, then the records from the second window in
+out-of-order record, then the records from the second window in
 the order they were originally processed.
 
 ## `LATEST_BY_OFFSET`

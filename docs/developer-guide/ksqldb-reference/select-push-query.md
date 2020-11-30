@@ -186,10 +186,10 @@ SELECT windowstart, windowend, item_id, SUM(quantity)
   EMIT CHANGES;
 ```
 
-#### Late arriving events
+#### Out-of-order events
 
 Accept events for up to two hours after the window ends. Events that arrive
-later than the grace period are dropped and not included in the aggregate
+after the grace period has passed are dropped and not included in the aggregate
 result.
 
 ```sql

@@ -184,3 +184,16 @@ SELECT windowstart, windowend, item_id, SUM(quantity)
   GROUP BY item_id
   EMIT CHANGES;
 ```
+
+#### Out-of-order events
+
+Accept events for up to two hours after the window ends. Events that arrive
+after the grace period has passed are dropped and not included in the aggregate
+result.
+
+```sql
+SELECT orderzip_code, TOPK(order_total, 5) FROM orders
+  WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS) 
+  GROUP BY order_zipcode
+  EMIT CHANGES;
+```

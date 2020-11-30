@@ -57,7 +57,7 @@ public class ProtobufSerdeFactoryTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> ProtobufSerdeFactory.createSerde(schema, config, srClientFactory, Struct.class)
+        () -> ProtobufSerdeFactory.createSerde(schema, config, srClientFactory, Struct.class, false)
     );
 
     // Then:
@@ -73,7 +73,7 @@ public class ProtobufSerdeFactoryTest {
         .build();
 
     // When:
-    ProtobufSerdeFactory.createSerde(schema, config, srClientFactory, Struct.class);
+    ProtobufSerdeFactory.createSerde(schema, config, srClientFactory, Struct.class, false);
 
     // Then (did not throw)
   }

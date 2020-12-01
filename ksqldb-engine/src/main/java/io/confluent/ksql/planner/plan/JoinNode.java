@@ -112,46 +112,16 @@ public class JoinNode extends PlanNode implements JoiningNode {
   /**
    * Determines the key format of the join.
    *
-   * <p>Avoids repartitioning tables for now. Instead choosing to repartition the stream side.
-   * This is different to what is proposed in KLIP-33. Issue #6229 will look to implement
-   * repartitioning tables.
-   *
-   * <p>For now, the left key format is the preferred join key format unless either:
-   * <ul>
-   *   <li>The right source is not already being repartitioned and the left source is.</li>
-   *   <li>The right source is a table.</li>
-   * </ul>
-   * In which case, the right key format it used.
-   *
-   * <p>An exception is currently thrown if both sides are tables and their key formats differ.
+   * <p>For now, the left key format is the preferred join key format unless the
+   * right source is not already being repartitioned and the left source is.
    *
    * @see <a href="https://github.com/confluentinc/ksql/blob/master/design-proposals/klip-33-key-format.md">KLIP-33</a>
-   * @see <a href="https://github.com/confluentinc/ksql/issues/6229">Issue #6229</a>
    */
   public void resolveKeyFormats() {
-    final FormatInfo joinKeyFormat = getRequiredKeyFormat()
-        .map(RequiredFormat::format)
-        .orElseGet(() -> getPreferredKeyFormat()
-            .orElseGet(this::getDefaultSourceKeyFormat));
+    final FormatInfo joinKeyFormat = getPreferredKeyFormat()
+        .orElseGet(this::getDefaultSourceKeyFormat);
 
     setKeyFormat(joinKeyFormat);
-  }
-
-  @Override
-  public Optional<RequiredFormat> getRequiredKeyFormat() {
-    final Optional<RequiredFormat> leftRequired = leftJoining.getRequiredKeyFormat();
-    final Optional<RequiredFormat> rightRequired = rightJoining.getRequiredKeyFormat();
-
-    if (!leftRequired.isPresent() && !rightRequired.isPresent()) {
-      return Optional.empty();
-    }
-
-    // At least one table:
-    final RequiredFormat requiredFormat = leftRequired.isPresent() && rightRequired.isPresent()
-        ? leftRequired.get().merge(rightRequired.get())
-        : leftRequired.orElseGet(rightRequired::get);
-
-    return Optional.of(requiredFormat);
   }
 
   @Override

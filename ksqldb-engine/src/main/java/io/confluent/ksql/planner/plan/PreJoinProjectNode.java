@@ -72,11 +72,6 @@ public class PreJoinProjectNode extends ProjectNode implements JoiningNode {
   }
 
   @Override
-  public Optional<RequiredFormat> getRequiredKeyFormat() {
-    return joiningSource.getRequiredKeyFormat();
-  }
-
-  @Override
   public Optional<FormatInfo> getPreferredKeyFormat() {
     return joiningSource.getPreferredKeyFormat();
   }

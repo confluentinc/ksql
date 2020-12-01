@@ -2337,14 +2337,20 @@
         "topics" : {
           "topics" : [
             {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition",
-              "keyFormat" : {"format" : "KAFKA"},
-              "valueFormat" : {"format" : "JSON"}
+              "name": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
+              "keyFormat": { "format": "DELIMITED" },
+              "valueFormat": { "format": "JSON" }
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
               "keyFormat" : {"format" : "KAFKA"},
               "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "comments": ["should be removed after we fix issue https://github.com/confluentinc/ksql/issues/6650"],
+              "name": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-RightSourceKeyed-Materialize-changelog",
+              "keyFormat": { "format": "DELIMITED" },
+              "valueFormat": { "format": "JSON" }
             }
           ]
         }
@@ -2423,11 +2429,43 @@
       "statements": [
         "CREATE TABLE T1 (ID INT PRIMARY KEY, VAL STRING) WITH (kafka_topic='t1', key_format='KAFKA', value_format='JSON');",
         "CREATE TABLE T2 (ID INT PRIMARY KEY, FOO INT) WITH (kafka_topic='t2', key_format='DELIMITED', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT T2.ID, T1.VAL FROM T1 JOIN T2 ON T1.ID = T2.ID;"
+        "CREATE TABLE OUTPUT AS SELECT * FROM T1 JOIN T2 ON T1.ID = T2.ID;"
       ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Incompatible key formats. `T1` has KAFKA while `T2` has DELIMITED.\nCorrect the key format by creating a copy of the table with the correct key format. For example:\n\tCREATE TABLE T_COPY\n\t WITH (KEY_FORMAT = <required format>, <other key format config>)\n\t AS SELECT * FROM T;"
+      "inputs": [
+        {"topic": "t1", "key": 10, "value": {"VAL": "hello"}},
+        {"topic": "t2", "key": "10", "value": {"FOO": 1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"T1_VAL": "hello", "T2_ID": 10, "T2_FOO": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "keyFormat": {"format": "KAFKA"}}
+        ],
+        "topics" : {
+          "topics": [
+            {
+              "name": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-Materialize-changelog",
+              "keyFormat": { "format": "KAFKA" },
+              "valueFormat": { "format": "JSON" }
+            },
+            {
+              "name": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
+              "keyFormat": { "format": "DELIMITED" },
+              "valueFormat": { "format": "JSON" }
+            },
+            {
+              "name": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
+              "keyFormat": { "format": "KAFKA" },
+              "valueFormat": { "format": "JSON" }
+            },
+            {
+              "name": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Left-Reduce-changelog",
+              "keyFormat": { "format": "KAFKA" },
+              "valueFormat": { "format": "JSON" }
+            }
+          ]
+        }
       }
     },
     {
@@ -2453,22 +2491,38 @@
           "topics" : [
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-left-repartition",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {
+                "format" : "AVRO",
+                "features": ["UNWRAP_SINGLES"],
+                "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.S1Key"}
+              },
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {
+                "format" : "AVRO",
+                "features": ["UNWRAP_SINGLES"],
+                "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.S1Key"}
+              },
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000016-store-changelog",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {
+                "format" : "AVRO",
+                "features": ["UNWRAP_SINGLES"],
+                "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.S1Key"}
+              },
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-OUTEROTHER-0000000017-store-changelog",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {
+                "format" : "AVRO",
+                "features": ["UNWRAP_SINGLES"],
+                "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.S1Key"}
+              },
               "valueFormat" : {"format" : "JSON"}
             }
           ]
@@ -2497,17 +2551,29 @@
           "topics" : [
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-repartition",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {
+                "format" : "AVRO",
+                "features": ["UNWRAP_SINGLES"],
+                "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.SKey"}
+              },
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {
+                "format" : "AVRO",
+                "features": ["UNWRAP_SINGLES"],
+                "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.SKey"}
+              },
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-RightSourceKeyed-Materialize-changelog",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {
+                "format" : "AVRO",
+                "features": ["UNWRAP_SINGLES"],
+                "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.SKey"}
+              },
               "valueFormat" : {"format" : "JSON"}
             }
           ]
@@ -2537,22 +2603,38 @@
           "topics" : [
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-LeftSourceKeyed-SelectKey-repartition",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {
+                "format" : "AVRO",
+                "features": ["UNWRAP_SINGLES"],
+                "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.T1Key"}
+              },
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {
+                "format" : "AVRO",
+                "features": ["UNWRAP_SINGLES"],
+                "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.T1Key"}
+              },
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-LeftSourceKeyed-Materialize-changelog",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {
+                "format" : "AVRO",
+                "features": ["UNWRAP_SINGLES"],
+                "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.T1Key"}
+              },
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-Materialize-changelog",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {
+                "format" : "AVRO",
+                "features": ["UNWRAP_SINGLES"],
+                "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.T1Key"}
+              },
               "valueFormat" : {"format" : "JSON"}
             }
           ]
@@ -2589,22 +2671,38 @@
           "topics" : [
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-LeftSourceKeyed-SelectKey-repartition",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {
+                "format" : "AVRO",
+                "features": ["UNWRAP_SINGLES"],
+                "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.T1Key"}
+              },
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {
+                "format" : "AVRO",
+                "features": ["UNWRAP_SINGLES"],
+                "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.T1Key"}
+              },
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-LeftSourceKeyed-Materialize-changelog",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {
+                "format" : "AVRO",
+                "features": ["UNWRAP_SINGLES"],
+                "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.T1Key"}
+              },
               "valueFormat" : {"format" : "JSON"}
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-Materialize-changelog",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
+              "keyFormat" : {
+                "format" : "AVRO",
+                "features": ["UNWRAP_SINGLES"],
+                "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.T1Key"}
+              },
               "valueFormat" : {"format" : "JSON"}
             }
           ]

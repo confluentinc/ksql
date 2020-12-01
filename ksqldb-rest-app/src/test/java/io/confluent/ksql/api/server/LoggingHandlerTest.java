@@ -66,9 +66,10 @@ public class LoggingHandlerTest {
     when(request.response()).thenReturn(response);
     when(request.remoteAddress()).thenReturn(socketAddress);
     when(ksqlRestConfig.getList(any())).thenReturn(ImmutableList.of("401"));
-    when(loggingRateLimiter.shouldLog(any())).thenReturn(true);
+    when(loggingRateLimiter.shouldLog("/query")).thenReturn(true);
     when(clock.millis()).thenReturn(1699813434333L);
     when(response.bytesWritten()).thenReturn(5678L);
+    when(request.path()).thenReturn("/query");
     when(request.uri()).thenReturn("/query");
     when(request.getHeader(HTTP_HEADER_USER_AGENT)).thenReturn("bot");
     when(socketAddress.host()).thenReturn("123.111.222.333");
@@ -132,7 +133,7 @@ public class LoggingHandlerTest {
   public void shouldSkipRateLimited() {
     // Given:
     when(response.getStatusCode()).thenReturn(200);
-    when(loggingRateLimiter.shouldLog(any())).thenReturn(true, true, false, false);
+    when(loggingRateLimiter.shouldLog("/query")).thenReturn(true, true, false, false);
 
     // When:
     loggingHandler.handle(routingContext);

@@ -72,7 +72,7 @@ public class LoggingHandler implements Handler<RoutingContext> {
       if (skipResponseCodes.contains(routingContext.response().getStatusCode())) {
         return;
       }
-      if (!loggingRateLimiter.shouldLog(routingContext)) {
+      if (!loggingRateLimiter.shouldLog(routingContext.request().path())) {
         return;
       }
       final long contentLength = routingContext.request().response().bytesWritten();

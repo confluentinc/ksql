@@ -18,27 +18,28 @@ package io.confluent.ksql.api.server;
 import static io.confluent.ksql.rest.server.KsqlRestConfig.KSQL_LOGGING_SERVER_RATE_LIMITED_REQUEST_PATHS_CONFIG;
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.vertx.ext.web.RoutingContext;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-public class LoggingRateLimiter {
+class LoggingRateLimiter {
 
   private final Map<String, Double> rateLimitedPaths;
   private final Function<Double, RateLimiter> rateLimiterFactory;
 
   private final Map<String, RateLimiter> rateLimiters = new ConcurrentHashMap<>();
 
-  public LoggingRateLimiter(final KsqlRestConfig ksqlRestConfig) {
+  LoggingRateLimiter(final KsqlRestConfig ksqlRestConfig) {
     this(ksqlRestConfig, RateLimiter::create);
   }
 
-  public LoggingRateLimiter(
+  @VisibleForTesting
+  LoggingRateLimiter(
       final KsqlRestConfig ksqlRestConfig,
       final Function<Double, RateLimiter> rateLimiterFactory) {
     requireNonNull(ksqlRestConfig);
@@ -46,9 +47,8 @@ public class LoggingRateLimiter {
     this.rateLimitedPaths = getRateLimitedRequestPaths(ksqlRestConfig);
   }
 
-  public boolean shouldLog(final RoutingContext routingContext) {
-    if (rateLimitedPaths.containsKey(routingContext.request().path())) {
-      final String path = routingContext.request().path();
+  public boolean shouldLog(final String path) {
+    if (rateLimitedPaths.containsKey(path)) {
       final double rateLimit = rateLimitedPaths.get(path);
       rateLimiters.computeIfAbsent(path, (k) -> rateLimiterFactory.apply(rateLimit));
       return rateLimiters.get(path).tryAcquire();

@@ -141,7 +141,14 @@ public final class GenericKeySerDe implements KeySerdeFactory {
       return;
     }
 
-    if (config.getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED)) {
+    if (!config.getBoolean(KsqlConfig.KSQL_MULTICOL_KEY_FORMAT_ENABLED)) {
+      if (columns.size() > 1) {
+        throw new KsqlException(
+            "Only single KEY column supported. Multiple KEY columns found: " + columns);
+      }
+    }
+
+    if (config.getBoolean(KsqlConfig.KSQL_COMPLEX_KEY_FORMAT_ENABLED)) {
       for (final SimpleColumn column : columns) {
         if (containsMapType(column.type())) {
           throw new KsqlException("Map keys, including types that contain maps, are not supported "
@@ -150,17 +157,13 @@ public final class GenericKeySerDe implements KeySerdeFactory {
               + "Column type: " + column.type().toString(FormatOptions.none()));
         }
       }
-      return;
-    }
-
-    if (columns.size() > 1) {
-      throw new KsqlException(
-          "Only single KEY column supported. Multiple KEY columns found: " + columns);
-    }
-
-    final SqlType sqlType = columns.get(0).type();
-    if (!(sqlType instanceof SqlPrimitiveType || sqlType instanceof SqlDecimal)) {
-      throw new KsqlException("Unsupported key schema: " + columns);
+    } else {
+      for (final SimpleColumn column : columns) {
+        final SqlType sqlType = column.type();
+        if (!(sqlType instanceof SqlPrimitiveType || sqlType instanceof SqlDecimal)) {
+          throw new KsqlException("Unsupported key schema: " + columns);
+        }
+      }
     }
   }
 

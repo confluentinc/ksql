@@ -312,7 +312,7 @@ public class GenericKeySerDeTest {
   @Test
   public void shouldThrowOnMapKeyColumnEvenWithFeatureFlag() {
     // Given:
-    when(config.getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED)).thenReturn(true);
+    when(config.getBoolean(KsqlConfig.KSQL_COMPLEX_KEY_FORMAT_ENABLED)).thenReturn(true);
     schema = PersistenceSchema.from(
         ImmutableList.of(column(SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING))),
         SerdeFeatures.of()
@@ -336,7 +336,7 @@ public class GenericKeySerDeTest {
   @Test
   public void shouldThrowOnNestedMapKeyColumnEvenWithFeatureFlag() {
     // Given:
-    when(config.getBoolean(KsqlConfig.KSQL_KEY_FORMAT_ENABLED)).thenReturn(true);
+    when(config.getBoolean(KsqlConfig.KSQL_COMPLEX_KEY_FORMAT_ENABLED)).thenReturn(true);
     schema = PersistenceSchema.from(
         ImmutableList.of(column(SqlTypes.struct()
             .field("F", SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING))

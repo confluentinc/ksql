@@ -1946,7 +1946,7 @@
     {
       "name": "non-windowed - array keys",
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "statements": [
         "CREATE STREAM INPUT (ID ARRAY<STRING> KEY, IGNORED INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -1969,7 +1969,7 @@
     {
       "name": "non-windowed - struct keys",
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "statements": [
         "CREATE STREAM INPUT (ID STRUCT<f1 STRING, f2 STRING> KEY, IGNORED INT) WITH (kafka_topic='test_topic', format='JSON');",

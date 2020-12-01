@@ -860,7 +860,7 @@
     {
       "name": "ARRAY - key - no inference",
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "statements": [
         "CREATE STREAM INPUT (K ARRAY<VARCHAR> KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
@@ -880,7 +880,7 @@
     {
       "name": "ARRAY - key - inference",
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
@@ -908,7 +908,7 @@
     {
       "name": "MAP - key - C*",
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "statements": [
         "CREATE STREAM INPUT (K MAP<INT, DOUBLE> KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');"
@@ -921,7 +921,7 @@
     {
       "name": "nested MAP type - key - C*",
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "statements": [
         "CREATE STREAM INPUT (K ARRAY<MAP<INT, DOUBLE>> KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');"
@@ -934,7 +934,7 @@
     {
       "name": "MAP - key - C*AS",
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "statements": [
         "CREATE STREAM INPUT (k STRING KEY, v STRING) WITH (kafka_topic='input_topic', format='AVRO');",
@@ -948,7 +948,7 @@
     {
       "name": "nested MAP type - key - C*AS",
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "statements": [
         "CREATE STREAM INPUT (k STRING KEY, v STRING) WITH (kafka_topic='input_topic', format='AVRO');",
@@ -962,7 +962,7 @@
     {
       "name": "STRUCT - key - no inference",
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "statements": [
         "CREATE STREAM INPUT (K STRUCT<F1 VARCHAR> KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
@@ -982,7 +982,7 @@
     {
       "name": "STRUCT - key - inference",
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "topics": [
         {

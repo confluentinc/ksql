@@ -131,7 +131,7 @@
     {
       "name": "ARRAY - C* - key",
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "statements": [
         "CREATE STREAM INPUT (K ARRAY<INT> KEY, foo INT) WITH (kafka_topic='input_topic', format='KAFKA');"
@@ -144,7 +144,7 @@
     {
       "name": "ARRAY - C*AS - key",
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "statements": [
         "CREATE STREAM INPUT (v INT) WITH (kafka_topic='input_topic', format='KAFKA');",
@@ -158,7 +158,7 @@
     {
       "name": "MAP - C* - key",
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "statements": [
         "CREATE STREAM INPUT (K MAP<INT, DOUBLE> KEY, foo INT) WITH (kafka_topic='input_topic', format='KAFKA');"
@@ -171,7 +171,7 @@
     {
       "name": "MAP - C*AS - key",
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "statements": [
         "CREATE STREAM INPUT (k STRING KEY, v STRING) WITH (kafka_topic='input_topic', format='KAFKA');",
@@ -185,7 +185,7 @@
     {
       "name": "STRUCT - C* - key",
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "statements": [
         "CREATE STREAM INPUT (K STRUCT<F1 DOUBLE> KEY, foo INT) WITH (kafka_topic='input_topic', format='KAFKA');"
@@ -198,7 +198,7 @@
     {
       "name": "STRUCT - C*AS - key",
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "statements": [
         "CREATE STREAM INPUT (v DOUBLE) WITH (kafka_topic='input_topic', format='KAFKA');",

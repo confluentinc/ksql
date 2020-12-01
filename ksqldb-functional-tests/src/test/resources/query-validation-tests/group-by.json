@@ -2315,9 +2315,6 @@
       ]
     },
     {
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "name": "AVRO primitive key",
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, VAL BOOLEAN) WITH (kafka_topic='test_topic', format='AVRO');",

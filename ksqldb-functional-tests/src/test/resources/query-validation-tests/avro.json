@@ -629,9 +629,6 @@
     },
     {
       "name": "BOOLEAN - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K BOOLEAN KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -647,9 +644,6 @@
     },
     {
       "name": "BOOLEAN - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -672,9 +666,6 @@
     },
     {
       "name": "INT - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K INT KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -692,9 +683,6 @@
     },
     {
       "name": "INT - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -719,9 +707,6 @@
     },
     {
       "name": "BIGINT - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K BIGINT KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -737,9 +722,6 @@
     },
     {
       "name": "BIGINT - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -762,9 +744,6 @@
     },
     {
       "name": "DOUBLE - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K DOUBLE KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -780,9 +759,6 @@
     },
     {
       "name": "DOUBLE - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -805,9 +781,6 @@
     },
     {
       "name": "STRING - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K VARCHAR KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -823,9 +796,6 @@
     },
     {
       "name": "STRING - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -848,9 +818,6 @@
     },
     {
       "name": "DECIMAL - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K DECIMAL(4,2) KEY, foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -866,9 +833,6 @@
     },
     {
       "name": "DECIMAL - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -1071,9 +1035,6 @@
     },
     {
       "name": "INT - key - key and value inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input_topic', format='AVRO');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -1100,9 +1061,6 @@
     },
     {
       "name": "INT - key - key and anonymous value inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input_topic', format='AVRO', wrap_single_value=false);",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"

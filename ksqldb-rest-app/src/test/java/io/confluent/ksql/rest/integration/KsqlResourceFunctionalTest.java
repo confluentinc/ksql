@@ -77,7 +77,6 @@ public class KsqlResourceFunctionalTest {
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "http://foo:8080")
-      .withProperty(KsqlConfig.KSQL_KEY_FORMAT_ENABLED, true)
       .build();
 
   @ClassRule

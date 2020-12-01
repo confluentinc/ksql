@@ -1509,9 +1509,6 @@
         "SELECT * FROM AGGREGATE WHERE ID=10;",
         "SELECT * FROM AGGREGATE WHERE ID=123369;"
       ],
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "inputs": [
         {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {}},
         {"topic": "test_topic", "timestamp": 12365, "key": 10, "value": {}}

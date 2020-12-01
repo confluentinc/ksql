@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.udaf.offset;
 
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.INTERMEDIATE_STRUCT_COMPARATOR;
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.INTERMEDIATE_STRUCT_COMPARATOR_IGNORE_NULLS;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_BOOLEAN;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_DOUBLE;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_INTEGER;
@@ -30,6 +31,7 @@ import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -220,7 +222,13 @@ public final class LatestByOffset {
       public Struct merge(final Struct aggOne, final Struct aggTwo) {
         // When merging we need some way of evaluating the "latest' one.
         // We do this by keeping track of the sequence of when it was originally processed
-        if (INTERMEDIATE_STRUCT_COMPARATOR.compare(aggOne, aggTwo) >= 0) {
+        final Comparator<Struct> comparator;
+        if (ignoreNulls) {
+          comparator = INTERMEDIATE_STRUCT_COMPARATOR_IGNORE_NULLS;
+        } else {
+          comparator = INTERMEDIATE_STRUCT_COMPARATOR;
+        }
+        if (comparator.compare(aggOne, aggTwo) >= 0) {
           return aggOne;
         } else {
           return aggTwo;
@@ -268,10 +276,16 @@ public final class LatestByOffset {
 
       @Override
       public List<Struct> merge(final List<Struct> aggOne, final List<Struct> aggTwo) {
+        final Comparator<Struct> comparator;
+        if (ignoreNulls) {
+          comparator = INTERMEDIATE_STRUCT_COMPARATOR_IGNORE_NULLS;
+        } else {
+          comparator = INTERMEDIATE_STRUCT_COMPARATOR;
+        }
         final List<Struct> merged = new ArrayList<>(aggOne.size() + aggTwo.size());
         merged.addAll(aggOne);
         merged.addAll(aggTwo);
-        merged.sort(INTERMEDIATE_STRUCT_COMPARATOR);
+        merged.sort(comparator);
         final int start = merged.size() > latestN ? (merged.size() - latestN) : 0;
         return merged.subList(start, merged.size());
       }

@@ -242,6 +242,23 @@ public class LatestByOffsetTest {
   }
 
   @Test
+  public void shouldMergeIgnoringNulls() {
+    // Given:
+    final Udaf<Integer, Struct, Integer> udaf = LatestByOffset.latestInteger();
+
+    final Struct agg1 = LatestByOffset.createStruct(STRUCT_INTEGER, 123);
+    final Struct agg2 = LatestByOffset.createStruct(STRUCT_INTEGER, null);
+
+    // When:
+    final Struct merged1 = udaf.merge(agg1, agg2);
+    final Struct merged2 = udaf.merge(agg2, agg1);
+
+    // Then:
+    assertThat(merged1, is(agg1));
+    assertThat(merged2, is(agg1));
+  }
+
+  @Test
   public void shouldComputeLatestLong() {
     // Given:
     final Udaf<Long, Struct, Long> udaf = LatestByOffset.latestLong();

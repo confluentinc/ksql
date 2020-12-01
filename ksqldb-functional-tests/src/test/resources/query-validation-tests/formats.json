@@ -276,22 +276,22 @@
       "name": "unsupported key format - create as select",
       "statements": [
         "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', value_format='KAFKA');",
-        "CREATE STREAM COPY WITH (key_format='AVRO') AS SELECT * FROM TEST EMIT CHANGES;"
+        "CREATE STREAM COPY WITH (key_format='PROTOBUF') AS SELECT * FROM TEST EMIT CHANGES;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The key format 'AVRO' is not currently supported"
+        "message": "The key format 'PROTOBUF' is not currently supported"
       }
     },
     {
       "name": "unsupported format - create as select",
       "statements": [
         "CREATE STREAM TEST (foo VARCHAR) WITH (kafka_topic='test_topic', value_format='KAFKA');",
-        "CREATE STREAM COPY WITH (format='AVRO') AS SELECT * FROM TEST EMIT CHANGES;"
+        "CREATE STREAM COPY WITH (format='PROTOBUF') AS SELECT * FROM TEST EMIT CHANGES;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The key format 'AVRO' is not currently supported"
+        "message": "The key format 'PROTOBUF' is not currently supported"
       }
     },
     {

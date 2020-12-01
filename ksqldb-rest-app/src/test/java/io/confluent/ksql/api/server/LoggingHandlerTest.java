@@ -10,8 +10,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -37,6 +35,8 @@ public class LoggingHandlerTest {
   @Mock
   private Server server;
   @Mock
+  private LoggingRateLimiter loggingRateLimiter;
+  @Mock
   private Logger logger;
   @Mock
   private RoutingContext routingContext;
@@ -50,8 +50,6 @@ public class LoggingHandlerTest {
   private SocketAddress socketAddress;
   @Mock
   private Clock clock;
-  @Mock
-  private RateLimiter rateLimiter;
   @Captor
   private ArgumentCaptor<String> logStringCaptor;
   @Captor
@@ -68,18 +66,17 @@ public class LoggingHandlerTest {
     when(request.response()).thenReturn(response);
     when(request.remoteAddress()).thenReturn(socketAddress);
     when(ksqlRestConfig.getList(any())).thenReturn(ImmutableList.of("401"));
-    when(ksqlRestConfig.getStringAsMap(any())).thenReturn(ImmutableMap.of("/query", "100"));
-    when(rateLimiter.tryAcquire()).thenReturn(true);
+    when(loggingRateLimiter.shouldLog("/query")).thenReturn(true);
     when(clock.millis()).thenReturn(1699813434333L);
     when(response.bytesWritten()).thenReturn(5678L);
-    when(request.uri()).thenReturn("/query");
     when(request.path()).thenReturn("/query");
+    when(request.uri()).thenReturn("/query");
     when(request.getHeader(HTTP_HEADER_USER_AGENT)).thenReturn("bot");
     when(socketAddress.host()).thenReturn("123.111.222.333");
     when(request.bytesRead()).thenReturn(3456L);
     when(request.version()).thenReturn(HttpVersion.HTTP_1_1);
     when(request.method()).thenReturn(HttpMethod.POST);
-    loggingHandler = new LoggingHandler(server, logger, clock, (rateLimit) -> rateLimiter);
+    loggingHandler = new LoggingHandler(server, loggingRateLimiter, logger, clock);
   }
 
   @Test
@@ -136,7 +133,7 @@ public class LoggingHandlerTest {
   public void shouldSkipRateLimited() {
     // Given:
     when(response.getStatusCode()).thenReturn(200);
-    when(rateLimiter.tryAcquire()).thenReturn(true, true, false, false);
+    when(loggingRateLimiter.shouldLog("/query")).thenReturn(true, true, false, false);
 
     // When:
     loggingHandler.handle(routingContext);

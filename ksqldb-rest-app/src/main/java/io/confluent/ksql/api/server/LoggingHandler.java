@@ -15,11 +15,10 @@
 
 package io.confluent.ksql.api.server;
 
-import static io.confluent.ksql.rest.server.KsqlRestConfig.KSQL_LOGGING_SERVER_RATE_LIMITED_REQUEST_PATHS_CONFIG;
 import static io.confluent.ksql.rest.server.KsqlRestConfig.KSQL_LOGGING_SERVER_SKIPPED_RESPONSE_CODES_CONFIG;
+import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.api.auth.ApiUser;
@@ -31,11 +30,9 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.impl.Utils;
 import java.time.Clock;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,28 +42,27 @@ public class LoggingHandler implements Handler<RoutingContext> {
   static final String HTTP_HEADER_USER_AGENT = "User-Agent";
 
   private final Set<Integer> skipResponseCodes;
-  private final Map<String, Double> rateLimitedPaths;
   private final Logger logger;
   private final Clock clock;
-  private final Function<Double, RateLimiter> rateLimiterFactory;
+  private final LoggingRateLimiter loggingRateLimiter;
 
   private final Map<String, RateLimiter> rateLimiters = new ConcurrentHashMap<>();
 
-  public LoggingHandler(final Server server) {
-    this(server, LOG, Clock.systemUTC(), RateLimiter::create);
+  public LoggingHandler(final Server server, final LoggingRateLimiter loggingRateLimiter) {
+    this(server, loggingRateLimiter, LOG, Clock.systemUTC());
   }
 
   @VisibleForTesting
   LoggingHandler(
       final Server server,
+      final LoggingRateLimiter loggingRateLimiter,
       final Logger logger,
-      final Clock clock,
-      final Function<Double, RateLimiter> rateLimiterFactory) {
+      final Clock clock) {
+    requireNonNull(server);
+    this.loggingRateLimiter = requireNonNull(loggingRateLimiter);
     this.skipResponseCodes = getSkipResponseCodes(server.getConfig());
-    this.rateLimitedPaths = getSkipRequestPaths(server.getConfig());
     this.logger = logger;
     this.clock = clock;
-    this.rateLimiterFactory = rateLimiterFactory;
   }
 
   @Override
@@ -76,13 +72,8 @@ public class LoggingHandler implements Handler<RoutingContext> {
       if (skipResponseCodes.contains(routingContext.response().getStatusCode())) {
         return;
       }
-      if (rateLimitedPaths.containsKey(routingContext.request().path())) {
-        final String path = routingContext.request().path();
-        final double rateLimit = rateLimitedPaths.get(path);
-        rateLimiters.computeIfAbsent(path, (k) -> rateLimiterFactory.apply(rateLimit));
-        if (!rateLimiters.get(path).tryAcquire()) {
-          return;
-        }
+      if (!loggingRateLimiter.shouldLog(routingContext.request().path())) {
+        return;
       }
       final long contentLength = routingContext.request().response().bytesWritten();
       final HttpVersion version = routingContext.request().version();
@@ -132,14 +123,6 @@ public class LoggingHandler implements Handler<RoutingContext> {
     return config.getList(KSQL_LOGGING_SERVER_SKIPPED_RESPONSE_CODES_CONFIG)
         .stream()
         .map(Integer::parseInt).collect(ImmutableSet.toImmutableSet());
-  }
-
-  private static Map<String, Double> getSkipRequestPaths(final KsqlRestConfig config) {
-    // Already validated as having double values
-    return config.getStringAsMap(KSQL_LOGGING_SERVER_RATE_LIMITED_REQUEST_PATHS_CONFIG)
-        .entrySet().stream()
-        .collect(ImmutableMap.toImmutableMap(Entry::getKey,
-            entry -> Double.parseDouble(entry.getValue())));
   }
 
   private void doLog(final int status, final String message) {

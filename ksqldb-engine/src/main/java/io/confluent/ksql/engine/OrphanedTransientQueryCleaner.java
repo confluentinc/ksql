@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -56,7 +57,13 @@ public class OrphanedTransientQueryCleaner {
       return;
     }
     final KafkaTopicClient topicClient = serviceContext.getTopicClient();
-    final Set<String> topicNames = topicClient.listTopicNames();
+    final Set<String> topicNames;
+    try {
+      topicNames = topicClient.listTopicNames();
+    } catch (KafkaResponseGetFailedException e) {
+      LOG.error("Couldn't fetch topic names", e);
+      return;
+    }
     // Find any transient query topics
     final String queryApplicationIdPrefix = QueryApplicationId.buildPrefix(ksqlConfig, false);
     final List<String> orphanedTopics = topicNames.stream()

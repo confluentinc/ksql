@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.QueryCleanupService.QueryCleanupTask;
+import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -114,5 +115,16 @@ public class OrphanedTransientQueryCleanerTest {
 
     verify(queryCleanupService, times(1)).addCleanupTask(taskCaptor.capture());
     assertThat(taskCaptor.getAllValues().get(0).getAppId(), is(APP_ID_1));
+  }
+
+  @Test
+  public void shouldSkip_exception() {
+    when(topicClient.listTopicNames())
+        .thenThrow(new KafkaResponseGetFailedException("error!", new Exception()));
+    cleaner.cleanupOrphanedInternalTopics(serviceContext, SessionConfig.of(
+        new KsqlConfig(ImmutableMap.of(KsqlConfig.KSQL_NODE_ID_CONFIG, "node0")),
+        ImmutableMap.of()));
+
+    verify(queryCleanupService, never()).addCleanupTask(any());
   }
 }

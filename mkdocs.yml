@@ -127,7 +127,7 @@ nav:
     - Clients:
       - Java Client: developer-guide/ksqldb-clients/java-client.md
       - Contribute a new client: developer-guide/ksqldb-clients/contributing.md
-    - Processing log: developer-guide/test-and-debug/processing-log.md
+    - Processing log: reference/processing-log.md
   - Operate and Deploy:
       - Operations Index: operate-and-deploy/index.md
       - Deploy:
@@ -187,6 +187,7 @@ plugins:
             developer-guide/ksqldb-clients/index.md: developer-guide/ksqldb-clients/java-client.md
             developer-guide/test-and-debug/generate-custom-test-data.md: https://github.com/confluentinc/kafka-connect-datagen
             developer-guide/test-and-debug/ksqldb-testing-tool.md: how-to-guides/test-an-app.md
+            developer-guide/test-and-debug/processing-log.md: reference/processing-log.md
             developer-guide/variable-substitution.md: how-to-guides/substitute-variables.md
 
 extra:

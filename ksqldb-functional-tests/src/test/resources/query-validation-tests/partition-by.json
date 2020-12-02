@@ -947,6 +947,50 @@
       "properties": {
         "ksql.complex.key.format.enabled": true
       },
+      "name": "partition by nested struct",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL STRUCT<F1 INT, F2 INT>) with (kafka_topic='input', key_format='AVRO', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS select STRUCT(F1:=VAL), ID from INPUT partition by STRUCT(f1:=VAL);"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"VAL": {"F1": 1, "F2": 2}}}],
+      "outputs": [{"topic": "OUTPUT", "key": {"F1": {"F1": 1, "F2": 2}}, "value": {"ID": 10}}],
+      "post": {
+        "topics": {
+          "topics": [
+            {
+              "name": "OUTPUT",
+              "keyFormat": { "format": "AVRO", "features": [ "UNWRAP_SINGLES" ], "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.OutputKey"}},
+              "valueFormat": { "format": "JSON" },
+              "keySchema": {
+                "type": "record",
+                "name": "OutputKey",
+                "namespace": "io.confluent.ksql.avro_schemas",
+                "fields": [
+                  {
+                    "name": "F1",
+                    "type": [
+                      "null",
+                      { "type": "record",
+                        "name": "OutputKey_F1",
+                        "fields": [
+                          { "name": "F1", "type": [ "null", "int" ], "default": null },
+                          { "name": "F2", "type": [ "null", "int" ], "default": null }
+                        ]
+                      }
+                    ],
+                    "default": null
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "properties": {
+        "ksql.complex.key.format.enabled": true
+      },
       "name": "partition by struct explicitly change key format",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, VAL STRUCT<F1 INT, F2 INT>) with (kafka_topic='input', format='JSON');",

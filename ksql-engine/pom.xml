@@ -144,6 +144,16 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Transitive dependency of wiremock-jre8 that's excluded in ksql-parent pom.xml
+             because it brings an older version of jetty than we'd like -->
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-webapp</artifactId>
+            <!-- jetty.version definition comes from rest-utils -->
+            <version>${jetty.version}</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>

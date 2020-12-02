@@ -274,14 +274,14 @@ public class ConfigValidatorsTest {
   public void shouldParseDoubleValueInMap() {
     // Given:
     final Validator validator = ConfigValidators.mapWithDoubleValue();
-    validator.ensureValid("propName", "foo:1.2");
+    validator.ensureValid("propName", "foo:1.2,bar:3");
   }
 
   @Test
   public void shouldParseIntKeyDoubleValueInMap() {
     // Given:
     final Validator validator = ConfigValidators.mapWithIntKeyDoubleValue();
-    validator.ensureValid("propName", "123:1.2");
+    validator.ensureValid("propName", "123:1.2,345:9.0");
   }
 
   @Test

@@ -1,7 +1,7 @@
 # KLIP-43: TIMESTAMP Data Type Support
 
 **Author**: @jzaralim | 
-**Release Target**: 0.15 | 
+**Release Target**: 0.15, 0.16 | 
 **Status**: In Discussion | 
 **Discussion**: https://github.com/confluentinc/ksql/pull/6649
 
@@ -25,10 +25,11 @@ lot of math. Having time data in a dedicated data type allows for a lot of new U
 
 * Add TIMESTAMP type to KSQL
 * Support TIMESTAMP arithmetic and comparisons
+* Allow window units (HOUR, DAY etc) to be used in timestamp functions
 * Support TIMESTAMP usage in STRUCT, MAP and ARRAY
 * Serialization and de-serialization of TIMESTAMPs to Avro, JSON, Protobuf and Delimited formats
 * Update existing built-in functions to use the TIMESTAMP data type
-* Casting between TIMESTAMP and BIGINT
+* Casting TIMESTAMP to and from BIGINT and STRING
 
 ## What is not in scope
 * Changing the ROWTIME data type. We will eventually want this to happen, but that is a separate
@@ -38,7 +39,6 @@ for negative timestamps, but until that is implemented, KSQL can only support po
 * DATE and TIME types - because TIMESTAMPs represent a point in time, DATE and TIME types
 would be useful if a user wants to represent a less specific time. These would be added after
 TIMESTAMP is implemented though.
-* Allow window units (HOUR, DAY etc) to be used in timestamp functions.
 
 ## Public APIS
 
@@ -50,7 +50,7 @@ CREATE STREAM stream_name (time TIMESTAMP, COL2 STRING) AS ...
 CREATE TABLE table_name (col1 STRUCT<field TIMESTAMP>) AS ...
 ```
 
-TIMESTAMPS will be displayed in console as strings in ISO-8601 format:
+TIMESTAMPS will be displayed in console as strings in ODBC canonical format with millisecond precision:
 
 ```roomsql
 > SELECT time FROM stream_name EMIT CHANGES;
@@ -58,21 +58,21 @@ TIMESTAMPS will be displayed in console as strings in ISO-8601 format:
 +------------------------+
 |time                    |
 +------------------------+
-|1994-11-05T13:15:30Z    |
+|1994-11-05 13:15:30:112 |
 ```
 
-TIMESTAMPS can be represented by milliseconds from Unix epoch or by using conversion functions:
+TIMESTAMPS can be represented by milliseconds from Unix epoch or by date strings:
 
 ```roomsql
 INSERT INTO stream_name VALUES (1605927509166);
-INSERT INTO stream_name VALUES (STRINGTOTIMESTAMP("2020-11-20", "YYYY-MM-DD"));
+INSERT INTO stream_name VALUES ("1994-11-05 13:15:30");
 ```
 
 ## Design
 
 ### Serialization/Deserialization
 
-TIMESTAMPs will be handled by the `java.time.Instant` class within KSQL. The corresponding Kafka Connect type is
+TIMESTAMPs will be handled by the `java.time.Instant` class in UTC within KSQL. The corresponding Kafka Connect type is
 [org.apache.kafka.connect.data.Timestamp](https://kafka.apache.org/0100/javadoc/org/apache/kafka/connect/data/Timestamp.html).
 They are represented as long types in Schema Registry, but also come with a tag indicating that it
 is a timestamp, so they should be distinguishable from long types when handling serialized values in KSQL.
@@ -106,7 +106,10 @@ The following UDFs should be updated to use the TIMESTAMP type instead of BIGINT
 Because BIGINTs will be implicitly cast into TIMESTAMPs and vice versa, queries using these functions
 with BIGINT will still work when TIMESTAMP is introduced.
 
-There will also be a new function, `NOW()` that returns the current timestamp.
+The following functions should also be added:
+
+* `NOW()` - returns the time after the issuing query is done executing
+* `CONVERT_TZ(timestamp, from_tz ,to_tz)` - converts a timestamp from one timezone to another
 
 There are a few existing UDFs that deal with dates. These should be left as is until a DATE type is implemented:
 
@@ -123,6 +126,10 @@ from Unix epoch.
 If a user attempts to cast a negative number or a timestamp before Unix epoch, the CAST will throw
 an error.
 
+Casting from TIMESTAMP to STRING will return the timestamp in ODBC canonical form with millisecond
+precision (yyyy-mm-dd HH:mm:ss:fff), and  casting from STRING to TIMESTAMP will attempt to parse the
+string into a TIMESTAMP.
+
 ### Arithmetic operations and comparisons
 
 At the very least, we would want KSQL to be able to compare, add and subtract TIMESTAMPS.
@@ -134,12 +141,13 @@ defines behaviors for arithmetic operators.
 Because functions are more well-defined, we should opt for built-in arithmetic functions
 instead of using operators. The following functions are necessary:
 
-* `TIMESTAMPADD(time_stamp, big_int)` - adds `big_int` milliseconds to `time_stamp` and returns the result as a
+* `TIMESTAMP_ADD(time_stamp, duration)` - adds a duration to `time_stamp` and returns the result as a
 TIMESTAMP
-* `TIMESTAMPDIFF(time_stamp1, time_stamp2)` - returns a BIGINT representing the number of milliseconds
-between `timestamp1` and `timestamp2`
-* `TIMESTAMPSUB(time_stamp1, big_int)` - subtracts `big_int` milliseconds from `time_stamp` and returns the
+* `TIMESTAMP_SUB(time_stamp1, duration)` - subtracts a duration from `time_stamp` and returns the
 result as a TIMESTAMP
+
+Durations will be expressed in the form, `<integer_value> <unit>`. This is discussed further in the
+next section.
 
 As for comparisons, the following expressions should be supported:
 ```
@@ -151,13 +159,12 @@ time_stamp1 BETWEEN time_stamp2 AND time_stamp3
 
 Comparisons between TIMESTAMPs and other data types should not be allowed.
 
-### Window units (not in scope)
+### Durations / Time units
 
-It might make sense to give window units a time representation so that they could be used as
-time intervals in TIMESTAMP arithmetic. For example,
+Giving window units a time representation enables timestamp arithmetic. For example,
 
 ```roomsql
-SELECT ADDTIME(TIME, 1 DAY) FROM FOO;
+SELECT TIMESTAMP_ADD(TIME, 1 DAY) FROM FOO;
 ```
 
 Because windowing is handled separately from expression evaluation, doing this will not have any
@@ -172,8 +179,12 @@ The following will need to be tested:
 
 ## LOEs and Delivery Milestones
 
-This feature can be broken down into two milestones: implementing (including testing and documentation)
-the TIMESTAMP type (1-2 weeks) and adding all of the supporting UDFs (~1 week).
+This feature can be broken down into three milestones:
+
+1. Implementing (including testing and documentation)
+the TIMESTAMP type (1-2 weeks)
+2. Adding and updating supporting UDFs (~1 week)
+3. Implementing duration and arithmetic (~1-2 weeks) - this will be in 0.16
 
 ## Documentation Updates
 

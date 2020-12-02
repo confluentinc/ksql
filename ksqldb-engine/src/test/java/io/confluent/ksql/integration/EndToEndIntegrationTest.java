@@ -124,10 +124,6 @@ public class EndToEndIntegrationTest {
       .withAdditionalConfig(
           KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
           "http://foo:8080")
-      .withAdditionalConfig(
-          KsqlConfig.KSQL_KEY_FORMAT_ENABLED,
-          true
-      )
       .build();
 
   @Rule

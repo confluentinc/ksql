@@ -19,7 +19,6 @@ import static io.confluent.ksql.api.client.util.ClientTestUtil.shouldReceiveRows
 import static io.confluent.ksql.api.client.util.ClientTestUtil.subscribeAndWait;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_KEY_FORMAT_ENABLED;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -179,7 +178,6 @@ public class ClientIntegrationTest {
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
-      .withProperty(KSQL_KEY_FORMAT_ENABLED, true)
       .withProperty(KSQL_DEFAULT_KEY_FORMAT_CONFIG, "JSON")
       .build();
 

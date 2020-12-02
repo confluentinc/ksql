@@ -1470,7 +1470,7 @@ public class KsqlEngineTest {
     // Given:
     givenTopicsExist("foo");
     final PreparedStatement<?> prepared =
-        prepare(parse("CREATE STREAM FOO (a int) WITH (kafka_topic='foo', value_format='json', key_format='avro');").get(0));
+        prepare(parse("CREATE STREAM FOO (a int) WITH (kafka_topic='foo', value_format='json', key_format='protobuf');").get(0));
 
     // When:
     final Exception e = assertThrows(
@@ -1482,7 +1482,7 @@ public class KsqlEngineTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("The key format 'AVRO' is not currently supported."));
+    assertThat(e.getMessage(), containsString("The key format 'PROTOBUF' is not currently supported."));
   }
 
   @Test
@@ -1493,14 +1493,14 @@ public class KsqlEngineTest {
         () -> KsqlEngineTestUtil.execute(
             serviceContext,
             ksqlEngine,
-            "CREATE STREAM FOO WITH (KEY_FORMAT='AVRO') AS SELECT * FROM ORDERS;",
+            "CREATE STREAM FOO WITH (KEY_FORMAT='PROTOBUF') AS SELECT * FROM ORDERS;",
             KSQL_CONFIG,
             Collections.emptyMap()
         )
     );
 
     // Then:
-    assertThat(e, rawMessage(containsString("The key format 'AVRO' is not currently supported.")));
+    assertThat(e, rawMessage(containsString("The key format 'PROTOBUF' is not currently supported.")));
   }
 
   @Test

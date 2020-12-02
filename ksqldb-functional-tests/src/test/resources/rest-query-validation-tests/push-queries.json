@@ -736,9 +736,6 @@
         "CREATE STREAM INPUT (K INT KEY, ID INT) WITH (kafka_topic='test_topic', format='JSON');",
         "SELECT * FROM INPUT EMIT CHANGES LIMIT 2;"
       ],
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "inputs": [
         {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 100}},
         {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {"id": 101}}

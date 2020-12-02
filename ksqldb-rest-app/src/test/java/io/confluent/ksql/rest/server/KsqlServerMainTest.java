@@ -263,7 +263,7 @@ public class KsqlServerMainTest {
   public void shouldFailOnUnsupportedDefaultKeyFormat() {
     // Given:
     final KsqlConfig config = configWith(ImmutableMap.of(
-        KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG, "avro"
+        KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG, "protobuf"
     ));
 
     // When:
@@ -276,7 +276,7 @@ public class KsqlServerMainTest {
     assertThat(e.getMessage(), containsString(
         "Invalid value for config '" + KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG + "': "
             + "The supplied format is not currently supported as a key format. "
-            + "Format: 'avro'."));
+            + "Format: 'protobuf'."));
   }
 
   private static KsqlConfig configWith(final Map<String, Object> additionalConfigs) {

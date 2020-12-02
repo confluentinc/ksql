@@ -390,9 +390,6 @@
         "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', format='JSON');",
         "INSERT INTO TEST (ID, ROWTIME, K) VALUES (10, 1234, 'key');"
       ],
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "inputs": [
       ],
       "outputs": [
@@ -405,9 +402,6 @@
         "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', format='AVRO');",
         "INSERT INTO TEST (ID, ROWTIME, K) VALUES (10, 1234, 'key');"
       ],
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "inputs": [
       ],
       "outputs": [

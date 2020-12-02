@@ -101,8 +101,13 @@ public class StreamWindowedAggregate
   }
 
   @Override
-  public KTableHolder<Windowed<GenericKey>> build(final PlanBuilder builder) {
-    return builder.visitStreamWindowedAggregate(this);
+  public KTableHolder<Windowed<GenericKey>> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitStreamWindowedAggregate(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitStreamWindowedAggregate(this);
   }
 
   @Override

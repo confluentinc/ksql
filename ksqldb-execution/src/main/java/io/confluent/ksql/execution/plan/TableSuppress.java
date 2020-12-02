@@ -66,10 +66,15 @@ public class TableSuppress<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
-  public KTableHolder<K> build(final PlanBuilder builder) {
-    return builder.visitTableSuppress(this);
+  public KTableHolder<K> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitTableSuppress(this, info);
   }
-
+  
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitTableSuppress(this);
+  }
+  
   @Override
   public boolean equals(final Object o) {
     if (this == o) {

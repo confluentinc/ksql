@@ -109,8 +109,13 @@ public class TableTableJoin<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
-  public KTableHolder<K> build(final PlanBuilder builder) {
-    return builder.visitTableTableJoin(this);
+  public KTableHolder<K> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitTableTableJoin(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitTableTableJoin(this);
   }
 
   @Override

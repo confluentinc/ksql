@@ -1,6 +1,6 @@
 {
   "version" : "6.2.0",
-  "timestamp" : 1606799825157,
+  "timestamp" : 1606950117788,
   "path" : "query-validation-tests/multi-joins.json",
   "schemas" : {
     "CTAS_OUTPUT_0.L_LeftSourceKeyed.Materialize" : {
@@ -201,16 +201,6 @@
       } ],
       "topics" : {
         "topics" : [ {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-L_RightSourceKeyed-SelectKey-repartition",
-          "keyFormat" : {
-            "format" : "AVRO",
-            "features" : [ "UNWRAP_SINGLES" ]
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "keySchema" : "int"
-        }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-L_LeftSourceKeyed-Materialize-changelog",
           "keyFormat" : {
             "format" : "AVRO",
@@ -221,7 +211,7 @@
           },
           "keySchema" : "int"
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_L_Right-Reduce-changelog",
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-L_RightSourceKeyed-SelectKey-repartition",
           "keyFormat" : {
             "format" : "AVRO",
             "features" : [ "UNWRAP_SINGLES" ]
@@ -251,26 +241,6 @@
           },
           "keySchema" : "int"
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-Materialize-changelog",
-          "keyFormat" : {
-            "format" : "AVRO",
-            "features" : [ "UNWRAP_SINGLES" ]
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "keySchema" : "int"
-        }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
-          "keyFormat" : {
-            "format" : "AVRO",
-            "features" : [ "UNWRAP_SINGLES" ]
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "keySchema" : "int"
-        }, {
           "name" : "left",
           "keyFormat" : {
             "format" : "AVRO",
@@ -282,7 +252,7 @@
           "partitions" : 4,
           "keySchema" : "int"
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_L_Left-Reduce-changelog",
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-Materialize-changelog",
           "keyFormat" : {
             "format" : "AVRO",
             "features" : [ "UNWRAP_SINGLES" ]

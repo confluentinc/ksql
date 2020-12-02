@@ -67,8 +67,13 @@ public class StreamGroupByKey implements ExecutionStep<KGroupedStreamHolder> {
   }
 
   @Override
-  public KGroupedStreamHolder build(final PlanBuilder builder) {
-    return builder.visitStreamGroupByKey(this);
+  public KGroupedStreamHolder build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitStreamGroupByKey(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitStreamGroupByKey(this);
   }
 
   @Override

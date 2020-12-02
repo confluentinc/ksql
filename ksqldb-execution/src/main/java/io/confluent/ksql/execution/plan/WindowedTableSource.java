@@ -45,8 +45,13 @@ public final class WindowedTableSource extends SourceStep<KTableHolder<Windowed<
   }
 
   @Override
-  public KTableHolder<Windowed<GenericKey>> build(final PlanBuilder builder) {
-    return builder.visitWindowedTableSource(this);
+  public KTableHolder<Windowed<GenericKey>> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitWindowedTableSource(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitWindowedTableSource(this);
   }
 
   @Override

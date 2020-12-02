@@ -177,6 +177,8 @@ public class StreamAggregateBuilderTest {
   @Mock
   private MaterializedFactory materializedFactory;
   @Mock
+  private KSPlanInfo planInfo;
+  @Mock
   private Serde<GenericKey> keySerde;
   @Mock
   private Serde<GenericRow> valueSerde;
@@ -202,7 +204,7 @@ public class StreamAggregateBuilderTest {
   @SuppressWarnings("unchecked")
   @Before
   public void init() {
-    when(sourceStep.build(any())).thenReturn(KGroupedStreamHolder.of(groupedStream, INPUT_SCHEMA));
+    when(sourceStep.build(any(), eq(planInfo))).thenReturn(KGroupedStreamHolder.of(groupedStream, INPUT_SCHEMA));
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
@@ -326,7 +328,7 @@ public class StreamAggregateBuilderTest {
     givenUnwindowedAggregate();
 
     // When:
-    final KTableHolder<GenericKey> result = aggregate.build(planBuilder);
+    final KTableHolder<GenericKey> result = aggregate.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getTable(), is(aggregatedWithResults));
@@ -342,7 +344,7 @@ public class StreamAggregateBuilderTest {
     givenUnwindowedAggregate();
 
     // When:
-    final KTableHolder<GenericKey> result = aggregate.build(planBuilder);
+    final KTableHolder<GenericKey> result = aggregate.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getSchema(), is(OUTPUT_SCHEMA));
@@ -354,7 +356,7 @@ public class StreamAggregateBuilderTest {
     givenUnwindowedAggregate();
 
     // When:
-    final KTableHolder<GenericKey> result = aggregate.build(planBuilder);
+    final KTableHolder<GenericKey> result = aggregate.build(planBuilder, planInfo);
 
     // Then:
     assertCorrectMaterializationBuilder(result, false);
@@ -366,7 +368,7 @@ public class StreamAggregateBuilderTest {
     givenUnwindowedAggregate();
 
     // When:
-    aggregate.build(planBuilder);
+    aggregate.build(planBuilder, planInfo);
 
     // Then:
     verify(materializedFactory).create(same(keySerde), same(valueSerde), any());
@@ -378,7 +380,7 @@ public class StreamAggregateBuilderTest {
     givenUnwindowedAggregate();
 
     // When:
-    aggregate.build(planBuilder);
+    aggregate.build(planBuilder, planInfo);
 
     // Then:
     verify(materializedFactory).create(any(), any(), eq("agg-regate-Materialize"));
@@ -390,7 +392,7 @@ public class StreamAggregateBuilderTest {
     givenUnwindowedAggregate();
 
     // When:
-    aggregate.build(planBuilder);
+    aggregate.build(planBuilder, planInfo);
 
     // Then:
     verify(queryBuilder).buildKeySerde(KEY_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, MATERIALIZE_CTX);
@@ -402,7 +404,7 @@ public class StreamAggregateBuilderTest {
     givenUnwindowedAggregate();
 
     // When:
-    aggregate.build(planBuilder);
+    aggregate.build(planBuilder, planInfo);
 
     // Then:
     verify(queryBuilder).buildValueSerde(
@@ -418,7 +420,7 @@ public class StreamAggregateBuilderTest {
     givenUnwindowedAggregate();
 
     // When:
-    aggregate.build(planBuilder);
+    aggregate.build(planBuilder, planInfo);
 
     // Then:
     verify(aggregateParamsFactory).create(
@@ -436,7 +438,7 @@ public class StreamAggregateBuilderTest {
     givenTumblingWindowedAggregate();
 
     // When:
-    final KTableHolder<Windowed<GenericKey>> result = windowedAggregate.build(planBuilder);
+    final KTableHolder<Windowed<GenericKey>> result = windowedAggregate.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getTable(), is(windowedWithWindowBounds));
@@ -466,7 +468,7 @@ public class StreamAggregateBuilderTest {
     givenHoppingWindowedAggregate();
 
     // When:
-    final KTableHolder<Windowed<GenericKey>> result = windowedAggregate.build(planBuilder);
+    final KTableHolder<Windowed<GenericKey>> result = windowedAggregate.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getTable(), is(windowedWithWindowBounds));
@@ -497,7 +499,7 @@ public class StreamAggregateBuilderTest {
     givenSessionWindowedAggregate();
 
     // When:
-    final KTableHolder<Windowed<GenericKey>> result = windowedAggregate.build(planBuilder);
+    final KTableHolder<Windowed<GenericKey>> result = windowedAggregate.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getTable(), is(windowedWithWindowBounds));
@@ -532,7 +534,7 @@ public class StreamAggregateBuilderTest {
     givenHoppingWindowedAggregate();
 
     // When:
-    final KTableHolder<?> result = windowedAggregate.build(planBuilder);
+    final KTableHolder<?> result = windowedAggregate.build(planBuilder, planInfo);
 
     // Then:
     assertCorrectMaterializationBuilder(result, true);
@@ -544,7 +546,7 @@ public class StreamAggregateBuilderTest {
     givenHoppingWindowedAggregate();
 
     // When:
-    final KTableHolder<?> result = windowedAggregate.build(planBuilder);
+    final KTableHolder<?> result = windowedAggregate.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getSchema(), is(OUTPUT_SCHEMA));
@@ -566,7 +568,7 @@ public class StreamAggregateBuilderTest {
       given.run();
 
       // When:
-      windowedAggregate.build(planBuilder);
+      windowedAggregate.build(planBuilder, planInfo);
 
       // Then:
       verify(materializedFactory).create(same(keySerde), same(valueSerde), any(), any());
@@ -581,7 +583,7 @@ public class StreamAggregateBuilderTest {
       given.run();
 
       // When:
-      windowedAggregate.build(planBuilder);
+      windowedAggregate.build(planBuilder, planInfo);
 
       // Then:
       verify(materializedFactory).create(any(), any(), eq("agg-regate-Materialize"), any());
@@ -596,7 +598,7 @@ public class StreamAggregateBuilderTest {
       given.run();
 
       // When:
-      windowedAggregate.build(planBuilder);
+      windowedAggregate.build(planBuilder, planInfo);
 
       // Then:
       verify(queryBuilder)
@@ -612,7 +614,7 @@ public class StreamAggregateBuilderTest {
       given.run();
 
       // When:
-      final KTableHolder<Windowed<GenericKey>> tableHolder = windowedAggregate.build(planBuilder);
+      final KTableHolder<Windowed<GenericKey>> tableHolder = windowedAggregate.build(planBuilder, planInfo);
 
       // Then:
       final ExecutionKeyFactory<Windowed<GenericKey>> serdeFactory = tableHolder.getExecutionKeyFactory();
@@ -637,7 +639,7 @@ public class StreamAggregateBuilderTest {
       given.run();
 
       // When:
-      windowedAggregate.build(planBuilder);
+      windowedAggregate.build(planBuilder, planInfo);
 
       // Then:
       verify(queryBuilder)
@@ -661,7 +663,7 @@ public class StreamAggregateBuilderTest {
       given.run();
 
       // When:
-      windowedAggregate.build(planBuilder);
+      windowedAggregate.build(planBuilder, planInfo);
 
       // Then:
       verify(aggregateParamsFactory)

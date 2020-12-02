@@ -25,54 +25,59 @@ import org.apache.kafka.streams.kstream.Windowed;
  * specified in the step to the stream/table(s) returned by visiting the source steps.
  */
 public interface PlanBuilder {
-  <K> KStreamHolder<K> visitStreamFilter(StreamFilter<K> streamFilter);
 
-  <K> KGroupedStreamHolder visitStreamGroupBy(StreamGroupBy<K> streamGroupBy);
+  PlanInfoExtractor getPlanInfoExtractor();
 
-  KGroupedStreamHolder visitStreamGroupByKey(StreamGroupByKey streamGroupByKey);
+  <K> KStreamHolder<K> visitStreamFilter(StreamFilter<K> streamFilter, PlanInfo planInfo);
 
-  KTableHolder<GenericKey> visitStreamAggregate(StreamAggregate streamAggregate);
+  <K> KGroupedStreamHolder visitStreamGroupBy(StreamGroupBy<K> streamGroupBy, PlanInfo planInfo);
 
-  <K> KStreamHolder<K> visitStreamSelect(StreamSelect<K> streamSelect);
+  KGroupedStreamHolder visitStreamGroupByKey(StreamGroupByKey streamGroupByKey, PlanInfo planInfo);
 
-  <K> KStreamHolder<K> visitFlatMap(StreamFlatMap<K> streamFlatMap);
+  KTableHolder<GenericKey> visitStreamAggregate(StreamAggregate streamAggregate, PlanInfo planInfo);
 
-  KStreamHolder<GenericKey> visitStreamSelectKey(StreamSelectKeyV1 streamSelectKey);
+  <K> KStreamHolder<K> visitStreamSelect(StreamSelect<K> streamSelect, PlanInfo planInfo);
 
-  <K> KStreamHolder<K> visitStreamSelectKey(StreamSelectKey<K> streamSelectKey);
+  <K> KStreamHolder<K> visitFlatMap(StreamFlatMap<K> streamFlatMap, PlanInfo planInfo);
 
-  <K> KStreamHolder<K> visitStreamSink(StreamSink<K> streamSink);
+  KStreamHolder<GenericKey> visitStreamSelectKey(
+      StreamSelectKeyV1 streamSelectKey, PlanInfo planInfo);
 
-  KStreamHolder<GenericKey> visitStreamSource(StreamSource streamSource);
+  <K> KStreamHolder<K> visitStreamSelectKey(StreamSelectKey<K> streamSelectKey, PlanInfo planInfo);
+
+  <K> KStreamHolder<K> visitStreamSink(StreamSink<K> streamSink, PlanInfo planInfo);
+
+  KStreamHolder<GenericKey> visitStreamSource(StreamSource streamSource, PlanInfo planInfo);
 
   KStreamHolder<Windowed<GenericKey>> visitWindowedStreamSource(
-      WindowedStreamSource windowedStreamSource);
+      WindowedStreamSource windowedStreamSource, PlanInfo planInfo);
 
-  <K> KStreamHolder<K> visitStreamStreamJoin(StreamStreamJoin<K> streamStreamJoin);
+  <K> KStreamHolder<K> visitStreamStreamJoin(
+      StreamStreamJoin<K> streamStreamJoin, PlanInfo planInfo);
 
-  <K> KStreamHolder<K> visitStreamTableJoin(StreamTableJoin<K> streamTableJoin);
+  <K> KStreamHolder<K> visitStreamTableJoin(StreamTableJoin<K> streamTableJoin, PlanInfo planInfo);
 
-  KTableHolder<GenericKey> visitTableSource(TableSource tableSource);
+  KTableHolder<GenericKey> visitTableSource(TableSource tableSource, PlanInfo planInfo);
 
   KTableHolder<Windowed<GenericKey>> visitWindowedTableSource(
-      WindowedTableSource windowedTableSource);
+      WindowedTableSource windowedTableSource, PlanInfo planInfo);
 
   KTableHolder<Windowed<GenericKey>> visitStreamWindowedAggregate(
-      StreamWindowedAggregate streamWindowedAggregate);
+      StreamWindowedAggregate streamWindowedAggregate, PlanInfo planInfo);
 
-  KTableHolder<GenericKey> visitTableAggregate(TableAggregate tableAggregate);
+  KTableHolder<GenericKey> visitTableAggregate(TableAggregate tableAggregate, PlanInfo planInfo);
 
-  <K> KTableHolder<K> visitTableFilter(TableFilter<K> tableFilter);
+  <K> KTableHolder<K> visitTableFilter(TableFilter<K> tableFilter, PlanInfo planInfo);
 
-  <K> KGroupedTableHolder visitTableGroupBy(TableGroupBy<K> tableGroupBy);
+  <K> KGroupedTableHolder visitTableGroupBy(TableGroupBy<K> tableGroupBy, PlanInfo planInfo);
 
-  <K> KTableHolder<K> visitTableSelect(TableSelect<K> tableSelect);
+  <K> KTableHolder<K> visitTableSelect(TableSelect<K> tableSelect, PlanInfo planInfo);
 
-  <K> KTableHolder<K> visitTableSelectKey(TableSelectKey<K> tableSelectKey);
+  <K> KTableHolder<K> visitTableSelectKey(TableSelectKey<K> tableSelectKey, PlanInfo planInfo);
 
-  <K> KTableHolder<K> visitTableSink(TableSink<K> tableSink);
+  <K> KTableHolder<K> visitTableSink(TableSink<K> tableSink, PlanInfo planInfo);
 
-  <K> KTableHolder<K> visitTableSuppress(TableSuppress<K> tableSuppress);
+  <K> KTableHolder<K> visitTableSuppress(TableSuppress<K> tableSuppress, PlanInfo planInfo);
 
-  <K> KTableHolder<K> visitTableTableJoin(TableTableJoin<K> tableTableJoin);
+  <K> KTableHolder<K> visitTableTableJoin(TableTableJoin<K> tableTableJoin, PlanInfo planInfo);
 }

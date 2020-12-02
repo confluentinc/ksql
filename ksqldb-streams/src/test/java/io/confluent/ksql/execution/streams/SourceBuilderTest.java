@@ -37,11 +37,13 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
+import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.TableSource;
@@ -180,6 +182,8 @@ public class SourceBuilderTest {
   private ServiceContext serviceContext;
   @Mock
   private SchemaRegistryClient srClient;
+  @Mock
+  private KSPlanInfo planInfo;
   @Captor
   private ArgumentCaptor<ValueTransformerWithKeySupplier<?, GenericRow, GenericRow>> transformSupplierCaptor;
   @Captor
@@ -237,7 +241,7 @@ public class SourceBuilderTest {
     givenUnwindowedSourceStream();
 
     // When:
-    final KStreamHolder<?> builtKstream = streamSource.build(planBuilder);
+    final KStreamHolder<?> builtKstream = streamSource.build(planBuilder, planInfo);
 
     // Then:
     assertThat(builtKstream.getStream(), is(kStream));
@@ -256,7 +260,7 @@ public class SourceBuilderTest {
     givenUnwindowedSourceStream();
 
     // When
-    streamSource.build(planBuilder);
+    streamSource.build(planBuilder, planInfo);
 
     // Then:
     verify(consumed).withOffsetResetPolicy(AutoOffsetReset.LATEST);
@@ -268,7 +272,7 @@ public class SourceBuilderTest {
     givenWindowedSourceStream();
 
     // When
-    windowedStreamSource.build(planBuilder);
+    windowedStreamSource.build(planBuilder, planInfo);
 
     // Then:
     verify(consumedWindowed).withOffsetResetPolicy(AutoOffsetReset.LATEST);
@@ -283,7 +287,7 @@ public class SourceBuilderTest {
     givenUnwindowedSourceStream();
 
     // When
-    streamSource.build(planBuilder);
+    streamSource.build(planBuilder, planInfo);
 
     // Then:
     verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
@@ -298,7 +302,7 @@ public class SourceBuilderTest {
     when(record.value()).thenReturn(GenericRow.genericRow("123", A_ROWTIME));
 
     // When:
-    streamSource.build(planBuilder);
+    streamSource.build(planBuilder, planInfo);
 
     // Then:
     verify(consumed).withTimestampExtractor(timestampExtractorCaptor.capture());
@@ -313,7 +317,7 @@ public class SourceBuilderTest {
     givenUnwindowedSourceTable(true);
 
     // When:
-    final KTableHolder<GenericKey> builtKTable = tableSource.build(planBuilder);
+    final KTableHolder<GenericKey> builtKTable = tableSource.build(planBuilder, planInfo);
 
     // Then:
     assertThat(builtKTable.getTable(), is(kTable));
@@ -334,7 +338,7 @@ public class SourceBuilderTest {
     when(consumed.withValueSerde(any())).thenReturn(consumed);
 
     // When:
-    final KTableHolder<GenericKey> builtKTable = tableSource.build(planBuilder);
+    final KTableHolder<GenericKey> builtKTable = tableSource.build(planBuilder, planInfo);
 
     // Then:
     assertThat(builtKTable.getTable(), is(kTable));
@@ -353,6 +357,28 @@ public class SourceBuilderTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
+  public void shouldApplyCorrectTransformationsToSourceTableWithDownstreamRepartition() {
+    // Given:
+    givenUnwindowedSourceTable(true);
+    final PlanInfo planInfo = givenDownstreamRepartition(tableSource);
+
+    // When:
+    final KTableHolder<GenericKey> builtKTable = tableSource.build(planBuilder, planInfo);
+
+    // Then:
+    assertThat(builtKTable.getTable(), is(kTable));
+    final InOrder validator = inOrder(streamsBuilder, kTable);
+    validator.verify(streamsBuilder).table(eq(TOPIC_NAME), eq(consumed));
+    validator.verify(kTable).transformValues(any(ValueTransformerWithKeySupplier.class));
+    verify(consumedFactory).create(keySerde, valueSerde);
+    verify(consumed).withTimestampExtractor(any());
+    verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
+
+    verify(kTable, never()).mapValues(any(ValueMapper.class), any(Materialized.class));
+  }
+
+  @Test
   public void shouldApplyCreateSchemaRegistryCallbackIfSchemaRegistryIsEnabled() {
     // Given:
     when(queryBuilder.getKsqlConfig()).thenReturn(
@@ -362,7 +388,7 @@ public class SourceBuilderTest {
     when(consumed.withValueSerde(any())).thenReturn(consumed);
 
     // When:
-    tableSource.build(planBuilder);
+    tableSource.build(planBuilder, planInfo);
 
     // Then:
     verify(consumed).withValueSerde(serdeCaptor.capture());
@@ -377,7 +403,7 @@ public class SourceBuilderTest {
     givenUnwindowedSourceTable(true);
 
     // When
-    tableSource.build(planBuilder);
+    tableSource.build(planBuilder, planInfo);
 
     // Then:
     verify(consumed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
@@ -389,7 +415,7 @@ public class SourceBuilderTest {
     givenWindowedSourceTable();
 
     // When
-    windowedTableSource.build(planBuilder);
+    windowedTableSource.build(planBuilder, planInfo);
 
     // Then:
     verify(consumedWindowed).withOffsetResetPolicy(AutoOffsetReset.EARLIEST);
@@ -404,7 +430,7 @@ public class SourceBuilderTest {
     givenUnwindowedSourceTable(true);
 
     // When
-    tableSource.build(planBuilder);
+    tableSource.build(planBuilder, planInfo);
 
     // Then:
     verify(consumed).withOffsetResetPolicy(AutoOffsetReset.LATEST);
@@ -416,7 +442,7 @@ public class SourceBuilderTest {
     givenUnwindowedSourceStream();
 
     // When:
-    final KStreamHolder<?> builtKstream = streamSource.build(planBuilder);
+    final KStreamHolder<?> builtKstream = streamSource.build(planBuilder, planInfo);
 
     // Then:
     assertThat(builtKstream.getSchema(), is(SCHEMA));
@@ -428,7 +454,7 @@ public class SourceBuilderTest {
     givenUnwindowedSourceTable(true);
 
     // When:
-    final KTableHolder<GenericKey> builtKTable = tableSource.build(planBuilder);
+    final KTableHolder<GenericKey> builtKTable = tableSource.build(planBuilder, planInfo);
 
     // Then:
     assertThat(builtKTable.getSchema(), is(SCHEMA));
@@ -440,7 +466,7 @@ public class SourceBuilderTest {
     givenUnwindowedSourceStream();
 
     // When:
-    streamSource.build(planBuilder);
+    streamSource.build(planBuilder, planInfo);
 
     // Then:
     verify(queryBuilder).buildValueSerde(valueFormatInfo, PHYSICAL_SCHEMA, ctx);
@@ -452,7 +478,7 @@ public class SourceBuilderTest {
     givenWindowedSourceStream();
 
     // When:
-    windowedStreamSource.build(planBuilder);
+    windowedStreamSource.build(planBuilder, planInfo);
 
     // Then:
     verify(queryBuilder).buildKeySerde(
@@ -469,7 +495,7 @@ public class SourceBuilderTest {
     givenWindowedSourceStream();
 
     // When:
-    final KStreamHolder<?> builtKstream = windowedStreamSource.build(planBuilder);
+    final KStreamHolder<?> builtKstream = windowedStreamSource.build(planBuilder, planInfo);
 
     // Then:
     assertThat(builtKstream.getSchema(), is(WINDOWED_SCHEMA));
@@ -481,7 +507,7 @@ public class SourceBuilderTest {
     givenWindowedSourceTable();
 
     // When:
-    final KTableHolder<Windowed<GenericKey>> builtKTable = windowedTableSource.build(planBuilder);
+    final KTableHolder<Windowed<GenericKey>> builtKTable = windowedTableSource.build(planBuilder, planInfo);
 
     // Then:
     assertThat(builtKTable.getSchema(), is(WINDOWED_SCHEMA));
@@ -698,7 +724,7 @@ public class SourceBuilderTest {
     givenWindowedSourceStream();
 
     // When:
-    windowedStreamSource.build(planBuilder);
+    windowedStreamSource.build(planBuilder, planInfo);
 
     // Then:
     verify(queryBuilder).buildKeySerde(
@@ -715,7 +741,7 @@ public class SourceBuilderTest {
     givenUnwindowedSourceStream();
 
     // When:
-    streamSource.build(planBuilder);
+    streamSource.build(planBuilder, planInfo);
 
     // Then:
     verify(queryBuilder).buildKeySerde(
@@ -731,7 +757,7 @@ public class SourceBuilderTest {
     givenUnwindowedSourceStream();
 
     // When:
-    final KStreamHolder<?> stream = streamSource.build(planBuilder);
+    final KStreamHolder<?> stream = streamSource.build(planBuilder, planInfo);
 
     // Then:
     reset(queryBuilder);
@@ -745,7 +771,7 @@ public class SourceBuilderTest {
     givenWindowedSourceStream();
 
     // When:
-    final KStreamHolder<?> stream = windowedStreamSource.build(planBuilder);
+    final KStreamHolder<?> stream = windowedStreamSource.build(planBuilder, planInfo);
 
     // Then:
     reset(queryBuilder);
@@ -759,7 +785,7 @@ public class SourceBuilderTest {
     givenUnwindowedSourceTable(true);
 
     // When:
-    tableSource.build(planBuilder);
+    tableSource.build(planBuilder, planInfo);
 
     // Then:
     verify(materializationFactory).create(keySerde, valueSerde, "base-Reduce");
@@ -769,7 +795,7 @@ public class SourceBuilderTest {
   private <K> ValueTransformerWithKey<K, GenericRow, GenericRow> getTransformerFromStreamSource(
       final SourceStep<?> streamSource
   ) {
-    streamSource.build(planBuilder);
+    streamSource.build(planBuilder, planInfo);
     verify(kStream).transformValues(transformSupplierCaptor.capture());
     final ValueTransformerWithKey transformer = transformSupplierCaptor.getValue().get();
     transformer.init(processorCtx);
@@ -780,7 +806,7 @@ public class SourceBuilderTest {
   private <K> ValueTransformerWithKey<K, GenericRow, GenericRow> getTransformerFromTableSource(
       final SourceStep<?> streamSource
   ) {
-    streamSource.build(planBuilder);
+    streamSource.build(planBuilder, planInfo);
     verify(kTable).transformValues(transformSupplierCaptor.capture());
     final ValueTransformerWithKey transformer = transformSupplierCaptor.getValue().get();
     transformer.init(processorCtx);
@@ -855,5 +881,11 @@ public class SourceBuilderTest {
     when(consumedFactory.create(keySerde, valueSerde)).thenReturn(consumed);
     when(consumed.withTimestampExtractor(any())).thenReturn(consumed);
     when(consumed.withOffsetResetPolicy(any())).thenReturn(consumed);
+  }
+
+  private static PlanInfo givenDownstreamRepartition(final ExecutionStep<?> sourceStep) {
+    final KSPlanInfo mockPlanInfo = mock(KSPlanInfo.class);
+    when(mockPlanInfo.isRepartitionedInPlan(sourceStep)).thenReturn(true);
+    return mockPlanInfo;
   }
 }

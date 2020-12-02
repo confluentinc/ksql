@@ -162,7 +162,8 @@ public final class SourceBuilder {
       final KsqlQueryBuilder queryBuilder,
       final TableSource source,
       final ConsumedFactory consumedFactory,
-      final MaterializedFactory materializedFactory
+      final MaterializedFactory materializedFactory,
+      final KSPlanInfo planInfo
   ) {
     final PhysicalSchema physicalSchema = getPhysicalSchema(source);
 
@@ -198,7 +199,8 @@ public final class SourceBuilder {
         GenericKey::values,
         materialized,
         valueSerde,
-        stateStoreName
+        stateStoreName,
+        planInfo
     );
 
     return KTableHolder.unmaterialized(
@@ -212,7 +214,8 @@ public final class SourceBuilder {
       final KsqlQueryBuilder queryBuilder,
       final WindowedTableSource source,
       final ConsumedFactory consumedFactory,
-      final MaterializedFactory materializedFactory
+      final MaterializedFactory materializedFactory,
+      final KSPlanInfo planInfo
   ) {
     final PhysicalSchema physicalSchema = getPhysicalSchema(source);
 
@@ -250,7 +253,8 @@ public final class SourceBuilder {
         windowedKeyGenerator(source.getSourceSchema()),
         materialized,
         valueSerde,
-        stateStoreName
+        stateStoreName,
+        planInfo
     );
 
     return KTableHolder.unmaterialized(
@@ -308,7 +312,8 @@ public final class SourceBuilder {
       final Function<K, Collection<?>> keyGenerator,
       final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized,
       final Serde<GenericRow> valueSerde,
-      final String stateStoreName
+      final String stateStoreName,
+      final KSPlanInfo planInfo
   ) {
     final boolean forceChangelog = streamSource instanceof TableSource
         && ((TableSource) streamSource).isForceChangelog();
@@ -330,12 +335,23 @@ public final class SourceBuilder {
       final KTable<K, GenericRow> source = queryBuilder
           .getStreamsBuilder()
           .table(streamSource.getTopicName(), consumed);
-      // add this identity mapValues call to prevent the source-changelog
-      // optimization in kafka streams - we don't want this optimization to
-      // be enabled because we cannot require symmetric serialization between
-      // producer and KSQL (see https://issues.apache.org/jira/browse/KAFKA-10179
-      // and https://github.com/confluentinc/ksql/issues/5673 for more details)
-      table = source.mapValues(row -> row, materialized);
+
+      final boolean forceMaterialization = !planInfo.isRepartitionedInPlan(streamSource);
+      if (forceMaterialization) {
+        // add this identity mapValues call to prevent the source-changelog
+        // optimization in kafka streams - we don't want this optimization to
+        // be enabled because we cannot require symmetric serialization between
+        // producer and KSQL (see https://issues.apache.org/jira/browse/KAFKA-10179
+        // and https://github.com/confluentinc/ksql/issues/5673 for more details)
+        table = source.mapValues(row -> row, materialized);
+      } else {
+        // if we know this table source is repartitioned later in the topology,
+        // we do not need to force a materialization at this source step since the
+        // re-partitioned topic will be used for any subsequent state stores, in lieu
+        // of the original source topic, thus avoiding the issues above.
+        // See https://github.com/confluentinc/ksql/issues/6650
+        table = source;
+      }
     }
 
     return table

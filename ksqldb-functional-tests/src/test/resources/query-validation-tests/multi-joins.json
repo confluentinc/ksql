@@ -1244,17 +1244,12 @@
               "valueFormat" : {"format" : "JSON"}
             },
             {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000028-store-changelog",
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000027-store-changelog",
               "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
               "valueFormat" : {"format" : "JSON"}
             },
             {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000029-store-changelog",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
-              "valueFormat" : {"format" : "JSON"}
-            },
-            {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000028-store-changelog",
               "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
               "valueFormat" : {"format" : "JSON"}
             },
@@ -1307,18 +1302,13 @@
               "valueFormat" : {"format" : "JSON"}
             },
             {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000028-store-changelog",
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000027-store-changelog",
               "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
               "valueFormat" : {"format" : "JSON"}
             },
             {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000029-store-changelog",
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000028-store-changelog",
               "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
-              "valueFormat" : {"format" : "JSON"}
-            },
-            {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
               "valueFormat" : {"format" : "JSON"}
             },
             {
@@ -1364,21 +1354,6 @@
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
-              "valueFormat" : {"format" : "JSON"}
-            },
-            {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_L_Left-Reduce-changelog",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
-              "valueFormat" : {"format" : "JSON"}
-            },
-            {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_L_Right-Reduce-changelog",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
-              "valueFormat" : {"format" : "JSON"}
-            },
-            {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
               "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
               "valueFormat" : {"format" : "JSON"}
             },

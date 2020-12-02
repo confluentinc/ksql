@@ -58,8 +58,13 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
   }
 
   @Override
-  public KTableHolder<GenericKey> build(final PlanBuilder builder) {
-    return builder.visitTableSource(this);
+  public KTableHolder<GenericKey> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitTableSource(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitTableSource(this);
   }
 
   @Override

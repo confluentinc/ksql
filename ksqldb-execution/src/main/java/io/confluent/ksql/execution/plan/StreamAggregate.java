@@ -99,8 +99,13 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<GenericKey>> 
   }
 
   @Override
-  public KTableHolder<GenericKey> build(final PlanBuilder builder) {
-    return builder.visitStreamAggregate(this);
+  public KTableHolder<GenericKey> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitStreamAggregate(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitStreamAggregate(this);
   }
 
   @Override

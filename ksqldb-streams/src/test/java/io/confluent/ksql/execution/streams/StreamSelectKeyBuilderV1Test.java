@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.streams;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -95,6 +96,8 @@ public class StreamSelectKeyBuilderV1Test {
   private KsqlQueryBuilder queryBuilder;
   @Mock
   private FunctionRegistry functionRegistry;
+  @Mock
+  private KSPlanInfo planInfo;
   @Captor
   private ArgumentCaptor<Predicate<GenericKey, GenericRow>> predicateCaptor;
   @Captor
@@ -113,7 +116,7 @@ public class StreamSelectKeyBuilderV1Test {
     when(queryBuilder.getKsqlConfig()).thenReturn(new KsqlConfig(ImmutableMap.of()));
     when(kstream.filter(any())).thenReturn(filteredKStream);
     when(filteredKStream.selectKey(any(KeyValueMapper.class))).thenReturn(rekeyedKstream);
-    when(sourceStep.build(any())).thenReturn(
+    when(sourceStep.build(any(), eq(planInfo))).thenReturn(
         new KStreamHolder<>(kstream, SOURCE_SCHEMA, mock(ExecutionKeyFactory.class)));
     planBuilder = new KSPlanBuilder(
         queryBuilder,
@@ -131,7 +134,7 @@ public class StreamSelectKeyBuilderV1Test {
   @Test
   public void shouldRekeyCorrectly() {
     // When:
-    final KStreamHolder<GenericKey> result = selectKey.build(planBuilder);
+    final KStreamHolder<GenericKey> result = selectKey.build(planBuilder, planInfo);
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(kstream, filteredKStream, rekeyedKstream);
@@ -144,7 +147,7 @@ public class StreamSelectKeyBuilderV1Test {
   @Test
   public void shouldReturnCorrectSerdeFactory() {
     // When:
-    final KStreamHolder<GenericKey> result = selectKey.build(planBuilder);
+    final KStreamHolder<GenericKey> result = selectKey.build(planBuilder, planInfo);
 
     // Then:
     result.getExecutionKeyFactory().buildKeySerde(
@@ -161,7 +164,7 @@ public class StreamSelectKeyBuilderV1Test {
   @Test
   public void shouldFilterOutNullValues() {
     // When:
-    selectKey.build(planBuilder);
+    selectKey.build(planBuilder, planInfo);
 
     // Then:
     verify(kstream).filter(predicateCaptor.capture());
@@ -172,7 +175,7 @@ public class StreamSelectKeyBuilderV1Test {
   @Test
   public void shouldFilterOutNullKeyColumns() {
     // When:
-    selectKey.build(planBuilder);
+    selectKey.build(planBuilder, planInfo);
 
     // Then:
     verify(kstream).filter(predicateCaptor.capture());
@@ -186,7 +189,7 @@ public class StreamSelectKeyBuilderV1Test {
   @Test
   public void shouldNotFilterOutNonNullKeyColumns() {
     // When:
-    selectKey.build(planBuilder);
+    selectKey.build(planBuilder, planInfo);
 
     // Then:
     verify(kstream).filter(predicateCaptor.capture());
@@ -200,7 +203,7 @@ public class StreamSelectKeyBuilderV1Test {
   @Test
   public void shouldIgnoreNullNonKeyColumns() {
     // When:
-    selectKey.build(planBuilder);
+    selectKey.build(planBuilder, planInfo);
 
     // Then:
     verify(kstream).filter(predicateCaptor.capture());
@@ -211,7 +214,7 @@ public class StreamSelectKeyBuilderV1Test {
   @Test
   public void shouldComputeCorrectKey() {
     // When:
-    selectKey.build(planBuilder);
+    selectKey.build(planBuilder, planInfo);
 
     // Then:
     final KeyValueMapper<GenericKey, GenericRow, GenericKey> keyValueMapper = getKeyMapper();
@@ -224,7 +227,7 @@ public class StreamSelectKeyBuilderV1Test {
   @Test
   public void shouldReturnCorrectSchema() {
     // When:
-    final KStreamHolder<GenericKey> result = selectKey.build(planBuilder);
+    final KStreamHolder<GenericKey> result = selectKey.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getSchema(), is(RESULT_SCHEMA));

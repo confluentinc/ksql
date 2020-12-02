@@ -72,8 +72,13 @@ public class StreamSelectKeyV1 implements ExecutionStep<KStreamHolder<GenericKey
   }
 
   @Override
-  public KStreamHolder<GenericKey> build(final PlanBuilder builder) {
-    return builder.visitStreamSelectKey(this);
+  public KStreamHolder<GenericKey> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitStreamSelectKey(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitStreamSelectKey(this);
   }
 
   @Override

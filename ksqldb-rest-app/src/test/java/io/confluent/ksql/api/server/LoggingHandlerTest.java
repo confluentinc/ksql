@@ -66,7 +66,8 @@ public class LoggingHandlerTest {
     when(request.response()).thenReturn(response);
     when(request.remoteAddress()).thenReturn(socketAddress);
     when(ksqlRestConfig.getList(any())).thenReturn(ImmutableList.of("401"));
-    when(loggingRateLimiter.shouldLog("/query")).thenReturn(true);
+    when(loggingRateLimiter.shouldLog(logger, "/query", 200)).thenReturn(true);
+    when(loggingRateLimiter.shouldLog(logger, "/query", 405)).thenReturn(true);
     when(clock.millis()).thenReturn(1699813434333L);
     when(response.bytesWritten()).thenReturn(5678L);
     when(request.path()).thenReturn("/query");
@@ -117,6 +118,7 @@ public class LoggingHandlerTest {
   public void shouldSkipLog() {
     // Given:
     when(response.getStatusCode()).thenReturn(401);
+    when(loggingRateLimiter.shouldLog(logger, "/query", 401)).thenReturn(false);
 
     // When:
     loggingHandler.handle(routingContext);
@@ -133,7 +135,7 @@ public class LoggingHandlerTest {
   public void shouldSkipRateLimited() {
     // Given:
     when(response.getStatusCode()).thenReturn(200);
-    when(loggingRateLimiter.shouldLog("/query")).thenReturn(true, true, false, false);
+    when(loggingRateLimiter.shouldLog(logger, "/query", 200)).thenReturn(true, true, false, false);
 
     // When:
     loggingHandler.handle(routingContext);

@@ -15,24 +15,17 @@
 
 package io.confluent.ksql.api.server;
 
-import static io.confluent.ksql.rest.server.KsqlRestConfig.KSQL_LOGGING_SERVER_SKIPPED_RESPONSE_CODES_CONFIG;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.api.auth.ApiUser;
-import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.impl.Utils;
 import java.time.Clock;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,12 +34,9 @@ public class LoggingHandler implements Handler<RoutingContext> {
   private static final Logger LOG = LoggerFactory.getLogger(LoggingHandler.class);
   static final String HTTP_HEADER_USER_AGENT = "User-Agent";
 
-  private final Set<Integer> skipResponseCodes;
   private final Logger logger;
   private final Clock clock;
   private final LoggingRateLimiter loggingRateLimiter;
-
-  private final Map<String, RateLimiter> rateLimiters = new ConcurrentHashMap<>();
 
   public LoggingHandler(final Server server, final LoggingRateLimiter loggingRateLimiter) {
     this(server, loggingRateLimiter, LOG, Clock.systemUTC());
@@ -60,7 +50,6 @@ public class LoggingHandler implements Handler<RoutingContext> {
       final Clock clock) {
     requireNonNull(server);
     this.loggingRateLimiter = requireNonNull(loggingRateLimiter);
-    this.skipResponseCodes = getSkipResponseCodes(server.getConfig());
     this.logger = logger;
     this.clock = clock;
   }
@@ -69,17 +58,14 @@ public class LoggingHandler implements Handler<RoutingContext> {
   public void handle(final RoutingContext routingContext) {
     routingContext.addEndHandler(ar -> {
       // After the response is complete, log results here.
-      if (skipResponseCodes.contains(routingContext.response().getStatusCode())) {
-        return;
-      }
-      if (!loggingRateLimiter.shouldLog(routingContext.request().path())) {
+      final int status = routingContext.request().response().getStatusCode();
+      if (!loggingRateLimiter.shouldLog(logger, routingContext.request().path(), status)) {
         return;
       }
       final long contentLength = routingContext.request().response().bytesWritten();
       final HttpVersion version = routingContext.request().version();
       final HttpMethod method = routingContext.request().method();
       final String uri = routingContext.request().uri();
-      final int status = routingContext.request().response().getStatusCode();
       final long requestBodyLength = routingContext.request().bytesRead();
       final String versionFormatted;
       switch (version) {
@@ -116,13 +102,6 @@ public class LoggingHandler implements Handler<RoutingContext> {
       doLog(status, message);
     });
     routingContext.next();
-  }
-
-  private static Set<Integer> getSkipResponseCodes(final KsqlRestConfig config) {
-    // Already validated as all ints
-    return config.getList(KSQL_LOGGING_SERVER_SKIPPED_RESPONSE_CODES_CONFIG)
-        .stream()
-        .map(Integer::parseInt).collect(ImmutableSet.toImmutableSet());
   }
 
   private void doLog(final int status, final String message) {

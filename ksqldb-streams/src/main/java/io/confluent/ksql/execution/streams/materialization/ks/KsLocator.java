@@ -89,10 +89,11 @@ public final class KsLocator implements Locator {
 
       // Fail fast if Streams not ready. Let client handle it
       if (metadata == KeyQueryMetadata.NOT_AVAILABLE) {
-        LOG.debug("KeyQueryMetadata not available for state store {} and key {}",
+        LOG.debug("KeyQueryMetadata not available for state store '{}' and key {}",
             stateStoreName, key);
         throw new MaterializationException(String.format(
-            "KeyQueryMetadata not available for state store %s and key %s", stateStoreName, key));
+            "Materialized data for key %s is not available yet. "
+                + "Please try again later.", key));
       }
 
       LOG.debug("Handling pull query for key {} in partition {} of state store {}.",

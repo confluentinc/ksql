@@ -190,8 +190,9 @@ the TIMESTAMP type (1-2 weeks)
 
 There will need to be documentation on the following:
 
-* Description of the TIMESTAMP data type
+* Description of the TIMESTAMP data type - lack of timezone should be clear
 * TIMESTAMP usage in WHERE/GROUP/PARTITION clauses
+* Arithmetic and duration
 * New and updated UDFs
 * We might want to add this into one of the quick-starts
 

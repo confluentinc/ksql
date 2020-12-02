@@ -200,7 +200,7 @@ topic due to a {{ site.ak }} producer exception. The default value in ksqlDB is
 `true`, which means if a producer error occurs, then the {{ site.kstreams }}
 thread that encountered the error will shut down. To log the error
 message to the
-[Processing Log](../../../developer-guide/test-and-debug/processing-log.md)
+[Processing Log](../../../reference/processing-log.md)
 and have ksqlDB continue processing as normal, add the following setting
 to your ksqlDB Server properties file:
 
@@ -251,7 +251,7 @@ becomes `_confluent-ksql-default__command_topic`).
 The number of replicas for the internal topics created by ksqlDB Server.
 The default is 1. Replicas for the record processing log topic should be
 configured separately. For more information, see
-[Processing Log](../../../developer-guide/test-and-debug/processing-log.md).
+[Processing Log](../../../reference/processing-log.md).
 
 The corresponding environment variable in the
 [ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
@@ -554,7 +554,7 @@ ksqlDB Processing Log Settings
 ------------------------------
 
 The following configuration settings control the behavior of the
-[ksqlDB Processing Log](../../../developer-guide/test-and-debug/processing-log.md).
+[ksqlDB Processing Log](../../../reference/processing-log.md).
 
 !!! note
     To enable security for the KSQL Processing Log, assign log4j properties

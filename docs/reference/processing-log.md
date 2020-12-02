@@ -253,8 +253,7 @@ The replication factor and partition count are configurable using the
 `ksql.logging.processing.topic.partitions` properties, respectively.
 
 If `ksql.logging.processing.topic.auto.create` is set to `true`, the
-created topic will be deleted as part of
-[cluster termination](../api.md#terminate-a-cluster).
+created topic will be deleted as part of cluster termination.
 
 If the `ksql.logging.processing.topic.name` property is not specified,
 the processing log topic name will default to

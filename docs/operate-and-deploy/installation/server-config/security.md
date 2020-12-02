@@ -769,7 +769,7 @@ Where `ksql.service.id` can be configured in the ksqlDB configuration and
 defaults to `default_`.
 
 If ksqlDB is configured to create a topic for the
-[record processing log](../../../developer-guide/test-and-debug/processing-log.md),
+[record processing log](../../../reference/processing-log.md),
 which is the default configuration, the following ACLs are also needed:
 
 -   The `ALL` operation on the `TOPIC` with `LITERAL` name

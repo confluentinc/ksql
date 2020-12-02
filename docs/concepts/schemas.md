@@ -90,11 +90,11 @@ Here's what you can do with schema inference in ksqlDB:
     Message *keys* in Protobuf are not supported. If your message keys
     are in an unsupported format, see [What to do if your key is not set or is in a different format](../developer-guide/syntax-reference.md#what-to-do-if-your-key-is-not-set-or-is-in-a-different-format). 
     
-If declaring a stream or table with a key format that is different from its
+If you're declaring a stream or table with a key format that's different from its
 value format, and only one of the two formats supports schema inference,
 you can explicitly provide the columns for the format that does not support schema inference
 while still having ksqlDB load columns for the format that does support schema inference
-from m {{ site.sr }}. This is known as _partial schema inference_. To infer value columns
+from {{ site.sr }}. This is known as _partial schema inference_. To infer value columns
 for a keyless stream, set the key format to the [`NONE` format](../developer-guide/serialization.md#none).
 
 Tables require a `PRIMARY KEY`, so you must supply one explicitly in your

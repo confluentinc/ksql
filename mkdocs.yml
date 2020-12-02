@@ -57,13 +57,7 @@ nav:
     - Evolving Production Queries: concepts/upgrades.md
   - Developer Guide:
     - Develop ksqlDB Applications: developer-guide/index.md
-    - Develop with ksqlDB clients: developer-guide/ksqldb-clients/index.md
-    - Create a Stream: developer-guide/create-a-stream.md
-    - Create a Table: developer-guide/create-a-table.md
-    - Aggregate Streaming Events: developer-guide/aggregate-streaming-data.md
-    - Transform a Stream: developer-guide/transform-a-stream-with-ksqldb.md
     - Variable Substitution: developer-guide/variable-substitution.md
-    - Example Queries: tutorials/examples.md
     - Test and Debug:
       - Test and Debug Index: developer-guide/test-and-debug/index.md
       - Test harness: developer-guide/test-and-debug/ksqldb-testing-tool.md
@@ -188,6 +182,11 @@ plugins:
             developer-guide/implement-a-udf.md: how-to-guides/create-a-user-defined-function.md
             concepts/collections/streams.md: reference/sql/data-definition.md
             concepts/collections/tables.md: reference/sql/data-definition.md
+            developer-guide/create-a-stream.md: reference/sql/data-definition.md
+            developer-guide/create-a-table.md: reference/sql/data-definition.md
+            developer-guide/transform-a-stream-with-ksqldb.md: https://ksqldb.io/quickstart.html
+            developer-guide/aggregate-streaming-data.md: concepts/materialized-views.md
+            developer-guide/ksqldb-clients/index.md: developer-guide/ksqldb-clients/java-client.md
 
 extra:
     site:

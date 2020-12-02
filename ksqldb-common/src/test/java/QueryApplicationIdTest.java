@@ -42,9 +42,31 @@ public class QueryApplicationIdTest {
   }
 
   @Test
+  public void shouldBuildPersistentQueryApplicationId_ignoreNodeId() {
+    final Properties props = new Properties();
+    props.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "s1");
+    props.put(KsqlConfig.KSQL_NODE_ID_CONFIG, "node0");
+    config = new KsqlConfig(props);
+    final String queryAppId =
+        QueryApplicationId.build(config, true, new QueryId("q1"));
+    assertEquals("_confluent-ksql-s1query_q1", queryAppId);
+  }
+
+  @Test
   public void shouldBuildTransientQueryApplicationId() {
     final String queryAppId =
         QueryApplicationId.build(config, false, new QueryId("q1"));
     assertTrue(queryAppId.startsWith("_confluent-ksql-s1transient_q1_"));
+  }
+
+  @Test
+  public void shouldBuildTransientQueryApplicationId_nodeId() {
+    final Properties props = new Properties();
+    props.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "s1");
+    props.put(KsqlConfig.KSQL_NODE_ID_CONFIG, "node0");
+    config = new KsqlConfig(props);
+    final String queryAppId =
+        QueryApplicationId.build(config, false, new QueryId("q1"));
+    assertTrue(queryAppId.startsWith("_confluent-ksql-s1node0_transient_q1_"));
   }
 }

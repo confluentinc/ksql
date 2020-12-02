@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.ServiceInfo;
+import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -70,6 +71,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final String serviceId;
   private final EngineContext primaryContext;
   private final QueryCleanupService cleanupService;
+  private final OrphanedTransientQueryCleaner orphanedTransientQueryCleaner;
 
   public KsqlEngine(
       final ServiceContext serviceContext,
@@ -101,6 +103,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final QueryIdGenerator queryIdGenerator
   ) {
     this.cleanupService = new QueryCleanupService();
+    this.orphanedTransientQueryCleaner = new OrphanedTransientQueryCleaner(this.cleanupService);
     this.primaryContext = EngineContext.create(
         serviceContext,
         processingLogContext,
@@ -310,6 +313,13 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   @Override
   public void close() {
     close(false);
+  }
+
+  public void cleanupOrphanedInternalTopics(
+      final ServiceContext serviceContext,
+      final SessionConfig config
+  ) {
+    orphanedTransientQueryCleaner.cleanupOrphanedInternalTopics(serviceContext, config);
   }
 
   /**

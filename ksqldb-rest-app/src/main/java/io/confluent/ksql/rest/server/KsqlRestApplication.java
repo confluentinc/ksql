@@ -375,6 +375,7 @@ public final class KsqlRestApplication implements Executable {
   @VisibleForTesting
   void startKsql(final KsqlConfig ksqlConfigWithPort) {
     waitForPreconditions();
+    cleanupOldState();
     initialize(ksqlConfigWithPort);
   }
 
@@ -431,6 +432,11 @@ public final class KsqlRestApplication implements Executable {
       throw new AbortApplicationStartException(
           "Shutting down application during waitForPreconditions");
     }
+  }
+
+  private void cleanupOldState() {
+    ksqlEngine.cleanupOrphanedInternalTopics(serviceContext,
+        SessionConfig.of(ksqlConfigNoPort, ImmutableMap.of()));
   }
 
   private void initialize(final KsqlConfig configWithApplicationServer) {

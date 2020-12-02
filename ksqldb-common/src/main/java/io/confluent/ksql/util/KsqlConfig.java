@@ -371,6 +371,13 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_VARIABLE_SUBSTITUTION_ENABLE_DOC
       = "Enable variable substitution on SQL statements.";
 
+  public static final String KSQL_NODE_ID_CONFIG = "ksql.node.id";
+  public static final String KSQL_NODE_ID_DEFAULT = "";
+  public static final String KSQL_NODE_ID_DOC
+      = "An identifier for this ksql application node."
+      + "Setting this property makes it easier to automatically clean up resources."
+      + "Concurrently running applications should all have unique ids.";
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -852,6 +859,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT,
             Importance.LOW,
             KSQL_VARIABLE_SUBSTITUTION_ENABLE_DOC
+        )
+        .define(
+            KSQL_NODE_ID_CONFIG,
+            Type.STRING,
+            KSQL_NODE_ID_DEFAULT,
+            Importance.LOW,
+            KSQL_NODE_ID_DOC
         )
         .withClientSslSupport();
 

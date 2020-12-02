@@ -2258,7 +2258,7 @@
     },
     {
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "name": "windowed aggregate with struct key",
       "format": ["JSON", "AVRO"],
@@ -2279,7 +2279,7 @@
     },
     {
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "name": "windowed aggregate with field within struct key",
       "statements": [
@@ -2358,7 +2358,7 @@
     },
     {
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "name": "AVRO struct key group by primitive",
       "statements": [
@@ -2403,7 +2403,7 @@
     },
     {
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "name": "AVRO group by struct",
       "statements": [
@@ -2474,7 +2474,7 @@
     },
     {
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "name": "JSON group by array",
       "statements": [
@@ -2494,7 +2494,7 @@
     },
     {
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "name": "JSON group by struct",
       "statements": [
@@ -2514,7 +2514,7 @@
     },
     {
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "name": "JSON group by struct convert key format",
       "statements": [
@@ -2554,7 +2554,7 @@
     },
     {
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "name": "JSON group by struct convert to incompatible key format",
       "statements": [
@@ -2568,7 +2568,7 @@
     },
     {
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "name": "Struct key used in aggregate expression",
       "statements": [

@@ -853,7 +853,7 @@
     },
     {
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "name": "struct key format",
       "statements": [
@@ -865,7 +865,7 @@
     },
     {
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "name": "struct key format when original is unwrapped",
       "statements": [
@@ -877,7 +877,7 @@
     },
     {
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "name": "partition by field within struct key",
       "statements": [
@@ -889,7 +889,7 @@
     },
     {
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "name": "partition by field within struct key don't select struct key",
       "statements": [
@@ -901,7 +901,7 @@
     },
     {
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "name": "partition by create struct",
       "statements": [
@@ -913,7 +913,7 @@
     },
     {
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "name": "partition by struct with different key/value formats",
       "statements": [
@@ -945,7 +945,7 @@
     },
     {
       "properties": {
-        "ksql.key.format.enabled": true
+        "ksql.complex.key.format.enabled": true
       },
       "name": "partition by struct explicitly change key format",
       "statements": [

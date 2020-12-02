@@ -58,11 +58,6 @@ nav:
   - Developer Guide:
     - Develop ksqlDB Applications: developer-guide/index.md
     - Variable Substitution: developer-guide/variable-substitution.md
-    - Test and Debug:
-      - Test and Debug Index: developer-guide/test-and-debug/index.md
-      - Test harness: developer-guide/test-and-debug/ksqldb-testing-tool.md
-      - Generate test data: developer-guide/test-and-debug/generate-custom-test-data.md
-      - Processing log: developer-guide/test-and-debug/processing-log.md
   - How-to guides:
       - Synopsis: how-to-guides/index.md
       - Query structured data: how-to-guides/query-structured-data.md
@@ -71,6 +66,7 @@ nav:
       - Use connector management: how-to-guides/use-connector-management.md
       - Create a user-defined function: how-to-guides/create-a-user-defined-function.md
       - Control the case of identifiers: how-to-guides/control-the-case-of-identifiers.md
+      - Test an application: how-to-guides/test-an-app.md
   - Reference:
     - Syntax Reference: developer-guide/syntax-reference.md
     - The SQL language:
@@ -130,6 +126,7 @@ nav:
     - Clients:
       - Java Client: developer-guide/ksqldb-clients/java-client.md
       - Contribute a new client: developer-guide/ksqldb-clients/contributing.md
+    - Processing log: developer-guide/test-and-debug/processing-log.md
   - Operate and Deploy:
       - Operations Index: operate-and-deploy/index.md
       - Deploy:
@@ -187,6 +184,8 @@ plugins:
             developer-guide/transform-a-stream-with-ksqldb.md: https://ksqldb.io/quickstart.html
             developer-guide/aggregate-streaming-data.md: concepts/materialized-views.md
             developer-guide/ksqldb-clients/index.md: developer-guide/ksqldb-clients/java-client.md
+            developer-guide/test-and-debug/generate-custom-test-data.md: https://github.com/confluentinc/kafka-connect-datagen
+            developer-guide/test-and-debug/ksqldb-testing-tool.md: how-to-guides/test-an-app.md
 
 extra:
     site:

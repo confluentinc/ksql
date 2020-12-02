@@ -6,3 +6,4 @@ The how-to guides are compact lessons that help you work with common ksqlDB func
 - [Use connector management](use-connector-management.md)
 - [Create a user-defined function](create-a-user-defined-function.md)
 - [Control the case of identifiers](control-the-case-of-identifiers.md)
+- [Test an application](test-an-app.md)

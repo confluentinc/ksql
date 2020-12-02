@@ -389,6 +389,13 @@
                 <artifactId>wiremock-jre8</artifactId>
                 <version>${wiremock.version}</version>
                 <scope>test</scope>
+                <exclusions>
+                    <!-- To avoid multiple versions of jetty -->
+                    <exclusion>
+                        <groupId>org.eclipse.jetty</groupId>
+                        <artifactId>jetty-webapp</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
         </dependencies>

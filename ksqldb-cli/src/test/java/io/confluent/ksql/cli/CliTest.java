@@ -1343,12 +1343,6 @@ public class CliTest {
     return Matchers.contains(expected);
   }
 
-  private static Matcher<Iterable<? extends Iterable<? extends String>>> isRow(
-      final String... expected
-  ) {
-    return Matchers.contains(row(expected));
-  }
-
   @SafeVarargs
   @SuppressWarnings("varargs")
   private static Matcher<Iterable<? extends Iterable<? extends String>>> isRow(

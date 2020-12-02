@@ -155,7 +155,7 @@ public abstract class QueryMetadata {
   }
 
   protected void uncaughtHandler(final Thread t, final Throwable e) {
-    QueryError.Type errorType = Type.UNKNOWN;
+    QueryError.Type errorType = QueryError.Type.UNKNOWN;
     try {
       errorType = errorClassifier.classify(e);
     } catch (final Exception classificationException) {

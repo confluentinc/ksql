@@ -55,9 +55,6 @@ nav:
     - Processing Guarantees: concepts/processing-guarantees.md
     - Relationship to Kafka Streams: concepts/ksqldb-and-kafka-streams.md
     - Evolving Production Queries: concepts/upgrades.md
-  - Developer Guide:
-    - Develop ksqlDB Applications: developer-guide/index.md
-    - Variable Substitution: developer-guide/variable-substitution.md
   - How-to guides:
       - Synopsis: how-to-guides/index.md
       - Query structured data: how-to-guides/query-structured-data.md
@@ -67,6 +64,7 @@ nav:
       - Create a user-defined function: how-to-guides/create-a-user-defined-function.md
       - Control the case of identifiers: how-to-guides/control-the-case-of-identifiers.md
       - Test an application: how-to-guides/test-an-app.md
+      - Substitute variables: how-to-guides/substitute-variables.md
   - Reference:
     - Syntax Reference: developer-guide/syntax-reference.md
     - The SQL language:
@@ -83,6 +81,7 @@ nav:
       - CREATE STREAM AS SELECT: developer-guide/ksqldb-reference/create-stream-as-select.md
       - CREATE TABLE AS SELECT: developer-guide/ksqldb-reference/create-table-as-select.md
       - CREATE TYPE: developer-guide/ksqldb-reference/create-type.md
+      - DEFINE: developer-guide/ksqldb-reference/define.md
       - DESCRIBE: developer-guide/ksqldb-reference/describe.md
       - DESCRIBE CONNECTOR: developer-guide/ksqldb-reference/describe-connector.md
       - DESCRIBE FUNCTION: developer-guide/ksqldb-reference/describe-function.md
@@ -105,9 +104,11 @@ nav:
       - SHOW STREAMS: developer-guide/ksqldb-reference/show-streams.md
       - SHOW TABLES: developer-guide/ksqldb-reference/show-tables.md
       - SHOW TYPES: developer-guide/ksqldb-reference/show-types.md
+      - SHOW VARIABLES: developer-guide/ksqldb-reference/show-variables.md
       - SPOOL: developer-guide/ksqldb-reference/spool.md
       - TERMINATE: developer-guide/ksqldb-reference/terminate.md
       - Type Coercion: developer-guide/ksqldb-reference/type-coercion.md
+      - UNDEFINE: developer-guide/ksqldb-reference/undefine.md
     - Operators: developer-guide/ksqldb-reference/operators.md
     - Functions:
       - Functions Index: developer-guide/ksqldb-reference/functions.md
@@ -186,6 +187,7 @@ plugins:
             developer-guide/ksqldb-clients/index.md: developer-guide/ksqldb-clients/java-client.md
             developer-guide/test-and-debug/generate-custom-test-data.md: https://github.com/confluentinc/kafka-connect-datagen
             developer-guide/test-and-debug/ksqldb-testing-tool.md: how-to-guides/test-an-app.md
+            developer-guide/variable-substitution.md: how-to-guides/substitute-variables.md
 
 extra:
     site:

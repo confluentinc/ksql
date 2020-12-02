@@ -7,3 +7,4 @@ The how-to guides are compact lessons that help you work with common ksqlDB func
 - [Create a user-defined function](create-a-user-defined-function.md)
 - [Control the case of identifiers](control-the-case-of-identifiers.md)
 - [Test an application](test-an-app.md)
+- [Substitute variables](substitute-variables.md)

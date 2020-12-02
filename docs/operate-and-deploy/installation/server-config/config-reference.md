@@ -518,6 +518,10 @@ The corresponding environment variable in the
 [ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_KSQL_STREAMS_STATE_DIR`.
 
+### ksql.variable.substitution.enable
+
+Enables variable substitution through [`DEFINE`](../../../../developer-guide/ksqldb-reference/define) statements.
+
 Confluent Control Center Settings
 ---------------------------------
 

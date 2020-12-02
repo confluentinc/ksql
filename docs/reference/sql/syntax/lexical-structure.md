@@ -165,6 +165,7 @@ purpose.
   columns.
 - The period (`.`) accesses a column in a stream or table.
 - The arrow (`->`) accesses a field in a struct data type.
+- The dollar sign/brace combination (`${...}`) combination references a [defined variable](../../../../developer-guide/ksqldb-reference/define).
 
 ## Comments
 

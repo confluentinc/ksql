@@ -615,7 +615,7 @@ messages. By default, this property has the value `false`.
 ### ksql.logging.server.rate.limited.response.codes
 
 A list of `path:rate_limit` pairs, to limit the rate of server request
-logging.  This is useful for limiting certain 4XX errors that you
+logging. This is useful for limiting certain 4XX errors that you
 might not want to blow up in the logs. 
 This setting enables seeing the logs when the request rate is low 
 and dropping them when they go over the threshold.

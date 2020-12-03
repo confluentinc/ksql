@@ -31,6 +31,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -88,6 +89,8 @@ public class PullQueryPublisherTest {
   private SessionConfig sessionConfig;
   @Mock
   private KsqlConfig ksqlConfig;
+  @Mock
+  private HARouting haRouting;
 
   @Captor
   private ArgumentCaptor<Subscription> subscriptionCaptor;
@@ -104,7 +107,8 @@ public class PullQueryPublisherTest {
         Optional.empty(),
         TIME_NANOS,
         routingFilterFactory,
-        create(1));
+        create(1),
+        haRouting);
 
 
     when(statement.getStatementText()).thenReturn("");
@@ -115,7 +119,7 @@ public class PullQueryPublisherTest {
     when(pullQueryResult.getSchema()).thenReturn(PULL_SCHEMA);
     when(pullQueryResult.getTableRows()).thenReturn(tableRows);
     when(pullQueryResult.getSourceNodes()).thenReturn(Optional.empty());
-    when(engine.executePullQuery(any(), any(), any(), any(), any()))
+    when(engine.executePullQuery(any(), any(), any(), any(), any(), any()))
         .thenReturn(pullQueryResult);
 
     doAnswer(callRequestAgain()).when(subscriber).onNext(any());
@@ -140,7 +144,7 @@ public class PullQueryPublisherTest {
 
     // Then:
     verify(engine).executePullQuery(
-        eq(serviceContext), eq(statement), eq(routingFilterFactory), any(), eq(Optional.empty()));
+        eq(serviceContext), eq(statement), eq(haRouting), eq(routingFilterFactory), any(), eq(Optional.empty()));
   }
 
   @Test
@@ -154,7 +158,7 @@ public class PullQueryPublisherTest {
     // Then:
     verify(subscriber).onNext(any());
     verify(engine).executePullQuery(
-        eq(serviceContext), eq(statement), eq(routingFilterFactory), any(), eq(Optional.empty()));
+        eq(serviceContext), eq(statement), eq(haRouting), eq(routingFilterFactory), any(), eq(Optional.empty()));
   }
 
   @Test
@@ -189,7 +193,7 @@ public class PullQueryPublisherTest {
     // Given:
     givenSubscribed();
     final Throwable e = new RuntimeException("Boom!");
-    when(engine.executePullQuery(any(), any(), any(), any(), any())).thenThrow(e);
+    when(engine.executePullQuery(any(), any(), any(), any(), any(), any())).thenThrow(e);
 
     // When:
     subscription.request(1);

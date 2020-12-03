@@ -50,6 +50,7 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.ErrorMessages;
@@ -188,6 +189,7 @@ public final class KsqlRestApplication implements Executable {
   private final RoutingFilterFactory routingFilterFactory;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RateLimiter pullQueryRateLimiter;
+  private final HARouting pullQueryRouting;
 
   // The startup thread that can be interrupted if necessary during shutdown.  This should only
   // happen if startup hangs.
@@ -226,7 +228,8 @@ public final class KsqlRestApplication implements Executable {
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
-      final RateLimiter pullQueryRateLimiter
+      final RateLimiter pullQueryRateLimiter,
+      final HARouting pullQueryRouting
   ) {
     log.debug("Creating instance of ksqlDB API server");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -282,6 +285,7 @@ public final class KsqlRestApplication implements Executable {
     log.debug("ksqlDB API server instance created");
     this.routingFilterFactory = requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.pullQueryRateLimiter = requireNonNull(pullQueryRateLimiter, "pullQueryRateLimiter");
+    this.pullQueryRouting = requireNonNull(pullQueryRouting, "pullQueryRouting");
   }
 
   @Override
@@ -322,7 +326,8 @@ public final class KsqlRestApplication implements Executable {
         denyListPropertyValidator,
         pullQueryMetrics,
         routingFilterFactory,
-        pullQueryRateLimiter
+        pullQueryRateLimiter,
+        pullQueryRouting
     );
 
     startAsyncThreadRef.set(Thread.currentThread());
@@ -343,7 +348,8 @@ public final class KsqlRestApplication implements Executable {
           serverMetadataResource,
           wsQueryEndpoint,
           pullQueryMetrics,
-          pullQueryRateLimiter
+          pullQueryRateLimiter,
+          pullQueryRouting
       );
       apiServer = new Server(vertx, ksqlRestConfig, endpoints, securityExtension,
           authenticationPlugin, serverState, pullQueryMetrics);
@@ -484,8 +490,6 @@ public final class KsqlRestApplication implements Executable {
     } catch (final Exception e) {
       log.error("Exception while waiting for pull query metrics to close", e);
     }
-
-
 
     try {
       ksqlEngine.close();
@@ -728,6 +732,9 @@ public final class KsqlRestApplication implements Executable {
         Time.SYSTEM))
         : Optional.empty();
 
+    final HARouting pullQueryRouting = new HARouting(routingFilterFactory, serviceContext, pullQueryMetrics,
+                                            ksqlConfig);
+
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
         commandStore,
@@ -740,7 +747,8 @@ public final class KsqlRestApplication implements Executable {
         denyListPropertyValidator,
         pullQueryMetrics,
         routingFilterFactory,
-        pullQueryRateLimiter
+        pullQueryRateLimiter,
+        pullQueryRouting
     );
 
     final List<String> managedTopics = new LinkedList<>();
@@ -817,7 +825,8 @@ public final class KsqlRestApplication implements Executable {
         denyListPropertyValidator,
         pullQueryMetrics,
         routingFilterFactory,
-        pullQueryRateLimiter
+        pullQueryRateLimiter,
+        pullQueryRouting
     );
   }
 

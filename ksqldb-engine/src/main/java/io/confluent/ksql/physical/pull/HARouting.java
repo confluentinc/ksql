@@ -59,36 +59,24 @@ public final class HARouting implements AutoCloseable {
 
   private final ExecutorService executorService;
   private final RoutingFilterFactory routingFilterFactory;
-  private final RoutingOptions routingOptions;
   private final ServiceContext serviceContext;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RouteQuery routeQuery;
 
-  private static volatile HARouting instance;
-
-  public static HARouting getHARoutingInstance(
+  public HARouting(
       final RoutingFilterFactory routingFilterFactory,
-      final RoutingOptions routingOptions,
       final ServiceContext serviceContext,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final KsqlConfig ksqlConfig
   ) {
-    if (instance == null) {
-      synchronized (HARouting.class) {
-        if (instance == null) {
-          instance = new HARouting(
-              routingFilterFactory, routingOptions, serviceContext,
-              pullQueryMetrics,ksqlConfig, HARouting::executeOrRouteQuery);
-        }
-      }
-    }
-    return instance;
+    this(routingFilterFactory, serviceContext, pullQueryMetrics, ksqlConfig,
+         HARouting::executeOrRouteQuery);
   }
+
 
   @VisibleForTesting
   HARouting(
       final RoutingFilterFactory routingFilterFactory,
-      final RoutingOptions routingOptions,
       final ServiceContext serviceContext,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final KsqlConfig ksqlConfig,
@@ -96,7 +84,6 @@ public final class HARouting implements AutoCloseable {
   ) {
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
-    this.routingOptions = Objects.requireNonNull(routingOptions, "routingOptions");
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.executorService = Executors.newFixedThreadPool(
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG));
@@ -112,6 +99,7 @@ public final class HARouting implements AutoCloseable {
   public PullQueryResult handlePullQuery(
       final PullPhysicalPlan pullPhysicalPlan,
       final ConfiguredStatement<Query> statement,
+      final RoutingOptions routingOptions,
       final LogicalSchema outputSchema,
       final QueryId queryId
   ) throws InterruptedException {
@@ -261,7 +249,7 @@ public final class HARouting implements AutoCloseable {
       pullQueryMetrics
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordLocalRequests(1));
       rows = pullPhysicalPlan.execute(locations);
-
+      System.out.println("-----> Rows = " + rows + " locations = " + locations + " node=" + node) ;
     } else {
       LOG.debug("Query {} routed to host {} at timestamp {}.",
                 statement.getStatementText(), node.location(), System.currentTimeMillis());

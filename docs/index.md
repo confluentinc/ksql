@@ -27,7 +27,7 @@ stream processing applications on top of {{ site.aktm }}.
       <li><a href="/how-to-guides/create-a-user-defined-function/">User-defined functions</a></li>
       <li><a href="/how-to-guides/substitute-variables/">Variables</a></li>
     </ul>
-    <small><a href="#" class="card-more">More →</a></small>
+    <small><a href="/how-to-guides/" class="card-more">More →</a></small>
   </div>
 
   <div class="card">
@@ -37,7 +37,7 @@ stream processing applications on top of {{ site.aktm }}.
       <li><a href="/tutorials/etl/">Streaming ETL pipeline</a></li>
       <li><a href="/tutorials/event-driven-microservice/">Event-driven microservice</a></li>
     </ul>
-    <small><a href="#" class="card-more">More →</a></small>
+    <small><a href="/tutorials/" class="card-more">More →</a></small>
   </div>
 </div>
 
@@ -61,7 +61,7 @@ stream processing applications on top of {{ site.aktm }}.
       <li><a href="/concepts/time-and-windows-in-ksqldb-queries/">Time and windowing</a></li>
       <li><a href="/concepts/connectors/">Connectors</a></li>
     </ul>
-    <small><a href="#" class="card-more">More →</a></small>
+    <small><a href="/concepts/" class="card-more">More →</a></small>
   </div>
 
   <div class="card">
@@ -72,7 +72,7 @@ stream processing applications on top of {{ site.aktm }}.
       <li><a href="https://www.confluent.io/blog/real-time-business-intelligence-using-ksqldb">Business intelligence</a></li>
       <li><a href="https://www.confluent.io/blog/broadcom-uses-ksqldb-to-modernize-machine-learning-anomaly-detection/">Anomaly detection</a></li>
     </ul>
-    <small><a href="#" class="card-more">More →</a></small>
+    <small><a href="https://ksqldb.io/news-and-community.html" class="card-more">More →</a></small>
   </div>
 </div>
 

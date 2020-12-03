@@ -1,6 +1,6 @@
 ---
 layout: page
-title: ksqlDB Tutorials and Examples
+title: ksqlDB Tutorials
 tagline: Walkthroughs and example queries
 description: Learn how to create ksqlDB applications 
 keywords: ksqldb, query, application, quickstart, tutorial, walkthrough, how to

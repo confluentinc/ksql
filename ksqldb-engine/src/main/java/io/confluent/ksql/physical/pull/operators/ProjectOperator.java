@@ -137,7 +137,7 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
 
   private Function<TableRow, GenericRow> getPreSelectTransform() {
 
-    if (logicalNode.getNoAdditionalColumnsInSchema()) {
+    if (!logicalNode.getAddAdditionalColumnsToIntermediateSchema()) {
       return TableRow::value;
     }
 

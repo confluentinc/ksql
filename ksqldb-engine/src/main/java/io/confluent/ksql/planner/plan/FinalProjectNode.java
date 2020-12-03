@@ -68,10 +68,11 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
   private final LogicalSchema schema;
   private final ImmutableList<SelectExpression> selectExpressions;
   private final Optional<LogicalSchema> pullQueryOutputSchema;
+  private final Optional<LogicalSchema> pullQueryIntermediateSchema;
   private final Optional<List<ExpressionMetadata>> compiledSelectExpressions;
   private final RewrittenAnalysis analysis;
-  private final boolean isSelectStar;
-  private final boolean noAdditionalColumnsInSchema;
+  private final boolean isPullQuerySelectStar;
+  private final boolean addAdditionalColumnsToIntermediateSchema;
 
   public FinalProjectNode(
       final PlanNodeId id,
@@ -86,31 +87,35 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
     this.projection = Projection.of(selectItems);
     this.into = into;
     this.analysis = Objects.requireNonNull(analysis, "analysis");
-    this.isSelectStar = isSelectStar();
-    this.noAdditionalColumnsInSchema = hasNoAdditionalColumnsInSchema();
 
     final Pair<LogicalSchema, List<SelectExpression>> result = build(metaStore);
     this.schema = result.left;
     System.out.println("-----> Project output schema=" + schema);
     this.selectExpressions = ImmutableList.copyOf(result.right);
     if (analysis.isPullQuery()) {
+      this.isPullQuerySelectStar = isPullQuerySelectStar();
+      this.addAdditionalColumnsToIntermediateSchema = shouldAddAdditionalColumnsInSchema();
       this.pullQueryOutputSchema = Optional.of(buildPullQueryOutputSchema(metaStore));
+      this.pullQueryIntermediateSchema = Optional.of(buildPullQueryIntermediateSchema());
       this.compiledSelectExpressions = Optional.of(selectExpressions
           .stream()
           .map(selectExpression -> CodeGenRunner.compileExpression(
               selectExpression.getExpression(),
               "Select",
-              buildPullQueryIntermediateSchema(),
+              pullQueryIntermediateSchema.get(),
               ksqlConfig,
               metaStore
           ))
           .collect(ImmutableList.toImmutableList()));
     } else {
+      this.isPullQuerySelectStar = false;
+      this.addAdditionalColumnsToIntermediateSchema = false;
       this.pullQueryOutputSchema = Optional.empty();
+      this.pullQueryIntermediateSchema = Optional.empty();
       this.compiledSelectExpressions = Optional.empty();
+      throwOnEmptyValueOrUnknownColumns();
     }
 
-    throwOnEmptyValueOrUnknownColumns();
   }
 
   @Override
@@ -136,12 +141,16 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
     return pullQueryOutputSchema;
   }
 
-  public boolean getIsPullQuerySelectStar() {
-    return isSelectStar;
+  public Optional<LogicalSchema> getPullQueryIntermediateSchema() {
+    return pullQueryIntermediateSchema;
   }
 
-  public boolean getNoAdditionalColumnsInSchema() {
-    return noAdditionalColumnsInSchema;
+  public boolean getIsPullQuerySelectStar() {
+    return isPullQuerySelectStar;
+  }
+
+  public boolean getAddAdditionalColumnsToIntermediateSchema() {
+    return addAdditionalColumnsToIntermediateSchema;
   }
 
   private Optional<LogicalSchema> getTargetSchema(final MetaStore metaStore) {
@@ -223,31 +232,7 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
     System.out.println("------> parentSchema.withoutPseudoAndKeyColsInValue: "
                            + parentSchema.withoutPseudoAndKeyColsInValue());
 
-    /*final boolean noSystemColumns = selectExpressions.stream()
-        .anyMatch(se -> {
-          if (se.getExpression() instanceof  UnqualifiedColumnReferenceExp) {
-            final ColumnName columnName = ((UnqualifiedColumnReferenceExp) se.getExpression())
-                .getColumnName();
-            if (SystemColumns.isWindowBound(columnName) && se.getAlias().equals(columnName)) {
-              return false;
-            }
-          }
-          return true;
-        });
-
-    final boolean noKeyColumns = selectExpressions.stream()
-        .anyMatch(se -> {
-          if (se.getExpression() instanceof  UnqualifiedColumnReferenceExp) {
-            final ColumnName columnName = ((UnqualifiedColumnReferenceExp) se.getExpression())
-                .getColumnName();
-            if (parentSchema.isKeyColumn(columnName)) {
-              return false;
-            }
-          }
-          return true;
-        });*/
-
-    if (noAdditionalColumnsInSchema) {
+    if (!addAdditionalColumnsToIntermediateSchema) {
       System.out.println("-----> intermediate schema no additional= " + parentSchema);
       return parentSchema;
     } else {
@@ -275,7 +260,7 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
         .getKsqlTopic()
         .getKeyFormat().isWindowed();
 
-    if (isSelectStar()) {
+    if (isPullQuerySelectStar()) {
       outputSchema = buildPullQuerySelectStarSchema(
           parentSchema.withoutPseudoAndKeyColsInValue(), isWindowed);
       System.out.println("-----> pull query select * output schema= " + outputSchema);
@@ -292,16 +277,34 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
     return outputSchema;
   }
 
-  private boolean hasNoAdditionalColumnsInSchema() {
-    final boolean noSystemColumns = analysis.getSelectColumnNames().stream()
-        .noneMatch(SystemColumns::isSystemColumn);
-    final boolean noKeyColumns = analysis.getSelectColumnNames().stream()
-        .noneMatch(getSource().getSchema()::isKeyColumn);
+  private boolean shouldAddAdditionalColumnsInSchema() {
 
-    return noSystemColumns && noKeyColumns;
+    final boolean hasSystemColumns = projection.selectItems().stream().anyMatch(se -> {
+      if (se instanceof SingleColumn
+          && ((SingleColumn)se).getExpression() instanceof  UnqualifiedColumnReferenceExp) {
+        final SingleColumn singleColumn = ((SingleColumn)se);
+        final ColumnName columnName = ((UnqualifiedColumnReferenceExp) singleColumn.getExpression())
+            .getColumnName();
+        return SystemColumns.isSystemColumn(columnName);
+      }
+      return false;
+    });
+
+    final boolean hasKeyColumns = projection.selectItems().stream().anyMatch(se -> {
+      if (se instanceof SingleColumn
+          && ((SingleColumn)se).getExpression() instanceof  UnqualifiedColumnReferenceExp) {
+        final SingleColumn singleColumn = ((SingleColumn)se);
+        final ColumnName columnName = ((UnqualifiedColumnReferenceExp) singleColumn.getExpression())
+            .getColumnName();
+        return getSource().getSchema().isKeyColumn(columnName);
+      }
+      return false;
+    });
+
+    return hasSystemColumns || hasKeyColumns;
   }
 
-  private boolean isSelectStar() {
+  private boolean isPullQuerySelectStar() {
     final boolean someStars = projection.selectItems().stream()
         .anyMatch(s -> s instanceof AllColumns);
 

@@ -23,7 +23,6 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.Window;
@@ -67,8 +66,6 @@ public class ProjectOperatorTest {
       A_WINDOW.end().toEpochMilli()
   );
 
-  @Mock
-  private Analysis analysis;
   @Mock
   private ProcessingLogger logger;
   @Mock
@@ -143,6 +140,7 @@ public class ProjectOperatorTest {
   @Test
   public void shouldCallTransformWithCorrectArguments() {
     // Given:
+    when(logicalNode.getAddAdditionalColumnsToIntermediateSchema()).thenReturn(true);
     when(logicalNode.getPullQueryOutputSchema()).thenReturn(Optional.of(SCHEMA));
     when(logicalNode.getCompiledSelectExpressions()).thenReturn(Optional.of(Collections.emptyList()));
     final ProjectOperator projectOperator = new ProjectOperator(
@@ -174,6 +172,7 @@ public class ProjectOperatorTest {
   @Test
   public void shouldCallTransformWithCorrectArgumentsWindowed() {
     // Given:
+    when(logicalNode.getAddAdditionalColumnsToIntermediateSchema()).thenReturn(true);
     when(logicalNode.getPullQueryOutputSchema()).thenReturn(Optional.of(SCHEMA));
     when(logicalNode.getCompiledSelectExpressions()).thenReturn(Optional.of(Collections.emptyList()));
     final ProjectOperator projectOperator = new ProjectOperator(
@@ -210,6 +209,7 @@ public class ProjectOperatorTest {
     final LogicalSchema schema = LogicalSchema.builder()
         .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
         .build();
+    when(logicalNode.getAddAdditionalColumnsToIntermediateSchema()).thenReturn(true);
     when(logicalNode.getPullQueryOutputSchema()).thenReturn(Optional.of(schema));
     when(logicalNode.getCompiledSelectExpressions()).thenReturn(Optional.of(Collections.emptyList()));
     final ProjectOperator projectOperator = new ProjectOperator(
@@ -245,6 +245,7 @@ public class ProjectOperatorTest {
         .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
         .build();
+    when(logicalNode.getAddAdditionalColumnsToIntermediateSchema()).thenReturn(true);
     when(logicalNode.getPullQueryOutputSchema()).thenReturn(Optional.of(schema));
     when(logicalNode.getCompiledSelectExpressions()).thenReturn(Optional.of(Collections.emptyList()));
     final ProjectOperator projectOperator = new ProjectOperator(
@@ -282,6 +283,7 @@ public class ProjectOperatorTest {
         .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
         .build();
+    when(logicalNode.getAddAdditionalColumnsToIntermediateSchema()).thenReturn(true);
     when(logicalNode.getPullQueryOutputSchema()).thenReturn(Optional.of(schema));
     when(logicalNode.getCompiledSelectExpressions()).thenReturn(Optional.of(Collections.emptyList()));
     final ProjectOperator projectOperator = new ProjectOperator(

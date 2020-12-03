@@ -43,6 +43,7 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.planner.RequiredColumns;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.util.KsqlConfig;
@@ -106,12 +107,7 @@ public class FinalProjectNodeTest {
   public void setUp() {
     when(source.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(source.resolveSelect(anyInt(), any())).thenAnswer(inv -> inv.getArgument(1));
-    when(source.getSchema()).thenReturn(LogicalSchema.builder()
-        .keyColumn(K, SqlTypes.STRING)
-        .valueColumn(COL0, SqlTypes.STRING)
-        .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
-        .valueColumn(K, SqlTypes.STRING)
-        .build());
+    when(source.getSchema()).thenReturn(INPUT_SCHEMA);
     when(analysis.getFrom()).thenReturn(aliasedDataSource);
     when(aliasedDataSource.getDataSource()).thenReturn(dataSource);
     when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
@@ -242,7 +238,7 @@ public class FinalProjectNodeTest {
   }
 
   @Test
-  public void shouldBuildPullQueryIntermediateSchema() {
+  public void shouldBuildPullQueryIntermediateSchemaSelectKeyNonWindowed() {
     // Given:
     when(analysis.isPullQuery()).thenReturn(true);
     selects = ImmutableList.of(new SingleColumn(K_REF, Optional.of(ALIAS)));
@@ -258,12 +254,155 @@ public class FinalProjectNodeTest {
         ksqlConfig,
         analysis
     );
-    final LogicalSchema intermediateSchema = projectNode.buildPullQueryIntermediateSchema();
 
     // Then:
-    verify(projectNode, times(1)).buildPullQueryIntermediateSchema();
     final LogicalSchema expectedSchema = INPUT_SCHEMA.withPseudoAndKeyColsInValue(false);
-    assertThat(expectedSchema, is(intermediateSchema));
+    assertThat(expectedSchema, is(projectNode.getPullQueryIntermediateSchema().get()));
+  }
+
+  @Test
+  public void shouldBuildPullQueryIntermediateSchemaSelectKeyWindowed() {
+    // Given:
+    when(analysis.isPullQuery()).thenReturn(true);
+    selects = ImmutableList.of(new SingleColumn(K_REF, Optional.of(ALIAS)));
+    when(keyFormat.isWindowed()).thenReturn(true);
+
+    // When:
+    final FinalProjectNode projectNode = new FinalProjectNode(
+        NODE_ID,
+        source,
+        selects,
+        Optional.of(into),
+        metaStore,
+        ksqlConfig,
+        analysis
+    );
+
+    // Then:
+    final LogicalSchema expectedSchema = INPUT_SCHEMA.withPseudoAndKeyColsInValue(true);
+    assertThat(expectedSchema, is(projectNode.getPullQueryIntermediateSchema().get()));
+  }
+
+  @Test
+  public void shouldBuildPullQueryIntermediateSchemaSelectValueNonWindowed() {
+    // Given:
+    when(analysis.isPullQuery()).thenReturn(true);
+    selects = ImmutableList.of(new SingleColumn(COL0_REF, Optional.of(ALIAS)));
+    when(keyFormat.isWindowed()).thenReturn(false);
+
+    // When:
+    final FinalProjectNode projectNode = new FinalProjectNode(
+        NODE_ID,
+        source,
+        selects,
+        Optional.of(into),
+        metaStore,
+        ksqlConfig,
+        analysis
+    );
+
+    // Then:
+    assertThat(INPUT_SCHEMA, is(projectNode.getPullQueryIntermediateSchema().get()));
+  }
+
+  @Test
+  public void shouldBuildPullQueryOutputSchemaSelectKeyNonWindowed() {
+    // Given:
+    when(analysis.isPullQuery()).thenReturn(true);
+    selects = ImmutableList.of(new SingleColumn(K_REF, Optional.of(K)));
+    when(keyFormat.isWindowed()).thenReturn(false);
+
+    // When:
+    final FinalProjectNode projectNode = new FinalProjectNode(
+        NODE_ID,
+        source,
+        selects,
+        Optional.of(into),
+        metaStore,
+        ksqlConfig,
+        analysis
+    );
+
+    // Then:
+    final LogicalSchema expected = LogicalSchema.builder()
+        .keyColumn(K, SqlTypes.STRING)
+        .build();
+
+    assertThat(expected, is(projectNode.getPullQueryOutputSchema().get()));
+  }
+
+  @Test
+  public void shouldBuildPullQueryOutputSchemaSelectKeyAndWindowBounds() {
+    // Given:
+    when(analysis.isPullQuery()).thenReturn(true);
+    when(keyFormat.isWindowed()).thenReturn(true);
+    when(source.getSchema()).thenReturn(INPUT_SCHEMA.withPseudoAndKeyColsInValue(true));
+
+    final UnqualifiedColumnReferenceExp windowstartRef =
+        new UnqualifiedColumnReferenceExp(SystemColumns.WINDOWSTART_NAME);
+    final UnqualifiedColumnReferenceExp windowendRef =
+        new UnqualifiedColumnReferenceExp(SystemColumns.WINDOWEND_NAME);
+    selects = ImmutableList.<SelectItem>builder()
+        .add(new SingleColumn(windowstartRef, Optional.of(SystemColumns.WINDOWSTART_NAME)))
+        .add((new SingleColumn(windowendRef, Optional.of(SystemColumns.WINDOWEND_NAME))))
+        .add((new SingleColumn(K_REF, Optional.of(K)))).build();
+
+    // When:
+    final FinalProjectNode projectNode = new FinalProjectNode(
+        NODE_ID,
+        source,
+        selects,
+        Optional.of(into),
+        metaStore,
+        ksqlConfig,
+        analysis
+    );
+
+    // Then:
+    final LogicalSchema expected = LogicalSchema.builder()
+        .keyColumn(SystemColumns.WINDOWSTART_NAME, SqlTypes.BIGINT)
+        .keyColumn(SystemColumns.WINDOWEND_NAME, SqlTypes.BIGINT)
+        .keyColumn(K, SqlTypes.STRING)
+        .build();
+
+    assertThat(expected, is(projectNode.getPullQueryOutputSchema().get()));
+  }
+
+  @Test
+  public void shouldBuildPullQueryOutputSchemaSelectValueAndWindowBounds() {
+    // Given:
+    when(analysis.isPullQuery()).thenReturn(true);
+    when(keyFormat.isWindowed()).thenReturn(true);
+    when(source.getSchema()).thenReturn(INPUT_SCHEMA.withPseudoAndKeyColsInValue(true));
+
+    final UnqualifiedColumnReferenceExp windowstartRef =
+        new UnqualifiedColumnReferenceExp(SystemColumns.WINDOWSTART_NAME);
+    final UnqualifiedColumnReferenceExp windowendRef =
+        new UnqualifiedColumnReferenceExp(SystemColumns.WINDOWEND_NAME);
+    selects = ImmutableList.<SelectItem>builder()
+        .add(new SingleColumn(windowstartRef, Optional.of(SystemColumns.WINDOWSTART_NAME)))
+        .add((new SingleColumn(windowendRef, Optional.of(SystemColumns.WINDOWEND_NAME))))
+        .add((new SingleColumn(COL0_REF, Optional.of(COL0)))).build();
+
+    // When:
+    final FinalProjectNode projectNode = new FinalProjectNode(
+        NODE_ID,
+        source,
+        selects,
+        Optional.of(into),
+        metaStore,
+        ksqlConfig,
+        analysis
+    );
+
+    // Then:
+    final LogicalSchema expected = LogicalSchema.builder()
+        .keyColumn(SystemColumns.WINDOWSTART_NAME, SqlTypes.BIGINT)
+        .keyColumn(SystemColumns.WINDOWEND_NAME, SqlTypes.BIGINT)
+        .valueColumn(COL0, SqlTypes.STRING)
+        .build();
+
+    assertThat(expected, is(projectNode.getPullQueryOutputSchema().get()));
   }
 
 }

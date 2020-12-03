@@ -164,7 +164,7 @@ public class KsLocatorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "KeyQueryMetadata not available for state store someStoreName and key [1]"));
+        "Materialized data for key [1] is not available yet. Please try again later."));
   }
 
   @Test

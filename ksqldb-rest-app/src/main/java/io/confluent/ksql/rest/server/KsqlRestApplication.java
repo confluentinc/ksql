@@ -732,8 +732,8 @@ public final class KsqlRestApplication implements Executable {
         Time.SYSTEM))
         : Optional.empty();
 
-    final HARouting pullQueryRouting = new HARouting(routingFilterFactory, serviceContext, pullQueryMetrics,
-                                            ksqlConfig);
+    final HARouting pullQueryRouting = new HARouting(
+        routingFilterFactory, serviceContext, pullQueryMetrics, ksqlConfig);
 
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,

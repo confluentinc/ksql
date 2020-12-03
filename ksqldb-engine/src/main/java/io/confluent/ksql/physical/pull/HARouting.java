@@ -249,7 +249,6 @@ public final class HARouting implements AutoCloseable {
       pullQueryMetrics
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordLocalRequests(1));
       rows = pullPhysicalPlan.execute(locations);
-      System.out.println("-----> Rows = " + rows + " locations = " + locations + " node=" + node) ;
     } else {
       LOG.debug("Query {} routed to host {} at timestamp {}.",
                 statement.getStatementText(), node.location(), System.currentTimeMillis());

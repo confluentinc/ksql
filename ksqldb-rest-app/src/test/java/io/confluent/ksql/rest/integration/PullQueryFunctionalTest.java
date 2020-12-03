@@ -54,7 +54,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.apache.kafka.common.security.JaasUtils;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -123,14 +122,8 @@ public class PullQueryFunctionalTest {
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withEnabledKsqlClient()
-      .withBasicCredentials(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
-      .withProperty(KsqlRestConfig.AUTHENTICATION_METHOD_CONFIG,
-          KsqlRestConfig.AUTHENTICATION_METHOD_BASIC)
-      .withProperty(KsqlRestConfig.AUTHENTICATION_REALM_CONFIG, PROPS_JAAS_REALM)
-      .withProperty(KsqlRestConfig.AUTHENTICATION_ROLES_CONFIG, KSQL_CLUSTER_ID)
-      .withProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, JAAS_CONFIG.jaasFile().toString())
       .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8188")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8188")
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS, true)
@@ -141,14 +134,8 @@ public class PullQueryFunctionalTest {
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withEnabledKsqlClient()
-      .withBasicCredentials(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
-      .withProperty(KsqlRestConfig.AUTHENTICATION_METHOD_CONFIG,
-          KsqlRestConfig.AUTHENTICATION_METHOD_BASIC)
-      .withProperty(KsqlRestConfig.AUTHENTICATION_REALM_CONFIG, PROPS_JAAS_REALM)
-      .withProperty(KsqlRestConfig.AUTHENTICATION_ROLES_CONFIG, KSQL_CLUSTER_ID)
-      .withProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, JAAS_CONFIG.jaasFile().toString())
       .withProperty(KsqlRestConfig.INTERNAL_LISTENER_CONFIG, "http://localhost:8189")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "http://localhost:8189")
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_ENABLE_STANDBY_READS, true)
@@ -285,9 +272,7 @@ public class PullQueryFunctionalTest {
     // When:
 
     final List<StreamedRow> rows_0 = makePullQueryRequest(REST_APP_0, sql);
-    System.out.println("-----> Final result= " + rows_0);
     final List<StreamedRow> rows_1 = makePullQueryRequest(REST_APP_1, sql);
-    System.out.println("-----> Final result= " + rows_1);
 
     // Then:
     assertThat(rows_0, hasSize(HEADER + 3));
@@ -296,7 +281,7 @@ public class PullQueryFunctionalTest {
     Set<String> hosts = rows_0.subList(1, rows_0.size()).stream()
         .map(sr -> sr.getSourceHost().map(KsqlHostInfoEntity::toString).orElse("unknown"))
         .collect(Collectors.toSet());
-    assertThat(hosts, containsInAnyOrder("localhost:8188"));
+    assertThat(hosts, containsInAnyOrder("localhost:8188", "localhost:8189"));
     List<List<?>> rows = rows_0.subList(1, rows_0.size()).stream()
         .map(sr -> sr.getRow().get().getColumns())
         .collect(Collectors.toList());
@@ -327,9 +312,7 @@ public class PullQueryFunctionalTest {
 
     // When:
     final List<StreamedRow> rows_0 = makePullQueryRequest(REST_APP_0, sql);
-    System.out.println("-----> Final result= " + rows_0);
     final List<StreamedRow> rows_1 = makePullQueryRequest(REST_APP_1, sql);
-    System.out.println("-----> Final result= " + rows_1);
 
     // Then:
     assertThat(rows_0, hasSize(HEADER + 3));
@@ -338,7 +321,7 @@ public class PullQueryFunctionalTest {
     Set<String> hosts = rows_0.subList(1, rows_0.size()).stream()
         .map(sr -> sr.getSourceHost().map(KsqlHostInfoEntity::toString).orElse("unknown"))
         .collect(Collectors.toSet());
-    assertThat(hosts, containsInAnyOrder("localhost:8188"));
+    assertThat(hosts, containsInAnyOrder("localhost:8188","localhost:8189"));
     List<List<?>> rows = rows_0.subList(1, rows_0.size()).stream()
         .map(sr -> sr.getRow().get().getColumns())
         .collect(Collectors.toList());

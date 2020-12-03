@@ -71,6 +71,12 @@ select.version::-ms-expand {
     align-items: stretch;
 }
 
+@media (max-width: 800px) {
+  .cards {
+    flex-direction: column;
+  }
+}
+
 .card {
     display: flex;
     flex-flow: column wrap;
@@ -84,6 +90,7 @@ select.version::-ms-expand {
 ul.card-items {
     margin-left: 0;
     list-style-type: none;
+    flex: 1;
 }
 
 ul.card-items li {
@@ -91,5 +98,5 @@ ul.card-items li {
 }
 
 .card-more {
-    align-self: flex-end;
+    align-self: flex-start;
 }

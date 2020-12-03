@@ -22,12 +22,12 @@ stream processing applications on top of {{ site.aktm }}.
   <div class="card">
     <strong>How-to guides</strong>
     <ul class="card-items">
-      <li><a href="/how-to-guides/query-structured-data/">Query structured data</a></li>
-      <li><a href="/how-to-guides/use-connector-management/">Use connector management</a></li>
-      <li><a href="/how-to-guides/create-a-user-defined-function/">Create a user-defined function</a></li>
-      <li><a href="/how-to-guides/substitute-variables/">Substitute variables</a></li>
+      <li><a href="/how-to-guides/query-structured-data/">Structured data</a></li>
+      <li><a href="/how-to-guides/use-connector-management/">Connector management</a></li>
+      <li><a href="/how-to-guides/create-a-user-defined-function/">User-defined functions</a></li>
+      <li><a href="/how-to-guides/substitute-variables/">Variables</a></li>
     </ul>
-    <strong class="card-more">More →</strong>
+    <small><a href="#" class="card-more">More →</a></small>
   </div>
 
   <div class="card">
@@ -37,7 +37,7 @@ stream processing applications on top of {{ site.aktm }}.
       <li><a href="/tutorials/etl/">Streaming ETL pipeline</a></li>
       <li><a href="/tutorials/event-driven-microservice/">Event-driven microservice</a></li>
     </ul>
-    <strong class="card-more">More →</strong>
+    <small><a href="#" class="card-more">More →</a></small>
   </div>
 </div>
 
@@ -48,10 +48,9 @@ stream processing applications on top of {{ site.aktm }}.
     <strong>How it works</strong>
     <ul class="card-items">
       <li><a href="https://www.confluent.io/blog/how-real-time-stream-processing-works-with-ksqldb/">The SQL language</a></li>
-      <li><a href="https://www.confluent.io/blog/how-real-time-materialized-views-work-with-ksqldb/">Real-time materialized views</a></li>
+      <li><a href="https://www.confluent.io/blog/how-real-time-materialized-views-work-with-ksqldb/">Materialized views</a></li>
       <li><a href="https://www.confluent.io/blog/how-real-time-stream-processing-safely-scales-with-ksqldb/">Scaling and fault tolerance</a></li>
     </ul>
-    <strong class="card-more">More →</strong>
   </div>
 
   <div class="card">
@@ -62,17 +61,18 @@ stream processing applications on top of {{ site.aktm }}.
       <li><a href="/concepts/time-and-windows-in-ksqldb-queries/">Time and windowing</a></li>
       <li><a href="/concepts/connectors/">Connectors</a></li>
     </ul>
-    <strong class="card-more">More →</strong>
+    <small><a href="#" class="card-more">More →</a></small>
   </div>
 
   <div class="card">
     <strong>How it's used</strong>
     <ul class="card-items">
       <li><a href="https://www.confluent.io/blog/real-time-data-replication-with-ksqldb/">Real-time data replication</a></li>
-      <li><a href="https://www.confluent.io/blog/real-time-business-intelligence-using-ksqldb">Real-time business intelligence</a></li>
       <li><a href="https://www.confluent.io/blog/how-pushowl-uses-ksqldb-to-scale-analytics-and-reporting-use-cases/">Real-time analytics</a></li>
+      <li><a href="https://www.confluent.io/blog/real-time-business-intelligence-using-ksqldb">Business intelligence</a></li>
+      <li><a href="https://www.confluent.io/blog/broadcom-uses-ksqldb-to-modernize-machine-learning-anomaly-detection/">Anomaly detection</a></li>
     </ul>
-    <strong class="card-more">More →</strong>
+    <small><a href="#" class="card-more">More →</a></small>
   </div>
 </div>
 
@@ -86,7 +86,6 @@ stream processing applications on top of {{ site.aktm }}.
       <li><a href="https://www.youtube.com/watch?v=SHKjuN2iXyk">Ask Confluent, ksqlDB overview</a></li>
       <li><a href="https://www.youtube.com/watch?v=7mGBxG2NhVQ">An introduction to ksqlDB</a></li>
     </ul>
-    <strong class="card-more">More →</strong>
   </div>
 
   <div class="card">
@@ -96,6 +95,5 @@ stream processing applications on top of {{ site.aktm }}.
       <li><a href="https://www.youtube.com/watch?v=4odZGWl-yZo">Stream data from AWS to Azure</a></li>
       <li><a href="https://www.youtube.com/watch?v=ad02yDTAZx0">Transform and sink events to JDBC</a></li>
     </ul>
-    <strong class="card-more">More →</strong>
   </div>
 </div>

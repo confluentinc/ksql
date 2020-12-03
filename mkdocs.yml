@@ -26,7 +26,7 @@ extra_javascript:
   - js/analytics.js
 
 nav:
-  - Overview: index.md
+  - Synopsis: index.md
   - Apache Kafka primer: overview/apache-kafka-primer.md
   - Concepts:
     - Concepts: concepts/index.md

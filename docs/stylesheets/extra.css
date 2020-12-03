@@ -74,7 +74,11 @@ select.version::-ms-expand {
 .card {
     display: flex;
     flex-flow: column wrap;
+    flex: 1;
     align-items: stretch;
+    background-color: #f6f8f8;
+    padding: 15px;
+    margin: 5px;
 }
 
 ul.card-items {

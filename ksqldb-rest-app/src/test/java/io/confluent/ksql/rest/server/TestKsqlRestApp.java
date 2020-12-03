@@ -231,10 +231,10 @@ public class TestKsqlRestApp extends ExternalResource {
     }
   }
 
-  public void dropSourcesExcept(final String... blackList) {
+  public void dropSourcesExcept(final String... exceptSources) {
     try (final KsqlRestClient client = buildKsqlClient()) {
 
-      final Set<String> except = Arrays.stream(blackList)
+      final Set<String> except = Arrays.stream(exceptSources)
           .map(String::toUpperCase)
           .collect(Collectors.toSet());
 

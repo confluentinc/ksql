@@ -86,6 +86,7 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -202,9 +203,6 @@ public class CliTest {
 
   @Before
   public void setUp() {
-    REST_APP.closePersistentQueries();
-    REST_APP.dropSourcesExcept(ORDER_DATA_PROVIDER.sourceName());
-
     streamName = KsqlIdentifierTestUtil.uniqueIdentifierName();
     tableName = KsqlIdentifierTestUtil.uniqueIdentifierName();
     terminal = new TestTerminal(lineSupplier);
@@ -391,11 +389,14 @@ public class CliTest {
 
     assertRunListCommand(
         "streams",
-        isRow(ORDER_DATA_PROVIDER.sourceName(), ORDER_DATA_PROVIDER.topicName(), "KAFKA", "JSON", "false")
+        hasRow(
+            equalTo(ORDER_DATA_PROVIDER.sourceName()),
+            equalTo(ORDER_DATA_PROVIDER.topicName()),
+            equalTo("KAFKA"),
+            equalTo("JSON"),
+            equalTo("false")
+        )
     );
-
-    assertRunListCommand("tables", is(EMPTY_RESULT));
-    assertRunListCommand("queries", is(EMPTY_RESULT));
   }
 
   @Test
@@ -793,6 +794,25 @@ public class CliTest {
             isRow(containsString("Created query with ID CTAS_" + tableName.toUpperCase())),
             isRow(is("Parsing statement")),
             isRow(is("Executing statement"))));
+    assertRunListCommand("tables",
+        hasRow(
+            equalTo(tableName),
+            equalTo(tableName.toUpperCase(Locale.ROOT)),
+            equalTo("KAFKA"),
+            equalTo("JSON"),
+            equalTo("false")
+    ));
+
+    assertRunListCommand("queries",
+        hasRow(
+            containsString("CTAS_" + tableName),
+            equalTo("PERSISTENT"),
+            equalTo("RUNNING:1"),
+            equalTo(tableName),
+            equalTo(tableName),
+            containsString("CREATE TABLE " + tableName)
+        )
+    );
 
     dropTable(tableName);
   }
@@ -1071,7 +1091,7 @@ public class CliTest {
     // Given:
     final File scriptFile = TMP.newFile("script.sql");
     Files.write(scriptFile.toPath(), (""
-        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + ";"
+        + "CREATE STREAM " + streamName + " AS SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + ";"
         + "").getBytes(StandardCharsets.UTF_8));
 
     when(lineSupplier.get())
@@ -1083,7 +1103,7 @@ public class CliTest {
 
     // Then:
     assertThat(terminal.getOutputString(),
-        containsString("Created query with ID CSAS_SHOULDRUNSCRIPT"));
+        containsString("Created query with ID CSAS_" + streamName));
   }
 
   @Test
@@ -1321,12 +1341,6 @@ public class CliTest {
   @SuppressWarnings("varargs")
   private static Matcher<Iterable<? extends String>> row(final Matcher<String>... expected) {
     return Matchers.contains(expected);
-  }
-
-  private static Matcher<Iterable<? extends Iterable<? extends String>>> isRow(
-      final String... expected
-  ) {
-    return Matchers.contains(row(expected));
   }
 
   @SafeVarargs

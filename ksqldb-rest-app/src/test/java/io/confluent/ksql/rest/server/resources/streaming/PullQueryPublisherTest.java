@@ -45,8 +45,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -90,8 +88,6 @@ public class PullQueryPublisherTest {
   private SessionConfig sessionConfig;
   @Mock
   private KsqlConfig ksqlConfig;
-  @Mock
-  private ExecutorService executorService;
 
   @Captor
   private ArgumentCaptor<Subscription> subscriptionCaptor;
@@ -108,8 +104,7 @@ public class PullQueryPublisherTest {
         Optional.empty(),
         TIME_NANOS,
         routingFilterFactory,
-        create(1),
-        executorService);
+        create(1));
 
 
     when(statement.getStatementText()).thenReturn("");
@@ -120,7 +115,7 @@ public class PullQueryPublisherTest {
     when(pullQueryResult.getSchema()).thenReturn(PULL_SCHEMA);
     when(pullQueryResult.getTableRows()).thenReturn(tableRows);
     when(pullQueryResult.getSourceNodes()).thenReturn(Optional.empty());
-    when(engine.executePullQuery(any(), any(), any(), any(), any(), any()))
+    when(engine.executePullQuery(any(), any(), any(), any(), any()))
         .thenReturn(pullQueryResult);
 
     doAnswer(callRequestAgain()).when(subscriber).onNext(any());
@@ -145,7 +140,7 @@ public class PullQueryPublisherTest {
 
     // Then:
     verify(engine).executePullQuery(
-        eq(serviceContext), eq(statement), eq(routingFilterFactory), any(), eq(executorService), eq(Optional.empty()));
+        eq(serviceContext), eq(statement), eq(routingFilterFactory), any(), eq(Optional.empty()));
   }
 
   @Test
@@ -159,7 +154,7 @@ public class PullQueryPublisherTest {
     // Then:
     verify(subscriber).onNext(any());
     verify(engine).executePullQuery(
-        eq(serviceContext), eq(statement), eq(routingFilterFactory), any(), eq(executorService), eq(Optional.empty()));
+        eq(serviceContext), eq(statement), eq(routingFilterFactory), any(), eq(Optional.empty()));
   }
 
   @Test
@@ -194,7 +189,7 @@ public class PullQueryPublisherTest {
     // Given:
     givenSubscribed();
     final Throwable e = new RuntimeException("Boom!");
-    when(engine.executePullQuery(any(), any(), any(), any(), any(), any())).thenThrow(e);
+    when(engine.executePullQuery(any(), any(), any(), any(), any())).thenThrow(e);
 
     // When:
     subscription.request(1);

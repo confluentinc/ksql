@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 
 /**
  * An execution context that can execute statements without changing the core engine's state
@@ -165,7 +164,6 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
       final ConfiguredStatement<Query> statement,
       final RoutingFilterFactory routingFilterFactory,
       final RoutingOptions routingOptions,
-      final ExecutorService executorService,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics
   ) {
     return EngineExecutor.create(
@@ -176,7 +174,6 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
         statement,
         routingFilterFactory,
         routingOptions,
-        executorService,
         pullQueryMetrics
     );
   }

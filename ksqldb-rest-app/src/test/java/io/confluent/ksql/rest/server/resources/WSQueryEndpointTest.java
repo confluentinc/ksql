@@ -41,7 +41,6 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Before;
 import org.junit.Test;
@@ -79,8 +78,7 @@ public class WSQueryEndpointTest {
         denyListPropertyValidator,
         Optional.empty(),
         mock(RoutingFilterFactory.class),
-        mock(RateLimiter.class),
-        mock(ExecutorService.class)
+        mock(RateLimiter.class)
     );
   }
 

@@ -57,7 +57,6 @@ import io.vertx.core.json.JsonObject;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.reactivestreams.Subscriber;
@@ -83,7 +82,6 @@ public class KsqlServerEndpoints implements Endpoints {
   private final WSQueryEndpoint wsQueryEndpoint;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RateLimiter rateLimiter;
-  private final ExecutorService pullExecutorService;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumber
   public KsqlServerEndpoints(
@@ -102,8 +100,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final ServerMetadataResource serverMetadataResource,
       final WSQueryEndpoint wsQueryEndpoint,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final RateLimiter rateLimiter,
-      final ExecutorService pullExecutorService
+      final RateLimiter rateLimiter
   ) {
 
     // CHECKSTYLE_RULES.ON: ParameterNumber
@@ -124,7 +121,6 @@ public class KsqlServerEndpoints implements Endpoints {
     this.wsQueryEndpoint = Objects.requireNonNull(wsQueryEndpoint);
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
     this.rateLimiter = Objects.requireNonNull(rateLimiter);
-    this.pullExecutorService = Objects.requireNonNull(pullExecutorService, "pullExecutorService");
   }
 
   @Override
@@ -138,8 +134,7 @@ public class KsqlServerEndpoints implements Endpoints {
     return executeOnWorker(() -> {
       try {
         return new QueryEndpoint(
-            ksqlEngine, ksqlConfig, routingFilterFactory, pullQueryMetrics,
-            rateLimiter, pullExecutorService)
+            ksqlEngine, ksqlConfig, routingFilterFactory, pullQueryMetrics, rateLimiter)
             .createQueryPublisher(
                 sql,
                 properties,

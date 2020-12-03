@@ -52,7 +52,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -269,7 +268,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ConfiguredStatement<Query> statement,
       final RoutingFilterFactory routingFilterFactory,
       final RoutingOptions routingOptions,
-      final ExecutorService executorService,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics
   ) {
     return EngineExecutor
@@ -282,7 +280,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             statement,
             routingFilterFactory,
             routingOptions,
-            executorService,
             pullQueryMetrics
         );
   }

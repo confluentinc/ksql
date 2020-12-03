@@ -41,7 +41,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -54,7 +53,6 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   private final long startTimeNanos;
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
-  private final ExecutorService pullExecutorService;
 
   @VisibleForTesting
   PullQueryPublisher(
@@ -64,8 +62,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final long startTimeNanos,
       final RoutingFilterFactory routingFilterFactory,
-      final RateLimiter rateLimiter,
-      final ExecutorService pullExecutorService
+      final RateLimiter rateLimiter
   ) {
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -74,7 +71,6 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     this.startTimeNanos = startTimeNanos;
     this.routingFilterFactory = requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = requireNonNull(rateLimiter, "rateLimiter");
-    this.pullExecutorService = requireNonNull(pullExecutorService, "pullExecutorService");
   }
 
   @Override
@@ -95,7 +91,6 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
               query,
               routingFilterFactory,
               routingOptions,
-              pullExecutorService,
               pullQueryMetrics
           );
 

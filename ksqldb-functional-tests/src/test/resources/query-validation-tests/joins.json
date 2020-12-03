@@ -2102,6 +2102,93 @@
       }
     },
     {
+      "name": "stream-stream key-to-key - protobuf on right key mismatch",
+      "properties": {
+        "ksql.key.format.enabled": true,
+        "ksql.complex.key.format.enabled": true
+
+      },
+      "statements": [
+        "CREATE STREAM S1 (ID INT KEY, FOO INT) WITH (kafka_topic='s1', key_format='DELIMITED', value_format='JSON');",
+        "CREATE STREAM S2 (ID INT KEY, VAL STRING) WITH (kafka_topic='s2', key_format='PROTOBUF', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT S1.ID, S2.VAL FROM S1 JOIN S2 WITHIN 10 SECONDS ON S1.ID = S2.ID;"
+      ],
+      "inputs": [
+        {"topic": "s2", "key": {"ID": 10}, "value": {"VAL": "hello"}},
+        {"topic": "s1", "key": "10", "value": {"foo": 22}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "10", "value": {"VAL": "hello"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyFormat": {"format": "DELIMITED"}}
+        ],
+        "topics" : {
+          "topics" : [
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
+              "keyFormat" : {"format" : "DELIMITED"},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000012-store-changelog",
+              "keyFormat" : {"format" : "DELIMITED"},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000013-store-changelog",
+              "keyFormat" : {"format" : "DELIMITED"},
+              "valueFormat" : {"format" : "JSON"}
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "stream-stream key-to-key - protobuf on left key mismatch",
+      "properties": {
+        "ksql.key.format.enabled": true,
+        "ksql.complex.key.format.enabled": true
+
+      },
+      "statements": [
+        "CREATE STREAM S1 (ID INT KEY, FOO INT) WITH (kafka_topic='s1', key_format='PROTOBUF', value_format='JSON');",
+        "CREATE STREAM S2 (ID INT KEY, VAL STRING) WITH (kafka_topic='s2', key_format='JSON', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT S1.ID, S2.VAL FROM S1 JOIN S2 WITHIN 10 SECONDS ON S1.ID = S2.ID;"
+      ],
+      "inputs": [
+        {"topic": "s2", "key": "10", "value": {"VAL": "hello"}},
+        {"topic": "s1", "key": {"ID": 10}, "value": {"foo": 22}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"S1_ID": 10}, "value": {"VAL": "hello"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "keyFormat": {"format": "PROTOBUF"}}
+        ],
+        "topics" : {
+          "topics" : [
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
+              "keyFormat" : {"format" : "PROTOBUF"},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000016-store-changelog",
+              "keyFormat" : {"format" : "PROTOBUF"},
+              "valueFormat" : {"format" : "JSON"}
+            },
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000017-store-changelog",
+              "keyFormat" : {"format" : "PROTOBUF"},
+              "valueFormat" : {"format" : "JSON"}
+            }
+          ]
+        }
+      }
+    },{
       "name": "stream-stream value-to-key - key format mismatch",
       "statements": [
         "CREATE STREAM S1 (ID INT, FOO INT) WITH (kafka_topic='s1', key_format='NONE', value_format='JSON');",

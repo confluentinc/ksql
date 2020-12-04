@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udaf.offset;
 
+import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.INTERMEDIATE_STRUCT_COMPARATOR_IGNORE_NULLS;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.SEQ_FIELD;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_BOOLEAN;
 import static io.confluent.ksql.function.udaf.offset.KudafByOffsetUtils.STRUCT_DOUBLE;
@@ -44,7 +45,8 @@ public class LatestByOffsetTest {
   @Test
   public void shouldInitialize() {
     // Given:
-    final Udaf<Integer, Struct, Integer> udaf = LatestByOffset.latest(STRUCT_LONG, true);
+    final Udaf<Integer, Struct, Integer> udaf = LatestByOffset.latest(
+        STRUCT_LONG, true, INTERMEDIATE_STRUCT_COMPARATOR_IGNORE_NULLS);
 
     // When:
     final Struct init = udaf.initialize();
@@ -57,7 +59,7 @@ public class LatestByOffsetTest {
   public void shouldInitializeLatestN() {
     // Given:
     final Udaf<Integer, List<Struct>, List<Integer>> udaf = LatestByOffset
-        .latestN(STRUCT_LONG, 2, true);
+        .latestN(STRUCT_LONG, 2, true, INTERMEDIATE_STRUCT_COMPARATOR_IGNORE_NULLS);
 
     // When:
     final List<Struct> init = udaf.initialize();
@@ -69,7 +71,7 @@ public class LatestByOffsetTest {
   @Test
   public void shouldThrowExceptionForInvalidN() {
     try {
-      LatestByOffset.latestN(STRUCT_LONG, -1, true);
+      LatestByOffset.latestN(STRUCT_LONG, -1, true, INTERMEDIATE_STRUCT_COMPARATOR_IGNORE_NULLS);
     } catch (KsqlException e) {
       assertThat(e.getMessage(), is("earliestN must be 1 or greater"));
     }

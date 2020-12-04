@@ -52,7 +52,6 @@ public final class LatestByOffset {
   }
 
   static AtomicLong sequence = new AtomicLong();
-  private static Comparator<Struct> comparator;
 
   @UdafFactory(description = "return the latest value of an integer column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL INT>")
@@ -63,8 +62,7 @@ public final class LatestByOffset {
   @UdafFactory(description = "return the latest value of an integer column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL INT>")
   public static Udaf<Integer, Struct, Integer> latestInteger(final boolean ignoreNulls) {
-    setComparator(ignoreNulls);
-    return latest(STRUCT_INTEGER, ignoreNulls);
+    return latest(STRUCT_INTEGER, ignoreNulls, getComparator(ignoreNulls));
   }
 
   @UdafFactory(description = "return the latest N value of an integer column",
@@ -79,8 +77,7 @@ public final class LatestByOffset {
       final int latestN,
       final boolean ignoreNulls
   ) {
-    setComparator(ignoreNulls);
-    return latestN(STRUCT_INTEGER, latestN, ignoreNulls);
+    return latestN(STRUCT_INTEGER, latestN, ignoreNulls, getComparator(ignoreNulls));
   }
 
   @UdafFactory(description = "return the latest value of an big integer column",
@@ -92,8 +89,7 @@ public final class LatestByOffset {
   @UdafFactory(description = "return the latest value of an big integer column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL BIGINT>")
   public static Udaf<Long, Struct, Long> latestLong(final boolean ignoreNulls) {
-    setComparator(ignoreNulls);
-    return latest(STRUCT_LONG, ignoreNulls);
+    return latest(STRUCT_LONG, ignoreNulls, getComparator(ignoreNulls));
   }
 
   @UdafFactory(description = "return the latest N value of an big integer column",
@@ -108,8 +104,7 @@ public final class LatestByOffset {
       final int latestN,
       final boolean ignoreNulls
   ) {
-    setComparator(ignoreNulls);
-    return latestN(STRUCT_LONG, latestN, ignoreNulls);
+    return latestN(STRUCT_LONG, latestN, ignoreNulls, getComparator(ignoreNulls));
   }
 
   @UdafFactory(description = "return the latest value of a double column",
@@ -121,8 +116,7 @@ public final class LatestByOffset {
   @UdafFactory(description = "return the latest value of a double column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL DOUBLE>")
   public static Udaf<Double, Struct, Double> latestDouble(final boolean ignoreNulls) {
-    setComparator(ignoreNulls);
-    return latest(STRUCT_DOUBLE, ignoreNulls);
+    return latest(STRUCT_DOUBLE, ignoreNulls, getComparator(ignoreNulls));
   }
 
   @UdafFactory(description = "return the latest N values of a double column",
@@ -137,8 +131,7 @@ public final class LatestByOffset {
       final int latestN,
       final boolean ignoreNulls
   ) {
-    setComparator(ignoreNulls);
-    return latestN(STRUCT_DOUBLE, latestN, ignoreNulls);
+    return latestN(STRUCT_DOUBLE, latestN, ignoreNulls, getComparator(ignoreNulls));
   }
 
   @UdafFactory(description = "return the latest value of a boolean column",
@@ -150,8 +143,7 @@ public final class LatestByOffset {
   @UdafFactory(description = "return the latest value of a boolean column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL BOOLEAN>")
   public static Udaf<Boolean, Struct, Boolean> latestBoolean(final boolean ignoreNulls) {
-    setComparator(ignoreNulls);
-    return latest(STRUCT_BOOLEAN, ignoreNulls);
+    return latest(STRUCT_BOOLEAN, ignoreNulls, getComparator(ignoreNulls));
   }
 
   @UdafFactory(description = "return the latest N value of a boolean column",
@@ -166,8 +158,7 @@ public final class LatestByOffset {
       final int latestN,
       final boolean ignoreNulls
   ) {
-    setComparator(ignoreNulls);
-    return latestN(STRUCT_BOOLEAN, latestN, ignoreNulls);
+    return latestN(STRUCT_BOOLEAN, latestN, ignoreNulls, getComparator(ignoreNulls));
   }
 
   @UdafFactory(description = "return the latest value of a string column",
@@ -179,8 +170,7 @@ public final class LatestByOffset {
   @UdafFactory(description = "return the latest value of a string column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL STRING>")
   public static Udaf<String, Struct, String> latestString(final boolean ignoreNulls) {
-    setComparator(ignoreNulls);
-    return latest(STRUCT_STRING, ignoreNulls);
+    return latest(STRUCT_STRING, ignoreNulls, getComparator(ignoreNulls));
   }
 
   @UdafFactory(description = "return the latest N value of a string column",
@@ -195,8 +185,7 @@ public final class LatestByOffset {
       final int latestN,
       final boolean ignoreNulls
   ) {
-    setComparator(ignoreNulls);
-    return latestN(STRUCT_STRING, latestN, ignoreNulls);
+    return latestN(STRUCT_STRING, latestN, ignoreNulls, getComparator(ignoreNulls));
   }
 
   @VisibleForTesting
@@ -211,7 +200,8 @@ public final class LatestByOffset {
   @VisibleForTesting
   static <T> Udaf<T, Struct, T> latest(
       final Schema structSchema,
-      final boolean ignoreNulls
+      final boolean ignoreNulls,
+      final Comparator<Struct> comparator
   ) {
     return new Udaf<T, Struct, T>() {
 
@@ -252,7 +242,8 @@ public final class LatestByOffset {
   static <T> Udaf<T, List<Struct>, List<T>> latestN(
       final Schema structSchema,
       final int latestN,
-      final boolean ignoreNulls
+      final boolean ignoreNulls,
+      final Comparator<Struct> comparator
   ) {
 
     if (latestN <= 0) {
@@ -298,11 +289,10 @@ public final class LatestByOffset {
     };
   }
 
-  private static void setComparator(final boolean ignoreNulls) {
+  private static Comparator<Struct> getComparator(final boolean ignoreNulls) {
     if (ignoreNulls) {
-      comparator = INTERMEDIATE_STRUCT_COMPARATOR_IGNORE_NULLS;
-    } else {
-      comparator = INTERMEDIATE_STRUCT_COMPARATOR;
+      return INTERMEDIATE_STRUCT_COMPARATOR_IGNORE_NULLS;
     }
+    return INTERMEDIATE_STRUCT_COMPARATOR;
   }
 }

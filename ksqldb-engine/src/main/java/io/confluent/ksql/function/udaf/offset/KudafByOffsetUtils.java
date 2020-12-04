@@ -68,12 +68,12 @@ final class KudafByOffsetUtils {
       (struct1, struct2) -> {
         // Ignore nulls: If one of the structs has a null value, then return the other irrespective
         // of sequence.
-        if (struct1.get(VAL_FIELD) == null) {
+        if (struct1.get(VAL_FIELD) == null && struct2.get(VAL_FIELD) == null) {
+          return 0;
+        } else if (struct1.get(VAL_FIELD) == null) {
           return -1;
         } else if (struct2.get(VAL_FIELD) == null) {
           return 1;
-        } else if (struct1.get(VAL_FIELD) == null && struct2.get(VAL_FIELD) == null) {
-          return 0;
         }
 
         return INTERMEDIATE_STRUCT_COMPARATOR.compare(struct1, struct2);

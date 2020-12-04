@@ -60,7 +60,13 @@ public interface ExecutionStep<S> {
   @JsonIgnore
   List<ExecutionStep<?>> getSources();
 
-  S build(PlanBuilder planBuilder);
+  default S build(PlanBuilder planBuilder) {
+    return build(planBuilder, extractPlanInfo(new PlanInfoExtractor()));
+  }
+
+  S build(PlanBuilder planBuilder, PlanInfo planInfo);
+
+  PlanInfo extractPlanInfo(PlanInfoExtractor planInfoExtractor);
 
   /**
    * Checks whether or not this execution step can be safely replaced

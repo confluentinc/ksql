@@ -3,20 +3,17 @@ Topologies:
     Source: KSTREAM-SOURCE-0000000001 (topics: [t1])
       --> KTABLE-SOURCE-0000000002
     Processor: KTABLE-SOURCE-0000000002 (stores: [])
-      --> KTABLE-MAPVALUES-0000000003
+      --> KTABLE-TRANSFORMVALUES-0000000003
       <-- KSTREAM-SOURCE-0000000001
-    Processor: KTABLE-MAPVALUES-0000000003 (stores: [KafkaTopic_Left-Reduce])
-      --> KTABLE-TRANSFORMVALUES-0000000004
+    Processor: KTABLE-TRANSFORMVALUES-0000000003 (stores: [])
+      --> KTABLE-TOSTREAM-0000000004
       <-- KTABLE-SOURCE-0000000002
-    Processor: KTABLE-TRANSFORMVALUES-0000000004 (stores: [])
-      --> KTABLE-TOSTREAM-0000000005
-      <-- KTABLE-MAPVALUES-0000000003
-    Processor: KTABLE-TOSTREAM-0000000005 (stores: [])
+    Processor: KTABLE-TOSTREAM-0000000004 (stores: [])
       --> LeftSourceKeyed-SelectKey-Mapper
-      <-- KTABLE-TRANSFORMVALUES-0000000004
+      <-- KTABLE-TRANSFORMVALUES-0000000003
     Processor: LeftSourceKeyed-SelectKey-Mapper (stores: [])
       --> LeftSourceKeyed-SelectKey-repartition-filter
-      <-- KTABLE-TOSTREAM-0000000005
+      <-- KTABLE-TOSTREAM-0000000004
     Processor: LeftSourceKeyed-SelectKey-repartition-filter (stores: [])
       --> LeftSourceKeyed-SelectKey-repartition-sink
       <-- LeftSourceKeyed-SelectKey-Mapper
@@ -35,47 +32,44 @@ Topologies:
       --> PrependAliasRight
       <-- RightSourceKeyed-SelectKey-repartition-source
     Processor: PrependAliasLeft (stores: [])
-      --> KTABLE-JOINTHIS-0000000025
+      --> KTABLE-JOINTHIS-0000000023
       <-- LeftSourceKeyed-SelectKey
     Processor: PrependAliasRight (stores: [])
-      --> KTABLE-JOINOTHER-0000000026
+      --> KTABLE-JOINOTHER-0000000024
       <-- RightSourceKeyed-SelectKey
-    Processor: KTABLE-JOINOTHER-0000000026 (stores: [LeftSourceKeyed-Materialize])
-      --> KTABLE-MERGE-0000000024
+    Processor: KTABLE-JOINOTHER-0000000024 (stores: [LeftSourceKeyed-Materialize])
+      --> KTABLE-MERGE-0000000022
       <-- PrependAliasRight
-    Processor: KTABLE-JOINTHIS-0000000025 (stores: [RightSourceKeyed-Materialize])
-      --> KTABLE-MERGE-0000000024
+    Processor: KTABLE-JOINTHIS-0000000023 (stores: [RightSourceKeyed-Materialize])
+      --> KTABLE-MERGE-0000000022
       <-- PrependAliasLeft
-    Processor: KTABLE-MERGE-0000000024 (stores: [])
+    Processor: KTABLE-MERGE-0000000022 (stores: [])
       --> Project
-      <-- KTABLE-JOINTHIS-0000000025, KTABLE-JOINOTHER-0000000026
+      <-- KTABLE-JOINTHIS-0000000023, KTABLE-JOINOTHER-0000000024
     Processor: Project (stores: [])
-      --> KTABLE-TOSTREAM-0000000028
-      <-- KTABLE-MERGE-0000000024
-    Processor: KTABLE-TOSTREAM-0000000028 (stores: [])
-      --> KSTREAM-SINK-0000000029
+      --> KTABLE-TOSTREAM-0000000026
+      <-- KTABLE-MERGE-0000000022
+    Processor: KTABLE-TOSTREAM-0000000026 (stores: [])
+      --> KSTREAM-SINK-0000000027
       <-- Project
-    Sink: KSTREAM-SINK-0000000029 (topic: OUTPUT)
-      <-- KTABLE-TOSTREAM-0000000028
+    Sink: KSTREAM-SINK-0000000027 (topic: OUTPUT)
+      <-- KTABLE-TOSTREAM-0000000026
 
   Sub-topology: 2
-    Source: KSTREAM-SOURCE-0000000013 (topics: [t2])
-      --> KTABLE-SOURCE-0000000014
-    Processor: KTABLE-SOURCE-0000000014 (stores: [])
-      --> KTABLE-MAPVALUES-0000000015
-      <-- KSTREAM-SOURCE-0000000013
-    Processor: KTABLE-MAPVALUES-0000000015 (stores: [KafkaTopic_Right-Reduce])
-      --> KTABLE-TRANSFORMVALUES-0000000016
-      <-- KTABLE-SOURCE-0000000014
-    Processor: KTABLE-TRANSFORMVALUES-0000000016 (stores: [])
-      --> KTABLE-TOSTREAM-0000000017
-      <-- KTABLE-MAPVALUES-0000000015
-    Processor: KTABLE-TOSTREAM-0000000017 (stores: [])
+    Source: KSTREAM-SOURCE-0000000012 (topics: [t2])
+      --> KTABLE-SOURCE-0000000013
+    Processor: KTABLE-SOURCE-0000000013 (stores: [])
+      --> KTABLE-TRANSFORMVALUES-0000000014
+      <-- KSTREAM-SOURCE-0000000012
+    Processor: KTABLE-TRANSFORMVALUES-0000000014 (stores: [])
+      --> KTABLE-TOSTREAM-0000000015
+      <-- KTABLE-SOURCE-0000000013
+    Processor: KTABLE-TOSTREAM-0000000015 (stores: [])
       --> RightSourceKeyed-SelectKey-Mapper
-      <-- KTABLE-TRANSFORMVALUES-0000000016
+      <-- KTABLE-TRANSFORMVALUES-0000000014
     Processor: RightSourceKeyed-SelectKey-Mapper (stores: [])
       --> RightSourceKeyed-SelectKey-repartition-filter
-      <-- KTABLE-TOSTREAM-0000000017
+      <-- KTABLE-TOSTREAM-0000000015
     Processor: RightSourceKeyed-SelectKey-repartition-filter (stores: [])
       --> RightSourceKeyed-SelectKey-repartition-sink
       <-- RightSourceKeyed-SelectKey-Mapper

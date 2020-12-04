@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.streams;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,6 +32,7 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
@@ -94,6 +96,8 @@ public class StreamSelectBuilderTest {
   private ExecutionKeyFactory<Struct> executionKeyFactory;
   @Mock
   private ProcessingLogger processingLogger;
+  @Mock
+  private PlanInfo planInfo;
   @Captor
   private ArgumentCaptor<Named> nameCaptor;
 
@@ -117,7 +121,7 @@ public class StreamSelectBuilderTest {
         .thenReturn(resultKStream);
     final KStreamHolder<Struct> sourceStream
         = new KStreamHolder<>(sourceKStream, SCHEMA, executionKeyFactory);
-    when(sourceStep.build(any())).thenReturn(sourceStream);
+    when(sourceStep.build(any(), eq(planInfo))).thenReturn(sourceStream);
     step = new StreamSelect<>(
         properties,
         sourceStep,
@@ -135,7 +139,7 @@ public class StreamSelectBuilderTest {
   @Test
   public void shouldReturnResultKStream() {
     // When:
-    final KStreamHolder<Struct> result = step.build(planBuilder);
+    final KStreamHolder<Struct> result = step.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getStream(), is(resultKStream));
@@ -145,7 +149,7 @@ public class StreamSelectBuilderTest {
   @Test
   public void shouldBuildKsNodeWithRightName() {
     // When:
-    step.build(planBuilder);
+    step.build(planBuilder, planInfo);
 
     // Then:
     verify(sourceKStream).transformValues(
@@ -159,7 +163,7 @@ public class StreamSelectBuilderTest {
   @Test
   public void shouldReturnCorrectSchema() {
     // When:
-    final KStreamHolder<Struct> result = step.build(planBuilder);
+    final KStreamHolder<Struct> result = step.build(planBuilder, planInfo);
 
     // Then:
     assertThat(
@@ -183,7 +187,7 @@ public class StreamSelectBuilderTest {
     );
 
     // When:
-    final KStreamHolder<Struct> result = step.build(planBuilder);
+    final KStreamHolder<Struct> result = step.build(planBuilder, planInfo);
 
     // Then:
     assertThat(
@@ -199,7 +203,7 @@ public class StreamSelectBuilderTest {
   @Test
   public void shouldBuildSelectValueMapperLoggerCorrectly() {
     // When:
-    step.build(planBuilder);
+    step.build(planBuilder, planInfo);
 
     // Then:
     verify(queryBuilder).getProcessingLogger(context);

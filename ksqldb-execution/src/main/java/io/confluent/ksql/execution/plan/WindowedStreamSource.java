@@ -47,8 +47,13 @@ public final class WindowedStreamSource extends SourceStep<KStreamHolder<Windowe
   }
 
   @Override
-  public KStreamHolder<Windowed<GenericKey>> build(final PlanBuilder builder) {
-    return builder.visitWindowedStreamSource(this);
+  public KStreamHolder<Windowed<GenericKey>> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitWindowedStreamSource(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitWindowedStreamSource(this);
   }
 
   @Override

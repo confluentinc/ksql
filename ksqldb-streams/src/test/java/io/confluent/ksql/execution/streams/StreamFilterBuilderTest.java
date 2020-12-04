@@ -3,6 +3,7 @@ package io.confluent.ksql.execution.streams;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -15,6 +16,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamFilter;
@@ -65,6 +67,8 @@ public class StreamFilterBuilderTest {
   private Expression filterExpression;
   @Mock
   private ExecutionKeyFactory<GenericKey> executionKeyFactory;
+  @Mock
+  private PlanInfo planInfo;
 
   private final QueryContext queryContext = new QueryContext.Stacker()
       .push("bar")
@@ -89,7 +93,7 @@ public class StreamFilterBuilderTest {
         .thenReturn(filteredKStream);
     when(predicateFactory.create(any(), any(), any(), any())).thenReturn(sqlPredicate);
     when(sqlPredicate.getTransformer(any())).thenReturn((KsqlTransformer) predicate);
-    when(sourceStep.build(any())).thenReturn(new KStreamHolder<>(
+    when(sourceStep.build(any(), eq(planInfo))).thenReturn(new KStreamHolder<>(
         sourceKStream,
         schema,
         executionKeyFactory
@@ -107,7 +111,7 @@ public class StreamFilterBuilderTest {
   @Test
   public void shouldFilterSourceStream() {
     // When:
-    final KStreamHolder<GenericKey> result = step.build(planBuilder);
+    final KStreamHolder<GenericKey> result = step.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getStream(), is(filteredKStream));
@@ -117,7 +121,7 @@ public class StreamFilterBuilderTest {
   @Test
   public void shouldReturnCorrectSchema() {
     // When:
-    final KStreamHolder<GenericKey> result = step.build(planBuilder);
+    final KStreamHolder<GenericKey> result = step.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getSchema(), is(schema));
@@ -126,7 +130,7 @@ public class StreamFilterBuilderTest {
   @Test
   public void shouldBuildSqlPredicateCorrectly() {
     // When:
-    step.build(planBuilder);
+    step.build(planBuilder, planInfo);
 
     // Then:
     verify(predicateFactory).create(
@@ -140,7 +144,7 @@ public class StreamFilterBuilderTest {
   @Test
   public void shouldUseCorrectNameForProcessingLogger() {
     // When:
-    step.build(planBuilder);
+    step.build(planBuilder, planInfo);
 
     // Then:
     verify(queryBuilder).getProcessingLogger(queryContext);

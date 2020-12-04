@@ -88,8 +88,13 @@ public class TableAggregate implements ExecutionStep<KTableHolder<GenericKey>> {
   }
 
   @Override
-  public KTableHolder<GenericKey> build(final PlanBuilder builder) {
-    return builder.visitTableAggregate(this);
+  public KTableHolder<GenericKey> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitTableAggregate(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitTableAggregate(this);
   }
 
   @Override

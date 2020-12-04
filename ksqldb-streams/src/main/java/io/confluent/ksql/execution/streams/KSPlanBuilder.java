@@ -22,6 +22,7 @@ import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
@@ -81,15 +82,19 @@ public final class KSPlanBuilder implements PlanBuilder {
     this.streamsFactories = Objects.requireNonNull(streamsFactories, "streamsFactories");
   }
 
-  public <K> KStreamHolder<K> visitStreamFilter(final StreamFilter<K> streamFilter) {
-    final KStreamHolder<K> source = streamFilter.getSource().build(this);
+  @Override
+  public <K> KStreamHolder<K> visitStreamFilter(
+      final StreamFilter<K> streamFilter,
+      final PlanInfo planInfo) {
+    final KStreamHolder<K> source = streamFilter.getSource().build(this, planInfo);
     return StreamFilterBuilder.build(source, streamFilter, queryBuilder, sqlPredicateFactory);
   }
 
   @Override
   public <K> KGroupedStreamHolder visitStreamGroupBy(
-      final StreamGroupBy<K> streamGroupBy) {
-    final KStreamHolder<K> source = streamGroupBy.getSource().build(this);
+      final StreamGroupBy<K> streamGroupBy,
+      final PlanInfo planInfo) {
+    final KStreamHolder<K> source = streamGroupBy.getSource().build(this, planInfo);
     return new StreamGroupByBuilder(
         queryBuilder,
         streamsFactories.getGroupedFactory()
@@ -101,8 +106,9 @@ public final class KSPlanBuilder implements PlanBuilder {
 
   @Override
   public KGroupedStreamHolder visitStreamGroupByKey(
-      final StreamGroupByKey streamGroupByKey) {
-    final KStreamHolder<GenericKey> source = streamGroupByKey.getSource().build(this);
+      final StreamGroupByKey streamGroupByKey,
+      final PlanInfo planInfo) {
+    final KStreamHolder<GenericKey> source = streamGroupByKey.getSource().build(this, planInfo);
     return new StreamGroupByBuilder(
         queryBuilder,
         streamsFactories.getGroupedFactory()
@@ -114,8 +120,9 @@ public final class KSPlanBuilder implements PlanBuilder {
 
   @Override
   public KTableHolder<GenericKey> visitStreamAggregate(
-      final StreamAggregate streamAggregate) {
-    final KGroupedStreamHolder source = streamAggregate.getSource().build(this);
+      final StreamAggregate streamAggregate,
+      final PlanInfo planInfo) {
+    final KGroupedStreamHolder source = streamAggregate.getSource().build(this, planInfo);
     return StreamAggregateBuilder.build(
         source,
         streamAggregate,
@@ -127,42 +134,51 @@ public final class KSPlanBuilder implements PlanBuilder {
 
   @Override
   public <K> KStreamHolder<K> visitStreamSelect(
-      final StreamSelect<K> streamSelect) {
-    final KStreamHolder<K> source = streamSelect.getSource().build(this);
+      final StreamSelect<K> streamSelect,
+      final PlanInfo planInfo) {
+    final KStreamHolder<K> source = streamSelect.getSource().build(this, planInfo);
     return StreamSelectBuilder.build(source, streamSelect, queryBuilder);
   }
 
   @Override
-  public <K> KStreamHolder<K> visitFlatMap(final StreamFlatMap<K> streamFlatMap) {
-    final KStreamHolder<K> source = streamFlatMap.getSource().build(this);
+  public <K> KStreamHolder<K> visitFlatMap(
+      final StreamFlatMap<K> streamFlatMap,
+      final PlanInfo planInfo) {
+    final KStreamHolder<K> source = streamFlatMap.getSource().build(this, planInfo);
     return StreamFlatMapBuilder.build(source, streamFlatMap, queryBuilder);
   }
 
   @Override
   public KStreamHolder<GenericKey> visitStreamSelectKey(
-      final StreamSelectKeyV1 streamSelectKey
+      final StreamSelectKeyV1 streamSelectKey,
+      final PlanInfo planInfo
   ) {
-    final KStreamHolder<?> source = streamSelectKey.getSource().build(this);
+    final KStreamHolder<?> source = streamSelectKey.getSource().build(this, planInfo);
     return StreamSelectKeyBuilderV1.build(source, streamSelectKey, queryBuilder);
   }
 
   @Override
   public <K> KStreamHolder<K> visitStreamSelectKey(
-      final StreamSelectKey<K> streamSelectKey
+      final StreamSelectKey<K> streamSelectKey,
+      final PlanInfo planInfo
   ) {
-    final KStreamHolder<K> source = streamSelectKey.getSource().build(this);
+    final KStreamHolder<K> source = streamSelectKey.getSource().build(this, planInfo);
     return StreamSelectKeyBuilder.build(source, streamSelectKey, queryBuilder);
   }
 
   @Override
-  public <K> KStreamHolder<K> visitStreamSink(final StreamSink<K> streamSink) {
-    final KStreamHolder<K> source = streamSink.getSource().build(this);
+  public <K> KStreamHolder<K> visitStreamSink(
+      final StreamSink<K> streamSink,
+      final PlanInfo planInfo) {
+    final KStreamHolder<K> source = streamSink.getSource().build(this, planInfo);
     StreamSinkBuilder.build(source, streamSink, queryBuilder);
     return null;
   }
 
   @Override
-  public KStreamHolder<GenericKey> visitStreamSource(final StreamSource streamSource) {
+  public KStreamHolder<GenericKey> visitStreamSource(
+      final StreamSource streamSource,
+      final PlanInfo planInfo) {
     return SourceBuilder.buildStream(
         queryBuilder,
         streamSource,
@@ -172,7 +188,8 @@ public final class KSPlanBuilder implements PlanBuilder {
 
   @Override
   public KStreamHolder<Windowed<GenericKey>> visitWindowedStreamSource(
-      final WindowedStreamSource windowedStreamSource) {
+      final WindowedStreamSource windowedStreamSource,
+      final PlanInfo planInfo) {
     return SourceBuilder.buildWindowedStream(
         queryBuilder,
         windowedStreamSource,
@@ -181,9 +198,11 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public <K> KStreamHolder<K> visitStreamStreamJoin(final StreamStreamJoin<K> join) {
-    final KStreamHolder<K> left = join.getLeftSource().build(this);
-    final KStreamHolder<K> right = join.getRightSource().build(this);
+  public <K> KStreamHolder<K> visitStreamStreamJoin(
+      final StreamStreamJoin<K> join,
+      final PlanInfo planInfo) {
+    final KStreamHolder<K> left = join.getLeftSource().build(this, planInfo);
+    final KStreamHolder<K> right = join.getRightSource().build(this, planInfo);
     return StreamStreamJoinBuilder.build(
         left,
         right,
@@ -194,9 +213,11 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public <K> KStreamHolder<K> visitStreamTableJoin(final StreamTableJoin<K> join) {
-    final KTableHolder<K> right = join.getRightSource().build(this);
-    final KStreamHolder<K> left = join.getLeftSource().build(this);
+  public <K> KStreamHolder<K> visitStreamTableJoin(
+      final StreamTableJoin<K> join,
+      final PlanInfo planInfo) {
+    final KTableHolder<K> right = join.getRightSource().build(this, planInfo);
+    final KStreamHolder<K> left = join.getLeftSource().build(this, planInfo);
     return StreamTableJoinBuilder.build(
         left,
         right,
@@ -207,31 +228,37 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public KTableHolder<GenericKey> visitTableSource(final TableSource tableSource) {
+  public KTableHolder<GenericKey> visitTableSource(
+      final TableSource tableSource,
+      final PlanInfo planInfo) {
     return SourceBuilder.buildTable(
         queryBuilder,
         tableSource,
         streamsFactories.getConsumedFactory(),
-        streamsFactories.getMaterializedFactory()
+        streamsFactories.getMaterializedFactory(),
+        (PlanInfo) planInfo
     );
   }
 
   @Override
   public KTableHolder<Windowed<GenericKey>> visitWindowedTableSource(
-      final WindowedTableSource windowedTableSource
+      final WindowedTableSource windowedTableSource,
+      final PlanInfo planInfo
   ) {
     return SourceBuilder.buildWindowedTable(
         queryBuilder,
         windowedTableSource,
         streamsFactories.getConsumedFactory(),
-        streamsFactories.getMaterializedFactory()
+        streamsFactories.getMaterializedFactory(),
+        (PlanInfo) planInfo
     );
   }
 
   @Override
   public KTableHolder<Windowed<GenericKey>> visitStreamWindowedAggregate(
-      final StreamWindowedAggregate aggregate) {
-    final KGroupedStreamHolder source = aggregate.getSource().build(this);
+      final StreamWindowedAggregate aggregate,
+      final PlanInfo planInfo) {
+    final KGroupedStreamHolder source = aggregate.getSource().build(this, planInfo);
     return StreamAggregateBuilder.build(
         source,
         aggregate,
@@ -242,8 +269,10 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public KTableHolder<GenericKey> visitTableAggregate(final TableAggregate aggregate) {
-    final KGroupedTableHolder source = aggregate.getSource().build(this);
+  public KTableHolder<GenericKey> visitTableAggregate(
+      final TableAggregate aggregate,
+      final PlanInfo planInfo) {
+    final KGroupedTableHolder source = aggregate.getSource().build(this, planInfo);
     return TableAggregateBuilder.build(
         source,
         aggregate,
@@ -254,15 +283,18 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public <K> KTableHolder<K> visitTableFilter(final TableFilter<K> tableFilter) {
-    final KTableHolder<K> source = tableFilter.getSource().build(this);
+  public <K> KTableHolder<K> visitTableFilter(
+      final TableFilter<K> tableFilter,
+      final PlanInfo planInfo) {
+    final KTableHolder<K> source = tableFilter.getSource().build(this, planInfo);
     return TableFilterBuilder.build(source, tableFilter, queryBuilder, sqlPredicateFactory);
   }
 
   @Override
   public <K> KGroupedTableHolder visitTableGroupBy(
-      final TableGroupBy<K> tableGroupBy) {
-    final KTableHolder<K> source = tableGroupBy.getSource().build(this);
+      final TableGroupBy<K> tableGroupBy,
+      final PlanInfo planInfo) {
+    final KTableHolder<K> source = tableGroupBy.getSource().build(this, planInfo);
     return new TableGroupByBuilder(
         queryBuilder,
         streamsFactories.getGroupedFactory()
@@ -274,14 +306,17 @@ public final class KSPlanBuilder implements PlanBuilder {
 
   @Override
   public <K> KTableHolder<K> visitTableSelect(
-      final TableSelect<K> tableSelect) {
-    final KTableHolder<K> source = tableSelect.getSource().build(this);
+      final TableSelect<K> tableSelect,
+      final PlanInfo planInfo) {
+    final KTableHolder<K> source = tableSelect.getSource().build(this, planInfo);
     return TableSelectBuilder.build(source, tableSelect, queryBuilder);
   }
 
   @Override
-  public <K> KTableHolder<K> visitTableSelectKey(final TableSelectKey<K> tableSelectKey) {
-    final KTableHolder<K> source = tableSelectKey.getSource().build(this);
+  public <K> KTableHolder<K> visitTableSelectKey(
+      final TableSelectKey<K> tableSelectKey,
+      final PlanInfo planInfo) {
+    final KTableHolder<K> source = tableSelectKey.getSource().build(this, planInfo);
     return TableSelectKeyBuilder.build(
         source,
         tableSelectKey,
@@ -291,15 +326,19 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public <K> KTableHolder<K> visitTableSink(final TableSink<K> tableSink) {
-    final KTableHolder<K> source = tableSink.getSource().build(this);
+  public <K> KTableHolder<K> visitTableSink(
+      final TableSink<K> tableSink,
+      final PlanInfo planInfo) {
+    final KTableHolder<K> source = tableSink.getSource().build(this, planInfo);
     TableSinkBuilder.build(source, tableSink, queryBuilder);
     return source;
   }
 
   @Override
-  public <K> KTableHolder<K> visitTableSuppress(final TableSuppress<K> tableSuppress) {
-    final KTableHolder<K>  source = tableSuppress.getSource().build(this);
+  public <K> KTableHolder<K> visitTableSuppress(
+      final TableSuppress<K> tableSuppress,
+      final PlanInfo planInfo) {
+    final KTableHolder<K>  source = tableSuppress.getSource().build(this, planInfo);
     return new TableSuppressBuilder().build(
         source,
         tableSuppress,
@@ -310,9 +349,10 @@ public final class KSPlanBuilder implements PlanBuilder {
 
   @Override
   public <K> KTableHolder<K> visitTableTableJoin(
-      final TableTableJoin<K> tableTableJoin) {
-    final KTableHolder<K> left = tableTableJoin.getLeftSource().build(this);
-    final KTableHolder<K> right = tableTableJoin.getRightSource().build(this);
+      final TableTableJoin<K> tableTableJoin,
+      final PlanInfo planInfo) {
+    final KTableHolder<K> left = tableTableJoin.getLeftSource().build(this, planInfo);
+    final KTableHolder<K> right = tableTableJoin.getRightSource().build(this, planInfo);
     return TableTableJoinBuilder.build(left, right, tableTableJoin);
   }
 }

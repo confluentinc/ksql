@@ -42,6 +42,7 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableAggregate;
@@ -146,6 +147,8 @@ public class TableAggregateBuilderTest {
   private ExecutionStep<KGroupedTableHolder> sourceStep;
   @Mock
   private KsqlProcessingContext ctx;
+  @Mock
+  private PlanInfo planInfo;
 
   private PlanBuilder planBuilder;
   private TableAggregate aggregate;
@@ -177,7 +180,7 @@ public class TableAggregateBuilderTest {
         NON_AGG_COLUMNS,
         FUNCTIONS
     );
-    when(sourceStep.build(any())).thenReturn(KGroupedTableHolder.of(groupedTable, INPUT_SCHEMA));
+    when(sourceStep.build(any(), eq(planInfo))).thenReturn(KGroupedTableHolder.of(groupedTable, INPUT_SCHEMA));
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),
@@ -195,7 +198,7 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldBuildAggregateCorrectly() {
     // When:
-    final KTableHolder<GenericKey> result = aggregate.build(planBuilder);
+    final KTableHolder<GenericKey> result = aggregate.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getTable(), is(aggregatedWithResults));
@@ -208,7 +211,7 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldReturnCorrectSchema() {
     // When:
-    final KTableHolder<GenericKey> result = aggregate.build(planBuilder);
+    final KTableHolder<GenericKey> result = aggregate.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getSchema(), is(AGGREGATE_SCHEMA));
@@ -217,7 +220,7 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldBuildMaterializedWithCorrectSerdesForAggregate() {
     // When:
-    aggregate.build(planBuilder);
+    aggregate.build(planBuilder, planInfo);
 
     // Then:
     verify(materializedFactory).create(same(keySerde), same(valueSerde), any());
@@ -226,7 +229,7 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldBuildMaterializedWithCorrectNameForAggregate() {
     // When:
-    aggregate.build(planBuilder);
+    aggregate.build(planBuilder, planInfo);
 
     // Then:
     verify(materializedFactory).create(any(), any(), eq("agg-regate-Materialize"));
@@ -235,7 +238,7 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldBuildKeySerdeCorrectlyForAggregate() {
     // When:
-    aggregate.build(planBuilder);
+    aggregate.build(planBuilder, planInfo);
 
     // Then:
     verify(queryBuilder).buildKeySerde(KEY_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, MATERIALIZE_CTX);
@@ -244,7 +247,7 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldBuildValueSerdeCorrectlyForAggregate() {
     // When:
-    aggregate.build(planBuilder);
+    aggregate.build(planBuilder, planInfo);
 
     // Then:
     verify(queryBuilder).buildValueSerde(
@@ -257,7 +260,7 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldBuildAggregatorParamsCorrectlyForAggregate() {
     // When:
-    aggregate.build(planBuilder);
+    aggregate.build(planBuilder, planInfo);
 
     // Then:
     verify(aggregateParamsFactory).createUndoable(
@@ -271,7 +274,7 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldBuildMaterializationCorrectlyForAggregate() {
     // When:
-    final KTableHolder<?> result = aggregate.build(planBuilder);
+    final KTableHolder<?> result = aggregate.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getMaterializationBuilder().isPresent(), is(true));

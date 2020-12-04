@@ -16,6 +16,7 @@
  import io.confluent.ksql.execution.materialization.MaterializationInfo.TransformFactory;
  import io.confluent.ksql.execution.plan.ExecutionStep;
  import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
+ import io.confluent.ksql.execution.plan.PlanInfo;
  import io.confluent.ksql.execution.plan.KTableHolder;
  import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
  import io.confluent.ksql.execution.plan.PlanBuilder;
@@ -79,6 +80,8 @@ public class TableFilterBuilderTest {
   @Mock
   private MaterializationInfo.Builder materializationBuilder;
   @Mock
+  private PlanInfo planInfo;
+  @Mock
   private Struct key;
   @Mock
   private GenericRow value;
@@ -114,7 +117,7 @@ public class TableFilterBuilderTest {
     when(materializationBuilder.filter(any(), any())).thenReturn(materializationBuilder);
     final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(queryContext);
     step = new TableFilter<>(properties, sourceStep, filterExpression);
-    when(sourceStep.build(any())).thenReturn(
+    when(sourceStep.build(any(), eq(planInfo))).thenReturn(
         KTableHolder.materialized(sourceKTable, schema, executionKeyFactory, materializationBuilder))
     ;
     when(preTransformer.transform(any(), any(), any())).thenReturn(Optional.empty());
@@ -129,7 +132,7 @@ public class TableFilterBuilderTest {
   @Test
   public void shouldFilterSourceTable() {
     // When:
-    final KTableHolder<Struct> result = step.build(planBuilder);
+    final KTableHolder<Struct> result = step.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getTable(), is(postKTable));
@@ -139,7 +142,7 @@ public class TableFilterBuilderTest {
   @Test
   public void shouldReturnCorrectSchema() {
     // When:
-    final KTableHolder<Struct> result = step.build(planBuilder);
+    final KTableHolder<Struct> result = step.build(planBuilder, planInfo);
 
     // Then:
     assertThat(result.getSchema(), is(schema));
@@ -148,7 +151,7 @@ public class TableFilterBuilderTest {
   @Test
   public void shouldBuildSqlPredicateCorrectly() {
     // When:
-    step.build(planBuilder);
+    step.build(planBuilder, planInfo);
 
     // Then:
     verify(predicateFactory).create(
@@ -162,7 +165,7 @@ public class TableFilterBuilderTest {
   @Test
   public void shouldUseCorrectNameForProcessingLogger() {
     // When:
-    step.build(planBuilder);
+    step.build(planBuilder, planInfo);
 
     // Then:
     verify(queryBuilder).getProcessingLogger(queryContext);
@@ -171,7 +174,7 @@ public class TableFilterBuilderTest {
   @Test
   public void shouldFilterMaterialization() {
     // When:
-    step.build(planBuilder);
+    step.build(planBuilder, planInfo);
 
     // Then:
     verify(materializationBuilder).filter(

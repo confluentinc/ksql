@@ -1,6 +1,6 @@
 {
   "version" : "6.2.0",
-  "timestamp" : 1606799813451,
+  "timestamp" : 1606950106667,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
     "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
@@ -180,23 +180,6 @@
             } ]
           }
         }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
-          "keyFormat" : {
-            "format" : "JSON_SR",
-            "features" : [ "UNWRAP_SINGLES" ]
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "keySchema" : {
-            "oneOf" : [ {
-              "type" : "null"
-            }, {
-              "type" : "integer",
-              "connect.type" : "int32"
-            } ]
-          }
-        }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-LeftSourceKeyed-SelectKey-repartition",
           "keyFormat" : {
             "format" : "JSON_SR",
@@ -258,23 +241,6 @@
             "format" : "JSON"
           },
           "partitions" : 4,
-          "keySchema" : {
-            "oneOf" : [ {
-              "type" : "null"
-            }, {
-              "type" : "integer",
-              "connect.type" : "int32"
-            } ]
-          }
-        }, {
-          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Left-Reduce-changelog",
-          "keyFormat" : {
-            "format" : "JSON_SR",
-            "features" : [ "UNWRAP_SINGLES" ]
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
           "keySchema" : {
             "oneOf" : [ {
               "type" : "null"

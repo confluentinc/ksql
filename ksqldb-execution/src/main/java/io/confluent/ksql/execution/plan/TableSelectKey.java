@@ -78,8 +78,13 @@ public class TableSelectKey<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
-  public KTableHolder<K> build(final PlanBuilder builder) {
-    return builder.visitTableSelectKey(this);
+  public KTableHolder<K> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitTableSelectKey(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitTableSelectKey(this);
   }
 
   @Override

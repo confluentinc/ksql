@@ -2506,11 +2506,6 @@
               "valueFormat" : {"format" : "JSON"}
             },
             {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
-              "valueFormat" : {"format" : "JSON"}
-            },
-            {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-RightSourceKeyed-Materialize-changelog",
               "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
               "valueFormat" : {"format" : "JSON"}
@@ -2547,16 +2542,6 @@
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
-              "valueFormat" : {"format" : "JSON"}
-            },
-            {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Left-Reduce-changelog",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
-              "valueFormat" : {"format" : "JSON"}
-            },
-            {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
               "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
               "valueFormat" : {"format" : "JSON"}
             },
@@ -2609,16 +2594,6 @@
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
-              "valueFormat" : {"format" : "JSON"}
-            },
-            {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Left-Reduce-changelog",
-              "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
-              "valueFormat" : {"format" : "JSON"}
-            },
-            {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
               "keyFormat" : {"format" : "AVRO", "features": ["UNWRAP_SINGLES"]},
               "valueFormat" : {"format" : "JSON"}
             },
@@ -2799,12 +2774,6 @@
               "valueFormat" : {"format" : "JSON"}
             },
             {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
-              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
-              "valueFormat" : {"format" : "JSON"}
-            },
-            {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-RightSourceKeyed-Materialize-changelog",
               "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
@@ -2855,18 +2824,6 @@
             },
             {
               "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
-              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
-              "valueFormat" : {"format" : "JSON"}
-            },
-            {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Left-Reduce-changelog",
-              "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
-              "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
-              "valueFormat" : {"format" : "JSON"}
-            },
-            {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
               "keyFormat" : {"format" : "JSON_SR", "features": ["UNWRAP_SINGLES"]},
               "keySchema" : {"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]},
               "valueFormat" : {"format" : "JSON"}

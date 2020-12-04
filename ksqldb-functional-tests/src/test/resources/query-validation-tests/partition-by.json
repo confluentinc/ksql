@@ -852,9 +852,6 @@
       "outputs": [{"topic": "OUTPUT", "key": 10.02, "value": {"ID": 10}}]
     },
     {
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "name": "partition by array key",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, VAL ARRAY<INT>) with (kafka_topic='input', format='JSON');",
@@ -864,9 +861,6 @@
       "outputs": [{"topic": "OUTPUT", "key": [12, 1], "value": {"ID": 10}}]
     },
     {
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "name": "partition by struct key",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, VAL STRUCT<F1 INT, F2 INT>) with (kafka_topic='input', format='JSON');",
@@ -876,9 +870,6 @@
       "outputs": [{"topic": "OUTPUT", "key": {"F1": 1, "F2": 2}, "value": {"ID": 10}}]
     },
     {
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "name": "partition by struct key when original is unwrapped",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, VAL STRUCT<F1 INT, F2 INT>) with (kafka_topic='input', format='JSON', wrap_single_value=false);",
@@ -888,9 +879,6 @@
       "outputs": [{"topic": "OUTPUT", "key": {"F1": 1, "F2": 2}, "value": {"ID": 10}}]
     },
     {
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "name": "partition by field within struct key",
       "statements": [
         "CREATE STREAM INPUT (ID STRUCT<F1 INT, F2 INT> KEY, VAL INT) with (kafka_topic='input', format='JSON');",
@@ -900,9 +888,6 @@
       "outputs": [{"topic": "OUTPUT", "key": 1, "value": {"ID": {"F1": 1, "F2": 2}, "VAL": 10}}]
     },
     {
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "name": "partition by field within struct key don't select struct key",
       "statements": [
         "CREATE STREAM INPUT (ID STRUCT<F1 INT, F2 INT> KEY, VAL INT) with (kafka_topic='input', format='JSON');",
@@ -912,9 +897,6 @@
       "outputs": [{"topic": "OUTPUT", "key": 1, "value": {"F2": 2, "VAL": 10}}]
     },
     {
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "name": "partition by create struct",
       "statements": [
         "CREATE STREAM INPUT (ID STRUCT<F1 INT, F2 INT> KEY, VAL INT) with (kafka_topic='input', format='JSON');",
@@ -924,9 +906,6 @@
       "outputs": [{"topic": "OUTPUT", "key": {"A": 1, "B": 10}, "value": {"ID":{"F1": 1, "F2": 2}, "VAL": 10}}]
     },
     {
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "name": "partition by struct with different key/value formats",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, VAL STRUCT<F1 INT, F2 INT>) with (kafka_topic='input', key_format='AVRO', value_format='JSON');",
@@ -956,9 +935,6 @@
       }
     },
     {
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "name": "partition by struct explicitly change key format",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, VAL STRUCT<F1 INT, F2 INT>) with (kafka_topic='input', format='JSON');",
@@ -988,9 +964,6 @@
       }
     },
     {
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "name": "partition by map key",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, VAL MAP<STRING, INT>) with (kafka_topic='input', format='JSON');",
@@ -1002,9 +975,6 @@
       }
     },
     {
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "name": "partition by nested map key",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, VAL STRUCT<F1 MAP<STRING, INT>>) with (kafka_topic='input', format='JSON');",

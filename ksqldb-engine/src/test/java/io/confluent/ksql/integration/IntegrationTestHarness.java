@@ -662,7 +662,7 @@ public final class IntegrationTestHarness extends ExternalResource {
     return new GenericKeySerDe().create(
         FormatInfo.of(format.name()),
         schema.keySchema(),
-        new KsqlConfig(Collections.singletonMap("ksql.complex.key.format.enabled", "true")),
+        new KsqlConfig(Collections.emptyMap()),
         serviceContext.get().getSchemaRegistryClientFactory(),
         loggerNamePrefix,
         ProcessingLogContext.create(),

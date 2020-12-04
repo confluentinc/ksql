@@ -617,9 +617,6 @@
     },
     {
       "name": "ARRAY - key - no inference",
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K ARRAY<VARCHAR> KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -637,9 +634,6 @@
     },
     {
       "name": "ARRAY - key - inference",
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -677,9 +671,6 @@
     },
     {
       "name": "MAP - key - C*",
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K MAP<INT, DOUBLE> KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');"
       ],
@@ -690,9 +681,6 @@
     },
     {
       "name": "nested MAP type - key - C*",
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K ARRAY<MAP<INT, DOUBLE>> KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');"
       ],
@@ -703,9 +691,6 @@
     },
     {
       "name": "MAP - key - C*AS",
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (k STRING KEY, v STRING) WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY MAP(k:=v);"
@@ -717,9 +702,6 @@
     },
     {
       "name": "nested MAP type - key - C*AS",
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (k STRING KEY, v STRING) WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY STRUCT(f := MAP(k:=v));"
@@ -731,9 +713,6 @@
     },
     {
       "name": "STRUCT - key - no inference",
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K STRUCT<F1 VARCHAR> KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -751,9 +730,6 @@
     },
     {
       "name": "STRUCT - key - inference",
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "topics": [
         {
           "name": "input_topic",

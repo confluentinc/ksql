@@ -148,21 +148,12 @@ public final class GenericKeySerDe implements KeySerdeFactory {
       }
     }
 
-    if (config.getBoolean(KsqlConfig.KSQL_COMPLEX_KEY_FORMAT_ENABLED)) {
-      for (final SimpleColumn column : columns) {
-        if (containsMapType(column.type())) {
-          throw new KsqlException("Map keys, including types that contain maps, are not supported "
-              + "as they may lead to unexpected behavior due to inconsistent serialization. "
-              + "Key column name: " + column.name() + ". "
-              + "Column type: " + column.type().toString(FormatOptions.none()));
-        }
-      }
-    } else {
-      for (final SimpleColumn column : columns) {
-        final SqlType sqlType = column.type();
-        if (!(sqlType instanceof SqlPrimitiveType || sqlType instanceof SqlDecimal)) {
-          throw new KsqlException("Unsupported key schema: " + columns);
-        }
+    for (final SimpleColumn column : columns) {
+      if (containsMapType(column.type())) {
+        throw new KsqlException("Map keys, including types that contain maps, are not supported "
+            + "as they may lead to unexpected behavior due to inconsistent serialization. "
+            + "Key column name: " + column.name() + ". "
+            + "Column type: " + column.type().toString(FormatOptions.none()));
       }
     }
   }

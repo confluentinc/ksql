@@ -51,7 +51,6 @@ public final class PlannedTestUtils {
     // Place temporary logic here to exclude test cases based on feature flags, etc.
     final Map<String, Object> props = testCase.properties();
     return !(boolean) props.getOrDefault(KsqlConfig.KSQL_KEY_FORMAT_ENABLED, false)
-        && !(boolean) props.getOrDefault(KsqlConfig.KSQL_COMPLEX_KEY_FORMAT_ENABLED, false)
         && !(boolean) props.getOrDefault(KsqlConfig.KSQL_MULTICOL_KEY_FORMAT_ENABLED, false);
   }
 

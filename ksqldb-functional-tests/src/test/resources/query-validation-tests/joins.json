@@ -1802,9 +1802,6 @@
     {
       "name": "on ARRAY column",
       "format": ["AVRO", "JSON"],
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM L (ID STRING KEY, l0 ARRAY<INT>, l1 INT) WITH (kafka_topic='left_topic', format='{FORMAT}');",
         "CREATE STREAM R (ID STRING KEY, r0 ARRAY<INT>, r1 INT) WITH (kafka_topic='right_topic', format='{FORMAT}');",
@@ -1826,9 +1823,6 @@
     {
       "name": "on STRUCT column",
       "format": ["AVRO", "JSON"],
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM L (ID STRING KEY, l0 STRUCT<F1 INT, F2 STRING>, l1 INT) WITH (kafka_topic='left_topic', format='{FORMAT}');",
         "CREATE STREAM R (ID STRING KEY, r0 STRUCT<F1 INT, F2 STRING>, r1 INT) WITH (kafka_topic='right_topic', format='{FORMAT}');",
@@ -1849,9 +1843,6 @@
     },
     {
       "name": "on MAP column",
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM L (ID STRING KEY, l0 MAP<STRING, INT>, l1 INT) WITH (kafka_topic='left_topic', format='JSON');",
         "CREATE STREAM R (ID STRING KEY, r0 MAP<STRING, INT>, r1 INT) WITH (kafka_topic='right_topic', format='JSON');",
@@ -1864,9 +1855,6 @@
     },
     {
       "name": "on nested MAP column",
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM L (ID STRING KEY, l0 STRUCT<F1 MAP<STRING, INT>>, l1 INT) WITH (kafka_topic='left_topic', format='JSON');",
         "CREATE STREAM R (ID STRING KEY, r0 STRUCT<F1 MAP<STRING, INT>>, r1 INT) WITH (kafka_topic='right_topic', format='JSON');",

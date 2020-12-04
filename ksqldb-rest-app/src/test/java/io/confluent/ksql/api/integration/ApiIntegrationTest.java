@@ -19,7 +19,6 @@ import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_REQUEST;
 import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_COMPLEX_KEY_FORMAT_ENABLED;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -107,7 +106,6 @@ public class ApiIntegrationTest {
       .withProperties(ClientTrustStore.trustStoreProps())
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_DEFAULT_KEY_FORMAT_CONFIG, "JSON")
-      .withProperty(KSQL_COMPLEX_KEY_FORMAT_ENABLED, true)
       .build();
 
   @ClassRule

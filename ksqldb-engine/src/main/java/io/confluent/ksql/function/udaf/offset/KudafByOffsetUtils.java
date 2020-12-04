@@ -72,7 +72,7 @@ final class KudafByOffsetUtils {
           return -1;
         } else if (struct2.get(VAL_FIELD) == null) {
           return 1;
-        } else if (struct1.get(VAL_FIELD) == null && struct2.get(VAL_FIELD) == null ){
+        } else if (struct1.get(VAL_FIELD) == null && struct2.get(VAL_FIELD) == null) {
           return 0;
         }
 

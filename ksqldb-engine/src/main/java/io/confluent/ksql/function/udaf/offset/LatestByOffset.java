@@ -298,7 +298,7 @@ public final class LatestByOffset {
     };
   }
 
-  private static void setComparator(boolean ignoreNulls) {
+  private static void setComparator(final boolean ignoreNulls) {
     if (ignoreNulls) {
       comparator = INTERMEDIATE_STRUCT_COMPARATOR_IGNORE_NULLS;
     } else {

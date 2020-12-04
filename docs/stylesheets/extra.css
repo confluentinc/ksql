@@ -83,8 +83,9 @@ select.version::-ms-expand {
     flex: 1;
     align-items: stretch;
     background-color: #f6f8f8;
+    border: 2px solid #eee;
     border-radius: 3px;
-    padding: 15px;
+    padding: 12px;
     margin: 5px;
 }
 
@@ -98,6 +99,20 @@ ul.card-items li {
     margin-left: 0;
 }
 
+.card-body {
+    flex: 1;
+}
+
 .card-more {
     align-self: flex-start;
+}
+
+.tutorial-begin {
+    display: flex;
+    flex-flow: row nowrap;
+}
+
+.tutorial-begin a {
+    align-self: center;
+    margin: auto;
 }

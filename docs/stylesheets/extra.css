@@ -115,4 +115,5 @@ ul.card-items li {
 .tutorial-begin a {
     align-self: center;
     margin: auto;
+    transform: translateX(-20px);
 }

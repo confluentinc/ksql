@@ -15,13 +15,17 @@
 
 package io.confluent.ksql.execution.streams.materialization.ks;
 
+import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializedTable;
 import io.confluent.ksql.execution.streams.materialization.Row;
+import io.confluent.ksql.util.IteratorUtil;
+import java.util.Iterator;
 import java.util.Objects;
 import java.util.Optional;
+import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.apache.kafka.streams.state.ValueAndTimestamp;
@@ -50,6 +54,22 @@ class KsMaterializedTable implements MaterializedTable {
           .map(v -> Row.of(stateStore.schema(), key, v.value(), v.timestamp()));
     } catch (final Exception e) {
       throw new MaterializationException("Failed to get value from materialized table", e);
+    }
+  }
+
+  @Override
+  public Iterator<Row> get(final int partition) {
+    try {
+      final ReadOnlyKeyValueStore<GenericKey, ValueAndTimestamp<GenericRow>> store = stateStore
+          .store(QueryableStoreTypes.timestampedKeyValueStore(), partition);
+
+      final KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> iterator = store.all();
+      return Streams.stream(IteratorUtil.onComplete(iterator, iterator::close))
+          .map(keyValue -> Row.of(stateStore.schema(), keyValue.key, keyValue.value.value(),
+              keyValue.value.timestamp()))
+          .iterator();
+    } catch (final Exception e) {
+      throw new MaterializationException("Failed to scan materialized table", e);
     }
   }
 }

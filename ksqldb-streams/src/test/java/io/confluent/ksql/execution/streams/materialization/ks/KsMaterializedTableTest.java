@@ -25,8 +25,11 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Streams;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
+import com.sun.xml.internal.xsom.impl.scd.Iterators;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
@@ -35,7 +38,11 @@ import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.util.Iterator;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.apache.kafka.streams.state.ValueAndTimestamp;
@@ -56,12 +63,28 @@ public class KsMaterializedTableTest {
       .build();
 
   private static final GenericKey A_KEY = GenericKey.genericKey("x");
+  private static final GenericKey A_KEY2 = GenericKey.genericKey("y");
   private static final int PARTITION = 0;
+
+  private static final GenericRow ROW1 = GenericRow.genericRow("col0");
+  private static final GenericRow ROW2 = GenericRow.genericRow("col1");
+  private static final long TIME1 = 1;
+  private static final long TIME2 = 2;
+  private static final ValueAndTimestamp<GenericRow> VALUE_AND_TIMESTAMP1
+      = ValueAndTimestamp.make(ROW1, TIME1);
+  private static final ValueAndTimestamp<GenericRow> VALUE_AND_TIMESTAMP2
+      = ValueAndTimestamp.make(ROW2, TIME2);
+  private static final KeyValue<GenericKey, ValueAndTimestamp<GenericRow>> KEY_VALUE1
+      = KeyValue.pair(A_KEY, VALUE_AND_TIMESTAMP1);
+  private static final KeyValue<GenericKey, ValueAndTimestamp<GenericRow>> KEY_VALUE2
+      = KeyValue.pair(A_KEY2, VALUE_AND_TIMESTAMP2);
 
   @Mock
   private KsStateStore stateStore;
   @Mock
   private ReadOnlyKeyValueStore<GenericKey, ValueAndTimestamp<GenericRow>> tableStore;
+  @Mock
+  private KeyValueIterator<GenericKey, ValueAndTimestamp<GenericRow>> keyValueIterator;
   @Captor
   private ArgumentCaptor<QueryableStoreType<?>> storeTypeCaptor;
 
@@ -128,6 +151,19 @@ public class KsMaterializedTableTest {
   }
 
   @Test
+  public void shouldGetStoreWithCorrectParams_fullTableScan() {
+    // Given:
+    when(tableStore.all()).thenReturn(keyValueIterator);
+
+    // When:
+    table.get(PARTITION);
+
+    // Then:
+    verify(stateStore).store(storeTypeCaptor.capture(), anyInt());
+    assertThat(storeTypeCaptor.getValue().getClass().getSimpleName(), is("TimestampedKeyValueStoreType"));
+  }
+
+  @Test
   public void shouldGetWithCorrectParams() {
     // When:
     table.get(A_KEY, PARTITION);
@@ -157,5 +193,40 @@ public class KsMaterializedTableTest {
 
     // Then:
     assertThat(result, is(Optional.of(Row.of(SCHEMA, A_KEY, value, rowTime))));
+  }
+
+  @Test
+  public void shouldReturnValuesFullTableScan() {
+    // Given:
+    when(tableStore.all()).thenReturn(keyValueIterator);
+    when(keyValueIterator.hasNext()).thenReturn(true, true, false);
+    when(keyValueIterator.next())
+        .thenReturn(KEY_VALUE1)
+        .thenReturn(KEY_VALUE2);
+
+    // When:
+    Iterator<Row> rows = table.get(PARTITION);
+
+    // Then:
+    assertThat(rows.next(), is(Row.of(SCHEMA, A_KEY, ROW1, TIME1)));
+    assertThat(rows.next(), is(Row.of(SCHEMA, A_KEY2, ROW2, TIME2)));
+    assertThat(rows.hasNext(), is(false));
+  }
+
+  @Test
+  public void shouldCloseIterator_fullTableScan() {
+    // Given:
+    when(tableStore.all()).thenReturn(keyValueIterator);
+    when(keyValueIterator.hasNext()).thenReturn(true, true, false);
+    when(keyValueIterator.next())
+        .thenReturn(KEY_VALUE1)
+        .thenReturn(KEY_VALUE2);
+
+    // When:
+    Streams.stream(table.get(PARTITION))
+        .collect(Collectors.toList());
+
+    // Then:
+    verify(keyValueIterator).close();
   }
 }

@@ -34,7 +34,9 @@ import io.confluent.ksql.physical.pull.operators.KeyedTableLookupOperator;
 import io.confluent.ksql.physical.pull.operators.KeyedWindowedTableLookupOperator;
 import io.confluent.ksql.physical.pull.operators.ProjectOperator;
 import io.confluent.ksql.physical.pull.operators.SelectOperator;
+import io.confluent.ksql.physical.pull.operators.TableScanOperator;
 import io.confluent.ksql.physical.pull.operators.WhereInfo;
+import io.confluent.ksql.physical.pull.operators.WindowedTableScanOperator;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
@@ -47,6 +49,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -105,10 +108,6 @@ public class PullPhysicalPlanBuilder {
     DataSourceOperator dataSourceOperator = null;
 
     // Basic validation, should be moved to logical plan builder
-    final boolean windowed = persistentQueryMetadata.getResultTopic().getKeyFormat().isWindowed();
-    analysis.getWhereExpression()
-        .orElseThrow(() -> WhereInfo.invalidWhereClauseException("Missing WHERE clause", windowed));
-
     final OutputNode outputNode = logicalPlanNode.getNode()
         .orElseThrow(() -> new IllegalArgumentException("Need an output node to build a plan"));
 
@@ -195,10 +194,23 @@ public class PullPhysicalPlanBuilder {
       final DataSourceNode logicalNode
   ) {
     if (whereInfo == null) {
-      throw new KsqlException("Pull queries must have a WHERE clause");
+      if (!config.getBoolean(KsqlConfig.KSQL_PULL_QUERIES_FULL_TABLE_SCAN_ENABLED)) {
+        throw new KsqlException("Pull queries must have a WHERE clause");
+      }
+      // Full table scan has no keys
+      keys = Collections.emptyList();
+    } else {
+      keys = whereInfo.getKeysBound();
     }
-    keys = whereInfo.getKeysBound();
-    if (!whereInfo.isWindowed()) {
+
+    final boolean windowed = persistentQueryMetadata.getResultTopic().getKeyFormat().isWindowed();
+    if (keys.isEmpty()) {
+      if (!windowed) {
+        return new TableScanOperator(mat, logicalNode);
+      } else {
+        return new WindowedTableScanOperator(mat, logicalNode);
+      }
+    } else if (!windowed) {
       return new KeyedTableLookupOperator(mat, logicalNode);
     } else {
       return new KeyedWindowedTableLookupOperator(

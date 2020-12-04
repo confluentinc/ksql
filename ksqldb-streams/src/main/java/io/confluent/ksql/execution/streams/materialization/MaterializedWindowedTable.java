@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.streams.materialization;
 import com.google.common.collect.Range;
 import io.confluent.ksql.GenericKey;
 import java.time.Instant;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -37,4 +38,15 @@ public interface MaterializedWindowedTable {
    */
   List<WindowedRow> get(GenericKey key, int partition, Range<Instant> windowStart,
       Range<Instant> windowEnd);
+
+  /**
+   * Get the values in table where the window start time is within the
+   * supplied {@code lower} and {@code upper} bounds.
+   *
+   * @param partition partition to limit the get to
+   * @param windowStart the bounds on the window's start time.
+   * @param windowEnd the bounds on the window's end time.
+   * @return the rows for the key that exist within the range.
+   */
+  Iterator<WindowedRow> get(int partition, Range<Instant> windowStart, Range<Instant> windowEnd);
 }

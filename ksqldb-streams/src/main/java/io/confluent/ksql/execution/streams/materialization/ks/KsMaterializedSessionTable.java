@@ -25,6 +25,7 @@ import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedT
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.streams.materialization.ks.SessionStoreCacheBypass.SessionStoreCacheBypassFetcher;
 import java.time.Instant;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.streams.KeyValue;
@@ -63,6 +64,12 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
     } catch (final Exception e) {
       throw new MaterializationException("Failed to get value from materialized table", e);
     }
+  }
+
+  @Override
+  public Iterator<WindowedRow> get(final int partition, final Range<Instant> windowStartBounds,
+      final Range<Instant> windowEndBounds) {
+    throw new MaterializationException("Table scan unsupported on session tables");
   }
 
   private List<WindowedRow> findSession(

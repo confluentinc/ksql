@@ -20,12 +20,14 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Range;
+import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.time.Instant;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -140,6 +142,16 @@ class KsqlMaterialization implements Materialization {
               .map(v -> row.withValue(v, schema()))
           );
     }
+
+    @Override
+    public Iterator<Row> get(final int partition) {
+      return Streams.stream(table.get(partition))
+          .map(row -> filterAndTransform(row.key(), row.value(), row.rowTime())
+              .map(v -> row.withValue(v, schema())))
+          .filter(Optional::isPresent)
+          .map(Optional::get)
+          .iterator();
+    }
   }
 
   final class KsqlMaterializedWindowedTable implements MaterializedWindowedTable {
@@ -167,6 +179,21 @@ class KsqlMaterialization implements Materialization {
       }
 
       return builder.build();
+    }
+
+    @Override
+    public Iterator<WindowedRow> get(final int partition, final Range<Instant> windowStartBounds,
+        final Range<Instant> windowEndBounds) {
+      final Iterator<WindowedRow> result = table.get(partition, windowStartBounds, windowEndBounds);
+
+      return Streams.stream(result)
+          .map(row ->  {
+            return filterAndTransform(row.windowedKey(), row.value(), row.rowTime())
+                .map(v -> row.withValue(v, schema()));
+          })
+          .filter(Optional::isPresent)
+          .map(Optional::get)
+          .iterator();
     }
   }
 }

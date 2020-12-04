@@ -238,6 +238,12 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PULL_THREAD_POOL_SIZE_DOC =
       "Size of thread pool used for sending/executing pull queries";
 
+  public static final String KSQL_PULL_QUERIES_FULL_TABLE_SCAN_ENABLED
+      = "ksql.pull.queries.full.table.scan.enabled";
+  public static final String KSQL_PULL_QUERIES_FULL_TABLE_SCAN_ENABLED_DOC =
+      "Config to enable full table scans for pull queries";
+  public static final boolean KSQL_PULL_QUERIES_FULL_TABLE_SCAN_ENABLED_DEFAULT = false;
+
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
       "When casting a SQLType to string, if false, use String.valueof(), else if true use"
@@ -683,7 +689,7 @@ public class KsqlConfig extends AbstractConfig {
             Type.BOOLEAN,
             KSQL_QUERY_PULL_ENABLE_DEFAULT,
             Importance.LOW,
-            KSQL_QUERY_PULL_ENABLE_DOC
+            KSQL_PULL_QUERIES_FULL_TABLE_SCAN_ENABLED_DOC
         ).define(
             KSQL_QUERY_PULL_ENABLE_STANDBY_READS,
             Type.BOOLEAN,
@@ -769,6 +775,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PULL_THREAD_POOL_SIZE_DOC
+        )
+        .define(
+            KSQL_PULL_QUERIES_FULL_TABLE_SCAN_ENABLED,
+            Type.BOOLEAN,
+            KSQL_PULL_QUERIES_FULL_TABLE_SCAN_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_PULL_QUERIES_FULL_TABLE_SCAN_ENABLED_DOC
         )
         .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,

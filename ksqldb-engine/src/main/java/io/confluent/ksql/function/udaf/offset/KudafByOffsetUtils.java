@@ -72,19 +72,11 @@ final class KudafByOffsetUtils {
           return -1;
         } else if (struct2.get(VAL_FIELD) == null) {
           return 1;
+        } else if (struct1.get(VAL_FIELD) == null && struct2.get(VAL_FIELD) == null ){
+          return 0;
         }
 
-        // Deal with overflow - we assume if one is positive and the other negative then the
-        // sequence has overflowed - in which case the latest is the one with the smallest sequence
-        final long sequence1 = struct1.getInt64(SEQ_FIELD);
-        final long sequence2 = struct2.getInt64(SEQ_FIELD);
-        if (sequence1 < 0 && sequence2 >= 0) {
-          return 1;
-        } else if (sequence2 < 0 && sequence1 >= 0) {
-          return -1;
-        } else {
-          return Long.compare(sequence1, sequence2);
-        }
+        return INTERMEDIATE_STRUCT_COMPARATOR.compare(struct1, struct2);
       };
 
   static <T> Struct createStruct(final Schema schema, final long sequence, final T val) {

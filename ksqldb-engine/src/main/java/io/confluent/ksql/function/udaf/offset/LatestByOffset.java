@@ -52,6 +52,7 @@ public final class LatestByOffset {
   }
 
   static AtomicLong sequence = new AtomicLong();
+  private static Comparator<Struct> comparator;
 
   @UdafFactory(description = "return the latest value of an integer column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL INT>")
@@ -62,6 +63,7 @@ public final class LatestByOffset {
   @UdafFactory(description = "return the latest value of an integer column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL INT>")
   public static Udaf<Integer, Struct, Integer> latestInteger(final boolean ignoreNulls) {
+    setComparator(ignoreNulls);
     return latest(STRUCT_INTEGER, ignoreNulls);
   }
 
@@ -77,6 +79,7 @@ public final class LatestByOffset {
       final int latestN,
       final boolean ignoreNulls
   ) {
+    setComparator(ignoreNulls);
     return latestN(STRUCT_INTEGER, latestN, ignoreNulls);
   }
 
@@ -89,6 +92,7 @@ public final class LatestByOffset {
   @UdafFactory(description = "return the latest value of an big integer column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL BIGINT>")
   public static Udaf<Long, Struct, Long> latestLong(final boolean ignoreNulls) {
+    setComparator(ignoreNulls);
     return latest(STRUCT_LONG, ignoreNulls);
   }
 
@@ -104,6 +108,7 @@ public final class LatestByOffset {
       final int latestN,
       final boolean ignoreNulls
   ) {
+    setComparator(ignoreNulls);
     return latestN(STRUCT_LONG, latestN, ignoreNulls);
   }
 
@@ -116,6 +121,7 @@ public final class LatestByOffset {
   @UdafFactory(description = "return the latest value of a double column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL DOUBLE>")
   public static Udaf<Double, Struct, Double> latestDouble(final boolean ignoreNulls) {
+    setComparator(ignoreNulls);
     return latest(STRUCT_DOUBLE, ignoreNulls);
   }
 
@@ -131,6 +137,7 @@ public final class LatestByOffset {
       final int latestN,
       final boolean ignoreNulls
   ) {
+    setComparator(ignoreNulls);
     return latestN(STRUCT_DOUBLE, latestN, ignoreNulls);
   }
 
@@ -143,6 +150,7 @@ public final class LatestByOffset {
   @UdafFactory(description = "return the latest value of a boolean column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL BOOLEAN>")
   public static Udaf<Boolean, Struct, Boolean> latestBoolean(final boolean ignoreNulls) {
+    setComparator(ignoreNulls);
     return latest(STRUCT_BOOLEAN, ignoreNulls);
   }
 
@@ -158,6 +166,7 @@ public final class LatestByOffset {
       final int latestN,
       final boolean ignoreNulls
   ) {
+    setComparator(ignoreNulls);
     return latestN(STRUCT_BOOLEAN, latestN, ignoreNulls);
   }
 
@@ -170,6 +179,7 @@ public final class LatestByOffset {
   @UdafFactory(description = "return the latest value of a string column",
       aggregateSchema = "STRUCT<SEQ BIGINT, VAL STRING>")
   public static Udaf<String, Struct, String> latestString(final boolean ignoreNulls) {
+    setComparator(ignoreNulls);
     return latest(STRUCT_STRING, ignoreNulls);
   }
 
@@ -185,6 +195,7 @@ public final class LatestByOffset {
       final int latestN,
       final boolean ignoreNulls
   ) {
+    setComparator(ignoreNulls);
     return latestN(STRUCT_STRING, latestN, ignoreNulls);
   }
 
@@ -222,12 +233,6 @@ public final class LatestByOffset {
       public Struct merge(final Struct aggOne, final Struct aggTwo) {
         // When merging we need some way of evaluating the "latest' one.
         // We do this by keeping track of the sequence of when it was originally processed
-        final Comparator<Struct> comparator;
-        if (ignoreNulls) {
-          comparator = INTERMEDIATE_STRUCT_COMPARATOR_IGNORE_NULLS;
-        } else {
-          comparator = INTERMEDIATE_STRUCT_COMPARATOR;
-        }
         if (comparator.compare(aggOne, aggTwo) >= 0) {
           return aggOne;
         } else {
@@ -255,6 +260,7 @@ public final class LatestByOffset {
     }
 
     return new Udaf<T, List<Struct>, List<T>>() {
+
       @Override
       public List<Struct> initialize() {
         return new ArrayList<>(latestN);
@@ -276,12 +282,6 @@ public final class LatestByOffset {
 
       @Override
       public List<Struct> merge(final List<Struct> aggOne, final List<Struct> aggTwo) {
-        final Comparator<Struct> comparator;
-        if (ignoreNulls) {
-          comparator = INTERMEDIATE_STRUCT_COMPARATOR_IGNORE_NULLS;
-        } else {
-          comparator = INTERMEDIATE_STRUCT_COMPARATOR;
-        }
         final List<Struct> merged = new ArrayList<>(aggOne.size() + aggTwo.size());
         merged.addAll(aggOne);
         merged.addAll(aggTwo);
@@ -296,5 +296,13 @@ public final class LatestByOffset {
         return (List<T>) agg.stream().map(s -> s.get(VAL_FIELD)).collect(Collectors.toList());
       }
     };
+  }
+
+  private static void setComparator(boolean ignoreNulls) {
+    if (ignoreNulls) {
+      comparator = INTERMEDIATE_STRUCT_COMPARATOR_IGNORE_NULLS;
+    } else {
+      comparator = INTERMEDIATE_STRUCT_COMPARATOR;
+    }
   }
 }

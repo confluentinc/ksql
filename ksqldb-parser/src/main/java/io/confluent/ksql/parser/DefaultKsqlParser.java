@@ -22,6 +22,8 @@ import io.confluent.ksql.parser.tree.Statement;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import io.confluent.ksql.util.KsqlException;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
@@ -106,6 +108,8 @@ public class DefaultKsqlParser implements KsqlParser {
 
       sqlBaseParser.getInterpreter().setPredictionMode(PredictionMode.LL);
       return (SqlBaseParser.StatementsContext)parseFunction.apply(sqlBaseParser);
+    } catch (final StackOverflowError e) {
+      throw new KsqlException("Error parsing statement: Statement is too large to parse.");
     }
   }
 

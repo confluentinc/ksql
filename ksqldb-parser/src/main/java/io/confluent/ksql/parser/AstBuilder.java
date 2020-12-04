@@ -1474,9 +1474,13 @@ public class AstBuilder {
   }
 
   private static Set<SourceName> getSources(final ParseTree parseTree) {
-    final SourceAccumulator accumulator = new SourceAccumulator();
-    accumulator.visit(parseTree);
-    return accumulator.getSources();
+    try {
+      final SourceAccumulator accumulator = new SourceAccumulator();
+      accumulator.visit(parseTree);
+      return accumulator.getSources();
+    } catch (StackOverflowError e) {
+      throw new KsqlException("Error processing statement: Statement is too large to parse.");
+    }
   }
 
   private static class SourceAccumulator extends SqlBaseBaseVisitor<Void> {

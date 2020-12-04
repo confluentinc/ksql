@@ -2342,15 +2342,9 @@
               "valueFormat": { "format": "JSON" }
             },
             {
-              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
-              "keyFormat" : {"format" : "KAFKA"},
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-RightSourceKeyed-Materialize-changelog",
+              "keyFormat" : {"format" : "DELIMITED"},
               "valueFormat" : {"format" : "JSON"}
-            },
-            {
-              "comments": ["should be removed after we fix issue https://github.com/confluentinc/ksql/issues/6650"],
-              "name": "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-RightSourceKeyed-Materialize-changelog",
-              "keyFormat": { "format": "DELIMITED" },
-              "valueFormat": { "format": "JSON" }
             }
           ]
         }
@@ -2450,17 +2444,7 @@
               "valueFormat": { "format": "JSON" }
             },
             {
-              "name": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Right-Reduce-changelog",
-              "keyFormat": { "format": "DELIMITED" },
-              "valueFormat": { "format": "JSON" }
-            },
-            {
               "name": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-RightSourceKeyed-SelectKey-repartition",
-              "keyFormat": { "format": "KAFKA" },
-              "valueFormat": { "format": "JSON" }
-            },
-            {
-              "name": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-KafkaTopic_Left-Reduce-changelog",
               "keyFormat": { "format": "KAFKA" },
               "valueFormat": { "format": "JSON" }
             }

@@ -19,11 +19,10 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
-import io.confluent.ksql.execution.plan.PlanInfoExtractor;
-import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
@@ -81,11 +80,6 @@ public final class KSPlanBuilder implements PlanBuilder {
     this.aggregateParamFactory =
         Objects.requireNonNull(aggregateParamFactory, "aggregateParamsFactory");
     this.streamsFactories = Objects.requireNonNull(streamsFactories, "streamsFactories");
-  }
-
-  @Override
-  public PlanInfoExtractor getPlanInfoExtractor() {
-    return new PlanInfoExtractor();
   }
 
   @Override

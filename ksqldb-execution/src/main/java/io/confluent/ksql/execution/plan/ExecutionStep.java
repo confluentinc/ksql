@@ -61,7 +61,7 @@ public interface ExecutionStep<S> {
   List<ExecutionStep<?>> getSources();
 
   default S build(PlanBuilder planBuilder) {
-    return build(planBuilder, extractPlanInfo(planBuilder.getPlanInfoExtractor()));
+    return build(planBuilder, extractPlanInfo(new PlanInfoExtractor()));
   }
 
   S build(PlanBuilder planBuilder, PlanInfo planInfo);

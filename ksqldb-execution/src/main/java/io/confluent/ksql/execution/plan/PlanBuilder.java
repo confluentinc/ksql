@@ -26,8 +26,6 @@ import org.apache.kafka.streams.kstream.Windowed;
  */
 public interface PlanBuilder {
 
-  PlanInfoExtractor getPlanInfoExtractor();
-
   <K> KStreamHolder<K> visitStreamFilter(StreamFilter<K> streamFilter, PlanInfo planInfo);
 
   <K> KGroupedStreamHolder visitStreamGroupBy(StreamGroupBy<K> streamGroupBy, PlanInfo planInfo);

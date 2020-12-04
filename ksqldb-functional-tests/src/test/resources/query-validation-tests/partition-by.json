@@ -855,7 +855,19 @@
       "properties": {
         "ksql.complex.key.format.enabled": true
       },
-      "name": "struct key format",
+      "name": "partition by array key",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL ARRAY<INT>) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by VAL;"
+      ],
+      "inputs": [{"topic": "input", "key": 10, "value": {"VAL": [12, 1]}}],
+      "outputs": [{"topic": "OUTPUT", "key": [12, 1], "value": {"ID": 10}}]
+    },
+    {
+      "properties": {
+        "ksql.complex.key.format.enabled": true
+      },
+      "name": "partition by struct key",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, VAL STRUCT<F1 INT, F2 INT>) with (kafka_topic='input', format='JSON');",
         "CREATE STREAM OUTPUT AS select * from INPUT partition by VAL;"
@@ -867,7 +879,7 @@
       "properties": {
         "ksql.complex.key.format.enabled": true
       },
-      "name": "struct key format when original is unwrapped",
+      "name": "partition by struct key when original is unwrapped",
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, VAL STRUCT<F1 INT, F2 INT>) with (kafka_topic='input', format='JSON', wrap_single_value=false);",
         "CREATE STREAM OUTPUT AS select * from INPUT partition by VAL;"
@@ -973,6 +985,34 @@
             }
           ]
         }
+      }
+    },
+    {
+      "properties": {
+        "ksql.complex.key.format.enabled": true
+      },
+      "name": "partition by map key",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL MAP<STRING, INT>) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by VAL;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `VAL`. Column type: MAP<STRING, INTEGER>"
+      }
+    },
+    {
+      "properties": {
+        "ksql.complex.key.format.enabled": true
+      },
+      "name": "partition by nested map key",
+      "statements": [
+        "CREATE STREAM INPUT (ID INT KEY, VAL STRUCT<F1 MAP<STRING, INT>>) with (kafka_topic='input', format='JSON');",
+        "CREATE STREAM OUTPUT AS select * from INPUT partition by VAL;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `VAL`. Column type: STRUCT<`F1` MAP<STRING, INTEGER>>"
       }
     }
   ]

@@ -21,7 +21,6 @@ import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
-import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -91,8 +90,6 @@ public final class PullQueryExecutionUtil {
     if (query.getDataSourceType() != DataSourceType.KTABLE) {
       throw new KsqlException("Pull queries are not supported on streams.");
     }
-    System.out.println("----> mat.schema = " + query
-        .getMaterialization(queryId, new Stacker()).get().schema());
     return query;
   }
 

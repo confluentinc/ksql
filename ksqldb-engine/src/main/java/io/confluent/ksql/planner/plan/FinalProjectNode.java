@@ -90,7 +90,6 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
 
     final Pair<LogicalSchema, List<SelectExpression>> result = build(metaStore);
     this.schema = result.left;
-    System.out.println("-----> Project output schema=" + schema);
     this.selectExpressions = ImmutableList.copyOf(result.right);
     if (analysis.isPullQuery()) {
       this.isPullQuerySelectStar = isPullQuerySelectStar();
@@ -227,13 +226,9 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
 
   @VisibleForTesting
   protected LogicalSchema buildPullQueryIntermediateSchema() {
-    System.out.println("------> parentSchema: " + getSource().getSchema());
     final LogicalSchema parentSchema = getSource().getSchema();
-    System.out.println("------> parentSchema.withoutPseudoAndKeyColsInValue: "
-                           + parentSchema.withoutPseudoAndKeyColsInValue());
 
     if (!addAdditionalColumnsToIntermediateSchema) {
-      System.out.println("-----> intermediate schema no additional= " + parentSchema);
       return parentSchema;
     } else {
       // SelectValueMapper requires the rowTime & key fields in the value schema :(
@@ -243,8 +238,6 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
           .getKsqlTopic()
           .getKeyFormat().isWindowed();
 
-      System.out.println("-----> intermediate schema= " + parentSchema
-          .withPseudoAndKeyColsInValue(isWindowed));
       return parentSchema
           .withPseudoAndKeyColsInValue(isWindowed);
     }
@@ -263,7 +256,6 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
     if (isPullQuerySelectStar()) {
       outputSchema = buildPullQuerySelectStarSchema(
           parentSchema.withoutPseudoAndKeyColsInValue(), isWindowed);
-      System.out.println("-----> pull query select * output schema= " + outputSchema);
     } else {
       final List<SelectExpression> projects = projection.selectItems().stream()
           .map(SingleColumn.class::cast)
@@ -272,7 +264,6 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
           .collect(Collectors.toList());
 
       outputSchema = selectOutputSchema(metaStore, projects, isWindowed);
-      System.out.println("-----> pull query output schema= " + outputSchema);
     }
     return outputSchema;
   }

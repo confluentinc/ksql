@@ -356,8 +356,7 @@ public class LogicalPlanner {
 
     validator.validateFilterExpression(filterExpression);
 
-    return new FilterNode(
-        new PlanNodeId("WhereFilter"), sourcePlanNode, filterExpression);
+    return new FilterNode(new PlanNodeId("WhereFilter"), sourcePlanNode, filterExpression);
   }
 
   private UserRepartitionNode buildUserRepartitionNode(

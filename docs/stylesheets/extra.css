@@ -83,6 +83,7 @@ select.version::-ms-expand {
     flex: 1;
     align-items: stretch;
     background-color: #f6f8f8;
+    border: 2px solid #eee;
     border-radius: 3px;
     padding: 15px;
     margin: 5px;

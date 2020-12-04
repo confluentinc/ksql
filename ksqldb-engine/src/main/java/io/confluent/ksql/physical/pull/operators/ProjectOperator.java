@@ -142,12 +142,10 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
     }
 
     return row -> {
-      final Struct key = row.key();
+      final GenericKey key = row.key();
       final GenericRow value = row.value();
 
-      final List<Object> keyFields = key.schema().fields().stream()
-          .map(key::get)
-          .collect(Collectors.toList());
+      final List<?> keyFields = key.values();
 
       value.ensureAdditionalCapacity(
           1 // ROWTIME
@@ -167,7 +165,7 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
     };
   }
 
-  private void validateProjection(
+  private static void validateProjection(
       final GenericRow fullRow,
       final LogicalSchema schema
   ) {

@@ -16,7 +16,6 @@
 package io.confluent.ksql.physical.pull;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
@@ -45,17 +44,12 @@ import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.connect.ConnectSchemas;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Struct;
 
 /**
  * Traverses the logical plan top-down and creates a physical plan for pull queries.
@@ -215,17 +209,6 @@ public class PullPhysicalPlanBuilder {
       return new KeyedWindowedTableLookupOperator(
           mat, logicalNode, whereInfo.getWindowBounds().get());
     }
-  }
-
-  private Struct asKeyStruct(final Object keyValue, final PhysicalSchema physicalSchema) {
-    final ConnectSchema keySchema = ConnectSchemas
-        .columnsToConnectSchema(physicalSchema.keySchema().columns());
-
-    final Field keyField = Iterables.getOnlyElement(keySchema.fields());
-
-    final Struct key = new Struct(keySchema);
-    key.put(keyField, keyValue);
-    return key;
   }
 
   private QueryId uniqueQueryId() {

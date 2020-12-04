@@ -63,3 +63,41 @@ select.version::-ms-expand {
     display: block;
     margin: 30px auto;
 }
+
+.cards {
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: space-evenly;
+    align-items: stretch;
+}
+
+@media (max-width: 800px) {
+  .cards {
+    flex-direction: column;
+  }
+}
+
+.card {
+    display: flex;
+    flex-flow: column wrap;
+    flex: 1;
+    align-items: stretch;
+    background-color: #f6f8f8;
+    border-radius: 3px;
+    padding: 15px;
+    margin: 5px;
+}
+
+ul.card-items {
+    margin-left: 0;
+    list-style-type: none;
+    flex: 1;
+}
+
+ul.card-items li {
+    margin-left: 0;
+}
+
+.card-more {
+    align-self: flex-start;
+}

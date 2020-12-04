@@ -59,16 +59,15 @@ The ksqlDB documentation build uses these plugins and extensions:
 - **pymdown-extensions:** adds features to the standard Python Markdown library
 - **mkdocs-material:** docs site theme
 - **mkdocs-redirects:** redirects for moved content
+- **mdx-truly-sane-lists:** improved list formatting 
+
+These dependencies and the required versions are listed in the `requirements.txt` 
+file in the `docs` directory.
 
 Install the plugins and extensions by using the `pip` installer:
 
 ```bash
-pip install mdx_gh_links
-pip install mkdocs-macros-plugin
-pip install mkdocs-git-revision-date-plugin
-pip install pymdown-extensions
-pip install mkdocs-material
-pip install mkdocs-redirects
+pip install -r docs/requirements.txt
 ```
 
 Build the docs

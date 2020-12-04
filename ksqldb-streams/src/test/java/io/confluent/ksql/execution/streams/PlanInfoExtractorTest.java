@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
+import io.confluent.ksql.execution.plan.PlanInfoExtractor;
 import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSource;
@@ -39,7 +40,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class KSPlanInfoExtractorTest {
+public class PlanInfoExtractorTest {
 
   @Mock
   private QueryContext queryContext;
@@ -59,7 +60,7 @@ public class KSPlanInfoExtractorTest {
   private StreamTableJoin<GenericKey> streamRepartitionedAndTableJoined;
   private StreamSelectKey<GenericKey> streamAndTableJoinedRepartitioned;
 
-  private KSPlanInfoExtractor planInfoExtractor;
+  private PlanInfoExtractor planInfoExtractor;
 
   @Before
   public void setUp() {
@@ -105,7 +106,7 @@ public class KSPlanInfoExtractorTest {
         repartitionKey
     );
 
-    planInfoExtractor = new KSPlanInfoExtractor();
+    planInfoExtractor = new PlanInfoExtractor();
   }
 
   @Test

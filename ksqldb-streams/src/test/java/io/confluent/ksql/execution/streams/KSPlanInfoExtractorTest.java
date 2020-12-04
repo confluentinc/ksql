@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
@@ -110,7 +111,7 @@ public class KSPlanInfoExtractorTest {
   @Test
   public void shouldExtractSource() {
     // When:
-    final KSPlanInfo planInfo = (KSPlanInfo) streamSource.extractPlanInfo(planInfoExtractor);
+    final PlanInfo planInfo = (PlanInfo) streamSource.extractPlanInfo(planInfoExtractor);
 
     // Then:
     assertThat(planInfo.isRepartitionedInPlan(streamSource), is(false));
@@ -119,7 +120,7 @@ public class KSPlanInfoExtractorTest {
   @Test
   public void shouldExtractSourceWithRepartition() {
     // When:
-    final KSPlanInfo planInfo = (KSPlanInfo) streamSourceRepartitioned.extractPlanInfo(planInfoExtractor);
+    final PlanInfo planInfo = (PlanInfo) streamSourceRepartitioned.extractPlanInfo(planInfoExtractor);
 
     // Then:
     assertThat(planInfo.isRepartitionedInPlan(streamSource), is(true));
@@ -128,7 +129,7 @@ public class KSPlanInfoExtractorTest {
   @Test
   public void shouldExtractMultipleSources() {
     // When:
-    final KSPlanInfo planInfo = (KSPlanInfo) streamAndTableJoined.extractPlanInfo(planInfoExtractor);
+    final PlanInfo planInfo = (PlanInfo) streamAndTableJoined.extractPlanInfo(planInfoExtractor);
 
     // Then:
     assertThat(planInfo.isRepartitionedInPlan(streamSource), is(false));
@@ -138,7 +139,7 @@ public class KSPlanInfoExtractorTest {
   @Test
   public void shouldExtractRepartitionBeforeJoin() {
     // When:
-    final KSPlanInfo planInfo = (KSPlanInfo) streamRepartitionedAndTableJoined.extractPlanInfo(planInfoExtractor);
+    final PlanInfo planInfo = (PlanInfo) streamRepartitionedAndTableJoined.extractPlanInfo(planInfoExtractor);
 
     // Then:
     assertThat(planInfo.isRepartitionedInPlan(streamSource), is(true));
@@ -148,7 +149,7 @@ public class KSPlanInfoExtractorTest {
   @Test
   public void shouldExtractRepartitionAfterJoin() {
     // When:
-    final KSPlanInfo planInfo = (KSPlanInfo) streamAndTableJoinedRepartitioned.extractPlanInfo(planInfoExtractor);
+    final PlanInfo planInfo = (PlanInfo) streamAndTableJoinedRepartitioned.extractPlanInfo(planInfoExtractor);
 
     // Then:
     assertThat(planInfo.isRepartitionedInPlan(streamSource), is(false));

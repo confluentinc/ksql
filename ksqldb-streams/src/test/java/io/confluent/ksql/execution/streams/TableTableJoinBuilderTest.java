@@ -18,6 +18,7 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.JoinType;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
@@ -69,7 +70,7 @@ public class TableTableJoinBuilderTest {
   @Mock
   private ExecutionKeyFactory<Struct> executionKeyFactory;
   @Mock
-  private KSPlanInfo planInfo;
+  private PlanInfo planInfo;
 
   private PlanBuilder planBuilder;
   private TableTableJoin<Struct> join;

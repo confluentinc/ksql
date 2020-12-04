@@ -32,6 +32,7 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamSelectKeyV1;
@@ -97,7 +98,7 @@ public class StreamSelectKeyBuilderV1Test {
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
-  private KSPlanInfo planInfo;
+  private PlanInfo planInfo;
   @Captor
   private ArgumentCaptor<Predicate<GenericKey, GenericRow>> predicateCaptor;
   @Captor

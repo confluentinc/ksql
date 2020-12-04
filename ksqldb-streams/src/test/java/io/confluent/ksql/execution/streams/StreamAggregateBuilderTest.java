@@ -45,6 +45,7 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamAggregate;
@@ -177,7 +178,7 @@ public class StreamAggregateBuilderTest {
   @Mock
   private MaterializedFactory materializedFactory;
   @Mock
-  private KSPlanInfo planInfo;
+  private PlanInfo planInfo;
   @Mock
   private Serde<GenericKey> keySerde;
   @Mock

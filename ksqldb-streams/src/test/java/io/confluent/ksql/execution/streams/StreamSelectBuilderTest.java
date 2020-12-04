@@ -32,6 +32,7 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
@@ -96,7 +97,7 @@ public class StreamSelectBuilderTest {
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
-  private KSPlanInfo planInfo;
+  private PlanInfo planInfo;
   @Captor
   private ArgumentCaptor<Named> nameCaptor;
 

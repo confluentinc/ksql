@@ -19,10 +19,10 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
-import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.PlanInfoExtractor;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamFilter;
@@ -242,7 +242,7 @@ public final class KSPlanBuilder implements PlanBuilder {
         tableSource,
         streamsFactories.getConsumedFactory(),
         streamsFactories.getMaterializedFactory(),
-        (KSPlanInfo) planInfo
+        (PlanInfo) planInfo
     );
   }
 
@@ -256,7 +256,7 @@ public final class KSPlanBuilder implements PlanBuilder {
         windowedTableSource,
         streamsFactories.getConsumedFactory(),
         streamsFactories.getMaterializedFactory(),
-        (KSPlanInfo) planInfo
+        (PlanInfo) planInfo
     );
   }
 

@@ -25,6 +25,7 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.SourceStep;
@@ -163,7 +164,7 @@ public final class SourceBuilder {
       final TableSource source,
       final ConsumedFactory consumedFactory,
       final MaterializedFactory materializedFactory,
-      final KSPlanInfo planInfo
+      final PlanInfo planInfo
   ) {
     final PhysicalSchema physicalSchema = getPhysicalSchema(source);
 
@@ -215,7 +216,7 @@ public final class SourceBuilder {
       final WindowedTableSource source,
       final ConsumedFactory consumedFactory,
       final MaterializedFactory materializedFactory,
-      final KSPlanInfo planInfo
+      final PlanInfo planInfo
   ) {
     final PhysicalSchema physicalSchema = getPhysicalSchema(source);
 
@@ -313,7 +314,7 @@ public final class SourceBuilder {
       final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized,
       final Serde<GenericRow> valueSerde,
       final String stateStoreName,
-      final KSPlanInfo planInfo
+      final PlanInfo planInfo
   ) {
     final boolean forceChangelog = streamSource instanceof TableSource
         && ((TableSource) streamSource).isForceChangelog();

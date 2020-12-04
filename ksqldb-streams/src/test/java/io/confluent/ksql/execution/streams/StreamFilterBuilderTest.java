@@ -16,6 +16,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamFilter;
@@ -67,7 +68,7 @@ public class StreamFilterBuilderTest {
   @Mock
   private ExecutionKeyFactory<GenericKey> executionKeyFactory;
   @Mock
-  private KSPlanInfo planInfo;
+  private PlanInfo planInfo;
 
   private final QueryContext queryContext = new QueryContext.Stacker()
       .push("bar")

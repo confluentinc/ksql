@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.PlanInfoExtractor;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamFilter;
@@ -43,149 +44,149 @@ import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 
 /**
- * Visitor for extracting {@link KSPlanInfo} from an execution step plan.
- * See {@link KSPlanInfo} description for more.
+ * Visitor for extracting {@link PlanInfo} from an execution step plan.
+ * See {@link PlanInfo} description for more.
  */
 public class KSPlanInfoExtractor implements PlanInfoExtractor {
   
   @Override
-  public <K> KSPlanInfo visitStreamFilter(final StreamFilter<K> streamFilter) {
+  public <K> PlanInfo visitStreamFilter(final StreamFilter<K> streamFilter) {
     return visitSingleSourceStep(streamFilter);
   }
 
   @Override
-  public <K> KSPlanInfo visitStreamGroupBy(final StreamGroupBy<K> streamGroupBy) {
+  public <K> PlanInfo visitStreamGroupBy(final StreamGroupBy<K> streamGroupBy) {
     return visitSingleSourceStep(streamGroupBy);
   }
 
   @Override
-  public KSPlanInfo visitStreamGroupByKey(final StreamGroupByKey streamGroupByKey) {
+  public PlanInfo visitStreamGroupByKey(final StreamGroupByKey streamGroupByKey) {
     return visitSingleSourceStep(streamGroupByKey);
   }
 
   @Override
-  public KSPlanInfo visitStreamAggregate(final StreamAggregate streamAggregate) {
+  public PlanInfo visitStreamAggregate(final StreamAggregate streamAggregate) {
     return visitSingleSourceStep(streamAggregate);
   }
 
   @Override
-  public <K> KSPlanInfo visitStreamSelect(final StreamSelect<K> streamSelect) {
+  public <K> PlanInfo visitStreamSelect(final StreamSelect<K> streamSelect) {
     return visitSingleSourceStep(streamSelect);
   }
 
   @Override
-  public <K> KSPlanInfo visitFlatMap(final StreamFlatMap<K> streamFlatMap) {
+  public <K> PlanInfo visitFlatMap(final StreamFlatMap<K> streamFlatMap) {
     return visitSingleSourceStep(streamFlatMap);
   }
 
   @Override
-  public KSPlanInfo visitStreamSelectKey(final StreamSelectKeyV1 streamSelectKey) {
+  public PlanInfo visitStreamSelectKey(final StreamSelectKeyV1 streamSelectKey) {
     return visitRepartitionStep(streamSelectKey);
   }
 
   @Override
-  public <K> KSPlanInfo visitStreamSelectKey(final StreamSelectKey<K> streamSelectKey) {
+  public <K> PlanInfo visitStreamSelectKey(final StreamSelectKey<K> streamSelectKey) {
     return visitRepartitionStep(streamSelectKey);
   }
 
   @Override
-  public <K> KSPlanInfo visitStreamSink(final StreamSink<K> streamSink) {
+  public <K> PlanInfo visitStreamSink(final StreamSink<K> streamSink) {
     return visitSingleSourceStep(streamSink);
   }
 
   @Override
-  public KSPlanInfo visitStreamSource(final StreamSource streamSource) {
+  public PlanInfo visitStreamSource(final StreamSource streamSource) {
     return visitSourceStep(streamSource);
   }
 
   @Override
-  public KSPlanInfo visitWindowedStreamSource(final WindowedStreamSource windowedStreamSource) {
+  public PlanInfo visitWindowedStreamSource(final WindowedStreamSource windowedStreamSource) {
     return visitSourceStep(windowedStreamSource);
   }
 
   @Override
-  public <K> KSPlanInfo visitStreamStreamJoin(final StreamStreamJoin<K> streamStreamJoin) {
+  public <K> PlanInfo visitStreamStreamJoin(final StreamStreamJoin<K> streamStreamJoin) {
     return visitJoinStep(streamStreamJoin);
   }
 
   @Override
-  public <K> KSPlanInfo visitStreamTableJoin(final StreamTableJoin<K> streamTableJoin) {
+  public <K> PlanInfo visitStreamTableJoin(final StreamTableJoin<K> streamTableJoin) {
     return visitJoinStep(streamTableJoin);
   }
 
   @Override
-  public KSPlanInfo visitTableSource(final TableSource tableSource) {
+  public PlanInfo visitTableSource(final TableSource tableSource) {
     return visitSourceStep(tableSource);
   }
 
   @Override
-  public KSPlanInfo visitWindowedTableSource(final WindowedTableSource windowedTableSource) {
+  public PlanInfo visitWindowedTableSource(final WindowedTableSource windowedTableSource) {
     return visitSourceStep(windowedTableSource);
   }
 
   @Override
-  public KSPlanInfo visitStreamWindowedAggregate(
+  public PlanInfo visitStreamWindowedAggregate(
       final StreamWindowedAggregate streamWindowedAggregate
   ) {
     return visitSingleSourceStep(streamWindowedAggregate);
   }
 
   @Override
-  public KSPlanInfo visitTableAggregate(final TableAggregate tableAggregate) {
+  public PlanInfo visitTableAggregate(final TableAggregate tableAggregate) {
     return visitSingleSourceStep(tableAggregate);
   }
 
   @Override
-  public <K> KSPlanInfo visitTableFilter(final TableFilter<K> tableFilter) {
+  public <K> PlanInfo visitTableFilter(final TableFilter<K> tableFilter) {
     return visitSingleSourceStep(tableFilter);
   }
 
   @Override
-  public <K> KSPlanInfo visitTableGroupBy(final TableGroupBy<K> tableGroupBy) {
+  public <K> PlanInfo visitTableGroupBy(final TableGroupBy<K> tableGroupBy) {
     return visitSingleSourceStep(tableGroupBy);
   }
 
   @Override
-  public <K> KSPlanInfo visitTableSelect(final TableSelect<K> tableSelect) {
+  public <K> PlanInfo visitTableSelect(final TableSelect<K> tableSelect) {
     return visitSingleSourceStep(tableSelect);
   }
 
   @Override
-  public <K> KSPlanInfo visitTableSelectKey(final TableSelectKey<K> tableSelectKey) {
+  public <K> PlanInfo visitTableSelectKey(final TableSelectKey<K> tableSelectKey) {
     return visitRepartitionStep(tableSelectKey);
   }
 
   @Override
-  public <K> KSPlanInfo visitTableSink(final TableSink<K> tableSink) {
+  public <K> PlanInfo visitTableSink(final TableSink<K> tableSink) {
     return visitSingleSourceStep(tableSink);
   }
 
   @Override
-  public <K> KSPlanInfo visitTableSuppress(final TableSuppress<K> tableSuppress) {
+  public <K> PlanInfo visitTableSuppress(final TableSuppress<K> tableSuppress) {
     return visitSingleSourceStep(tableSuppress);
   }
 
   @Override
-  public <K> KSPlanInfo visitTableTableJoin(final TableTableJoin<K> tableTableJoin) {
+  public <K> PlanInfo visitTableTableJoin(final TableTableJoin<K> tableTableJoin) {
     return visitJoinStep(tableTableJoin);
   }
 
-  private KSPlanInfo visitSourceStep(final ExecutionStep<?> step) {
-    return new KSPlanInfo(step);
+  private PlanInfo visitSourceStep(final ExecutionStep<?> step) {
+    return new PlanInfo(step);
   }
 
-  private KSPlanInfo visitRepartitionStep(final ExecutionStep<?> step) {
-    final KSPlanInfo sourceInfo = (KSPlanInfo) step.getSources().get(0).extractPlanInfo(this);
+  private PlanInfo visitRepartitionStep(final ExecutionStep<?> step) {
+    final PlanInfo sourceInfo = (PlanInfo) step.getSources().get(0).extractPlanInfo(this);
     return sourceInfo.setIsRepartitionedInPlan();
   }
 
-  private KSPlanInfo visitJoinStep(final ExecutionStep<?> step) {
-    final KSPlanInfo leftInfo = (KSPlanInfo) step.getSources().get(0).extractPlanInfo(this);
-    final KSPlanInfo rightInfo = (KSPlanInfo) step.getSources().get(1).extractPlanInfo(this);
+  private PlanInfo visitJoinStep(final ExecutionStep<?> step) {
+    final PlanInfo leftInfo = (PlanInfo) step.getSources().get(0).extractPlanInfo(this);
+    final PlanInfo rightInfo = (PlanInfo) step.getSources().get(1).extractPlanInfo(this);
     return leftInfo.merge(rightInfo);
   }
 
-  private KSPlanInfo visitSingleSourceStep(final ExecutionStep<?> step) {
-    return (KSPlanInfo) step.getSources().get(0).extractPlanInfo(this);
+  private PlanInfo visitSingleSourceStep(final ExecutionStep<?> step) {
+    return (PlanInfo) step.getSources().get(0).extractPlanInfo(this);
   }
 }

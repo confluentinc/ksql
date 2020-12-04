@@ -52,7 +52,7 @@ import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.GroupedFactory;
 import io.confluent.ksql.execution.streams.JoinedFactory;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
-import io.confluent.ksql.execution.streams.KSPlanInfo;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.streams.KsqlValueJoiner;
 import io.confluent.ksql.execution.streams.MaterializedFactory;
 import io.confluent.ksql.execution.streams.SqlPredicateFactory;
@@ -155,7 +155,7 @@ public class SchemaKTableTest {
   @Mock
   private KsqlTopic topic;
   @Mock
-  private KSPlanInfo planInfo;
+  private PlanInfo planInfo;
 
   @Before
   public void init() {

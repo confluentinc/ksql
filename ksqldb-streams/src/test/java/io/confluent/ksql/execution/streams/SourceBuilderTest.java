@@ -40,10 +40,10 @@ import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
-import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.TableSource;
@@ -183,7 +183,7 @@ public class SourceBuilderTest {
   @Mock
   private SchemaRegistryClient srClient;
   @Mock
-  private KSPlanInfo planInfo;
+  private PlanInfo planInfo;
   @Captor
   private ArgumentCaptor<ValueTransformerWithKeySupplier<?, GenericRow, GenericRow>> transformSupplierCaptor;
   @Captor
@@ -884,7 +884,7 @@ public class SourceBuilderTest {
   }
 
   private static PlanInfo givenDownstreamRepartition(final ExecutionStep<?> sourceStep) {
-    final KSPlanInfo mockPlanInfo = mock(KSPlanInfo.class);
+    final PlanInfo mockPlanInfo = mock(PlanInfo.class);
     when(mockPlanInfo.isRepartitionedInPlan(sourceStep)).thenReturn(true);
     return mockPlanInfo;
   }

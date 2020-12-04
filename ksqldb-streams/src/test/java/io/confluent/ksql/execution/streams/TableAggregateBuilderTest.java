@@ -42,6 +42,7 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableAggregate;
@@ -147,7 +148,7 @@ public class TableAggregateBuilderTest {
   @Mock
   private KsqlProcessingContext ctx;
   @Mock
-  private KSPlanInfo planInfo;
+  private PlanInfo planInfo;
 
   private PlanBuilder planBuilder;
   private TableAggregate aggregate;

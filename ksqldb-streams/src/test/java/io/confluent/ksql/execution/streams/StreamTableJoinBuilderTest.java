@@ -20,6 +20,7 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
@@ -100,7 +101,7 @@ public class StreamTableJoinBuilderTest {
   @Mock
   private Serde<GenericRow> leftSerde;
   @Mock
-  private KSPlanInfo planInfo;
+  private PlanInfo planInfo;
 
   private PlanBuilder planBuilder;
   private StreamTableJoin<Struct> join;

@@ -45,7 +45,10 @@ import org.apache.kafka.connect.data.Struct;
 public class StructuredTypesDataProvider extends TestDataProvider {
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
-      .keyColumn(ColumnName.of("STR"), SqlTypes.STRING)
+      .keyColumn(ColumnName.of("K"), SqlTypes.struct()
+          .field("F1", SqlTypes.array(SqlTypes.STRING))
+          .build())
+      .valueColumn(ColumnName.of("STR"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("LONG"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("DEC"), SqlTypes.decimal(4, 2))
       .valueColumn(ColumnName.of("ARRAY"), SqlTypes.array(SqlTypes.STRING))
@@ -74,19 +77,22 @@ public class StructuredTypesDataProvider extends TestDataProvider {
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
       .from(LOGICAL_SCHEMA, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES), SerdeFeatures.of());
 
+  private static final Schema KEY_FIELD_SCHEMA = ConnectSchemas.columnsToConnectSchema(LOGICAL_SCHEMA.key())
+      .field("K").schema();
+
   private static final ConnectSchema VALUE_CONNECT_SCHEMA = ConnectSchemas.columnsToConnectSchema(LOGICAL_SCHEMA.value());
   private static final Schema STRUCT_FIELD_SCHEMA = VALUE_CONNECT_SCHEMA.field("STRUCT").schema();
   private static final Schema COMPLEX_FIELD_SCHEMA = VALUE_CONNECT_SCHEMA.field("COMPLEX").schema();
 
   private static final Multimap<GenericKey, GenericRow> ROWS = ImmutableListMultimap
       .<GenericKey, GenericRow>builder()
-      .put(genericKey("FOO"), genericRow(1L, new BigDecimal("1.11"), Collections.singletonList("a"), Collections.singletonMap("k1", "v1"), generateStruct(2), generateComplexStruct(0)))
-      .put(genericKey("BAR"), genericRow(2L, new BigDecimal("2.22"), Collections.emptyList(), Collections.emptyMap(), generateStruct(3), generateComplexStruct(1)))
-      .put(genericKey("BAZ"), genericRow(3L, new BigDecimal("30.33"), Collections.singletonList("b"), Collections.emptyMap(), generateStruct(null), generateComplexStruct(2)))
-      .put(genericKey("BUZZ"), genericRow(4L, new BigDecimal("40.44"), ImmutableList.of("c", "d"), Collections.emptyMap(), generateStruct(88), generateComplexStruct(3)))
+      .put(genericKey(generateStructKey("a")), genericRow("FOO", 1L, new BigDecimal("1.11"), Collections.singletonList("a"), Collections.singletonMap("k1", "v1"), generateSimpleStructValue(2), generateComplexStructValue(0)))
+      .put(genericKey(generateStructKey("b")), genericRow("BAR", 2L, new BigDecimal("2.22"), Collections.emptyList(), Collections.emptyMap(), generateSimpleStructValue(3), generateComplexStructValue(1)))
+      .put(genericKey(generateStructKey("c")), genericRow("BAZ", 3L, new BigDecimal("30.33"), Collections.singletonList("b"), Collections.emptyMap(), generateSimpleStructValue(null), generateComplexStructValue(2)))
+      .put(genericKey(generateStructKey("d")), genericRow("BUZZ", 4L, new BigDecimal("40.44"), ImmutableList.of("c", "d"), Collections.emptyMap(), generateSimpleStructValue(88), generateComplexStructValue(3)))
       // Additional entries for repeated keys
-      .put(genericKey("BAZ"), genericRow(5L, new BigDecimal("12.0"), ImmutableList.of("e"), ImmutableMap.of("k1", "v1", "k2", "v2"), generateStruct(0), generateComplexStruct(4)))
-      .put(genericKey("BUZZ"), genericRow(6L, new BigDecimal("10.1"), ImmutableList.of("f", "g"), Collections.emptyMap(), generateStruct(null), generateComplexStruct(5)))
+      .put(genericKey(generateStructKey("c")), genericRow("BAZ", 5L, new BigDecimal("12.0"), ImmutableList.of("e"), ImmutableMap.of("k1", "v1", "k2", "v2"), generateSimpleStructValue(0), generateComplexStructValue(4)))
+      .put(genericKey(generateStructKey("d")), genericRow("BUZZ", 6L, new BigDecimal("10.1"), ImmutableList.of("f", "g"), Collections.emptyMap(), generateSimpleStructValue(null), generateComplexStructValue(5)))
       .build();
 
   public StructuredTypesDataProvider() {
@@ -131,13 +137,19 @@ public class StructuredTypesDataProvider extends TestDataProvider {
     }
   }
 
-  private static Struct generateStruct(final Integer value) {
+  private static Struct generateStructKey(final String value) {
+    final Struct struct = new Struct(KEY_FIELD_SCHEMA);
+    struct.put("F1", ImmutableList.of(value));
+    return struct;
+  }
+
+  private static Struct generateSimpleStructValue(final Integer value) {
     final Struct struct = new Struct(STRUCT_FIELD_SCHEMA);
     struct.put("F1", value);
     return struct;
   }
 
-  private static Struct generateComplexStruct(final int i) {
+  private static Struct generateComplexStructValue(final int i) {
     final Struct complexStruct = new Struct(COMPLEX_FIELD_SCHEMA);
 
     complexStruct.put("DECIMAL", new BigDecimal(i).setScale(1, RoundingMode.UNNECESSARY));

@@ -17,7 +17,6 @@ package io.confluent.ksql.structured;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -143,7 +142,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     );
   }
 
-  @SuppressFBWarnings("UC_USELESS_CONDITION")
   @Override
   public SchemaKTable<K> selectKey(
       final FormatInfo valueFormat,
@@ -153,7 +151,10 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final boolean forceRepartition
   ) {
     final boolean repartitionNeeded = repartitionNeeded(ImmutableList.of(keyExpression));
-    if (!forceRepartition && !repartitionNeeded) {
+    final boolean keyFormatChange = forceInternalKeyFormat.isPresent()
+        && !forceInternalKeyFormat.get().equals(keyFormat.getFormatInfo());
+
+    if (!forceRepartition && !keyFormatChange && !repartitionNeeded) {
       return this;
     }
 
@@ -166,7 +167,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     // Table repartitioning is only supported for internal use in enabling joins
     // where we know that the key will be semantically equivalent, but may be serialized
     // differently (thus ensuring all keys are routed to the same partitions)
-    if (!forceRepartition || repartitionNeeded) {
+    if (repartitionNeeded) {
       throw new UnsupportedOperationException("Cannot repartition a TABLE source. "
           + "If this is a join, make sure that the criteria uses the TABLE's key column "
           + Iterables.getOnlyElement(schema.key()).name().text() + " instead of "

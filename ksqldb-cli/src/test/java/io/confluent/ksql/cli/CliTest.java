@@ -672,7 +672,7 @@ public class CliTest {
   @Test
   public void shouldHandlePullQuery() {
     // Given:
-    run("CREATE TABLE X AS SELECT ITEMID, COUNT(1) AS COUNT "
+    run("CREATE TABLE " + tableName + " AS SELECT ITEMID, COUNT(1) AS COUNT "
             + "FROM " + ORDER_DATA_PROVIDER.sourceName()
             + " GROUP BY ITEMID;",
         localCli
@@ -681,16 +681,16 @@ public class CliTest {
     // When:
     final Supplier<String> runner = () -> {
       // It's possible that the state store is not warm on the first invocation, hence the retry
-      run("SELECT ITEMID, COUNT FROM X WHERE ITEMID='ITEM_1';", localCli);
+      run("SELECT ITEMID, COUNT FROM " + tableName + " WHERE ITEMID='ITEM_1';", localCli);
       return terminal.getOutputString();
     };
 
     // Wait for warm store:
     assertThatEventually(runner, containsString("|ITEM_1"));
     assertRunCommand(
-        "SELECT ITEMID, COUNT FROM X WHERE ITEMID='ITEM_1';",
+        "SELECT ITEMID, COUNT FROM " + tableName + " WHERE ITEMID='ITEM_1';",
         containsRows(
-            row("ITEM_1", "1")
+            row(equalTo("ITEM_1"), any(String.class))
         )
     );
   }

@@ -543,7 +543,7 @@ public class CreateSourceFactoryTest {
     // Then:
     verify(keyOptionsSupplier).build(
         schema,
-        FormatFactory.of(SourcePropertiesUtil.getKeyFormat(statement.getProperties())),
+        FormatFactory.of(SourcePropertiesUtil.getKeyFormat(statement.getProperties(), SOME_NAME)),
         SerdeFeatures.of(),
         ksqlConfig
     );

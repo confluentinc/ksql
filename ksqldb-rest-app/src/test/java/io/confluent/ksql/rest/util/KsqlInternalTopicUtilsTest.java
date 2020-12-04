@@ -140,7 +140,7 @@ public class KsqlInternalTopicUtilsTest {
   @Test
   public void shouldFailIfTopicExistsOnCreationWithDifferentConfigs() {
     // Given:
-    doThrow(new KafkaTopicExistsException("exists"))
+    doThrow(new KafkaTopicExistsException("exists", true))
         .when(topicClient)
         .createTopic(any(), anyInt(), anyShort(), anyMap());
 

@@ -194,7 +194,7 @@ public class PullPhysicalPlanBuilder {
       final DataSourceNode logicalNode
   ) {
     if (whereInfo == null) {
-      if (!config.getBoolean(KsqlConfig.KSQL_PULL_QUERIES_FULL_TABLE_SCAN_ENABLED)) {
+      if (!config.getBoolean(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED)) {
         throw new KsqlException("Pull queries must have a WHERE clause");
       }
       // Full table scan has no keys

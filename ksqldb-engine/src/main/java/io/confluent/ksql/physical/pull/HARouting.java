@@ -18,6 +18,7 @@ package io.confluent.ksql.physical.pull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
@@ -86,7 +87,8 @@ public final class HARouting implements AutoCloseable {
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.executorService = Executors.newFixedThreadPool(
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG));
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG),
+        new ThreadFactoryBuilder().setNameFormat("pull-query-executor-%d").build());
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
     this.routeQuery = Objects.requireNonNull(routeQuery);
   }

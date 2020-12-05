@@ -95,7 +95,6 @@ public final class WhereInfo {
     this.windowBounds = Objects.requireNonNull(windowBounds);
   }
 
-  @SuppressWarnings({"checkstyle:NPathComplexity", "checkstyle:CyclomaticComplexity"})
   public static WhereInfo extractWhereInfo(
       final Expression where,
       final LogicalSchema schema,

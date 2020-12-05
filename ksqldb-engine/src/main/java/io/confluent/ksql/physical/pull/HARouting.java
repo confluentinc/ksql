@@ -18,6 +18,7 @@ package io.confluent.ksql.physical.pull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
@@ -56,61 +57,54 @@ import org.slf4j.LoggerFactory;
 public final class HARouting implements AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(HARouting.class);
+
   private final ExecutorService executorService;
-  private final PullPhysicalPlan pullPhysicalPlan;
   private final RoutingFilterFactory routingFilterFactory;
-  private final RoutingOptions routingOptions;
-  private final ConfiguredStatement<Query> statement;
   private final ServiceContext serviceContext;
-  private final LogicalSchema outputSchema;
-  private final QueryId queryId;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RouteQuery routeQuery;
 
   public HARouting(
-      final KsqlConfig ksqlConfig,
-      final PullPhysicalPlan pullPhysicalPlan,
       final RoutingFilterFactory routingFilterFactory,
-      final RoutingOptions routingOptions,
-      final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext,
-      final LogicalSchema outputSchema,
-      final QueryId queryId,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final KsqlConfig ksqlConfig
   ) {
-    this(ksqlConfig, pullPhysicalPlan, routingFilterFactory, routingOptions, statement,
-         serviceContext, outputSchema, queryId, pullQueryMetrics, HARouting::executeOrRouteQuery);
+    this(routingFilterFactory, serviceContext, pullQueryMetrics, ksqlConfig,
+         HARouting::executeOrRouteQuery);
   }
+
 
   @VisibleForTesting
   HARouting(
-      final KsqlConfig ksqlConfig,
-      final PullPhysicalPlan pullPhysicalPlan,
       final RoutingFilterFactory routingFilterFactory,
-      final RoutingOptions routingOptions,
-      final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext,
-      final LogicalSchema outputSchema,
-      final QueryId queryId,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final KsqlConfig ksqlConfig,
       final RouteQuery routeQuery
   ) {
-    this.pullPhysicalPlan = Objects.requireNonNull(pullPhysicalPlan, "pullPhysicalPlan");
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
-    this.routingOptions = Objects.requireNonNull(routingOptions, "routingOptions");
-    this.statement = Objects.requireNonNull(statement, "statement");
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
-    this.outputSchema = Objects.requireNonNull(outputSchema, "outputSchema");
-    this.queryId = Objects.requireNonNull(queryId, "queryId");
-    this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
     this.executorService = Executors.newFixedThreadPool(
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG)
-    );
-    this.routeQuery = Objects.requireNonNull(routeQuery, "routeQuery");
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG),
+        new ThreadFactoryBuilder().setNameFormat("pull-query-executor-%d").build());
+    this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics, "pullQueryMetrics");
+    this.routeQuery = Objects.requireNonNull(routeQuery);
   }
 
-  public PullQueryResult handlePullQuery() throws InterruptedException {
+  @Override
+  public void close() {
+    executorService.shutdown();
+  }
+
+  public PullQueryResult handlePullQuery(
+      final PullPhysicalPlan pullPhysicalPlan,
+      final ConfiguredStatement<Query> statement,
+      final RoutingOptions routingOptions,
+      final LogicalSchema outputSchema,
+      final QueryId queryId
+  ) throws InterruptedException {
     final List<KsqlPartitionLocation> locations = pullPhysicalPlan.getMaterialization().locator()
         .locate(
             pullPhysicalPlan.getKeys(),
@@ -196,11 +190,6 @@ public final class HARouting implements AutoCloseable {
     }
   }
 
-  @Override
-  public void close() {
-    executorService.shutdown();
-  }
-
   /**
    * Groups all of the partition locations by the round-th entry in their prioritized list of host
    * nodes.
@@ -262,7 +251,6 @@ public final class HARouting implements AutoCloseable {
       pullQueryMetrics
           .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordLocalRequests(1));
       rows = pullPhysicalPlan.execute(locations);
-
     } else {
       LOG.debug("Query {} routed to host {} at timestamp {}.",
                 statement.getStatementText(), node.location(), System.currentTimeMillis());

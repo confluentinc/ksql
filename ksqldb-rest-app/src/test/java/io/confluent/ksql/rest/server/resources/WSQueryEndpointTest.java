@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
+import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
@@ -78,7 +79,8 @@ public class WSQueryEndpointTest {
         denyListPropertyValidator,
         Optional.empty(),
         mock(RoutingFilterFactory.class),
-        mock(RateLimiter.class)
+        mock(RateLimiter.class),
+        mock(HARouting.class)
     );
   }
 

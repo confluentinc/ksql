@@ -35,6 +35,7 @@ import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
@@ -266,6 +267,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   public PullQueryResult executePullQuery(
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
+      final HARouting routing,
       final RoutingFilterFactory routingFilterFactory,
       final RoutingOptions routingOptions,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics
@@ -278,6 +280,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         )
         .executePullQuery(
             statement,
+            routing,
             routingFilterFactory,
             routingOptions,
             pullQueryMetrics

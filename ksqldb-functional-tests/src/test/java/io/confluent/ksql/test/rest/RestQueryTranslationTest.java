@@ -136,6 +136,8 @@ public class RestQueryTranslationTest {
           .excludeTerminated()
           // There is a pool of ksql worker threads that grows over time, but is capped.
           .nameMatches(name -> !name.startsWith("ksql-workers"))
+          // There is a pool for HARouting worker threads that grows over time, but is capped to 100
+          .nameMatches(name -> !name.startsWith("pull-query-executor"))
           .build()));
     } else {
       STARTING_THREADS.get().assertSameThreads();

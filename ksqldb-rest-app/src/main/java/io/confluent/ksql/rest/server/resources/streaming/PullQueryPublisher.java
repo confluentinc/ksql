@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
@@ -53,6 +54,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   private final long startTimeNanos;
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
+  private final HARouting routing;
 
   @VisibleForTesting
   PullQueryPublisher(
@@ -62,7 +64,8 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final long startTimeNanos,
       final RoutingFilterFactory routingFilterFactory,
-      final RateLimiter rateLimiter
+      final RateLimiter rateLimiter,
+      final HARouting routing
   ) {
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -71,6 +74,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     this.startTimeNanos = startTimeNanos;
     this.routingFilterFactory = requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = requireNonNull(rateLimiter, "rateLimiter");
+    this.routing = requireNonNull(routing, "routing");
   }
 
   @Override
@@ -89,6 +93,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
           final PullQueryResult result = ksqlEngine.executePullQuery(
               serviceContext,
               query,
+              routing,
               routingFilterFactory,
               routingOptions,
               pullQueryMetrics

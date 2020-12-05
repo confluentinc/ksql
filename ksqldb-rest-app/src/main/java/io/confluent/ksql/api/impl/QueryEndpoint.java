@@ -30,6 +30,7 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.rest.entity.TableRows;
@@ -59,19 +60,22 @@ public class QueryEndpoint {
   private final RoutingFilterFactory routingFilterFactory;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RateLimiter rateLimiter;
+  private final HARouting routing;
 
   public QueryEndpoint(
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
       final RoutingFilterFactory routingFilterFactory,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final RateLimiter rateLimiter
+      final RateLimiter rateLimiter,
+      final HARouting routing
   ) {
     this.ksqlEngine = ksqlEngine;
     this.ksqlConfig = ksqlConfig;
     this.routingFilterFactory = routingFilterFactory;
     this.pullQueryMetrics = pullQueryMetrics;
     this.rateLimiter = rateLimiter;
+    this.routing = routing;
   }
 
   public QueryPublisher createQueryPublisher(
@@ -131,6 +135,7 @@ public class QueryEndpoint {
     final PullQueryResult result = ksqlEngine.executePullQuery(
         serviceContext,
         statement,
+        routing,
         routingFilterFactory,
         routingOptions,
         pullQueryMetrics

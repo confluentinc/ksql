@@ -32,6 +32,7 @@ import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
@@ -89,8 +90,10 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final DenyListPropertyValidator denyListPropertyValidator;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RoutingFilterFactory routingFilterFactory;
+  private final RateLimiter rateLimiter;
+  private final HARouting routing;
+
   private KsqlConfig ksqlConfig;
-  private RateLimiter rateLimiter;
 
   @SuppressWarnings("checkstyle:ParameterNumber")
   public StreamedQueryResource(
@@ -104,7 +107,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
-      final RateLimiter rateLimiter
+      final RateLimiter rateLimiter,
+      final HARouting routing
   ) {
     this(
         ksqlEngine,
@@ -118,7 +122,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
         denyListPropertyValidator,
         pullQueryMetrics,
         routingFilterFactory,
-        rateLimiter
+        rateLimiter,
+        routing
     );
   }
 
@@ -137,7 +142,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
-      final RateLimiter rateLimiter
+      final RateLimiter rateLimiter,
+      final HARouting routing
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -156,6 +162,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
+    this.routing = Objects.requireNonNull(routing, "routing");
   }
 
   @Override
@@ -311,6 +318,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final PullQueryResult result = ksqlEngine.executePullQuery(
         serviceContext,
         configured,
+        routing,
         routingFilterFactory,
         routingOptions,
         pullQueryMetrics
@@ -440,5 +448,4 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private static GenericRow toGenericRow(final List<?> values) {
     return new GenericRow().appendAll(values);
   }
-
 }

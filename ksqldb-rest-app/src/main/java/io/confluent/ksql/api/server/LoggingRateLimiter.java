@@ -25,8 +25,6 @@ import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.util.Pair;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import org.slf4j.Logger;
 
@@ -90,7 +88,7 @@ class LoggingRateLimiter {
     return config.getStringAsMap(KSQL_LOGGING_SERVER_RATE_LIMITED_REQUEST_PATHS_CONFIG)
         .entrySet().stream()
         .map(entry -> {
-          double rateLimit = Double.parseDouble(entry.getValue());
+          final double rateLimit = Double.parseDouble(entry.getValue());
           return Pair.of(entry.getKey(), rateLimiterFactory.apply(rateLimit));
         })
         .collect(ImmutableMap.toImmutableMap(Pair::getLeft, Pair::getRight));
@@ -104,8 +102,8 @@ class LoggingRateLimiter {
     return config.getStringAsMap(KSQL_LOGGING_SERVER_RATE_LIMITED_RESPONSE_CODES_CONFIG)
         .entrySet().stream()
         .map(entry -> {
-          int statusCode = Integer.parseInt(entry.getKey());
-          double rateLimit = Double.parseDouble(entry.getValue());
+          final int statusCode = Integer.parseInt(entry.getKey());
+          final double rateLimit = Double.parseDouble(entry.getValue());
           return Pair.of(statusCode, rateLimiterFactory.apply(rateLimit));
         })
         .collect(ImmutableMap.toImmutableMap(Pair::getLeft, Pair::getRight));

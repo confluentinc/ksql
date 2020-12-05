@@ -23,6 +23,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.util.Pair;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,13 +34,8 @@ class LoggingRateLimiter {
   // Print "You hit a rate limit" every 5 seconds
   private static final double LIMIT_HIT_LOG_RATE = 0.2;
 
-  private final Map<String, Double> rateLimitedPaths;
-  private final Map<Integer, Double> rateLimitedResponseCodes;
-
-  private final Function<Double, RateLimiter> rateLimiterFactory;
-
-  private final Map<String, RateLimiter> rateLimitersByPath = new ConcurrentHashMap<>();
-  private final Map<Integer, RateLimiter> rateLimitersByResponseCode = new ConcurrentHashMap<>();
+  private final Map<String, RateLimiter> rateLimitersByPath;
+  private final Map<Integer, RateLimiter> rateLimitersByResponseCode;
 
   // Rate limiters for printing the "You hit a rate limit" message
   private final RateLimiter pathLimitHit;
@@ -52,34 +48,33 @@ class LoggingRateLimiter {
   @VisibleForTesting
   LoggingRateLimiter(
       final KsqlRestConfig ksqlRestConfig,
-      final Function<Double, RateLimiter> rateLimiterFactory) {
+      final Function<Double, RateLimiter> rateLimiterFactory
+  ) {
     requireNonNull(ksqlRestConfig);
-    this.rateLimiterFactory = requireNonNull(rateLimiterFactory);
-    this.rateLimitedPaths = getRateLimitedRequestPaths(ksqlRestConfig);
-    this.rateLimitedResponseCodes = getRateLimitedResponseCodes(ksqlRestConfig);
+    requireNonNull(rateLimiterFactory);
     this.pathLimitHit = rateLimiterFactory.apply(LIMIT_HIT_LOG_RATE);
     this.responseCodeLimitHit = rateLimiterFactory.apply(LIMIT_HIT_LOG_RATE);
+    this.rateLimitersByPath = getRateLimitedRequestPaths(ksqlRestConfig, rateLimiterFactory);
+    this.rateLimitersByResponseCode
+        = getRateLimitedResponseCodes(ksqlRestConfig, rateLimiterFactory);
   }
 
   public boolean shouldLog(final Logger logger, final String path, final int responseCode) {
-    if (rateLimitedPaths.containsKey(path)) {
-      final double rateLimit = rateLimitedPaths.get(path);
-      rateLimitersByPath.computeIfAbsent(path, (k) -> rateLimiterFactory.apply(rateLimit));
-      if (!rateLimitersByPath.get(path).tryAcquire()) {
+    if (rateLimitersByPath.containsKey(path)) {
+      final RateLimiter rateLimiter = rateLimitersByPath.get(path);
+      if (!rateLimiter.tryAcquire()) {
         if (pathLimitHit.tryAcquire()) {
-          logger.info("Hit rate limit for path " + path + " with limit " + rateLimit);
+          logger.info("Hit rate limit for path " + path + " with limit " + rateLimiter.getRate());
         }
         return false;
       }
     }
-    if (rateLimitedResponseCodes.containsKey(responseCode)) {
-      final double rateLimit = rateLimitedResponseCodes.get(responseCode);
-      rateLimitersByResponseCode.computeIfAbsent(
-          responseCode, (k) -> rateLimiterFactory.apply(rateLimit));
-      if (!rateLimitersByResponseCode.get(responseCode).tryAcquire()) {
+    if (rateLimitersByResponseCode.containsKey(responseCode)) {
+      final RateLimiter rateLimiter = rateLimitersByResponseCode.get(responseCode);
+      if (!rateLimiter.tryAcquire()) {
         if (responseCodeLimitHit.tryAcquire()) {
           logger.info("Hit rate limit for response code " + responseCode + " with limit "
-              + rateLimit);
+              + rateLimiter.getRate());
         }
         return false;
       }
@@ -87,20 +82,32 @@ class LoggingRateLimiter {
     return true;
   }
 
-  private static Map<String, Double> getRateLimitedRequestPaths(final KsqlRestConfig config) {
+  private static Map<String, RateLimiter> getRateLimitedRequestPaths(
+      final KsqlRestConfig config,
+      final Function<Double, RateLimiter> rateLimiterFactory
+  ) {
     // Already validated as having double values
     return config.getStringAsMap(KSQL_LOGGING_SERVER_RATE_LIMITED_REQUEST_PATHS_CONFIG)
         .entrySet().stream()
-        .collect(ImmutableMap.toImmutableMap(Entry::getKey,
-            entry -> Double.parseDouble(entry.getValue())));
+        .map(entry -> {
+          double rateLimit = Double.parseDouble(entry.getValue());
+          return Pair.of(entry.getKey(), rateLimiterFactory.apply(rateLimit));
+        })
+        .collect(ImmutableMap.toImmutableMap(Pair::getLeft, Pair::getRight));
   }
 
-  private static Map<Integer, Double> getRateLimitedResponseCodes(final KsqlRestConfig config) {
+  private static Map<Integer, RateLimiter> getRateLimitedResponseCodes(
+      final KsqlRestConfig config,
+      final Function<Double, RateLimiter> rateLimiterFactory
+  ) {
     // Already validated as all ints
     return config.getStringAsMap(KSQL_LOGGING_SERVER_RATE_LIMITED_RESPONSE_CODES_CONFIG)
         .entrySet().stream()
-        .collect(ImmutableMap.toImmutableMap(
-            entry -> Integer.parseInt(entry.getKey()),
-            entry -> Double.parseDouble(entry.getValue())));
+        .map(entry -> {
+          int statusCode = Integer.parseInt(entry.getKey());
+          double rateLimit = Double.parseDouble(entry.getValue());
+          return Pair.of(statusCode, rateLimiterFactory.apply(rateLimit));
+        })
+        .collect(ImmutableMap.toImmutableMap(Pair::getLeft, Pair::getRight));
   }
 }

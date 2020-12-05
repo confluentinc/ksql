@@ -71,6 +71,7 @@ public class LoggingRateLimiterTest {
   public void shouldSkipRateLimited_path() {
     // Given:
     when(rateLimiter.tryAcquire()).thenReturn(true, true, false, false);
+    when(rateLimiter.getRate()).thenReturn(2d);
 
     // When:
     assertThat(loggingRateLimiter.shouldLog(logger, PATH, 200), is(true));
@@ -87,6 +88,7 @@ public class LoggingRateLimiterTest {
   public void shouldSkipRateLimited_responseCode() {
     // Given:
     when(rateLimiter.tryAcquire()).thenReturn(true, false, false, false);
+    when(rateLimiter.getRate()).thenReturn(1d);
 
     // When:
     assertThat(loggingRateLimiter.shouldLog(logger, "/foo", RESPONSE_CODE), is(true));

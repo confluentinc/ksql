@@ -69,6 +69,7 @@ select.version::-ms-expand {
     flex-flow: row wrap;
     justify-content: space-evenly;
     align-items: stretch;
+    margin-bottom: 40px;
 }
 
 @media (max-width: 800px) {

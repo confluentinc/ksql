@@ -8,6 +8,34 @@ keywords: ksqldb, query, application, quickstart, tutorial, walkthrough, how to
 
 The tutorials are end-to-end examples of how to use ksqlDB for specific use cases.
 
-- [Materialized cache](materialized.md)
-- [Streaming ETL pipeline](etl.md)
-- [Event-driven microservice](event-driven-microservice.md)
+<div class="cards">
+  <div class="card">
+    <strong>Materialized cache</strong>
+    <p class="card-body"><small>Build and serve incrementally-updated stateful views.</small></p>
+
+    <div class="tutorial-begin">
+      <img src="../img/materialized-views.svg"/>
+      <a href="/tutorials/materialized">Begin →</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <strong>Streaming ETL pipeline</strong>
+    <p class="card-body"><small>Manipulate in-flight data to connect arbitrary sources and sinks.</small></p>
+
+    <div class="tutorial-begin">
+      <img src="../img/streaming-etl.svg"/>
+      <a href="/tutorials/etl">Begin →</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <strong>Event-driven microservice</strong>
+    <p class="card-body"><small>Trigger changes based on observed patterns of events in a stream.</small></p>
+
+    <div class="tutorial-begin">
+      <img src="../img/microservices.svg"/>
+      <a href="/tutorials/event-driven-microservice">Begin →</a>
+    </div>
+  </div>
+</div>

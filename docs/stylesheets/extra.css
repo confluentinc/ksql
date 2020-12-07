@@ -125,3 +125,15 @@ ul.card-items li {
 .card.how-to-guide {
     background-color: #f7f8ff;
 }
+
+.card.how-to-guide.contribute {
+    background: repeating-linear-gradient(
+      45deg,
+      #f7f8ff,
+      #f7f8ff 10px,
+      #ffffff 10px,
+      #ffffff 20px
+    );
+
+    border: 2px dashed #eee;
+}

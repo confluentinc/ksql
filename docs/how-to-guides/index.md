@@ -54,7 +54,7 @@ The how-to guides are compact lessons that help you work with common ksqlDB func
     <a href="/how-to-guides/substitute-variables">Learn →</a>
   </div>
 
-  <div class="card how-to-guide">
+  <div class="card how-to-guide contribute">
     <strong>Help us write another?</strong>
     <p class="card-body"><small>We're always looking for more guides. Just send a pull request!</small></p>
     <a href="https://github.com/confluentinc/ksql">Contribute →</a>

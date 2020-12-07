@@ -173,6 +173,29 @@ public final class ConfigValidators {
     };
   }
 
+  public static Validator mapWithIntKeyDoubleValue() {
+    return (name, val) -> {
+      if (!(val instanceof String)) {
+        throw new ConfigException(name, val, "Must be a string");
+      }
+
+      final String str = (String) val;
+      final Map<String, String> map = KsqlConfig.parseStringAsMap(name, str);
+      map.forEach((keyStr, valueStr) -> {
+        try {
+          Integer.parseInt(keyStr);
+        } catch (NumberFormatException e) {
+          throw new ConfigException(name, keyStr, "Not an int");
+        }
+        try {
+          Double.parseDouble(valueStr);
+        } catch (NumberFormatException e) {
+          throw new ConfigException(name, valueStr, "Not a double");
+        }
+      });
+    };
+  }
+
   public static Validator mapWithDoubleValue() {
     return (name, val) -> {
       if (!(val instanceof String)) {

@@ -25,7 +25,6 @@ import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -101,9 +100,10 @@ public class KsqlEngineMetrics implements Closeable {
     this.metricGroupName = metricGroupPrefix + METRIC_GROUP_POST_FIX;
     this.customMetricsTags = customMetricsTags;
 
-    final Map<String, String> metricsTags = new HashMap<>(customMetricsTags);
-    metricsTags.put(KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, ksqlEngine.getServiceId());
-    this.newCustomMetricsTags = ImmutableMap.copyOf(metricsTags);
+    this.newCustomMetricsTags = ImmutableMap.<String, String>builder()
+        .putAll(customMetricsTags)
+        .put(KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, ksqlEngine.getServiceId())
+        .build();
     this.metricsExtension = metricsExtension;
 
     this.metrics = metrics;

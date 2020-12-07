@@ -41,6 +41,8 @@ public final class KsqlConstants {
   public static final String DOT = ".";
   public static final String STRUCT_FIELD_REF = "->";
 
+  public static final String KSQL_SERVICE_ID_METRICS_TAG = "ksql_service_id";
+
   public enum KsqlQueryType {
     PERSISTENT,
     PUSH

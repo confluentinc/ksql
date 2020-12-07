@@ -27,6 +27,9 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metrics.MetricCollectors;
 import java.util.Map;
+
+import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.ReservedInternalTopics;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.utils.Time;
 import org.junit.After;
@@ -43,6 +46,8 @@ public class PullQueryExecutorMetricsTest {
   private static final String KSQL_SERVICE_ID = "test-ksql-service-id";
   private static final Map<String, String> CUSTOM_TAGS = ImmutableMap
       .of("tag1", "value1", "tag2", "value2");
+  private static final Map<String, String> CUSTOM_TAGS_WITH_SERVICE_ID = ImmutableMap
+      .of("tag1", "value1", "tag2", "value2", KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, KSQL_SERVICE_ID);
 
   @Mock
   private KsqlEngine ksqlEngine;
@@ -56,7 +61,7 @@ public class PullQueryExecutorMetricsTest {
     when(ksqlEngine.getServiceId()).thenReturn(KSQL_SERVICE_ID);
     when(time.nanoseconds()).thenReturn(6000L);
 
-    pullMetrics =   new PullQueryExecutorMetrics(ksqlEngine.getServiceId(), CUSTOM_TAGS, time);
+    pullMetrics = new PullQueryExecutorMetrics(ksqlEngine.getServiceId(), CUSTOM_TAGS, time);
   }
 
   @After
@@ -83,10 +88,14 @@ public class PullQueryExecutorMetricsTest {
     // When:
     final double value = getMetricValue("-local-count");
     final double rate = getMetricValue("-local-rate");
+    final double legacyValue = getMetricValueLegacy("-local-count");
+    final double legacyRate = getMetricValueLegacy("-local-rate");
 
     // Then:
     assertThat(value, equalTo(1.0));
     assertThat(rate, closeTo(0.03, 0.001));
+    assertThat(legacyValue, equalTo(1.0));
+    assertThat(legacyRate, closeTo(0.03, 0.001));
   }
 
   @Test
@@ -97,10 +106,14 @@ public class PullQueryExecutorMetricsTest {
     // When:
     final double value = getMetricValue("-remote-count");
     final double rate = getMetricValue("-remote-rate");
+    final double legacyValue = getMetricValueLegacy("-remote-count");
+    final double legacyRate = getMetricValueLegacy("-remote-rate");
 
     // Then:
     assertThat(value, equalTo(1.0));
     assertThat(rate, closeTo(0.03, 0.001));
+    assertThat(legacyValue, equalTo(1.0));
+    assertThat(legacyRate, closeTo(0.03, 0.001));
   }
 
   @Test
@@ -111,10 +124,14 @@ public class PullQueryExecutorMetricsTest {
     // When:
     final double value = getMetricValue("-error-total");
     final double rate = getMetricValue("-error-rate");
+    final double legacyValue = getMetricValueLegacy("-error-total");
+    final double legacyRate = getMetricValueLegacy("-error-rate");
 
     // Then:
     assertThat(value, equalTo(1.0));
     assertThat(rate, closeTo(0.03, 0.001));
+    assertThat(legacyValue, equalTo(1.0));
+    assertThat(legacyRate, closeTo(0.03, 0.001));
   }
 
   @Test
@@ -126,9 +143,11 @@ public class PullQueryExecutorMetricsTest {
 
     // When:
     final double rate = getMetricValue("-rate");
+    final double legacyRate = getMetricValueLegacy("-rate");
 
     // Then:
     assertThat(rate, closeTo(0.03, 0.001));
+    assertThat(legacyRate, closeTo(0.03, 0.001));
   }
 
   @Test
@@ -141,21 +160,41 @@ public class PullQueryExecutorMetricsTest {
     final double max = getMetricValue("-latency-max");
     final double min = getMetricValue("-latency-min");
     final double total = getMetricValue("-total");
+    final double legacyAvg = getMetricValueLegacy("-latency-avg");
+    final double legacyMax = getMetricValueLegacy("-latency-max");
+    final double legacyMin = getMetricValueLegacy("-latency-min");
+    final double legacyTotal = getMetricValueLegacy("-total");
 
     // Then:
     assertThat(avg, is(3.0));
     assertThat(min, is(3.0));
     assertThat(max, is(3.0));
     assertThat(total, is(1.0));
+    assertThat(legacyAvg, is(3.0));
+    assertThat(legacyMin, is(3.0));
+    assertThat(legacyMax, is(3.0));
+    assertThat(legacyTotal, is(1.0));
   }
 
   private double getMetricValue(final String metricName) {
     final Metrics metrics = pullMetrics.getMetrics();
-    return Double.valueOf(
+    return Double.parseDouble(
         metrics.metric(
             metrics.metricName(
                 "pull-query-requests" + metricName,
-                "_confluent-ksql-" + ksqlEngine.getServiceId()+ "pull-query",
+                ReservedInternalTopics.CONFLUENT_PREFIX + "pull-query",
+                CUSTOM_TAGS_WITH_SERVICE_ID)
+        ).metricValue().toString()
+    );
+  }
+
+  private double getMetricValueLegacy(final String metricName) {
+    final Metrics metrics = pullMetrics.getMetrics();
+    return Double.parseDouble(
+        metrics.metric(
+            metrics.metricName(
+                "pull-query-requests" + metricName,
+                ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + ksqlEngine.getServiceId()+ "pull-query",
                 CUSTOM_TAGS)
         ).metricValue().toString()
     );

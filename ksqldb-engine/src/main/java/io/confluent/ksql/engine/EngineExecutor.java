@@ -140,6 +140,7 @@ final class EngineExecutor {
    */
   PullQueryResult executePullQuery(
       final ConfiguredStatement<Query> statement,
+      final HARouting routing,
       final RoutingFilterFactory routingFilterFactory,
       final RoutingOptions routingOptions,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics
@@ -164,12 +165,9 @@ final class EngineExecutor {
           ksqlConfig,
           analysis,
           statement);
-
-      try (HARouting routing = new HARouting(
-          ksqlConfig, physicalPlan, routingFilterFactory, routingOptions, statement, serviceContext,
-          physicalPlan.getOutputSchema(), physicalPlan.getQueryId(), pullQueryMetrics)) {
-        return routing.handlePullQuery();
-      }
+      return routing.handlePullQuery(
+          physicalPlan, statement, routingOptions, physicalPlan.getOutputSchema(),
+          physicalPlan.getQueryId());
     } catch (final Exception e) {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
       throw new KsqlStatementException(
@@ -389,7 +387,8 @@ final class EngineExecutor {
     if (statement.getStatement() instanceof CreateSource) {
       final CreateSource createSource = (CreateSource) statement.getStatement();
       throwOnUnsupportedKeyFormat(
-          SourcePropertiesUtil.getKeyFormat(createSource.getProperties()).getFormat());
+          SourcePropertiesUtil.getKeyFormat(
+              createSource.getProperties(), createSource.getName()).getFormat());
     }
 
     if (statement.getStatement() instanceof CreateAsSelect) {

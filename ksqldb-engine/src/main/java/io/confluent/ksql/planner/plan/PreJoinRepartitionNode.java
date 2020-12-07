@@ -21,8 +21,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -74,22 +72,6 @@ public class PreJoinRepartitionNode extends SingleSourcePlanNode implements Join
   @Override
   public LogicalSchema getSchema() {
     return schema;
-  }
-
-  @Override
-  public Optional<RequiredFormat> getRequiredKeyFormat() {
-    if (joiningNode.isPresent()) {
-      return joiningNode.get().getRequiredKeyFormat();
-    }
-
-    final DataSource dataSource = Iterators.getOnlyElement(getSourceNodes().iterator())
-        .getDataSource();
-
-    if (dataSource.getDataSourceType() != DataSourceType.KTABLE) {
-      return Optional.empty();
-    }
-
-    return Optional.of(RequiredFormat.of(getSourceKeyFormat(), dataSource.getName()));
   }
 
   @Override

@@ -47,7 +47,7 @@ stream processing applications on top of {{ site.aktm }}.
   <div class="card">
     <strong>How it works</strong>
     <ul class="card-items">
-      <li><a href="https://www.confluent.io/blog/how-real-time-stream-processing-works-with-ksqldb/">Stream processing with SQL</a></li>
+      <li><a href="https://www.confluent.io/blog/how-real-time-stream-processing-works-with-ksqldb/">SQL Stream processing</a></li>
       <li><a href="https://www.confluent.io/blog/how-real-time-materialized-views-work-with-ksqldb/">Materialized views</a></li>
       <li><a href="https://www.confluent.io/blog/how-real-time-stream-processing-safely-scales-with-ksqldb/">Scaling and fault tolerance</a></li>
     </ul>

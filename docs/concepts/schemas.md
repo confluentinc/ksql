@@ -7,7 +7,7 @@ keywords: ksqldb, schema, evolution, avro, protobuf, json, csv
 ---
 
 Data sources like streams and tables have an associated schema. This schema defines the columns
-available in the data, just like a the columns in a traditional SQL database table.
+available in the data, just like the columns in a traditional SQL database table.
 
 ## Key vs Value columns
 
@@ -77,8 +77,8 @@ ksqlDB is [configured to use it](../operate-and-deploy/installation/server-confi
 
 Here's what you can do with schema inference in ksqlDB:
 
--   Declare streams and tables on {{ site.ak }} topics with supported value formats by using 
-    `CREATE STREAM` and `CREATE TABLE` statements, without needing to declare the value columns.
+-   Declare streams and tables on {{ site.ak }} topics with supported key and value formats by using 
+    `CREATE STREAM` and `CREATE TABLE` statements, without needing to declare the key and/or value columns.
 -   Declare derived views with `CREATE STREAM AS SELECT` and `CREATE TABLE AS SELECT` statements.
     The schema of the view is registered in {{ site.sr }} automatically.
 -   Convert data to different formats with `CREATE STREAM AS SELECT` and
@@ -86,21 +86,16 @@ Here's what you can do with schema inference in ksqlDB:
     format in the `WITH` clause. For example, you can convert a stream from
     Avro to JSON.
 
-Only the schema of the message *value* can be retrieved from {{ site.sr }}. Message
-*keys* must be compatible with the [`KAFKA` format](../developer-guide/serialization.md#kafka)
-to be accessible within ksqlDB. ksqlDB ignores schemas that have been registered
-for message keys. 
-
 !!! note
-    Message *keys* in Avro and Protobuf are not supported. If your message keys
+    Message *keys* in Protobuf are not supported. If your message keys
     are in an unsupported format, see [What to do if your key is not set or is in a different format](../developer-guide/syntax-reference.md#what-to-do-if-your-key-is-not-set-or-is-in-a-different-format). 
-    JSON message keys can be accessed by defining the key as a single `STRING` value, which will 
-    contain the JSON document.
     
-Although ksqlDB doesn't support loading the message key's schema from {{ site.sr }},
-you can provide the key column definition within the `CREATE TABLE` or `CREATE STREAM`
-statement, if the data records are compatible with ksqlDB. This is known as
-_partial schema inference_, because the key schema is provided explicitly.
+If you're declaring a stream or table with a key format that's different from its
+value format, and only one of the two formats supports schema inference,
+you can explicitly provide the columns for the format that does not support schema inference
+while still having ksqlDB load columns for the format that does support schema inference
+from {{ site.sr }}. This is known as _partial schema inference_. To infer value columns
+for a keyless stream, set the key format to the [`NONE` format](../developer-guide/serialization.md#none).
 
 Tables require a `PRIMARY KEY`, so you must supply one explicitly in your
 `CREATE TABLE` statement. `KEY` columns are optional for streams, so if you
@@ -142,6 +137,27 @@ time the statement is first executed.
 #### With a key column
 
 The following statement shows how to create a new `pageviews` stream by reading
+from a {{ site.ak }} topic that has Avro-formatted key and message values.
+
+```sql
+CREATE STREAM pageviews WITH (
+    KAFKA_TOPIC='pageviews-avro-topic',
+    KEY_FORMAT='AVRO',
+    VALUE_FORMAT='AVRO'
+  );
+```
+
+In the previous example, ksqlDB infers the key and value columns automatically from the latest
+registered schemas for the `pageviews-avro-topic` topic. ksqlDB uses the most
+recent schemas at the time the statement is first executed.
+
+!!! note
+    The key and value schemas must be registered in {{ site.sr }} under the subjects
+    `pageviews-avro-topic-key` and `pageviews-avro-topic-value`, respectively.
+    
+#### With partial schema inference
+
+The following statement shows how to create a new `pageviews` stream by reading
 from a {{ site.ak }} topic that has Avro-formatted message values and a
 `KAFKA`-formatted `INT` message key.
 
@@ -150,11 +166,12 @@ CREATE STREAM pageviews (
     pageId INT KEY
   ) WITH (
     KAFKA_TOPIC='pageviews-avro-topic',
+    KEY_FORMAT='KAFKA',
     VALUE_FORMAT='AVRO'
   );
 ```
 
-In the previous example, you need only supply the key column in the CREATE
+In the previous example, only the key column is supplied in the CREATE
 statement.  ksqlDB infers the value columns automatically from the latest
 registered schema for the `pageviews-avro-topic` topic. ksqlDB uses the most
 recent schema at the time the statement is first executed.
@@ -165,6 +182,31 @@ recent schema at the time the statement is first executed.
 
 ### Create a new table
 
+#### With key and value schema inference
+
+The following statement shows how to create a new `users` table by reading
+from a {{ site.ak }} topic that has Avro-formatted key and message values.
+
+```sql
+CREATE TABLE users (
+    userId BIGINT PRIMARY KEY
+  ) WITH (
+    KAFKA_TOPIC='users-avro-topic',
+    KEY_FORMAT='AVRO',
+    VALUE_FORMAT='AVRO'
+  );
+```
+
+In the previous example, ksqlDB infers the key and value columns automatically from the latest
+registered schemas for the `users-avro-topic` topic. ksqlDB uses the most
+recent schemas at the time the statement is first executed.
+
+!!! note
+    The key and value schemas must be registered in {{ site.sr }} under the subjects
+    `users-avro-topic-key` and `users-avro-topic-value`, respectively.
+
+#### With partial schema inference
+
 The following statement shows how to create a new `users` table by reading
 from a {{ site.ak }} topic that has Avro-formatted message values and a
 `KAFKA`-formatted `BIGINT` message key.
@@ -174,11 +216,12 @@ CREATE TABLE users (
     userId BIGINT PRIMARY KEY
   ) WITH (
     KAFKA_TOPIC='users-avro-topic',
+    KEY_FORMAT='KAFKA',
     VALUE_FORMAT='AVRO'
   );
 ```
 
-In the previous example, you need only supply the key column in the CREATE
+In the previous example, only the key column is supplied in the CREATE
 statement. ksqlDB infers the value columns automatically from the latest
 registered schema for the `users-avro-topic` topic. ksqlDB uses the most
 recent schema at the time the statement is first executed.
@@ -229,17 +272,17 @@ CREATE TABLE pageviews_by_url
 ```
 
 !!! note
-    The schema will be registered in {{ site.sr }} under the subject
+    The value schema will be registered in {{ site.sr }} under the subject
     `PAGEVIEWS_BY_URL-value`.
 
 ### Converting formats
 
-ksqlDB enables you to change the underlying value format of streams and tables. 
+ksqlDB enables you to change the underlying key and value formats of streams and tables. 
 This means that you can easily mix and match streams and tables with different
-data formats and also convert between value formats. For example, you can join
+data formats and also convert between formats. For example, you can join
 a stream backed by Avro data with a table backed by JSON data.
 
-The example below converts a JSON-formatted topic into Avro. Only the
+The example below converts a topic into JSON-formatted values into Avro. Only the
 `VALUE_FORMAT` is required to achieve the data conversion. ksqlDB generates an
 appropriate Avro schema for the new `PAGEVIEWS_AVRO` stream automatically and
 registers the schema with {{ site.sr }}.
@@ -260,12 +303,15 @@ CREATE STREAM pageviews_avro
 ```
 
 !!! note
-    The schema will be registered in {{ site.sr }} under the subject
+    The value schema will be registered in {{ site.sr }} under the subject
     `PAGEVIEWS_AVRO-value`.
 
 For more information, see
 [Changing Data Serialization Format from JSON to Avro](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/changing-data-serialization-format-json-avro)
 in the [Stream Processing Cookbook](https://www.confluent.io/product/ksql/stream-processing-cookbook).
+
+You can convert between different key formats in an analogous manner by specifying the
+`KEY_FORMAT` property instead of `VALUE_FORMAT`.
 
 ## Valid Identifiers
 

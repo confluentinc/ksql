@@ -24,6 +24,7 @@ import static io.confluent.ksql.properties.with.CommonCreateConfigs.VALUE_FORMAT
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
@@ -37,6 +38,7 @@ import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.json.JsonFormat;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Test;
@@ -111,6 +113,36 @@ public class CreateSourceAsPropertiesTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Invalid datetime format for config:TIMESTAMP_FORMAT, reason:Unknown pattern letter: i"));
+  }
+
+  @Test
+  public void shouldAutomaticallySetAvroSchemaNameForKey() {
+    // Given:
+    final CreateSourceAsProperties properties = CreateSourceAsProperties.from(
+        ImmutableMap.of(KEY_FORMAT_PROPERTY, new StringLiteral("AVRO"))
+    );
+
+    // When:
+    final String avroSchemaName = properties.getKeyFormatProperties("name", AvroFormat.NAME)
+        .get(AvroFormat.FULL_SCHEMA_NAME);
+
+    // Then:
+    assertThat(avroSchemaName, is("io.confluent.ksql.avro_schemas.NameKey"));
+  }
+
+  @Test
+  public void shouldNotSetAvroSchemaNameForNonAvroKey() {
+    // Given:
+    final CreateSourceAsProperties properties = CreateSourceAsProperties.from(
+        ImmutableMap.of(KEY_FORMAT_PROPERTY, new StringLiteral("JSON"))
+    );
+
+    // When:
+    final String avroSchemaName = properties.getKeyFormatProperties("name", JsonFormat.NAME)
+        .get(AvroFormat.FULL_SCHEMA_NAME);
+
+    // Then:
+    assertThat(avroSchemaName, nullValue());
   }
 
   @Test

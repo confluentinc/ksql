@@ -46,6 +46,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -71,6 +72,7 @@ import org.junit.runners.Parameterized;
  */
 @Category({IntegrationTest.class})
 @RunWith(Parameterized.class)
+@Ignore
 public class RestQueryTranslationTest {
 
   private static final Path TEST_DIR = Paths.get("rest-query-validation-tests");
@@ -134,6 +136,8 @@ public class RestQueryTranslationTest {
           .excludeTerminated()
           // There is a pool of ksql worker threads that grows over time, but is capped.
           .nameMatches(name -> !name.startsWith("ksql-workers"))
+          // There is a pool for HARouting worker threads that grows over time, but is capped to 100
+          .nameMatches(name -> !name.startsWith("pull-query-executor"))
           .build()));
     } else {
       STARTING_THREADS.get().assertSameThreads();

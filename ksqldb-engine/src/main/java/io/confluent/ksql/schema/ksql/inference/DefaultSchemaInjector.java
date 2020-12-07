@@ -113,8 +113,9 @@ public class DefaultSchemaInjector implements Injector {
   private Optional<SchemaAndId> getKeySchema(
       final ConfiguredStatement<CreateSource> statement
   ) {
-    final CreateSourceProperties props = statement.getStatement().getProperties();
-    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(props);
+    final CreateSource csStmt = statement.getStatement();
+    final CreateSourceProperties props = csStmt.getProperties();
+    final FormatInfo keyFormat = SourcePropertiesUtil.getKeyFormat(props, csStmt.getName());
 
     if (hasKeyElements(statement) || !formatSupportsSchemaInference(keyFormat)) {
       return Optional.empty();

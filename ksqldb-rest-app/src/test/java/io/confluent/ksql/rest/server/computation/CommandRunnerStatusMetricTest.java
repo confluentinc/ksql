@@ -20,10 +20,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.util.KsqlConstants;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.Metrics;
@@ -32,6 +34,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -40,8 +43,10 @@ import java.util.Collections;
 @RunWith(MockitoJUnitRunner.class)
 public class CommandRunnerStatusMetricTest {
 
-  private static final MetricName METRIC_NAME =
+  private static final MetricName METRIC_NAME_1_LEGACY =
       new MetricName("bob", "g1", "d1", ImmutableMap.of());
+  private static final MetricName METRIC_NAME_1 =
+      new MetricName("dob", "g1", "d1", ImmutableMap.of());
   private static final String KSQL_SERVICE_ID = "kcql-1-";
 
   @Mock
@@ -51,14 +56,16 @@ public class CommandRunnerStatusMetricTest {
   @Captor
   private ArgumentCaptor<Gauge<String>> gaugeCaptor;
 
-  private CommandRunnerStatusMetric commandRunnerStatusMetric;
+  private CommandRunnerStatusMetric commandRunnerStatusMetrics;
 
   @Before
   public void setUp() {
-    when(metrics.metricName(any(), any(), any(), anyMap())).thenReturn(METRIC_NAME);
+    when(metrics.metricName(any(), any(), any(), anyMap()))
+        .thenReturn(METRIC_NAME_1_LEGACY)
+        .thenReturn(METRIC_NAME_1);
     when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.RUNNING);
 
-    commandRunnerStatusMetric = new CommandRunnerStatusMetric(metrics, commandRunner, KSQL_SERVICE_ID, "rest");
+    commandRunnerStatusMetrics = new CommandRunnerStatusMetric(metrics, commandRunner, KSQL_SERVICE_ID, "ksql-rest");
   }
 
   @Test
@@ -67,42 +74,59 @@ public class CommandRunnerStatusMetricTest {
     // Listener created in setup
 
     // Then:
-    verify(metrics).metricName("status", "_confluent-ksql-kcql-1-rest-command-runner",
-            "The status of the commandRunner thread as it processes the command topic.",
-            Collections.emptyMap());
+    // legacy metrics with ksql service id in the metric name
+    final InOrder inOrder = inOrder(metrics);
+    inOrder.verify(metrics).metricName("status", "_confluent-ksql-kcql-1-ksql-rest-command-runner",
+        "The status of the commandRunner thread as it processes the command topic.",
+        Collections.emptyMap());
 
-    verify(metrics).addMetric(eq(METRIC_NAME), isA(Gauge.class));
+    // new metrics with ksql service id in tags
+    inOrder.verify(metrics).metricName("status", "_confluent-ksql-rest-command-runner",
+        "The status of the commandRunner thread as it processes the command topic.",
+        Collections.singletonMap(KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, KSQL_SERVICE_ID));
+
+    inOrder.verify(metrics).addMetric(eq(METRIC_NAME_1_LEGACY), isA(Gauge.class));
+    inOrder.verify(metrics).addMetric(eq(METRIC_NAME_1), isA(Gauge.class));
   }
 
   @Test
-  public void shouldInitiallyBeRunningState() {
+  public void shouldInitiallyBeCommandRunnerStatusRunningState() {
     // When:
     // CommandRunnerStatusMetric created in setup
 
     // Then:
-    assertThat(currentGaugeValue(), is(CommandRunner.CommandRunnerStatus.RUNNING.name()));
+    assertThat(commandRunnerStatusGaugeValue(), is(CommandRunner.CommandRunnerStatus.RUNNING.name()));
+    assertThat(commandRunnerStatusGaugeValueLegacy(), is(CommandRunner.CommandRunnerStatus.RUNNING.name()));
   }
 
   @Test
-  public void shouldUpdateToErrorState() {
+  public void shouldUpdateToCommandRunnerStatusErrorState() {
     // When:
     when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.ERROR);
 
     // Then:
-    assertThat(currentGaugeValue(), is(CommandRunner.CommandRunnerStatus.ERROR.name()));
+    assertThat(commandRunnerStatusGaugeValue(), is(CommandRunner.CommandRunnerStatus.ERROR.name()));
+    assertThat(commandRunnerStatusGaugeValueLegacy(), is(CommandRunner.CommandRunnerStatus.ERROR.name()));
   }
 
   @Test
   public void shouldRemoveMetricOnClose() {
     // When:
-    commandRunnerStatusMetric.close();
+    commandRunnerStatusMetrics.close();
 
     // Then:
-    verify(metrics).removeMetric(METRIC_NAME);
+    verify(metrics).removeMetric(METRIC_NAME_1_LEGACY);
+    verify(metrics).removeMetric(METRIC_NAME_1);
   }
 
-  private String currentGaugeValue() {
-    verify(metrics).addMetric(any(), gaugeCaptor.capture());
+  private String commandRunnerStatusGaugeValue() {
+    verify(metrics).addMetric(eq(METRIC_NAME_1), gaugeCaptor.capture());
+    return gaugeCaptor.getValue().value(null, 0L);
+  }
+
+  private String commandRunnerStatusGaugeValueLegacy() {
+    verify(metrics).addMetric(eq(METRIC_NAME_1_LEGACY), gaugeCaptor.capture());
     return gaugeCaptor.getValue().value(null, 0L);
   }
 }
+

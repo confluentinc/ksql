@@ -44,6 +44,7 @@ public final class KsqlConstants {
   public static final String AVRO_SCHEMA_NAME = "KsqlDataSourceSchema";
   public static final String DEFAULT_AVRO_SCHEMA_FULL_NAME =
       AVRO_SCHEMA_NAMESPACE + "." + AVRO_SCHEMA_NAME;
+  public static final String KSQL_SERVICE_ID_METRICS_TAG = "ksql_service_id";
 
   public enum KsqlQueryType {
     PERSISTENT,

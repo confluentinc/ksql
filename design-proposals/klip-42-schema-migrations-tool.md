@@ -389,6 +389,8 @@ Commands
   
 Options
   -c, --config-file  Specifies a configuration file
+  
+  -d, --define       Define variables for the client session (equivalent to the DEFINE statement).
  
   -h, --help         Shows this help  
     

@@ -153,7 +153,8 @@ public final class GenericKeySerDe implements KeySerdeFactory {
         throw new KsqlException("Map keys, including types that contain maps, are not supported "
             + "as they may lead to unexpected behavior due to inconsistent serialization. "
             + "Key column name: " + column.name() + ". "
-            + "Column type: " + column.type().toString(FormatOptions.none()));
+            + "Column type: " + column.type().toString(FormatOptions.none()) + ". "
+            + "See https://github.com/confluentinc/ksql/issues/6621 for more.");
       }
     }
   }

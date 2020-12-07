@@ -289,7 +289,8 @@ public class GenericKeySerDeTest {
     assertThat(e.getMessage(), containsString(
         "Map keys, including types that contain maps, are not supported as they may lead "
             + "to unexpected behavior due to inconsistent serialization. Key column name: `foo`. "
-            + "Column type: MAP<STRING, STRING>"));
+            + "Column type: MAP<STRING, STRING>. "
+            + "See https://github.com/confluentinc/ksql/issues/6621 for more."));
   }
 
   @Test
@@ -314,7 +315,8 @@ public class GenericKeySerDeTest {
     assertThat(e.getMessage(), containsString(
         "Map keys, including types that contain maps, are not supported as they may lead "
             + "to unexpected behavior due to inconsistent serialization. Key column name: `foo`. "
-            + "Column type: STRUCT<`F` MAP<STRING, STRING>>"));
+            + "Column type: STRUCT<`F` MAP<STRING, STRING>>. "
+            + "See https://github.com/confluentinc/ksql/issues/6621 for more."));
   }
 
   private static SimpleColumn column(final SqlType type) {

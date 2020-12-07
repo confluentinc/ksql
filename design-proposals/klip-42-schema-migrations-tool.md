@@ -81,6 +81,12 @@ to support for a basic schema migration process.
   that would take time to complete on large tables. ksqlDB operations are quick unless an issue with the ksqlDB environment affects
   these executions.
 
+* Squash several migration files into one
+
+  This is a very important functionality users may want to use. Over time, users may have several small migration files that can be squashed
+  into one single file. However, this functionality gets out of scope for the migrations tool. It is easier to write a ksqlDB metastore tool
+  that exports the cluster metadata to a SQL file, then use this SQL file as a replacement for the user migrations scripts.
+
 ## Value/Return
 
 Users will be able to integrate ksqlDB upgrades testing with any CI/CD environments of their choice. This is a huge benefit for users who want
@@ -207,7 +213,7 @@ CREATE STREAM migration_events (
 );
 ```
 
-The `version_key` column has the version of the migration applied or undone. Other keys `CURRENT` and `LATEST` will be reserved for internal purposes.
+The `version_key` column has the version of the migration applied or undone. Special values of the `version_key`, `CURRENT` and `LATEST` will be reserved for internal purposes.
 The `version` column has the version of the migration applied or undone.
 The `name` column has the name of the migration.
 The `state` column has the state of the migration process. It can be any of `Pending`, `Running`, `Migrated`, `Error`, `Undone`.
@@ -299,7 +305,7 @@ the SQL operations to revert the changes of a previous migration. The file in th
 
 For instance, let's undo the migration version 2 applied before. The migration file used before was named `V2__Add_users.sql`. For the undo file, we should add the `U` prefix.
 
-`U2_Add_users.sql`
+`U2__Add_users.sql`
 ```sql
 DROP TABLE users;
 ```
@@ -325,16 +331,16 @@ The migration files follow the same `Flyway` naming convention.
 `(Prefix)(Version)__(Description).sql`
 
 The `Prefix` specifies whether the file is a new migration (`V`) or undo (`U`) file.
-The `Version` is the version number used for the schema. For minor versions, such as `1.1`, an underscore is required (i.e. `1_1`)
-The `Description` is just a name or description of the new migration.
+The `Version` is the version number used for the schema. For minor versions, such as `1.1`, an underscore is required (i.e. `1_1`).
+The `Description` is a name or description of the new migration. Description uses underscores (automatically replaced by spaces at runtime) or spaces separated the words.
 
 i.e.
 ```
-- V1__Initial_setup.sql    # a new version to migrate (v1)
+- V1__Initial_setup.sql    # a new version to migrate (v1) with name 'Initial setup'
 - U1__Initial_setup.sql    # rollback v1 schema
-- V2__Add_users.sql        # a new version to migrate (v2)
+- V2__Add_users.sql        # a new version to migrate (v2) with name 'Add users'
 - U2__Add_users.sql        # rollback v2 schema
-- V2_1__Fix_topic_name.sql # A new version to migrate (v2.1)
+- V2_1__Fix_topic_name.sql # A new version to migrate (v2.1) with name 'Fix topic name'
 - U2_1__Fix_topic_name.sql # rollback v2.1 schema
 ```
 
@@ -353,18 +359,18 @@ Commands
 
   apply ( all | next | until <target> )
   
-              Migrates a schema to new available schema versions (default: next)
+              Migrates a schema to new available schema versions (default: all)
               
               If 'all' is specified, then it migrates all newer versions available
               If 'next' is specified, then it migrates only the next available version
               If 'until <target>' is specified, then it migrates all available versions before <target>
   
-  undo ( all | last | until <target> )
+  undo ( all | previous | until <target> )
   
-              Rollbacks a schema to the previous schema version (default: last)
+              Rollbacks a schema to the previous schema version (default: previous)
               
               If 'all' is specified, then it rollbacks all previous versions
-              If 'last' is specified, then it rollbacks the previous version
+              If 'previous' is specified, then it rollbacks the previous version
               If 'until <target>' is specified, then it rollbacks all previous versions after <target>
   
   info        Displays information about the current and available migrations

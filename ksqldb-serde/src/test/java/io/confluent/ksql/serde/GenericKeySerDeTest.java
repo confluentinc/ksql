@@ -270,49 +270,8 @@ public class GenericKeySerDeTest {
   }
 
   @Test
-  public void shouldThrowOnArrayKeyColumn() {
-    // Given:
-    schema = PersistenceSchema.from(
-        ImmutableList.of(column(SqlTypes.array(SqlTypes.STRING))),
-        SerdeFeatures.of()
-    );
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> factory
-            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
-                Optional.empty())
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("Unsupported key schema: [ARRAY<STRING>]"));
-  }
-
-  @Test
   public void shouldThrowOnMapKeyColumn() {
     // Given:
-    schema = PersistenceSchema.from(
-        ImmutableList.of(column(SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING))),
-        SerdeFeatures.of()
-    );
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> factory
-            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
-                Optional.empty())
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("Unsupported key schema: [MAP<STRING, STRING>]"));
-  }
-
-  @Test
-  public void shouldThrowOnMapKeyColumnEvenWithFeatureFlag() {
-    // Given:
-    when(config.getBoolean(KsqlConfig.KSQL_COMPLEX_KEY_FORMAT_ENABLED)).thenReturn(true);
     schema = PersistenceSchema.from(
         ImmutableList.of(column(SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING))),
         SerdeFeatures.of()
@@ -330,13 +289,13 @@ public class GenericKeySerDeTest {
     assertThat(e.getMessage(), containsString(
         "Map keys, including types that contain maps, are not supported as they may lead "
             + "to unexpected behavior due to inconsistent serialization. Key column name: `foo`. "
-            + "Column type: MAP<STRING, STRING>"));
+            + "Column type: MAP<STRING, STRING>. "
+            + "See https://github.com/confluentinc/ksql/issues/6621 for more."));
   }
 
   @Test
-  public void shouldThrowOnNestedMapKeyColumnEvenWithFeatureFlag() {
+  public void shouldThrowOnNestedMapKeyColumn() {
     // Given:
-    when(config.getBoolean(KsqlConfig.KSQL_COMPLEX_KEY_FORMAT_ENABLED)).thenReturn(true);
     schema = PersistenceSchema.from(
         ImmutableList.of(column(SqlTypes.struct()
             .field("F", SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING))
@@ -356,27 +315,8 @@ public class GenericKeySerDeTest {
     assertThat(e.getMessage(), containsString(
         "Map keys, including types that contain maps, are not supported as they may lead "
             + "to unexpected behavior due to inconsistent serialization. Key column name: `foo`. "
-            + "Column type: STRUCT<`F` MAP<STRING, STRING>>"));
-  }
-
-  @Test
-  public void shouldThrowOnStructKeyColumn() {
-    // Given:
-    schema = PersistenceSchema.from(
-        ImmutableList.of(column(SqlTypes.struct().field("F", SqlTypes.STRING).build())),
-        SerdeFeatures.of()
-    );
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> factory
-            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
-                Optional.empty())
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("Unsupported key schema: [STRUCT<`F` STRING>]"));
+            + "Column type: STRUCT<`F` MAP<STRING, STRING>>. "
+            + "See https://github.com/confluentinc/ksql/issues/6621 for more."));
   }
 
   private static SimpleColumn column(final SqlType type) {

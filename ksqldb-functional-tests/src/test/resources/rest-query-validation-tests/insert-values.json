@@ -409,14 +409,23 @@
       ]
     },
     {
+      "name": "AVRO array key format",
+      "statements": [
+        "CREATE STREAM TEST (K ARRAY<INT> KEY, ID INT) WITH (kafka_topic='test_topic', format='AVRO');",
+        "INSERT INTO TEST (ID, ROWTIME, K) VALUES (10, 1234, ARRAY[12, 22]);"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "timestamp": 1234, "key": [12, 22], "value": {"ID": 10}}
+      ]
+    },
+    {
       "name": "AVRO struct key format",
       "statements": [
         "CREATE STREAM TEST (K STRUCT<F1 STRING> KEY, ID INT) WITH (kafka_topic='test_topic', format='AVRO');",
         "INSERT INTO TEST (ID, ROWTIME, K) VALUES (10, 1234, STRUCT(f1:='key'));"
       ],
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "inputs": [
       ],
       "outputs": [

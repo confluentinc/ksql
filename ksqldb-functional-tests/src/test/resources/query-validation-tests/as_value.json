@@ -152,9 +152,6 @@
     },
     {
       "name": "ARRAY",
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (ID ARRAY<VARCHAR> KEY, V0 INT, V1 INT) WITH (kafka_topic='input', format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(ID) AS ID_COPY, V1 FROM INPUT;"
@@ -173,9 +170,6 @@
     },
     {
       "name": "STRUCT",
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (ID STRUCT<F1 VARCHAR> KEY, V0 INT, V1 INT) WITH (kafka_topic='input', format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT ID, AS_VALUE(ID) AS ID_COPY, V1 FROM INPUT;"

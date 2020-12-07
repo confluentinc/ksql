@@ -21,11 +21,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
+
+import io.confluent.ksql.util.KsqlConstants;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.Metrics;
@@ -34,16 +37,22 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CommandRunnerMetricsTest {
 
-  private static final MetricName METRIC_NAME_1 =
+  private static final MetricName METRIC_NAME_1_LEGACY =
       new MetricName("bob", "g1", "d1", ImmutableMap.of());
-  private static final MetricName METRIC_NAME_2 =
+  private static final MetricName METRIC_NAME_2_LEGACY =
       new MetricName("jill", "g1", "d2", ImmutableMap.of());
+
+  private static final MetricName METRIC_NAME_1 =
+      new MetricName("dob", "g1", "d1", ImmutableMap.of());
+  private static final MetricName METRIC_NAME_2 =
+      new MetricName("bill", "g1", "d2", ImmutableMap.of());
   private static final String KSQL_SERVICE_ID = "kcql-1-";
 
   @Mock
@@ -58,12 +67,14 @@ public class CommandRunnerMetricsTest {
   @Before
   public void setUp() {
     when(metrics.metricName(any(), any(), any(), anyMap()))
+        .thenReturn(METRIC_NAME_1_LEGACY)
+        .thenReturn(METRIC_NAME_2_LEGACY)
         .thenReturn(METRIC_NAME_1)
         .thenReturn(METRIC_NAME_2);
     when(commandRunner.checkCommandRunnerStatus()).thenReturn(CommandRunner.CommandRunnerStatus.RUNNING);
     when(commandRunner.getCommandRunnerDegradedReason()).thenReturn(CommandRunner.CommandRunnerDegradedReason.NONE);
 
-    commandRunnerMetrics = new CommandRunnerMetrics(metrics, commandRunner, KSQL_SERVICE_ID, "rest");
+    commandRunnerMetrics = new CommandRunnerMetrics(metrics, commandRunner, KSQL_SERVICE_ID, "ksql-rest");
   }
 
   @Test
@@ -72,15 +83,27 @@ public class CommandRunnerMetricsTest {
     // Listener created in setup
 
     // Then:
-    verify(metrics).metricName("status", "_confluent-ksql-kcql-1-rest-command-runner",
-            "The status of the commandRunner thread as it processes the command topic.",
-            Collections.emptyMap());
-    verify(metrics).metricName("degraded-reason", "_confluent-ksql-kcql-1-rest-command-runner",
-            "The reason for why the commandRunner thread is in a DEGRADED state.",
-            Collections.emptyMap());
+    // legacy metrics with ksql service id in the metric name
+    final InOrder inOrder = inOrder(metrics);
+    inOrder.verify(metrics).metricName("status", "_confluent-ksql-kcql-1-ksql-rest-command-runner",
+        "The status of the commandRunner thread as it processes the command topic.",
+        Collections.emptyMap());
+    inOrder.verify(metrics).metricName("degraded-reason", "_confluent-ksql-kcql-1-ksql-rest-command-runner",
+        "The reason for why the commandRunner thread is in a DEGRADED state.",
+        Collections.emptyMap());
+    
+    // new metrics with ksql service id in tags
+    inOrder.verify(metrics).metricName("status", "_confluent-ksql-rest-command-runner",
+        "The status of the commandRunner thread as it processes the command topic.",
+        Collections.singletonMap(KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, KSQL_SERVICE_ID));
+    inOrder.verify(metrics).metricName("degraded-reason", "_confluent-ksql-rest-command-runner",
+        "The reason for why the commandRunner thread is in a DEGRADED state.",
+        Collections.singletonMap(KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, KSQL_SERVICE_ID));
 
-    verify(metrics).addMetric(eq(METRIC_NAME_1), isA(Gauge.class));
-    verify(metrics).addMetric(eq(METRIC_NAME_2), isA(Gauge.class));
+    inOrder.verify(metrics).addMetric(eq(METRIC_NAME_1_LEGACY), isA(Gauge.class));
+    inOrder.verify(metrics).addMetric(eq(METRIC_NAME_2_LEGACY), isA(Gauge.class));
+    inOrder.verify(metrics).addMetric(eq(METRIC_NAME_1), isA(Gauge.class));
+    inOrder.verify(metrics).addMetric(eq(METRIC_NAME_2), isA(Gauge.class));
   }
 
   @Test
@@ -90,6 +113,7 @@ public class CommandRunnerMetricsTest {
 
     // Then:
     assertThat(commandRunnerStatusGaugeValue(), is(CommandRunner.CommandRunnerStatus.RUNNING.name()));
+    assertThat(commandRunnerStatusGaugeValueLegacy(), is(CommandRunner.CommandRunnerStatus.RUNNING.name()));
   }
 
   @Test
@@ -99,6 +123,7 @@ public class CommandRunnerMetricsTest {
 
     // Then:
     assertThat(commandRunnerStatusGaugeValue(), is(CommandRunner.CommandRunnerStatus.ERROR.name()));
+    assertThat(commandRunnerStatusGaugeValueLegacy(), is(CommandRunner.CommandRunnerStatus.ERROR.name()));
   }
 
   @Test
@@ -108,6 +133,7 @@ public class CommandRunnerMetricsTest {
 
     // Then:
     assertThat(commandRunnerStatusGaugeValue(), is(CommandRunner.CommandRunnerStatus.DEGRADED.name()));
+    assertThat(commandRunnerStatusGaugeValueLegacy(), is(CommandRunner.CommandRunnerStatus.DEGRADED.name()));
   }
 
   @Test
@@ -117,6 +143,7 @@ public class CommandRunnerMetricsTest {
 
     // Then:
     assertThat(commandRunnerDegradedReasonGaugeValue(), is(CommandRunner.CommandRunnerDegradedReason.NONE.name()));
+    assertThat(commandRunnerDegradedReasonGaugeValueLegacy(), is(CommandRunner.CommandRunnerDegradedReason.NONE.name()));
   }
 
   @Test
@@ -126,6 +153,7 @@ public class CommandRunnerMetricsTest {
 
     // Then:
     assertThat(commandRunnerDegradedReasonGaugeValue(), is(CommandRunner.CommandRunnerDegradedReason.CORRUPTED.name()));
+    assertThat(commandRunnerDegradedReasonGaugeValueLegacy(), is(CommandRunner.CommandRunnerDegradedReason.CORRUPTED.name()));
   }
 
   @Test
@@ -135,6 +163,7 @@ public class CommandRunnerMetricsTest {
 
     // Then:
     assertThat(commandRunnerDegradedReasonGaugeValue(), is(CommandRunner.CommandRunnerDegradedReason.INCOMPATIBLE_COMMAND.name()));
+    assertThat(commandRunnerDegradedReasonGaugeValueLegacy(), is(CommandRunner.CommandRunnerDegradedReason.INCOMPATIBLE_COMMAND.name()));
   }
 
   @Test
@@ -143,6 +172,8 @@ public class CommandRunnerMetricsTest {
     commandRunnerMetrics.close();
 
     // Then:
+    verify(metrics).removeMetric(METRIC_NAME_1_LEGACY);
+    verify(metrics).removeMetric(METRIC_NAME_2_LEGACY);
     verify(metrics).removeMetric(METRIC_NAME_1);
     verify(metrics).removeMetric(METRIC_NAME_2);
   }
@@ -154,6 +185,16 @@ public class CommandRunnerMetricsTest {
 
   private String commandRunnerDegradedReasonGaugeValue() {
     verify(metrics).addMetric(eq(METRIC_NAME_2), gaugeCaptor.capture());
+    return gaugeCaptor.getValue().value(null, 0L);
+  }
+
+  private String commandRunnerStatusGaugeValueLegacy() {
+    verify(metrics).addMetric(eq(METRIC_NAME_1_LEGACY), gaugeCaptor.capture());
+    return gaugeCaptor.getValue().value(null, 0L);
+  }
+
+  private String commandRunnerDegradedReasonGaugeValueLegacy() {
+    verify(metrics).addMetric(eq(METRIC_NAME_2_LEGACY), gaugeCaptor.capture());
     return gaugeCaptor.getValue().value(null, 0L);
   }
 }

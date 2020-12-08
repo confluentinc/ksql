@@ -11,7 +11,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Error parsing statement: Statement is too large to parse."
+        "message": "Error processing statement: Statement is too large to parse. This may be caused by having too many nested expressions in the statement."
       }
     }
   ]

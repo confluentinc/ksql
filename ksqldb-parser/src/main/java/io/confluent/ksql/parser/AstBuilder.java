@@ -1479,7 +1479,8 @@ public class AstBuilder {
       accumulator.visit(parseTree);
       return accumulator.getSources();
     } catch (StackOverflowError e) {
-      throw new KsqlException("Error processing statement: Statement is too large to parse.");
+      throw new KsqlException("Error processing statement: Statement is too large to parse. "
+          + "This may be caused by having too many nested expressions in the statement.");
     }
   }
 

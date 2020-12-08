@@ -109,7 +109,8 @@ public class DefaultKsqlParser implements KsqlParser {
       sqlBaseParser.getInterpreter().setPredictionMode(PredictionMode.LL);
       return (SqlBaseParser.StatementsContext)parseFunction.apply(sqlBaseParser);
     } catch (final StackOverflowError e) {
-      throw new KsqlException("Error parsing statement: Statement is too large to parse.");
+      throw new KsqlException("Error processing statement: Statement is too large to parse. "
+          + "This may be caused by having too many nested expressions in the statement.");
     }
   }
 

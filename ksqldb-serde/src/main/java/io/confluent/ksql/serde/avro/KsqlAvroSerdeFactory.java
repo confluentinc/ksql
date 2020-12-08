@@ -140,6 +140,9 @@ class KsqlAvroSerdeFactory {
 
     avroConfig.put(AvroDataConfig.CONNECT_META_DATA_CONFIG, false);
 
+    avroConfig.put(KsqlConfig.KSQL_VALUE_SUBJECT_NAME_STRATEGY,
+            ksqlConfig.getString(KsqlConfig.KSQL_VALUE_SUBJECT_NAME_STRATEGY));
+
     avroConverter.configure(avroConfig, isKey);
     return avroConverter;
   }

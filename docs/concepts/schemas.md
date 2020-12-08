@@ -292,11 +292,11 @@ The following SQL types are supported by ksqlDB:
 
 Supported primitive types are:
 
- * `BOOLEAN`: a binary value
- * `INT`: 32-bit signed integer
- * `BIGINT`: 64-bit signed integer
- * `DOUBLE`: double precision (64-bit) IEEE 754 floating-point number
- * `STRING`: a unicode character sequence (UTF8)
+* `BOOLEAN`: a binary value
+* `INT`: 32-bit signed integer
+* `BIGINT`: 64-bit signed integer
+* `DOUBLE`: double precision (64-bit) IEEE 754 floating-point number
+* `STRING`: a unicode character sequence (UTF8)
 
 ### Decimal type
 

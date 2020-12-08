@@ -15,7 +15,10 @@
 
 package io.confluent.ksql.schema.registry;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -166,5 +169,31 @@ public class SchemaRegistryUtilTest {
     // Then not exception (only tried once):
     verify(schemaRegistryClient, times(1)).deleteSubject(APP_ID + "SOME-changelog-key");
     verify(schemaRegistryClient, times(1)).deleteSubject(APP_ID + "SOME-changelog-value");
+  }
+
+  @Test
+  public void shouldReturnTrueOnIsSubjectExists() throws Exception {
+    // Given:
+    when(schemaRegistryClient.getLatestSchemaMetadata("foo-value")).thenReturn(null);
+
+    // When:
+    final boolean subjectExists = SchemaRegistryUtil.subjectExists(schemaRegistryClient, "foo-value");
+
+    // Then:
+    assertTrue("Expected subject to exist", subjectExists);
+  }
+
+  @Test
+  public void shouldReturnFalseOnSubjectMissing() throws Exception {
+    // Given:
+    when(schemaRegistryClient.getLatestSchemaMetadata("bar-value")).thenThrow(
+        new RestClientException("foo", 404, SchemaRegistryUtil.SUBJECT_NOT_FOUND_ERROR_CODE)
+    );
+
+    // When:
+    final boolean subjectExists = SchemaRegistryUtil.subjectExists(schemaRegistryClient, "bar-value");
+
+    // Then:
+    assertFalse("Expected subject to not exist", subjectExists);
   }
 }

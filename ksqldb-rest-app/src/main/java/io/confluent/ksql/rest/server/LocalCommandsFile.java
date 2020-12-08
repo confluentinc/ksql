@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
 import java.io.File;

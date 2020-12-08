@@ -149,7 +149,7 @@ public class LocalCommands implements Closeable {
           + "' config in the properties file."
       );
     }
-    File file = new File(directory, String.format("local_commands_%d_%s%s",
+    final File file = new File(directory, String.format("local_commands_%d_%s%s",
         System.currentTimeMillis(), Integer.toHexString(RANDOM.nextInt()),
         LOCAL_COMMANDS_FILE_SUFFIX));
     return new LocalCommands(directory, ksqlEngine, LocalCommandsFile.createWriteable(file));

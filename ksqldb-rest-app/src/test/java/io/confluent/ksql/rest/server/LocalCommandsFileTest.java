@@ -65,12 +65,10 @@ public class LocalCommandsFileTest {
     // Then
     final List<String> commands = Files.readAllLines(internalCommandsFile.toPath());
     assertThat(commands.size(), is(2));
-    assertThat(commands.get(0), is("{\"queryApplicationId\":"
-        + "\"_confluent-ksql-default_transient_932097300573686369_1606940079718\","
-        + "\"type\":\"TRANSIENT_QUERY\"}"));
-    assertThat(commands.get(1), is("{\"queryApplicationId\":"
-        + "\"_confluent-ksql-default_transient_123457300573686369_1606940012343\","
-        + "\"type\":\"TRANSIENT_QUERY\"}"));
+    assertThat(commands.get(0), is("{\"type\":\"TRANSIENT_QUERY\",\"queryApplicationId\":"
+        + "\"_confluent-ksql-default_transient_932097300573686369_1606940079718\"}"));
+    assertThat(commands.get(1), is("{\"type\":\"TRANSIENT_QUERY\",\"queryApplicationId\":"
+        + "\"_confluent-ksql-default_transient_123457300573686369_1606940012343\"}"));
   }
 
   @Test

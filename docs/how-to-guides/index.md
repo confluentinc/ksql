@@ -1,6 +1,5 @@
 The how-to guides are compact lessons that help you work with common ksqlDB functionality.
 
-
 <div class="cards">
   <div class="card how-to-guide">
     <strong>Query structured data</strong>

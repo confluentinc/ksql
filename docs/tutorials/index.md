@@ -9,7 +9,7 @@ keywords: ksqldb, query, application, quickstart, tutorial, walkthrough, how to
 The tutorials are end-to-end examples of how to use ksqlDB for specific use cases.
 
 <div class="cards">
-  <div class="card">
+  <div class="card tutorial">
     <strong>Materialized cache</strong>
     <p class="card-body"><small>Build and serve incrementally-updated stateful views.</small></p>
 
@@ -19,7 +19,7 @@ The tutorials are end-to-end examples of how to use ksqlDB for specific use case
     </div>
   </div>
 
-  <div class="card">
+  <div class="card tutorial">
     <strong>Streaming ETL pipeline</strong>
     <p class="card-body"><small>Manipulate in-flight data to connect arbitrary sources and sinks.</small></p>
 
@@ -29,7 +29,7 @@ The tutorials are end-to-end examples of how to use ksqlDB for specific use case
     </div>
   </div>
 
-  <div class="card">
+  <div class="card tutorial">
     <strong>Event-driven microservice</strong>
     <p class="card-body"><small>Trigger changes based on observed patterns of events in a stream.</small></p>
 

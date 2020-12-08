@@ -69,6 +69,7 @@ select.version::-ms-expand {
     flex-flow: row wrap;
     justify-content: space-evenly;
     align-items: stretch;
+    margin-bottom: 40px;
 }
 
 @media (max-width: 800px) {
@@ -116,4 +117,24 @@ ul.card-items li {
     align-self: center;
     margin: auto;
     transform: translateX(-20px);
+}
+
+.card.tutorial {
+    background-color: #faf7ff;
+}
+
+.card.how-to-guide {
+    background-color: #f7f8ff;
+}
+
+.card.how-to-guide.contribute {
+    background: repeating-linear-gradient(
+      45deg,
+      #f7f8ff,
+      #f7f8ff 10px,
+      #ffffff 10px,
+      #ffffff 20px
+    );
+
+    border: 2px dashed #eee;
 }

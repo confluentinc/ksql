@@ -400,6 +400,11 @@ ARRAY[2, 4, 6]
 The `MAP` type defines a variable-length collection of key-value pairs. All keys in the map must be
 of the same type. All values in the map must be of the same type.
 
+!!! note
+    The `MAP` type is only supported for value columns, not key columns, as map keys
+    may lead to unexpected behavior due to inconsistent serialization.
+    This restriction includes nested types containing maps as well.
+
 To declare a `MAP` use the syntax:
 
 ```

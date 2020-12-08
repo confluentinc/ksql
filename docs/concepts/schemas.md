@@ -281,22 +281,22 @@ back-tick quotes, for example `` `col0` ``.
 
 The following SQL types are supported by ksqlDB:
 
- * [Primitive types](#primitive-types)
- * [Decimal type](#decimal-type)
- * [Array type](#array-type)
- * [Map type](#map-type)
- * [Struct type](#struct-type)
- * [Custom types](#custom-types)
+* [Primitive types](#primitive-types)
+* [Decimal type](#decimal-type)
+* [Array type](#array-type)
+* [Map type](#map-type)
+* [Struct type](#struct-type)
+* [Custom types](#custom-types)
 
 ### Primitive types
 
 Supported primitive types are:
 
-  * `BOOLEAN`: a binary value
-  * `INT`: 32-bit signed integer
-  * `BIGINT`: 64-bit signed integer
-  * `DOUBLE`: double precision (64-bit) IEEE 754 floating-point number
-  * `STRING`: a unicode character sequence (UTF8)
+ * `BOOLEAN`: a binary value
+ * `INT`: 32-bit signed integer
+ * `BIGINT`: 64-bit signed integer
+ * `DOUBLE`: double precision (64-bit) IEEE 754 floating-point number
+ * `STRING`: a unicode character sequence (UTF8)
 
 ### Decimal type
 

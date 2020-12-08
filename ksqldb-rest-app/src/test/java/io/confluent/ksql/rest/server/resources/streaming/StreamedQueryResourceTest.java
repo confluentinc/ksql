@@ -224,7 +224,8 @@ public class StreamedQueryResourceTest {
         Optional.empty(),
         routingFilterFactory,
         rateLimiter,
-        haRouting
+        haRouting,
+        Optional.empty()
     );
 
     testResource.configure(VALID_CONFIG);
@@ -306,7 +307,8 @@ public class StreamedQueryResourceTest {
         Optional.empty(),
         routingFilterFactory,
         pullQueryRateLimiter,
-        haRouting
+        haRouting,
+        Optional.empty()
     );
     testResource.configure(VALID_CONFIG);
     when(mockKsqlEngine.executePullQuery(any(), any(), any(), any(), any(), any())).thenReturn(pullQueryResult);
@@ -352,7 +354,8 @@ public class StreamedQueryResourceTest {
         Optional.empty(),
         routingFilterFactory,
         rateLimiter,
-        haRouting
+        haRouting,
+        Optional.empty()
     );
 
     // When:
@@ -516,7 +519,8 @@ public class StreamedQueryResourceTest {
         Optional.empty(),
         routingFilterFactory,
         rateLimiter,
-        haRouting
+        haRouting,
+        Optional.empty()
       );
     final Map<String, Object> props = new HashMap<>(ImmutableMap.of(
         StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"

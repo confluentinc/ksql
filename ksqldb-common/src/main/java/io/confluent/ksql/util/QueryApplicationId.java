@@ -15,9 +15,7 @@
 
 package io.confluent.ksql.util;
 
-import com.google.common.base.Strings;
 import io.confluent.ksql.query.QueryId;
-import java.util.Optional;
 
 /**
  * Util to build query application ids.
@@ -27,25 +25,12 @@ public final class QueryApplicationId {
   private QueryApplicationId() {
   }
 
-  /**
-   * Builds the portion of the id unique to this service, node, and query type, but does not include
-   * an identifiers for an individual query.
-   * @param config The ksql configuration
-   * @param persistent If the query is persistent or not
-   * @return
-   */
-  public static String buildPrefix(
+  public static String build(
       final KsqlConfig config,
-      final boolean persistent
+      final boolean persistent,
+      final QueryId queryId
   ) {
     final String serviceId = config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
-
-    // If node id is set and this is a transient query, include it as part of the application id
-    final String nodeId = Optional.ofNullable(
-        Strings.emptyToNull(config.getString(KsqlConfig.KSQL_NODE_ID_CONFIG)))
-        .filter(id -> !persistent)
-        .map(id -> id.endsWith("_") ? id : id + "_")
-        .orElse("");
 
     final String configName = persistent
         ? KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG
@@ -53,18 +38,9 @@ public final class QueryApplicationId {
 
     final String queryPrefix = config.getString(configName);
 
-    return ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
+    final String queryAppId = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
         + serviceId
-        + nodeId
-        + queryPrefix;
-  }
-
-  public static String build(
-      final KsqlConfig config,
-      final boolean persistent,
-      final QueryId queryId
-  ) {
-    final String queryAppId = buildPrefix(config, persistent)
+        + queryPrefix
         + queryId;
     if (persistent) {
       return queryAppId;

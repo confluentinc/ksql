@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.ServiceInfo;
-import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -317,9 +316,10 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   public void cleanupOrphanedInternalTopics(
       final ServiceContext serviceContext,
-      final SessionConfig config
+      final Set<String> queryApplicationIds
   ) {
-    orphanedTransientQueryCleaner.cleanupOrphanedInternalTopics(serviceContext, config);
+    orphanedTransientQueryCleaner.cleanupOrphanedInternalTopics(serviceContext,
+        queryApplicationIds);
   }
 
   /**

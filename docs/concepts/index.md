@@ -6,57 +6,23 @@ description: Learn about ksqlDB under the hood.
 keywords: ksqldb, architecture, collection, query, schema, window, view
 ---
 
+![Diagram of ksqlDB architecure](../img/ksqldb-architecture.png)
 
-<div class="cards">
-  <div class="card concepts">
-    <strong>Events</strong>
-    <p class="card-body"><small>Process and query structured data types like structs, maps, and arrays.</small></p>
-    <a href="/how-to-guides/query-structured-data">Learn →</a>
-  </div>
+ksqlDB is built on these conceptual pillars:
 
-  <div class="card concepts">
-    <strong>Stream processing</strong>
-    <p class="card-body"><small>Create a table representing the latest values in a stream.</small></p>
-    <a href="/how-to-guides/convert-changelog-to-table">Learn →</a>
-  </div>
+- [**Collections:** streams and tables](collections/index.md)
+- [**Events:** facts with timestamps](events.md)
+- [**Queries:** ask questions about materialized views](queries/index.md)
+- [**Stream Processing:** handle events in real time](stream-processing.md)
+- [**Materialized Views:** enable efficient queries](materialized-views.md)
+- [**Functions:** enhance queries with built-in and custom logic](functions.md)
+- [**Connectors:** get data in and send data out](connectors.md)
+- [**Schemas:** define the structure of your event data](schemas.md)
 
-  <div class="card concepts">
-    <strong>Queries</strong>
-    <p class="card-body"><small>Source and sink data from external systems.</small></p>
-    <a href="/how-to-guides/use-connector-management">Learn →</a>
-  </div>
-</div>
+More in the **Concepts** section:
 
-<div class="cards">
-  <div class="card concepts">
-    <strong>Materialized views</strong>
-    <p class="card-body"><small>Process and query structured data types like structs, maps, and arrays.</small></p>
-    <a href="/how-to-guides/query-structured-data">Learn →</a>
-  </div>
-
-  <div class="card concepts">
-    <strong>Connectors</strong>
-    <p class="card-body"><small>Create a table representing the latest values in a stream.</small></p>
-    <a href="/how-to-guides/convert-changelog-to-table">Learn →</a>
-  </div>
-
-  <div class="card concepts">
-    <strong>Time and windows</strong>
-    <p class="card-body"><small>Source and sink data from external systems.</small></p>
-    <a href="/how-to-guides/use-connector-management">Learn →</a>
-  </div>
-</div>
-
-<div class="cards">
-  <div class="card concepts">
-    <strong>Joins</strong>
-    <p class="card-body"><small>Process and query structured data types like structs, maps, and arrays.</small></p>
-    <a href="/how-to-guides/query-structured-data">Learn →</a>
-  </div>
-
-  <div class="card concepts">
-    <strong>Apache Kafka primer</strong>
-    <p class="card-body"><small>Process and query structured data types like structs, maps, and arrays.</small></p>
-    <a href="/how-to-guides/query-structured-data">Learn →</a>
-  </div>
-</div>
+- [Architecture](ksqldb-architecture.md)
+- [Kafka Streams and kslDB](ksqldb-and-kafka-streams.md)
+- [Time and Windows](time-and-windows-in-ksqldb-queries.md)
+- [Processing Guarantees](processing-guarantees.md)
+- [Evolving Production Queries](upgrades.md)

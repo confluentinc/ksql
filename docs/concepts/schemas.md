@@ -398,7 +398,8 @@ ARRAY[2, 4, 6]
 ### Map type
 
 The `MAP` type defines a variable-length collection of key-value pairs. All keys in the map must be
-of the same type. All values in the map must be of the same type.
+of the same type. All values in the map must be of the same type. Currently only `STRING` keys are
+supported. The value type can be any valid SQL type.
 
 !!! note
     The `MAP` type is only supported for value columns, not key columns, as map keys

@@ -264,7 +264,8 @@ MAP<KeyType, ValueType>
 
 ksqlDB supports fields that are maps. A map has a key and value type. All
 of the keys must be of the same type, and all of the values must be also
-be of the same type.
+be of the same type. Currently only `STRING` keys are supported. The
+value type can be any valid SQL type.
 
 Access the values of a map by using the `[]` operator and passing in the
 key. For example, `SOME_MAP['cost']` retrieves the value for the entry

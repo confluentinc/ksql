@@ -22,7 +22,6 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import java.io.IOException;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
@@ -76,6 +75,15 @@ public final class SchemaRegistryUtil {
     );
   }
 
+
+  public static boolean subjectExists(
+      final SchemaRegistryClient srClient,
+      final String subject
+  ) {
+    return getLatestSchema(srClient, subject).isPresent();
+  }
+
+
   public static Optional<SchemaMetadata> getLatestSchema(
       final SchemaRegistryClient srClient,
       final String topic,
@@ -83,13 +91,6 @@ public final class SchemaRegistryUtil {
   ) {
     final String subject = KsqlConstants.getSRSubject(topic, getKeySchema);
     return getLatestSchema(srClient, subject);
-  }
-
-  public static boolean subjectExists(
-      final SchemaRegistryClient srClient,
-      final String subject
-  ) {
-    return getLatestSchema(srClient, subject).isPresent();
   }
 
   private static Optional<SchemaMetadata> getLatestSchema(

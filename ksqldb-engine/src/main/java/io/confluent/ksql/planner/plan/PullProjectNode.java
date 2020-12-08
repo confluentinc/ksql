@@ -41,8 +41,8 @@ import java.util.stream.Collectors;
 
 /**
  * The projection of a Pull query.
- * <p>
- * There are 3 schemas the node is handling, the input schema, the intermediate schema used
+ *
+ * <p>There are 3 schemas the node is handling, the input schema, the intermediate schema used
  * for codegen and the output schema.
  * <ul>
  * <li>The input is the schema of the child node
@@ -154,7 +154,7 @@ public class PullProjectNode extends ProjectNode {
    * Builds the output schema of the project node.
    * The output schema comprises of exactly the columns that appear in the SELECT clause of the
    * query.
-   * @param metaStore
+   * @param metaStore the metastore
    * @return the project node's output schema
    */
   @VisibleForTesting

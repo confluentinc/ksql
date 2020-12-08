@@ -218,7 +218,14 @@ public class PullPhysicalPlanBuilder {
   }
 
   private SelectOperator translateFilterNode(final FilterNode logicalNode) {
-    whereInfo = WhereInfo.extractWhereInfo(analysis, persistentQueryMetadata, metaStore, config);
+    final boolean windowed = persistentQueryMetadata.getResultTopic().getKeyFormat().isWindowed();
+    whereInfo = WhereInfo.extractWhereInfo(
+        analysis.getWhereExpression().orElseThrow(
+            () -> WhereInfo.invalidWhereClauseException("Missing WHERE clause", windowed)),
+        persistentQueryMetadata.getLogicalSchema(),
+        windowed,
+        metaStore,
+        config);
     return new SelectOperator(logicalNode);
   }
 

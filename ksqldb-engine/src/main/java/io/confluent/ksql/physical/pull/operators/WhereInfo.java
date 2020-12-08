@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.physical.pull.operators;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -22,7 +23,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
-import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.engine.generic.GenericExpressionResolver;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
@@ -46,7 +46,6 @@ import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -93,17 +92,18 @@ public final class WhereInfo {
   }
 
   public static WhereInfo extractWhereInfo(
-      final ImmutableAnalysis analysis,
-      final PersistentQueryMetadata query,
+      final Expression where,
+      final LogicalSchema schema,
+      final boolean windowed,
       final MetaStore metaStore,
       final KsqlConfig config
   ) {
-    final boolean windowed = query.getResultTopic().getKeyFormat().isWindowed();
+    if (schema.key().size() != 1) {
+      throw invalidWhereClauseException("Schemas with multiple "
+          + "KEY columns are not supported", windowed);
+    }
 
-    final Expression where = analysis.getWhereExpression()
-        .orElseThrow(() -> invalidWhereClauseException("Missing WHERE clause", windowed));
-
-    final KeyAndWindowBounds keyAndWindowBounds = extractComparisons(where, query);
+    final KeyAndWindowBounds keyAndWindowBounds = extractComparisons(where, schema);
     final List<ComparisonExpression> keyComparison = keyAndWindowBounds.getKeyColExpression();
     final List<InPredicate> inPredicate = keyAndWindowBounds.getInPredicate();
     if (keyComparison.size() == 0 && inPredicate.size() == 0) {
@@ -118,15 +118,14 @@ public final class WhereInfo {
           extractKeyWhereClause(
               keyComparison,
               windowed,
-              query.getLogicalSchema(),
+              schema,
               metaStore,
               config)
       );
     } else {
       keys = extractKeysFromInPredicate(
           inPredicate,
-          windowed,
-          query.getLogicalSchema(),
+          schema,
           metaStore,
           config
       );
@@ -135,7 +134,9 @@ public final class WhereInfo {
     if (!windowed) {
       if (keyAndWindowBounds.getWindowStartExpression().size() > 0
           || keyAndWindowBounds.getWindowEndExpression().size() > 0) {
-        throw invalidWhereClauseException("Unsupported WHERE clause", false);
+        throw invalidWhereClauseException(
+            "Cannot use WINDOWSTART/WINDOWEND on un-windowed source",
+            false);
       }
 
       return new WhereInfo(keys, Optional.empty());
@@ -186,17 +187,12 @@ public final class WhereInfo {
 
   private static List<Object> extractKeysFromInPredicate(
       final List<InPredicate> inPredicates,
-      final boolean windowed,
       final LogicalSchema schema,
       final MetaStore metaStore,
       final KsqlConfig config
   ) {
     final InPredicate inPredicate = Iterables.getLast(inPredicates);
-    if (schema.key().size() != 1) {
-      throw invalidWhereClauseException("Only single KEY column supported", windowed);
-    }
-
-    final Column keyColumn = schema.key().get(0);
+    final Column keyColumn = Iterables.getOnlyElement(schema.key());
     return inPredicate.getValueList()
         .getValues()
         .stream()
@@ -328,16 +324,16 @@ public final class WhereInfo {
 
   private static KeyAndWindowBounds extractComparisons(
       final Expression exp,
-      final PersistentQueryMetadata query
+      final LogicalSchema schema
   ) {
     if (exp instanceof ComparisonExpression) {
       final ComparisonExpression comparison = (ComparisonExpression) exp;
-      return extractWhereClauseTarget(comparison, query);
+      return extractWhereClauseTarget(comparison, schema);
     }
 
     if (exp instanceof InPredicate) {
       final InPredicate inPredicate = (InPredicate) exp;
-      return extractWhereClauseTarget(inPredicate, query);
+      return extractWhereClauseTarget(inPredicate, schema);
     }
 
     if (exp instanceof LogicalBinaryExpression) {
@@ -346,8 +342,8 @@ public final class WhereInfo {
         throw invalidWhereClauseException("Only AND expressions are supported: " + exp, false);
       }
 
-      final KeyAndWindowBounds left = extractComparisons(binary.getLeft(), query);
-      final KeyAndWindowBounds right = extractComparisons(binary.getRight(), query);
+      final KeyAndWindowBounds left = extractComparisons(binary.getLeft(), schema);
+      final KeyAndWindowBounds right = extractComparisons(binary.getRight(), schema);
       return left.merge(right);
     }
 
@@ -356,7 +352,7 @@ public final class WhereInfo {
 
   private static KeyAndWindowBounds extractWhereClauseTarget(
       final ComparisonExpression comparison,
-      final PersistentQueryMetadata query
+      final LogicalSchema schema
   ) {
     final UnqualifiedColumnReferenceExp column;
     if (comparison.getRight() instanceof UnqualifiedColumnReferenceExp) {
@@ -376,7 +372,7 @@ public final class WhereInfo {
       return new KeyAndWindowBounds().addWindowEndExpression(comparison);
     }
 
-    final ColumnName keyColumn = Iterables.getOnlyElement(query.getLogicalSchema().key()).name();
+    final ColumnName keyColumn = Iterables.getOnlyElement(schema.key()).name();
     if (columnName.equals(keyColumn)) {
       return new KeyAndWindowBounds().addKeyColExpression(comparison);
     }
@@ -389,11 +385,11 @@ public final class WhereInfo {
 
   private static KeyAndWindowBounds extractWhereClauseTarget(
       final InPredicate inPredicate,
-      final PersistentQueryMetadata query
+      final LogicalSchema schema
   ) {
     final UnqualifiedColumnReferenceExp column
         = (UnqualifiedColumnReferenceExp) inPredicate.getValue();
-    final ColumnName keyColumn = Iterables.getOnlyElement(query.getLogicalSchema().key()).name();
+    final ColumnName keyColumn = Iterables.getOnlyElement(schema.key()).name();
     if (column.getColumnName().equals(keyColumn)) {
       return new KeyAndWindowBounds().addInPredicate(inPredicate);
     }
@@ -433,25 +429,6 @@ public final class WhereInfo {
     return Range.range(lower, lowerType, upper, upperType);
   }
 
-  private static Object coerceKey(
-      final LogicalSchema schema,
-      final Object right,
-      final boolean windowed
-  ) {
-    if (schema.key().size() != 1) {
-      throw invalidWhereClauseException("Only single KEY column supported", windowed);
-    }
-
-    final Column keyColumn = schema.key().get(0);
-
-    return DefaultSqlValueCoercer.STRICT.coerce(right, keyColumn.type())
-        .orElseThrow(() -> new KsqlException(
-            "'"
-                + right + "' can not be converted "
-                + "to the type of the key column: " + keyColumn.toString(FormatOptions.noEscape())))
-        .orElse(null);
-  }
-
   private static Type getSimplifiedBoundType(final ComparisonExpression comparison) {
     final Type type = comparison.getType();
     final boolean inverted = comparison.getRight() instanceof UnqualifiedColumnReferenceExp;
@@ -478,10 +455,10 @@ public final class WhereInfo {
   }
 
   private static class KeyAndWindowBounds {
-    private List<ComparisonExpression> keyColExpression = new ArrayList<>();
-    private List<ComparisonExpression> windowStartExpression = new ArrayList<>();
-    private List<ComparisonExpression> windowEndExpression = new ArrayList<>();
-    private List<InPredicate> inPredicate = new ArrayList<>();
+    private final List<ComparisonExpression> keyColExpression = new ArrayList<>();
+    private final List<ComparisonExpression> windowStartExpression = new ArrayList<>();
+    private final List<ComparisonExpression> windowEndExpression = new ArrayList<>();
+    private final List<InPredicate> inPredicate = new ArrayList<>();
 
     KeyAndWindowBounds() {
     }
@@ -538,7 +515,8 @@ public final class WhereInfo {
     private final Range<Instant> start;
     private final Range<Instant> end;
 
-    private WindowBounds(
+    @VisibleForTesting
+    WindowBounds(
         final Range<Instant> start,
         final Range<Instant> end
     ) {
@@ -552,6 +530,33 @@ public final class WhereInfo {
 
     public Range<Instant> getEnd() {
       return end;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+
+      final WindowBounds that = (WindowBounds) o;
+      return Objects.equals(start, that.start)
+          && Objects.equals(end, that.end);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(start, end);
+    }
+
+    @Override
+    public String toString() {
+      return "WindowBounds{"
+          + "start=" + start
+          + ", end=" + end
+          + '}';
     }
   }
 

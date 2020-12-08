@@ -318,8 +318,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ServiceContext serviceContext,
       final Set<String> queryApplicationIds
   ) {
-    orphanedTransientQueryCleaner.cleanupOrphanedInternalTopics(serviceContext,
-        queryApplicationIds);
+    orphanedTransientQueryCleaner
+        .cleanupOrphanedInternalTopics(serviceContext, queryApplicationIds);
   }
 
   /**

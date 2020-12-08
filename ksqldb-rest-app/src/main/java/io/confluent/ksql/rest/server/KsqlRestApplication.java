@@ -1069,7 +1069,7 @@ public final class KsqlRestApplication implements Executable {
       final KsqlEngine ksqlEngine
   ) {
     if (!restConfig.getString(KsqlRestConfig.KSQL_LOCAL_COMMANDS_LOCATION_CONFIG).isEmpty()) {
-      File file
+      final File file
           = new File(restConfig.getString(KsqlRestConfig.KSQL_LOCAL_COMMANDS_LOCATION_CONFIG));
       return Optional.of(LocalCommands.open(ksqlEngine, file));
     }

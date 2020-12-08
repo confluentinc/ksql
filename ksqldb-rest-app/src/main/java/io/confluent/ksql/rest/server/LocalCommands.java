@@ -1,3 +1,18 @@
+/*
+ * Copyright 2020 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.engine.KsqlEngine;
@@ -56,19 +71,16 @@ public class LocalCommands implements Closeable {
       final ServiceContext serviceContext
   ) {
     final FilenameFilter filter = (dir, fileName) -> fileName.endsWith(LOCAL_COMMANDS_FILE_SUFFIX);
-    File[] files = directory.listFiles(filter);
+    final File[] files = directory.listFiles(filter);
     if (files == null) {
       throw new KsqlServerException("Bad directory " + directory.getAbsolutePath());
     }
-    if (files.length == 1) {
-      System.out.println("Too small");
-    }
-    for (File file : files) {
+    for (final File file : files) {
       if (file.equals(currentLocalCommands.getFile())) {
         continue;
       }
       try (LocalCommandsFile localCommandsFile = LocalCommandsFile.createReadonly(file)) {
-        List<LocalCommand> localCommands = localCommandsFile.readRecords();
+        final List<LocalCommand> localCommands = localCommandsFile.readRecords();
         cleanUpTransientQueryState(localCommands, serviceContext);
 
         markFileAsProcessed(file);
@@ -143,8 +155,8 @@ public class LocalCommands implements Closeable {
     return new LocalCommands(directory, ksqlEngine, LocalCommandsFile.createWriteable(file));
   }
 
-  private void markFileAsProcessed(File file) {
-    File updatedName = new File(file.getParentFile(),
+  private void markFileAsProcessed(final File file) {
+    final File updatedName = new File(file.getParentFile(),
         file.getName() + LOCAL_COMMANDS_PROCESSED_SUFFIX);
     if (!file.renameTo(updatedName)) {
       throw new KsqlException("Couldn't rename file " + file.getAbsolutePath());
@@ -154,14 +166,12 @@ public class LocalCommands implements Closeable {
   private void cleanUpTransientQueryState(
       final List<LocalCommand> localCommands,
       final ServiceContext serviceContext) {
-    Set<String> queryApplicationIds = localCommands.stream()
+    final Set<String> queryApplicationIds = localCommands.stream()
         .filter(c -> c.getType() == Type.TRANSIENT_QUERY)
         .map(LocalCommand::getQueryApplicationId)
         .collect(Collectors.toSet());
     if (queryApplicationIds.size() > 0) {
       ksqlEngine.cleanupOrphanedInternalTopics(serviceContext, queryApplicationIds);
-    } else {
-      System.out.println("queryApplicationIds is " + queryApplicationIds);
     }
   }
 

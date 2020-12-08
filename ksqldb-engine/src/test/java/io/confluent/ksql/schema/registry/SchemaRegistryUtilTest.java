@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import org.junit.Test;
@@ -41,6 +42,8 @@ public class SchemaRegistryUtilTest {
 
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
+  @Mock
+  private SchemaMetadata schemaMetadata;
 
   @Test
   public void shouldDeleteChangeLogTopicSchema() throws Exception {
@@ -174,7 +177,7 @@ public class SchemaRegistryUtilTest {
   @Test
   public void shouldReturnTrueOnIsSubjectExists() throws Exception {
     // Given:
-    when(schemaRegistryClient.getLatestSchemaMetadata("foo-value")).thenReturn(null);
+    when(schemaRegistryClient.getLatestSchemaMetadata("foo-value")).thenReturn(schemaMetadata);
 
     // When:
     final boolean subjectExists = SchemaRegistryUtil.subjectExists(schemaRegistryClient, "foo-value");

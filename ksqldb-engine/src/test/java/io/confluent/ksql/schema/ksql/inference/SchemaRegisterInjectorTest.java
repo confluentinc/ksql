@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlExecutionContext;
@@ -100,6 +101,8 @@ public class SchemaRegisterInjectorTest {
   private ServiceContext serviceContext;
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
+  @Mock
+  private SchemaMetadata schemaMetadata;
   @Mock
   private KafkaTopicClient topicClient;
   @Mock
@@ -235,8 +238,8 @@ public class SchemaRegisterInjectorTest {
       throws Exception {
     // Given:
     givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', key_format='AVRO', value_format='AVRO', partitions=1);");
-    doReturn(null).when(schemaRegistryClient).getLatestSchemaMetadata("expectedName-value");
-    doReturn(null).when(schemaRegistryClient).getLatestSchemaMetadata("expectedName-key");
+    doReturn(schemaMetadata).when(schemaRegistryClient).getLatestSchemaMetadata("expectedName-value");
+    doReturn(schemaMetadata).when(schemaRegistryClient).getLatestSchemaMetadata("expectedName-key");
 
     // When:
     injector.inject(statement);

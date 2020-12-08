@@ -82,6 +82,20 @@ public final class SchemaRegistryUtil {
       final boolean getKeySchema
   ) {
     final String subject = KsqlConstants.getSRSubject(topic, getKeySchema);
+    return getLatestSchema(srClient, subject);
+  }
+
+  public static boolean subjectExists(
+      final SchemaRegistryClient srClient,
+      final String subject
+  ) {
+    return getLatestSchema(srClient, subject).isPresent();
+  }
+
+  private static Optional<SchemaMetadata> getLatestSchema(
+      final SchemaRegistryClient srClient,
+      final String subject
+  ) {
     try {
       final SchemaMetadata schemaMetadata = srClient.getLatestSchemaMetadata(subject);
       return Optional.ofNullable(schemaMetadata);
@@ -89,22 +103,7 @@ public final class SchemaRegistryUtil {
       if (isSubjectNotFoundErrorCode(e)) {
         return Optional.empty();
       }
-      throw new KsqlException("Could not get latest schema for subject " + topic, e);
-    }
-  }
-
-  public static boolean subjectExists(
-      final SchemaRegistryClient srClient,
-      final String subject
-  ) {
-    try {
-      srClient.getLatestSchemaMetadata(subject);
-      return true;
-    } catch (RestClientException | IOException e) {
-      if (isSubjectNotFoundErrorCode(e)) {
-        return false;
-      }
-      throw new KsqlException("Could not check if subject exists: \"" + subject + '"', e);
+      throw new KsqlException("Could not get latest schema for subject " + subject, e);
     }
   }
 

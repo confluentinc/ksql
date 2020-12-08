@@ -39,10 +39,10 @@ import io.confluent.ksql.physical.pull.operators.WhereInfo;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
-import io.confluent.ksql.planner.plan.FinalProjectNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -124,8 +124,8 @@ public class PullPhysicalPlanBuilder {
     while (true) {
 
       AbstractPhysicalOperator currentPhysicalOp = null;
-      if (currentLogicalNode instanceof FinalProjectNode) {
-        currentPhysicalOp = translateProjectNode((FinalProjectNode)currentLogicalNode);
+      if (currentLogicalNode instanceof PullProjectNode) {
+        currentPhysicalOp = translateProjectNode((PullProjectNode)currentLogicalNode);
       } else if (currentLogicalNode instanceof FilterNode) {
         currentPhysicalOp = translateFilterNode((FilterNode)currentLogicalNode);
       } else if (currentLogicalNode instanceof DataSourceNode) {
@@ -159,15 +159,14 @@ public class PullPhysicalPlanBuilder {
     }
     return new PullPhysicalPlan(
         rootPhysicalOp,
-        ((FinalProjectNode)(rootPhysicalOp).getLogicalNode())
-            .getPullQueryOutputSchema().get(),
+        (rootPhysicalOp).getLogicalNode().getSchema(),
         queryId,
         keys,
         mat,
         dataSourceOperator);
   }
 
-  private ProjectOperator translateProjectNode(final FinalProjectNode logicalNode) {
+  private ProjectOperator translateProjectNode(final PullProjectNode logicalNode) {
     final ProcessingLogger logger = processingLogContext
         .getLoggerFactory()
         .getLogger(

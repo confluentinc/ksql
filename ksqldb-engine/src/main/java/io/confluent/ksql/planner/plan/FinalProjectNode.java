@@ -15,34 +15,24 @@
 
 package io.confluent.ksql.planner.plan;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.analyzer.RewrittenAnalysis;
-import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.udf.AsValue;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.Name;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
-import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.SelectItem;
-import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.planner.RequiredColumns;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.GrammaticalJoiner;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.util.HashMap;
@@ -50,7 +40,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -67,54 +56,23 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
   private final Optional<Analysis.Into> into;
   private final LogicalSchema schema;
   private final ImmutableList<SelectExpression> selectExpressions;
-  private final Optional<LogicalSchema> pullQueryOutputSchema;
-  private final Optional<LogicalSchema> pullQueryIntermediateSchema;
-  private final Optional<List<ExpressionMetadata>> compiledSelectExpressions;
-  private final RewrittenAnalysis analysis;
-  private final boolean isPullQuerySelectStar;
-  private final boolean addAdditionalColumnsToIntermediateSchema;
 
   public FinalProjectNode(
       final PlanNodeId id,
       final PlanNode source,
       final List<SelectItem> selectItems,
       final Optional<Analysis.Into> into,
-      final MetaStore metaStore,
-      final KsqlConfig ksqlConfig,
-      final RewrittenAnalysis analysis
+      final MetaStore metaStore
   ) {
     super(id, source);
     this.projection = Projection.of(selectItems);
     this.into = into;
-    this.analysis = Objects.requireNonNull(analysis, "analysis");
 
     final Pair<LogicalSchema, List<SelectExpression>> result = build(metaStore);
     this.schema = result.left;
     this.selectExpressions = ImmutableList.copyOf(result.right);
-    if (analysis.isPullQuery()) {
-      this.isPullQuerySelectStar = isPullQuerySelectStar();
-      this.addAdditionalColumnsToIntermediateSchema = shouldAddAdditionalColumnsInSchema();
-      this.pullQueryOutputSchema = Optional.of(buildPullQueryOutputSchema(metaStore));
-      this.pullQueryIntermediateSchema = Optional.of(buildPullQueryIntermediateSchema());
-      this.compiledSelectExpressions = Optional.of(selectExpressions
-          .stream()
-          .map(selectExpression -> CodeGenRunner.compileExpression(
-              selectExpression.getExpression(),
-              "Select",
-              pullQueryIntermediateSchema.get(),
-              ksqlConfig,
-              metaStore
-          ))
-          .collect(ImmutableList.toImmutableList()));
-    } else {
-      this.isPullQuerySelectStar = false;
-      this.addAdditionalColumnsToIntermediateSchema = false;
-      this.pullQueryOutputSchema = Optional.empty();
-      this.pullQueryIntermediateSchema = Optional.empty();
-      this.compiledSelectExpressions = Optional.empty();
-      throwOnEmptyValueOrUnknownColumns();
-    }
 
+    throwOnEmptyValueOrUnknownColumns();
   }
 
   @Override
@@ -127,29 +85,9 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
     return selectExpressions;
   }
 
-  public Optional<List<ExpressionMetadata>> getCompiledSelectExpressions() {
-    return compiledSelectExpressions;
-  }
-
   @Override
   public void validateKeyPresent(final SourceName sinkName) {
     getSource().validateKeyPresent(sinkName, projection);
-  }
-
-  public Optional<LogicalSchema> getPullQueryOutputSchema() {
-    return pullQueryOutputSchema;
-  }
-
-  public Optional<LogicalSchema> getPullQueryIntermediateSchema() {
-    return pullQueryIntermediateSchema;
-  }
-
-  public boolean getIsPullQuerySelectStar() {
-    return isPullQuerySelectStar;
-  }
-
-  public boolean getAddAdditionalColumnsToIntermediateSchema() {
-    return addAdditionalColumnsToIntermediateSchema;
   }
 
   private Optional<LogicalSchema> getTargetSchema(final MetaStore metaStore) {
@@ -222,136 +160,6 @@ public class FinalProjectNode extends ProjectNode implements VerifiableNode {
     }
 
     return Pair.of(nodeSchema, selectExpressions);
-  }
-
-  @VisibleForTesting
-  protected LogicalSchema buildPullQueryIntermediateSchema() {
-    final LogicalSchema parentSchema = getSource().getSchema();
-
-    if (!addAdditionalColumnsToIntermediateSchema) {
-      return parentSchema;
-    } else {
-      // SelectValueMapper requires the rowTime & key fields in the value schema :(
-      final boolean isWindowed = analysis
-          .getFrom()
-          .getDataSource()
-          .getKsqlTopic()
-          .getKeyFormat().isWindowed();
-
-      return parentSchema
-          .withPseudoAndKeyColsInValue(isWindowed);
-    }
-  }
-
-  @VisibleForTesting
-  protected LogicalSchema buildPullQueryOutputSchema(final MetaStore metaStore) {
-    final LogicalSchema outputSchema;
-    final LogicalSchema parentSchema = getSource().getSchema();
-    final boolean isWindowed = analysis
-        .getFrom()
-        .getDataSource()
-        .getKsqlTopic()
-        .getKeyFormat().isWindowed();
-
-    if (isPullQuerySelectStar()) {
-      outputSchema = buildPullQuerySelectStarSchema(
-          parentSchema.withoutPseudoAndKeyColsInValue(), isWindowed);
-    } else {
-      final List<SelectExpression> projects = projection.selectItems().stream()
-          .map(SingleColumn.class::cast)
-          .map(si -> SelectExpression
-              .of(si.getAlias().orElseThrow(IllegalStateException::new), si.getExpression()))
-          .collect(Collectors.toList());
-
-      outputSchema = selectOutputSchema(metaStore, projects, isWindowed);
-    }
-    return outputSchema;
-  }
-
-  private boolean shouldAddAdditionalColumnsInSchema() {
-
-    final boolean hasSystemColumns = projection.selectItems().stream().anyMatch(se -> {
-      if (se instanceof SingleColumn
-          && ((SingleColumn)se).getExpression() instanceof  UnqualifiedColumnReferenceExp) {
-        final SingleColumn singleColumn = ((SingleColumn)se);
-        final ColumnName columnName = ((UnqualifiedColumnReferenceExp) singleColumn.getExpression())
-            .getColumnName();
-        return SystemColumns.isSystemColumn(columnName);
-      }
-      return false;
-    });
-
-    final boolean hasKeyColumns = projection.selectItems().stream().anyMatch(se -> {
-      if (se instanceof SingleColumn
-          && ((SingleColumn)se).getExpression() instanceof  UnqualifiedColumnReferenceExp) {
-        final SingleColumn singleColumn = ((SingleColumn)se);
-        final ColumnName columnName = ((UnqualifiedColumnReferenceExp) singleColumn.getExpression())
-            .getColumnName();
-        return getSource().getSchema().isKeyColumn(columnName);
-      }
-      return false;
-    });
-
-    return hasSystemColumns || hasKeyColumns;
-  }
-
-  private boolean isPullQuerySelectStar() {
-    final boolean someStars = projection.selectItems().stream()
-        .anyMatch(s -> s instanceof AllColumns);
-
-    if (someStars && projection.selectItems().size() != 1) {
-      throw new KsqlException("Pull queries only support wildcards in the projects "
-                                  + "if they are the only expression");
-    }
-
-    return someStars;
-  }
-
-  private LogicalSchema buildPullQuerySelectStarSchema(
-      final LogicalSchema schema,
-      final boolean windowed
-  ) {
-    final Builder builder = LogicalSchema.builder()
-        .keyColumns(schema.key());
-
-    if (windowed) {
-      builder.keyColumn(SystemColumns.WINDOWSTART_NAME, SqlTypes.BIGINT);
-      builder.keyColumn(SystemColumns.WINDOWEND_NAME, SqlTypes.BIGINT);
-    }
-
-    return builder
-        .valueColumns(schema.value())
-        .build();
-  }
-
-  private LogicalSchema selectOutputSchema(
-      final MetaStore metaStore,
-      final List<SelectExpression> selectExpressions,
-      final boolean isWindowed
-  ) {
-    final Builder schemaBuilder = LogicalSchema.builder();
-    final LogicalSchema parentSchema = getSource().getSchema();
-
-    // Copy meta & key columns into the value schema as SelectValueMapper expects it:
-    final LogicalSchema schema = parentSchema
-        .withPseudoAndKeyColsInValue(isWindowed);
-
-    final ExpressionTypeManager expressionTypeManager =
-        new ExpressionTypeManager(schema, metaStore);
-
-    for (final SelectExpression select : selectExpressions) {
-      final SqlType type = expressionTypeManager.getExpressionSqlType(select.getExpression());
-
-      if (parentSchema.isKeyColumn(select.getAlias())
-          || select.getAlias().equals(SystemColumns.WINDOWSTART_NAME)
-          || select.getAlias().equals(SystemColumns.WINDOWEND_NAME)
-      ) {
-        schemaBuilder.keyColumn(select.getAlias(), type);
-      } else {
-        schemaBuilder.valueColumn(select.getAlias(), type);
-      }
-    }
-    return schemaBuilder.build();
   }
 
   private void throwOnEmptyValueOrUnknownColumns() {

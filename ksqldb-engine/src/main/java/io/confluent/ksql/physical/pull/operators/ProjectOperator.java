@@ -25,8 +25,8 @@ import io.confluent.ksql.execution.transform.select.SelectValueMapper;
 import io.confluent.ksql.execution.transform.select.SelectValueMapperFactory;
 import io.confluent.ksql.execution.transform.select.SelectValueMapperFactory.SelectValueMapperFactorySupplier;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.planner.plan.FinalProjectNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +37,7 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
 
   private final ProcessingLogger logger;
   private final SelectValueMapperFactorySupplier selectValueMapperFactorySupplier;
-  private final FinalProjectNode logicalNode;
+  private final PullProjectNode logicalNode;
 
   private AbstractPhysicalOperator child;
   private TableRow row;
@@ -45,7 +45,7 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
 
   public ProjectOperator(
       final ProcessingLogger logger,
-      final FinalProjectNode logicalNode
+      final PullProjectNode logicalNode
   ) {
     this(
         logger,
@@ -57,7 +57,7 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
   @VisibleForTesting
   ProjectOperator(
       final ProcessingLogger logger,
-      final FinalProjectNode logicalNode,
+      final PullProjectNode logicalNode,
       final SelectValueMapperFactorySupplier selectValueMapperFactorySupplier
   ) {
     this.logger = Objects.requireNonNull(logger, "logger");
@@ -68,13 +68,13 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
   @Override
   public void open() {
     child.open();
-    if (logicalNode.getIsPullQuerySelectStar()) {
+    if (logicalNode.getIsSelectStar()) {
       return;
     }
 
     final SelectValueMapper<Object> select = selectValueMapperFactorySupplier.create(
         logicalNode.getSelectExpressions(),
-        logicalNode.getCompiledSelectExpressions().get()
+        logicalNode.getCompiledSelectExpressions()
     );
 
     transformer = select.getTransformer(logger);
@@ -86,7 +86,7 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
     if (row == null) {
       return null;
     }
-    if (logicalNode.getIsPullQuerySelectStar()) {
+    if (logicalNode.getIsSelectStar()) {
       return createRow(row);
     }
     final GenericRow intermediate = getPreSelectTransform().apply(row);
@@ -96,7 +96,7 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
         intermediate,
         new PullProcessingContext(row.rowTime())
     );
-    validateProjection(mapped, logicalNode.getPullQueryOutputSchema().get());
+    validateProjection(mapped, logicalNode.getSchema());
 
     return mapped.values();
   }

@@ -22,19 +22,14 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.clearInvocations;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.analyzer.RewrittenAnalysis;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -43,14 +38,10 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.planner.RequiredColumns;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
-import javax.xml.crypto.Data;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -73,32 +64,12 @@ public class FinalProjectNodeTest {
   private static final UnqualifiedColumnReferenceExp COL0_REF =
       new UnqualifiedColumnReferenceExp(COL0);
 
-  private static final LogicalSchema INPUT_SCHEMA = LogicalSchema.builder()
-      .keyColumn(K, SqlTypes.STRING)
-      .valueColumn(COL0, SqlTypes.STRING)
-      .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
-      .valueColumn(K, SqlTypes.STRING)
-      .build();
-
   @Mock
   private PlanNode source;
   @Mock
   private MetaStore metaStore;
   @Mock
   private Analysis.Into into;
-  @Mock
-  private KsqlConfig ksqlConfig;
-  @Mock
-  private RewrittenAnalysis analysis;
-  @Mock
-  private Analysis.AliasedDataSource aliasedDataSource;
-  @Mock
-  private DataSource dataSource;
-  @Mock
-  private KsqlTopic ksqlTopic;
-  @Mock
-  private KeyFormat keyFormat;
-
 
   private List<SelectItem> selects;
   private FinalProjectNode projectNode;
@@ -107,11 +78,12 @@ public class FinalProjectNodeTest {
   public void setUp() {
     when(source.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(source.resolveSelect(anyInt(), any())).thenAnswer(inv -> inv.getArgument(1));
-    when(source.getSchema()).thenReturn(INPUT_SCHEMA);
-    when(analysis.getFrom()).thenReturn(aliasedDataSource);
-    when(aliasedDataSource.getDataSource()).thenReturn(dataSource);
-    when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
-    when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
+    when(source.getSchema()).thenReturn(LogicalSchema.builder()
+        .keyColumn(K, SqlTypes.STRING)
+        .valueColumn(COL0, SqlTypes.STRING)
+        .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+        .valueColumn(K, SqlTypes.STRING)
+        .build());
 
     selects = ImmutableList.of(new SingleColumn(COL0_REF, Optional.of(ALIAS)));
 
@@ -120,9 +92,7 @@ public class FinalProjectNodeTest {
         source,
         selects,
         Optional.of(into),
-        metaStore,
-        ksqlConfig,
-        analysis);
+        metaStore);
   }
 
   @Test
@@ -150,9 +120,7 @@ public class FinalProjectNodeTest {
         source,
         selects,
         Optional.of(into),
-        metaStore,
-        ksqlConfig,
-        analysis);
+        metaStore);
 
     // Then:
     verify(source).validateColumns(RequiredColumns.builder().add(syntheticKeyRef).build());
@@ -178,9 +146,7 @@ public class FinalProjectNodeTest {
             source,
             selects,
             Optional.of(into),
-            metaStore,
-            ksqlConfig,
-            analysis)
+            metaStore)
     );
 
     // Then:
@@ -200,9 +166,7 @@ public class FinalProjectNodeTest {
             source,
             selects,
             Optional.of(into),
-            metaStore,
-            ksqlConfig,
-            analysis
+            metaStore
         )
     );
 
@@ -226,9 +190,7 @@ public class FinalProjectNodeTest {
             source,
             selects,
             Optional.of(into),
-            metaStore,
-            ksqlConfig,
-            analysis
+            metaStore
         )
     );
 
@@ -236,173 +198,4 @@ public class FinalProjectNodeTest {
     assertThat(e.getMessage(), containsString("The projection contains a key column (`K`) more " +
         "than once, aliased as: GRACE and PETER"));
   }
-
-  @Test
-  public void shouldBuildPullQueryIntermediateSchemaSelectKeyNonWindowed() {
-    // Given:
-    when(analysis.isPullQuery()).thenReturn(true);
-    selects = ImmutableList.of(new SingleColumn(K_REF, Optional.of(ALIAS)));
-    when(keyFormat.isWindowed()).thenReturn(false);
-
-    // When:
-    final FinalProjectNode projectNode = new FinalProjectNode(
-        NODE_ID,
-        source,
-        selects,
-        Optional.of(into),
-        metaStore,
-        ksqlConfig,
-        analysis
-    );
-
-    // Then:
-    final LogicalSchema expectedSchema = INPUT_SCHEMA.withPseudoAndKeyColsInValue(false);
-    assertThat(expectedSchema, is(projectNode.getPullQueryIntermediateSchema().get()));
-  }
-
-  @Test
-  public void shouldBuildPullQueryIntermediateSchemaSelectKeyWindowed() {
-    // Given:
-    when(analysis.isPullQuery()).thenReturn(true);
-    selects = ImmutableList.of(new SingleColumn(K_REF, Optional.of(ALIAS)));
-    when(keyFormat.isWindowed()).thenReturn(true);
-
-    // When:
-    final FinalProjectNode projectNode = new FinalProjectNode(
-        NODE_ID,
-        source,
-        selects,
-        Optional.of(into),
-        metaStore,
-        ksqlConfig,
-        analysis
-    );
-
-    // Then:
-    final LogicalSchema expectedSchema = INPUT_SCHEMA.withPseudoAndKeyColsInValue(true);
-    assertThat(expectedSchema, is(projectNode.getPullQueryIntermediateSchema().get()));
-  }
-
-  @Test
-  public void shouldBuildPullQueryIntermediateSchemaSelectValueNonWindowed() {
-    // Given:
-    when(analysis.isPullQuery()).thenReturn(true);
-    selects = ImmutableList.of(new SingleColumn(COL0_REF, Optional.of(ALIAS)));
-    when(keyFormat.isWindowed()).thenReturn(false);
-
-    // When:
-    final FinalProjectNode projectNode = new FinalProjectNode(
-        NODE_ID,
-        source,
-        selects,
-        Optional.of(into),
-        metaStore,
-        ksqlConfig,
-        analysis
-    );
-
-    // Then:
-    assertThat(INPUT_SCHEMA, is(projectNode.getPullQueryIntermediateSchema().get()));
-  }
-
-  @Test
-  public void shouldBuildPullQueryOutputSchemaSelectKeyNonWindowed() {
-    // Given:
-    when(analysis.isPullQuery()).thenReturn(true);
-    selects = ImmutableList.of(new SingleColumn(K_REF, Optional.of(K)));
-    when(keyFormat.isWindowed()).thenReturn(false);
-
-    // When:
-    final FinalProjectNode projectNode = new FinalProjectNode(
-        NODE_ID,
-        source,
-        selects,
-        Optional.of(into),
-        metaStore,
-        ksqlConfig,
-        analysis
-    );
-
-    // Then:
-    final LogicalSchema expected = LogicalSchema.builder()
-        .keyColumn(K, SqlTypes.STRING)
-        .build();
-
-    assertThat(expected, is(projectNode.getPullQueryOutputSchema().get()));
-  }
-
-  @Test
-  public void shouldBuildPullQueryOutputSchemaSelectKeyAndWindowBounds() {
-    // Given:
-    when(analysis.isPullQuery()).thenReturn(true);
-    when(keyFormat.isWindowed()).thenReturn(true);
-    when(source.getSchema()).thenReturn(INPUT_SCHEMA.withPseudoAndKeyColsInValue(true));
-
-    final UnqualifiedColumnReferenceExp windowstartRef =
-        new UnqualifiedColumnReferenceExp(SystemColumns.WINDOWSTART_NAME);
-    final UnqualifiedColumnReferenceExp windowendRef =
-        new UnqualifiedColumnReferenceExp(SystemColumns.WINDOWEND_NAME);
-    selects = ImmutableList.<SelectItem>builder()
-        .add(new SingleColumn(windowstartRef, Optional.of(SystemColumns.WINDOWSTART_NAME)))
-        .add((new SingleColumn(windowendRef, Optional.of(SystemColumns.WINDOWEND_NAME))))
-        .add((new SingleColumn(K_REF, Optional.of(K)))).build();
-
-    // When:
-    final FinalProjectNode projectNode = new FinalProjectNode(
-        NODE_ID,
-        source,
-        selects,
-        Optional.of(into),
-        metaStore,
-        ksqlConfig,
-        analysis
-    );
-
-    // Then:
-    final LogicalSchema expected = LogicalSchema.builder()
-        .keyColumn(SystemColumns.WINDOWSTART_NAME, SqlTypes.BIGINT)
-        .keyColumn(SystemColumns.WINDOWEND_NAME, SqlTypes.BIGINT)
-        .keyColumn(K, SqlTypes.STRING)
-        .build();
-
-    assertThat(expected, is(projectNode.getPullQueryOutputSchema().get()));
-  }
-
-  @Test
-  public void shouldBuildPullQueryOutputSchemaSelectValueAndWindowBounds() {
-    // Given:
-    when(analysis.isPullQuery()).thenReturn(true);
-    when(keyFormat.isWindowed()).thenReturn(true);
-    when(source.getSchema()).thenReturn(INPUT_SCHEMA.withPseudoAndKeyColsInValue(true));
-
-    final UnqualifiedColumnReferenceExp windowstartRef =
-        new UnqualifiedColumnReferenceExp(SystemColumns.WINDOWSTART_NAME);
-    final UnqualifiedColumnReferenceExp windowendRef =
-        new UnqualifiedColumnReferenceExp(SystemColumns.WINDOWEND_NAME);
-    selects = ImmutableList.<SelectItem>builder()
-        .add(new SingleColumn(windowstartRef, Optional.of(SystemColumns.WINDOWSTART_NAME)))
-        .add((new SingleColumn(windowendRef, Optional.of(SystemColumns.WINDOWEND_NAME))))
-        .add((new SingleColumn(COL0_REF, Optional.of(COL0)))).build();
-
-    // When:
-    final FinalProjectNode projectNode = new FinalProjectNode(
-        NODE_ID,
-        source,
-        selects,
-        Optional.of(into),
-        metaStore,
-        ksqlConfig,
-        analysis
-    );
-
-    // Then:
-    final LogicalSchema expected = LogicalSchema.builder()
-        .keyColumn(SystemColumns.WINDOWSTART_NAME, SqlTypes.BIGINT)
-        .keyColumn(SystemColumns.WINDOWEND_NAME, SqlTypes.BIGINT)
-        .valueColumn(COL0, SqlTypes.STRING)
-        .build();
-
-    assertThat(expected, is(projectNode.getPullQueryOutputSchema().get()));
-  }
-
 }

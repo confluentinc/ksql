@@ -32,14 +32,13 @@ import io.confluent.ksql.execution.transform.select.SelectValueMapper;
 import io.confluent.ksql.execution.transform.select.SelectValueMapperFactory.SelectValueMapperFactorySupplier;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.planner.plan.FinalProjectNode;
+import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.junit.Test;
@@ -71,7 +70,7 @@ public class ProjectOperatorTest {
   @Mock
   private SelectValueMapperFactorySupplier selectValueMapperFactorySupplier;
   @Mock
-  private FinalProjectNode logicalNode;
+  private PullProjectNode logicalNode;
   @Mock
   private AbstractPhysicalOperator child;
   @Mock
@@ -82,7 +81,7 @@ public class ProjectOperatorTest {
   @Test
   public void shouldProjectAllColumnsWhenSelectStarNonWindowed() {
     // Given:
-    when(logicalNode.getIsPullQuerySelectStar()).thenReturn(true);
+    when(logicalNode.getIsSelectStar()).thenReturn(true);
     final ProjectOperator projectOperator = new ProjectOperator(
         logger,
         logicalNode,
@@ -111,7 +110,7 @@ public class ProjectOperatorTest {
   @Test
   public void shouldProjectAllColumnsWhenSelectStarWindowed() {
     // Given:
-    when(logicalNode.getIsPullQuerySelectStar()).thenReturn(true);
+    when(logicalNode.getIsSelectStar()).thenReturn(true);
     final ProjectOperator projectOperator = new ProjectOperator(
         logger,
         logicalNode,
@@ -141,8 +140,8 @@ public class ProjectOperatorTest {
   public void shouldCallTransformWithCorrectArguments() {
     // Given:
     when(logicalNode.getAddAdditionalColumnsToIntermediateSchema()).thenReturn(true);
-    when(logicalNode.getPullQueryOutputSchema()).thenReturn(Optional.of(SCHEMA));
-    when(logicalNode.getCompiledSelectExpressions()).thenReturn(Optional.of(Collections.emptyList()));
+    when(logicalNode.getSchema()).thenReturn(SCHEMA);
+    when(logicalNode.getCompiledSelectExpressions()).thenReturn(Collections.emptyList());
     final ProjectOperator projectOperator = new ProjectOperator(
         logger,
         logicalNode,
@@ -173,8 +172,8 @@ public class ProjectOperatorTest {
   public void shouldCallTransformWithCorrectArgumentsWindowed() {
     // Given:
     when(logicalNode.getAddAdditionalColumnsToIntermediateSchema()).thenReturn(true);
-    when(logicalNode.getPullQueryOutputSchema()).thenReturn(Optional.of(SCHEMA));
-    when(logicalNode.getCompiledSelectExpressions()).thenReturn(Optional.of(Collections.emptyList()));
+    when(logicalNode.getSchema()).thenReturn(SCHEMA);
+    when(logicalNode.getCompiledSelectExpressions()).thenReturn(Collections.emptyList());
     final ProjectOperator projectOperator = new ProjectOperator(
         logger,
         logicalNode,
@@ -210,8 +209,8 @@ public class ProjectOperatorTest {
         .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
         .build();
     when(logicalNode.getAddAdditionalColumnsToIntermediateSchema()).thenReturn(true);
-    when(logicalNode.getPullQueryOutputSchema()).thenReturn(Optional.of(schema));
-    when(logicalNode.getCompiledSelectExpressions()).thenReturn(Optional.of(Collections.emptyList()));
+    when(logicalNode.getSchema()).thenReturn(schema);
+    when(logicalNode.getCompiledSelectExpressions()).thenReturn(Collections.emptyList());
     final ProjectOperator projectOperator = new ProjectOperator(
         logger,
         logicalNode,
@@ -246,8 +245,8 @@ public class ProjectOperatorTest {
         .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
         .build();
     when(logicalNode.getAddAdditionalColumnsToIntermediateSchema()).thenReturn(true);
-    when(logicalNode.getPullQueryOutputSchema()).thenReturn(Optional.of(schema));
-    when(logicalNode.getCompiledSelectExpressions()).thenReturn(Optional.of(Collections.emptyList()));
+    when(logicalNode.getSchema()).thenReturn(schema);
+    when(logicalNode.getCompiledSelectExpressions()).thenReturn(Collections.emptyList());
     final ProjectOperator projectOperator = new ProjectOperator(
         logger,
         logicalNode,
@@ -284,8 +283,8 @@ public class ProjectOperatorTest {
         .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
         .build();
     when(logicalNode.getAddAdditionalColumnsToIntermediateSchema()).thenReturn(true);
-    when(logicalNode.getPullQueryOutputSchema()).thenReturn(Optional.of(schema));
-    when(logicalNode.getCompiledSelectExpressions()).thenReturn(Optional.of(Collections.emptyList()));
+    when(logicalNode.getSchema()).thenReturn(schema);
+    when(logicalNode.getCompiledSelectExpressions()).thenReturn(Collections.emptyList());
     final ProjectOperator projectOperator = new ProjectOperator(
         logger,
         logicalNode,

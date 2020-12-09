@@ -102,7 +102,6 @@ public class PullProjectNodeTest {
   @Test
   public void shouldBuildPullQueryIntermediateSchemaSelectKeyNonWindowed() {
     // Given:
-    when(analysis.isPullQuery()).thenReturn(true);
     selects = ImmutableList.of(new SingleColumn(K_REF, Optional.of(ALIAS)));
     when(keyFormat.isWindowed()).thenReturn(false);
     when(analysis.getSelectColumnNames()).thenReturn(ImmutableSet.of(ColumnName.of("K")));
@@ -125,7 +124,6 @@ public class PullProjectNodeTest {
   @Test
   public void shouldBuildPullQueryIntermediateSchemaSelectKeyWindowed() {
     // Given:
-    when(analysis.isPullQuery()).thenReturn(true);
     selects = ImmutableList.of(new SingleColumn(K_REF, Optional.of(ALIAS)));
     when(keyFormat.isWindowed()).thenReturn(true);
     when(analysis.getSelectColumnNames()).thenReturn(ImmutableSet.of(ColumnName.of("K")));
@@ -148,7 +146,6 @@ public class PullProjectNodeTest {
   @Test
   public void shouldBuildPullQueryIntermediateSchemaSelectValueNonWindowed() {
     // Given:
-    when(analysis.isPullQuery()).thenReturn(true);
     selects = ImmutableList.of(new SingleColumn(COL0_REF, Optional.of(ALIAS)));
     when(keyFormat.isWindowed()).thenReturn(false);
 
@@ -169,7 +166,6 @@ public class PullProjectNodeTest {
   @Test
   public void shouldBuildPullQueryOutputSchemaSelectKeyNonWindowed() {
     // Given:
-    when(analysis.isPullQuery()).thenReturn(true);
     selects = ImmutableList.of(new SingleColumn(K_REF, Optional.of(K)));
     when(keyFormat.isWindowed()).thenReturn(false);
 
@@ -194,7 +190,6 @@ public class PullProjectNodeTest {
   @Test
   public void shouldBuildPullQueryOutputSchemaSelectKeyAndWindowBounds() {
     // Given:
-    when(analysis.isPullQuery()).thenReturn(true);
     when(keyFormat.isWindowed()).thenReturn(true);
     when(source.getSchema()).thenReturn(INPUT_SCHEMA.withPseudoAndKeyColsInValue(true));
 
@@ -230,7 +225,6 @@ public class PullProjectNodeTest {
   @Test
   public void shouldBuildPullQueryOutputSchemaSelectValueAndWindowBounds() {
     // Given:
-    when(analysis.isPullQuery()).thenReturn(true);
     when(keyFormat.isWindowed()).thenReturn(true);
     when(source.getSchema()).thenReturn(INPUT_SCHEMA.withPseudoAndKeyColsInValue(true));
 

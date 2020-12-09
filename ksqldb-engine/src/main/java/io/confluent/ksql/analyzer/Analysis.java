@@ -73,21 +73,18 @@ public class Analysis implements ImmutableAnalysis {
   private CreateSourceAsProperties withProperties = CreateSourceAsProperties.none();
   private final List<FunctionCall> tableFunctions = new ArrayList<>();
   private boolean orReplace = false;
-  private final boolean isPullQuery;
 
-  public Analysis(final Optional<RefinementInfo> refinementInfo, final boolean isPullQuery) {
-    this(refinementInfo, SourceSchemas::new, isPullQuery);
+  public Analysis(final Optional<RefinementInfo> refinementInfo) {
+    this(refinementInfo, SourceSchemas::new);
   }
 
   @VisibleForTesting
   Analysis(
       final Optional<RefinementInfo> refinementInfo,
-      final Function<Map<SourceName, LogicalSchema>, SourceSchemas> sourceSchemasFactory,
-      final boolean isPullQuery
+      final Function<Map<SourceName, LogicalSchema>, SourceSchemas> sourceSchemasFactory
   ) {
     this.refinementInfo = requireNonNull(refinementInfo, "refinementInfo");
     this.sourceSchemasFactory = requireNonNull(sourceSchemasFactory, "sourceSchemasFactory");
-    this.isPullQuery = isPullQuery;
   }
 
   void addSelectItem(final SelectItem selectItem) {
@@ -186,10 +183,6 @@ public class Analysis implements ImmutableAnalysis {
 
   public boolean isJoin() {
     return !joinInfo.isEmpty();
-  }
-
-  public boolean isPullQuery() {
-    return isPullQuery;
   }
 
   @Override

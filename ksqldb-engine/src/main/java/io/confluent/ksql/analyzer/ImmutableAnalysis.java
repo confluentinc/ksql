@@ -74,6 +74,4 @@ public interface ImmutableAnalysis {
   AliasedDataSource getFrom();
 
   boolean getOrReplace();
-
-  boolean isPullQuery();
 }

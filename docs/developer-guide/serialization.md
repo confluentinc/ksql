@@ -414,7 +414,7 @@ format.
 | Feature                      | Supported |
 |------------------------------|-----------|
 | As value format              | Yes       |
-| As key format                | No        |
+| As key format                | Yes       |
 | Multi-Column Keys            | Yes       |
 | [Schema Registry required][0]| Yes       |
 | [Schema inference][1]        | Yes       |

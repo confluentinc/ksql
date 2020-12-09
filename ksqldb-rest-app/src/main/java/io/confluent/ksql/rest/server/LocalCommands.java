@@ -73,7 +73,7 @@ public class LocalCommands implements Closeable {
     final FilenameFilter filter = (dir, fileName) -> fileName.endsWith(LOCAL_COMMANDS_FILE_SUFFIX);
     final File[] files = directory.listFiles(filter);
     if (files == null) {
-      throw new KsqlServerException("Bad directory " + directory.getAbsolutePath());
+      throw new KsqlServerException("Bad local commands directory " + directory.getAbsolutePath() + ". Please check your configuration for " + KsqlConfig.KSQL_LOCAL_COMMANDS_LOCATION_CONFIG);
     }
     for (final File file : files) {
       if (file.equals(currentLocalCommands.getFile())) {

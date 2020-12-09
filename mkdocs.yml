@@ -30,9 +30,6 @@ nav:
   - Concepts:
     - Synopsis: concepts/index.md
     - Events: concepts/events.md
-    - Collections:
-      - Collections Overview: concepts/collections/index.md
-      - Inserting events: concepts/collections/inserting-events.md
     - Stream Processing: concepts/stream-processing.md
     - Materialized Views: concepts/materialized-views.md
     - Queries:
@@ -178,8 +175,10 @@ plugins:
 
             overview/apache-kafka-primer.md: concepts/apache-kafka-primer.md
 
+            concepts/collections/index.md: reference/sql/data-definition.md
             concepts/collections/streams.md: reference/sql/data-definition.md
             concepts/collections/tables.md: reference/sql/data-definition.md
+            concepts/collections/inserting-events.md: developer-guide/ksqldb-reference/insert-values.md
 
             tutorials/examples.md: how-to-guides/index.md
             tutorials/embedded-connect.md: how-to-guides/use-connector-management.md

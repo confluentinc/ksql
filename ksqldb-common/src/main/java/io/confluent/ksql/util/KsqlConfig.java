@@ -326,14 +326,18 @@ public class KsqlConfig extends AbstractConfig {
       "Feature flag for suppression, specifically EMIT FINAL";
 
   public static final String KSQL_VALUE_SUBJECT_NAME_STRATEGY = "value.subject.name.strategy";
-  public static final String KSQL_VALUE_SUBJECT_NAME_STRATEGY_DEFAULT = "io.confluent.kafka.serializers.subject.TopicNameStrategy";
-  public static final String KSQL_VALUE_SUBJECT_NAME_STRATEGY_DOC = "SubjectNameStrategy to register the values AVRO schema"
-      + " under just subject name equal to <topic> in schema registry."
-      + "Default TopicNameStrategy register schemes under <topic>-key and <topic>-value subjects for key and value"
-      + "schemes respectively"
-      + "There you may provide other strategies for that. One example is io.confluent.ksql.TopicNameStrategyPlain which"
-      + "assume subject name in schema-registry equal to <topic> name is for values and schemes and <topic>-key for keys"
-      + "Please refer to the documentation for the details: https://docs.confluent.io/platform/current/schema-registry/serdes-develop/index.html#configuration-details";
+  public static final String KSQL_VALUE_SUBJECT_NAME_STRATEGY_DEFAULT = "io.confluent.kafka."
+      + "serializers.subject.TopicNameStrategy";
+  public static final String KSQL_VALUE_SUBJECT_NAME_STRATEGY_DOC = "SubjectNameStrategy to "
+      + "register the values AVRO schema under just subject name equal to <topic> in schema "
+      + "registry."
+      + "Default TopicNameStrategy register schemes under <topic>-key and <topic>-value subjects "
+      + "for key and value schemes respectively"
+      + "There you may provide other strategies for that. One example is "
+      + "io.confluent.ksql.TopicNameStrategyPlain which assume subject name in schema registry "
+      + "equal to <topic> name is for values and schemes and <topic>-key for keys"
+      + "Please refer to the documentation for the details: "
+      + "https://docs.confluent.io/platform/current/schema-registry/serdes-develop/index.html";
 
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES = "ksql.suppress.buffer.size.bytes";
   public static final Long KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT = -1L;

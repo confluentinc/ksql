@@ -2,9 +2,6 @@
   "tests": [
     {
       "name": "select * from stream",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -27,9 +24,6 @@
     },
     {
       "name": "select * from table",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE TABLE INPUT (K INT PRIMARY KEY, K2 INT PRIMARY KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT * FROM INPUT;"
@@ -48,9 +42,6 @@
     },
     {
       "name": "select * with WHERE on single key",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE K = 1;"
@@ -70,9 +61,6 @@
     },
     {
       "name": "select * with WHERE on both key",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT WHERE K = 1 AND K2 = 2;"
@@ -92,9 +80,6 @@
     },
     {
       "name": "select * from stream partition by single key col",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY K;"
@@ -113,9 +98,6 @@
     },
     {
       "name": "select * from stream partition by struct representing the key",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY STRUCT(K:=K, K2:=K2);"
@@ -134,9 +116,6 @@
     },
     {
       "name": "group by one col",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT K, COUNT(*) as COUNT FROM INPUT GROUP BY K;"
@@ -155,9 +134,6 @@
     },
     {
       "name": "group by two cols",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT K, K2, COUNT(*) as COUNT FROM INPUT GROUP BY K, K2;"
@@ -176,9 +152,6 @@
     },
     {
       "name": "group by one col table with tombstones",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE TABLE INPUT (K INT PRIMARY KEY, K2 INT PRIMARY KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT K, COUNT(*) as COUNT FROM INPUT GROUP BY K;"
@@ -194,9 +167,6 @@
     },
     {
       "name": "group by two cols table with tombstones",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE TABLE INPUT (K INT PRIMARY KEY, K2 INT PRIMARY KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT K, K2, COUNT(*) as COUNT FROM INPUT GROUP BY K, K2;"
@@ -212,9 +182,6 @@
     },
     {
       "name": "group by two cols with AS_VALUE copies",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT K, K2, AS_VALUE(K) as kv, AS_VALUE(K2) as kv2, COUNT(*) as COUNT FROM INPUT GROUP BY K, K2;"
@@ -233,9 +200,6 @@
     },
     {
       "name": "windowed group by one col",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT K, COUNT(*) as COUNT FROM INPUT WINDOW TUMBLING (SIZE 1 SECOND) GROUP BY K;"
@@ -258,9 +222,6 @@
     },
     {
       "name": "join with repartition on single key",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM S1 (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='s1', format='JSON');",
         "CREATE STREAM S2 (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='s2', format='JSON');",
@@ -281,9 +242,6 @@
     },
     {
       "name": "join with repartition on single value",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM S1 (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='s1', format='JSON');",
         "CREATE STREAM S2 (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='s2', format='JSON');",
@@ -304,9 +262,6 @@
     },
     {
       "name": "struct as column in multi-column key",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K INT KEY, K2 STRUCT<F1 INT> KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -325,9 +280,6 @@
     },
     {
       "name": "select only single key col",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT K, V FROM INPUT;"
@@ -339,9 +291,6 @@
     },
     {
       "name": "join on multi-column key",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM S1 (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='s1', format='JSON');",
         "CREATE STREAM S2 (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='s2', format='JSON');",
@@ -354,9 +303,6 @@
     },
     {
       "name": "join to multi-column table",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM S (K STRING KEY, ID VARCHAR) WITH (kafka_topic='S', format='JSON');",
         "CREATE TABLE NO_KEY (K STRING PRIMARY KEY, K2 STRING PRIMARY KEY, NAME string) WITH (kafka_topic='NO_KEY', format='JSON');",
@@ -369,9 +315,6 @@
     },
     {
       "name": "multi-column partition",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM S (K STRING KEY, ID VARCHAR) WITH (kafka_topic='S', format='JSON');",
         "CREATE STREAM OUTPUT as SELECT * FROM S PARTITION BY K, ID;"

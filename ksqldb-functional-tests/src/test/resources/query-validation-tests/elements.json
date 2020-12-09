@@ -818,16 +818,6 @@
       ]
     },
     {
-      "name": "multiple key columns",
-      "statements": [
-        "CREATE STREAM INPUT (ID1 INT KEY, ID2 INT KEY, NAME STRING) WITH (kafka_topic='input',value_format='JSON');"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Only single KEY column supported. Multiple KEY columns found: [`ID1` INTEGER KEY, `ID2` INTEGER KEY]"
-      }
-    },
-    {
       "name": "table with key column",
       "statements": [
         "CREATE TABLE INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='input',value_format='JSON');"

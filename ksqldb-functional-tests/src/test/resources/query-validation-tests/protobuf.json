@@ -581,8 +581,7 @@
     {
       "name": "STRUCT multi field - key - no inference",
       "properties": {
-        "ksql.key.format.enabled": true,
-        "ksql.multicol.key.format.enabled": true
+        "ksql.key.format.enabled": true
       },
       "statements": [
         "CREATE STREAM INPUT (F1 INT KEY, F2 VARCHAR KEY, foo INT) WITH (kafka_topic='input_topic', format='PROTOBUF');",

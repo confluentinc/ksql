@@ -142,3 +142,7 @@ ul.card-items li {
 .card.concepts {
     background-color: #f7fffd;
 }
+
+.card.operations {
+    background-color: #fffaf7;
+}

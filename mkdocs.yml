@@ -29,7 +29,7 @@ nav:
   - Getting started: index.md
   - Apache Kafka primer: overview/apache-kafka-primer.md
   - Concepts:
-    - Concepts: concepts/index.md
+    - Synopsis: concepts/index.md
     - Events: concepts/events.md
     - Collections:
       - Collections Overview: concepts/collections/index.md

@@ -56,7 +56,7 @@ stream processing applications on top of {{ site.aktm }}.
   <div class="card">
     <strong>Concepts</strong>
     <ul class="card-items">
-      <li><a href="/overview/apache-kafka-primer/">Apache Kafka primer</a></li>
+      <li><a href="/concepts/apache-kafka-primer/">Apache Kafka primer</a></li>
       <li><a href="/concepts/stream-processing/">Stream processing</a></li>
       <li><a href="/concepts/time-and-windows-in-ksqldb-queries/">Time and windowing</a></li>
       <li><a href="/concepts/connectors/">Connectors</a></li>

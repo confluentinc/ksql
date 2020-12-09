@@ -27,7 +27,6 @@ extra_javascript:
 
 nav:
   - Getting started: index.md
-  - Apache Kafka primer: overview/apache-kafka-primer.md
   - Concepts:
     - Synopsis: concepts/index.md
     - Events: concepts/events.md
@@ -54,6 +53,7 @@ nav:
     - Processing Guarantees: concepts/processing-guarantees.md
     - Relationship to Kafka Streams: concepts/ksqldb-and-kafka-streams.md
     - Evolving Production Queries: concepts/upgrades.md
+    - Apache Kafka primer: concepts/apache-kafka-primer.md
   - How-to guides:
       - Synopsis: how-to-guides/index.md
       - Query structured data: how-to-guides/query-structured-data.md
@@ -175,6 +175,8 @@ plugins:
     - redirects:
         redirect_maps:
             quickstart.md: https://ksqldb.io/quickstart.html
+
+            overview/apache-kafka-primer.md: concepts/apache-kafka-primer.md
 
             concepts/collections/streams.md: reference/sql/data-definition.md
             concepts/collections/tables.md: reference/sql/data-definition.md

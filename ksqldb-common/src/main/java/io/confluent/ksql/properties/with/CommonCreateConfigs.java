@@ -143,7 +143,7 @@ public final class CommonCreateConfigs {
             "The delimiter to use when VALUE_FORMAT='DELIMITED'. Supports single "
               + "character to be a delimiter, defaults to ','. For space and tab delimited values "
               + "you must use the special values 'SPACE' or 'TAB', not an actual space or tab "
-              + "character.")
+              + "character. Also see " + KEY_DELIMITER_PROPERTY)
         .define(
             KEY_FORMAT_PROPERTY,
             ConfigDef.Type.STRING,

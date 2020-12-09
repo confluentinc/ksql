@@ -138,6 +138,7 @@ nav:
           - Upgrade ksqlDB: operate-and-deploy/installation/upgrading.md
       - Monitoring: operate-and-deploy/monitoring.md
       - Exactly once semantics: operate-and-deploy/exactly-once-semantics.md
+      - Schema Registry integration: operate-and-deploy/schema-registry-integration.md
       - Plan Capacity: operate-and-deploy/capacity-planning.md
       - KSQL and ksqlDB: operate-and-deploy/ksql-vs-ksqldb.md
       - Changelog: operate-and-deploy/changelog.md

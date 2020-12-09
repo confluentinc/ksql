@@ -163,4 +163,14 @@ public final class KeyFormat {
         window
     );
   }
+
+  public KeyFormat withoutSerdeFeatures(final SerdeFeatures featuresToRemove) {
+    final HashSet<SerdeFeature> features = new HashSet<>(this.features.all());
+    features.removeAll(featuresToRemove.all());
+    return new KeyFormat(
+        format,
+        SerdeFeatures.from(features),
+        window
+    );
+  }
 }

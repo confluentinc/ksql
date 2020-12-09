@@ -221,12 +221,19 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final List<Expression> groupByExpressions,
       final Stacker contextStacker
   ) {
+    final boolean isSingleKey;
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_MULTICOL_KEY_FORMAT_ENABLED)) {
+      isSingleKey = groupByExpressions.size() == 1;
+    } else {
+      isSingleKey = true;
+    }
+
     // Since tables must have a key, we know that the keyFormat is both
     // not NONE and has at least one column; this allows us to inherit
     // the key format directly (as opposed to the logic in SchemaKStream)
     final KeyFormat groupedKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
         KeyFormat.nonWindowed(keyFormat.getFormatInfo(), keyFormat.getFeatures()),
-        true
+        isSingleKey
     );
 
     final TableGroupBy<K> step = ExecutionStepFactory.tableGroupBy(

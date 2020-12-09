@@ -1,11 +1,10 @@
 {
-  "comments": [
-    "Tests covering use of the GROUP BY clause"
-  ],
   "tests": [
     {
       "name": "only key column (stream->table)",
-      "statements": [
+            "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },"statements": [
         "CREATE STREAM INPUT (ID INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;"
       ],
@@ -35,6 +34,9 @@
     },
     {
       "name": "udafs only in having (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM INPUT (NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT NAME, LEN(NAME) AS LEN FROM INPUT GROUP BY NAME HAVING COUNT(NAME) = 2;"
@@ -57,6 +59,9 @@
     {
       "name": "all columns - repartition (stream->table)",
       "comment": "Currently, at least one value column is required...",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM INPUT (NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT NAME FROM INPUT GROUP BY NAME HAVING COUNT(NAME) = 1;"
@@ -69,6 +74,9 @@
     {
       "name": "all columns - no repartition (stream->table)",
       "comment": "Currently, at least one value column is required...",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM INPUT (NAME STRING KEY, V0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT NAME FROM INPUT GROUP BY NAME HAVING COUNT(NAME) = 1;"
@@ -80,6 +88,9 @@
     },
     {
       "name": "value column (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT DATA, COUNT(*) AS COUNT FROM TEST GROUP BY DATA;"
@@ -106,6 +117,9 @@
     },
     {
       "name": "struct field (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, ADDRESS STRUCT<STREET STRING, TOWN STRING>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ADDRESS->TOWN, COUNT(*) AS COUNT FROM TEST GROUP BY ADDRESS->TOWN;"
@@ -132,6 +146,9 @@
     },
     {
       "name": "single expression (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, DATA STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT LEN(DATA), COUNT(*) AS COUNT FROM TEST GROUP BY LEN(DATA);"
@@ -158,6 +175,9 @@
     },
     {
       "name": "single column with alias (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT DATA AS NEW_KEY, COUNT(*) AS COUNT FROM TEST GROUP BY DATA;"
@@ -184,6 +204,9 @@
     },
     {
       "name": "single column with alias (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT DATA AS NEW_KEY, COUNT(*) AS COUNT FROM TEST GROUP BY DATA;"
@@ -210,6 +233,9 @@
     },
     {
       "name": "single expression with alias (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT LEN(DATA) AS NEW_KEY, COUNT(*) AS COUNT FROM TEST GROUP BY LEN(DATA);"
@@ -236,6 +262,9 @@
     },
     {
       "name": "single expression with alias (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT LEN(DATA) AS NEW_KEY, COUNT(*) AS COUNT FROM TEST GROUP BY LEN(DATA);"
@@ -248,7 +277,7 @@
         {"topic": "test_topic", "key": 4, "value": {"data": "2-"}}
       ],
       "outputs": [
-         {"topic": "OUTPUT", "key": 2, "value": {"COUNT": 1}},
+        {"topic": "OUTPUT", "key": 2, "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": 3, "value": {"COUNT": 1}},
         {"topic": "OUTPUT", "key": 2, "value": {"COUNT": 2}},
         {"topic": "OUTPUT", "key": 3, "value": {"COUNT": 2}},
@@ -262,6 +291,9 @@
     },
     {
       "name": "steam with no key",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (data INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT DATA, COUNT(*) AS COUNT FROM TEST GROUP BY DATA;"
@@ -284,6 +316,9 @@
     },
     {
       "name": "subscript in group-by and select",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM INPUT (id INT KEY, col1 MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='json');",
         "CREATE TABLE OUTPUT AS SELECT col1['foo'] AS NEW_KEY, COUNT(*) AS COUNT FROM INPUT GROUP BY col1['foo'];"
@@ -302,6 +337,9 @@
     },
     {
       "name": "subscript in group-by and having",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM INPUT (id INT KEY, col1 MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='json');",
         "CREATE TABLE OUTPUT AS SELECT col1['foo'] AS NEW_KEY, COUNT(*) AS COUNT FROM INPUT GROUP BY col1['foo'] HAVING col1['foo']='lala';"
@@ -319,6 +357,9 @@
     },
     {
       "name": "subscript in group-by and non aggregate function in select",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM INPUT (id INT KEY, col1 MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='json');",
         "CREATE TABLE OUTPUT AS SELECT col1['foo'] AS NEW_KEY, AS_VALUE(col1['foo']) as VV, COUNT(*) AS COUNT FROM INPUT GROUP BY col1['foo'];"
@@ -338,6 +379,9 @@
     },
     {
       "name": "struct in group-by and non aggregate function in select",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM INPUT (id INT KEY, col1 STRUCT<a VARCHAR, b INT>) WITH (kafka_topic='test_topic', value_format='json');",
         "CREATE TABLE OUTPUT AS SELECT col1->a AS NEW_KEY, AS_VALUE(col1->a) as VV, COUNT(*) AS COUNT FROM INPUT GROUP BY col1->a;"
@@ -359,8 +403,11 @@
     },
     {
       "name": "function in group-by and nested function in select",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
-        "CREATE STREAM INPUT (id INT KEY, col1 VARCHAR, col2 VARCHAR, col3 VARCHAR) WITH (kafka_topic='test_topic', value_format='json');",
+        "CREATE STREAM INPUT (id INT KEY, col1 VARCHAR, col2 VARCHAR, col3 VARCHAR) WITH (kafka_topic='test_topic', format='json');",
         "CREATE TABLE OUTPUT AS SELECT INITCAP(COL1) AS G1, COL2 AS G2, TRIM(COL3) AS G3, concat(initcap(col1), col2, trim(col3)) AS foo, COUNT(*) FROM input GROUP BY INITCAP(col1), col2, TRIM(col3);"
       ],
       "inputs": [
@@ -370,16 +417,19 @@
         {"topic": "test_topic", "key": 3, "value": {"col1": "smells", "col2": "like", "col3": "   teen spirit   "}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "Smells|+|like|+|teen spirit", "value": {"FOO": "Smellsliketeen spirit", "KSQL_COL_0": 1}},
-        {"topic": "OUTPUT", "key": "The|+|man who|+|stole the world", "value": {"FOO": "Theman whostole the world", "KSQL_COL_0": 1}},
-        {"topic": "OUTPUT", "key": "Smells|+|like|+|spring", "value": {"FOO": "Smellslikespring","KSQL_COL_0": 1}},
-        {"topic": "OUTPUT", "key": "Smells|+|like|+|teen spirit", "value": {"FOO": "Smellsliketeen spirit","KSQL_COL_0": 2}}
+        {"topic": "OUTPUT", "key": {"G1": "Smells", "G2": "like", "G3": "teen spirit"}, "value": {"FOO": "Smellsliketeen spirit", "KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": {"G1": "The", "G2": "man who", "G3": "stole the world"}, "value": {"FOO": "Theman whostole the world", "KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": {"G1": "Smells", "G2": "like", "G3": "spring"}, "value": {"FOO": "Smellslikespring","KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": {"G1": "Smells", "G2": "like", "G3": "teen spirit"}, "value": {"FOO": "Smellsliketeen spirit","KSQL_COL_0": 2}}
       ]
     },
     {
       "name": "group by column in nested non-aggregate function in select",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
-        "CREATE STREAM INPUT (id INT KEY, col1 VARCHAR, col2 VARCHAR, col3 VARCHAR) WITH (kafka_topic='test_topic', value_format='json');",
+        "CREATE STREAM INPUT (id INT KEY, col1 VARCHAR, col2 VARCHAR, col3 VARCHAR) WITH (kafka_topic='test_topic', format='json');",
         "CREATE TABLE OUTPUT AS SELECT INITCAP(COL1) AS G1, COL2 AS G2, COL3 AS G3, concat(initcap(col1), col2, trim(col3)) AS foo, COUNT(*) FROM input GROUP BY INITCAP(col1), col2, col3;"
       ],
       "inputs": [
@@ -389,16 +439,19 @@
         {"topic": "test_topic", "key": 3, "value": {"col1": "smells", "col2": "like", "col3": "   teen spirit   "}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "Smells|+|like|+|teen spirit", "value": {"FOO": "Smellsliketeen spirit", "KSQL_COL_0": 1}},
-        {"topic": "OUTPUT", "key": "The|+|man who|+|stole the world", "value": {"FOO": "Theman whostole the world", "KSQL_COL_0": 1}},
-        {"topic": "OUTPUT", "key": "Smells|+|like|+|spring", "value": {"FOO": "Smellslikespring","KSQL_COL_0": 1}},
-        {"topic": "OUTPUT", "key": "Smells|+|like|+|   teen spirit   ", "value": {"FOO": "Smellsliketeen spirit","KSQL_COL_0": 1}}
+        {"topic": "OUTPUT", "key": {"G1": "Smells", "G2": "like", "G3": "teen spirit"}, "value": {"FOO": "Smellsliketeen spirit", "KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": {"G1": "The", "G2": "man who", "G3": "stole the world"}, "value": {"FOO": "Theman whostole the world", "KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": {"G1": "Smells", "G2": "like", "G3": "spring"}, "value": {"FOO": "Smellslikespring","KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": {"G1": "Smells", "G2": "like", "G3": "   teen spirit   "}, "value": {"FOO": "Smellsliketeen spirit","KSQL_COL_0": 1}}
       ]
     },
     {
       "name": "function group by column used in non-aggregate function in having",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
-        "CREATE STREAM INPUT (id INT KEY, col1 VARCHAR, col2 VARCHAR, col3 VARCHAR) WITH (kafka_topic='test_topic', value_format='json');",
+        "CREATE STREAM INPUT (id INT KEY, col1 VARCHAR, col2 VARCHAR, col3 VARCHAR) WITH (kafka_topic='test_topic', format='json');",
         "CREATE TABLE OUTPUT AS SELECT INITCAP(COL1) AS G1, COL2 AS G2, trim(COL3) AS G3, COUNT(*) FROM input GROUP BY INITCAP(col1), col2, trim(col3) HAVING substring(trim(col3),1,4) = 'teen';"
       ],
       "inputs": [
@@ -408,12 +461,15 @@
         {"topic": "test_topic", "key": 3, "value": {"col1": "smells", "col2": "like", "col3": "   teen spirit   "}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "Smells|+|like|+|teen spirit", "value": {"KSQL_COL_0": 1}},
-        {"topic": "OUTPUT", "key": "Smells|+|like|+|teen spirit", "value": {"KSQL_COL_0": 2}}
+        {"topic": "OUTPUT", "key": {"G1": "Smells", "G2": "like", "G3": "teen spirit"}, "value": {"KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": {"G1": "Smells", "G2": "like", "G3": "teen spirit"}, "value": {"KSQL_COL_0": 2}}
       ]
     },
     {
       "name": "arithmetic in group by column used in non-aggregate function in select",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM INPUT (id INT KEY, col1 INT, col2 INT) WITH (kafka_topic='test_topic', value_format='json');",
         "CREATE TABLE OUTPUT AS SELECT col1+col2 AS G1, AS_VALUE(col1+col2), COUNT(*) FROM input GROUP BY col1+col2;"
@@ -433,6 +489,9 @@
     },
     {
       "name": "expressions used in non-aggregate function in select whose children are not part of group-by",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM INPUT (id INT KEY, col1 MAP<VARCHAR, INT>, col2 MAP<VARCHAR, INT>) WITH (kafka_topic='test_topic', value_format='json');",
         "CREATE TABLE OUTPUT AS SELECT col1['foo']+col2['bar'] AS G1, AS_VALUE(col1['foo']+col2['bar']), COUNT(*) FROM input GROUP BY col1['foo']+col2['bar'];"
@@ -449,6 +508,9 @@
     },
     {
       "name": "unknown function",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT DATA, WONT_FIND_ME(ID) FROM TEST GROUP BY DATA;"
@@ -460,6 +522,9 @@
     },
     {
       "name": "non-table udaf on table",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE INPUT (ID BIGINT PRIMARY KEY, F0 INT, F1 BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, LATEST_BY_OFFSET(F0), MIN(F1), MAX(F1) FROM INPUT GROUP BY ID;"
@@ -471,8 +536,11 @@
     },
     {
       "name": "multiple expressions",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
-        "CREATE STREAM TEST (f1 INT KEY, f2 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (f1 INT KEY, f2 INT) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT f2, f1, f2+f1, COUNT(*) FROM TEST GROUP BY f1, f2;"
       ],
       "inputs": [
@@ -483,20 +551,66 @@
         {"topic": "test_topic", "key": 2, "value": {"f2": "1"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1|+|2", "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 1}},
-        {"topic": "OUTPUT", "key": "2|+|4", "value": {"KSQL_COL_0": 6, "KSQL_COL_1": 1}},
-        {"topic": "OUTPUT", "key": "1|+|2", "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 2}},
-        {"topic": "OUTPUT", "key": "2|+|4", "value": {"KSQL_COL_0": 6, "KSQL_COL_1": 2}},
-        {"topic": "OUTPUT", "key": "2|+|1", "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 1}}
+        {"topic": "OUTPUT", "key": {"F1": 1, "F2": 2}, "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 1}},
+        {"topic": "OUTPUT", "key": {"F1": 2, "F2": 4}, "value": {"KSQL_COL_0": 6, "KSQL_COL_1": 1}},
+        {"topic": "OUTPUT", "key": {"F1": 1, "F2": 2}, "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 2}},
+        {"topic": "OUTPUT", "key": {"F1": 2, "F2": 4}, "value": {"KSQL_COL_0": 6, "KSQL_COL_1": 2}},
+        {"topic": "OUTPUT", "key": {"F1": 2, "F2": 1}, "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 1}}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "KSQL_COL_2 STRING KEY, KSQL_COL_0 INT, KSQL_COL_1 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "F1 INT KEY, F2 INT KEY, KSQL_COL_0 INT, KSQL_COL_1 BIGINT"}
         ]
       }
     },
     {
+      "name": "multiple expressions with struct field and other expression",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
+      "statements": [
+        "CREATE STREAM TEST (f1 INT KEY, f2 INT, address STRUCT<street STRING, town STRING>) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT address->town, f1, 2*f2+f1, COUNT(*), 2*f2 FROM TEST GROUP BY f1, address->town, 2*f2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"f2": "2", "ADDRESS": {"STREET": "1st Street", "Town": "Oxford"}}},
+        {"topic": "test_topic", "key": 2, "value": {"f2": "4", "ADDRESS": {"STREET": "1st Street", "Town": "London"}}},
+        {"topic": "test_topic", "key": 1, "value": {"f2": "2", "ADDRESS": {"STREET": "1st Street", "Town": "Oxford"}}},
+        {"topic": "test_topic", "key": 2, "value": {"f2": "4", "ADDRESS": {"STREET": "1st Street", "Town": "London"}}},
+        {"topic": "test_topic", "key": 2, "value": {"f2": "1", "ADDRESS": {"STREET": "1st Street", "Town": "Oxford"}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"F1": 1, "TOWN": "Oxford", "KSQL_COL_2": 4}, "value": {"KSQL_COL_0": 5, "KSQL_COL_1": 1}},
+        {"topic": "OUTPUT", "key": {"F1": 2, "TOWN": "London", "KSQL_COL_2": 8}, "value": {"KSQL_COL_0": 10, "KSQL_COL_1": 1}},
+        {"topic": "OUTPUT", "key": {"F1": 1, "TOWN": "Oxford", "KSQL_COL_2": 4}, "value": {"KSQL_COL_0": 5, "KSQL_COL_1": 2}},
+        {"topic": "OUTPUT", "key": {"F1": 2, "TOWN": "London", "KSQL_COL_2": 8}, "value": {"KSQL_COL_0": 10, "KSQL_COL_1": 2}},
+        {"topic": "OUTPUT", "key": {"F1": 2, "TOWN": "Oxford", "KSQL_COL_2": 2}, "value": {"KSQL_COL_0": 4, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "F1 INT KEY, TOWN STRING KEY, KSQL_COL_2 INT KEY, KSQL_COL_0 INT, KSQL_COL_1 BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "multiple expressions - KAFKA key format",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
+      "statements": [
+        "CREATE STREAM TEST (f1 INT KEY, f2 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT f2, f1, f2+f1, COUNT(*) FROM TEST GROUP BY f1, f2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Key format does not support schema.\nformat: KAFKA\nschema: Persistence{columns=[`F1` INTEGER KEY, `F2` INTEGER KEY], features=[]}\nreason: The 'KAFKA' format only supports a single field. Got: [`F1` INTEGER KEY, `F2` INTEGER KEY]\nStatement: CREATE TABLE OUTPUT AS SELECT\n  TEST.F2 F2,\n  TEST.F1 F1,\n  (TEST.F2 + TEST.F1) KSQL_COL_0,\n  COUNT(*) KSQL_COL_1\nFROM TEST TEST\nGROUP BY TEST.F1, TEST.F2\nEMIT CHANGES"
+      }
+    },
+    {
       "name": "multiple expressions - windowed",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (f1 INT KEY, f2 INT) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT f2, f1, f2+f1, COUNT(*) FROM TEST WINDOW TUMBLING (SIZE 1 SECOND) GROUP BY f1, f2;"
@@ -509,20 +623,23 @@
         {"topic": "test_topic", "key": 2, "value": {"f2": "1"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1|+|2", "window": {"start": 0, "end": 1000, "type": "time"}, "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 1}},
-        {"topic": "OUTPUT", "key": "2|+|4", "window": {"start": 0, "end": 1000, "type": "time"}, "value": {"KSQL_COL_0": 6, "KSQL_COL_1": 1}},
-        {"topic": "OUTPUT", "key": "1|+|2", "window": {"start": 0, "end": 1000, "type": "time"}, "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 2}},
-        {"topic": "OUTPUT", "key": "2|+|4", "window": {"start": 0, "end": 1000, "type": "time"}, "value": {"KSQL_COL_0": 6, "KSQL_COL_1": 2}},
-        {"topic": "OUTPUT", "key": "2|+|1", "window": {"start": 0, "end": 1000, "type": "time"}, "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 1}}
+        {"topic": "OUTPUT", "key": {"F1": 1, "F2": 2}, "window": {"start": 0, "end": 1000, "type": "time"}, "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 1}},
+        {"topic": "OUTPUT", "key": {"F1": 2, "F2": 4}, "window": {"start": 0, "end": 1000, "type": "time"}, "value": {"KSQL_COL_0": 6, "KSQL_COL_1": 1}},
+        {"topic": "OUTPUT", "key": {"F1": 1, "F2": 2}, "window": {"start": 0, "end": 1000, "type": "time"}, "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 2}},
+        {"topic": "OUTPUT", "key": {"F1": 2, "F2": 4}, "window": {"start": 0, "end": 1000, "type": "time"}, "value": {"KSQL_COL_0": 6, "KSQL_COL_1": 2}},
+        {"topic": "OUTPUT", "key": {"F1": 2, "F2": 1}, "window": {"start": 0, "end": 1000, "type": "time"}, "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 1}}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "KSQL_COL_2 STRING KEY, KSQL_COL_0 INT, KSQL_COL_1 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "F1 INT KEY, F2 INT KEY, KSQL_COL_0 INT, KSQL_COL_1 BIGINT"}
         ]
       }
     },
     {
       "name": "multiple expressions - table aggregate",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE INPUT (ID INT PRIMARY KEY, VALUE INT) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE TABLE OUTPUT as SELECT 1 as k, value, count(1) AS ID FROM INPUT group by value, 1;"
@@ -533,18 +650,21 @@
         {"topic": "test_topic", "key": 98, "value": {"VALUE": 0}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "0|+|1", "value": {"ID": 1}},
-        {"topic": "OUTPUT", "key": "0|+|1", "value": {"ID": 2}},
-        {"topic": "OUTPUT", "key": "0|+|1", "value": {"ID": 3}}
+        {"topic": "OUTPUT", "key": {"VALUE": 0, "K": 1}, "value": {"ID": 1}},
+        {"topic": "OUTPUT", "key": {"VALUE": 0, "K": 1}, "value": {"ID": 2}},
+        {"topic": "OUTPUT", "key": {"VALUE": 0, "K": 1}, "value": {"ID": 3}}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "KSQL_COL_0 STRING KEY, ID BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "VALUE INT KEY, K INT KEY, ID BIGINT"}
         ]
       }
     },
     {
       "name": "single expression - key in projection more than once",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='input',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT NAME, NAME AS NAME2, COUNT(1) FROM INPUT GROUP BY NAME;"
@@ -556,6 +676,9 @@
     },
     {
       "name": "single expression - key missing from projection - with other column of same name",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='input',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(1) AS NAME FROM INPUT GROUP BY NAME;"
@@ -567,6 +690,9 @@
     },
     {
       "name": "single expression - key missing from projection",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='input',value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(1) FROM INPUT GROUP BY NAME;"
@@ -578,6 +704,9 @@
     },
     {
       "name": "multiple expressions - single key missing from projection",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (f1 INT KEY, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f2, COUNT(*) FROM TEST GROUP BY f1, f2;"
@@ -589,6 +718,9 @@
     },
     {
       "name": "multiple expression - key in projection more than once",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (f1 INT KEY, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, f1 AS F3, COUNT(*) FROM TEST GROUP BY f1, f2;"
@@ -600,6 +732,9 @@
     },
     {
       "name": "multiple expressions - all keys missing from projection",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (f1 INT KEY, f2 INT, f3 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY f1, f2, f3;"
@@ -611,19 +746,25 @@
     },
     {
       "name": "select * where all columns in group by",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
-        "CREATE STREAM TEST (id INT KEY, id2 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (id INT KEY, id2 INT) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT *, COUNT() FROM TEST GROUP BY id, id2;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"ID2": 2}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1|+|2", "value": {"KSQL_COL_0": 1}}
+        {"topic": "OUTPUT", "key": {"ID": 1, "ID2": 2}, "value": {"KSQL_COL_0": 1}}
       ]
     },
     {
       "name": "select * where not all columns in group by",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (id INT KEY, id2 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT *, COUNT() FROM TEST GROUP BY id;"
@@ -635,6 +776,9 @@
     },
     {
       "name": "with key alias that clashes with value alias",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT DATA AS COUNT, COUNT(*) AS COUNT FROM TEST GROUP BY DATA;"
@@ -646,6 +790,9 @@
     },
     {
       "name": "map used in non-aggregate function in select when group by uses subscript",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM INPUT (id INT KEY, col1 MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='json');",
         "CREATE TABLE OUTPUT AS SELECT col1['foo'], AS_VALUE(col1) AS foo, COUNT(*) FROM input GROUP BY col1['foo'];"
@@ -657,8 +804,11 @@
     },
     {
       "name": "complex UDAF params",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
-        "CREATE STREAM TEST (V0 INT KEY, V1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (V0 INT KEY, V1 INT) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT V0, V1, SUM(V0 + V1) AS SUM FROM TEST GROUP BY V0, V1;"
       ],
       "inputs": [
@@ -667,18 +817,21 @@
         {"topic": "test_topic", "key": 0, "value": {"V1": 10}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "0|+|10", "value": {"SUM": 10}},
-        {"topic": "OUTPUT", "key": "1|+|20", "value": {"SUM": 21}},
-        {"topic": "OUTPUT", "key": "0|+|10", "value": {"SUM": 20}}
+        {"topic": "OUTPUT", "key": {"V0": 0, "V1": 10}, "value": {"SUM": 10}},
+        {"topic": "OUTPUT", "key": {"V0": 1, "V1": 20}, "value": {"SUM": 21}},
+        {"topic": "OUTPUT", "key": {"V0": 0, "V1": 10}, "value": {"SUM": 20}}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "KSQL_COL_0 STRING KEY, SUM INT"}
+          {"name": "OUTPUT", "type": "table", "schema": "V0 INTEGER KEY, V1 INTEGER KEY, SUM INT"}
         ]
       }
     },
     {
       "name": "complex UDAF params matching GROUP BY",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (V0 INT KEY, V1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT (V0 + V1) AS NEW_KEY, SUM(V0 + V1) AS SUM FROM TEST GROUP BY V0 + V1;"
@@ -701,8 +854,11 @@
     },
     {
       "name": "complex UDAF params matching HAVING",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
-        "CREATE STREAM TEST (V0 INT KEY, V1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM TEST (V0 INT KEY, V1 INT) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT SUM(V0 + V1) AS SUM, V0, V1 FROM TEST GROUP BY V0, V1 HAVING V0 + V1 <= 20;"
       ],
       "inputs": [
@@ -711,18 +867,21 @@
         {"topic": "test_topic", "key": 0, "value": {"V1": 10}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "0|+|10", "value": {"SUM": 10}},
-        {"topic": "OUTPUT", "key": "0|+|10", "value": {"SUM": 20}}
+        {"topic": "OUTPUT", "key": {"V0": 0, "V1": 10}, "value": {"SUM": 10}},
+        {"topic": "OUTPUT", "key": {"V0": 0, "V1": 10}, "value": {"SUM": 20}}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "KSQL_COL_0 STRING KEY, SUM INT"}
+          {"name": "OUTPUT", "type": "table", "schema": "V0 INTEGER KEY, V1 INTEGER KEY, SUM INT"}
         ]
       }
     },
     {
       "name": "single expression with nulls",
       "comment": "bad_udf return every other invocation - tables need a PRIMARY key so null keys are dropped",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT bad_udf(DATA), COUNT(*) FROM TEST GROUP BY bad_udf(DATA);"
@@ -746,6 +905,9 @@
     },
     {
       "name": "complex expressions",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY DATA AND ID;"
@@ -758,6 +920,9 @@
     {
       "name": "multiple expressions with nulls",
       "comment": "bad_udf returns null every other invocation - tables need a PRIMARY key so null keys are dropped",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT bad_udf(DATA), COUNT(*) FROM TEST GROUP BY bad_udf(DATA);"
@@ -781,6 +946,9 @@
     },
     {
       "name": "field (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT K, COUNT(*) FROM TEST GROUP BY K;"
@@ -807,6 +975,9 @@
     },
     {
       "name": "field (stream->table) - KAFKA",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, data VARCHAR) WITH (kafka_topic='test_topic', value_format='KAFKA');",
         "CREATE TABLE OUTPUT WITH(value_format='DELIMITED') AS SELECT DATA, COUNT(*) FROM TEST GROUP BY DATA;"
@@ -818,6 +989,9 @@
     },
     {
       "name": "field (stream->table) - format",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE TABLE OUTPUT AS SELECT K, COUNT(*) FROM TEST GROUP BY K;"
@@ -845,6 +1019,9 @@
     },
     {
       "name": "int field (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(*) FROM TEST GROUP BY ID;"
@@ -871,34 +1048,40 @@
     },
     {
       "name": "fields (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
-        "CREATE STREAM TEST (ID INT KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TEST (ID INT KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) FROM TEST GROUP BY f2, f1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "1,a"},
-        {"topic": "test_topic", "key": 2, "value": "2,b"},
-        {"topic": "test_topic", "key": 1, "value": "1,a"},
-        {"topic": "test_topic", "key": 2, "value": "2,b"},
-        {"topic": "test_topic", "key": 3, "value": "3,a"}
+        {"topic": "test_topic", "key": "1", "value": "1,a"},
+        {"topic": "test_topic", "key": "2", "value": "2,b"},
+        {"topic": "test_topic", "key": "1", "value": "1,a"},
+        {"topic": "test_topic", "key": "2", "value": "2,b"},
+        {"topic": "test_topic", "key": "3", "value": "3,a"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "a|+|1", "value": "1"},
-        {"topic": "OUTPUT", "key": "b|+|2", "value": "1"},
-        {"topic": "OUTPUT", "key": "a|+|1", "value": "2"},
-        {"topic": "OUTPUT", "key": "b|+|2", "value": "2"},
-        {"topic": "OUTPUT", "key": "a|+|3", "value": "1"}
+        {"topic": "OUTPUT", "key": "a,1", "value": "1"},
+        {"topic": "OUTPUT", "key": "b,2", "value": "1"},
+        {"topic": "OUTPUT", "key": "a,1", "value": "2"},
+        {"topic": "OUTPUT", "key": "b,2", "value": "2"},
+        {"topic": "OUTPUT", "key": "a,3", "value": "1"}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "KSQL_COL_1 STRING KEY, KSQL_COL_0 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "F2 STRING KEY, F1 INTEGER KEY, KSQL_COL_0 BIGINT"}
         ]
       }
     },
     {
       "name": "fields used in expression",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
-        "CREATE STREAM TEST (K STRING KEY, f1 INT, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TEST (K STRING KEY, f1 INT, f2 INT) WITH (kafka_topic='test_topic', format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT F1, F2, f1 / f2, COUNT(*) FROM TEST GROUP BY f1, f2;"
       ],
       "inputs": [
@@ -907,20 +1090,23 @@
         {"topic": "test_topic", "value": "9,3"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "4|+|2", "value": "2,1"},
-        {"topic": "OUTPUT", "key": "9|+|3", "value": "3,1"},
-        {"topic": "OUTPUT", "key": "9|+|3", "value": "3,2"}
+        {"topic": "OUTPUT", "key": "4,2", "value": "2,1"},
+        {"topic": "OUTPUT", "key": "9,3", "value": "3,1"},
+        {"topic": "OUTPUT", "key": "9,3", "value": "3,2"}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "KSQL_COL_2 STRING KEY, KSQL_COL_0 INTEGER, KSQL_COL_1 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "F1 INTEGER KEY, F2 INTEGER KEY, KSQL_COL_0 INTEGER, KSQL_COL_1 BIGINT"}
         ]
       }
     },
     {
       "name": "fields (stream->table) - format",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
-        "CREATE STREAM TEST (ID INT KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE STREAM TEST (ID INT KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', key_format='JSON', value_format='{FORMAT}');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) FROM TEST GROUP BY f2, f1;"
       ],
       "format": ["AVRO", "JSON", "PROTOBUF"],
@@ -932,20 +1118,23 @@
         {"topic": "test_topic", "key": 3, "value": {"F1": 3, "F2": "a"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "a|+|1", "value": {"KSQL_COL_0": 1}},
-        {"topic": "OUTPUT", "key": "b|+|2", "value": {"KSQL_COL_0": 1}},
-        {"topic": "OUTPUT", "key": "a|+|1", "value": {"KSQL_COL_0": 2}},
-        {"topic": "OUTPUT", "key": "b|+|2", "value": {"KSQL_COL_0": 2}},
-        {"topic": "OUTPUT", "key": "a|+|3", "value": {"KSQL_COL_0": 1}}
+        {"topic": "OUTPUT", "key": {"F2": "a", "F1": 1}, "value": {"KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": {"F2": "b", "F1": 2}, "value": {"KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": {"F2": "a", "F1": 1}, "value": {"KSQL_COL_0": 2}},
+        {"topic": "OUTPUT", "key": {"F2": "b", "F1": 2}, "value": {"KSQL_COL_0": 2}},
+        {"topic": "OUTPUT", "key": {"F2": "a", "F1": 3}, "value": {"KSQL_COL_0": 1}}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "KSQL_COL_1 STRING KEY, KSQL_COL_0 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "F2 STRING KEY, F1 INTEGER KEY, KSQL_COL_0 BIGINT"}
         ]
       }
     },
     {
       "name": "with groupings (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, f1 INT, f2 VARCHAR, f3 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) FROM TEST GROUP BY f3, (f2, f1);"
@@ -957,6 +1146,9 @@
     },
     {
       "name": "duplicate expressions",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY DATA, TEST.DATA;"
@@ -968,90 +1160,102 @@
     },
     {
       "name": "with single grouping set (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
-        "CREATE STREAM TEST (ID INT KEY, f1 INT, f2 VARCHAR, f3 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TEST (ID INT KEY, f1 INT, f2 VARCHAR, f3 INT) WITH (kafka_topic='test_topic', format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, f3, COUNT(*) FROM TEST GROUP BY (f3, f2, f1);"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "1,a,-1"},
-        {"topic": "test_topic", "key": 2, "value": "2,b,-2"},
-        {"topic": "test_topic", "key": 1, "value": "1,a,-1"},
-        {"topic": "test_topic", "key": 2, "value": "2,b,-2"},
-        {"topic": "test_topic", "key": 3, "value": "3,a,-3"}
+        {"topic": "test_topic", "key": "1", "value": "1,a,-1"},
+        {"topic": "test_topic", "key": "2", "value": "2,b,-2"},
+        {"topic": "test_topic", "key": "1", "value": "1,a,-1"},
+        {"topic": "test_topic", "key": "2", "value": "2,b,-2"},
+        {"topic": "test_topic", "key": "3", "value": "3,a,-3"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "-1|+|a|+|1", "value": "1"},
-        {"topic": "OUTPUT", "key": "-2|+|b|+|2", "value": "1"},
-        {"topic": "OUTPUT", "key": "-1|+|a|+|1", "value": "2"},
-        {"topic": "OUTPUT", "key": "-2|+|b|+|2", "value": "2"},
-        {"topic": "OUTPUT", "key": "-3|+|a|+|3", "value": "1"}
+        {"topic": "OUTPUT", "key": "\"-1\",a,1", "value": "1"},
+        {"topic": "OUTPUT", "key": "\"-2\",b,2", "value": "1"},
+        {"topic": "OUTPUT", "key": "\"-1\",a,1", "value": "2"},
+        {"topic": "OUTPUT", "key": "\"-2\",b,2", "value": "2"},
+        {"topic": "OUTPUT", "key": "\"-3\",a,3", "value": "1"}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "KSQL_COL_1 STRING KEY, KSQL_COL_0 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "F3 INTEGER KEY, F2 STRING KEY, F1 INTEGER KEY, KSQL_COL_0 BIGINT"}
         ]
       }
     },
     {
       "name": "fields (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
-        "CREATE TABLE TEST (ID INT PRIMARY KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE TEST (ID INT PRIMARY KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) FROM TEST GROUP BY f2, f1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "1,a"},
-        {"topic": "test_topic", "key": 2, "value": "2,b"},
-        {"topic": "test_topic", "key": 1, "value": "1,b"},
-        {"topic": "test_topic", "key": 2, "value": null},
-        {"topic": "test_topic", "key": 1, "value": "1,a"}
+        {"topic": "test_topic", "key": "1", "value": "1,a"},
+        {"topic": "test_topic", "key": "2", "value": "2,b"},
+        {"topic": "test_topic", "key": "1", "value": "1,b"},
+        {"topic": "test_topic", "key": "2", "value": null},
+        {"topic": "test_topic", "key": "1", "value": "1,a"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "a|+|1", "value": "1"},
-        {"topic": "OUTPUT", "key": "b|+|2", "value": "1"},
-        {"topic": "OUTPUT", "key": "a|+|1", "value": "0"},
-        {"topic": "OUTPUT", "key": "b|+|1", "value": "1"},
-        {"topic": "OUTPUT", "key": "b|+|2", "value": "0"},
-        {"topic": "OUTPUT", "key": "b|+|1", "value": "0"},
-        {"topic": "OUTPUT", "key": "a|+|1", "value": "1"}
+        {"topic": "OUTPUT", "key": "a,1", "value": "1"},
+        {"topic": "OUTPUT", "key": "b,2", "value": "1"},
+        {"topic": "OUTPUT", "key": "a,1", "value": "0"},
+        {"topic": "OUTPUT", "key": "b,1", "value": "1"},
+        {"topic": "OUTPUT", "key": "b,2", "value": "0"},
+        {"topic": "OUTPUT", "key": "b,1", "value": "0"},
+        {"topic": "OUTPUT", "key": "a,1", "value": "1"}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "KSQL_COL_1 STRING KEY, KSQL_COL_0 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "F2 STRING KEY, F1 INTEGER KEY, KSQL_COL_0 BIGINT"}
         ]
       }
     },
     {
       "name": "fields - copied into value (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
-        "CREATE TABLE TEST (ID INT PRIMARY KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE TABLE TEST (ID INT PRIMARY KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, AS_VALUE(f1) AS F3, AS_VALUE(F2) AS F4, COUNT(*) FROM TEST GROUP BY f2, f1;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": "1,a"},
-        {"topic": "test_topic", "key": 2, "value": "2,b"},
-        {"topic": "test_topic", "key": 1, "value": "1,b"},
-        {"topic": "test_topic", "key": 2, "value": null},
-        {"topic": "test_topic", "key": 1, "value": "1,a"}
+        {"topic": "test_topic", "key": "1", "value": "1,a"},
+        {"topic": "test_topic", "key": "2", "value": "2,b"},
+        {"topic": "test_topic", "key": "1", "value": "1,b"},
+        {"topic": "test_topic", "key": "2", "value": null},
+        {"topic": "test_topic", "key": "1", "value": "1,a"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "a|+|1", "value": "1,a,1"},
-        {"topic": "OUTPUT", "key": "b|+|2", "value": "2,b,1"},
-        {"topic": "OUTPUT", "key": "a|+|1", "value": "1,a,0"},
-        {"topic": "OUTPUT", "key": "b|+|1", "value": "1,b,1"},
-        {"topic": "OUTPUT", "key": "b|+|2", "value": "2,b,0"},
-        {"topic": "OUTPUT", "key": "b|+|1", "value": "1,b,0"},
-        {"topic": "OUTPUT", "key": "a|+|1", "value": "1,a,1"}
+        {"topic": "OUTPUT", "key": "a,1", "value": "1,a,1"},
+        {"topic": "OUTPUT", "key": "b,2", "value": "2,b,1"},
+        {"topic": "OUTPUT", "key": "a,1", "value": "1,a,0"},
+        {"topic": "OUTPUT", "key": "b,1", "value": "1,b,1"},
+        {"topic": "OUTPUT", "key": "b,2", "value": "2,b,0"},
+        {"topic": "OUTPUT", "key": "b,1", "value": "1,b,0"},
+        {"topic": "OUTPUT", "key": "a,1", "value": "1,a,1"}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "KSQL_COL_1 STRING KEY, F3 INT, F4 STRING, KSQL_COL_0 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "F2 STRING KEY, F1 INTEGER KEY, F3 INT, F4 STRING, KSQL_COL_0 BIGINT"}
         ]
       }
     },
     {
       "name": "fields (table->table) - format",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
-        "CREATE TABLE TEST (ID INT PRIMARY KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE TABLE TEST (ID INT PRIMARY KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', key_format='JSON', value_format='{FORMAT}');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) FROM TEST GROUP BY f2, f1;"
       ],
       "format": ["AVRO", "JSON", "PROTOBUF"],
@@ -1063,22 +1267,25 @@
         {"topic": "test_topic", "key": 1, "value": {"F1": 1, "F2": "a"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "a|+|1", "value": {"KSQL_COL_0": 1}},
-        {"topic": "OUTPUT", "key": "b|+|2", "value": {"KSQL_COL_0": 1}},
-        {"topic": "OUTPUT", "key": "a|+|1", "value": {"KSQL_COL_0": 0}},
-        {"topic": "OUTPUT", "key": "b|+|1", "value": {"KSQL_COL_0": 1}},
-        {"topic": "OUTPUT", "key": "b|+|2", "value": {"KSQL_COL_0": 0}},
-        {"topic": "OUTPUT", "key": "b|+|1", "value": {"KSQL_COL_0": 0}},
-        {"topic": "OUTPUT", "key": "a|+|1", "value": {"KSQL_COL_0": 1}}
+        {"topic": "OUTPUT", "key": {"F2": "a", "F1": 1}, "value": {"KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": {"F2": "b", "F1": 2}, "value": {"KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": {"F2": "a", "F1": 1}, "value": {"KSQL_COL_0": 0}},
+        {"topic": "OUTPUT", "key": {"F2": "b", "F1": 1}, "value": {"KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": {"F2": "b", "F1": 2}, "value": {"KSQL_COL_0": 0}},
+        {"topic": "OUTPUT", "key": {"F2": "b", "F1": 1}, "value": {"KSQL_COL_0": 0}},
+        {"topic": "OUTPUT", "key": {"F2": "a", "F1": 1}, "value": {"KSQL_COL_0": 1}}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "KSQL_COL_1 STRING KEY, KSQL_COL_0 BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "F2 STRING KEY, F1 INTEGER KEY, KSQL_COL_0 BIGINT"}
         ]
       }
     },
     {
       "name": "field with re-key (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, data VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT DATA, COUNT(*) FROM TEST GROUP BY DATA;"
@@ -1105,6 +1312,9 @@
     },
     {
       "name": "double field with re-key (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, data double) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT DATA, COUNT(*) FROM TEST GROUP BY DATA;"
@@ -1131,6 +1341,9 @@
     },
     {
       "name": "field with re-key (stream->table) - format",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, data VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
         "CREATE TABLE OUTPUT AS SELECT DATA, COUNT(*) FROM TEST GROUP BY DATA;"
@@ -1158,6 +1371,9 @@
     },
     {
       "name": "field with re-key (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT region, COUNT(*) FROM TEST GROUP BY region;"
@@ -1185,6 +1401,9 @@
     },
     {
       "name": "with aggregate arithmetic (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, data VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT DATA, COUNT(*)*2 FROM TEST GROUP BY DATA;"
@@ -1207,6 +1426,9 @@
     },
     {
       "name": "with aggregate arithmetic (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT region, COUNT(*) * 2 FROM TEST GROUP BY region;"
@@ -1234,8 +1456,11 @@
     },
     {
       "name": "with aggregate arithmetic involving source field (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
-        "CREATE STREAM TEST (K STRING KEY, ITEM INT, COST INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TEST (K STRING KEY, ITEM INT, COST INT) WITH (kafka_topic='test_topic', format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT ITEM, COST, COST * COUNT() FROM TEST GROUP BY ITEM, COST;"
       ],
       "inputs": [
@@ -1245,14 +1470,17 @@
         {"topic": "test_topic", "value": "1,10"}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1|+|10", "value": "10"},
-        {"topic": "OUTPUT", "key": "1|+|20", "value": "20"},
-        {"topic": "OUTPUT", "key": "2|+|30", "value": "30"},
-        {"topic": "OUTPUT", "key": "1|+|10", "value": "20"}
+        {"topic": "OUTPUT", "key": "1,10", "value": "10"},
+        {"topic": "OUTPUT", "key": "1,20", "value": "20"},
+        {"topic": "OUTPUT", "key": "2,30", "value": "30"},
+        {"topic": "OUTPUT", "key": "1,10", "value": "20"}
       ]
     },
     {
       "name": "with aggregate arithmetic involving source field (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, f0 INT, f1 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f0, f0 * SUM(f1) FROM TEST GROUP BY f0;"
@@ -1274,6 +1502,9 @@
     },
     {
       "name": "with aggregate arithmetic involving source field not in group by (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, f0 INT, f1 INT, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1 * SUM(f2) FROM TEST GROUP BY f0;"
@@ -1285,6 +1516,9 @@
     },
     {
       "name": "function (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT SUBSTRING(source, 0, 2), COUNT(*) FROM TEST GROUP BY SUBSTRING(source, 0, 2);"
@@ -1313,6 +1547,9 @@
     },
     {
       "name": "function (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT SUBSTRING(region, 7, 2), COUNT(*) FROM TEST GROUP BY SUBSTRING(region, 7, 2);"
@@ -1340,6 +1577,9 @@
     },
     {
       "name": "int function (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT LEN(region), COUNT(*) FROM TEST GROUP BY LEN(region);"
@@ -1367,6 +1607,9 @@
     },
     {
       "name": "function with select field that is a subset of group by (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT SUBSTRING(source, 0, 1) AS Thing, COUNT(*) FROM TEST GROUP BY SUBSTRING(source, 0, 2);"
@@ -1378,6 +1621,9 @@
     },
     {
       "name": "function with select field that is a subset of group by (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT SUBSTRING(region, 7, 1), COUNT(*) FROM TEST GROUP BY SUBSTRING(region, 7, 2);"
@@ -1389,6 +1635,9 @@
     },
     {
       "name": "function with select field that is a superset of group by (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT SUBSTRING(source, 0, 3), COUNT(*) FROM TEST GROUP BY SUBSTRING(source, 0, 2);"
@@ -1400,6 +1649,9 @@
     },
     {
       "name": "function with select field that is a superset of group by (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (K INT PRIMARY KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT SUBSTRING(region, 7, 3), COUNT(*) FROM TEST GROUP BY SUBSTRING(region, 7, 2);"
@@ -1411,6 +1663,9 @@
     },
     {
       "name": "function with having field that is a subset of group by (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT SUBSTRING(source, 0, 2) AS Thing, COUNT(*) FROM TEST GROUP BY SUBSTRING(source, 0, 2) HAVING LEN(source) < 2;"
@@ -1422,6 +1677,9 @@
     },
     {
       "name": "json field (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (data STRUCT<field VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT data->field AS FIELD, COUNT(*) AS COUNT FROM TEST GROUP BY data->field;"
@@ -1441,6 +1699,9 @@
     },
     {
       "name": "int json field (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (data STRUCT<field INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT data->field, COUNT(*) AS COUNT FROM TEST GROUP BY data->field;"
@@ -1460,6 +1721,9 @@
     },
     {
       "name": "key (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT K, COUNT(*) FROM TEST GROUP BY K;"
@@ -1486,6 +1750,9 @@
     },
     {
       "name": "ROWTIME (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT ROWTIME AS RT, COUNT(*) FROM TEST GROUP BY ROWTIME;"
@@ -1495,6 +1762,9 @@
     },
     {
       "name": "constant (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT 1, COUNT(*) FROM TEST GROUP BY 1;"
@@ -1516,6 +1786,9 @@
     },
     {
       "name": "constant (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (K INT PRIMARY KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT 1, COUNT(*) FROM TEST GROUP BY 1;"
@@ -1538,6 +1811,9 @@
     },
     {
       "name": "field with field used in function in projection (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, f1 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, SUBSTRING(f1, 0, 1), COUNT(*) FROM TEST GROUP BY f1;"
@@ -1559,6 +1835,9 @@
     },
     {
       "name": "field with field used in function in projection (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT region, SUBSTRING(region, 2, 1), COUNT(*) FROM TEST GROUP BY region;"
@@ -1581,6 +1860,9 @@
     },
     {
       "name": "string concat using + op (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, f1 VARCHAR, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f2 + f1, COUNT(*) FROM TEST GROUP BY f2 + f1;"
@@ -1602,6 +1884,9 @@
     },
     {
       "name": "string concat using + op (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, user INT, subregion VARCHAR, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT region + subregion, COUNT(*) FROM TEST GROUP BY region + subregion;"
@@ -1629,6 +1914,9 @@
     },
     {
       "name": "string concat using + op with projection field in wrong order (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, f1 VARCHAR, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1 + f2, COUNT(*) FROM TEST GROUP BY f2 + f1;"
@@ -1640,6 +1928,9 @@
     },
     {
       "name": "string concat using + op with projection field in wrong order (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, user INT, subregion VARCHAR, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT subregion + region, COUNT(*) FROM TEST GROUP BY region + subregion;"
@@ -1651,6 +1942,9 @@
     },
     {
       "name": "string concat with separate fields in projection (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, f1 VARCHAR, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, f2, COUNT(*) FROM TEST GROUP BY f2 + f1;"
@@ -1662,6 +1956,9 @@
     },
     {
       "name": "string concat with separate fields in projection (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, user INT, subregion VARCHAR, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT subregion, region, COUNT(*) FROM TEST GROUP BY region + subregion;"
@@ -1673,6 +1970,9 @@
     },
     {
       "name": "arithmetic binary expression with projection in-order & non-commutative group by (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, f1 INT, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f2 - f1, COUNT(*) FROM TEST GROUP BY f2 - f1;"
@@ -1692,6 +1992,9 @@
     },
     {
       "name": "arithmetic binary expression with projection in-order & non-commutative group by (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, f0 INT, f1 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f0 - f1, COUNT(*) FROM TEST GROUP BY f0 - f1;"
@@ -1714,6 +2017,9 @@
     },
     {
       "name": "arithmetic binary expression with projection out-of-order & non-commutative group by (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, f1 INT, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1 - f2, COUNT(*) FROM TEST GROUP BY f2 - f1;"
@@ -1725,6 +2031,9 @@
     },
     {
       "name": "arithmetic binary expression with projection out-of-order & non-commutative group by (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, f0 INT, f1 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1 - f0, COUNT(*) FROM TEST GROUP BY f0 - f1;"
@@ -1736,6 +2045,9 @@
     },
     {
       "name": "with having expression (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, f1 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, COUNT(*) FROM TEST GROUP BY f1 HAVING SUM(f1) > 1;"
@@ -1756,6 +2068,9 @@
     },
     {
       "name": "with having expression (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, f0 INT, f1 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, SUM(f0) FROM TEST GROUP BY f1 HAVING COUNT(f1) > 0;"
@@ -1778,6 +2093,9 @@
     },
     {
       "name": "with multiple having expressions (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, COUNT(f1) FROM TEST GROUP BY f1 HAVING COUNT(f1) > 1 AND f1=1;"
@@ -1797,6 +2115,9 @@
     },
     {
       "name": "with having expression on non-group-by field (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f2, COUNT(*) FROM TEST GROUP BY f2 HAVING SUM(f1) > 10;"
@@ -1818,6 +2139,9 @@
     },
     {
       "name": "with constant having (stream-table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f2, SUM(f1) FROM TEST GROUP BY f2 HAVING f2='test';"
@@ -1836,6 +2160,9 @@
     },
     {
       "name": "with constants in the projection (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, f1 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f1, 'some constant' as f3, COUNT(f1) FROM TEST GROUP BY f1;"
@@ -1857,6 +2184,9 @@
     },
     {
       "name": "missing matching projection field (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, data VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT data, COUNT(*) FROM TEST GROUP BY data;"
@@ -1874,6 +2204,9 @@
     },
     {
       "name": "missing matching projection field (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT F2, COUNT(*) FROM TEST GROUP BY f2;"
@@ -1897,6 +2230,9 @@
     },
     {
       "name": "duplicate fields (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, data VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT DATA, COUNT(1), COUNT(*), AS_VALUE(DATA) AS COPY FROM TEST GROUP BY data;"
@@ -1914,6 +2250,9 @@
     },
     {
       "name": "duplicate udafs (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, data VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT DATA, COUNT(1), COUNT(1) FROM TEST GROUP BY data;"
@@ -1931,6 +2270,9 @@
     },
     {
       "name": "with non-aggregate projection field not in group by (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, d1 VARCHAR, d2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT d1, COUNT(*) FROM TEST GROUP BY d2;"
@@ -1942,6 +2284,9 @@
     },
     {
       "name": "with non-aggregate projection field not in group by (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, d1 VARCHAR, d2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT d1, COUNT(*) FROM TEST GROUP BY d2;"
@@ -1953,6 +2298,9 @@
     },
     {
       "name": "aggregate function (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, d1 VARCHAR, d2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY SUM(d2);"
@@ -1964,6 +2312,9 @@
     },
     {
       "name": "aggregate function nested in arithmetic (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, d1 VARCHAR, d2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY 1 + SUM(d2);"
@@ -1975,6 +2326,9 @@
     },
     {
       "name": "aggregate function nested in UDF (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, d1 VARCHAR, d2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY SUBSTRING(d1, SUM(d2), 1);"
@@ -1986,6 +2340,9 @@
     },
     {
       "name": "without aggregate functions (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, d1 VARCHAR, d2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT SUBSTRING(d1, 1, 2) FROM TEST GROUP BY d2;"
@@ -1997,6 +2354,9 @@
     },
     {
       "name": "without group-by (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, d1 VARCHAR, d2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT d1, COUNT() FROM TEST;"
@@ -2008,6 +2368,9 @@
     },
     {
       "name": "UDAF nested in UDF in select expression (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, d1 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT D1, SUBSTRING('Mr Bugalicious', CAST(COUNT(*) AS INT), 1) FROM TEST GROUP BY d1;"
@@ -2029,6 +2392,9 @@
     },
     {
       "name": "UDAF nested in UDF in select expression (table->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, d0 INT, d1 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT d1, SUBSTRING('Mr Bugalicious', CAST(COUNT(*) AS INT), 1) FROM TEST GROUP BY d1;"
@@ -2053,6 +2419,9 @@
     },
     {
       "name": "UDF nested in UDAF in select expression (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, d1 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT d1, SUM(LEN(d1)) FROM TEST GROUP BY d1;"
@@ -2074,6 +2443,9 @@
     },
     {
       "name": "UDAF nested in UDAF in select expression (stream->table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, d1 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT SUM(COUNT()) FROM TEST GROUP BY d1;"
@@ -2086,6 +2458,9 @@
     {
       "name": "should exclude any stream row whose single GROUP BY expression resolves to NULL",
       "comment": "Passing NULL as the POS to SUBSTRING should resolve to NULL without an exception",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, str STRING, pos INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT SUBSTRING(str, pos), COUNT() FROM TEST GROUP BY SUBSTRING(str, pos);"
@@ -2103,6 +2478,9 @@
     {
       "name": "should exclude any table row whose single GROUP BY expression resolves to NULL",
       "comment": "Passing NULL as the POS to SUBSTRING should resolve to NULL without an exception",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, str STRING, pos INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT SUBSTRING(str, pos), COUNT() FROM TEST GROUP BY SUBSTRING(str, pos);"
@@ -2119,6 +2497,9 @@
     },
     {
       "name": "should exclude any stream row whose single GROUP BY expression throws",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, id INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT BAD_UDF(id), COUNT() FROM TEST GROUP BY BAD_UDF(id);"
@@ -2131,6 +2512,9 @@
     },
     {
       "name": "should exclude any table row whose single GROUP BY expression throws",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, id INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT BAD_UDF(id), COUNT() FROM TEST GROUP BY BAD_UDF(id);"
@@ -2143,6 +2527,9 @@
     },
     {
       "name": "by non-STRING key",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, f0 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE TABLE OUTPUT AS SELECT f0, COUNT(1) FROM INPUT GROUP BY f0;"
@@ -2170,6 +2557,9 @@
     },
     {
       "name": "should handled quoted key and value",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM INPUT (`Key` STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT `Key`, COUNT(1) AS `Value` FROM INPUT GROUP BY `Key`;"
@@ -2197,6 +2587,9 @@
     },
     {
       "name": "on join",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE t1 (ID BIGINT PRIMARY KEY, TOTAL integer) WITH (kafka_topic='T1', value_format='AVRO');",
         "CREATE TABLE t2 (ID BIGINT PRIMARY KEY, TOTAL integer) WITH (kafka_topic='T2', value_format='AVRO');",
@@ -2225,6 +2618,9 @@
     },
     {
       "name": "windowed join",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE A (id varchar primary key, regionid varchar) WITH (kafka_topic='a', value_format='json');",
         "CREATE STREAM B (id varchar) WITH (kafka_topic='b', value_format='json');",
@@ -2243,6 +2639,9 @@
     {
       "name": "windowed join with window bounds",
       "tracked by": "https://github.com/confluentinc/ksql/issues/5931",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM A (ID VARCHAR, col1 VARCHAR) WITH (kafka_topic='a', value_format='JSON');",
         "CREATE TABLE B (ID VARCHAR PRIMARY KEY, col1 VARCHAR) WITH (kafka_topic='b', value_format='JSON');",
@@ -2255,6 +2654,9 @@
     },
     {
       "name": "zero non-agg columns (stream)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM INPUT (VALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT as SELECT 1 as k, count(1) AS ID FROM INPUT group by 1;"
@@ -2272,6 +2674,9 @@
     },
     {
       "name": "zero non-agg columns (windowed stream)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM INPUT (VALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT as SELECT 1 as k, count(1) AS ID FROM INPUT WINDOW TUMBLING (SIZE 1 SECOND) group by 1;"
@@ -2289,6 +2694,9 @@
     },
     {
       "name": "zero non-agg columns (table)",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE TABLE INPUT (ID INT PRIMARY KEY, VALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT as SELECT 1 as k, count(1) AS ID FROM INPUT group by 1;"
@@ -2307,6 +2715,9 @@
     {
       "name": "windowed aggregate with struct key",
       "format": ["JSON", "AVRO"],
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRUCT<F1 INT, F2 INT> KEY, VAL INT) WITH (kafka_topic='test_topic', format='{FORMAT}');",
         "CREATE TABLE OUTPUT as SELECT ID, count(1) AS count FROM INPUT WINDOW TUMBLING (SIZE 1 SECOND) group by ID;"
@@ -2324,6 +2735,9 @@
     },
     {
       "name": "windowed aggregate with field within struct key",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM INPUT (ID STRUCT<F1 INT, F2 INT> KEY, VAL INT) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE TABLE OUTPUT as SELECT ID->F1, count(1) AS count FROM INPUT WINDOW TUMBLING (SIZE 1 SECOND) group by ID->F1;"
@@ -2341,6 +2755,9 @@
     },
     {
       "name": "non-KAFKA key format",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, VAL BOOLEAN) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT VAL, COUNT() AS COUNT FROM TEST GROUP BY VAL;"
@@ -2358,6 +2775,9 @@
     },
     {
       "name": "AVRO primitive key",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, VAL BOOLEAN) WITH (kafka_topic='test_topic', format='AVRO');",
         "CREATE TABLE OUTPUT AS SELECT VAL, COUNT() AS COUNT FROM TEST GROUP BY VAL;"
@@ -2400,6 +2820,9 @@
     },
     {
       "name": "AVRO struct key group by primitive",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID STRUCT<F1 INT> KEY, VAL BOOLEAN) WITH (kafka_topic='test_topic', format='AVRO');",
         "CREATE TABLE OUTPUT AS SELECT VAL, COUNT() AS COUNT FROM TEST GROUP BY VAL;"
@@ -2442,6 +2865,9 @@
     },
     {
       "name": "AVRO group by struct",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='AVRO');",
         "CREATE TABLE OUTPUT AS SELECT STRUCT(a:=A, b:=B) AS ROWKEY, COUNT() AS COUNT FROM TEST GROUP BY STRUCT(a:=A, b:=B);"
@@ -2510,6 +2936,9 @@
     },
     {
       "name": "JSON group by array",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ARRAY[a, b] AS ROWKEY, COUNT() AS COUNT FROM TEST GROUP BY ARRAY[A, B];"
@@ -2527,6 +2956,9 @@
     },
     {
       "name": "JSON group by struct",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT STRUCT(a:=A, b:=B) AS ROWKEY, COUNT() AS COUNT FROM TEST GROUP BY STRUCT(a:=A, b:=B);"
@@ -2544,6 +2976,9 @@
     },
     {
       "name": "JSON group by struct convert key format",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE TABLE OUTPUT WITH (key_format='AVRO') AS SELECT STRUCT(a:=A, b:=B) AS ROWKEY, COUNT() AS COUNT FROM TEST GROUP BY STRUCT(a:=A, b:=B);"
@@ -2581,6 +3016,9 @@
     },
     {
       "name": "JSON group by struct convert to incompatible key format",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE TABLE OUTPUT WITH (key_format='DELIMITED') AS SELECT STRUCT(a:=A, b:=B) AS ROWKEY, COUNT() AS COUNT FROM TEST GROUP BY STRUCT(a:=A, b:=B);"
@@ -2592,6 +3030,9 @@
     },
     {
       "name": "Struct key used in aggregate expression",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : "true"
+      },
       "statements": [
         "CREATE STREAM TEST (ID STRUCT<F1 INT> KEY, VAL INT) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, SUM(ID->F1) AS sum FROM TEST GROUP BY ID;"

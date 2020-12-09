@@ -85,7 +85,7 @@ public class SchemaKGroupedStream {
     } else {
       keyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
           this.keyFormat,
-          true
+          schema.key().size() == 1
       );
       step = ExecutionStepFactory.streamAggregate(
           contextStacker,
@@ -111,7 +111,7 @@ public class SchemaKGroupedStream {
             keyFormat.getFormatInfo(),
             keyFormat.getFeatures(),
             windowExpression.getKsqlWindowExpression().getWindowInfo()),
-        true
+        schema.key().size() == 1
     );
   }
 

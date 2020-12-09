@@ -17,11 +17,22 @@ key and value of the underlying {{ site.ak }} topic message.
 A column is defined by a combination of its [name](#valid-identifiers), its [SQL data type](#sql-data-types),
 and possibly a namespace.
 
-Key columns have a `KEY` or `PRIMARY KEY` suffix for streams and tables, respectively while value 
-columns have no namespace suffix. There can be multiple columns in either namespace, given that
-the underlying serialization format supports it (the `KAFKA` format, for example, does not).
+Key columns for a stream have a `KEY` suffix. Key columns for a table have a `PRIMARY KEY` suffix. Value 
 
-For example, the following example statement declares a stream with several
+columns have no namespace suffix. There can be multiple columns in either namespace, if
+
+the underlying serialization format supports it.
+
+!!! note 
+    The `KAFKA` format doesn't support multi-column keys.
+
+
+
+
+
+
+For example, the following statement declares a stream with multiple
+
 key and value columns:
 
 ```sql

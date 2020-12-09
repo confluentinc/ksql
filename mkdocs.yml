@@ -43,10 +43,8 @@ nav:
       - Joining collections: developer-guide/joins/join-streams-and-tables.md
       - Partitioning requirements: developer-guide/joins/partition-data.md
       - Synthetic key columns: developer-guide/joins/synthetic-keys.md
-    - Architecture: concepts/ksqldb-architecture.md
     - Time and Windows: concepts/time-and-windows-in-ksqldb-queries.md
     - Serialization: developer-guide/serialization.md
-    - Relationship to Kafka Streams: concepts/ksqldb-and-kafka-streams.md
     - Evolving Production Queries: concepts/upgrades.md
     - Apache Kafka primer: concepts/apache-kafka-primer.md
   - How-to guides:
@@ -125,6 +123,7 @@ nav:
     - Processing log: reference/processing-log.md
   - Operate and Deploy:
       - Operations Index: operate-and-deploy/index.md
+      - How it works: operate-and-deploy/how-it-works.md
       - Deploy:
           - Install ksqlDB: operate-and-deploy/installation/index.md
           - Configure ksqlDB CLI: operate-and-deploy/installation/cli-config.md
@@ -181,6 +180,8 @@ plugins:
             concepts/queries/push.md: concepts/queries.md
             concepts/queries/pull.md: concepts/queries.md
             concepts/processing-guarantees.md: operate-and-deploy/exactly-once-semantics.md
+            concepts/ksqldb-architecture.md: operate-and-deploy/how-it-works.md
+            concepts/ksqldb-and-kafka-streams.md: operate-and-deploy/how-it-works.md
 
             tutorials/examples.md: how-to-guides/index.md
             tutorials/embedded-connect.md: how-to-guides/use-connector-management.md

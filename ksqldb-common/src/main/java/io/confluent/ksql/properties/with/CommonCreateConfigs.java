@@ -45,6 +45,7 @@ public final class CommonCreateConfigs {
   public static final String WRAP_SINGLE_VALUE = "WRAP_SINGLE_VALUE";
 
   public static final String VALUE_DELIMITER_PROPERTY = "VALUE_DELIMITER";
+  public static final String KEY_DELIMITER_PROPERTY = "KEY_DELIMITER";
 
   public static void addToConfigDef(
       final ConfigDef configDef,
@@ -124,6 +125,16 @@ public final class CommonCreateConfigs {
             "The fully qualified name of the Avro schema to use"
         )
         .define(
+            KEY_DELIMITER_PROPERTY,
+            ConfigDef.Type.STRING,
+            null,
+            ConfigValidators.nullsAllowed(ConfigValidators.parses(Delimiter::parse)),
+            Importance.LOW,
+            "The delimiter to use when KEY_FORMAT='DELIMITED'. Supports single "
+              + "character to be a delimiter, defaults to ','. For space and tab delimited values "
+              + "you must use the special values 'SPACE' or 'TAB', not an actual space or tab "
+              + "character. Also see " + VALUE_DELIMITER_PROPERTY)
+        .define(
             VALUE_DELIMITER_PROPERTY,
             ConfigDef.Type.STRING,
             null,
@@ -132,7 +143,7 @@ public final class CommonCreateConfigs {
             "The delimiter to use when VALUE_FORMAT='DELIMITED'. Supports single "
               + "character to be a delimiter, defaults to ','. For space and tab delimited values "
               + "you must use the special values 'SPACE' or 'TAB', not an actual space or tab "
-              + "character.")
+              + "character. Also see " + KEY_DELIMITER_PROPERTY)
         .define(
             KEY_FORMAT_PROPERTY,
             ConfigDef.Type.STRING,

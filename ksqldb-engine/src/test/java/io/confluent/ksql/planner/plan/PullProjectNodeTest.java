@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -30,7 +31,6 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -50,11 +50,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class PullProjectNodeTest {
 
   private static final PlanNodeId NODE_ID = new PlanNodeId("1");
-  private static final SourceName SOURCE_NAME = SourceName.of("Bob");
   private static final ColumnName K = ColumnName.of("K");
   private static final ColumnName COL0 = ColumnName.of("COL0");
   private static final ColumnName ALIAS = ColumnName.of("GRACE");
-  private static final ColumnName ALIAS2 = ColumnName.of("PETER");
 
   private static final UnqualifiedColumnReferenceExp K_REF =
       new UnqualifiedColumnReferenceExp(K);
@@ -73,8 +71,6 @@ public class PullProjectNodeTest {
   private PlanNode source;
   @Mock
   private MetaStore metaStore;
-  @Mock
-  private Analysis.Into into;
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
@@ -101,16 +97,6 @@ public class PullProjectNodeTest {
     when(aliasedDataSource.getDataSource()).thenReturn(dataSource);
     when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
     when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
-
-    selects = ImmutableList.of(new SingleColumn(COL0_REF, Optional.of(ALIAS)));
-
-    projectNode = new PullProjectNode(
-        NODE_ID,
-        source,
-        selects,
-        metaStore,
-        ksqlConfig,
-        analysis);
   }
 
   @Test
@@ -119,6 +105,7 @@ public class PullProjectNodeTest {
     when(analysis.isPullQuery()).thenReturn(true);
     selects = ImmutableList.of(new SingleColumn(K_REF, Optional.of(ALIAS)));
     when(keyFormat.isWindowed()).thenReturn(false);
+    when(analysis.getSelectColumnNames()).thenReturn(ImmutableSet.of(ColumnName.of("K")));
 
     // When:
     final PullProjectNode projectNode = new PullProjectNode(
@@ -141,6 +128,7 @@ public class PullProjectNodeTest {
     when(analysis.isPullQuery()).thenReturn(true);
     selects = ImmutableList.of(new SingleColumn(K_REF, Optional.of(ALIAS)));
     when(keyFormat.isWindowed()).thenReturn(true);
+    when(analysis.getSelectColumnNames()).thenReturn(ImmutableSet.of(ColumnName.of("K")));
 
     // When:
     final PullProjectNode projectNode = new PullProjectNode(

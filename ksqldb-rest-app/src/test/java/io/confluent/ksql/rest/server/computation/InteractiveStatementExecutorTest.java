@@ -440,20 +440,26 @@ public class InteractiveStatementExecutorTest {
     // Given:
     shouldCompleteFutureOnSuccess();
 
-    final Command command = commandWithPlan(
-        CREATE_STREAM_FOO_STATEMENT,
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated()
-    );
+    // Change 'baz varchar' to 'baz bigint' to cause an upgrade error
+    final Command command = commandWithPlan("CREATE OR REPLACE STREAM foo ("
+        + "biz bigint,"
+        + " baz bigint) "
+        + "WITH (kafka_topic = 'foo', "
+        + "key_format = 'kafka', "
+        + "value_format = 'json');",
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandStatusFuture status = mock(CommandStatusFuture.class);
 
     // When:
-    try {
-      handleStatement(command, COMMAND_ID, Optional.of(status), 0L);
-    } catch (final KsqlStatementException e) {
-      // Then:
-      assertThat(e.getMessage(),
-          containsString("Cannot add stream 'FOO': A stream with the same name already exists"));
-    }
+    final Exception e = assertThrows(
+        KsqlStatementException.class,
+        () -> handleStatement(command, COMMAND_ID, Optional.of(status), 0L)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot upgrade data source: DataSource '`FOO`'"));
+
     final InOrder inOrder = Mockito.inOrder(status);
     final ArgumentCaptor<CommandStatus> argCommandStatus = ArgumentCaptor.forClass(CommandStatus.class);
     inOrder.verify(status, times(2)).setStatus(argCommandStatus.capture());

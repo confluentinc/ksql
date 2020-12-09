@@ -21,7 +21,7 @@ import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
@@ -29,6 +29,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
+import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -43,7 +44,6 @@ import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
@@ -111,26 +111,28 @@ public class SchemaRegisterInjector implements Injector {
   }
 
   private void registerForCreateAs(final ConfiguredStatement<? extends CreateAsSelect> cas) {
-    final ServiceContext sandboxServiceContext = SandboxedServiceContext.create(serviceContext);
-    final ExecuteResult executeResult = executionContext
-        .createSandbox(sandboxServiceContext)
-        .execute(sandboxServiceContext, cas);
+    final CreateSourceCommand createSourceCommand;
 
-    final PersistentQueryMetadata queryMetadata = (PersistentQueryMetadata) executeResult
-        .getQuery()
-        .orElseThrow(() -> new KsqlStatementException(
-            "Could not determine output schema for query due to error: "
-                + executeResult.getCommandResult(),
-            cas.getStatementText()
-        ));
+    try {
+      final ServiceContext sandboxServiceContext = SandboxedServiceContext.create(serviceContext);
+      createSourceCommand = (CreateSourceCommand)
+          executionContext.createSandbox(sandboxServiceContext)
+              .plan(sandboxServiceContext, cas)
+              .getDdlCommand()
+              .get();
+    } catch (final Exception e) {
+      throw new KsqlStatementException(
+          "Could not determine output schema for query due to error: "
+              + e.getMessage(), cas.getStatementText(), e);
+    }
 
     registerSchemas(
-        queryMetadata.getLogicalSchema(),
-        queryMetadata.getResultTopic().getKafkaTopicName(),
-        queryMetadata.getResultTopic().getKeyFormat().getFormatInfo(),
-        queryMetadata.getPhysicalSchema().keySchema().features(),
-        queryMetadata.getResultTopic().getValueFormat().getFormatInfo(),
-        queryMetadata.getPhysicalSchema().valueSchema().features(),
+        createSourceCommand.getSchema(),
+        createSourceCommand.getTopicName(),
+        createSourceCommand.getFormats().getKeyFormat(),
+        createSourceCommand.getFormats().getKeyFeatures(),
+        createSourceCommand.getFormats().getValueFormat(),
+        createSourceCommand.getFormats().getValueFeatures(),
         cas.getSessionConfig().getConfig(false),
         cas.getStatementText(),
         true
@@ -197,7 +199,7 @@ public class SchemaRegisterInjector implements Injector {
     try {
       final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
 
-      if (registerIfSchemaExists || !srClient.getAllSubjects().contains(subject)) {
+      if (registerIfSchemaExists || !SchemaRegistryUtil.subjectExists(srClient, subject)) {
         final SchemaTranslator translator = format.getSchemaTranslator(formatInfo.getProperties());
 
         final ParsedSchema parsedSchema = translator.toParsedSchema(

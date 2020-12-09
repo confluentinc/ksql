@@ -337,6 +337,11 @@ MAP<KeyType, ValueType>
 ```
 
 !!! note
+    The `MAP` type is only supported for value columns, not key columns, as map keys
+    may lead to unexpected behavior due to inconsistent serialization.
+    This restriction includes nested types containing maps as well.
+
+!!! note
 		The `DELIMITED` format doesn't support maps.
 
 ksqlDB supports fields that are maps. A map has a key and value type. All

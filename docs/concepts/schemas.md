@@ -327,22 +327,22 @@ back-tick quotes, for example `` `col0` ``.
 
 The following SQL types are supported by ksqlDB:
 
- * [Primitive types](#primitive-types)
- * [Decimal type](#decimal-type)
- * [Array type](#array-type)
- * [Map type](#map-type)
- * [Struct type](#struct-type)
- * [Custom types](#custom-types)
+* [Primitive types](#primitive-types)
+* [Decimal type](#decimal-type)
+* [Array type](#array-type)
+* [Map type](#map-type)
+* [Struct type](#struct-type)
+* [Custom types](#custom-types)
 
 ### Primitive types
 
 Supported primitive types are:
 
-  * `BOOLEAN`: a binary value
-  * `INT`: 32-bit signed integer
-  * `BIGINT`: 64-bit signed integer
-  * `DOUBLE`: double precision (64-bit) IEEE 754 floating-point number
-  * `STRING`: a unicode character sequence (UTF8)
+* `BOOLEAN`: a binary value
+* `INT`: 32-bit signed integer
+* `BIGINT`: 64-bit signed integer
+* `DOUBLE`: double precision (64-bit) IEEE 754 floating-point number
+* `STRING`: a unicode character sequence (UTF8)
 
 ### Decimal type
 
@@ -398,7 +398,13 @@ ARRAY[2, 4, 6]
 ### Map type
 
 The `MAP` type defines a variable-length collection of key-value pairs. All keys in the map must be
-of the same type. All values in the map must be of the same type.
+of the same type. All values in the map must be of the same type. Currently only `STRING` keys are
+supported. The value type can be any valid SQL type.
+
+!!! note
+    The `MAP` type is only supported for value columns, not key columns, as map keys
+    may lead to unexpected behavior due to inconsistent serialization.
+    This restriction includes nested types containing maps as well.
 
 To declare a `MAP` use the syntax:
 

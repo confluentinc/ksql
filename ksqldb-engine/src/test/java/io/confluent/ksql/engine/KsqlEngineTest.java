@@ -76,6 +76,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1266,6 +1267,29 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldNotThrowWhenExecutingDuplicateTableWithIfNotExists() {
+    // Given:
+    final List<ParsedStatement> parsed = ksqlEngine.parse(
+        "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2; "
+            + "CREATE TABLE IF NOT EXISTS FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;");
+
+    givenStatementAlreadyExecuted(parsed.get(0));
+
+    final PreparedStatement<?> prepared = prepare(parsed.get(1));
+
+    // When:
+    ExecuteResult executeResult = ksqlEngine.execute(
+        serviceContext, ConfiguredStatement.
+            of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+    );
+
+    // Then:
+    assertThat(executeResult.getQuery(), is(Optional.empty()));
+    assertThat(executeResult.getCommandResult(),
+        is(Optional.of("Cannot add table `FOO`: A table with the same name already exists.")));
+  }
+
+  @Test
   public void shouldThrowWhenExecutingDuplicateTable() {
     // Given:
     final List<ParsedStatement> parsed = ksqlEngine.parse(
@@ -1325,10 +1349,33 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldNotThrowWhenExecutingDuplicateStreamWithIfNotExists() {
+    // Given:
+    final List<ParsedStatement> parsed = ksqlEngine.parse(
+        "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS; "
+            + "CREATE STREAM IF NOT EXISTS FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;");
+
+    givenStatementAlreadyExecuted(parsed.get(0));
+
+    final PreparedStatement<?> prepared = prepare(parsed.get(1));
+
+    // When:
+    ExecuteResult executeResult = ksqlEngine.execute(
+        serviceContext, ConfiguredStatement.
+            of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+    );
+
+    // Then:
+    assertThat(executeResult.getQuery(), is(Optional.empty()));
+    assertThat(executeResult.getCommandResult(),
+        is(Optional.of("Cannot add stream `FOO`: A stream with the same name already exists.")));
+  }
+
+  @Test
   public void shouldThrowWhenExecutingDuplicateStream() {
     // Given:
     final List<ParsedStatement> parsed = ksqlEngine.parse(
-        "CREATE STREAM FOO AS SELECT * FROM ORDERS; "
+        "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS; "
             + "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;");
 
     givenStatementAlreadyExecuted(parsed.get(0));
@@ -1346,12 +1393,10 @@ public class KsqlEngineTest {
     );
 
     // Then:
-    assertThat(e, rawMessage(
-        is(
-            "Cannot add stream 'FOO': A stream with the same name already exists")));
-    assertThat(e, statementText(
-        is(
-            "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;")));
+    assertThat(e, rawMessage(is(
+        "Cannot add stream 'FOO': A stream with the same name already exists")));
+    assertThat(e, statementText(is(
+        "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;")));
   }
 
   @Test

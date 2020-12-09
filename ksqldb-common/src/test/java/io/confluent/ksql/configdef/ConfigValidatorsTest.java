@@ -270,6 +270,58 @@ public class ConfigValidatorsTest {
     assertThat(e.getMessage(), containsString("validator should only be used with LIST of STRING defs"));
   }
 
+  @Test
+  public void shouldParseDoubleValueInMap() {
+    // Given:
+    final Validator validator = ConfigValidators.mapWithDoubleValue();
+    validator.ensureValid("propName", "foo:1.2,bar:3");
+  }
+
+  @Test
+  public void shouldParseIntKeyDoubleValueInMap() {
+    // Given:
+    final Validator validator = ConfigValidators.mapWithIntKeyDoubleValue();
+    validator.ensureValid("propName", "123:1.2,345:9.0");
+  }
+
+  @Test
+  public void shouldThrowOnBadDoubleValueInMap() {
+    // Given:
+    final Validator validator = ConfigValidators.mapWithDoubleValue();
+
+    // When:
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> validator.ensureValid("propName", "foo:abc")
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Invalid value abc for configuration propName: Not a double"));
+  }
+
+  @Test
+  public void shouldThrowOnBadIntDoubleValueInMap() {
+    // Given:
+    final Validator validator = ConfigValidators.mapWithIntKeyDoubleValue();
+
+    // When:
+    final Exception e = assertThrows(
+        ConfigException.class,
+        () -> validator.ensureValid("propName", "1:abc")
+    );
+    final Exception e2 = assertThrows(
+        ConfigException.class,
+        () -> validator.ensureValid("propName", "abc:1.2")
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Invalid value abc for configuration propName: Not a double"));
+    assertThat(e2.getMessage(),
+        containsString("Invalid value abc for configuration propName: Not an int"));
+  }
+
   private enum TestEnum {
     FOO, BAR
   }

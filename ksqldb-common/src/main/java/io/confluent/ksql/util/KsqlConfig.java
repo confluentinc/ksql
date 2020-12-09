@@ -140,11 +140,6 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_KEY_FORMAT_ENABLED_DOC =
       "Feature flag for key formats under development";
 
-  public static final String KSQL_COMPLEX_KEY_FORMAT_ENABLED = "ksql.complex.key.format.enabled";
-  public static final Boolean KSQL_COMPLEX_KEY_FORMAT_ENABLED_DEFAULT = false;
-  public static final String KSQL_COMPLEX_KEY_FORMAT_ENABLED_DOC =
-      "Feature flag for complex (non-primitive) keys";
-
   public static final String KSQL_MULTICOL_KEY_FORMAT_ENABLED = "ksql.multicol.key.format.enabled";
   public static final Boolean KSQL_MULTICOL_KEY_FORMAT_ENABLED_DEFAULT = false;
   public static final String KSQL_MULTICOL_KEY_FORMAT_ENABLED_DOC =
@@ -623,12 +618,6 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_KEY_FORMAT_ENABLED_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_KEY_FORMAT_ENABLED_DOC
-        ).define(
-            KSQL_COMPLEX_KEY_FORMAT_ENABLED,
-            Type.BOOLEAN,
-            KSQL_COMPLEX_KEY_FORMAT_ENABLED_DEFAULT,
-            ConfigDef.Importance.LOW,
-            KSQL_COMPLEX_KEY_FORMAT_ENABLED_DOC
         ).define(
             KSQL_MULTICOL_KEY_FORMAT_ENABLED,
             Type.BOOLEAN,

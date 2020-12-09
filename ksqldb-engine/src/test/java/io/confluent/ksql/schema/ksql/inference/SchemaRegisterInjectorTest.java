@@ -23,20 +23,25 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -47,9 +52,8 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -61,13 +65,14 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlSchemaRegistryNotConfiguredException;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
 import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -97,6 +102,8 @@ public class SchemaRegisterInjectorTest {
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
   @Mock
+  private SchemaMetadata schemaMetadata;
+  @Mock
   private KafkaTopicClient topicClient;
   @Mock
   private KafkaConsumerGroupClient consumerGroupClient;
@@ -105,17 +112,15 @@ public class SchemaRegisterInjectorTest {
   @Mock
   private KsqlExecutionContext executionSandbox;
   @Mock
-  private PersistentQueryMetadata queryMetadata;
-  @Mock
-  private PhysicalSchema physicalSchema;
-  @Mock
   private SerdeFeatures keyFeatures;
-  @Mock
-  private PersistenceSchema keySchema;
   @Mock
   private SerdeFeatures valFeatures;
   @Mock
-  private PersistenceSchema valSchema;
+  private KsqlPlan ksqlPlan;
+  @Mock
+  private CreateSourceCommand ddlCommand;
+  @Mock
+  private Formats formats;
 
   private final KsqlParser parser = new DefaultKsqlParser();
 
@@ -125,7 +130,7 @@ public class SchemaRegisterInjectorTest {
   private ConfiguredStatement<?> statement;
 
   @Before
-  public void setUp() {
+  public void setUp() throws IOException, RestClientException {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
     config = new KsqlConfig(ImmutableMap.of(
         KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "foo:8081"
@@ -140,18 +145,17 @@ public class SchemaRegisterInjectorTest {
 
     when(keyFeatures.enabled(SerdeFeature.UNWRAP_SINGLES)).thenReturn(true);
 
-    when(queryMetadata.getLogicalSchema()).thenReturn(SCHEMA);
-    when(queryMetadata.getResultTopic()).thenReturn(new KsqlTopic(
-        "SINK",
-        KeyFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), keyFeatures, Optional.empty()),
-        ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()), valFeatures)
-    ));
-    when(queryMetadata.getPhysicalSchema()).thenReturn(physicalSchema);
+    when(ddlCommand.getSchema()).thenReturn(SCHEMA);
+    when(ddlCommand.getTopicName()).thenReturn("SINK");
+    when(ddlCommand.getFormats()).thenReturn(formats);
 
-    when(physicalSchema.keySchema()).thenReturn(keySchema);
-    when(keySchema.features()).thenReturn(keyFeatures);
-    when(physicalSchema.valueSchema()).thenReturn(valSchema);
-    when(valSchema.features()).thenReturn(valFeatures);
+    when(formats.getKeyFormat()).thenReturn(FormatInfo.of(FormatFactory.AVRO.name()));
+    when(formats.getKeyFeatures()).thenReturn(keyFeatures);
+    when(formats.getValueFormat()).thenReturn(FormatInfo.of(FormatFactory.AVRO.name()));
+    when(formats.getValueFeatures()).thenReturn(valFeatures);
+
+    when(schemaRegistryClient.getLatestSchemaMetadata(any())).thenThrow(
+        new RestClientException("foo", 404, SchemaRegistryUtil.SUBJECT_NOT_FOUND_ERROR_CODE));
 
     final KsqlTopic sourceTopic = new KsqlTopic(
         "source",
@@ -167,6 +171,14 @@ public class SchemaRegisterInjectorTest {
         sourceTopic
     );
     metaStore.putSource(source, false);
+  }
+
+  @After
+  public void after() throws IOException, RestClientException {
+    // we should never call getAllSubjects() because this has stricter
+    // privilege requirements (i.e. I may have permission to see subject
+    // X but not all subjects)
+    verify(schemaRegistryClient, never()).getAllSubjects();
   }
 
   @Test
@@ -226,7 +238,8 @@ public class SchemaRegisterInjectorTest {
       throws Exception {
     // Given:
     givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', key_format='AVRO', value_format='AVRO', partitions=1);");
-    when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableSet.of("expectedName-value", "expectedName-key"));
+    doReturn(schemaMetadata).when(schemaRegistryClient).getLatestSchemaMetadata("expectedName-value");
+    doReturn(schemaMetadata).when(schemaRegistryClient).getLatestSchemaMetadata("expectedName-key");
 
     // When:
     injector.inject(statement);
@@ -263,10 +276,10 @@ public class SchemaRegisterInjectorTest {
   }
 
   @Test
-  public void shouldPropagateErrorOnFailureToExecuteQuery() {
+  public void shouldPropagateErrorOnFailureToPlanQuery() {
     // Given:
     givenStatement("CREATE STREAM sink WITH(value_format='AVRO') AS SELECT * FROM SOURCE;");
-    when(executionSandbox.execute(any(), eq(statement))).thenReturn(ExecuteResult.of("fail!"));
+    doThrow(new KsqlException("fail!")).when(executionSandbox).plan(any(), eq(statement));
 
     // When:
     final Exception e = assertThrows(
@@ -276,7 +289,7 @@ public class SchemaRegisterInjectorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Could not determine output schema for query due to error: Optional[fail!]"));
+        "Could not determine output schema for query due to error: fail!"));
   }
 
   @Test
@@ -299,7 +312,7 @@ public class SchemaRegisterInjectorTest {
   }
 
   @Test
-  public void shouldNotExecuteQueryOnOriginalExecutionContext() {
+  public void shouldNotPlanQueryOnOriginalExecutionContext() {
     // Given:
     givenStatement("CREATE STREAM sink WITH(value_format='AVRO') AS SELECT * FROM SOURCE;");
 
@@ -307,8 +320,9 @@ public class SchemaRegisterInjectorTest {
     injector.inject(statement);
 
     // Then:
-    verify(executionContext, Mockito.never()).execute(any(), any(ConfiguredStatement.class));
-    verify(executionSandbox, Mockito.times(1)).execute(any(), any(ConfiguredStatement.class));
+    verify(executionContext, Mockito.never()).plan(any(), any(ConfiguredStatement.class));
+    verify(executionSandbox, Mockito.times(1))
+        .plan(any(), any(ConfiguredStatement.class));
   }
 
   @Test
@@ -353,7 +367,9 @@ public class SchemaRegisterInjectorTest {
         preparedStatement,
         SessionConfig.of(config, ImmutableMap.of())
     );
-    when(executionSandbox.execute(any(), eq(statement)))
-        .thenReturn(ExecuteResult.of(queryMetadata));
+    when(executionSandbox.plan(any(), eq(statement)))
+        .thenReturn(ksqlPlan);
+    when(ksqlPlan.getDdlCommand())
+        .thenReturn(Optional.of(ddlCommand));
   }
 }

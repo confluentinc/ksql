@@ -54,6 +54,10 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
@@ -86,6 +90,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -96,6 +101,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class CreateSourceFactoryTest {
 
   private static final SourceName SOME_NAME = SourceName.of("bob");
+
+  private static final SourceName TABLE_NAME = SourceName.of("table_bob");
 
   private static final TableElement EXPLICIT_KEY =
       tableElement(Namespace.KEY, "k", new Type(SqlTypes.INTEGER));
@@ -161,6 +168,12 @@ public class CreateSourceFactoryTest {
   private Serde<GenericKey> keySerde;
   @Mock
   private Serde<GenericRow> valueSerde;
+  @Mock
+  private MetaStore metaStore;
+  @Mock
+  KsqlStream ksqlStream;
+  @Mock
+  KsqlTable ksqlTable;
 
   private CreateSourceFactory createSourceFactory;
   private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
@@ -179,12 +192,16 @@ public class CreateSourceFactoryTest {
         .thenReturn(SerdeFeatures.of());
     when(valOptionsSupplier.build(any(), any(), any(), any()))
         .thenReturn(SerdeFeatures.of());
+    when(metaStore.getSource(SOME_NAME)).thenReturn(ksqlStream);
+    when(ksqlStream.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
+    when(metaStore.getSource(TABLE_NAME)).thenReturn(ksqlTable);
+    when(ksqlTable.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
 
     givenCommandFactories();
   }
 
   private void givenCommandFactories() {
-    createSourceFactory = new CreateSourceFactory(serviceContext);
+    createSourceFactory = new CreateSourceFactory(serviceContext,metaStore);
   }
 
   private void givenCommandFactoriesWithMocks() {
@@ -193,7 +210,8 @@ public class CreateSourceFactoryTest {
         keyOptionsSupplier,
         valOptionsSupplier,
         keySerdeFactory,
-        valueSerdeFactory
+        valueSerdeFactory,
+        metaStore
     );
   }
 
@@ -1012,6 +1030,72 @@ public class CreateSourceFactoryTest {
     // Then:
     assertThat(e.getMessage(),
         containsString("Tables require a PRIMARY KEY. Please define the PRIMARY KEY."));
+  }
+
+  @Test
+  public void shouldNotThrowOnCreateStreamIfNotExistsIsSet() {
+    // Given:
+    final CreateStream ddlStatement =
+        new CreateStream(SOME_NAME, STREAM_ELEMENTS, false, true, withProperties);
+
+    // When:
+    final CreateStreamCommand result = createSourceFactory
+        .createStreamCommand(ddlStatement, ksqlConfig);
+
+    // Then:
+    assertThat(result.getSourceName(), is(SOME_NAME));
+  }
+
+  @Test
+  public void shouldThrowIfStreamExists() {
+    // Given:
+    final CreateStream ddlStatement =
+        new CreateStream(SOME_NAME, STREAM_ELEMENTS, false, false, withProperties);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class, () -> createSourceFactory
+            .createStreamCommand(ddlStatement, ksqlConfig));
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Cannot add stream 'bob': A stream with the same name already exists"));
+  }
+
+  @Test
+  public void shouldNotThrowOnCreateTableIfNotExistsIsSet() {
+    //Given
+    final CreateTable ddlStatement = new CreateTable(TABLE_NAME,
+        TableElements.of(
+            tableElement(PRIMARY_KEY, "COL1", new Type(BIGINT)),
+            tableElement(VALUE, "COL2", new Type(SqlTypes.STRING))),
+        false, true, withProperties);
+
+    // When:
+    final CreateTableCommand result = createSourceFactory
+        .createTableCommand(ddlStatement, ksqlConfig);
+
+    // Then:
+    assertThat(result.getSourceName(), is(TABLE_NAME));
+  }
+
+  @Test
+  public void shouldThrowIfTableExists() {
+    //Given
+    final CreateTable ddlStatement = new CreateTable(TABLE_NAME,
+        TableElements.of(
+            tableElement(PRIMARY_KEY, "COL1", new Type(BIGINT)),
+            tableElement(VALUE, "COL2", new Type(SqlTypes.STRING))),
+        false, false, withProperties);
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class, () -> createSourceFactory
+            .createTableCommand(ddlStatement, ksqlConfig));
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Cannot add table 'table_bob': A table with the same name already exists"));
   }
 
   private void givenProperty(final String name, final Literal value) {

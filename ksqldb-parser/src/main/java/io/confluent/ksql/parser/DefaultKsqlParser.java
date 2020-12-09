@@ -19,9 +19,11 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
@@ -106,6 +108,9 @@ public class DefaultKsqlParser implements KsqlParser {
 
       sqlBaseParser.getInterpreter().setPredictionMode(PredictionMode.LL);
       return (SqlBaseParser.StatementsContext)parseFunction.apply(sqlBaseParser);
+    } catch (final StackOverflowError e) {
+      throw new KsqlException("Error processing statement: Statement is too large to parse. "
+          + "This may be caused by having too many nested expressions in the statement.");
     }
   }
 

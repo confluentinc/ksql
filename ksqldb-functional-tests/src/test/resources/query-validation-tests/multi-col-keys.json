@@ -114,8 +114,7 @@
     {
       "name": "select * from stream partition by struct representing the key",
       "properties": {
-        "ksql.multicol.key.format.enabled": true,
-        "ksql.complex.key.format.enabled": true
+        "ksql.multicol.key.format.enabled": true
       },
       "statements": [
         "CREATE STREAM INPUT (K INT KEY, K2 INT KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",
@@ -306,8 +305,7 @@
     {
       "name": "struct as column in multi-column key",
       "properties": {
-        "ksql.multicol.key.format.enabled": true,
-        "ksql.complex.key.format.enabled": true
+        "ksql.multicol.key.format.enabled": true
       },
       "statements": [
         "CREATE STREAM INPUT (K INT KEY, K2 STRUCT<F1 INT> KEY, V INT) WITH (kafka_topic='input_topic', format='JSON');",

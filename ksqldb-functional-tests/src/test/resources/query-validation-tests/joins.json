@@ -1800,6 +1800,72 @@
       }
     },
     {
+      "name": "on ARRAY column",
+      "format": ["AVRO", "JSON"],
+      "statements": [
+        "CREATE STREAM L (ID STRING KEY, l0 ARRAY<INT>, l1 INT) WITH (kafka_topic='left_topic', format='{FORMAT}');",
+        "CREATE STREAM R (ID STRING KEY, r0 ARRAY<INT>, r1 INT) WITH (kafka_topic='right_topic', format='{FORMAT}');",
+        "CREATE STREAM OUTPUT as SELECT L.l0, L.ID, L1, R1 FROM L join R WITHIN 11 SECONDS ON L.l0 = R.r0;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": "a", "value": {"L0": [3, 1], "L1": 1}, "timestamp": 0},
+        {"topic": "right_topic", "key": "b" ,"value": {"R0": [3, 1], "R1": 2}, "timestamp": 10000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": [3, 1], "value": {"L_ID": "a", "L1": 1, "R1": 2}, "timestamp": 10000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "L0 ARRAY<INT> KEY, L_ID STRING, L1 INT, R1 INT"}
+        ]
+      }
+    },
+    {
+      "name": "on STRUCT column",
+      "format": ["AVRO", "JSON"],
+      "statements": [
+        "CREATE STREAM L (ID STRING KEY, l0 STRUCT<F1 INT, F2 STRING>, l1 INT) WITH (kafka_topic='left_topic', format='{FORMAT}');",
+        "CREATE STREAM R (ID STRING KEY, r0 STRUCT<F1 INT, F2 STRING>, r1 INT) WITH (kafka_topic='right_topic', format='{FORMAT}');",
+        "CREATE STREAM OUTPUT as SELECT L.l0, L.ID, L1, R1 FROM L join R WITHIN 11 SECONDS ON L.l0 = R.r0;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": "a", "value": {"L0": {"F1": 2, "F2": "foo"}, "L1": 1}, "timestamp": 0},
+        {"topic": "right_topic", "key": "b" ,"value": {"R0": {"F1": 2, "F2": "foo"}, "R1": 2}, "timestamp": 10000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"F1": 2, "F2": "foo"}, "value": {"L_ID": "a", "L1": 1, "R1": 2}, "timestamp": 10000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "L0 STRUCT<F1 INT, F2 STRING> KEY, L_ID STRING, L1 INT, R1 INT"}
+        ]
+      }
+    },
+    {
+      "name": "on MAP column",
+      "statements": [
+        "CREATE STREAM L (ID STRING KEY, l0 MAP<STRING, INT>, l1 INT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE STREAM R (ID STRING KEY, r0 MAP<STRING, INT>, r1 INT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT L.l0, L.ID, L1, R1 FROM L join R WITHIN 11 SECONDS ON L.l0 = R.r0;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `L_L0`. Column type: MAP<STRING, INTEGER>. See https://github.com/confluentinc/ksql/issues/6621 for more."
+      }
+    },
+    {
+      "name": "on nested MAP column",
+      "statements": [
+        "CREATE STREAM L (ID STRING KEY, l0 STRUCT<F1 MAP<STRING, INT>>, l1 INT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE STREAM R (ID STRING KEY, r0 STRUCT<F1 MAP<STRING, INT>>, r1 INT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT L.l0, L.ID, L1, R1 FROM L join R WITHIN 11 SECONDS ON L.l0 = R.r0;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `L_L0`. Column type: STRUCT<`F1` MAP<STRING, INTEGER>>. See https://github.com/confluentinc/ksql/issues/6621 for more."
+      }
+    },
+    {
       "name": "self join",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
@@ -2104,9 +2170,7 @@
     {
       "name": "stream-stream key-to-key - protobuf on right key mismatch",
       "properties": {
-        "ksql.key.format.enabled": true,
-        "ksql.complex.key.format.enabled": true
-
+        "ksql.key.format.enabled": true
       },
       "statements": [
         "CREATE STREAM S1 (ID INT KEY, FOO INT) WITH (kafka_topic='s1', key_format='DELIMITED', value_format='JSON');",
@@ -2148,9 +2212,7 @@
     {
       "name": "stream-stream key-to-key - protobuf on left key mismatch",
       "properties": {
-        "ksql.key.format.enabled": true,
-        "ksql.complex.key.format.enabled": true
-
+        "ksql.key.format.enabled": true
       },
       "statements": [
         "CREATE STREAM S1 (ID INT KEY, FOO INT) WITH (kafka_topic='s1', key_format='PROTOBUF', value_format='JSON');",
@@ -2188,7 +2250,8 @@
           ]
         }
       }
-    },{
+    },
+    {
       "name": "stream-stream value-to-key - key format mismatch",
       "statements": [
         "CREATE STREAM S1 (ID INT, FOO INT) WITH (kafka_topic='s1', key_format='NONE', value_format='JSON');",

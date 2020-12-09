@@ -2257,9 +2257,6 @@
       ]
     },
     {
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "name": "windowed aggregate with struct key",
       "format": ["JSON", "AVRO"],
       "statements": [
@@ -2278,9 +2275,6 @@
       ]
     },
     {
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "name": "windowed aggregate with field within struct key",
       "statements": [
         "CREATE STREAM INPUT (ID STRUCT<F1 INT, F2 INT> KEY, VAL INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -2357,9 +2351,6 @@
       }
     },
     {
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "name": "AVRO struct key group by primitive",
       "statements": [
         "CREATE STREAM TEST (ID STRUCT<F1 INT> KEY, VAL BOOLEAN) WITH (kafka_topic='test_topic', format='AVRO');",
@@ -2402,9 +2393,6 @@
       }
     },
     {
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "name": "AVRO group by struct",
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='AVRO');",
@@ -2473,9 +2461,6 @@
       }
     },
     {
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "name": "JSON group by array",
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -2493,9 +2478,6 @@
       ]
     },
     {
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "name": "JSON group by struct",
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -2513,9 +2495,6 @@
       ]
     },
     {
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "name": "JSON group by struct convert key format",
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -2553,9 +2532,6 @@
       }
     },
     {
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "name": "JSON group by struct convert to incompatible key format",
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -2567,9 +2543,6 @@
       }
     },
     {
-      "properties": {
-        "ksql.complex.key.format.enabled": true
-      },
       "name": "Struct key used in aggregate expression",
       "statements": [
         "CREATE STREAM TEST (ID STRUCT<F1 INT> KEY, VAL INT) WITH (kafka_topic='test_topic', format='JSON');",

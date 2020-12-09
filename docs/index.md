@@ -65,7 +65,7 @@ stream processing applications on top of {{ site.aktm }}.
   </div>
 
   <div class="card">
-    <strong>How it's used</strong>
+    <strong>Case studies</strong>
     <ul class="card-items">
       <li><a href="https://www.confluent.io/blog/real-time-data-replication-with-ksqldb/">Real-time data replication</a></li>
       <li><a href="https://www.confluent.io/blog/how-pushowl-uses-ksqldb-to-scale-analytics-and-reporting-use-cases/">Real-time analytics</a></li>

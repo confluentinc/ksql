@@ -22,9 +22,9 @@ The how-to guides are compact lessons that help you work with common ksqlDB func
 
 <div class="cards">
   <div class="card how-to-guide">
-    <strong>Use a custom timestamp column</strong>
-    <p class="card-body"><small>Perform time-based operations using a timestamp in each record.</small></p>
-    <span><a href="/how-to-guides/use-a-custom-timestamp-column">Learn →</a></span>
+    <strong>Update a running persistent query</strong>
+    <p class="card-body"><small>Change a running persistent query with no downtime.</small></p>
+    <span><a href="/how-to-guides/update-a-running-persistent-query">Learn →</a></span>
   </div>
 
   <div class="card how-to-guide">
@@ -42,6 +42,12 @@ The how-to guides are compact lessons that help you work with common ksqlDB func
 
 <div class="cards">
   <div class="card how-to-guide">
+    <strong>Use a custom timestamp column</strong>
+    <p class="card-body"><small>Perform time-based operations using a timestamp in each record.</small></p>
+    <span><a href="/how-to-guides/use-a-custom-timestamp-column">Learn →</a></span>
+  </div>
+
+  <div class="card how-to-guide">
     <strong>Test an application</strong>
     <p class="card-body"><small>Build test suites to assert correct program behavior.</small></p>
     <span><a href="/how-to-guides/test-an-app">Learn →</a></span>
@@ -52,7 +58,9 @@ The how-to guides are compact lessons that help you work with common ksqlDB func
     <p class="card-body"><small>Change the content of a query based on variables.</small></p>
     <span><a href="/how-to-guides/substitute-variables">Learn →</a></span>
   </div>
+</div>
 
+<div class="cards">
   <div class="card how-to-guide contribute">
     <strong>Help us write another?</strong>
     <p class="card-body"><small>We're always looking for more guides. Just send a pull request!</small></p>

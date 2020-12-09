@@ -44,15 +44,15 @@ nav:
     - Connectors: concepts/connectors.md
     - Apache Kafka primer: concepts/apache-kafka-primer.md
     - Functions: concepts/functions.md
-    - Evolving Production Queries: concepts/upgrades.md
   - How-to guides:
       - Synopsis: how-to-guides/index.md
       - Query structured data: how-to-guides/query-structured-data.md
       - Convert a changelog to a table: how-to-guides/convert-changelog-to-table.md
-      - Use a custom timestamp column: how-to-guides/use-a-custom-timestamp-column.md
+      - Update a running persistent query: how-to-guides/update-a-running-persistent-query.md
       - Use connector management: how-to-guides/use-connector-management.md
       - Create a user-defined function: how-to-guides/create-a-user-defined-function.md
       - Control the case of identifiers: how-to-guides/control-the-case-of-identifiers.md
+      - Use a custom timestamp column: how-to-guides/use-a-custom-timestamp-column.md
       - Test an application: how-to-guides/test-an-app.md
       - Substitute variables: how-to-guides/substitute-variables.md
   - Tutorials:
@@ -183,6 +183,7 @@ plugins:
             concepts/processing-guarantees.md: operate-and-deploy/exactly-once-semantics.md
             concepts/ksqldb-architecture.md: operate-and-deploy/how-it-works.md
             concepts/ksqldb-and-kafka-streams.md: operate-and-deploy/how-it-works.md
+            concepts/upgrades.md: how-to-guides/update-a-running-persistent-query.md
 
             tutorials/examples.md: how-to-guides/index.md
             tutorials/embedded-connect.md: how-to-guides/use-connector-management.md

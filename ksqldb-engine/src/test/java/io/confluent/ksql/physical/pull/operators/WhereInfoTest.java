@@ -831,7 +831,7 @@ public class WhereInfoTest {
         () -> WhereInfo.extractWhereInfo(expression, SCHEMA, false, METASTORE, CONFIG));
 
     // Then:
-    assertThat(e.getMessage(), containsString("Cannot use WINDOWSTART/WINDOWEND on un-windowed source."));
+    assertThat(e.getMessage(), containsString("Cannot use WINDOWSTART/WINDOWEND on non-windowed source."));
   }
 
   @Test

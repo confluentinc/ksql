@@ -135,7 +135,7 @@ public final class WhereInfo {
       if (keyAndWindowBounds.getWindowStartExpression().size() > 0
           || keyAndWindowBounds.getWindowEndExpression().size() > 0) {
         throw invalidWhereClauseException(
-            "Cannot use WINDOWSTART/WINDOWEND on un-windowed source",
+            "Cannot use WINDOWSTART/WINDOWEND on non-windowed source",
             false);
       }
 

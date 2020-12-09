@@ -18,18 +18,11 @@ A column is defined by a combination of its [name](#valid-identifiers), its [SQL
 and possibly a namespace.
 
 Key columns for a stream have a `KEY` suffix. Key columns for a table have a `PRIMARY KEY` suffix. Value 
-
 columns have no namespace suffix. There can be multiple columns in either namespace, if
-
 the underlying serialization format supports it.
 
 !!! note 
     The `KAFKA` format doesn't support multi-column keys.
-
-
-
-
-
 
 For example, the following statement declares a stream with multiple
 

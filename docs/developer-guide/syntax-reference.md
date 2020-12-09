@@ -294,11 +294,11 @@ serializes different data types, see [ksqlDB Serialization](serialization.md).
 
 ksqlDB supports the following primitive data types:
 
--   `BOOLEAN`
--   `INTEGER` or [`INT`]
--   `BIGINT`
--   `DOUBLE`
--   `VARCHAR` (or `STRING`)
+-   `BOOLEAN`: a binary value
+-   `INTEGER` or [`INT`]: 32-bit signed integer
+-   `BIGINT`: 64-bit signed integer
+-   `DOUBLE`: double precision (64-bit) IEEE 754 floating-point number
+-   `VARCHAR` (or `STRING`): a unicode character sequence (UTF8)
 
 ### Array
 
@@ -452,6 +452,8 @@ ksqlDB supports fields that are numeric data types with fixed precision and scal
   This number must be greater than 0 and less than or equal to the value for
   `Precision`.
 
+For example, the number `765.937500` has a precision of 9 and a scale of 6.
+
 Mathematical operations between `DOUBLE` and `DECIMAL` cause the decimal to be
 converted to a double value automatically. Converting from the decimal data type
 to any floating point type (`DOUBLE`) may cause loss of precision.
@@ -469,6 +471,11 @@ will be `DECIMAL(p, s)` where `p` is the total number of numeric characters in t
 - **Double constants** are numeric strings represented in scientific notation (e.g. `1E0`, `.42E-3`).
 - **Boolean constants** are the unquoted strings that are exactly (case-insensitive) `TRUE`
 or `FALSE`.
+
+### Custom types
+
+ksqlDB supports custom types using the `CREATE TYPE` statements.
+See the [`CREATE TYPE` docs](../developer-guide/ksqldb-reference/create-type) for more information.
 
 ## Quoted identifiers for source and column names
 

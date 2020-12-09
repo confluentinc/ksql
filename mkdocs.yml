@@ -43,7 +43,6 @@ nav:
     - Time and Windows: concepts/time-and-windows-in-ksqldb-queries.md
     - Connectors: concepts/connectors.md
     - Apache Kafka primer: concepts/apache-kafka-primer.md
-    - Schemas: concepts/schemas.md
     - Functions: concepts/functions.md
     - Evolving Production Queries: concepts/upgrades.md
   - How-to guides:
@@ -178,6 +177,7 @@ plugins:
             concepts/collections/streams.md: concepts/streams.md
             concepts/collections/tables.md: concepts/tables.md
             concepts/collections/inserting-events.md: developer-guide/ksqldb-reference/insert-values.md
+            concepts/schemas.md: developer-guide/syntax-reference.md
             concepts/queries/push.md: concepts/queries.md
             concepts/queries/pull.md: concepts/queries.md
             concepts/processing-guarantees.md: operate-and-deploy/exactly-once-semantics.md

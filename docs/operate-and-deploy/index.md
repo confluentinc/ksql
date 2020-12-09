@@ -8,6 +8,14 @@ keywords: ksqldb, operate, administer, deploy, docker, install
 
 <div class="cards">
   <div class="card operations">
+    <strong>How it works</strong>
+    <p class="card-body"><small>Process and query structured data types like structs, maps, and arrays.</small></p>
+    <a href="/how-to-guides/query-structured-data">Learn →</a>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card operations">
     <strong>Clustering</strong>
     <p class="card-body"><small>Process and query structured data types like structs, maps, and arrays.</small></p>
     <a href="/how-to-guides/query-structured-data">Learn →</a>

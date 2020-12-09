@@ -146,3 +146,7 @@ ul.card-items li {
 .card.operations {
     background-color: #fffaf7;
 }
+
+.card.reference {
+    background-color: #fffff7;
+}

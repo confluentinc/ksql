@@ -6,6 +6,88 @@ description: Syntax Reference for statements and queries in ksqlDB
 keywords: ksqldb, sql, syntax, query, api
 ---
 
+<div class="cards">
+  <div class="card reference">
+    <strong>The SQL language</strong>
+    <p class="card-body"><small>Process and query structured data types like structs, maps, and arrays.</small></p>
+    <a href="/how-to-guides/query-structured-data">Read →</a>
+  </div>
+
+  <div class="card reference">
+    <strong>Built-in functions</strong>
+    <p class="card-body"><small>Process and query structured data types like structs, maps, and arrays.</small></p>
+    <a href="/how-to-guides/query-structured-data">Read →</a>
+  </div>
+
+  <div class="card reference">
+    <strong>Operators</strong>
+    <p class="card-body"><small>Process and query structured data types like structs, maps, and arrays.</small></p>
+    <a href="/how-to-guides/query-structured-data">Read →</a>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card reference">
+    <strong>Server configuration</strong>
+    <p class="card-body"><small>Process and query structured data types like structs, maps, and arrays.</small></p>
+    <a href="/how-to-guides/query-structured-data">Read →</a>
+  </div>
+
+  <div class="card reference">
+    <strong>Query configuration</strong>
+    <p class="card-body"><small>Process and query structured data types like structs, maps, and arrays.</small></p>
+    <a href="/how-to-guides/query-structured-data">Read →</a>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card reference">
+    <strong>User-defined functions</strong>
+    <p class="card-body"><small>Process and query structured data types like structs, maps, and arrays.</small></p>
+    <a href="/how-to-guides/query-structured-data">Read →</a>
+  </div>
+
+  <div class="card reference">
+    <strong>Metrics</strong>
+    <p class="card-body"><small>Process and query structured data types like structs, maps, and arrays.</small></p>
+    <a href="/how-to-guides/query-structured-data">Read →</a>
+  </div>
+
+  <div class="card reference">
+    <strong>Processing log</strong>
+    <p class="card-body"><small>Process and query structured data types like structs, maps, and arrays.</small></p>
+    <a href="/how-to-guides/query-structured-data">Read →</a>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card reference">
+    <strong>Serialization</strong>
+    <p class="card-body"><small>Process and query structured data types like structs, maps, and arrays.</small></p>
+    <a href="/how-to-guides/query-structured-data">Read →</a>
+  </div>
+
+  <div class="card reference">
+    <strong>Clients</strong>
+    <p class="card-body"><small>Process and query structured data types like structs, maps, and arrays.</small></p>
+    <a href="/how-to-guides/query-structured-data">Read →</a>
+  </div>
+
+  <div class="card reference">
+    <strong>REST API</strong>
+    <p class="card-body"><small>Process and query structured data types like structs, maps, and arrays.</small></p>
+    <a href="/how-to-guides/query-structured-data">Read →</a>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card reference">
+    <strong>Appendix</strong>
+    <p class="card-body"><small>Process and query structured data types like structs, maps, and arrays.</small></p>
+    <a href="/how-to-guides/query-structured-data">Read →</a>
+  </div>
+</div>
+
 The ksqlDB SQL language enables queries, transforms, aggregations, joins, and
 other operations on streaming data. ksqlDB SQL has a familiar syntax that's similar to
 [ANSI SQL](https://blog.ansi.org/2018/10/sql-standard-iso-iec-9075-2016-ansi-x3-135/).

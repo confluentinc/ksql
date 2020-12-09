@@ -157,7 +157,8 @@ public class TopicInfoCache {
           .collect(Collectors.toSet());
 
       if (keyTypes.isEmpty()) {
-        throw new TestFrameworkException("no source found for topic");
+        throw new TestFrameworkException("No information found for topic '"
+            + topicName + "'. Available topics: " + cache.asMap().keySet());
       }
 
       return Iterables.get(keyTypes, 0);

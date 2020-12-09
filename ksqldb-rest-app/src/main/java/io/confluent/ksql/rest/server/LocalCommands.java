@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.rest.server.LocalCommand.Type;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -73,7 +72,9 @@ public class LocalCommands implements Closeable {
     final FilenameFilter filter = (dir, fileName) -> fileName.endsWith(LOCAL_COMMANDS_FILE_SUFFIX);
     final File[] files = directory.listFiles(filter);
     if (files == null) {
-      throw new KsqlServerException("Bad local commands directory " + directory.getAbsolutePath() + ". Please check your configuration for " + KsqlConfig.KSQL_LOCAL_COMMANDS_LOCATION_CONFIG);
+      throw new KsqlServerException("Bad local commands directory " + directory.getAbsolutePath()
+          + ". Please check your configuration for "
+          + KsqlRestConfig.KSQL_LOCAL_COMMANDS_LOCATION_CONFIG);
     }
     for (final File file : files) {
       if (file.equals(currentLocalCommands.getFile())) {
@@ -94,11 +95,12 @@ public class LocalCommands implements Closeable {
   public void write(final TransientQueryMetadata queryMetadata) {
     try {
       currentLocalCommands.write(
-          new LocalCommand(Type.TRANSIENT_QUERY, queryMetadata.getQueryApplicationId()));
+          new TransientQueryLocalCommand(queryMetadata.getQueryApplicationId()));
     } catch (IOException e) {
       // Just log an error since not catching it would likely cause more cleanup work than this
       // aims to fix.
-      LOG.error("Failed to write local command for transient query:" + queryMetadata.getQueryApplicationId(), e);
+      LOG.error("Failed to write local command for transient query:"
+          + queryMetadata.getQueryApplicationId(), e);
     }
   }
 
@@ -167,8 +169,9 @@ public class LocalCommands implements Closeable {
       final List<LocalCommand> localCommands,
       final ServiceContext serviceContext) {
     final Set<String> queryApplicationIds = localCommands.stream()
-        .filter(c -> c.getType() == Type.TRANSIENT_QUERY)
-        .map(LocalCommand::getQueryApplicationId)
+        .filter(c -> c.getType().equals(TransientQueryLocalCommand.TYPE))
+        .map(TransientQueryLocalCommand.class::cast)
+        .map(TransientQueryLocalCommand::getQueryApplicationId)
         .collect(Collectors.toSet());
     if (queryApplicationIds.size() > 0) {
       ksqlEngine.cleanupOrphanedInternalTopics(serviceContext, queryApplicationIds);

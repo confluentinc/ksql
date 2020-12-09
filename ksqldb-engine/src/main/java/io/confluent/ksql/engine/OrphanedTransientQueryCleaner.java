@@ -36,6 +36,12 @@ public class OrphanedTransientQueryCleaner {
     this.cleanupService = requireNonNull(cleanupService);
   }
 
+  /**
+   * Cleans up any internal topics that may exist for the given set of query application
+   * ids, since it's assumed that they are completed.
+   * @param serviceContext The service context
+   * @param queryApplicationIds The set of completed query application ids
+   */
   public void cleanupOrphanedInternalTopics(
       final ServiceContext serviceContext,
       final Set<String> queryApplicationIds

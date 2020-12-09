@@ -75,9 +75,13 @@ public class OrphanedTransientQueryCleanerTest {
 
   @Test
   public void shouldCleanup_allApplicationIds() {
+    // Given
     when(topicClient.listTopicNames()).thenReturn(ImmutableSet.of(TOPIC1, TOPIC2, TOPIC3));
+
+    // When
     cleaner.cleanupOrphanedInternalTopics(serviceContext, ImmutableSet.of(APP_ID_1, APP_ID_2));
 
+    // Then
     verify(queryCleanupService, times(2)).addCleanupTask(taskCaptor.capture());
     assertThat(taskCaptor.getAllValues().get(0).getAppId(), is(APP_ID_1));
     assertThat(taskCaptor.getAllValues().get(1).getAppId(), is(APP_ID_2));
@@ -85,28 +89,40 @@ public class OrphanedTransientQueryCleanerTest {
 
   @Test
   public void shouldCleanup_someApplicationIds() {
+    // Given
     when(topicClient.listTopicNames()).thenReturn(ImmutableSet.of(TOPIC1, TOPIC2));
+
+    // When
     cleaner.cleanupOrphanedInternalTopics(serviceContext, ImmutableSet.of(APP_ID_1, APP_ID_2));
 
+    // Then
     verify(queryCleanupService, times(1)).addCleanupTask(taskCaptor.capture());
     assertThat(taskCaptor.getAllValues().get(0).getAppId(), is(APP_ID_1));
   }
 
   @Test
   public void skipNonMatchingTopics() {
+    // Given
     when(topicClient.listTopicNames()).thenReturn(ImmutableSet.of(TOPIC1, TOPIC2, TOPIC3));
+
+    // When
     cleaner.cleanupOrphanedInternalTopics(serviceContext, ImmutableSet.of(APP_ID_2));
 
+    // Then
     verify(queryCleanupService, times(1)).addCleanupTask(taskCaptor.capture());
     assertThat(taskCaptor.getAllValues().get(0).getAppId(), is(APP_ID_2));
   }
 
   @Test
   public void shouldSkip_exception() {
+    // Given
     when(topicClient.listTopicNames())
         .thenThrow(new KafkaResponseGetFailedException("error!", new Exception()));
+
+    // When
     cleaner.cleanupOrphanedInternalTopics(serviceContext, ImmutableSet.of());
 
+    // Then
     verify(queryCleanupService, never()).addCleanupTask(any());
   }
 }

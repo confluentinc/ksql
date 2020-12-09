@@ -70,8 +70,6 @@ public class LocalCommandsTest {
   @Rule
   public TemporaryFolder commandsDir = new TemporaryFolder();
 
-  private LocalCommands localCommands;
-
   @Before
   public void setup() throws IOException {
     when(metadata1.getQueryApplicationId()).thenReturn(QUERY_APP_ID1);

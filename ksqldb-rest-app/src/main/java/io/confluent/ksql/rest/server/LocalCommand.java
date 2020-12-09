@@ -15,36 +15,29 @@
 
 package io.confluent.ksql.rest.server;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /**
  * A command which is executed locally and possibly requiring cleanup next time the server is
  * restarted.
  */
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME)
+@JsonSubTypes({
+    @JsonSubTypes.Type(
+        value = TransientQueryLocalCommand.class,
+        name = TransientQueryLocalCommand.TYPE
+    )
+})
 public class LocalCommand {
 
-  private final String queryApplicationId;
-  private final Type type;
+  private final String type;
 
-  @JsonCreator
-  public LocalCommand(
-      @JsonProperty("type") final Type type,
-      @JsonProperty("queryApplicationId") final String queryApplicationId
-  ) {
+  public LocalCommand(final String type) {
     this.type = type;
-    this.queryApplicationId = queryApplicationId;
   }
 
-  public String getQueryApplicationId() {
-    return queryApplicationId;
-  }
-
-  public Type getType() {
+  public String getType() {
     return type;
-  }
-
-  public enum Type {
-    TRANSIENT_QUERY
   }
 }

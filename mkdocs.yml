@@ -32,10 +32,9 @@ nav:
     - Events: concepts/events.md
     - Stream Processing: concepts/stream-processing.md
     - Materialized Views: concepts/materialized-views.md
-    - Queries:
-      - Queries Overview: concepts/queries/index.md
-      - Push Queries: concepts/queries/push.md
-      - Pull Queries: concepts/queries/pull.md
+    - Streams: concepts/streams.md
+    - Tables: concepts/tables.md
+    - Queries: concepts/queries.md
     - Schemas: concepts/schemas.md
     - Connectors: concepts/connectors.md
     - Functions: concepts/functions.md
@@ -47,7 +46,6 @@ nav:
     - Architecture: concepts/ksqldb-architecture.md
     - Time and Windows: concepts/time-and-windows-in-ksqldb-queries.md
     - Serialization: developer-guide/serialization.md
-    - Processing Guarantees: concepts/processing-guarantees.md
     - Relationship to Kafka Streams: concepts/ksqldb-and-kafka-streams.md
     - Evolving Production Queries: concepts/upgrades.md
     - Apache Kafka primer: concepts/apache-kafka-primer.md
@@ -140,6 +138,7 @@ nav:
               - Configure Security for ksqlDB: operate-and-deploy/installation/server-config/security.md
           - Upgrade ksqlDB: operate-and-deploy/installation/upgrading.md
       - Monitoring: operate-and-deploy/monitoring.md
+      - Exactly once semantics: operate-and-deploy/exactly-once-semantics.md
       - Plan Capacity: operate-and-deploy/capacity-planning.md
       - KSQL and ksqlDB: operate-and-deploy/ksql-vs-ksqldb.md
       - Changelog: operate-and-deploy/changelog.md
@@ -176,16 +175,19 @@ plugins:
             overview/apache-kafka-primer.md: concepts/apache-kafka-primer.md
 
             concepts/collections/index.md: reference/sql/data-definition.md
-            concepts/collections/streams.md: reference/sql/data-definition.md
-            concepts/collections/tables.md: reference/sql/data-definition.md
+            concepts/collections/streams.md: concepts/streams.md
+            concepts/collections/tables.md: concepts/tables.md
             concepts/collections/inserting-events.md: developer-guide/ksqldb-reference/insert-values.md
+            concepts/queries/push.md: concepts/queries.md
+            concepts/queries/pull.md: concepts/queries.md
+            concepts/processing-guarantees.md: operate-and-deploy/exactly-once-semantics.md
 
             tutorials/examples.md: how-to-guides/index.md
             tutorials/embedded-connect.md: how-to-guides/use-connector-management.md
             tutorials/connect-integration.md: how-to-guides/use-connector-management.md
 
-            developer-guide/create-a-stream.md: reference/sql/data-definition.md
-            developer-guide/create-a-table.md: reference/sql/data-definition.md
+            developer-guide/create-a-stream.md: concepts/streams.md
+            developer-guide/create-a-table.md: concepts/tables.md
             developer-guide/transform-a-stream-with-ksqldb.md: https://ksqldb.io/quickstart.html
             developer-guide/aggregate-streaming-data.md: concepts/materialized-views.md
             developer-guide/test-and-debug/generate-custom-test-data.md: https://github.com/confluentinc/kafka-connect-datagen

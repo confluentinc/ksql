@@ -144,11 +144,6 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_KEY_FORMAT_ENABLED_DOC =
       "Feature flag for key formats under development";
 
-  public static final String KSQL_MULTICOL_KEY_FORMAT_ENABLED = "ksql.multicol.key.format.enabled";
-  public static final Boolean KSQL_MULTICOL_KEY_FORMAT_ENABLED_DEFAULT = false;
-  public static final String KSQL_MULTICOL_KEY_FORMAT_ENABLED_DOC =
-      "Feature flag for multi-column keys";
-
   public static final String KSQL_DEFAULT_KEY_FORMAT_CONFIG = "ksql.persistence.default.format.key";
   private static final String KSQL_DEFAULT_KEY_FORMAT_DEFAULT = "KAFKA";
   private static final String KSQL_DEFAULT_KEY_FORMAT_DOC =
@@ -623,12 +618,6 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_KEY_FORMAT_ENABLED_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_KEY_FORMAT_ENABLED_DOC
-        ).define(
-            KSQL_MULTICOL_KEY_FORMAT_ENABLED,
-            Type.BOOLEAN,
-            KSQL_MULTICOL_KEY_FORMAT_ENABLED_DEFAULT,
-            ConfigDef.Importance.LOW,
-            KSQL_MULTICOL_KEY_FORMAT_ENABLED_DOC
         ).define(
             KSQL_DEFAULT_KEY_FORMAT_CONFIG,
             Type.STRING,

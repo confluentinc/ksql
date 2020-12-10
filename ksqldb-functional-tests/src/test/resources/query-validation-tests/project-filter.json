@@ -466,9 +466,6 @@
     },
     {
       "name": "projection with missing multi-key column",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, ID2 INT KEY, NAME STRING) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE STREAM OUTPUT as SELECT ID, NAME FROM INPUT;"

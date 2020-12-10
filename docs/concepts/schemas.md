@@ -17,17 +17,21 @@ key and value of the underlying {{ site.ak }} topic message.
 A column is defined by a combination of its [name](#valid-identifiers), its [SQL data type](#sql-data-types),
 and possibly a namespace.
 
-Key columns have a `KEY` or `PRIMARY KEY` suffix for streams and tables, respectively.
-ksqlDB supports a single key column only.
+Key columns for a stream have a `KEY` suffix. Key columns for a table have a `PRIMARY KEY` suffix. Value 
+columns have no namespace suffix. There can be multiple columns in either namespace, if
+the underlying serialization format supports it.
 
-Value columns have no namespace suffix. There can be one or more value columns.
+!!! note 
+    The `KAFKA` format doesn't support multi-column keys.
 
-For example, the following example statement declares a stream with a single
-key column and several value columns:
+For example, the following statement declares a stream with multiple
+
+key and value columns:
 
 ```sql
 CREATE STREAM USER_UPDATES (
-   ID BIGINT KEY, 
+   ORGID BIGINT KEY,
+   USERID BIGINT KEY, 
    STRING NAME, 
    ADDRESS ADDRESS_TYPE
  ) WITH (
@@ -39,6 +43,7 @@ This statement declares a table with a primary key and value columns:
 
 ```sql
 CREATE TABLE USERS (
+   ORGID BIGINT PRIMARY KEY, 
    ID BIGINT PRIMARY KEY, 
    STRING NAME, 
    ADDRESS ADDRESS_TYPE
@@ -106,9 +111,10 @@ Avro-formatted data. If you want to use Protobuf- or JSON-formatted data,
 substitute `PROTOBUF`, `JSON` or `JSON_SR` for `AVRO` in each statement.
 
 !!! note
-    ksqlDB handles the `JSON` and `JSON_SR` formats differently. While the
-    `JSON` format is capable of _reading_ the schema from {{ site.sr }},
-    `JSON_SR` both reads and registers new schemas, as necessary.
+    ksqlDB handles the `JSON` and `JSON_SR` formats differently. `JSON_SR` reads and 
+    registers new schemas with {{ site.sr }} as necessary, while `JSON` requires you
+    to specify the schema. Data formatted with `JSON_SR` is not binary compatible with
+    the `JSON` format.
 
 ### Create a new stream
 

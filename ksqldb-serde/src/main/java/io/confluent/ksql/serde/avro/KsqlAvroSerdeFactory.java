@@ -17,9 +17,7 @@ package io.confluent.ksql.serde.avro;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.connect.avro.AvroConverter;
-import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.tls.ThreadLocalDeserializer;
@@ -132,16 +130,7 @@ class KsqlAvroSerdeFactory {
   ) {
     final AvroConverter avroConverter = new AvroConverter(schemaRegistryClient);
 
-    final Map<String, Object> avroConfig = ksqlConfig
-        .originalsWithPrefix(KsqlConfig.KSQL_SCHEMA_REGISTRY_PREFIX);
-
-    avroConfig.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG,
-        ksqlConfig.getString(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY));
-
-    avroConfig.put(AvroDataConfig.CONNECT_META_DATA_CONFIG, false);
-
-    avroConfig.put(KsqlConfig.KSQL_VALUE_SUBJECT_NAME_STRATEGY,
-            ksqlConfig.getString(KsqlConfig.KSQL_VALUE_SUBJECT_NAME_STRATEGY));
+    final Map<String, Object> avroConfig = AvroFormat.avroConfig(ksqlConfig);
 
     avroConverter.configure(avroConfig, isKey);
     return avroConverter;

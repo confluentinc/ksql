@@ -43,6 +43,7 @@ import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TableRows;
+import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
@@ -92,6 +93,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
   private final HARouting routing;
+  private final Optional<LocalCommands> localCommands;
 
   private KsqlConfig ksqlConfig;
 
@@ -108,7 +110,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
-      final HARouting routing
+      final HARouting routing,
+      final Optional<LocalCommands> localCommands
   ) {
     this(
         ksqlEngine,
@@ -123,7 +126,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
         pullQueryMetrics,
         routingFilterFactory,
         rateLimiter,
-        routing
+        routing,
+        localCommands
     );
   }
 
@@ -143,7 +147,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
-      final HARouting routing
+      final HARouting routing,
+      final Optional<LocalCommands> localCommands
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -163,6 +168,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
     this.routing = Objects.requireNonNull(routing, "routing");
+    this.localCommands = Objects.requireNonNull(localCommands, "localCommands");
   }
 
   @Override
@@ -368,6 +374,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
     final TransientQueryMetadata query = ksqlEngine
         .executeQuery(serviceContext, configured, false);
+
+    localCommands.ifPresent(lc -> lc.write(query));
 
     final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
         query,

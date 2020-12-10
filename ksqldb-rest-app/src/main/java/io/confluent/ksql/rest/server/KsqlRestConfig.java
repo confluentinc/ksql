@@ -343,6 +343,11 @@ public class KsqlRestConfig extends AbstractConfig {
   private static final String KSQL_LOGGING_SERVER_RATE_LIMITED_REQUEST_PATHS_DOC =
       "A list of path:rate_limit pairs, to rate limit the server request logging";
 
+  public static final String KSQL_LOCAL_COMMANDS_LOCATION_CONFIG = "ksql.local.commands.location";
+  public static final String KSQL_LOCAL_COMMANDS_LOCATION_DEFAULT = "";
+  public static final String KSQL_LOCAL_COMMANDS_LOCATION_DOC = "Specify the directory where "
+      + "KSQL tracks local commands, e.g. transient queries";
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -653,6 +658,12 @@ public class KsqlRestConfig extends AbstractConfig {
             mapWithDoubleValue(),
             ConfigDef.Importance.LOW,
             KSQL_LOGGING_SERVER_RATE_LIMITED_REQUEST_PATHS_DOC
+        ).define(
+            KSQL_LOCAL_COMMANDS_LOCATION_CONFIG,
+            Type.STRING,
+            KSQL_LOCAL_COMMANDS_LOCATION_DEFAULT,
+            Importance.LOW,
+            KSQL_LOCAL_COMMANDS_LOCATION_DOC
         );
   }
 

@@ -34,6 +34,7 @@ import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.rest.entity.TableRows;
+import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.resources.streaming.PullQueryConfigRoutingOptions;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.utils.FormatOptions;
@@ -61,6 +62,7 @@ public class QueryEndpoint {
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RateLimiter rateLimiter;
   private final HARouting routing;
+  private final Optional<LocalCommands> localCommands;
 
   public QueryEndpoint(
       final KsqlEngine ksqlEngine,
@@ -68,7 +70,8 @@ public class QueryEndpoint {
       final RoutingFilterFactory routingFilterFactory,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RateLimiter rateLimiter,
-      final HARouting routing
+      final HARouting routing,
+      final Optional<LocalCommands> localCommands
   ) {
     this.ksqlEngine = ksqlEngine;
     this.ksqlConfig = ksqlConfig;
@@ -76,6 +79,7 @@ public class QueryEndpoint {
     this.pullQueryMetrics = pullQueryMetrics;
     this.rateLimiter = rateLimiter;
     this.routing = routing;
+    this.localCommands = localCommands;
   }
 
   public QueryPublisher createQueryPublisher(
@@ -109,6 +113,8 @@ public class QueryEndpoint {
 
     final TransientQueryMetadata queryMetadata = ksqlEngine
         .executeQuery(serviceContext, statement, true);
+
+    localCommands.ifPresent(lc -> lc.write(queryMetadata));
 
     publisher.setQueryHandle(new KsqlQueryHandle(queryMetadata));
 

@@ -36,6 +36,7 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
@@ -78,6 +79,7 @@ public class WSQueryEndpoint {
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
   private final HARouting routing;
+  private final Optional<LocalCommands> localCommands;
 
   private WebSocketSubscriber<?> subscriber;
 
@@ -97,7 +99,8 @@ public class WSQueryEndpoint {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
-      final HARouting routing
+      final HARouting routing,
+      final Optional<LocalCommands> localCommands
   ) {
     this(
         ksqlConfig,
@@ -116,7 +119,8 @@ public class WSQueryEndpoint {
         pullQueryMetrics,
         routingFilterFactory,
         rateLimiter,
-        routing
+        routing,
+        localCommands
     );
   }
 
@@ -139,7 +143,8 @@ public class WSQueryEndpoint {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
-      final HARouting routing
+      final HARouting routing,
+      final Optional<LocalCommands> localCommands
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -164,6 +169,7 @@ public class WSQueryEndpoint {
         routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
     this.routing = Objects.requireNonNull(routing, "routing");
+    this.localCommands = Objects.requireNonNull(localCommands, "localCommands");
   }
 
   public void executeStreamQuery(final ServerWebSocket webSocket, final MultiMap requestParams,
@@ -306,7 +312,8 @@ public class WSQueryEndpoint {
           info.securityContext.getServiceContext(),
           exec,
           configured,
-          streamSubscriber
+          streamSubscriber,
+          localCommands
       );
     }
   }
@@ -347,9 +354,10 @@ public class WSQueryEndpoint {
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
       final ConfiguredStatement<Query> query,
-      final WebSocketSubscriber<StreamedRow> streamSubscriber
+      final WebSocketSubscriber<StreamedRow> streamSubscriber,
+      final Optional<LocalCommands> localCommands
   ) {
-    new PushQueryPublisher(ksqlEngine, serviceContext, exec, query)
+    new PushQueryPublisher(ksqlEngine, serviceContext, exec, query, localCommands)
         .subscribe(streamSubscriber);
   }
 
@@ -395,7 +403,8 @@ public class WSQueryEndpoint {
         ServiceContext serviceContext,
         ListeningScheduledExecutorService exec,
         ConfiguredStatement<Query> query,
-        WebSocketSubscriber<StreamedRow> subscriber);
+        WebSocketSubscriber<StreamedRow> subscriber,
+        Optional<LocalCommands> localCommands);
 
   }
 

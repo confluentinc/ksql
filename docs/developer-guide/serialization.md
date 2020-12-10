@@ -132,7 +132,7 @@ For example, given a SQL statement such as:
 CREATE STREAM x (ORGID BIGINT KEY, ID BIGINT KEY, NAME STRING, AGE INT) WITH (FORMAT='DELIMITED', ...);
 ```
 
-ksqlDB splits a key of `120, 21` and a value of `bob, 49` into the four fields (two keys and two values) 
+ksqlDB splits a key of `120,21` and a value of `bob,49` into the four fields (two keys and two values) 
 with `ORGID KEY` of `120`, `ID KEY` of `21`, `NAME` of `bob` and `AGE` of `49`.
 
 This data format supports all SQL

@@ -112,7 +112,7 @@ substitute `PROTOBUF`, `JSON` or `JSON_SR` for `AVRO` in each statement.
 
 !!! note
     ksqlDB handles the `JSON` and `JSON_SR` formats differently. `JSON_SR` reads and 
-    registers new schemas with {{ site.sr }}, as necessary while `JSON` requires you
+    registers new schemas with {{ site.sr }} as necessary, while `JSON` requires you
     to specify the schema. Data formatted with `JSON_SR` is not binary compatible with
     the `JSON` format.
 

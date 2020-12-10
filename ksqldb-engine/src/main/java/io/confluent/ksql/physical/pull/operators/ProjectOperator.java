@@ -31,7 +31,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 
 public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPhysicalOperator {
 
@@ -89,7 +88,7 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
     if (logicalNode.getIsSelectStar()) {
       return createRow(row);
     }
-    final GenericRow intermediate = getPreSelectTransform().apply(row);
+    final GenericRow intermediate = getIntermediateRow(row);
 
     final GenericRow mapped = transformer.transform(
         row.key(),
@@ -135,34 +134,32 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
     throw new UnsupportedOperationException();
   }
 
-  private Function<TableRow, GenericRow> getPreSelectTransform() {
+  private GenericRow getIntermediateRow(final TableRow row) {
 
     if (!logicalNode.getAddAdditionalColumnsToIntermediateSchema()) {
-      return TableRow::value;
+      return row.value();
     }
 
-    return row -> {
-      final GenericKey key = row.key();
-      final GenericRow value = row.value();
+    final GenericKey key = row.key();
+    final GenericRow value = row.value();
 
-      final List<?> keyFields = key.values();
+    final List<?> keyFields = key.values();
 
-      value.ensureAdditionalCapacity(
-          1 // ROWTIME
-              + keyFields.size()
-              + row.window().map(w -> 2).orElse(0)
-      );
+    value.ensureAdditionalCapacity(
+        1 // ROWTIME
+            + keyFields.size()
+            + row.window().map(w -> 2).orElse(0)
+    );
 
-      value.append(row.rowTime());
-      value.appendAll(keyFields);
+    value.append(row.rowTime());
+    value.appendAll(keyFields);
 
-      row.window().ifPresent(window -> {
-        value.append(window.start().toEpochMilli());
-        value.append(window.end().toEpochMilli());
-      });
+    row.window().ifPresent(window -> {
+      value.append(window.start().toEpochMilli());
+      value.append(window.end().toEpochMilli());
+    });
 
-      return value;
-    };
+    return value;
   }
 
   private static void validateProjection(

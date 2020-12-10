@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.planner.plan;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
@@ -114,7 +113,7 @@ public class PullProjectNode extends ProjectNode {
     return compiledSelectExpressions;
   }
 
-  public LogicalSchema getIntermediateSchema() {
+  LogicalSchema getIntermediateSchema() {
     return intermediateSchema;
   }
 
@@ -131,8 +130,7 @@ public class PullProjectNode extends ProjectNode {
    * need to be extended with system columns if they are part of the projection.
    * @return the intermediate schema
    */
-  @VisibleForTesting
-  protected LogicalSchema buildIntermediateSchema() {
+  private LogicalSchema buildIntermediateSchema() {
     final LogicalSchema parentSchema = getSource().getSchema();
 
     if (!addAdditionalColumnsToIntermediateSchema) {
@@ -157,8 +155,7 @@ public class PullProjectNode extends ProjectNode {
    * @param metaStore the metastore
    * @return the project node's output schema
    */
-  @VisibleForTesting
-  protected LogicalSchema buildOutputSchema(final MetaStore metaStore) {
+  private LogicalSchema buildOutputSchema(final MetaStore metaStore) {
     final LogicalSchema outputSchema;
     final LogicalSchema parentSchema = getSource().getSchema();
     final boolean isWindowed = analysis

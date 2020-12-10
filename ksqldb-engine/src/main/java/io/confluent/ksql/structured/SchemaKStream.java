@@ -48,6 +48,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.InternalFormats;
+import io.confluent.ksql.serde.InternalFormats.PlaceholderFormats;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeaturesFactory;
@@ -59,6 +60,8 @@ import io.confluent.ksql.util.Repartitioning;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import org.apache.kafka.streams.kstream.JoinWindows;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -167,20 +170,26 @@ public class SchemaKStream<K> {
   ) {
     throwOnJoinKeyFormatsMismatch(schemaKTable);
 
-    final Formats fmts = InternalFormats.of(keyFormat.getFormatInfo(), leftValueFormat);
+    final Function<StreamTableJoin<K>, LogicalSchema> schemaResolver =
+        step -> resolveSchema(step, schemaKTable);
 
-    final StreamTableJoin<K> step = ExecutionStepFactory.streamTableJoin(
-        contextStacker,
-        JoinType.LEFT,
-        keyColName,
-        fmts,
-        sourceStep,
-        schemaKTable.getSourceTableStep()
+    final StreamTableJoin<K> step = buildStepWithFormats(
+        formats -> ExecutionStepFactory.streamTableJoin(
+            contextStacker,
+            JoinType.LEFT,
+            keyColName,
+            formats,
+            sourceStep,
+            schemaKTable.getSourceTableStep()
+        ),
+        schemaResolver,
+        keyFormat.getFormatInfo(),
+        leftValueFormat
     );
 
     return new SchemaKStream<>(
         step,
-        resolveSchema(step, schemaKTable),
+        schemaResolver.apply(step),
         keyFormat,
         ksqlConfig,
         functionRegistry
@@ -197,20 +206,29 @@ public class SchemaKStream<K> {
   ) {
     throwOnJoinKeyFormatsMismatch(otherSchemaKStream);
 
-    final StreamStreamJoin<K> step = ExecutionStepFactory.streamStreamJoin(
-        contextStacker,
-        JoinType.LEFT,
-        keyColName,
-        InternalFormats.of(keyFormat.getFormatInfo(), leftFormat),
-        InternalFormats.of(keyFormat.getFormatInfo(), rightFormat),
-        sourceStep,
-        otherSchemaKStream.sourceStep,
-        joinWindows
-    );
+    final Function<StreamStreamJoin<K>, LogicalSchema> schemaResolver =
+        step -> resolveSchema(step, otherSchemaKStream);
+
+    final StreamStreamJoin<K> step = buildStepWithFormats(
+        (leftFormats, rightFormats) -> ExecutionStepFactory.streamStreamJoin(
+            contextStacker,
+            JoinType.LEFT,
+            keyColName,
+            leftFormats,
+            rightFormats,
+            sourceStep,
+            otherSchemaKStream.sourceStep,
+            joinWindows
+        ),
+        schemaResolver,
+        keyFormat.getFormatInfo(),
+        leftFormat,
+        rightFormat
+    ) ;
 
     return new SchemaKStream<>(
         step,
-        resolveSchema(step, otherSchemaKStream),
+        schemaResolver.apply(step),
         keyFormat,
         ksqlConfig,
         functionRegistry
@@ -225,18 +243,26 @@ public class SchemaKStream<K> {
   ) {
     throwOnJoinKeyFormatsMismatch(schemaKTable);
 
-    final StreamTableJoin<K> step = ExecutionStepFactory.streamTableJoin(
-        contextStacker,
-        JoinType.INNER,
-        keyColName,
-        InternalFormats.of(keyFormat.getFormatInfo(), leftValueFormat),
-        sourceStep,
-        schemaKTable.getSourceTableStep()
+    final Function<StreamTableJoin<K>, LogicalSchema> schemaResolver =
+        step -> resolveSchema(step, schemaKTable);
+
+    final StreamTableJoin<K> step = buildStepWithFormats(
+        formats -> ExecutionStepFactory.streamTableJoin(
+            contextStacker,
+            JoinType.INNER,
+            keyColName,
+            formats,
+            sourceStep,
+            schemaKTable.getSourceTableStep()
+        ),
+        schemaResolver,
+        keyFormat.getFormatInfo(),
+        leftValueFormat
     );
 
     return new SchemaKStream<>(
         step,
-        resolveSchema(step, schemaKTable),
+        schemaResolver.apply(step),
         keyFormat,
         ksqlConfig,
         functionRegistry
@@ -253,20 +279,29 @@ public class SchemaKStream<K> {
   ) {
     throwOnJoinKeyFormatsMismatch(otherSchemaKStream);
 
-    final StreamStreamJoin<K> step = ExecutionStepFactory.streamStreamJoin(
-        contextStacker,
-        JoinType.INNER,
-        keyColName,
-        InternalFormats.of(keyFormat.getFormatInfo(), leftFormat),
-        InternalFormats.of(keyFormat.getFormatInfo(), rightFormat),
-        sourceStep,
-        otherSchemaKStream.sourceStep,
-        joinWindows
+    final Function<StreamStreamJoin<K>, LogicalSchema> schemaResolver =
+        step -> resolveSchema(step, otherSchemaKStream);
+
+    final StreamStreamJoin<K> step = buildStepWithFormats(
+        (leftFormats, rightFormats) -> ExecutionStepFactory.streamStreamJoin(
+            contextStacker,
+            JoinType.INNER,
+            keyColName,
+            leftFormats,
+            rightFormats,
+            sourceStep,
+            otherSchemaKStream.sourceStep,
+            joinWindows
+        ),
+        schemaResolver,
+        keyFormat.getFormatInfo(),
+        leftFormat,
+        rightFormat
     );
 
     return new SchemaKStream<>(
         step,
-        resolveSchema(step, otherSchemaKStream),
+        schemaResolver.apply(step),
         keyFormat,
         ksqlConfig,
         functionRegistry
@@ -283,20 +318,29 @@ public class SchemaKStream<K> {
   ) {
     throwOnJoinKeyFormatsMismatch(otherSchemaKStream);
 
-    final StreamStreamJoin<K> step = ExecutionStepFactory.streamStreamJoin(
-        contextStacker,
-        JoinType.OUTER,
-        keyColName,
-        InternalFormats.of(keyFormat.getFormatInfo(), leftFormat),
-        InternalFormats.of(keyFormat.getFormatInfo(), rightFormat),
-        sourceStep,
-        otherSchemaKStream.sourceStep,
-        joinWindows
+    final Function<StreamStreamJoin<K>, LogicalSchema> schemaResolver =
+        step -> resolveSchema(step, otherSchemaKStream);
+
+    final StreamStreamJoin<K> step = buildStepWithFormats(
+        (leftFormats, rightFormats) -> ExecutionStepFactory.streamStreamJoin(
+            contextStacker,
+            JoinType.OUTER,
+            keyColName,
+            leftFormats,
+            rightFormats,
+            sourceStep,
+            otherSchemaKStream.sourceStep,
+            joinWindows
+        ),
+        schemaResolver,
+        keyFormat.getFormatInfo(),
+        leftFormat,
+        rightFormat
     );
 
     return new SchemaKStream<>(
         step,
-        resolveSchema(step, otherSchemaKStream),
+        schemaResolver.apply(step),
         keyFormat,
         ksqlConfig,
         functionRegistry
@@ -338,16 +382,18 @@ public class SchemaKStream<K> {
     final ExecutionStep<KStreamHolder<K>> step = ExecutionStepFactory
         .streamSelectKey(contextStacker, sourceStep, keyExpression);
 
+    final LogicalSchema newSchema = resolveSchema(step);
+
     final KeyFormat newKeyFormat = forceInternalKeyFormat
         .map(newFmt -> KeyFormat.of(
             newFmt,
-            SerdeFeaturesFactory.buildInternal(FormatFactory.of(newFmt)),
+            SerdeFeaturesFactory.buildInternalKeyFeatures(newSchema, FormatFactory.of(newFmt)),
             keyFormat.getWindowInfo()))
         .orElse(keyFormat);
 
     return new SchemaKStream<>(
         step,
-        resolveSchema(step),
+        newSchema,
         newKeyFormat,
         ksqlConfig,
         functionRegistry
@@ -374,11 +420,15 @@ public class SchemaKStream<K> {
     final KeyFormat rekeyedKeyFormat = KeyFormat
         .nonWindowed(keyFmtInfo, SerdeFeatures.of());
 
-    final StreamGroupBy<K> source = ExecutionStepFactory.streamGroupBy(
-        contextStacker,
-        sourceStep,
-        InternalFormats.of(rekeyedKeyFormat.getFormatInfo(), valueFormat),
-        groupByExpressions
+    final StreamGroupBy<K> source = buildStepWithFormats(
+        formats -> ExecutionStepFactory.streamGroupBy(
+            contextStacker,
+            sourceStep,
+            formats,
+            groupByExpressions
+        ),
+        rekeyedKeyFormat.getFormatInfo(),
+        valueFormat
     );
 
     return new SchemaKGroupedStream(
@@ -399,12 +449,15 @@ public class SchemaKStream<K> {
     if (keyFormat.isWindowed()) {
       throw new UnsupportedOperationException("Group by on windowed should always require rekey");
     }
-    final StreamGroupByKey step =
-        ExecutionStepFactory.streamGroupByKey(
+    final StreamGroupByKey step = buildStepWithFormats(
+        formats -> ExecutionStepFactory.streamGroupByKey(
             contextStacker,
             (ExecutionStep) sourceStep,
-            InternalFormats.of(rekeyedKeyFormat, valueFormat)
-        );
+            formats
+        ),
+        rekeyedKeyFormat,
+        valueFormat
+    );
     return new SchemaKGroupedStream(
         step,
         resolveSchema(step),
@@ -481,5 +534,47 @@ public class SchemaKStream<K> {
           + ", right: " + (rightIsSession ? "Session Windowed" : "Non Session Windowed")
       );
     }
+  }
+
+  protected <E extends ExecutionStep<?>> E buildStepWithFormats(
+      final Function<Formats, E> stepSupplier,
+      final FormatInfo keyFormat,
+      final FormatInfo valueFormat
+  ) {
+    return buildStepWithFormats(
+        stepSupplier,
+        this::resolveSchema,
+        keyFormat,
+        valueFormat
+    );
+  }
+
+  protected <E extends ExecutionStep<?>> E buildStepWithFormats(
+      final Function<Formats, E> stepSupplier,
+      final Function<E, LogicalSchema> schemaResolver,
+      final FormatInfo keyFormat,
+      final FormatInfo valueFormat
+  ) {
+    final E placeholderStep = stepSupplier.apply(PlaceholderFormats.of());
+    final LogicalSchema schema = schemaResolver.apply(placeholderStep);
+    return stepSupplier.apply(InternalFormats.of(schema, keyFormat, valueFormat));
+  }
+
+  protected <E extends ExecutionStep<?>> E buildStepWithFormats(
+      final BiFunction<Formats, Formats, E> stepSupplier,
+      final Function<E, LogicalSchema> schemaResolver,
+      final FormatInfo keyFormat,
+      final FormatInfo leftValueFormat,
+      final FormatInfo rightValueFormat
+  ) {
+    final E placeholderStep = stepSupplier.apply(
+        PlaceholderFormats.of(),
+        PlaceholderFormats.of()
+    );
+    final LogicalSchema schema = schemaResolver.apply(placeholderStep);
+    return stepSupplier.apply(
+        InternalFormats.of(schema, keyFormat, leftValueFormat),
+        InternalFormats.of(schema, keyFormat, rightValueFormat)
+    );
   }
 }

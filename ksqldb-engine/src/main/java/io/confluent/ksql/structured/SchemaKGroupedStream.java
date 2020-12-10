@@ -18,6 +18,7 @@ package io.confluent.ksql.structured;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
@@ -34,6 +35,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 
 public class SchemaKGroupedStream {
 
@@ -74,22 +76,30 @@ public class SchemaKGroupedStream {
 
     if (windowExpression.isPresent()) {
       keyFormat = getKeyFormat(windowExpression.get());
-      step = ExecutionStepFactory.streamWindowedAggregate(
-          contextStacker,
-          sourceStep,
-          InternalFormats.of(keyFormat.getFormatInfo(), valueFormat),
-          nonAggregateColumns,
-          aggregations,
-          windowExpression.get().getKsqlWindowExpression()
+      step = buildStepWithFormats(
+          formats -> ExecutionStepFactory.streamWindowedAggregate(
+              contextStacker,
+              sourceStep,
+              formats,
+              nonAggregateColumns,
+              aggregations,
+              windowExpression.get().getKsqlWindowExpression()
+          ),
+          keyFormat.getFormatInfo(),
+          valueFormat
       );
     } else {
       keyFormat = this.keyFormat;
-      step = ExecutionStepFactory.streamAggregate(
-          contextStacker,
-          sourceStep,
-          InternalFormats.of(keyFormat.getFormatInfo(), valueFormat),
-          nonAggregateColumns,
-          aggregations
+      step = buildStepWithFormats(
+          formats -> ExecutionStepFactory.streamAggregate(
+              contextStacker,
+              sourceStep,
+              formats,
+              nonAggregateColumns,
+              aggregations
+          ),
+          keyFormat.getFormatInfo(),
+          valueFormat
       );
     }
 
@@ -112,5 +122,16 @@ public class SchemaKGroupedStream {
 
   LogicalSchema resolveSchema(final ExecutionStep<?> step) {
     return new StepSchemaResolver(ksqlConfig, functionRegistry).resolve(step, schema);
+  }
+
+  protected <E extends ExecutionStep<?>> E buildStepWithFormats(
+      final Function<Formats, E> stepSupplier,
+      final FormatInfo keyFormat,
+      final FormatInfo valueFormat
+  ) {
+    final ExecutionStep<?> placeholderStep =
+        stepSupplier.apply(InternalFormats.PlaceholderFormats.of());
+    final LogicalSchema schema = resolveSchema(placeholderStep);
+    return stepSupplier.apply(InternalFormats.of(schema, keyFormat, valueFormat));
   }
 }

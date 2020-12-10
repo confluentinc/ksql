@@ -335,7 +335,14 @@ public class SchemaKTableTest {
             ExecutionStepFactory.tableSelectKey(
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
-                InternalFormats.of(keyFormat.getFormatInfo(), valueFormat.getFormatInfo()),
+                InternalFormats.of(
+                    LogicalSchema.builder()
+                        .keyColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+                        .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
+                        .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
+                        .build(),
+                    keyFormat.getFormatInfo(),
+                    valueFormat.getFormatInfo()),
                 new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))
             )
         )
@@ -722,8 +729,6 @@ public class SchemaKTableTest {
   @Test
   public void shouldBuildStepForTableTableJoin() {
     // Given:
-    givenJoin();
-    givenLeftJoin();
     final List<Pair<JoinType, Join>> cases = ImmutableList.of(
         Pair.of(JoinType.LEFT, firstSchemaKTable::leftJoin),
         Pair.of(JoinType.INNER, firstSchemaKTable::join)
@@ -753,8 +758,6 @@ public class SchemaKTableTest {
   @Test
   public void shouldBuildSchemaForTableTableJoin() {
     // Given:
-    givenJoin();
-    givenLeftJoin();
     final List<Pair<JoinType, Join>> cases = ImmutableList.of(
         Pair.of(JoinType.LEFT, firstSchemaKTable::leftJoin),
         Pair.of(JoinType.INNER, firstSchemaKTable::join)
@@ -792,21 +795,5 @@ public class SchemaKTableTest {
 
   private PlanNode buildLogicalPlan(final String query) {
     return AnalysisTestUtil.buildLogicalPlan(ksqlConfig, query, metaStore);
-  }
-
-  private void givenJoin() {
-    final KTable resultTable = mock(KTable.class);
-    when(mockKTable.join(
-        eq(secondKTable),
-        any(KsqlValueJoiner.class))
-    ).thenReturn(resultTable);
-  }
-
-  private void givenLeftJoin() {
-    final KTable resultTable = mock(KTable.class);
-    when(mockKTable.leftJoin(
-        eq(secondKTable),
-        any(KsqlValueJoiner.class))
-    ).thenReturn(resultTable);
   }
 }

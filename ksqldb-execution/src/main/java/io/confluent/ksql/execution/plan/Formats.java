@@ -29,7 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 
 @Immutable
-public final class Formats {
+public class Formats {
 
   private enum LegacyOption {
     WRAP_SINGLE_VALUES,
@@ -82,7 +82,7 @@ public final class Formats {
     );
   }
 
-  private Formats(
+  protected Formats(
       final FormatInfo keyFormat,
       final FormatInfo valueFormat,
       final SerdeFeatures keyFeatures,

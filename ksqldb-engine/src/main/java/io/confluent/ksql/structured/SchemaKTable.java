@@ -49,6 +49,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class SchemaKTable<K> extends SchemaKStream<K> {
@@ -185,19 +186,28 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
           : "";
       throw new KsqlException(errorMsg + additionalMsg);
     }
+
+    final Function<Formats, ExecutionStep<KTableHolder<K>>> stepSupplier =
+        formats -> ExecutionStepFactory.tableSelectKey(
+            contextStacker,
+            sourceTableStep,
+            formats,
+            keyExpression
+        );
+
+    final ExecutionStep<KTableHolder<K>> placeholderStep =
+        stepSupplier.apply(InternalFormats.PlaceholderFormats.of());
+    final LogicalSchema newSchema = resolveSchema(placeholderStep);
+
     final KeyFormat newKeyFormat = forceInternalKeyFormat
         .map(newFmt -> KeyFormat.of(
             newFmt,
-            SerdeFeaturesFactory.buildInternal(FormatFactory.of(newFmt)),
+            SerdeFeaturesFactory.buildInternalKeyFeatures(newSchema, FormatFactory.of(newFmt)),
             keyFormat.getWindowInfo()))
         .orElse(keyFormat);
 
-    final ExecutionStep<KTableHolder<K>> step = ExecutionStepFactory.tableSelectKey(
-        contextStacker,
-        sourceTableStep,
-        InternalFormats.of(newKeyFormat.getFormatInfo(), valueFormat),
-        keyExpression
-    );
+    final ExecutionStep<KTableHolder<K>> step = stepSupplier.apply(
+        InternalFormats.of(newSchema, newKeyFormat.getFormatInfo(), valueFormat));
 
     return new SchemaKTable<>(
         step,
@@ -226,11 +236,15 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     final KeyFormat groupedKeyFormat = KeyFormat
         .nonWindowed(keyFormat.getFormatInfo(), SerdeFeatures.of());
 
-    final TableGroupBy<K> step = ExecutionStepFactory.tableGroupBy(
-        contextStacker,
-        sourceTableStep,
-        InternalFormats.of(groupedKeyFormat.getFormatInfo(), valueFormat),
-        groupByExpressions
+    final TableGroupBy<K> step = buildStepWithFormats(
+        formats -> ExecutionStepFactory.tableGroupBy(
+            contextStacker,
+            sourceTableStep,
+            formats,
+            groupByExpressions
+        ),
+        groupedKeyFormat.getFormatInfo(),
+        valueFormat
     );
 
     return new SchemaKGroupedTable(
@@ -318,11 +332,15 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final FormatInfo valueFormat,
       final Stacker contextStacker
   ) {
-    final TableSuppress<K> step = ExecutionStepFactory.tableSuppress(
-        contextStacker,
-        sourceTableStep,
-        refinementInfo,
-        InternalFormats.of(keyFormat.getFormatInfo(), valueFormat)
+    final TableSuppress<K> step = buildStepWithFormats(
+        formats -> ExecutionStepFactory.tableSuppress(
+            contextStacker,
+            sourceTableStep,
+            refinementInfo,
+            formats
+        ),
+        keyFormat.getFormatInfo(),
+        valueFormat
     );
 
     return new SchemaKTable<>(

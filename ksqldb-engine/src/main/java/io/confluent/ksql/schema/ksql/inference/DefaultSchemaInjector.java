@@ -125,7 +125,7 @@ public class DefaultSchemaInjector implements Injector {
         props.getKafkaTopic(),
         props.getKeySchemaId(),
         keyFormat,
-        SerdeFeaturesFactory.buildInternal(FormatFactory.of(keyFormat)),
+        SerdeFeaturesFactory.buildKeyFeatures(FormatFactory.of(keyFormat)),
         statement.getStatementText(),
         true
     ));

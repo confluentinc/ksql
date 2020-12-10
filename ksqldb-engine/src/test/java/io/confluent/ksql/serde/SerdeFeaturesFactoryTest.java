@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -31,7 +30,6 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,9 +49,6 @@ public class SerdeFeaturesFactoryTest {
       .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("f1"), SqlTypes.DOUBLE)
       .build();
-
-  private static final List<ColumnName> SINGLE_COLUMN_NAME = ImmutableList.of(ColumnName.of("bob"));
-  private static final List<ColumnName> MULTI_FIELD_NAMES = ImmutableList.of(ColumnName.of("bob"), ColumnName.of("vic"));
 
   private KsqlConfig ksqlConfig;
 
@@ -229,7 +224,10 @@ public class SerdeFeaturesFactoryTest {
   @Test
   public void shouldSetUnwrappedKeysIfInternalTopicHasKeyFormatSupportsBothWrappingAndUnwrapping() {
     // When:
-    final SerdeFeatures result = SerdeFeaturesFactory.buildInternal(JSON);
+    final SerdeFeatures result = SerdeFeaturesFactory.buildInternalKeyFeatures(
+        SINGLE_FIELD_SCHEMA,
+        JSON
+    );
 
     // Then:
     assertThat(result.findAny(SerdeFeatures.WRAPPING_FEATURES),
@@ -239,7 +237,10 @@ public class SerdeFeaturesFactoryTest {
   @Test
   public void shouldNotSetUnwrappedKeysIfInternalTopicHasKeyFormatsSupportsOnlyWrapping() {
     // When:
-    final SerdeFeatures result = SerdeFeaturesFactory.buildInternal(PROTOBUF);
+    final SerdeFeatures result = SerdeFeaturesFactory.buildInternalKeyFeatures(
+        SINGLE_FIELD_SCHEMA,
+        PROTOBUF
+    );
 
     // Then:
     assertThat(result.findAny(SerdeFeatures.WRAPPING_FEATURES), is(Optional.empty()));
@@ -248,7 +249,10 @@ public class SerdeFeaturesFactoryTest {
   @Test
   public void shouldNotSetUnwrappedKeysIInternalTopicHasfKeyFormatsSupportsOnlyUnwrapping() {
     // When:
-    final SerdeFeatures result = SerdeFeaturesFactory.buildInternal(KAFKA);
+    final SerdeFeatures result = SerdeFeaturesFactory.buildInternalKeyFeatures(
+        SINGLE_FIELD_SCHEMA,
+        KAFKA
+    );
 
     // Then:
     assertThat(result.findAny(SerdeFeatures.WRAPPING_FEATURES), is(Optional.empty()));

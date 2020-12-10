@@ -16,6 +16,7 @@
 package io.confluent.ksql.serde;
 
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.none.NoneFormat;
 
 /**
@@ -30,27 +31,26 @@ public final class InternalFormats {
    * Build formats for internal topics.
    *
    * <p>Internal topics don't normally need any serde features set, as they use the format
-   * defaults.  However, until ksqlDB supports wrapped single keys, any internal topic with a key
-   * format that supports both wrapping and unwrapping needs to have an explicit {@link
-   * SerdeFeature#UNWRAP_SINGLES} set to ensure backwards compatibility is easily achievable once
-   * wrapped keys are supported.
-   * 
-   * <p>Note: The unwrap feature should only be set when there is only a single key column. As
-   * ksql does not yet support multiple key columns, the only time there is no a single key column
-   * is when there is no key column, i.e. key-less streams. Internal topics, i.e. changelog and 
-   * repartition topics, are never key-less. Hence this method can safely set the unwrap feature
-   * without checking the schema.
+   * defaults. However, until ksqlDB supports wrapped single keys, any internal topic with a
+   * single key field and a key format that supports both wrapping and unwrapping needs to
+   * have an explicit {@link SerdeFeature#UNWRAP_SINGLES} set to ensure backwards
+   * compatibility is easily achievable once wrapped keys are supported.
    *
-   * <p>The code that sets the option can be removed once wrapped keys are supported. Issue 6296
-   * tracks the removal.
+   * <p>The code that sets the feature can be removed once wrapped single keys are supported.
+   * Issue 6296 tracks the removal.
    *
+   * @param schema logical schema.
    * @param keyFormat key format.
    * @param valueFormat value format.
    * @return Formats instance.
    * @see <a href=https://github.com/confluentinc/ksql/issues/6296>Issue 6296</a>
-   * @see SerdeFeaturesFactory#buildInternal
+   * @see SerdeFeaturesFactory#buildInternalKeyFeatures
    */
-  public static Formats of(final FormatInfo keyFormat, final FormatInfo valueFormat) {
+  public static Formats of(
+      final LogicalSchema schema,
+      final FormatInfo keyFormat,
+      final FormatInfo valueFormat
+  ) {
     // Do not use NONE format for internal topics:
     if (keyFormat.getFormat().equals(NoneFormat.NAME)) {
       throw new IllegalArgumentException(NoneFormat.NAME + " can not be used for internal topics");
@@ -59,8 +59,50 @@ public final class InternalFormats {
     return Formats.of(
         keyFormat,
         valueFormat,
-        SerdeFeaturesFactory.buildInternal(FormatFactory.fromName(keyFormat.getFormat())),
+        SerdeFeaturesFactory.buildInternalKeyFeatures(
+            schema,
+            FormatFactory.fromName(keyFormat.getFormat())),
         SerdeFeatures.of()
     );
+  }
+
+  public static final class PlaceholderFormats extends Formats {
+
+    public static PlaceholderFormats of() {
+      return new PlaceholderFormats();
+    }
+
+    private PlaceholderFormats() {
+      super(
+          FormatInfo.of("placeholder"),
+          FormatInfo.of("placeholder"),
+          SerdeFeatures.of(),
+          SerdeFeatures.of()
+      );
+    }
+
+    @Override
+    public FormatInfo getKeyFormat() {
+      throw new UnsupportedOperationException(
+          "getKeyFormat should not be called on a placeholder");
+    }
+
+    @Override
+    public FormatInfo getValueFormat() {
+      throw new UnsupportedOperationException(
+          "getValueFormat should not be called on a placeholder");
+    }
+
+    @Override
+    public SerdeFeatures getKeyFeatures() {
+      throw new UnsupportedOperationException(
+          "getKeyFeatures should not be called on a placeholder");
+    }
+
+    @Override
+    public SerdeFeatures getValueFeatures() {
+      throw new UnsupportedOperationException(
+          "getValueFeatures should not be called on a placeholder");
+    }
   }
 }

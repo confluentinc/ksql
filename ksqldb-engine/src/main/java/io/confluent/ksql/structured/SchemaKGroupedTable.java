@@ -31,7 +31,6 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlConfig;
@@ -95,12 +94,16 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       );
     }
 
-    final TableAggregate step = ExecutionStepFactory.tableAggregate(
-        contextStacker,
-        sourceTableStep,
-        InternalFormats.of(keyFormat.getFormatInfo(), valueFormat),
-        nonAggregateColumns,
-        aggregations
+    final TableAggregate step = buildStepWithFormats(
+        formats -> ExecutionStepFactory.tableAggregate(
+            contextStacker,
+            sourceTableStep,
+            formats,
+            nonAggregateColumns,
+            aggregations
+        ),
+        keyFormat.getFormatInfo(),
+        valueFormat
     );
 
     return new SchemaKTable<>(

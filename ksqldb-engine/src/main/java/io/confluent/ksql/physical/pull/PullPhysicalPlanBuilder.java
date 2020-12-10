@@ -44,6 +44,8 @@ import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PullProjectNode;
+import io.confluent.ksql.planner.plan.PullQueryFilterNode;
+import io.confluent.ksql.planner.plan.PullQueryFilterNode.WindowBounds;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -75,6 +77,8 @@ public class PullPhysicalPlanBuilder {
 
   private WhereInfo whereInfo;
   private List<GenericKey> keys;
+  private boolean isWindowed;
+  private WindowBounds windowBounds;
 
   public PullPhysicalPlanBuilder(
       final MetaStore metaStore,
@@ -178,8 +182,15 @@ public class PullPhysicalPlanBuilder {
     );
   }
 
-  private SelectOperator translateFilterNode(final FilterNode logicalNode) {
+  private SelectOperator translateFilterNode(final PullQueryFilterNode logicalNode) {
     final boolean windowed = persistentQueryMetadata.getResultTopic().getKeyFormat().isWindowed();
+    isWindowed = logicalNode.isWindowed();
+    keys = logicalNode.getKeys().stream()
+        .map(GenericKey::genericKey)
+        .collect(ImmutableList.toImmutableList());
+    windowBounds = logicalNode.getWindowBounds();
+
+
     whereInfo = WhereInfo.extractWhereInfo(
         analysis.getWhereExpression().orElseThrow(
             () -> WhereInfo.invalidWhereClauseException("Missing WHERE clause", windowed)),
@@ -187,7 +198,14 @@ public class PullPhysicalPlanBuilder {
         windowed,
         metaStore,
         config);
-    return new SelectOperator(logicalNode);
+
+    final ProcessingLogger logger = processingLogContext
+        .getLoggerFactory()
+        .getLogger(
+            QueryLoggerUtil.queryLoggerName(
+                QueryType.PULL_QUERY, contextStacker.push("SELECT").getQueryContext())
+        );
+    return new SelectOperator(logicalNode, logger);
   }
 
   private AbstractPhysicalOperator translateDataSourceNode(

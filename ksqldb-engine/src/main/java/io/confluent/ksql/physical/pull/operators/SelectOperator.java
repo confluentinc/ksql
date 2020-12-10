@@ -15,28 +15,52 @@
 
 package io.confluent.ksql.physical.pull.operators;
 
-import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
+import io.confluent.ksql.execution.streams.materialization.TableRow;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
+import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.planner.plan.PullQueryFilterNode;
 import java.util.List;
 import java.util.Objects;
 
 public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhysicalOperator {
 
-  private final FilterNode logicalNode;
-  private AbstractPhysicalOperator child;
+  private final PullQueryFilterNode logicalNode;
+  private final ProcessingLogger logger;
+  private final SqlPredicate predicate;
 
-  public SelectOperator(final FilterNode logicalNode) {
-    this.logicalNode = Objects.requireNonNull(logicalNode);
+  private AbstractPhysicalOperator child;
+  private KsqlTransformer<Object, GenericRow> transformer;
+  private TableRow row;
+
+  public SelectOperator(final PullQueryFilterNode logicalNode, final ProcessingLogger logger) {
+    this.logicalNode = Objects.requireNonNull(logicalNode, "logicalNode");
+    this.logger = Objects.requireNonNull(logger, "logger");
+    this.predicate = new SqlPredicate(
+        logicalNode.getPredicate(),
+        logicalNode.getCompiledWhereClause()
+    );
+
   }
 
   @Override
   public void open() {
+    transformer = predicate.getTransformer(logger);
     child.open();
   }
 
   @Override
   public Object next() {
-    return child.next();
+    row = (TableRow)child.next();
+
+    return transformer.transform(
+        row.key(),
+        row.value(),
+        new PullProcessingContext(row.rowTime())
+    );
   }
 
   @Override

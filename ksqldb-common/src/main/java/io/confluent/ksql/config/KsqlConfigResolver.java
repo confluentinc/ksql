@@ -87,6 +87,13 @@ public class KsqlConfigResolver implements ConfigResolver {
       return Optional.empty();  // Unknown streams config
     }
 
+    if (key.startsWith(StreamsConfig.TOPIC_PREFIX)) {
+      final String topicKey = stripPrefix(key, StreamsConfig.TOPIC_PREFIX);
+      if (KsqlConfig.STREAM_TOPIC_CONFIG_NAMES.contains(topicKey)) {
+        return Optional.of(ConfigItem.unresolved(key));
+      }
+    }
+
     // Unknown config (which could be used):
     return strict ? Optional.empty() : Optional.of(ConfigItem.unresolved(key));
   }

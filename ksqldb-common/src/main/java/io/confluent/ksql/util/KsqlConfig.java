@@ -50,11 +50,15 @@ import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigDef.ValidString;
 import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.utils.AppInfoParser;
 import org.apache.kafka.streams.StreamsConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @EffectivelyImmutable
 public class KsqlConfig extends AbstractConfig {
+  private static final Logger LOG = LoggerFactory.getLogger(KsqlConfig.class);
 
   public static final String KSQL_CONFIG_PROPERTY_PREFIX = "ksql.";
 
@@ -496,6 +500,7 @@ public class KsqlConfig extends AbstractConfig {
   public static final ConfigDef CURRENT_DEF = buildConfigDef(ConfigGeneration.CURRENT);
   public static final ConfigDef LEGACY_DEF = buildConfigDef(ConfigGeneration.LEGACY);
   public static final Set<String> SSL_CONFIG_NAMES = sslConfigNames();
+  public static final Set<String> STREAM_TOPIC_CONFIG_NAMES = streamTopicConfigNames();
 
   private static ConfigDef configDef(final ConfigGeneration generation) {
     return generation == ConfigGeneration.CURRENT ? CURRENT_DEF : LEGACY_DEF;
@@ -958,6 +963,25 @@ public class KsqlConfig extends AbstractConfig {
     this.ksqlStreamConfigProps = buildStreamingConfig(streamsConfigDefaults, originals());
   }
 
+  private static Set<String> streamTopicConfigNames() {
+    final ImmutableSet.Builder<String> configs = ImmutableSet.builder();
+
+    Arrays.stream(TopicConfig.class.getDeclaredFields())
+        .filter(f -> f.getType() == String.class)
+        .filter(f -> f.getName().endsWith("_CONFIG"))
+        .forEach(f -> {
+          try {
+            configs.add((String) f.get(null));
+          } catch (final IllegalAccessException e) {
+            LOG.warn("Could not get the '{}' config from TopicConfig.class. Setting and listing "
+                + "properties with 'ksql.streams.topics.*' from clients will be disabled.",
+                f.getName());
+          }
+        });
+
+    return configs.build();
+  }
+
   private boolean getBooleanConfig(final String config, final boolean defaultValue) {
     final Object value = originals().get(config);
     if (value == null) {
@@ -1074,6 +1098,24 @@ public class KsqlConfig extends AbstractConfig {
             configValue -> props.put(
                 configValue.key,
                 configValue.convertToObfuscatedString()));
+
+    props.putAll(getKsqlStreamTopicConfigProps());
+    return Collections.unmodifiableMap(props);
+  }
+
+  private Map<String, String> getKsqlStreamTopicConfigProps() {
+    final Map<String, String> props = new HashMap<>();
+
+    // Configs with `topic.` prefixes do not appear in the ksqlStreamConfigProps
+    // properties, but are considered a streams configuration, i.e.
+    // `ksql.streams.topic.min.insync.replicas` (see https://github.com/confluentinc/ksql/pull/3691)
+    originalsWithPrefix(KSQL_STREAMS_PREFIX, true).entrySet().stream()
+        .filter(e -> e.getKey().startsWith(StreamsConfig.TOPIC_PREFIX))
+        .filter(e -> STREAM_TOPIC_CONFIG_NAMES.contains(
+            e.getKey().substring(StreamsConfig.TOPIC_PREFIX.length())
+        ))
+        .forEach(e -> props.put(e.getKey(), e.getValue().toString()));
+
     return Collections.unmodifiableMap(props);
   }
 

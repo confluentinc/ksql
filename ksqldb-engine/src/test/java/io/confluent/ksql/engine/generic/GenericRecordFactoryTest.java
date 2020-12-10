@@ -22,6 +22,7 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -41,9 +42,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -83,11 +81,7 @@ public class GenericRecordFactoryTest {
 
     // Then:
     assertThat(record, is(KsqlGenericRecord.of(
-        new Struct(
-            SchemaBuilder.struct()
-                .field(KEY.text(), Schema.OPTIONAL_STRING_SCHEMA)
-                .build())
-            .put(KEY.text(), "ab"),
+        GenericKey.genericKey("ab"),
         GenericRow.genericRow("ab"),
         0
     )));
@@ -112,11 +106,7 @@ public class GenericRecordFactoryTest {
 
     // Then:
     assertThat(record, is(KsqlGenericRecord.of(
-        new Struct(
-            SchemaBuilder.struct()
-                .field(KEY.text(), Schema.OPTIONAL_STRING_SCHEMA)
-                .build())
-            .put(KEY.text(), "key"),
+        GenericKey.genericKey("key"),
         GenericRow.genericRow("value"),
         0
     )));
@@ -139,11 +129,7 @@ public class GenericRecordFactoryTest {
 
     // Then:
     assertThat(record, is(KsqlGenericRecord.of(
-        new Struct(
-            SchemaBuilder.struct()
-                .field(KEY.text(), Schema.OPTIONAL_INT64_SCHEMA)
-                .build())
-            .put(KEY.text(), 1L),
+        GenericKey.genericKey(1L),
         GenericRow.genericRow(1L),
         0
     )));
@@ -165,11 +151,7 @@ public class GenericRecordFactoryTest {
 
     // Then:
     assertThat(record, is(KsqlGenericRecord.of(
-        new Struct(
-            SchemaBuilder.struct()
-                .field(KEY.text(), Schema.OPTIONAL_STRING_SCHEMA)
-                .build())
-            .put(KEY.text(), null),
+        GenericKey.genericKey((Object) null),
         GenericRow.genericRow((Object) null),
         0
     )));
@@ -192,11 +174,7 @@ public class GenericRecordFactoryTest {
 
     // Then:
     assertThat(record, is(KsqlGenericRecord.of(
-        new Struct(
-            SchemaBuilder.struct()
-                .field(KEY.text(), Schema.OPTIONAL_STRING_SCHEMA)
-                .build())
-            .put(KEY.text(), "a"),
+        GenericKey.genericKey("a"),
         GenericRow.genericRow("a"),
         1
     )));
@@ -220,11 +198,7 @@ public class GenericRecordFactoryTest {
 
     // Then:
     assertThat(record, is(KsqlGenericRecord.of(
-        new Struct(
-            SchemaBuilder.struct()
-                .field(KEY.text(), Schema.OPTIONAL_STRING_SCHEMA)
-                .build())
-            .put(KEY.text(), "a"),
+        GenericKey.genericKey("a"),
         GenericRow.genericRow("a"),
         1
     )));
@@ -248,11 +222,7 @@ public class GenericRecordFactoryTest {
 
     // Then:
     assertThat(record, is(KsqlGenericRecord.of(
-        new Struct(
-            SchemaBuilder.struct()
-                .field(KEY.text(), Schema.OPTIONAL_STRING_SCHEMA)
-                .build())
-            .put(KEY.text(), "a"),
+        GenericKey.genericKey("a"),
         GenericRow.genericRow("a", null),
         0
     )));
@@ -275,11 +245,7 @@ public class GenericRecordFactoryTest {
 
     // Then:
     assertThat(record, is(KsqlGenericRecord.of(
-        new Struct(
-            SchemaBuilder.struct()
-                .field(KEY.text(), Schema.OPTIONAL_STRING_SCHEMA)
-                .build())
-            .put(KEY.text(), "a"),
+        GenericKey.genericKey("a"),
         GenericRow.genericRow("a"),
         0
     )));

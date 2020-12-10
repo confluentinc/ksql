@@ -68,18 +68,21 @@ public class ServerVerticle extends AbstractVerticle {
   private HttpServer httpServer;
   private final Optional<Boolean> isInternalListener;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
+  private final LoggingRateLimiter loggingRateLimiter;
 
   public ServerVerticle(
       final Endpoints endpoints,
       final HttpServerOptions httpServerOptions,
       final Server server,
       final Optional<Boolean> isInternalListener,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics) {
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final LoggingRateLimiter loggingRateLimiter) {
     this.endpoints = Objects.requireNonNull(endpoints);
     this.httpServerOptions = Objects.requireNonNull(httpServerOptions);
     this.server = Objects.requireNonNull(server);
     this.isInternalListener = Objects.requireNonNull(isInternalListener);
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
+    this.loggingRateLimiter = Objects.requireNonNull(loggingRateLimiter);
   }
 
   @Override
@@ -111,6 +114,8 @@ public class ServerVerticle extends AbstractVerticle {
 
   private Router setupRouter() {
     final Router router = Router.router(vertx);
+
+    router.route().handler(new LoggingHandler(server, loggingRateLimiter));
 
     KsqlCorsHandler.setupCorsHandler(server, router);
 

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.physical.pull.operators;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
@@ -23,7 +24,6 @@ import io.confluent.ksql.planner.plan.DataSourceNode;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,10 +40,10 @@ public class KeyedWindowedTableLookupOperator
 
   private List<KsqlPartitionLocation> partitionLocations;
   private Iterator<WindowedRow> resultIterator;
-  private Iterator<Struct> keyIterator;
+  private Iterator<GenericKey> keyIterator;
   private Iterator<KsqlPartitionLocation> partitionLocationIterator;
   private KsqlPartitionLocation nextLocation;
-  private Struct nextKey;
+  private GenericKey nextKey;
 
 
   public KeyedWindowedTableLookupOperator(

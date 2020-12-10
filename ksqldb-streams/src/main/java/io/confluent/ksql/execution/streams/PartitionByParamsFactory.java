@@ -15,16 +15,19 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static io.confluent.ksql.GenericKey.genericKey;
+
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
+import io.confluent.ksql.execution.streams.PartitionByParams.Mapper;
 import io.confluent.ksql.execution.util.ColumnExtractor;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
-import io.confluent.ksql.execution.util.StructKeyUtil;
-import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
+import io.confluent.ksql.execution.util.KeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
@@ -37,9 +40,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 
 /**
@@ -72,8 +73,9 @@ public final class PartitionByParamsFactory {
   private PartitionByParamsFactory() {
   }
 
-  public static PartitionByParams build(
+  public static <K> PartitionByParams<K> build(
       final LogicalSchema sourceSchema,
+      final ExecutionKeyFactory<K> serdeFactory,
       final Expression partitionBy,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
@@ -84,7 +86,7 @@ public final class PartitionByParamsFactory {
     final LogicalSchema resultSchema =
         buildSchema(sourceSchema, partitionBy, functionRegistry, partitionByCol);
 
-    final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper;
+    final Mapper<K> mapper;
     if (partitionBy instanceof NullLiteral) {
       // In case of PARTITION BY NULL, it is sufficient to set the new key to null as the old key
       // is already present in the current value
@@ -104,10 +106,10 @@ public final class PartitionByParamsFactory {
           logger,
           partitionByInvolvesKeyColsOnly
       );
-      mapper = buildMapper(resultSchema, partitionByCol, evaluator);
+      mapper = buildMapper(resultSchema, partitionByCol, evaluator, serdeFactory);
     }
 
-    return new PartitionByParams(resultSchema, mapper);
+    return new PartitionByParams<K>(resultSchema, mapper);
   }
 
   public static LogicalSchema buildSchema(
@@ -169,27 +171,26 @@ public final class PartitionByParamsFactory {
     return Optional.empty();
   }
 
-  private static BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> buildMapper(
+  private static <K> Mapper<K> buildMapper(
       final LogicalSchema resultSchema,
       final Optional<ColumnName> partitionByCol,
-      final PartitionByExpressionEvaluator evaluator
+      final PartitionByExpressionEvaluator evaluator,
+      final ExecutionKeyFactory<K> executionKeyFactory
   ) {
     // If partitioning by something other than an existing column, then a new key will have
     // been synthesized. This new key must be appended to the value to make it available for
     // stream processing, in the same way SourceBuilder appends the key and rowtime to the value:
     final boolean appendNewKey = !partitionByCol.isPresent();
 
-    final KeyBuilder keyBuilder = StructKeyUtil.keyBuilder(resultSchema);
+    return (oldK, row) -> {
+      final Object newKey = evaluator.evaluate(oldK, row);
+      final K key = executionKeyFactory.constructNewKey(oldK, genericKey(newKey));
 
-    return (k, v) -> {
-      final Object newKey = evaluator.evaluate(k, v);
-      final Struct structKey = keyBuilder.build(newKey, 0);
-
-      if (v != null && appendNewKey) {
-        v.append(newKey);
+      if (row != null && appendNewKey) {
+        row.append(newKey);
       }
 
-      return new KeyValue<>(structKey, v);
+      return new KeyValue<>(key, row);
     };
   }
 
@@ -242,7 +243,7 @@ public final class PartitionByParamsFactory {
 
     Object evaluate(final Object key, final GenericRow value) {
       final GenericRow row = evaluateOnKeyOnly
-          ? GenericRow.fromList(StructKeyUtil.asList(key))
+          ? GenericRow.fromList(KeyUtil.asList(key))
           : value;
       return expressionMetadata.evaluate(row, null, logger, errorMsg);
     }

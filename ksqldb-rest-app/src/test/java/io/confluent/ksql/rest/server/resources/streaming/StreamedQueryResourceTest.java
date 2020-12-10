@@ -59,6 +59,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.BlockingRowQueue;
@@ -186,6 +187,8 @@ public class StreamedQueryResourceTest {
   private PullQueryResult pullQueryResult;
   @Mock
   private LogicalSchema schema;
+  @Mock
+  private HARouting haRouting;
 
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
@@ -220,7 +223,8 @@ public class StreamedQueryResourceTest {
         denyListPropertyValidator,
         Optional.empty(),
         routingFilterFactory,
-        rateLimiter
+        rateLimiter,
+        haRouting
     );
 
     testResource.configure(VALID_CONFIG);
@@ -301,10 +305,11 @@ public class StreamedQueryResourceTest {
         denyListPropertyValidator,
         Optional.empty(),
         routingFilterFactory,
-        pullQueryRateLimiter
+        pullQueryRateLimiter,
+        haRouting
     );
     testResource.configure(VALID_CONFIG);
-    when(mockKsqlEngine.executePullQuery(any(), any(), any(), any(), any())).thenReturn(pullQueryResult);
+    when(mockKsqlEngine.executePullQuery(any(), any(), any(), any(), any(), any())).thenReturn(pullQueryResult);
     when(pullQueryResult.getTableRows()).thenReturn(Collections.emptyList());
     when(pullQueryResult.getSchema()).thenReturn(schema);
     when(pullQueryResult.getQueryId()).thenReturn(queryId);
@@ -346,7 +351,8 @@ public class StreamedQueryResourceTest {
         denyListPropertyValidator,
         Optional.empty(),
         routingFilterFactory,
-        rateLimiter
+        rateLimiter,
+        haRouting
     );
 
     // When:
@@ -509,7 +515,8 @@ public class StreamedQueryResourceTest {
         denyListPropertyValidator,
         Optional.empty(),
         routingFilterFactory,
-        rateLimiter
+        rateLimiter,
+        haRouting
       );
     final Map<String, Object> props = new HashMap<>(ImmutableMap.of(
         StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"

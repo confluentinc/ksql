@@ -26,6 +26,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
@@ -152,6 +153,7 @@ public interface KsqlExecutionContext {
   PullQueryResult executePullQuery(
       ServiceContext serviceContext,
       ConfiguredStatement<Query> statement,
+      HARouting routing,
       RoutingFilterFactory routingFilterFactory,
       RoutingOptions routingOptions,
       Optional<PullQueryExecutorMetrics> pullQueryMetrics

@@ -23,18 +23,19 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.name.ColumnName;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 
 @Immutable
 public class StreamWindowedAggregate
-    implements ExecutionStep<KTableHolder<Windowed<Struct>>> {
+    implements ExecutionStep<KTableHolder<Windowed<GenericKey>>> {
+
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KGroupedStreamHolder> source;
   private final Formats internalFormats;
@@ -100,8 +101,13 @@ public class StreamWindowedAggregate
   }
 
   @Override
-  public KTableHolder<Windowed<Struct>> build(final PlanBuilder builder) {
-    return builder.visitStreamWindowedAggregate(this);
+  public KTableHolder<Windowed<GenericKey>> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitStreamWindowedAggregate(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitStreamWindowedAggregate(this);
   }
 
   @Override

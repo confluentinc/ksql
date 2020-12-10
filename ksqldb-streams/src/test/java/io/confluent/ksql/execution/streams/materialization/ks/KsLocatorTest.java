@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingFilters;
@@ -48,7 +49,6 @@ import java.util.Optional;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyQueryMetadata;
 import org.apache.kafka.streams.state.HostInfo;
@@ -65,17 +65,17 @@ public class KsLocatorTest {
   private static final String STORE_NAME = "someStoreName";
   private static final URL LOCAL_HOST_URL = localHost();
   private static final Schema SCHEMA = SchemaBuilder.struct().field("a", SchemaBuilder.int32());
-  private static final Struct SOME_KEY = new Struct(SCHEMA).put("a", 1);
-  private static final Struct SOME_KEY1 = new Struct(SCHEMA).put("a", 2);
-  private static final Struct SOME_KEY2 = new Struct(SCHEMA).put("a", 3);
-  private static final Struct SOME_KEY3 = new Struct(SCHEMA).put("a", 4);
+  private static final GenericKey SOME_KEY = GenericKey.genericKey(1);
+  private static final GenericKey SOME_KEY1 = GenericKey.genericKey(2);
+  private static final GenericKey SOME_KEY2 = GenericKey.genericKey(3);
+  private static final GenericKey SOME_KEY3 = GenericKey.genericKey(4);
 
   @Mock
   private KafkaStreams kafkaStreams;
   @Mock
   private KeyQueryMetadata keyQueryMetadata;
   @Mock
-  private Serializer<Struct> keySerializer;
+  private Serializer<GenericKey> keySerializer;
   @Mock
   private RoutingFilter livenessFilter;
   @Mock
@@ -164,7 +164,7 @@ public class KsLocatorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "KeyQueryMetadata not available for state store someStoreName and key Struct{a=1}"));
+        "Materialized data for key [1] is not available yet. Please try again later."));
   }
 
   @Test
@@ -410,7 +410,7 @@ public class KsLocatorTest {
   }
 
   @SuppressWarnings("unchecked")
-  private void getActiveStandbyMetadata(final Struct key, int partition,
+  private void getActiveStandbyMetadata(final GenericKey key, int partition,
       final HostInfo activeHostInfo, final HostInfo standByHostInfo) {
     KeyQueryMetadata keyQueryMetadata = mock(KeyQueryMetadata.class);
     when(keyQueryMetadata.activeHost()).thenReturn(activeHostInfo);

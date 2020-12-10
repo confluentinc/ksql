@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udaf.count;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.ParameterInfo;
@@ -22,7 +23,6 @@ import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
 import java.util.function.Function;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
 public class CountKudaf
@@ -47,7 +47,7 @@ public class CountKudaf
   }
 
   @Override
-  public Merger<Struct, Long> getMerger() {
+  public Merger<GenericKey, Long> getMerger() {
     return (aggKey, aggOne, aggTwo) -> aggOne + aggTwo;
   }
 

@@ -57,8 +57,13 @@ public class StreamFlatMap<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   @Override
-  public KStreamHolder<K> build(final PlanBuilder builder) {
-    return builder.visitFlatMap(this);
+  public KStreamHolder<K> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitFlatMap(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitFlatMap(this);
   }
 
   public List<FunctionCall> getTableFunctions() {

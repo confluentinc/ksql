@@ -110,6 +110,7 @@ public class Server {
     }
     this.workerExecutor = vertx.createSharedWorkerExecutor("ksql-workers",
         config.getInt(KsqlRestConfig.WORKER_POOL_SIZE));
+    final LoggingRateLimiter loggingRateLimiter = new LoggingRateLimiter(config);
     configureTlsCertReload(config);
 
     final List<URI> listenUris = parseListeners(config);
@@ -131,7 +132,7 @@ public class Server {
         final ServerVerticle serverVerticle = new ServerVerticle(endpoints,
             createHttpServerOptions(config, listener.getHost(), listener.getPort(),
                 listener.getScheme().equalsIgnoreCase("https"), isInternalListener.orElse(false)),
-            this, isInternalListener, pullQueryMetrics);
+            this, isInternalListener, pullQueryMetrics, loggingRateLimiter);
         vertx.deployVerticle(serverVerticle, vcf);
         final int index = i;
         final CompletableFuture<String> deployFuture = vcf.thenApply(s -> {

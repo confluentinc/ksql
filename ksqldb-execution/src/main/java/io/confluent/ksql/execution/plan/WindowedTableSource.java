@@ -16,15 +16,15 @@
 package io.confluent.ksql.execution.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 
-public final class WindowedTableSource extends SourceStep<KTableHolder<Windowed<Struct>>> {
+public final class WindowedTableSource extends SourceStep<KTableHolder<Windowed<GenericKey>>> {
 
   private final WindowInfo windowInfo;
 
@@ -45,8 +45,13 @@ public final class WindowedTableSource extends SourceStep<KTableHolder<Windowed<
   }
 
   @Override
-  public KTableHolder<Windowed<Struct>> build(final PlanBuilder builder) {
-    return builder.visitWindowedTableSource(this);
+  public KTableHolder<Windowed<GenericKey>> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitWindowedTableSource(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitWindowedTableSource(this);
   }
 
   @Override

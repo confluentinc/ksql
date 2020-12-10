@@ -19,16 +19,16 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nonnull;
-import org.apache.kafka.connect.data.Struct;
 
 @Immutable
-public class StreamSelectKeyV1 implements ExecutionStep<KStreamHolder<Struct>> {
+public class StreamSelectKeyV1 implements ExecutionStep<KStreamHolder<GenericKey>> {
 
   private static final ImmutableList<Property> MUST_MATCH = ImmutableList.of(
       new Property("class", Object::getClass),
@@ -72,8 +72,13 @@ public class StreamSelectKeyV1 implements ExecutionStep<KStreamHolder<Struct>> {
   }
 
   @Override
-  public KStreamHolder<Struct> build(final PlanBuilder builder) {
-    return builder.visitStreamSelectKey(this);
+  public KStreamHolder<GenericKey> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitStreamSelectKey(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitStreamSelectKey(this);
   }
 
   @Override

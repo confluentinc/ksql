@@ -81,8 +81,13 @@ public class StreamGroupBy<K> implements ExecutionStep<KGroupedStreamHolder> {
   }
 
   @Override
-  public KGroupedStreamHolder build(final PlanBuilder planVisitor) {
-    return planVisitor.visitStreamGroupBy(this);
+  public KGroupedStreamHolder build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitStreamGroupBy(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitStreamGroupBy(this);
   }
 
   @Override

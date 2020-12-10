@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.execution.streams.materialization;
 
+import io.confluent.ksql.GenericKey;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
 
 /**
  * Materialization of a table with a non-windowed key
@@ -30,5 +30,5 @@ public interface MaterializedTable {
    * @param partition partition to limit the get to
    * @return the value, if one is exists.
    */
-  Optional<Row> get(Struct key, int partition);
+  Optional<Row> get(GenericKey key, int partition);
 }

@@ -17,8 +17,23 @@ package io.confluent.ksql.exception;
 
 public class KafkaTopicExistsException extends KafkaTopicClientException {
 
-  public KafkaTopicExistsException(final String message) {
+  /**
+   * Whether the Kafka topic exists with an unexpected number of either
+   * partitions or replicas.
+   */
+  private final boolean partitionOrReplicaMismatch;
+
+  public KafkaTopicExistsException(
+      final String message,
+      final boolean partitionOrReplicaMismatch
+  ) {
     super(message);
+
+    this.partitionOrReplicaMismatch = partitionOrReplicaMismatch;
+  }
+
+  public boolean getPartitionOrReplicaMismatch() {
+    return partitionOrReplicaMismatch;
   }
 
 }

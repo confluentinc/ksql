@@ -32,6 +32,7 @@ import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public final class PlannedTestUtils {
@@ -48,9 +49,9 @@ public final class PlannedTestUtils {
 
   public static boolean isNotExcluded(final TestCase testCase) {
     // Place temporary logic here to exclude test cases based on feature flags, etc.
-    return !(boolean) testCase
-        .properties()
-        .getOrDefault(KsqlConfig.KSQL_KEY_FORMAT_ENABLED, false);
+    final Map<String, Object> props = testCase.properties();
+    return !(boolean) props.getOrDefault(KsqlConfig.KSQL_KEY_FORMAT_ENABLED, false)
+        && !(boolean) props.getOrDefault(KsqlConfig.KSQL_MULTICOL_KEY_FORMAT_ENABLED, false);
   }
 
   public static boolean isSamePlan(

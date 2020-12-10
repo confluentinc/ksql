@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -24,8 +25,6 @@ import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.streams.StreamGroupByBuilder.ParamsFactory;
-import io.confluent.ksql.execution.util.StructKeyUtil;
-import io.confluent.ksql.execution.util.StructKeyUtil.KeyBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
@@ -40,7 +39,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
@@ -57,8 +55,6 @@ import org.mockito.junit.MockitoRule;
 
 public class StreamGroupByBuilderTest {
 
-  private static final KeyBuilder STRING_KEY_BUILDER = StructKeyUtil
-      .keyBuilder(SystemColumns.ROWKEY_NAME, SqlTypes.STRING);
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("PAC"), SqlTypes.BIGINT)
@@ -105,33 +101,33 @@ public class StreamGroupByBuilderTest {
   @Mock
   private GroupedFactory groupedFactory;
   @Mock
-  private ExecutionStep<KStreamHolder<Struct>> sourceStep;
+  private ExecutionStep<KStreamHolder<GenericKey>> sourceStep;
   @Mock
-  private Serde<Struct> keySerde;
+  private Serde<GenericKey> keySerde;
   @Mock
   private Serde<GenericRow> valueSerde;
   @Mock
-  private Grouped<Struct, GenericRow> grouped;
+  private Grouped<GenericKey, GenericRow> grouped;
   @Mock
-  private KStream<Struct, GenericRow> sourceStream;
+  private KStream<GenericKey, GenericRow> sourceStream;
   @Mock
-  private KStream<Struct, GenericRow> filteredStream;
+  private KStream<GenericKey, GenericRow> filteredStream;
   @Mock
-  private KGroupedStream<Struct, GenericRow> groupedStream;
+  private KGroupedStream<GenericKey, GenericRow> groupedStream;
   @Captor
-  private ArgumentCaptor<Predicate<Struct, GenericRow>> predicateCaptor;
+  private ArgumentCaptor<Predicate<GenericKey, GenericRow>> predicateCaptor;
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
-  private KStreamHolder<Struct> streamHolder;
+  private KStreamHolder<GenericKey> streamHolder;
   @Mock
   private ParamsFactory paramsFactory;
   @Mock
   private GroupByParams groupByParams;
   @Mock
-  private Function<GenericRow, Struct> mapper;
+  private Function<GenericRow, GenericKey> mapper;
 
-  private StreamGroupBy<Struct> groupBy;
+  private StreamGroupBy<GenericKey> groupBy;
   private StreamGroupByKey groupByKey;
 
   @Rule
@@ -204,9 +200,9 @@ public class StreamGroupByBuilderTest {
 
     // Then:
     verify(sourceStream).filter(predicateCaptor.capture());
-    final Predicate<Struct, GenericRow> predicate = predicateCaptor.getValue();
-    assertThat(predicate.test(STRING_KEY_BUILDER.build("foo", 0), new GenericRow()), is(true));
-    assertThat(predicate.test(STRING_KEY_BUILDER.build("foo", 0), null), is(false));
+    final Predicate<GenericKey, GenericRow> predicate = predicateCaptor.getValue();
+    assertThat(predicate.test(GenericKey.genericKey("foo"), new GenericRow()), is(true));
+    assertThat(predicate.test(GenericKey.genericKey("foo"), null), is(false));
   }
 
   @Test

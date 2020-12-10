@@ -211,6 +211,14 @@ Alias a complex type declaration. For more information, see
 CREATE TYPE <type_name> AS <type>;
 ```
 
+## DEFINE
+
+Defines a variable.
+
+```sql
+DEFINE <name> = '<value>';
+```
+
 ## DESCRIBE
 List columns in a stream or table along with their data types and other
 attributes. For more information, see [DESCRIBE](../../ksqldb-reference/describe).
@@ -563,6 +571,13 @@ see [SHOW TYPES](../../ksqldb-reference/show-types).
 SHOW | LIST TYPES;
 ```
 
+## SHOW VARIABLES
+List all defined variables.
+
+```sql
+SHOW VARIABLES;
+```
+
 ## SIZE
 Specify the duration of a HOPPING or TUMBLING window. For more information,
 see [Time and Windows in ksqlDB](../../concepts/time-and-windows-in-ksqldb-queries).
@@ -599,6 +614,14 @@ SELECT WINDOWSTART, WINDOWEND, aggregate_function
   FROM from_stream
   WINDOW TUMBLING window_expression
   EMIT CHANGES;
+```
+
+## UNDEFINE
+
+Undefines a variable.
+
+```sql
+UNDEFINE name;
 ```
 
 ## WHERE

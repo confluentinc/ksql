@@ -18,8 +18,9 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.JoinType;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KTableHolder;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.name.ColumnName;
@@ -67,7 +68,9 @@ public class TableTableJoinBuilderTest {
   @Mock
   private ExecutionStep<KTableHolder<Struct>> right;
   @Mock
-  private KeySerdeFactory<Struct> keySerdeFactory;
+  private ExecutionKeyFactory<Struct> executionKeyFactory;
+  @Mock
+  private PlanInfo planInfo;
 
   private PlanBuilder planBuilder;
   private TableTableJoin<Struct> join;
@@ -75,10 +78,10 @@ public class TableTableJoinBuilderTest {
   @SuppressWarnings("unchecked")
   @Before
   public void init() {
-    when(left.build(any())).thenReturn(
-        KTableHolder.unmaterialized(leftKTable, LEFT_SCHEMA, keySerdeFactory));
-    when(right.build(any())).thenReturn(
-        KTableHolder.unmaterialized(rightKTable, RIGHT_SCHEMA, keySerdeFactory));
+    when(left.build(any(), eq(planInfo))).thenReturn(
+        KTableHolder.unmaterialized(leftKTable, LEFT_SCHEMA, executionKeyFactory));
+    when(right.build(any(), eq(planInfo))).thenReturn(
+        KTableHolder.unmaterialized(rightKTable, RIGHT_SCHEMA, executionKeyFactory));
 
     when(leftKTable.leftJoin(any(KTable.class), any())).thenReturn(resultKTable);
     when(leftKTable.outerJoin(any(KTable.class), any())).thenReturn(resultKTable);
@@ -98,7 +101,7 @@ public class TableTableJoinBuilderTest {
     givenLeftJoin(L_KEY);
 
     // When:
-    final KTableHolder<Struct> result = join.build(planBuilder);
+    final KTableHolder<Struct> result = join.build(planBuilder, planInfo);
 
     // Then:
     verify(leftKTable).leftJoin(
@@ -107,7 +110,7 @@ public class TableTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
     assertThat(result.getTable(), is(resultKTable));
-    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test
@@ -116,7 +119,7 @@ public class TableTableJoinBuilderTest {
     givenLeftJoin(SYNTH_KEY);
 
     // When:
-    join.build(planBuilder);
+    join.build(planBuilder, planInfo);
 
     // Then:
     verify(leftKTable).leftJoin(
@@ -131,7 +134,7 @@ public class TableTableJoinBuilderTest {
     givenOuterJoin();
 
     // When:
-    final KTableHolder<Struct> result = join.build(planBuilder);
+    final KTableHolder<Struct> result = join.build(planBuilder, planInfo);
 
     // Then:
     verify(leftKTable).outerJoin(
@@ -140,7 +143,7 @@ public class TableTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
     assertThat(result.getTable(), is(resultKTable));
-    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test
@@ -149,7 +152,7 @@ public class TableTableJoinBuilderTest {
     givenInnerJoin(R_KEY);
 
     // When:
-    final KTableHolder<Struct> result = join.build(planBuilder);
+    final KTableHolder<Struct> result = join.build(planBuilder, planInfo);
 
     // Then:
     verify(leftKTable).join(
@@ -158,7 +161,7 @@ public class TableTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
     assertThat(result.getTable(), is(resultKTable));
-    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test
@@ -167,7 +170,7 @@ public class TableTableJoinBuilderTest {
     givenInnerJoin(SYNTH_KEY);
 
     // When:
-    join.build(planBuilder);
+    join.build(planBuilder, planInfo);
 
     // Then:
     verify(leftKTable).join(
@@ -182,7 +185,7 @@ public class TableTableJoinBuilderTest {
     givenInnerJoin(R_KEY);
 
     // When:
-    final KTableHolder<Struct> result = join.build(planBuilder);
+    final KTableHolder<Struct> result = join.build(planBuilder, planInfo);
 
     // Then:
     assertThat(
@@ -197,7 +200,7 @@ public class TableTableJoinBuilderTest {
     givenInnerJoin(SYNTH_KEY);
 
     // When:
-    final KTableHolder<Struct> result = join.build(planBuilder);
+    final KTableHolder<Struct> result = join.build(planBuilder, planInfo);
 
     // Then:
     assertThat(
@@ -218,7 +221,7 @@ public class TableTableJoinBuilderTest {
     );
 
     // When:
-    final KTableHolder<Struct> result = join.build(planBuilder);
+    final KTableHolder<Struct> result = join.build(planBuilder, planInfo);
 
     // Then:
     assertThat(

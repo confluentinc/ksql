@@ -16,6 +16,7 @@
 package io.confluent.ksql.physical.pull.operators;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.Row;
@@ -23,7 +24,6 @@ import io.confluent.ksql.planner.plan.DataSourceNode;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,10 +38,10 @@ public class KeyedTableLookupOperator
 
   private List<KsqlPartitionLocation> partitionLocations;
   private Iterator<Row> resultIterator;
-  private Iterator<Struct> keyIterator;
+  private Iterator<GenericKey> keyIterator;
   private Iterator<KsqlPartitionLocation> partitionLocationIterator;
   private KsqlPartitionLocation nextLocation;
-  private Struct nextKey;
+  private GenericKey nextKey;
 
   public KeyedTableLookupOperator(
       final Materialization mat,

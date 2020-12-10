@@ -16,11 +16,8 @@
 package io.confluent.ksql.schema.ksql.types;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.JavaToSqlTypeConverter;
-import io.confluent.ksql.schema.utils.DataException;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.schema.utils.SchemaException;
-import java.math.BigDecimal;
 import java.util.Objects;
 
 @Immutable
@@ -57,29 +54,6 @@ public final class SqlDecimal extends SqlType {
 
   public int getScale() {
     return scale;
-  }
-
-  @Override
-  public void validateValue(final Object value) {
-    if (value == null) {
-      return;
-    }
-
-    if (!(value instanceof BigDecimal)) {
-      final SqlBaseType sqlBaseType = JavaToSqlTypeConverter.instance()
-          .toSqlType(value.getClass());
-
-      throw new DataException("Expected DECIMAL, got " + sqlBaseType);
-    }
-
-    final BigDecimal decimal = (BigDecimal) value;
-    if (decimal.precision() != precision) {
-      throw new DataException("Expected " + this + ", got precision " + decimal.precision());
-    }
-
-    if (decimal.scale() != scale) {
-      throw new DataException("Expected " + this + ", got scale " + decimal.scale());
-    }
   }
 
   @Override

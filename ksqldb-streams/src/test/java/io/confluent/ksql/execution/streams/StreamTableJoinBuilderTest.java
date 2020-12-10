@@ -20,9 +20,10 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.name.ColumnName;
@@ -94,11 +95,13 @@ public class StreamTableJoinBuilderTest {
   @Mock
   private KsqlQueryBuilder queryBuilder;
   @Mock
-  private KeySerdeFactory<Struct> keySerdeFactory;
+  private ExecutionKeyFactory<Struct> executionKeyFactory;
   @Mock
   private Serde<Struct> keySerde;
   @Mock
   private Serde<GenericRow> leftSerde;
+  @Mock
+  private PlanInfo planInfo;
 
   private PlanBuilder planBuilder;
   private StreamTableJoin<Struct> join;
@@ -106,14 +109,14 @@ public class StreamTableJoinBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(executionKeyFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(eq(FormatInfo.of(FormatFactory.JSON.name())), any(), any()))
         .thenReturn(leftSerde);
     when(joinedFactory.create(any(Serde.class), any(), any(), any())).thenReturn(joined);
-    when(left.build(any())).thenReturn(
-        new KStreamHolder<>(leftKStream, LEFT_SCHEMA, keySerdeFactory));
-    when(right.build(any())).thenReturn(
-        KTableHolder.unmaterialized(rightKTable, RIGHT_SCHEMA, keySerdeFactory));
+    when(left.build(any(), eq(planInfo))).thenReturn(
+        new KStreamHolder<>(leftKStream, LEFT_SCHEMA, executionKeyFactory));
+    when(right.build(any(), eq(planInfo))).thenReturn(
+        KTableHolder.unmaterialized(rightKTable, RIGHT_SCHEMA, executionKeyFactory));
 
     when(leftKStream.leftJoin(any(KTable.class), any(), any())).thenReturn(resultStream);
     when(leftKStream.join(any(KTable.class), any(), any())).thenReturn(resultStream);
@@ -138,7 +141,7 @@ public class StreamTableJoinBuilderTest {
     givenLeftJoin(L_KEY);
 
     // When:
-    final KStreamHolder<Struct> result = join.build(planBuilder);
+    final KStreamHolder<Struct> result = join.build(planBuilder, planInfo);
 
     // Then:
     verify(leftKStream).leftJoin(
@@ -148,7 +151,7 @@ public class StreamTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKStream, rightKTable, resultStream);
     assertThat(result.getStream(), is(resultStream));
-    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test
@@ -157,7 +160,7 @@ public class StreamTableJoinBuilderTest {
     givenLeftJoin(SYNTH_KEY);
 
     // When:
-    final KStreamHolder<Struct> result = join.build(planBuilder);
+    final KStreamHolder<Struct> result = join.build(planBuilder, planInfo);
 
     // Then:
     verify(leftKStream).leftJoin(
@@ -167,7 +170,7 @@ public class StreamTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKStream, rightKTable, resultStream);
     assertThat(result.getStream(), is(resultStream));
-    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test
@@ -178,7 +181,7 @@ public class StreamTableJoinBuilderTest {
     // When:
     assertThrows(
         IllegalStateException.class,
-        () -> join.build(planBuilder)
+        () -> join.build(planBuilder, planInfo)
     );
   }
 
@@ -188,7 +191,7 @@ public class StreamTableJoinBuilderTest {
     givenInnerJoin(L_KEY);
 
     // When:
-    final KStreamHolder<Struct> result = join.build(planBuilder);
+    final KStreamHolder<Struct> result = join.build(planBuilder, planInfo);
 
     // Then:
     verify(leftKStream).join(
@@ -198,7 +201,7 @@ public class StreamTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKStream, rightKTable, resultStream);
     assertThat(result.getStream(), is(resultStream));
-    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test
@@ -207,7 +210,7 @@ public class StreamTableJoinBuilderTest {
     givenInnerJoin(SYNTH_KEY);
 
     // When:
-    final KStreamHolder<Struct> result = join.build(planBuilder);
+    final KStreamHolder<Struct> result = join.build(planBuilder, planInfo);
 
     // Then:
     verify(leftKStream).join(
@@ -217,7 +220,7 @@ public class StreamTableJoinBuilderTest {
     );
     verifyNoMoreInteractions(leftKStream, rightKTable, resultStream);
     assertThat(result.getStream(), is(resultStream));
-    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
   @Test
@@ -226,7 +229,7 @@ public class StreamTableJoinBuilderTest {
     givenInnerJoin(R_KEY);
 
     // When:
-    final KStreamHolder<Struct> result = join.build(planBuilder);
+    final KStreamHolder<Struct> result = join.build(planBuilder, planInfo);
 
     // Then:
     assertThat(
@@ -248,7 +251,7 @@ public class StreamTableJoinBuilderTest {
     );
 
     // When:
-    final KStreamHolder<Struct> result = join.build(planBuilder);
+    final KStreamHolder<Struct> result = join.build(planBuilder, planInfo);
 
     // Then:
     assertThat(
@@ -263,7 +266,7 @@ public class StreamTableJoinBuilderTest {
     givenInnerJoin(L_KEY);
 
     // When:
-    join.build(planBuilder);
+    join.build(planBuilder, planInfo);
 
     // Then:
     verify(joinedFactory).create(keySerde, leftSerde, null, "jo-in");
@@ -275,10 +278,10 @@ public class StreamTableJoinBuilderTest {
     givenInnerJoin(R_KEY);
 
     // When:
-    join.build(planBuilder);
+    join.build(planBuilder, planInfo);
 
     // Then:
-    verify(keySerdeFactory).buildKeySerde(LEFT_FMT.getKeyFormat(), LEFT_PHYSICAL, CTX);
+    verify(executionKeyFactory).buildKeySerde(LEFT_FMT.getKeyFormat(), LEFT_PHYSICAL, CTX);
   }
 
   @Test
@@ -287,7 +290,7 @@ public class StreamTableJoinBuilderTest {
     givenInnerJoin(SYNTH_KEY);
 
     // When:
-    join.build(planBuilder);
+    join.build(planBuilder, planInfo);
 
     // Then:
     final QueryContext leftCtx = QueryContext.Stacker.of(CTX).push("Left").getQueryContext();

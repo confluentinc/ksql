@@ -299,9 +299,6 @@
     },
     {
       "name": "BOOLEAN - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K BOOLEAN KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -317,9 +314,6 @@
     },
     {
       "name": "BOOLEAN - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -355,9 +349,6 @@
     },
     {
       "name": "INT - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K INT KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -375,9 +366,6 @@
     },
     {
       "name": "INT - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -415,9 +403,6 @@
     },
     {
       "name": "BIGINT - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K BIGINT KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -433,9 +418,6 @@
     },
     {
       "name": "BIGINT - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -471,9 +453,6 @@
     },
     {
       "name": "DOUBLE - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K DOUBLE KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -489,9 +468,6 @@
     },
     {
       "name": "DOUBLE - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -527,9 +503,6 @@
     },
     {
       "name": "STRING - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K VARCHAR KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -545,9 +518,6 @@
     },
     {
       "name": "STRING - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -583,9 +553,6 @@
     },
     {
       "name": "DECIMAL - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K DECIMAL(4,2) KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -601,9 +568,6 @@
     },
     {
       "name": "DECIMAL - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -653,9 +617,6 @@
     },
     {
       "name": "ARRAY - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K ARRAY<VARCHAR> KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -673,9 +634,6 @@
     },
     {
       "name": "ARRAY - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -712,92 +670,49 @@
       }
     },
     {
-      "name": "MAP - key - no inference",
-      "comment": "disabled until fix in for https://github.com/confluentinc/ksql/issues/6049",
-      "enabled": false,
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
+      "name": "MAP - key - C*",
       "statements": [
-        "CREATE STREAM INPUT (K MAP<STRING, INT> KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+        "CREATE STREAM INPUT (K MAP<INT, DOUBLE> KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');"
       ],
-      "inputs": [
-        {"topic": "input_topic", "key": {"a": 1, "b": 2, "c": 3}, "value": {"FOO": 10}},
-        {"topic": "input_topic", "key": {"a": 1, "b": 2, "c": null}, "value": {"FOO": 10}},
-        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": {"a": 1, "b": 2, "c": 3}, "value": {"FOO": 10}},
-        {"topic": "OUTPUT", "key": {"a": 1, "b": 2, "c": null}, "value": {"FOO": 10}},
-        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
-      ]
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `K`. Column type: MAP<INTEGER, DOUBLE>. See https://github.com/confluentinc/ksql/issues/6621 for more."
+      }
     },
     {
-      "name": "MAP - key - no inference - with coercion",
-      "enabled": false,
-      "comment": "disabled until fix in for https://github.com/confluentinc/ksql/issues/6049",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
+      "name": "nested MAP type - key - C*",
       "statements": [
-        "CREATE STREAM INPUT (K MAP<STRING, STRING> KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+        "CREATE STREAM INPUT (K ARRAY<MAP<INT, DOUBLE>> KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');"
       ],
-      "inputs": [
-        {"topic": "input_topic", "key": {"a": 1, "b": 2, "c": 3}, "value": {"FOO": 10}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": {"a": "1", "b": "2", "c": "3"}, "value": {"FOO": 10}}
-      ]
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `K`. Column type: ARRAY<MAP<INTEGER, DOUBLE>>. See https://github.com/confluentinc/ksql/issues/6621 for more."
+      }
     },
     {
-      "name": "MAP - key - inference",
-      "comment": "disabled until fix in for https://github.com/confluentinc/ksql/issues/6049",
-      "enabled": false,
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
+      "name": "MAP - key - C*AS",
       "statements": [
-        "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+        "CREATE STREAM INPUT (k STRING KEY, v STRING) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY MAP(k:=v);"
       ],
-      "topics": [
-        {
-          "name": "input_topic",
-          "keySchema": {"oneOf":[{"type":"null"},{"type":"array","connect.type":"map","items":{"type":"object","properties":{"value":{"connect.index":1,"oneOf":[{"type":"null"},{"type":"integer"}]},"key":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"string"}]}}}}]},
-          "keyFormat": "JSON_SR",
-          "valueSchema": {"type":"object","properties":{"COL1":{"connect.index":0,"oneOf":[{"type":"null"},{"type":"integer","connect.type":"int32"}]}}},
-          "valueFormat": "JSON_SR"
-        }
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `KSQL_COL_0`. Column type: MAP<STRING, STRING>. See https://github.com/confluentinc/ksql/issues/6621 for more."
+      }
+    },
+    {
+      "name": "nested MAP type - key - C*AS",
+      "statements": [
+        "CREATE STREAM INPUT (k STRING KEY, v STRING) WITH (kafka_topic='input_topic', format='JSON_SR');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT PARTITION BY STRUCT(f := MAP(k:=v));"
       ],
-      "inputs": [
-        {"topic": "input_topic", "key": {"a": 1, "b": 2, "c": 3}, "value": {"FOO": 10}},
-        {"topic": "input_topic", "key": {"a": 1, "b": 2, "c": null}, "value": {"FOO": 10}},
-        {"topic": "input_topic", "key": null, "value": {"FOO": 10}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": {"a": 1, "b": 2, "c": 3}, "value": {"FOO": 10}},
-        {"topic": "OUTPUT", "key": {"a": 1, "b": 2, "c": null}, "value": {"FOO": 10}},
-        {"topic": "OUTPUT", "key": null, "value": {"FOO": 10}}
-      ],
-      "post": {
-        "sources" : [ {
-          "name" : "OUTPUT",
-          "type" : "STREAM",
-          "schema" : "`ROWKEY` MAP<STRING, INTEGER> KEY, `FOO` INTEGER",
-          "keyFormat" : { "format" : "JSON_SR" },
-          "valueFormat" : "JSON_SR",
-          "keyFeatures" : [ "UNWRAP_SINGLES" ],
-          "valueFeatures" : [ ]
-        } ]
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Map keys, including types that contain maps, are not supported as they may lead to unexpected behavior due to inconsistent serialization. Key column name: `KSQL_COL_0`. Column type: STRUCT<`F` MAP<STRING, STRING>>. See https://github.com/confluentinc/ksql/issues/6621 for more."
       }
     },
     {
       "name": "STRUCT - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K STRUCT<F1 VARCHAR> KEY, foo INT) WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -815,9 +730,6 @@
     },
     {
       "name": "STRUCT - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "topics": [
         {
           "name": "input_topic",
@@ -857,9 +769,6 @@
     },
     {
       "name": "INT - key - key and value inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input_topic', format='JSON_SR');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -886,9 +795,6 @@
     },
     {
       "name": "INT - key - key and anonymous value inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input_topic', format='JSON_SR', wrap_single_value=false);",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"

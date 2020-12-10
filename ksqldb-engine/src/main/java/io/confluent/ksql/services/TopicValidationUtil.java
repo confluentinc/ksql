@@ -61,7 +61,7 @@ final class TopicValidationUtil {
           actualNumPartitions,
           requiredNumReplicas,
           actualNumReplicas
-      ));
+      ), true);
     }
   }
 }

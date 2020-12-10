@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -73,7 +74,6 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -99,11 +99,11 @@ public class StepSchemaResolverTest {
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
-  private ExecutionStep<KStreamHolder<Struct>> streamSource;
+  private ExecutionStep<KStreamHolder<GenericKey>> streamSource;
   @Mock
   private ExecutionStep<KGroupedStreamHolder> groupedStreamSource;
   @Mock
-  private ExecutionStep<KTableHolder<Struct>> tableSource;
+  private ExecutionStep<KTableHolder<GenericKey>> tableSource;
   @Mock
   private ExecutionStep<KGroupedTableHolder> groupedTableSource;
   @Mock
@@ -308,7 +308,7 @@ public class StepSchemaResolverTest {
     final UnqualifiedColumnReferenceExp keyExpression =
         new UnqualifiedColumnReferenceExp(ColumnName.of("ORANGE"));
 
-    final StreamSelectKey step = new StreamSelectKey(
+    final StreamSelectKey<GenericKey> step = new StreamSelectKey<>(
         PROPERTIES,
         streamSource,
         keyExpression
@@ -485,7 +485,7 @@ public class StepSchemaResolverTest {
     final UnqualifiedColumnReferenceExp keyExpression =
         new UnqualifiedColumnReferenceExp(ColumnName.of("ORANGE"));
 
-    final TableSelectKey step = new TableSelectKey(
+    final TableSelectKey<GenericKey> step = new TableSelectKey<>(
         PROPERTIES,
         tableSource,
         formats,

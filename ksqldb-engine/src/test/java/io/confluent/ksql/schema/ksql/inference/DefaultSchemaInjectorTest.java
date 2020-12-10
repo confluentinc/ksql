@@ -55,6 +55,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -517,7 +518,7 @@ public class DefaultSchemaInjectorTest {
     verify(schemaSupplier).getKeySchema(
         KAFKA_TOPIC,
         Optional.empty(),
-        FormatInfo.of("AVRO"),
+        FormatInfo.of("AVRO", ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "io.confluent.ksql.avro_schemas.CtKey")),
         SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)
     );
   }

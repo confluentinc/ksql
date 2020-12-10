@@ -24,12 +24,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import java.time.Instant;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
 import org.apache.kafka.streams.processor.StateStore;
 import org.apache.kafka.streams.state.QueryableStoreType;
@@ -51,17 +49,16 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class WindowStoreCacheBypassTest {
 
-  private static final Schema SCHEMA = SchemaBuilder.struct().field("a", SchemaBuilder.int32());
-  private static final Struct SOME_KEY = new Struct(SCHEMA).put("a", 1);
+  private static final GenericKey SOME_KEY = GenericKey.genericKey(1);
   private static final byte[] BYTES = new byte[] {'a', 'b'};
 
   @Mock
-  private QueryableStoreType<ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>>>
+  private QueryableStoreType<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>>
       queryableStoreType;
   @Mock
   private StateStoreProvider provider;
   @Mock
-  private MeteredWindowStore<Struct, ValueAndTimestamp<GenericRow>> meteredWindowStore;
+  private MeteredWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> meteredWindowStore;
   @Mock
   private WindowStore<Bytes, byte[]> windowStore;
   @Mock
@@ -71,9 +68,9 @@ public class WindowStoreCacheBypassTest {
   @Mock
   private WindowStoreIterator<byte[]> windowStoreIterator;
   @Mock
-  private StateSerdes<Struct, ValueAndTimestamp<GenericRow>> serdes;
+  private StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes;
 
-  private CompositeReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>> store;
+  private CompositeReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store;
 
   @Before
   public void setUp() {

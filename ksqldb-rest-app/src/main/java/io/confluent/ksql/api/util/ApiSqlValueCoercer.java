@@ -99,7 +99,7 @@ public enum ApiSqlValueCoercer implements SqlValueCoercer {
     );
 
     for (final Field field : coerced.schema().fields()) {
-      final Optional<io.confluent.ksql.schema.ksql.types.Field> sqlField =
+      final Optional<SqlStruct.Field> sqlField =
           targetType.field(field.name());
 
       if (!sqlField.isPresent()) {

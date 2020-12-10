@@ -59,8 +59,13 @@ public class TableFilter<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
-  public KTableHolder<K> build(final PlanBuilder builder) {
-    return builder.visitTableFilter(this);
+  public KTableHolder<K> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitTableFilter(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitTableFilter(this);
   }
 
   @Override

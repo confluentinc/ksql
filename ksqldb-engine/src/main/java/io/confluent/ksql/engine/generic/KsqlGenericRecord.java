@@ -15,23 +15,23 @@
 
 package io.confluent.ksql.engine.generic;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import java.util.Objects;
-import org.apache.kafka.connect.data.Struct;
 
 /**
- * Represents a record in ksqlDB which consists of a {@link Struct} key,
+ * Represents a record in ksqlDB which consists of a {@link GenericKey} key,
  * a {@link GenericRow} value and a {@code long} timestamp. This is mostly
  * used when generating data from SQL expressions.
  */
 public final class KsqlGenericRecord {
 
-  public final Struct key;
+  public final GenericKey key;
   public final GenericRow value;
   public final long ts;
 
   public static KsqlGenericRecord of(
-      final Struct key,
+      final GenericKey key,
       final GenericRow value,
       final long ts
   ) {
@@ -39,7 +39,7 @@ public final class KsqlGenericRecord {
   }
 
   private KsqlGenericRecord(
-      final Struct key,
+      final GenericKey key,
       final GenericRow value,
       final long ts
   ) {

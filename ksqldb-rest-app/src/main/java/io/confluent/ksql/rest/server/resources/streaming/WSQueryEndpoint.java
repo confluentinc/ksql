@@ -29,6 +29,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
@@ -76,6 +77,7 @@ public class WSQueryEndpoint {
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
+  private final HARouting routing;
 
   private WebSocketSubscriber<?> subscriber;
 
@@ -94,7 +96,8 @@ public class WSQueryEndpoint {
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
-      final RateLimiter rateLimiter
+      final RateLimiter rateLimiter,
+      final HARouting routing
   ) {
     this(
         ksqlConfig,
@@ -112,7 +115,8 @@ public class WSQueryEndpoint {
         denyListPropertyValidator,
         pullQueryMetrics,
         routingFilterFactory,
-        rateLimiter
+        rateLimiter,
+        routing
     );
   }
 
@@ -134,7 +138,8 @@ public class WSQueryEndpoint {
       final DenyListPropertyValidator denyListPropertyValidator,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
-      final RateLimiter rateLimiter
+      final RateLimiter rateLimiter,
+      final HARouting routing
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -158,6 +163,7 @@ public class WSQueryEndpoint {
     this.routingFilterFactory = Objects.requireNonNull(
         routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
+    this.routing = Objects.requireNonNull(routing, "routing");
   }
 
   public void executeStreamQuery(final ServerWebSocket webSocket, final MultiMap requestParams,
@@ -291,7 +297,8 @@ public class WSQueryEndpoint {
           pullQueryMetrics,
           startTimeNanos,
           routingFilterFactory,
-          rateLimiter
+          rateLimiter,
+          routing
       );
     } else {
       pushQueryPublisher.start(
@@ -355,7 +362,8 @@ public class WSQueryEndpoint {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final long startTimeNanos,
       final RoutingFilterFactory routingFilterFactory,
-      final RateLimiter rateLimiter
+      final RateLimiter rateLimiter,
+      final HARouting routing
   ) {
     new PullQueryPublisher(
         ksqlEngine,
@@ -364,7 +372,8 @@ public class WSQueryEndpoint {
         pullQueryMetrics,
         startTimeNanos,
         routingFilterFactory,
-        rateLimiter
+        rateLimiter,
+        routing
     ).subscribe(streamSubscriber);
   }
 
@@ -401,7 +410,9 @@ public class WSQueryEndpoint {
         Optional<PullQueryExecutorMetrics> pullQueryMetrics,
         long startTimeNanos,
         RoutingFilterFactory routingFilterFactory,
-        RateLimiter rateLimiter);
+        RateLimiter rateLimiter,
+        HARouting routing
+        );
 
   }
 

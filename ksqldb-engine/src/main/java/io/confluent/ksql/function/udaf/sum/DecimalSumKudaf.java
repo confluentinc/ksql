@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udaf.sum;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.ParameterInfo;
@@ -24,7 +25,6 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Collections;
 import java.util.function.Function;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
 public class DecimalSumKudaf
@@ -60,7 +60,7 @@ public class DecimalSumKudaf
   }
 
   @Override
-  public Merger<Struct, BigDecimal> getMerger() {
+  public Merger<GenericKey, BigDecimal> getMerger() {
     return (key, agg1, agg2) -> agg1.add(agg2, context);
   }
 

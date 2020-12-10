@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
@@ -35,14 +36,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressWarnings({"UnstableApiUsage", "unchecked"})
 @RunWith(MockitoJUnitRunner.class)
 public class KeyedWindowedTableLookupOperatorTest {
 
@@ -57,13 +55,13 @@ public class KeyedWindowedTableLookupOperatorTest {
   @Mock
   private DataSourceNode logicalNode;
   @Mock
-  private Struct KEY1;
+  private GenericKey KEY1;
   @Mock
-  private Struct KEY2;
+  private GenericKey KEY2;
   @Mock
-  private Struct KEY3;
+  private GenericKey KEY3;
   @Mock
-  private Struct KEY4;
+  private GenericKey KEY4;
   @Mock
   private WindowedRow WINDOWED_ROW1;
   @Mock

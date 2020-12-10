@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
 public interface KsqlAggregateFunction<I, A, O> extends FunctionSignature {
@@ -41,7 +41,7 @@ public interface KsqlAggregateFunction<I, A, O> extends FunctionSignature {
   /**
    * Merges two session windows together with the same merge key.
    */
-  Merger<Struct, A> getMerger();
+  Merger<GenericKey, A> getMerger();
 
   /**
    * Converts from intermediate type to output type

@@ -33,7 +33,7 @@ public final class StreamSinkBuilder {
         streamSink.getTimestampColumn(),
         streamSink.getTopicName(),
         stream.getStream(),
-        stream.getKeySerdeFactory(),
+        stream.getExecutionKeyFactory(),
         streamSink.getProperties().getQueryContext(),
         queryBuilder
     );

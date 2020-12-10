@@ -193,6 +193,22 @@
       ]
     },
     {
+      "name": "merging session windows - with nulls ignored when merging",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, LATEST_BY_OFFSET(F0) AS L0 FROM INPUT WINDOW SESSION (1 SECONDS) GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 0, "key": 0, "value": {"F0": 1}},
+        {"topic": "test_topic", "timestamp": 700, "key": 0, "value": {"F0": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 0, "type": "session"}, "value": {"L0": 1}},
+        {"topic": "OUTPUT", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 0, "type": "session"}, "value": null},
+        {"topic": "OUTPUT", "timestamp": 700, "key": 0, "window": {"start": 0, "end": 700, "type": "session"}, "value": {"L0": 1}}
+      ]
+    },
+    {
       "name": "merging session windows - with nulls not ignored",
       "statements": [
         "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -209,6 +225,22 @@
         {"topic": "OUTPUT", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 0, "type": "session"}, "value": null},
         {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 1500, "end": 1500, "type": "session"}, "value": null},
         {"topic": "OUTPUT", "timestamp": 1500, "key": 0, "window": {"start": 0, "end": 1500, "type": "session"}, "value": {"L0": 2}}
+      ]
+    },
+    {
+      "name": "merging session windows - with nulls not ignored when merging",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, F0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT ID, LATEST_BY_OFFSET(F0, false) AS L0 FROM INPUT WINDOW SESSION (1 SECONDS) GROUP BY ID;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 0, "key": 0, "value": {"F0": 1}},
+        {"topic": "test_topic", "timestamp": 700, "key": 0, "value": {"F0": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 0, "type": "session"}, "value": {"L0": 1}},
+        {"topic": "OUTPUT", "timestamp": 0, "key": 0, "window": {"start": 0, "end": 0, "type": "session"}, "value": null},
+        {"topic": "OUTPUT", "timestamp": 700, "key": 0, "window": {"start": 0, "end": 700, "type": "session"}, "value": {"L0": null}}
       ]
     },
     {

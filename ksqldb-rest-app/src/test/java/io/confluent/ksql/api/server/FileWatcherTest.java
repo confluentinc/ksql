@@ -18,6 +18,7 @@ package io.confluent.ksql.api.server;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -38,6 +39,7 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.verification.Timeout;
 
 @RunWith(MockitoJUnitRunner.class)
 public class FileWatcherTest {
@@ -72,7 +74,7 @@ public class FileWatcherTest {
     Files.write(filePath, someBytes, StandardOpenOption.CREATE_NEW);
 
     // Then:
-    verify(callback, timeout(TimeUnit.MINUTES.toMillis(1))).run();
+    verify(callback, new Timeout(TimeUnit.MINUTES.toMillis(1), atLeastOnce())).run();
   }
 
   @Test

@@ -17,16 +17,16 @@ package io.confluent.ksql.execution.plan;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 
 @Immutable
-public final class WindowedStreamSource extends SourceStep<KStreamHolder<Windowed<Struct>>> {
+public final class WindowedStreamSource extends SourceStep<KStreamHolder<Windowed<GenericKey>>> {
 
   private final WindowInfo windowInfo;
 
@@ -47,8 +47,13 @@ public final class WindowedStreamSource extends SourceStep<KStreamHolder<Windowe
   }
 
   @Override
-  public KStreamHolder<Windowed<Struct>> build(final PlanBuilder builder) {
-    return builder.visitWindowedStreamSource(this);
+  public KStreamHolder<Windowed<GenericKey>> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitWindowedStreamSource(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitWindowedStreamSource(this);
   }
 
   @Override

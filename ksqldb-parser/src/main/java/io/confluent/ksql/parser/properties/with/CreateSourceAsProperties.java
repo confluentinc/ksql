@@ -16,6 +16,7 @@
 package io.confluent.ksql.parser.properties.with;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
@@ -112,9 +113,24 @@ public final class CreateSourceAsProperties {
   }
 
   @SuppressWarnings("MethodMayBeStatic")
-  public Map<String, String> getKeyFormatProperties() {
-    // Current none.... coming soon.
-    return ImmutableMap.of();
+  public Map<String, String> getKeyFormatProperties(
+      final String name,
+      final String keyFormat
+  ) {
+    final Builder<String, String> builder = ImmutableMap.builder();
+    if (AvroFormat.NAME.equalsIgnoreCase(keyFormat)) {
+      // ensure that the schema name for the key is unique to the sink - this allows
+      // users to always generate valid, non-conflicting avro record definitions in
+      // generated Java classes (https://github.com/confluentinc/ksql/issues/6465)
+      builder.put(AvroFormat.FULL_SCHEMA_NAME, AvroFormat.getKeySchemaName(name));
+    }
+
+    final String delimiter = props.getString(CommonCreateConfigs.KEY_DELIMITER_PROPERTY);
+    if (delimiter != null) {
+      builder.put(DelimitedFormat.DELIMITER, delimiter);
+    }
+
+    return builder.build();
   }
 
   public Map<String, String> getValueFormatProperties() {

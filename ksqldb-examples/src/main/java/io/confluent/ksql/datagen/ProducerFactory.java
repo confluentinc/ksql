@@ -16,6 +16,7 @@
 package io.confluent.ksql.datagen;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -30,7 +31,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Struct;
 
 final class ProducerFactory {
 
@@ -51,7 +51,7 @@ final class ProducerFactory {
     final Optional<SchemaRegistryClient> srClient = SchemaRegistryClientFactory
         .getSrClient(keyFormat, valueFormat, ksqlConfig);
 
-    final SerializerFactory<Struct> keySerializerFactory =
+    final SerializerFactory<GenericKey> keySerializerFactory =
         keySerializerFactory(keyFormat, ksqlConfig, srClient);
 
     final Map<String, String> formatInfoProperties = new HashMap<>();
@@ -74,19 +74,19 @@ final class ProducerFactory {
     );
   }
 
-  private static SerializerFactory<Struct> keySerializerFactory(
+  private static SerializerFactory<GenericKey> keySerializerFactory(
       final Format keyFormat,
       final KsqlConfig ksqlConfig,
       final Optional<SchemaRegistryClient> srClient
   ) {
-    return new SerializerFactory<Struct>() {
+    return new SerializerFactory<GenericKey>() {
       @Override
       public Format format() {
         return keyFormat;
       }
 
       @Override
-      public Serializer<Struct> create(final PersistenceSchema schema) {
+      public Serializer<GenericKey> create(final PersistenceSchema schema) {
         return KEY_SERDE_FACTORY.create(
             FormatInfo.of(keyFormat.name()),
             schema,

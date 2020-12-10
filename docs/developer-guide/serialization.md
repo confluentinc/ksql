@@ -142,7 +142,7 @@ This data format supports all SQL
 | Feature                      | Supported |
 |------------------------------|-----------|
 | As value format              | Yes       |
-| As key format                | `JSON`: Yes, `JSON_SR`: No |
+| As key format                | `JSON`: Yes, `JSON_SR`: Yes |
 | [Schema Registry required][0]| `JSON`: No, `JSON_SR`: Yes |
 | [Schema inference][1]        | `JSON`: No, `JSON_SR`: Yes|
 | [Single field unwrapping][2] | Yes       |
@@ -251,7 +251,7 @@ used.
 | Feature                      | Supported |
 |------------------------------|-----------|
 | As value format              | Yes       |
-| As key format                | No        |
+| As key format                | Yes        |
 | [Schema Registry required][0]| Yes       |
 | [Schema inference][1]        | Yes       |
 | [Single field wrapping][2]   | Yes       |
@@ -284,7 +284,7 @@ And an Avro record serialized with the schema:
   "name": "UserDetails",
   "fields": [
     { "name": "id", "type": "long" },
-    { "name": "name", "type": "string" }
+    { "name": "name", "type": "string" },
     { "name": "age", "type": "int" }
   ]
 }

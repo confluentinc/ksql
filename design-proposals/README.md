@@ -29,7 +29,7 @@ This is the guts of our improvement proposal process:
 1. Submit a Pull Request from your branch to KSQL:
     1. make sure the title is `docs: klip-<number>: <title>`
     1. update the table entry below from the Proposal Intent step with a link to your KLIP
-1. Share a link to the PR in the `#ksqldb-dev` channel on the [confluent community slack](https://slackpass.io/confluentcommunity).
+1. Share a link to the PR in the `#ksqldb` channel on the [confluent community slack](https://slackpass.io/confluentcommunity).
 1. The design discussion will happen on the pull request
 1. The KLIP is approved and merged if at least two people with write access approve the change
 
@@ -81,6 +81,6 @@ Next KLIP number: **44**
 | KLIP-37: System Tables                                                                               | Proposal | | | |
 | [KLIP-38: Variable Substitution](klip-38-variable-substitution.md)                                   | Merged         | 0.14.0            | 6.1.0      | [Discussion](https://github.com/confluentinc/ksql/pull/6259) |
 | KLIP-40: Prepared Statements for Java Client                                                         | Proposal | | | |
-| KLIP-41: ksqlDB .NET Client                                                                          | Proposal | | | |
+| [KLIP-41: ksqlDB .NET Client](klip-41-ksqldb-.net-client.md)                                         | Proposal | | | [Discussion](https://github.com/confluentinc/ksql/pull/6613)|
 | KLIP-42: Schema Migrations Tool                                                                      | Proposal | | | |
 | KLIP-43: TIMESTAMP data type support                                                                      | Proposal | | | |

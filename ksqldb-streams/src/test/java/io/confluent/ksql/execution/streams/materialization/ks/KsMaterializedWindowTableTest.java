@@ -31,19 +31,18 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.Range;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.execution.streams.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.WindowStoreCacheBypassFetcher;
-import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
@@ -70,8 +69,7 @@ public class KsMaterializedWindowTableTest {
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
       .build();
 
-  private static final Struct A_KEY = StructKeyUtil
-      .keyBuilder(ColumnName.of("K0"), SqlTypes.STRING).build("x", 0);
+  private static final GenericKey A_KEY = GenericKey.genericKey(0);
 
   protected static final Instant NOW = Instant.now();
 
@@ -95,7 +93,7 @@ public class KsMaterializedWindowTableTest {
   @Mock
   private KsStateStore stateStore;
   @Mock
-  private ReadOnlyWindowStore<Struct, ValueAndTimestamp<GenericRow>> tableStore;
+  private ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> tableStore;
   @Mock
   private WindowStoreIterator<ValueAndTimestamp<GenericRow>> fetchIterator;
   @Captor
@@ -543,7 +541,7 @@ public class KsMaterializedWindowTableTest {
     );
   }
 
-  private static Windowed<Struct> windowedKey(final Instant windowStart) {
+  private static Windowed<GenericKey> windowedKey(final Instant windowStart) {
     return new Windowed<>(
         A_KEY,
         new TimeWindow(windowStart.toEpochMilli(), windowStart.plus(WINDOW_SIZE).toEpochMilli())

@@ -21,17 +21,15 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.KTableHolder;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.TableSelectKey;
+import io.confluent.ksql.execution.streams.PartitionByParams.Mapper;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.function.BiFunction;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Named;
@@ -42,9 +40,9 @@ public final class TableSelectKeyBuilder {
   private TableSelectKeyBuilder() {
   }
 
-  public static KTableHolder<Struct> build(
-      final KTableHolder<?> table,
-      final TableSelectKey selectKey,
+  public static <K> KTableHolder<K> build(
+      final KTableHolder<K> table,
+      final TableSelectKey<K> selectKey,
       final KsqlQueryBuilder queryBuilder,
       final MaterializedFactory materializedFactory
   ) {
@@ -58,9 +56,9 @@ public final class TableSelectKeyBuilder {
   }
 
   @VisibleForTesting
-  static KTableHolder<Struct> build(
-      final KTableHolder<?> table,
-      final TableSelectKey selectKey,
+  static <K> KTableHolder<K> build(
+      final KTableHolder<K> table,
+      final TableSelectKey<K> selectKey,
       final KsqlQueryBuilder queryBuilder,
       final MaterializedFactory materializedFactory,
       final PartitionByParamsBuilder paramsBuilder
@@ -70,29 +68,31 @@ public final class TableSelectKeyBuilder {
 
     final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
 
-    final PartitionByParams params = paramsBuilder.build(
+    final PartitionByParams<K> params = paramsBuilder.build(
         sourceSchema,
+        table.getExecutionKeyFactory(),
         selectKey.getKeyExpression(),
         queryBuilder.getKsqlConfig(),
         queryBuilder.getFunctionRegistry(),
         logger
     );
 
-    final BiFunction<Object, GenericRow, KeyValue<Struct, GenericRow>> mapper = params.getMapper();
+    final Mapper<K> mapper = params.getMapper();
 
-    final KTable<?, GenericRow> kTable = table.getTable();
+    final KTable<K, GenericRow> kTable = table.getTable();
 
-    final Materialized<Struct, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
+    final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
         MaterializationUtil.buildMaterialized(
             selectKey,
             params.getSchema(),
             selectKey.getInternalFormats(),
             queryBuilder,
-            materializedFactory
+            materializedFactory,
+            table.getExecutionKeyFactory()
         );
 
-    final KTable<Struct, GenericRow> reKeyed = kTable.toStream()
-        .map(mapper::apply, Named.as(queryContext.formatContext() + "-SelectKey-Mapper"))
+    final KTable<K, GenericRow> reKeyed = kTable.toStream()
+        .map(mapper, Named.as(queryContext.formatContext() + "-SelectKey-Mapper"))
         .toTable(Named.as(queryContext.formatContext() + "-SelectKey"), materialized);
 
     final MaterializationInfo.Builder materializationBuilder = MaterializationInfo.builder(
@@ -103,15 +103,16 @@ public final class TableSelectKeyBuilder {
     return KTableHolder.materialized(
         reKeyed,
         params.getSchema(),
-        KeySerdeFactory.unwindowed(queryBuilder),
+        table.getExecutionKeyFactory().withQueryBuilder(queryBuilder),
         materializationBuilder
     );
   }
 
   interface PartitionByParamsBuilder {
 
-    PartitionByParams build(
+    <K> PartitionByParams<K> build(
         LogicalSchema sourceSchema,
+        ExecutionKeyFactory<K> executionKeyFactory,
         Expression partitionBy,
         KsqlConfig ksqlConfig,
         FunctionRegistry functionRegistry,

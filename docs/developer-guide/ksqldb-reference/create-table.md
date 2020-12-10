@@ -10,7 +10,7 @@ Synopsis
 --------
 
 ```sql
-CREATE [OR REPLACE] TABLE table_name ( { column_name data_type [PRIMARY KEY] } [, ...] )
+CREATE [OR REPLACE] TABLE [IF NOT EXISTS] table_name ( { column_name data_type [PRIMARY KEY] } [, ...] )
   WITH ( property_name = expression [, ...] );
 ```
 
@@ -18,6 +18,9 @@ Description
 -----------
 
 Create a new table with the specified columns and properties.
+
+If the IF NOT EXISTS clause is present, the statement won't fail if a
+table with the same name already exists.
 
 A ksqlDB TABLE works much like tables in other SQL systems. A table has zero or more rows. Each
 row is identified by its `PRIMARY KEY`. A row's `PRIMARY KEY` can not be `NULL`. A message in the
@@ -108,7 +111,7 @@ CREATE TABLE users (
 ```
 
 ```sql
--- Late arriving events: accept events for up to two hours after the window ends.
+-- out-of-order events: accept events for up to two hours after the window ends.
 SELECT orderzip_code, TOPK(order_total, 5) FROM orders
   WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS) 
   GROUP BY order_zipcode

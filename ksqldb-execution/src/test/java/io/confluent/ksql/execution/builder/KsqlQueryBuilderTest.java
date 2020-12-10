@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -58,7 +59,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.junit.Before;
@@ -103,9 +103,9 @@ public class KsqlQueryBuilderTest {
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
-  private Serde<Struct> keySerde;
+  private Serde<GenericKey> keySerde;
   @Mock
-  private Serde<Windowed<Struct>> windowedKeySerde;
+  private Serde<Windowed<GenericKey>> windowedKeySerde;
   @Mock
   private Serde<GenericRow> valueSerde;
   @Mock

@@ -82,8 +82,13 @@ public class StreamSink<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   @Override
-  public KStreamHolder<K> build(final PlanBuilder builder) {
-    return builder.visitStreamSink(this);
+  public KStreamHolder<K> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitStreamSink(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitStreamSink(this);
   }
 
   @Override

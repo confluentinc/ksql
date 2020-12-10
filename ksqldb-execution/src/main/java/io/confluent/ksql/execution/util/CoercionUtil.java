@@ -280,7 +280,7 @@ public final class CoercionUtil {
 
         final List<String> fieldNames = Streams.concat(
             sourceStruct.getFields().stream().map(Field::getName),
-            targetStruct.fields().stream().map(io.confluent.ksql.schema.ksql.types.Field::name)
+            targetStruct.fields().stream().map(SqlStruct.Field::name)
         ).distinct()
             .collect(Collectors.toList());
 
@@ -295,7 +295,7 @@ public final class CoercionUtil {
               .map(typeManager::getExpressionSqlType);
 
           final Optional<SqlType> targetFieldType = targetStruct.field(fieldName)
-              .map(io.confluent.ksql.schema.ksql.types.Field::type);
+              .map(SqlStruct.Field::type);
 
           final SqlType fieldType;
           if (!targetFieldType.isPresent()) {

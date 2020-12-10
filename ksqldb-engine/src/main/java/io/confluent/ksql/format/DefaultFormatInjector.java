@@ -93,7 +93,7 @@ public class DefaultFormatInjector implements Injector {
     final CreateSource statement = original.getStatement();
     final CreateSourceProperties properties = statement.getProperties();
 
-    final Optional<FormatInfo> keyFormat = properties.getKeyFormat();
+    final Optional<FormatInfo> keyFormat = properties.getKeyFormat(statement.getName());
     final Optional<FormatInfo> valueFormat = properties.getValueFormat();
 
     if (keyFormat.isPresent() && valueFormat.isPresent()) {
@@ -158,7 +158,8 @@ public class DefaultFormatInjector implements Injector {
       final ConfiguredStatement<CreateSource> configured
   ) {
     final FormatInfo keyFormat =
-        SourcePropertiesUtil.getKeyFormat(configured.getStatement().getProperties());
+        SourcePropertiesUtil.getKeyFormat(
+            configured.getStatement().getProperties(), configured.getStatement().getName());
     final KsqlConfig config = configured.getSessionConfig().getConfig(true);
     if (!KeyFormatUtils.isSupportedKeyFormat(config, FormatFactory.of(keyFormat))) {
       throw new KsqlException(

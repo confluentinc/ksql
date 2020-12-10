@@ -15,19 +15,19 @@
 
 package io.confluent.ksql.execution.streams;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
+import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Named;
@@ -37,7 +37,7 @@ public final class TableAggregateBuilder {
   private TableAggregateBuilder() {
   }
 
-  public static KTableHolder<Struct> build(
+  public static KTableHolder<GenericKey> build(
       final KGroupedTableHolder groupedTable,
       final TableAggregate aggregate,
       final KsqlQueryBuilder queryBuilder,
@@ -51,7 +51,7 @@ public final class TableAggregateBuilder {
     );
   }
 
-  public static KTableHolder<Struct> build(
+  public static KTableHolder<GenericKey> build(
       final KGroupedTableHolder groupedTable,
       final TableAggregate aggregate,
       final KsqlQueryBuilder queryBuilder,
@@ -68,21 +68,22 @@ public final class TableAggregateBuilder {
     );
     final LogicalSchema aggregateSchema = aggregateParams.getAggregateSchema();
     final LogicalSchema resultSchema = aggregateParams.getSchema();
-    final Materialized<Struct, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
+    final Materialized<GenericKey, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
         MaterializationUtil.buildMaterialized(
             aggregate,
             aggregateSchema,
             aggregate.getInternalFormats(),
             queryBuilder,
-            materializedFactory
+            materializedFactory,
+            ExecutionKeyFactory.unwindowed(queryBuilder)
         );
-    final KTable<Struct, GenericRow> aggregated = groupedTable.getGroupedTable().aggregate(
+    final KTable<GenericKey, GenericRow> aggregated = groupedTable.getGroupedTable().aggregate(
         aggregateParams.getInitializer(),
         aggregateParams.getAggregator(),
         aggregateParams.getUndoAggregator().get(),
         materialized
     ).transformValues(
-        () -> new KsTransformer<>(aggregateParams.<Struct>getAggregator().getResultMapper()),
+        () -> new KsTransformer<>(aggregateParams.<GenericKey>getAggregator().getResultMapper()),
         Named.as(StreamsUtil.buildOpName(AggregateBuilderUtils.outputContext(aggregate)))
     );
 
@@ -97,7 +98,7 @@ public final class TableAggregateBuilder {
     return KTableHolder.materialized(
         aggregated,
         resultSchema,
-        KeySerdeFactory.unwindowed(queryBuilder),
+        ExecutionKeyFactory.unwindowed(queryBuilder),
         materializationBuilder
     );
   }

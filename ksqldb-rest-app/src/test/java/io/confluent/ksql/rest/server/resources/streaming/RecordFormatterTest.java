@@ -208,6 +208,15 @@ public class RecordFormatterTest {
     }
 
     @Test
+    public void shouldFormatPartition() {
+      // When:
+      final String formatted = formatSingle(consumerRecord(null, null));
+
+      // Then:
+      assertThat(formatted, containsString("partition: 1"));
+    }
+
+    @Test
     public void shouldFormatNoRowTime() {
       // Given:
       timestamp = ConsumerRecord.NO_TIMESTAMP;

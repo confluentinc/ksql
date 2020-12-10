@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.cli;
 
+import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_ACCEPTABLE;
@@ -42,6 +43,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.cli.console.Console;
@@ -84,6 +86,7 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -92,7 +95,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -201,9 +203,6 @@ public class CliTest {
 
   @Before
   public void setUp() {
-    REST_APP.closePersistentQueries();
-    REST_APP.dropSourcesExcept(ORDER_DATA_PROVIDER.sourceName());
-
     streamName = KsqlIdentifierTestUtil.uniqueIdentifierName();
     tableName = KsqlIdentifierTestUtil.uniqueIdentifierName();
     terminal = new TestTerminal(lineSupplier);
@@ -267,7 +266,7 @@ public class CliTest {
   private void testCreateStreamAsSelect(
       final String selectQuery,
       final PhysicalSchema resultSchema,
-      final Map<Struct, GenericRow> expectedResults
+      final Map<GenericKey, GenericRow> expectedResults
   ) {
     final String queryString = "CREATE STREAM " + streamName + " AS " + selectQuery;
 
@@ -390,11 +389,14 @@ public class CliTest {
 
     assertRunListCommand(
         "streams",
-        isRow(ORDER_DATA_PROVIDER.sourceName(), ORDER_DATA_PROVIDER.topicName(), "KAFKA", "JSON", "false")
+        hasRow(
+            equalTo(ORDER_DATA_PROVIDER.sourceName()),
+            equalTo(ORDER_DATA_PROVIDER.topicName()),
+            equalTo("KAFKA"),
+            equalTo("JSON"),
+            equalTo("false")
+        )
     );
-
-    assertRunListCommand("tables", is(EMPTY_RESULT));
-    assertRunListCommand("queries", is(EMPTY_RESULT));
   }
 
   @Test
@@ -581,29 +583,29 @@ public class CliTest {
 
   @Test
   public void testSelectProject() {
-    final Map<Struct, GenericRow> expectedResults = ImmutableMap
-        .<Struct, GenericRow>builder()
-        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_1"), genericRow(
+    final Map<GenericKey, GenericRow> expectedResults = ImmutableMap
+        .<GenericKey, GenericRow>builder()
+        .put(genericKey("ORDER_1"), genericRow(
             "ITEM_1",
             10.0,
             ImmutableList.of(100.0, 110.99, 90.0)))
-        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_2"), genericRow(
+        .put(genericKey("ORDER_2"), genericRow(
             "ITEM_2",
             20.0,
             ImmutableList.of(10.0, 10.99, 9.0)))
-        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_3"), genericRow(
+        .put(genericKey("ORDER_3"), genericRow(
             "ITEM_3",
             30.0,
             ImmutableList.of(10.0, 10.99, 91.0)))
-        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_4"), genericRow(
+        .put(genericKey("ORDER_4"), genericRow(
             "ITEM_4",
             40.0,
             ImmutableList.of(10.0, 140.99, 94.0)))
-        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_5"), genericRow(
+        .put(genericKey("ORDER_5"), genericRow(
             "ITEM_5",
             50.0,
             ImmutableList.of(160.0, 160.99, 98.0)))
-        .put(ORDER_DATA_PROVIDER.keyFrom("ORDER_6"), genericRow(
+        .put(genericKey("ORDER_6"), genericRow(
             "ITEM_8",
             80.0,
             ImmutableList.of(1100.0, 1110.99, 970.0)))
@@ -630,8 +632,8 @@ public class CliTest {
 
   @Test
   public void testSelectFilter() {
-    final Map<Struct, GenericRow> expectedResults = ImmutableMap.of(
-        ORDER_DATA_PROVIDER.keyFrom("ORDER_6"),
+    final Map<GenericKey, GenericRow> expectedResults = ImmutableMap.of(
+        genericKey("ORDER_6"),
         genericRow(
             8L,
             "ITEM_8",
@@ -652,10 +654,10 @@ public class CliTest {
 
   @Test
   public void testTransientSelect() {
-    final Multimap<Struct, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
-    final List<Object> row1 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_1")), genericRow()).values();
-    final List<Object> row2 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_2")), genericRow()).values();
-    final List<Object> row3 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_3")), genericRow()).values();
+    final Multimap<GenericKey, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
+    final List<Object> row1 = Iterables.getFirst(streamData.get(genericKey("ORDER_1")), genericRow()).values();
+    final List<Object> row2 = Iterables.getFirst(streamData.get(genericKey("ORDER_2")), genericRow()).values();
+    final List<Object> row3 = Iterables.getFirst(streamData.get(genericKey("ORDER_3")), genericRow()).values();
 
     selectWithLimit(
         "SELECT ORDERID, ITEMID FROM " + ORDER_DATA_PROVIDER.sourceName() + " EMIT CHANGES",
@@ -670,7 +672,7 @@ public class CliTest {
   @Test
   public void shouldHandlePullQuery() {
     // Given:
-    run("CREATE TABLE X AS SELECT ITEMID, COUNT(1) AS COUNT "
+    run("CREATE TABLE " + tableName + " AS SELECT ITEMID, COUNT(1) AS COUNT "
             + "FROM " + ORDER_DATA_PROVIDER.sourceName()
             + " GROUP BY ITEMID;",
         localCli
@@ -679,16 +681,16 @@ public class CliTest {
     // When:
     final Supplier<String> runner = () -> {
       // It's possible that the state store is not warm on the first invocation, hence the retry
-      run("SELECT ITEMID, COUNT FROM X WHERE ITEMID='ITEM_1';", localCli);
+      run("SELECT ITEMID, COUNT FROM " + tableName + " WHERE ITEMID='ITEM_1';", localCli);
       return terminal.getOutputString();
     };
 
     // Wait for warm store:
     assertThatEventually(runner, containsString("|ITEM_1"));
     assertRunCommand(
-        "SELECT ITEMID, COUNT FROM X WHERE ITEMID='ITEM_1';",
+        "SELECT ITEMID, COUNT FROM " + tableName + " WHERE ITEMID='ITEM_1';",
         containsRows(
-            row("ITEM_1", "1")
+            row(equalTo("ITEM_1"), any(String.class))
         )
     );
   }
@@ -715,10 +717,10 @@ public class CliTest {
 
   @Test
   public void testTransientContinuousSelectStar() {
-    final Multimap<Struct, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
-    final List<Object> row1 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_1")), genericRow()).values();
-    final List<Object> row2 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_2")), genericRow()).values();
-    final List<Object> row3 = Iterables.getFirst(streamData.get(ORDER_DATA_PROVIDER.keyFrom("ORDER_3")), genericRow()).values();
+    final Multimap<GenericKey, GenericRow> streamData = ORDER_DATA_PROVIDER.data();
+    final List<Object> row1 = Iterables.getFirst(streamData.get(genericKey("ORDER_1")), genericRow()).values();
+    final List<Object> row2 = Iterables.getFirst(streamData.get(genericKey("ORDER_2")), genericRow()).values();
+    final List<Object> row3 = Iterables.getFirst(streamData.get(genericKey("ORDER_3")), genericRow()).values();
 
     selectWithLimit(
         "SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + " EMIT CHANGES",
@@ -772,8 +774,8 @@ public class CliTest {
         SerdeFeatures.of()
     );
 
-    final Map<Struct, GenericRow> expectedResults = ImmutableMap.of(
-        ORDER_DATA_PROVIDER.keyFrom("ORDER_6"),
+    final Map<GenericKey, GenericRow> expectedResults = ImmutableMap.of(
+        genericKey("ORDER_6"),
         genericRow("ITEM_8", 800.0, 1110.0, 12.0, true)
     );
 
@@ -792,6 +794,25 @@ public class CliTest {
             isRow(containsString("Created query with ID CTAS_" + tableName.toUpperCase())),
             isRow(is("Parsing statement")),
             isRow(is("Executing statement"))));
+    assertRunListCommand("tables",
+        hasRow(
+            equalTo(tableName),
+            equalTo(tableName.toUpperCase(Locale.ROOT)),
+            equalTo("KAFKA"),
+            equalTo("JSON"),
+            equalTo("false")
+    ));
+
+    assertRunListCommand("queries",
+        hasRow(
+            containsString("CTAS_" + tableName),
+            equalTo("PERSISTENT"),
+            equalTo("RUNNING:1"),
+            equalTo(tableName),
+            equalTo(tableName),
+            containsString("CREATE TABLE " + tableName)
+        )
+    );
 
     dropTable(tableName);
   }
@@ -1070,7 +1091,7 @@ public class CliTest {
     // Given:
     final File scriptFile = TMP.newFile("script.sql");
     Files.write(scriptFile.toPath(), (""
-        + "CREATE STREAM shouldRunScript AS SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + ";"
+        + "CREATE STREAM " + streamName + " AS SELECT * FROM " + ORDER_DATA_PROVIDER.sourceName() + ";"
         + "").getBytes(StandardCharsets.UTF_8));
 
     when(lineSupplier.get())
@@ -1082,7 +1103,7 @@ public class CliTest {
 
     // Then:
     assertThat(terminal.getOutputString(),
-        containsString("Created query with ID CSAS_SHOULDRUNSCRIPT"));
+        containsString("Created query with ID CSAS_" + streamName));
   }
 
   @Test
@@ -1320,12 +1341,6 @@ public class CliTest {
   @SuppressWarnings("varargs")
   private static Matcher<Iterable<? extends String>> row(final Matcher<String>... expected) {
     return Matchers.contains(expected);
-  }
-
-  private static Matcher<Iterable<? extends Iterable<? extends String>>> isRow(
-      final String... expected
-  ) {
-    return Matchers.contains(row(expected));
   }
 
   @SafeVarargs

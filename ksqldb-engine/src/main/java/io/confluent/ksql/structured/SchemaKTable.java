@@ -17,7 +17,6 @@ package io.confluent.ksql.structured;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -50,7 +49,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class SchemaKTable<K> extends SchemaKStream<K> {
@@ -144,18 +142,20 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     );
   }
 
-  @SuppressFBWarnings("UC_USELESS_CONDITION")
-  @SuppressWarnings("unchecked")
   @Override
-  public SchemaKTable<Struct> selectKey(
+  public SchemaKTable<K> selectKey(
       final FormatInfo valueFormat,
       final Expression keyExpression,
       final Optional<FormatInfo> forceInternalKeyFormat,
       final Stacker contextStacker,
       final boolean forceRepartition
   ) {
-    if (!forceRepartition && repartitionNotNeeded(ImmutableList.of(keyExpression))) {
-      return (SchemaKTable<Struct>) this;
+    final boolean repartitionNeeded = repartitionNeeded(ImmutableList.of(keyExpression));
+    final boolean keyFormatChange = forceInternalKeyFormat.isPresent()
+        && !forceInternalKeyFormat.get().equals(keyFormat.getFormatInfo());
+
+    if (!forceRepartition && !keyFormatChange && !repartitionNeeded) {
+      return this;
     }
 
     if (schema.key().size() > 1) {
@@ -165,7 +165,9 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     }
 
     // Table repartitioning is only supported for internal use in enabling joins
-    if (!forceRepartition) {
+    // where we know that the key will be semantically equivalent, but may be serialized
+    // differently (thus ensuring all keys are routed to the same partitions)
+    if (repartitionNeeded) {
       throw new UnsupportedOperationException("Cannot repartition a TABLE source. "
           + "If this is a join, make sure that the criteria uses the TABLE's key column "
           + Iterables.getOnlyElement(schema.key()).name().text() + " instead of "
@@ -183,7 +185,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
           : "";
       throw new KsqlException(errorMsg + additionalMsg);
     }
-
     final KeyFormat newKeyFormat = forceInternalKeyFormat
         .map(newFmt -> KeyFormat.of(
             newFmt,
@@ -191,7 +192,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
             keyFormat.getWindowInfo()))
         .orElse(keyFormat);
 
-    final ExecutionStep<KTableHolder<Struct>> step = ExecutionStepFactory.tableSelectKey(
+    final ExecutionStep<KTableHolder<K>> step = ExecutionStepFactory.tableSelectKey(
         contextStacker,
         sourceTableStep,
         InternalFormats.of(newKeyFormat.getFormatInfo(), valueFormat),

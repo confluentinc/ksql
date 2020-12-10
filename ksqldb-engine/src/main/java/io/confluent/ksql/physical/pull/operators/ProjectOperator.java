@@ -16,6 +16,7 @@
 package io.confluent.ksql.physical.pull.operators;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
@@ -33,9 +34,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import org.apache.kafka.connect.data.Struct;
 
 public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPhysicalOperator {
 
@@ -126,12 +124,10 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
           .withPseudoAndKeyColsInValue(windowed);
 
       preSelectTransform = row -> {
-        final Struct key = row.key();
+        final GenericKey key = row.key();
         final GenericRow value = row.value();
 
-        final List<Object> keyFields = key.schema().fields().stream()
-            .map(key::get)
-            .collect(Collectors.toList());
+        final List<?> keyFields = key.values();
 
         value.ensureAdditionalCapacity(
             1 // ROWTIME
@@ -215,7 +211,7 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
     return outputSchema;
   }
 
-  private void validateProjection(
+  private static void validateProjection(
       final GenericRow fullRow,
       final LogicalSchema schema
   ) {
@@ -229,10 +225,8 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
     }
   }
 
-  private List<?> createRow(final TableRow row) {
-    final List<Object> rowList = new ArrayList<>();
-
-    keyFields(row.key()).forEach(rowList::add);
+  private static List<?> createRow(final TableRow row) {
+    final List<Object> rowList = new ArrayList<>(row.key().values());
 
     row.window().ifPresent(window -> {
       rowList.add(window.start().toEpochMilli());
@@ -242,9 +236,5 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
     rowList.addAll(row.value().values());
 
     return rowList;
-  }
-
-  private Stream<?> keyFields(final Struct key) {
-    return key.schema().fields().stream().map(key::get);
   }
 }

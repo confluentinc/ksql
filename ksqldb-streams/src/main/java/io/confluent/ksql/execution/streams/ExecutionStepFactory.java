@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.execution.streams;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -59,7 +60,6 @@ import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.JoinWindows;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -243,15 +243,15 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static StreamSelectKey streamSelectKey(
+  public static <K> StreamSelectKey<K> streamSelectKey(
       final QueryContext.Stacker stacker,
-      final ExecutionStep<? extends KStreamHolder<?>> source,
+      final ExecutionStep<? extends KStreamHolder<K>> source,
       final Expression fieldName
   ) {
     final ExecutionStepPropertiesV1 props =
         new ExecutionStepPropertiesV1(stacker.getQueryContext());
 
-    return new StreamSelectKey(props, source, fieldName);
+    return new StreamSelectKey<K>(props, source, fieldName);
   }
 
   public static <K> TableSink<K> tableSink(
@@ -371,7 +371,7 @@ public final class ExecutionStepFactory {
 
   public static StreamGroupByKey streamGroupByKey(
       final QueryContext.Stacker stacker,
-      final ExecutionStep<KStreamHolder<Struct>> sourceStep,
+      final ExecutionStep<KStreamHolder<GenericKey>> sourceStep,
       final Formats formats
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
@@ -410,16 +410,16 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static TableSelectKey tableSelectKey(
+  public static <K> TableSelectKey<K> tableSelectKey(
       final QueryContext.Stacker stacker,
-      final ExecutionStep<? extends KTableHolder<?>> source,
+      final ExecutionStep<? extends KTableHolder<K>> source,
       final Formats formats,
       final Expression fieldName
   ) {
     final ExecutionStepPropertiesV1 props =
         new ExecutionStepPropertiesV1(stacker.getQueryContext());
 
-    return new TableSelectKey(props, source, formats, fieldName);
+    return new TableSelectKey<>(props, source, formats, fieldName);
   }
 
   public static <K> TableSuppress<K> tableSuppress(

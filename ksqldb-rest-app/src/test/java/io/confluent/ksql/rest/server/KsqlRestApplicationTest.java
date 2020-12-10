@@ -43,6 +43,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -143,6 +144,8 @@ public class KsqlRestApplicationTest {
   private RoutingFilterFactory routingFilterFactory;
   @Mock
   private RateLimiter rateLimiter;
+  @Mock
+  private HARouting haRouting;
 
   @Mock
   private Vertx vertx;
@@ -503,7 +506,8 @@ public class KsqlRestApplicationTest {
         denyListPropertyValidator,
         Optional.empty(),
         routingFilterFactory,
-        rateLimiter
+        rateLimiter,
+        haRouting
     );
   }
 

@@ -124,10 +124,6 @@ public class EndToEndIntegrationTest {
       .withAdditionalConfig(
           KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY,
           "http://foo:8080")
-      .withAdditionalConfig(
-          KsqlConfig.KSQL_KEY_FORMAT_ENABLED,
-          true
-      )
       .build();
 
   @Rule
@@ -179,7 +175,7 @@ public class EndToEndIntegrationTest {
     final TransientQueryMetadata queryMetadata = executeStatement("SELECT * from %s EMIT CHANGES;", USER_TABLE);
 
     final Set<String> expectedUsers = USER_DATA_PROVIDER.data().keySet().stream()
-        .map(s -> s.getString(USER_DATA_PROVIDER.key()))
+        .map(s -> (String) s.get(0))
         .collect(Collectors.toSet());
 
     final List<GenericRow> rows = verifyAvailableRows(queryMetadata, expectedUsers.size());

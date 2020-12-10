@@ -22,11 +22,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.function.Function;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,9 +40,9 @@ public class KudafAggregatorTest {
   @Mock
   private KsqlAggregateFunction<Long, String, String> func1;
   @Mock
-  private Struct key;
+  private GenericKey key;
   @Mock
-  private Merger<Struct, String> func1Merger;
+  private Merger<GenericKey, String> func1Merger;
   @Mock
   private Function<String, String> func1ResultMapper;
   @Mock

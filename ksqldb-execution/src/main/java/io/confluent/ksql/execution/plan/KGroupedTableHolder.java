@@ -16,27 +16,27 @@
 package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KGroupedTable;
 
 @Immutable
 public final class KGroupedTableHolder {
 
-  private final KGroupedTable<Struct, GenericRow> groupedTable;
+  private final KGroupedTable<GenericKey, GenericRow> groupedTable;
   private final LogicalSchema schema;
 
   private KGroupedTableHolder(
-      final KGroupedTable<Struct, GenericRow> groupedTable,
+      final KGroupedTable<GenericKey, GenericRow> groupedTable,
       final LogicalSchema schema) {
     this.groupedTable = Objects.requireNonNull(groupedTable, "groupedTable");
     this.schema = Objects.requireNonNull(schema, "schema");
   }
 
   public static KGroupedTableHolder of(
-      final KGroupedTable<Struct, GenericRow> groupedTable,
+      final KGroupedTable<GenericKey, GenericRow> groupedTable,
       final LogicalSchema schema
   ) {
     return new KGroupedTableHolder(groupedTable, schema);
@@ -46,7 +46,7 @@ public final class KGroupedTableHolder {
     return schema;
   }
 
-  public KGroupedTable<Struct, GenericRow> getGroupedTable() {
+  public KGroupedTable<GenericKey, GenericRow> getGroupedTable() {
     return groupedTable;
   }
 }

@@ -59,7 +59,6 @@ import io.confluent.ksql.util.Repartitioning;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.JoinWindows;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -314,8 +313,7 @@ public class SchemaKStream<K> {
    *                         joins on Schema-Registry-enabled key formats
    * @return result stream: repartitioned if needed or forced, else this stream unchanged
    */
-  @SuppressWarnings("unchecked")
-  public SchemaKStream<Struct> selectKey(
+  public SchemaKStream<K> selectKey(
       final FormatInfo valueFormat,
       final Expression keyExpression,
       final Optional<FormatInfo> forceInternalKeyFormat,
@@ -325,26 +323,19 @@ public class SchemaKStream<K> {
     final boolean keyFormatChange = forceInternalKeyFormat.isPresent()
         && !forceInternalKeyFormat.get().equals(keyFormat.getFormatInfo());
 
-    if (!keyFormatChange
-        && !forceRepartition
-        && repartitionNotNeeded(ImmutableList.of(keyExpression))
-    ) {
-      return (SchemaKStream<Struct>) this;
+    final boolean repartitionNeeded = repartitionNeeded(ImmutableList.of(keyExpression));
+    if (!keyFormatChange && !forceRepartition && !repartitionNeeded) {
+      return this;
     }
 
-    if (keyFormat.isWindowed()) {
-      final String errorMsg = "Implicit repartitioning of windowed sources is not supported. "
-          + "See https://github.com/confluentinc/ksql/issues/4385.";
-      final String additionalMsg = forceRepartition
-          ? " As a result, ksqlDB does not support joins on windowed sources with "
-          + "Schema-Registry-enabled key formats (AVRO, JSON_SR, PROTOBUF) at this time. "
-          + "Please repartition your sources to use a different key format before performing "
-          + "the join."
-          : "";
-      throw new KsqlException(errorMsg + additionalMsg);
+    if ((repartitionNeeded || !forceRepartition) && keyFormat.isWindowed()) {
+      throw new KsqlException(
+          "Implicit repartitioning of windowed sources is not supported. "
+              + "See https://github.com/confluentinc/ksql/issues/4385."
+      );
     }
 
-    final ExecutionStep<KStreamHolder<Struct>> step = ExecutionStepFactory
+    final ExecutionStep<KStreamHolder<K>> step = ExecutionStepFactory
         .streamSelectKey(contextStacker, sourceStep, keyExpression);
 
     final KeyFormat newKeyFormat = forceInternalKeyFormat
@@ -363,8 +354,8 @@ public class SchemaKStream<K> {
     );
   }
 
-  boolean repartitionNotNeeded(final List<Expression> expressions) {
-    return !Repartitioning.repartitionNeeded(schema, expressions);
+  boolean repartitionNeeded(final List<Expression> expressions) {
+    return Repartitioning.repartitionNeeded(schema, expressions);
   }
 
   public SchemaKGroupedStream groupBy(
@@ -372,7 +363,7 @@ public class SchemaKStream<K> {
       final List<Expression> groupByExpressions,
       final Stacker contextStacker
   ) {
-    if (repartitionNotNeeded(groupByExpressions)) {
+    if (!repartitionNeeded(groupByExpressions)) {
       return groupByKey(keyFormat.getFormatInfo(), valueFormat, contextStacker);
     }
 

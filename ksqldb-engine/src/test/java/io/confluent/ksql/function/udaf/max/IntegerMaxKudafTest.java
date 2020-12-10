@@ -19,11 +19,11 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Test;
 
@@ -64,7 +64,7 @@ public class IntegerMaxKudafTest {
   @Test
   public void shouldFindCorrectMaxForMerge() {
     final IntegerMaxKudaf integerMaxKudaf = getIntegerMaxKudaf();
-    final Merger<Struct, Integer> merger = integerMaxKudaf.getMerger();
+    final Merger<GenericKey, Integer> merger = integerMaxKudaf.getMerger();
     final Integer mergeResult1 = merger.apply(null, 10, 12);
     assertThat(mergeResult1, equalTo(12));
     final Integer mergeResult2 = merger.apply(null, 10, -12);

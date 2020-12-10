@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
@@ -39,7 +40,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyQueryMetadata;
 import org.apache.kafka.streams.state.HostInfo;
@@ -54,14 +54,14 @@ public final class KsLocator implements Locator {
   private static final Logger LOG = LoggerFactory.getLogger(KsLocator.class);
   private final String stateStoreName;
   private final KafkaStreams kafkaStreams;
-  private final Serializer<Struct> keySerializer;
+  private final Serializer<GenericKey> keySerializer;
   private final URL localHost;
-  private String applicationId;
+  private final String applicationId;
 
   KsLocator(
       final String stateStoreName,
       final KafkaStreams kafkaStreams,
-      final Serializer<Struct> keySerializer,
+      final Serializer<GenericKey> keySerializer,
       final URL localHost,
       final String applicationId
   ) {
@@ -74,25 +74,26 @@ public final class KsLocator implements Locator {
 
   @Override
   public List<KsqlPartitionLocation> locate(
-      final List<Struct> keys,
+      final List<GenericKey> keys,
       final RoutingOptions routingOptions,
       final RoutingFilterFactory routingFilterFactory
   ) {
     // Maintain request order for reproducibility by using a LinkedHashMap, even though it's
     // not a guarantee of the API.
     final Map<Integer, List<KsqlNode>> locationsByPartition = new LinkedHashMap<>();
-    final Map<Integer, Set<Struct>> keysByPartition = new HashMap<>();
+    final Map<Integer, Set<GenericKey>> keysByPartition = new HashMap<>();
     final Set<Integer> filterPartitions = routingOptions.getPartitions();
-    for (Struct key : keys) {
+    for (GenericKey key : keys) {
       final KeyQueryMetadata metadata = kafkaStreams
           .queryMetadataForKey(stateStoreName, key, keySerializer);
 
       // Fail fast if Streams not ready. Let client handle it
       if (metadata == KeyQueryMetadata.NOT_AVAILABLE) {
-        LOG.debug("KeyQueryMetadata not available for state store {} and key {}",
+        LOG.debug("KeyQueryMetadata not available for state store '{}' and key {}",
             stateStoreName, key);
         throw new MaterializationException(String.format(
-            "KeyQueryMetadata not available for state store %s and key %s", stateStoreName, key));
+            "Materialized data for key %s is not available yet. "
+                + "Please try again later.", key));
       }
 
       LOG.debug("Handling pull query for key {} in partition {} of state store {}.",
@@ -250,18 +251,18 @@ public final class KsLocator implements Locator {
 
   @VisibleForTesting
   public static final class PartitionLocation implements KsqlPartitionLocation {
-    private final Optional<Set<Struct>> keys;
+    private final Optional<Set<GenericKey>> keys;
     private final int partition;
     private final List<KsqlNode> nodes;
 
-    public PartitionLocation(final Optional<Set<Struct>> keys, final int partition,
+    public PartitionLocation(final Optional<Set<GenericKey>> keys, final int partition,
                              final List<KsqlNode> nodes) {
       this.keys = keys;
       this.partition = partition;
       this.nodes = nodes;
     }
 
-    public Optional<Set<Struct>> getKeys() {
+    public Optional<Set<GenericKey>> getKeys() {
       return keys;
     }
 

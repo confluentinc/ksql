@@ -32,8 +32,10 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -48,7 +50,6 @@ import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes.SessionWindowedSerde;
 import org.apache.kafka.streams.kstream.WindowedSerdes.TimeWindowedSerde;
@@ -66,6 +67,7 @@ public class GenericKeySerDeTest {
       .of(WindowType.HOPPING, Optional.of(Duration.ofSeconds(10)));
   private static final WindowInfo SESSION_WND = WindowInfo
       .of(WindowType.SESSION, Optional.empty());
+  private static final ColumnName COLUMN_NAME = ColumnName.of("foo");
 
   @Mock
   private GenericSerdeFactory innerFactory;
@@ -172,7 +174,7 @@ public class GenericKeySerDeTest {
   @Test
   public void shouldReturnLoggingSerdeNonWindowed() {
     // When:
-    final Serde<Struct> result = factory
+    final Serde<GenericKey> result = factory
         .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
             Optional.empty());
 
@@ -213,7 +215,7 @@ public class GenericKeySerDeTest {
   @Test
   public void shouldReturnedTimeWindowedSerdeForNonSessionWindowed() {
     // When:
-    final Serde<Windowed<Struct>> result = factory
+    final Serde<Windowed<GenericKey>> result = factory
         .create(format, TIMED_WND, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
             Optional.empty());
 
@@ -224,7 +226,7 @@ public class GenericKeySerDeTest {
   @Test
   public void shouldReturnedSessionWindowedSerdeForSessionWindowed() {
     // When:
-    final Serde<Windowed<Struct>> result = factory
+    final Serde<Windowed<GenericKey>> result = factory
         .create(format, SESSION_WND, schema, config, srClientFactory, LOGGER_PREFIX,
             processingLogCxt,
             Optional.empty());
@@ -268,26 +270,6 @@ public class GenericKeySerDeTest {
   }
 
   @Test
-  public void shouldThrowOnArrayKeyColumn() {
-    // Given:
-    schema = PersistenceSchema.from(
-        ImmutableList.of(column(SqlTypes.array(SqlTypes.STRING))),
-        SerdeFeatures.of()
-    );
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> factory
-            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
-                Optional.empty())
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("Unsupported key schema: [ARRAY<STRING>]"));
-  }
-
-  @Test
   public void shouldThrowOnMapKeyColumn() {
     // Given:
     schema = PersistenceSchema.from(
@@ -304,14 +286,20 @@ public class GenericKeySerDeTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Unsupported key schema: [MAP<STRING, STRING>]"));
+    assertThat(e.getMessage(), containsString(
+        "Map keys, including types that contain maps, are not supported as they may lead "
+            + "to unexpected behavior due to inconsistent serialization. Key column name: `foo`. "
+            + "Column type: MAP<STRING, STRING>. "
+            + "See https://github.com/confluentinc/ksql/issues/6621 for more."));
   }
 
   @Test
-  public void shouldThrowOnStructKeyColumn() {
+  public void shouldThrowOnNestedMapKeyColumn() {
     // Given:
     schema = PersistenceSchema.from(
-        ImmutableList.of(column(SqlTypes.struct().field("F", SqlTypes.STRING).build())),
+        ImmutableList.of(column(SqlTypes.struct()
+            .field("F", SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING))
+            .build())),
         SerdeFeatures.of()
     );
 
@@ -324,11 +312,16 @@ public class GenericKeySerDeTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("Unsupported key schema: [STRUCT<`F` STRING>]"));
+    assertThat(e.getMessage(), containsString(
+        "Map keys, including types that contain maps, are not supported as they may lead "
+            + "to unexpected behavior due to inconsistent serialization. Key column name: `foo`. "
+            + "Column type: STRUCT<`F` MAP<STRING, STRING>>. "
+            + "See https://github.com/confluentinc/ksql/issues/6621 for more."));
   }
 
   private static SimpleColumn column(final SqlType type) {
     final SimpleColumn column = mock(SimpleColumn.class, type.toString());
+    when(column.name()).thenReturn(COLUMN_NAME);
     when(column.type()).thenReturn(type);
     return column;
   }

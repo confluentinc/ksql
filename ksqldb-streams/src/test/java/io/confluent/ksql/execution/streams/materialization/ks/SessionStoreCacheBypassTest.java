@@ -24,11 +24,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.processor.StateStore;
@@ -51,17 +49,16 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class SessionStoreCacheBypassTest {
 
-  private static final Schema SCHEMA = SchemaBuilder.struct().field("a", SchemaBuilder.int32());
-  private static final Struct SOME_KEY = new Struct(SCHEMA).put("a", 1);
+  private static final GenericKey SOME_KEY = GenericKey.genericKey(1);
   private static final byte[] BYTES = new byte[] {'a', 'b'};
 
   @Mock
-  private QueryableStoreType<ReadOnlySessionStore<Struct, GenericRow>>
+  private QueryableStoreType<ReadOnlySessionStore<GenericKey, GenericRow>>
       queryableStoreType;
   @Mock
   private StateStoreProvider provider;
   @Mock
-  private MeteredSessionStore<Struct, GenericRow> meteredSessionStore;
+  private MeteredSessionStore<GenericKey, GenericRow> meteredSessionStore;
   @Mock
   private SessionStore<Bytes, byte[]> sessionStore;
   @Mock
@@ -71,9 +68,9 @@ public class SessionStoreCacheBypassTest {
   @Mock
   private KeyValueIterator<Windowed<Bytes>, byte[]> storeIterator;
   @Mock
-  private StateSerdes<Struct, ValueAndTimestamp<GenericRow>> serdes;
+  private StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes;
 
-  private CompositeReadOnlySessionStore<Struct, GenericRow> store;
+  private CompositeReadOnlySessionStore<GenericKey, GenericRow> store;
 
   @Before
   public void setUp() {

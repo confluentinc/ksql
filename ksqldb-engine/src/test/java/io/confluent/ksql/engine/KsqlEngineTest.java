@@ -76,6 +76,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1266,6 +1267,29 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldNotThrowWhenExecutingDuplicateTableWithIfNotExists() {
+    // Given:
+    final List<ParsedStatement> parsed = ksqlEngine.parse(
+        "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2; "
+            + "CREATE TABLE IF NOT EXISTS FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;");
+
+    givenStatementAlreadyExecuted(parsed.get(0));
+
+    final PreparedStatement<?> prepared = prepare(parsed.get(1));
+
+    // When:
+    ExecuteResult executeResult = ksqlEngine.execute(
+        serviceContext, ConfiguredStatement.
+            of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+    );
+
+    // Then:
+    assertThat(executeResult.getQuery(), is(Optional.empty()));
+    assertThat(executeResult.getCommandResult(),
+        is(Optional.of("Cannot add table `FOO`: A table with the same name already exists.")));
+  }
+
+  @Test
   public void shouldThrowWhenExecutingDuplicateTable() {
     // Given:
     final List<ParsedStatement> parsed = ksqlEngine.parse(
@@ -1325,10 +1349,33 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldNotThrowWhenExecutingDuplicateStreamWithIfNotExists() {
+    // Given:
+    final List<ParsedStatement> parsed = ksqlEngine.parse(
+        "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS; "
+            + "CREATE STREAM IF NOT EXISTS FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;");
+
+    givenStatementAlreadyExecuted(parsed.get(0));
+
+    final PreparedStatement<?> prepared = prepare(parsed.get(1));
+
+    // When:
+    ExecuteResult executeResult = ksqlEngine.execute(
+        serviceContext, ConfiguredStatement.
+            of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
+    );
+
+    // Then:
+    assertThat(executeResult.getQuery(), is(Optional.empty()));
+    assertThat(executeResult.getCommandResult(),
+        is(Optional.of("Cannot add stream `FOO`: A stream with the same name already exists.")));
+  }
+
+  @Test
   public void shouldThrowWhenExecutingDuplicateStream() {
     // Given:
     final List<ParsedStatement> parsed = ksqlEngine.parse(
-        "CREATE STREAM FOO AS SELECT * FROM ORDERS; "
+        "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS; "
             + "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;");
 
     givenStatementAlreadyExecuted(parsed.get(0));
@@ -1346,12 +1393,10 @@ public class KsqlEngineTest {
     );
 
     // Then:
-    assertThat(e, rawMessage(
-        is(
-            "Cannot add stream 'FOO': A stream with the same name already exists")));
-    assertThat(e, statementText(
-        is(
-            "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;")));
+    assertThat(e, rawMessage(is(
+        "Cannot add stream 'FOO': A stream with the same name already exists")));
+    assertThat(e, statementText(is(
+        "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;")));
   }
 
   @Test
@@ -1470,7 +1515,7 @@ public class KsqlEngineTest {
     // Given:
     givenTopicsExist("foo");
     final PreparedStatement<?> prepared =
-        prepare(parse("CREATE STREAM FOO (a int) WITH (kafka_topic='foo', value_format='json', key_format='avro');").get(0));
+        prepare(parse("CREATE STREAM FOO (a int) WITH (kafka_topic='foo', value_format='json', key_format='protobuf');").get(0));
 
     // When:
     final Exception e = assertThrows(
@@ -1482,7 +1527,7 @@ public class KsqlEngineTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("The key format 'AVRO' is not currently supported."));
+    assertThat(e.getMessage(), containsString("The key format 'PROTOBUF' is not currently supported."));
   }
 
   @Test
@@ -1493,14 +1538,14 @@ public class KsqlEngineTest {
         () -> KsqlEngineTestUtil.execute(
             serviceContext,
             ksqlEngine,
-            "CREATE STREAM FOO WITH (KEY_FORMAT='AVRO') AS SELECT * FROM ORDERS;",
+            "CREATE STREAM FOO WITH (KEY_FORMAT='PROTOBUF') AS SELECT * FROM ORDERS;",
             KSQL_CONFIG,
             Collections.emptyMap()
         )
     );
 
     // Then:
-    assertThat(e, rawMessage(containsString("The key format 'AVRO' is not currently supported.")));
+    assertThat(e, rawMessage(containsString("The key format 'PROTOBUF' is not currently supported.")));
   }
 
   @Test

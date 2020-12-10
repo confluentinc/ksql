@@ -2257,9 +2257,6 @@
       ]
     },
     {
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "name": "windowed aggregate with struct key",
       "format": ["JSON", "AVRO"],
       "statements": [
@@ -2278,9 +2275,6 @@
       ]
     },
     {
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "name": "windowed aggregate with field within struct key",
       "statements": [
         "CREATE STREAM INPUT (ID STRUCT<F1 INT, F2 INT> KEY, VAL INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -2315,9 +2309,6 @@
       ]
     },
     {
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "name": "AVRO primitive key",
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, VAL BOOLEAN) WITH (kafka_topic='test_topic', format='AVRO');",
@@ -2360,9 +2351,6 @@
       }
     },
     {
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "name": "AVRO struct key group by primitive",
       "statements": [
         "CREATE STREAM TEST (ID STRUCT<F1 INT> KEY, VAL BOOLEAN) WITH (kafka_topic='test_topic', format='AVRO');",
@@ -2405,9 +2393,6 @@
       }
     },
     {
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "name": "AVRO group by struct",
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='AVRO');",
@@ -2451,10 +2436,10 @@
           "topics": [
             {
               "name": "OUTPUT",
-              "keyFormat" : { "format" : "AVRO", "features": ["UNWRAP_SINGLES"] },
+              "keyFormat" : { "format" : "AVRO", "features": ["UNWRAP_SINGLES"], "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.OutputKey"} },
               "keySchema": {
                 "type": "record",
-                "name": "KsqlDataSourceSchema",
+                "name": "OutputKey",
                 "namespace": "io.confluent.ksql.avro_schemas",
                 "fields": [
                   { "name": "A", "type": [ "null", "int" ], "default": null },
@@ -2476,29 +2461,6 @@
       }
     },
     {
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
-      "name": "JSON group by map",
-      "statements": [
-        "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='JSON');",
-        "CREATE TABLE OUTPUT AS SELECT MAP('a':=A, 'b':=B) AS ROWKEY, COUNT() AS COUNT FROM TEST GROUP BY MAP('a':=A, 'b':=B);"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"A": 1, "B": 1}},
-        {"topic": "test_topic", "key": 1, "value": {"A": 2, "B": 1}},
-        {"topic": "test_topic", "key": 2, "value": {"A": 1, "B": 1}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": {"a": 1, "b": 1}, "value": {"COUNT": 1}},
-        {"topic": "OUTPUT", "key": {"a": 2, "b": 1}, "value": {"COUNT": 1}},
-        {"topic": "OUTPUT", "key": {"a": 1, "b": 1}, "value": {"COUNT": 2}}
-      ]
-    },
-    {
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "name": "JSON group by array",
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -2516,9 +2478,6 @@
       ]
     },
     {
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "name": "JSON group by struct",
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -2536,9 +2495,6 @@
       ]
     },
     {
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "name": "JSON group by struct convert key format",
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -2559,10 +2515,10 @@
           "topics": [
             {
               "name": "OUTPUT",
-              "keyFormat" : { "format" : "AVRO", "features": ["UNWRAP_SINGLES"] },
+              "keyFormat" : { "format" : "AVRO", "features": ["UNWRAP_SINGLES"], "properties": {"fullSchemaName": "io.confluent.ksql.avro_schemas.OutputKey"} },
               "keySchema": {
                 "type": "record",
-                "name": "KsqlDataSourceSchema",
+                "name": "OutputKey",
                 "namespace": "io.confluent.ksql.avro_schemas",
                 "fields": [
                   { "name": "A", "type": [ "null", "int" ], "default": null },
@@ -2576,9 +2532,6 @@
       }
     },
     {
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "name": "JSON group by struct convert to incompatible key format",
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -2590,9 +2543,6 @@
       }
     },
     {
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "name": "Struct key used in aggregate expression",
       "statements": [
         "CREATE STREAM TEST (ID STRUCT<F1 INT> KEY, VAL INT) WITH (kafka_topic='test_topic', format='JSON');",

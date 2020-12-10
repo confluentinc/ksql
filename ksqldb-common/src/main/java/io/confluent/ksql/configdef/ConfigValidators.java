@@ -17,10 +17,12 @@ package io.confluent.ksql.configdef;
 
 import static java.util.Objects.requireNonNull;
 
+import io.confluent.ksql.util.KsqlConfig;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -151,6 +153,64 @@ public final class ConfigValidators {
       } else {
         throw new IllegalArgumentException("validator should only be used with int, long");
       }
+    };
+  }
+
+  public static Validator intList() {
+    return (name, val) -> {
+      if (!(val instanceof List)) {
+        throw new ConfigException(name, val, "Must be a list");
+      }
+      @SuppressWarnings("unchecked")
+      final List<String> list = (List<String>) val;
+      list.forEach(intStr -> {
+        try {
+          Integer.parseInt(intStr);
+        } catch (NumberFormatException e) {
+          throw new ConfigException(name, intStr, "Not an integer");
+        }
+      });
+    };
+  }
+
+  public static Validator mapWithIntKeyDoubleValue() {
+    return (name, val) -> {
+      if (!(val instanceof String)) {
+        throw new ConfigException(name, val, "Must be a string");
+      }
+
+      final String str = (String) val;
+      final Map<String, String> map = KsqlConfig.parseStringAsMap(name, str);
+      map.forEach((keyStr, valueStr) -> {
+        try {
+          Integer.parseInt(keyStr);
+        } catch (NumberFormatException e) {
+          throw new ConfigException(name, keyStr, "Not an int");
+        }
+        try {
+          Double.parseDouble(valueStr);
+        } catch (NumberFormatException e) {
+          throw new ConfigException(name, valueStr, "Not a double");
+        }
+      });
+    };
+  }
+
+  public static Validator mapWithDoubleValue() {
+    return (name, val) -> {
+      if (!(val instanceof String)) {
+        throw new ConfigException(name, val, "Must be a string");
+      }
+
+      final String str = (String) val;
+      final Map<String, String> map = KsqlConfig.parseStringAsMap(name, str);
+      map.forEach((k, valueStr) -> {
+        try {
+          Double.parseDouble(valueStr);
+        } catch (NumberFormatException e) {
+          throw new ConfigException(name, valueStr, "Not a double");
+        }
+      });
     };
   }
 

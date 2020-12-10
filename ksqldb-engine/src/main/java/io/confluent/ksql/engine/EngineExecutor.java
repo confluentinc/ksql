@@ -38,6 +38,7 @@ import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Sink;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan;
@@ -109,7 +110,9 @@ final class EngineExecutor {
   }
 
   ExecuteResult execute(final KsqlPlan plan) {
-    if (!plan.getQueryPlan().isPresent()) {
+    final Optional<QueryPlan> queryPlan = plan.getQueryPlan();
+
+    if (!queryPlan.isPresent()) {
       final String ddlResult = plan
           .getDdlCommand()
           .map(ddl -> executeDdl(ddl, plan.getStatementText(), false, Collections.emptySet()))
@@ -119,11 +122,16 @@ final class EngineExecutor {
       return ExecuteResult.of(ddlResult);
     }
 
-    final QueryPlan queryPlan = plan.getQueryPlan().get();
-    plan.getDdlCommand().map(ddl ->
-        executeDdl(ddl, plan.getStatementText(), true, queryPlan.getSources()));
+    final Optional<String> ddlResult = plan.getDdlCommand().map(ddl ->
+        executeDdl(ddl, plan.getStatementText(), true, queryPlan.get().getSources()));
+
+    // Return if the source to create already exists.
+    if (ddlResult.isPresent() && ddlResult.get().contains("already exists")) {
+      return ExecuteResult.of(ddlResult.get());
+    }
+
     return ExecuteResult.of(executePersistentQuery(
-        queryPlan,
+        queryPlan.get(),
         plan.getStatementText(),
         plan.getDdlCommand().isPresent())
     );
@@ -140,6 +148,7 @@ final class EngineExecutor {
    */
   PullQueryResult executePullQuery(
       final ConfiguredStatement<Query> statement,
+      final HARouting routing,
       final RoutingFilterFactory routingFilterFactory,
       final RoutingOptions routingOptions,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics
@@ -164,10 +173,9 @@ final class EngineExecutor {
           ksqlConfig,
           analysis,
           statement);
-      final HARouting routing = new HARouting(
-          ksqlConfig, physicalPlan, routingFilterFactory, routingOptions, statement, serviceContext,
-          physicalPlan.getOutputSchema(), physicalPlan.getQueryId(), pullQueryMetrics);
-      return routing.handlePullQuery();
+      return routing.handlePullQuery(
+          physicalPlan, statement, routingOptions, physicalPlan.getOutputSchema(),
+          physicalPlan.getQueryId());
     } catch (final Exception e) {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
       throw new KsqlStatementException(
@@ -233,6 +241,7 @@ final class EngineExecutor {
           (KsqlStructuredDataOutputNode) plans.logicalPlan.getNode().get();
 
       final Optional<DdlCommand> ddlCommand = maybeCreateSinkDdl(
+          statement,
           outputNode
       );
 
@@ -340,11 +349,30 @@ final class EngineExecutor {
   }
 
   private Optional<DdlCommand> maybeCreateSinkDdl(
+      final ConfiguredStatement<?> cfgStatement,
       final KsqlStructuredDataOutputNode outputNode
   ) {
     if (!outputNode.createInto()) {
       validateExistingSink(outputNode);
       return Optional.empty();
+    }
+
+    final Statement statement = cfgStatement.getStatement();
+    final SourceName intoSource = outputNode.getIntoSourceName();
+    final boolean orReplace = statement instanceof CreateAsSelect
+        && ((CreateAsSelect) statement).isOrReplace();
+    final boolean ifNotExists = statement instanceof CreateAsSelect
+        && ((CreateAsSelect) statement).isNotExists();
+
+    final DataSource dataSource = engineContext.getMetaStore().getSource(intoSource);
+    if (dataSource != null && !ifNotExists && !orReplace) {
+      final String failedSourceType = outputNode.getNodeOutputType().getKsqlType();
+      final String foundSourceType = dataSource.getDataSourceType().getKsqlType();
+
+      throw new KsqlException(String.format(
+          "Cannot add %s '%s': A %s with the same name already exists",
+          failedSourceType.toLowerCase(), intoSource.text(), foundSourceType.toLowerCase()
+      ));
     }
 
     return Optional.of(engineContext.createDdlCommand(outputNode));
@@ -387,7 +415,8 @@ final class EngineExecutor {
     if (statement.getStatement() instanceof CreateSource) {
       final CreateSource createSource = (CreateSource) statement.getStatement();
       throwOnUnsupportedKeyFormat(
-          SourcePropertiesUtil.getKeyFormat(createSource.getProperties()).getFormat());
+          SourcePropertiesUtil.getKeyFormat(
+              createSource.getProperties(), createSource.getName()).getFormat());
     }
 
     if (statement.getStatement() instanceof CreateAsSelect) {

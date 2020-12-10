@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 import io.confluent.avro.random.generator.Generator;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
@@ -41,11 +42,11 @@ public class RowGeneratorTest {
 
     final RowGenerator rowGenerator = new RowGenerator(generator, "orderid", Optional.empty());
 
-    final Pair<Struct, GenericRow> rowPair = rowGenerator.generateRow();
+    final Pair<GenericKey, GenericRow> rowPair = rowGenerator.generateRow();
 
-    final Struct key = rowPair.getLeft();
+    final GenericKey key = rowPair.getLeft();
     assertThat(key, is(notNullValue()));
-    assertThat(key.get("Key"), is(instanceOf(Integer.class)));
+    assertThat(key.get(0), is(instanceOf(Integer.class)));
 
     assertThat(rowPair.getRight().values(), hasSize(5));
     assertThat(rowPair.getRight().get(4), instanceOf(Struct.class));
@@ -63,14 +64,14 @@ public class RowGeneratorTest {
 
     final RowGenerator rowGenerator = new RowGenerator(generator, "viewtime", Optional.empty());
 
-    final Pair<Struct, GenericRow> rowPair = rowGenerator.generateRow();
+    final Pair<GenericKey, GenericRow> rowPair = rowGenerator.generateRow();
 
-    final Struct key = rowPair.getLeft();
+    final GenericKey key = rowPair.getLeft();
     final GenericRow value = rowPair.getRight();
     assertThat(key, is(notNullValue()));
-    assertThat(key.get("Key"), is(instanceOf(Long.class)));
+    assertThat(key.get(0), is(instanceOf(Long.class)));
 
-    assertThat("must match copy of key in value", key.get("Key"), is(value.get(0)));
+    assertThat("must match copy of key in value", key.get(0), is(value.get(0)));
   }
 
   @Test

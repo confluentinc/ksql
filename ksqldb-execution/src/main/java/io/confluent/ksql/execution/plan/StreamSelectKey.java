@@ -24,26 +24,25 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nonnull;
-import org.apache.kafka.connect.data.Struct;
 
 @Immutable
-public class StreamSelectKey implements ExecutionStep<KStreamHolder<Struct>> {
+public class StreamSelectKey<K> implements ExecutionStep<KStreamHolder<K>> {
 
   private static final ImmutableList<Property> MUST_MATCH = ImmutableList.of(
       new Property("class", Object::getClass),
       new Property("properties", ExecutionStep::getProperties),
-      new Property("keyExpression", s -> ((StreamSelectKey) s).keyExpression)
+      new Property("keyExpression", s -> ((StreamSelectKey<?>) s).keyExpression)
   );
 
   private final ExecutionStepPropertiesV1 properties;
   private final Expression keyExpression;
   @EffectivelyImmutable
-  private final ExecutionStep<? extends KStreamHolder<?>> source;
+  private final ExecutionStep<? extends KStreamHolder<K>> source;
 
   public StreamSelectKey(
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "source", required = true) final
-      ExecutionStep<? extends KStreamHolder<?>> source,
+      ExecutionStep<? extends KStreamHolder<K>> source,
       @JsonProperty(value = "keyExpression", required = true) final Expression keyExpression
   ) {
     this.properties = Objects.requireNonNull(props, "props");
@@ -66,19 +65,24 @@ public class StreamSelectKey implements ExecutionStep<KStreamHolder<Struct>> {
     return keyExpression;
   }
 
-  public ExecutionStep<? extends KStreamHolder<?>> getSource() {
+  public ExecutionStep<? extends KStreamHolder<K>> getSource() {
     return source;
   }
 
   @Override
-  public KStreamHolder<Struct> build(final PlanBuilder builder) {
-    return builder.visitStreamSelectKey(this);
+  public KStreamHolder<K> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitStreamSelectKey(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitStreamSelectKey(this);
   }
 
   @Override
   public void validateUpgrade(@Nonnull final ExecutionStep<?> to) {
     mustMatch(to, MUST_MATCH);
-    getSource().validateUpgrade(((StreamSelectKey) to).source);
+    getSource().validateUpgrade(((StreamSelectKey<?>) to).source);
   }
 
   @Override

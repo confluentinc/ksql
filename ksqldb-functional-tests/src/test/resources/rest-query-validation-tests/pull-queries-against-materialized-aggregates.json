@@ -1509,9 +1509,6 @@
         "SELECT * FROM AGGREGATE WHERE ID=10;",
         "SELECT * FROM AGGREGATE WHERE ID=123369;"
       ],
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "inputs": [
         {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {}},
         {"topic": "test_topic", "timestamp": 12365, "key": 10, "value": {}}
@@ -1948,9 +1945,6 @@
     },
     {
       "name": "non-windowed - array keys",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (ID ARRAY<STRING> KEY, IGNORED INT) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
@@ -1971,9 +1965,6 @@
     },
     {
       "name": "non-windowed - struct keys",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (ID STRUCT<f1 STRING, f2 STRING> KEY, IGNORED INT) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",

@@ -17,16 +17,16 @@ package io.confluent.ksql.execution.plan;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.Optional;
 import javax.annotation.Nonnull;
-import org.apache.kafka.connect.data.Struct;
 
 @Immutable
-public final class StreamSource extends SourceStep<KStreamHolder<Struct>> {
+public final class StreamSource extends SourceStep<KStreamHolder<GenericKey>> {
 
   private static final ImmutableList<Property> MUST_MATCH = ImmutableList.of(
       new Property("class", Object::getClass),
@@ -53,8 +53,13 @@ public final class StreamSource extends SourceStep<KStreamHolder<Struct>> {
   }
 
   @Override
-  public KStreamHolder<Struct> build(final PlanBuilder builder) {
-    return builder.visitStreamSource(this);
+  public KStreamHolder<GenericKey> build(final PlanBuilder builder, final PlanInfo info) {
+    return builder.visitStreamSource(this, info);
+  }
+
+  @Override
+  public PlanInfo extractPlanInfo(final PlanInfoExtractor extractor) {
+    return extractor.visitStreamSource(this);
   }
 
   @Override

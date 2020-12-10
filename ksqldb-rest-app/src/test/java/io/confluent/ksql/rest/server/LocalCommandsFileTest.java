@@ -63,11 +63,9 @@ public class LocalCommandsFileTest {
     // Then
     final List<String> commands = Files.readAllLines(internalCommandsFile.toPath());
     assertThat(commands.size(), is(2));
-    assertThat(commands.get(0), is("{\"@type\":\"transient_query\",\"type\":\"transient_query\","
-        + "\"queryApplicationId\":"
+    assertThat(commands.get(0), is("{\"@type\":\"transient_query\",\"queryApplicationId\":"
         + "\"_confluent-ksql-default_transient_932097300573686369_1606940079718\"}"));
-    assertThat(commands.get(1), is("{\"@type\":\"transient_query\",\"type\":\"transient_query\","
-        + "\"queryApplicationId\":"
+    assertThat(commands.get(1), is("{\"@type\":\"transient_query\",\"queryApplicationId\":"
         + "\"_confluent-ksql-default_transient_123457300573686369_1606940012343\"}"));
   }
 
@@ -84,12 +82,12 @@ public class LocalCommandsFileTest {
   public void shouldReadCommands() throws IOException {
     // Given
     Files.write(internalCommandsFile.toPath(),
-        ("{\"@type\":\"transient_query\",\"type\":\"transient_query\",\"queryApplicationId\":"
+        ("{\"@type\":\"transient_query\",\"queryApplicationId\":"
             + "\"_confluent-ksql-default_transient_932097300573686369_1606940079718\"}\n")
             .getBytes(StandardCharsets.UTF_8),
         StandardOpenOption.APPEND);
     Files.write(internalCommandsFile.toPath(),
-        ("{\"@type\":\"transient_query\",\"type\":\"transient_query\",\"queryApplicationId\":"
+        ("{\"@type\":\"transient_query\",\"queryApplicationId\":"
             + "\"_confluent-ksql-default_transient_123457300573686369_1606940012343\"}\n")
             .getBytes(StandardCharsets.UTF_8),
         StandardOpenOption.APPEND);

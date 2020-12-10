@@ -29,7 +29,7 @@ public class TransientQueryLocalCommand extends LocalCommand {
 
   @JsonCreator
   public TransientQueryLocalCommand(
-      @JsonProperty("type") final String type,
+      @JsonProperty("@type") final String type,
       @JsonProperty("queryApplicationId") final String queryApplicationId) {
     super(type);
     this.queryApplicationId = queryApplicationId;

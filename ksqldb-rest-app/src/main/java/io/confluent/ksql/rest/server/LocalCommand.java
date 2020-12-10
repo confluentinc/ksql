@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
@@ -22,7 +23,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
  * A command which is executed locally and possibly requiring cleanup next time the server is
  * restarted.
  */
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, visible = true)
 @JsonSubTypes({
     @JsonSubTypes.Type(
         value = TransientQueryLocalCommand.class,
@@ -37,6 +38,7 @@ public class LocalCommand {
     this.type = type;
   }
 
+  @JsonIgnore
   public String getType() {
     return type;
   }

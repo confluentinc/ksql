@@ -60,14 +60,20 @@ keywords: ksqldb, architecture, collection, query, schema, window, view
   </div>
 
   <div class="card concepts">
-    <strong>Connectors</strong>
-    <p class="card-body"><small>Connectors source and sink data from external systems.</small></p>
-    <span><a href="/concepts/connectors">Learn →</a></span>
+    <strong>User-defined functions</strong>
+    <p class="card-body"><small>Extend ksqlDB to invoke custom code written in Java.</small></p>
+    <span><a href="/concepts/functions">Learn →</a></span>
   </div>
 </div>
 
 
 <div class="cards">
+  <div class="card concepts">
+    <strong>Connectors</strong>
+    <p class="card-body"><small>Connectors source and sink data from external systems.</small></p>
+    <span><a href="/concepts/connectors">Learn →</a></span>
+  </div>
+
   <div class="card concepts">
     <strong>Apache Kafka primer</strong>
     <p class="card-body"><small>None of this making sense? Take a step back and learn the basics of Kafka first.</small></p>

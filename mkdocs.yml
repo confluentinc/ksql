@@ -41,9 +41,9 @@ nav:
       - Partitioning requirements: developer-guide/joins/partition-data.md
       - Synthetic key columns: developer-guide/joins/synthetic-keys.md
     - Time and Windows: concepts/time-and-windows-in-ksqldb-queries.md
+    - User-defined functions: concepts/functions.md
     - Connectors: concepts/connectors.md
     - Apache Kafka primer: concepts/apache-kafka-primer.md
-    - Functions: concepts/functions.md
   - How-to guides:
       - Synopsis: how-to-guides/index.md
       - Query structured data: how-to-guides/query-structured-data.md
@@ -146,6 +146,7 @@ nav:
       - Contribute a new client: developer-guide/ksqldb-clients/contributing.md
     - Processing log: reference/processing-log.md
     - Serialization: reference/serialization.md
+    - User-defined functions: reference/user-defined-functions.md
   - Troubleshooting: troubleshoot-ksqldb.md
   - Frequently asked questions: faq.md
 

@@ -103,6 +103,7 @@ public class KsqlRestConfig extends AbstractConfig {
 
   protected static final String SSL_KEYSTORE_LOCATION_DEFAULT = "";
   protected static final String SSL_KEYSTORE_PASSWORD_DEFAULT = "";
+  protected static final String SSL_KEY_PASSWORD_DEFAULT = "";
 
   public static final String SSL_KEYSTORE_TYPE_CONFIG = "ssl.keystore.type";
   protected static final String SSL_KEYSTORE_TYPE_DOC =
@@ -413,6 +414,12 @@ public class KsqlRestConfig extends AbstractConfig {
             SSL_KEYSTORE_PASSWORD_DEFAULT,
             Importance.HIGH,
             SslConfigs.SSL_KEYSTORE_PASSWORD_DOC
+        ).define(
+            SslConfigs.SSL_KEY_PASSWORD_CONFIG,
+            Type.PASSWORD,
+            SSL_KEY_PASSWORD_DEFAULT,
+            Importance.HIGH,
+            SslConfigs.SSL_KEY_PASSWORD_CONFIG
         ).define(
             SSL_KEYSTORE_TYPE_CONFIG,
             Type.STRING,

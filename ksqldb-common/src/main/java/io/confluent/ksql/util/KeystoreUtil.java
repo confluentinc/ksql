@@ -64,7 +64,10 @@ public final class KeystoreUtil {
       throw new KsqlException("Alias doesn't exist in keystore: " + alias);
     }
 
-    final byte[] singleValueKeyStore = createSingleValueKeyStore(key, chain, pw, keyPw, alias);
+    // Re-encrypt the Private key and Keystore, both with the same Keystore password.
+    // There is a limitation (or bug) in Vert.x where both, the Private key and Keystore, must
+    // have the same password.
+    final byte[] singleValueKeyStore = createSingleValueKeyStore(key, chain, pw, pw, alias);
     return Buffer.buffer(singleValueKeyStore);
   }
 

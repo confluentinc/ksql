@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.schema.registry;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
@@ -29,7 +30,8 @@ import org.slf4j.LoggerFactory;
 public final class SchemaRegistryUtil {
 
   private static final Logger LOG = LoggerFactory.getLogger(SchemaRegistryUtil.class);
-  private static final int SUBJECT_NOT_FOUND_ERROR_CODE = 40401;
+  @VisibleForTesting
+  public static final int SUBJECT_NOT_FOUND_ERROR_CODE = 40401;
 
   private SchemaRegistryUtil() {
   }
@@ -72,12 +74,26 @@ public final class SchemaRegistryUtil {
     );
   }
 
+  public static boolean subjectExists(
+      final SchemaRegistryClient srClient,
+      final String subject
+  ) {
+    return getLatestSchema(srClient, subject).isPresent();
+  }
+
   public static Optional<SchemaMetadata> getLatestSchema(
       final SchemaRegistryClient srClient,
       final String topic,
       final boolean getKeySchema
   ) {
     final String subject = KsqlConstants.getSRSubject(topic, getKeySchema);
+    return getLatestSchema(srClient, subject);
+  }
+
+  private static Optional<SchemaMetadata> getLatestSchema(
+      final SchemaRegistryClient srClient,
+      final String subject
+  ) {
     try {
       final SchemaMetadata schemaMetadata = srClient.getLatestSchemaMetadata(subject);
       return Optional.ofNullable(schemaMetadata);
@@ -85,7 +101,7 @@ public final class SchemaRegistryUtil {
       if (isSubjectNotFoundErrorCode(e)) {
         return Optional.empty();
       }
-      throw new KsqlException("Could not get latest schema for subject " + topic, e);
+      throw new KsqlException("Could not get latest schema for subject " + subject, e);
     }
   }
 
@@ -145,4 +161,5 @@ public final class SchemaRegistryUtil {
           + ", subject: " + subjectName, e);
     }
   }
+
 }

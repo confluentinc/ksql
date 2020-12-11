@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.kafka.serializers.subject.TopicNameStrategy;
 import io.confluent.kafka.serializers.subject.strategy.SubjectNameStrategy;
 import org.apache.kafka.streams.KafkaStreams;
@@ -57,6 +58,9 @@ public final class KsqlConstants {
     return state == KafkaStreams.State.ERROR ? KsqlQueryStatus.ERROR : KsqlQueryStatus.RUNNING;
   }
 
+  @SuppressFBWarnings(
+      value = "MS_SHOULD_BE_FINAL",
+      justification = "Can't be final because set outside on application start")
   public static SubjectNameStrategy subjectNameStrategy = new TopicNameStrategy();
 
   public static String getSRSubject(final String topicName, final boolean isKey) {

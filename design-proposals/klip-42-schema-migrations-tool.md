@@ -343,6 +343,20 @@ i.e.
 
 It is recommended the user creates these two files on any new migration. The tool will not enforce that. We need specify this recomendation in the ksqlDB documents.
 
+### Directory structure
+
+The migrations tool will use following directory structure:
+
+<migrations-project-dir>
+|
+|- ksql-migrations.properties
+|- migrations/
+
+When the migrations tool is executed, it will look at the `migrations` directory (by default) for SQL migration files to execute. This directory can be modified in the  
+configuration file or command line parameters.
+
+If the `ksql-migrations.properties` exist in the root directory, then it will use the configuration provided by the file.
+
 ### Command Syntax
 
 Finally, let's look at the rest of the command parameters that will exist to facilitate schema migrations.
@@ -352,7 +366,22 @@ Usage:
   ksql-migrations [options] commands
   
 Commands
+  new  <project-path>  Creates a new migrations project, directory structure and config file.
+
   initialize   Initializes the schema version table
+  
+  create [-v <version>] <desc> 
+  
+                 Create a pair of migration files with <desc> as description.
+                 Optional: Use the <version> to specify the version to use.
+   
+                 This will created a pair of empty migration files based
+                 on the next schema version.
+               
+                 i.e.                  
+                   $ ksql-migrations create add_users 
+                   Created V2__Add_users.sql
+                   Created U2__Add_users.sql
 
   apply ( all | next | until <target> )
   
@@ -406,8 +435,9 @@ ksql.username='user1'
 ksql.password='pass1'
 
 # Migrations details
-ksql.migrations.stream.name='migration_events'
-ksql.migrations.table.name='schema_version'
+ksql.migrations.streamName='migration_events'
+ksql.migrations.tableName='schema_version'
+ksql.migrations.createSchemas='true'
 ```
 
 Note: The command line options and other configurations will also be defined during the implementation.

@@ -24,6 +24,7 @@ import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -125,7 +126,7 @@ public class SchemaRegisterInjector implements Injector {
         final ParsedSchema parsedSchema =
             format.toParsedSchema(schema.withoutPseudoAndKeyColsInValue().value(), formatInfo);
 
-        if (registerIfSchemaExists || !srClient.getAllSubjects().contains(subject)) {
+        if (registerIfSchemaExists || !SchemaRegistryUtil.subjectExists(srClient, subject)) {
           srClient.register(subject, parsedSchema);
         }
       } catch (IOException | RestClientException e) {

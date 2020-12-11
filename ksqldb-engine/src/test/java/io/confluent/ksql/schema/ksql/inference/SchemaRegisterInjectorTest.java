@@ -23,15 +23,16 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.KsqlExecutionContext;
@@ -49,6 +50,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -65,6 +67,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Optional;
 import org.apache.avro.Schema;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -91,6 +94,8 @@ public class SchemaRegisterInjectorTest {
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
   @Mock
+  private SchemaMetadata schemaMetadata;
+  @Mock
   private KafkaTopicClient topicClient;
   @Mock
   private KsqlExecutionContext executionContext;
@@ -107,7 +112,7 @@ public class SchemaRegisterInjectorTest {
   private ConfiguredStatement<?> statement;
 
   @Before
-  public void setUp() {
+  public void setUp() throws IOException, RestClientException {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
     config = new KsqlConfig(ImmutableMap.of(
         KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "foo:8081"
@@ -126,6 +131,9 @@ public class SchemaRegisterInjectorTest {
         ValueFormat.of(FormatInfo.of(FormatFactory.AVRO.name()))
     ));
 
+    when(schemaRegistryClient.getLatestSchemaMetadata(any())).thenThrow(
+        new RestClientException("foo", 404, SchemaRegistryUtil.SUBJECT_NOT_FOUND_ERROR_CODE));
+
     final KsqlTopic sourceTopic = new KsqlTopic(
         "source",
         KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name())),
@@ -141,6 +149,14 @@ public class SchemaRegisterInjectorTest {
         sourceTopic
     );
     metaStore.putSource(source);
+  }
+
+  @After
+  public void after() throws IOException, RestClientException {
+    // we should never call getAllSubjects() because this has stricter
+    // privilege requirements (i.e. I may have permission to see subject
+    // X but not all subjects)
+    verify(schemaRegistryClient, never()).getAllSubjects();
   }
 
   @Test
@@ -187,7 +203,7 @@ public class SchemaRegisterInjectorTest {
       throws IOException, RestClientException {
     // Given:
     givenStatement("CREATE STREAM sink (f1 VARCHAR) WITH (kafka_topic='expectedName', value_format='AVRO', partitions=1);");
-    when(schemaRegistryClient.getAllSubjects()).thenReturn(ImmutableSet.of("expectedName-value"));
+    doReturn(schemaMetadata).when(schemaRegistryClient).getLatestSchemaMetadata("expectedName-value");
     when(schemaRegistryClient.testCompatibility(eq("expectedName-value"), any(ParsedSchema.class))).thenReturn(true);
 
     // When:

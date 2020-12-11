@@ -2169,9 +2169,6 @@
     },
     {
       "name": "stream-stream key-to-key - protobuf on right key mismatch",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM S1 (ID INT KEY, FOO INT) WITH (kafka_topic='s1', key_format='DELIMITED', value_format='JSON');",
         "CREATE STREAM S2 (ID INT KEY, VAL STRING) WITH (kafka_topic='s2', key_format='PROTOBUF', value_format='JSON');",
@@ -2211,9 +2208,6 @@
     },
     {
       "name": "stream-stream key-to-key - protobuf on left key mismatch",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM S1 (ID INT KEY, FOO INT) WITH (kafka_topic='s1', key_format='PROTOBUF', value_format='JSON');",
         "CREATE STREAM S2 (ID INT KEY, VAL STRING) WITH (kafka_topic='s2', key_format='JSON', value_format='JSON');",

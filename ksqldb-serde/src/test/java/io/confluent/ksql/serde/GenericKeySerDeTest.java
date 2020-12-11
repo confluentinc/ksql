@@ -249,7 +249,7 @@ public class GenericKeySerDeTest {
   }
 
   @Test
-  public void shouldThrowOnMultipleKeyColumns() {
+  public void shouldNotThrowOnMultipleKeyColumns() {
     // Given:
     schema = PersistenceSchema.from(
         ImmutableList.of(column(SqlTypes.STRING), column(SqlTypes.INTEGER)),
@@ -257,16 +257,10 @@ public class GenericKeySerDeTest {
     );
 
     // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> factory
-            .create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
-                Optional.empty())
-    );
+    factory.create(format, schema, config, srClientFactory, LOGGER_PREFIX, processingLogCxt,
+        Optional.empty());
 
-    // Then:
-    assertThat(e.getMessage(), containsString("Only single KEY column supported. "
-        + "Multiple KEY columns found: [STRING, INTEGER]"));
+    // Then (did not throw):
   }
 
   @Test

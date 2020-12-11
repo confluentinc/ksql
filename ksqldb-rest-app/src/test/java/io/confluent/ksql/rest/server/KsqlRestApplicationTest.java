@@ -507,7 +507,8 @@ public class KsqlRestApplicationTest {
         Optional.empty(),
         routingFilterFactory,
         rateLimiter,
-        haRouting
+        haRouting,
+        Optional.empty()
     );
   }
 

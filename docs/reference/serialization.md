@@ -47,6 +47,7 @@ Not all formats can be used as both key and value formats. See individual format
 |------------------------------|-----------|
 | As value format              | No        |
 | As key format                | Yes       |
+| Multi-Column Keys            | N/A       |
 | [Schema Registry required][0]| No        |
 | [Schema inference][1]        | No        |
 | [Single field wrapping][2]   | No        |
@@ -109,14 +110,15 @@ CREATE TABLE T AS
 |------------------------------|-----------|
 | As value format              | Yes       |
 | As key format                | Yes       |
+| Multi-Column Keys            | Yes       |
 | [Schema Registry required][0]| No        |
 | [Schema inference][1]        | No        |
 | [Single field wrapping][2]   | No        |
 | [Single field unwrapping][2] | Yes       | 
 
 The `DELIMITED` format supports comma-separated values. You can use other
-delimiter characters by specifying the VALUE_DELIMITER when you use
-VALUE_FORMAT='DELIMITED' in a WITH clause. Only a single character is valid
+delimiter characters by specifying the KEY_DELIMITER and/or VALUE_DELIMITER when you use
+FORMAT='DELIMITED' in a WITH clause. Only a single character is valid
 as a delimiter. The default is the comma character. For space- and
 tab-delimited values, use the special values `SPACE` or `TAB`, not an actual
 space or tab character.
@@ -127,11 +129,11 @@ split into columns.
 For example, given a SQL statement such as:
 
 ```sql
-CREATE STREAM x (ID BIGINT, NAME STRING, AGE INT) WITH (VALUE_FORMAT='DELIMITED', ...);
+CREATE STREAM x (ORGID BIGINT KEY, ID BIGINT KEY, NAME STRING, AGE INT) WITH (FORMAT='DELIMITED', ...);
 ```
 
-ksqlDB splits a value of `120, bob, 49` into the three fields with `ID` of
-`120`, `NAME` of `bob` and `AGE` of `49`.
+ksqlDB splits a key of `120,21` and a value of `bob,49` into the four fields (two keys and two values) 
+with `ORGID KEY` of `120`, `ID KEY` of `21`, `NAME` of `bob` and `AGE` of `49`.
 
 This data format supports all SQL
 [data types](syntax-reference.md#data-types) except `ARRAY`, `MAP` and
@@ -143,6 +145,7 @@ This data format supports all SQL
 |------------------------------|-----------|
 | As value format              | Yes       |
 | As key format                | `JSON`: Yes, `JSON_SR`: Yes |
+| Multi-Column Keys            | Yes       |
 | [Schema Registry required][0]| `JSON`: No, `JSON_SR`: Yes |
 | [Schema inference][1]        | `JSON`: No, `JSON_SR`: Yes|
 | [Single field unwrapping][2] | Yes       |
@@ -217,7 +220,9 @@ example:
 CREATE STREAM y WITH (WRAP_SINGLE_VALUE=false) AS SELECT id FROM x EMIT CHANGES;
 ```
 
-For more information, see [Single field (un)wrapping](#single-field-unwrapping).
+!!! tip 
+    Explicit wrapping and unwrapping is only supported for value columns. 
+    For more information, see [Single field (un)wrapping](#single-field-unwrapping).
 
 #### Decimal Serialization
 
@@ -252,6 +257,7 @@ used.
 |------------------------------|-----------|
 | As value format              | Yes       |
 | As key format                | Yes        |
+| Multi-Column Keys            | Yes       |
 | [Schema Registry required][0]| Yes       |
 | [Schema inference][1]        | Yes       |
 | [Single field wrapping][2]   | Yes       |
@@ -333,7 +339,9 @@ example:
 CREATE STREAM y WITH (WRAP_SINGLE_VALUE=false) AS SELECT id FROM x EMIT CHANGES;
 ```
 
-For more information, see [Single field (un)wrapping](#single-field-unwrapping).
+!!! tip
+    Explicit wrapping and unwrapping is only supported for value columns.
+    For more information, see [Single field (un)wrapping](#single-field-unwrapping).
 
 #### Field Name Case Sensitivity
 
@@ -346,6 +354,7 @@ Avro record's field name. The first case-insensitive match is used.
 |------------------------------|-----------|
 | As value format              | Yes       |
 | As key format                | Yes       |
+| Multi-Column Keys            | No        |
 | [Schema Registry required][0]| No        |
 | [Schema inference][1]        | No        |
 | [Single field wrapping][2]   | No        |
@@ -405,7 +414,8 @@ format.
 | Feature                      | Supported |
 |------------------------------|-----------|
 | As value format              | Yes       |
-| As key format                | No        |
+| As key format                | Yes       |
+| Multi-Column Keys            | Yes       |
 | [Schema Registry required][0]| Yes       |
 | [Schema inference][1]        | Yes       |
 | [Single field wrapping][2]   | Yes       |
@@ -429,10 +439,14 @@ Single field (un)wrapping
 
 ### (de)serialization of single keys
 
-At this time, ksqlDB supports only a single key column and that key columns
-must be unwrapped, i.e. not contained within a outer record or object. See
-the next two sections on single values for more information about wrapped
-and unwrapped data.
+ksqlDB assumes that any single key is unwrapped, which mean that it's not contained in an outer
+record or object. Conversely, ksqlDB assumes that any key with multiple columns
+(for example, `CREATE STREAM K1 INT KEY, K2 INT KEY, C1 INT`) _is_ wrapped, which means that it is a record
+with each column as a field within the key. 
+
+To declare a single-column key that's wrapped, specify a `STRUCT` type
+with a single column. for example, `K STRUCT<F1 INT> KEY`. See the next two sections 
+on single values for more information about wrapped and unwrapped data.
 
 ### Controlling deserializing of single values
 

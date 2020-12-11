@@ -84,6 +84,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RateLimiter rateLimiter;
   private final HARouting routing;
+  private final Optional<LocalCommands> localCommands;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumber
   public KsqlServerEndpoints(
@@ -103,7 +104,8 @@ public class KsqlServerEndpoints implements Endpoints {
       final WSQueryEndpoint wsQueryEndpoint,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RateLimiter rateLimiter,
-      final HARouting routing
+      final HARouting routing,
+      final Optional<LocalCommands> localCommands
   ) {
 
     // CHECKSTYLE_RULES.ON: ParameterNumber
@@ -125,6 +127,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
     this.rateLimiter = Objects.requireNonNull(rateLimiter);
     this.routing = Objects.requireNonNull(routing);
+    this.localCommands = Objects.requireNonNull(localCommands);
   }
 
   @Override
@@ -138,7 +141,8 @@ public class KsqlServerEndpoints implements Endpoints {
     return executeOnWorker(() -> {
       try {
         return new QueryEndpoint(
-            ksqlEngine, ksqlConfig, routingFilterFactory, pullQueryMetrics, rateLimiter, routing)
+            ksqlEngine, ksqlConfig, routingFilterFactory, pullQueryMetrics, rateLimiter, routing,
+            localCommands)
             .createQueryPublisher(
                 sql,
                 properties,

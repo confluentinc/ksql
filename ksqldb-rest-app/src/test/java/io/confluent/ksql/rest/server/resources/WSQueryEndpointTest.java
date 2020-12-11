@@ -80,7 +80,8 @@ public class WSQueryEndpointTest {
         Optional.empty(),
         mock(RoutingFilterFactory.class),
         mock(RateLimiter.class),
-        mock(HARouting.class)
+        mock(HARouting.class),
+        Optional.empty()
     );
   }
 

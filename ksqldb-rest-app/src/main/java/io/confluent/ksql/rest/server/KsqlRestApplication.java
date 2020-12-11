@@ -113,6 +113,7 @@ import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.ext.dropwizard.Match;
 import java.io.Console;
+import java.io.File;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
@@ -190,6 +191,7 @@ public final class KsqlRestApplication implements Executable {
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RateLimiter pullQueryRateLimiter;
   private final HARouting pullQueryRouting;
+  private final Optional<LocalCommands> localCommands;
 
   // The startup thread that can be interrupted if necessary during shutdown.  This should only
   // happen if startup hangs.
@@ -229,7 +231,8 @@ public final class KsqlRestApplication implements Executable {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter pullQueryRateLimiter,
-      final HARouting pullQueryRouting
+      final HARouting pullQueryRouting,
+      final Optional<LocalCommands> localCommands
   ) {
     log.debug("Creating instance of ksqlDB API server");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -286,6 +289,7 @@ public final class KsqlRestApplication implements Executable {
     this.routingFilterFactory = requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.pullQueryRateLimiter = requireNonNull(pullQueryRateLimiter, "pullQueryRateLimiter");
     this.pullQueryRouting = requireNonNull(pullQueryRouting, "pullQueryRouting");
+    this.localCommands = requireNonNull(localCommands, "localCommands");
   }
 
   @Override
@@ -327,7 +331,8 @@ public final class KsqlRestApplication implements Executable {
         pullQueryMetrics,
         routingFilterFactory,
         pullQueryRateLimiter,
-        pullQueryRouting
+        pullQueryRouting,
+        localCommands
     );
 
     startAsyncThreadRef.set(Thread.currentThread());
@@ -349,7 +354,8 @@ public final class KsqlRestApplication implements Executable {
           wsQueryEndpoint,
           pullQueryMetrics,
           pullQueryRateLimiter,
-          pullQueryRouting
+          pullQueryRouting,
+          localCommands
       );
       apiServer = new Server(vertx, ksqlRestConfig, endpoints, securityExtension,
           authenticationPlugin, serverState, pullQueryMetrics);
@@ -375,6 +381,7 @@ public final class KsqlRestApplication implements Executable {
   @VisibleForTesting
   void startKsql(final KsqlConfig ksqlConfigWithPort) {
     waitForPreconditions();
+    cleanupOldState();
     initialize(ksqlConfigWithPort);
   }
 
@@ -431,6 +438,10 @@ public final class KsqlRestApplication implements Executable {
       throw new AbortApplicationStartException(
           "Shutting down application during waitForPreconditions");
     }
+  }
+
+  private void cleanupOldState() {
+    localCommands.ifPresent(lc -> lc.processLocalCommandFiles(serviceContext));
   }
 
   private void initialize(final KsqlConfig configWithApplicationServer) {
@@ -490,6 +501,14 @@ public final class KsqlRestApplication implements Executable {
     } catch (final Exception e) {
       log.error("Exception while waiting for pull query metrics to close", e);
     }
+
+    localCommands.ifPresent(lc -> {
+      try {
+        lc.close();
+      } catch (final Exception e) {
+        log.error("Exception while closing local commands", e);
+      }
+    });
 
     try {
       ksqlEngine.close();
@@ -732,8 +751,11 @@ public final class KsqlRestApplication implements Executable {
         Time.SYSTEM))
         : Optional.empty();
 
+
     final HARouting pullQueryRouting = new HARouting(
         routingFilterFactory, serviceContext, pullQueryMetrics, ksqlConfig);
+
+    final Optional<LocalCommands> localCommands = createLocalCommands(restConfig, ksqlEngine);
 
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
@@ -748,7 +770,8 @@ public final class KsqlRestApplication implements Executable {
         pullQueryMetrics,
         routingFilterFactory,
         pullQueryRateLimiter,
-        pullQueryRouting
+        pullQueryRouting,
+        localCommands
     );
 
     final List<String> managedTopics = new LinkedList<>();
@@ -826,7 +849,8 @@ public final class KsqlRestApplication implements Executable {
         pullQueryMetrics,
         routingFilterFactory,
         pullQueryRateLimiter,
-        pullQueryRouting
+        pullQueryRouting,
+        localCommands
     );
   }
 
@@ -1038,6 +1062,18 @@ public final class KsqlRestApplication implements Executable {
     return streams
         .stream()
         .anyMatch(stream -> stream.getName().equals(processingLogStreamName));
+  }
+
+  private static Optional<LocalCommands> createLocalCommands(
+      final KsqlRestConfig restConfig,
+      final KsqlEngine ksqlEngine
+  ) {
+    if (!restConfig.getString(KsqlRestConfig.KSQL_LOCAL_COMMANDS_LOCATION_CONFIG).isEmpty()) {
+      final File file
+          = new File(restConfig.getString(KsqlRestConfig.KSQL_LOCAL_COMMANDS_LOCATION_CONFIG));
+      return Optional.of(LocalCommands.open(ksqlEngine, file));
+    }
+    return Optional.empty();
   }
 
   /**

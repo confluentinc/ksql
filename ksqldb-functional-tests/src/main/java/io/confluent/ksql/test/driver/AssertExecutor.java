@@ -81,6 +81,12 @@ public final class AssertExecutor {
           CommonCreateConfigs.KEY_FORMAT_PROPERTY,
           CommonCreateConfigs.FORMAT_PROPERTY
       )).add(new SourceProperty(
+          ds -> ds.getKsqlTopic().getKeyFormat().getFormatInfo().getFormat(),
+          (cs, cfg) -> cs.getProperties().getKeyFormat(cs.getName()).map(FormatInfo::getFormat)
+              .orElse(cfg.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG)),
+          "key format properties",
+          CommonCreateConfigs.KEY_DELIMITER_PROPERTY
+      )).add(new SourceProperty(
           ds -> ds.getKsqlTopic().getValueFormat().getFormatInfo().getFormat(),
           (cs, cfg) -> cs.getProperties().getValueFormat().map(FormatInfo::getFormat)
               .orElse(cfg.getString(KsqlConfig.KSQL_DEFAULT_VALUE_FORMAT_CONFIG)),
@@ -90,7 +96,7 @@ public final class AssertExecutor {
       )).add(new SourceProperty(
           ds -> ds.getKsqlTopic().getValueFormat().getFormatInfo().getProperties(),
           (cs, cfg) -> cs.getProperties().getValueFormatProperties(),
-          "delimiter",
+          "value format properties",
           CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME,
           CommonCreateConfigs.VALUE_DELIMITER_PROPERTY
       )).add(new SourceProperty(

@@ -108,6 +108,42 @@
       ]
     },
     {
+      "name": "multi-column key",
+      "properties": {
+        "ksql.multicol.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K1 STRING KEY, K2 STRING KEY, V INT) WITH (kafka_topic='input_topic', format='DELIMITED');",
+        "CREATE STREAM OUTPUT WITH (key_format='JSON') AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "foo,bar", "value": "0"},
+        {"topic": "input_topic", "key": "\"foo\",\"bar\"", "value": "0"},
+        {"topic": "input_topic", "key": null, "value": "0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"K1": "foo", "K2": "bar"}, "value": "0"},
+        {"topic": "OUTPUT", "key": {"K1": "foo", "K2": "bar"}, "value": "0"},
+        {"topic": "OUTPUT", "key": null, "value": "0"}
+      ]
+    },
+    {
+      "name": "multi-column key with different kv delimiters",
+      "properties": {
+        "ksql.multicol.key.format.enabled": true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (K1 STRING KEY, K2 STRING KEY, V INT, V2 INT) WITH (kafka_topic='input_topic', format='DELIMITED', key_delimiter=';', value_delimiter='-');",
+        "CREATE STREAM OUTPUT WITH (key_format='JSON') AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": "foo,bar;baz", "value": "0-1"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"K1": "foo,bar", "K2": "baz"}, "value": "0-1"}
+      ]
+    },
+    {
       "name": "ARRAY - key",
       "statements": [
         "CREATE STREAM INPUT (K ARRAY<DOUBLE> KEY, V INT) WITH (kafka_topic='input_topic', format='DELIMITED');"

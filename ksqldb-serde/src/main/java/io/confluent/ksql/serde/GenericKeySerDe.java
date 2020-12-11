@@ -141,13 +141,6 @@ public final class GenericKeySerDe implements KeySerdeFactory {
       return;
     }
 
-    if (!config.getBoolean(KsqlConfig.KSQL_MULTICOL_KEY_FORMAT_ENABLED)) {
-      if (columns.size() > 1) {
-        throw new KsqlException(
-            "Only single KEY column supported. Multiple KEY columns found: " + columns);
-      }
-    }
-
     for (final SimpleColumn column : columns) {
       if (containsMapType(column.type())) {
         throw new KsqlException("Map keys, including types that contain maps, are not supported "

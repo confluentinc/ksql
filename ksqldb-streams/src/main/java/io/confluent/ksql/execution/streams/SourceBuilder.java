@@ -351,7 +351,7 @@ public final class SourceBuilder {
         // re-partitioned topic will be used for any subsequent state stores, in lieu
         // of the original source topic, thus avoiding the issues above.
         // See https://github.com/confluentinc/ksql/issues/6650
-        table = source;
+        table = source.mapValues(row -> row);
       }
     }
 

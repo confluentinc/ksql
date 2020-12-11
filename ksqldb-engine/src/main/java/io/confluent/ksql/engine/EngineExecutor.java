@@ -29,9 +29,7 @@ import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
-import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
@@ -54,9 +52,6 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryExecutor;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.KeyFormatUtils;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -217,7 +212,6 @@ final class EngineExecutor {
   KsqlPlan plan(final ConfiguredStatement<?> statement) {
     try {
       throwOnNonExecutableStatement(statement);
-      throwOnUnsupportedKeyFormat(statement);
 
       if (statement.getStatement() instanceof ExecutableDdlStatement) {
         final DdlCommand ddlCommand = engineContext.createDdlCommand(
@@ -408,29 +402,6 @@ final class EngineExecutor {
                                   + System.lineSeparator()
                                   + "Sink schema is " + existingSchema
       );
-    }
-  }
-
-  private void throwOnUnsupportedKeyFormat(final ConfiguredStatement<?> statement) {
-    if (statement.getStatement() instanceof CreateSource) {
-      final CreateSource createSource = (CreateSource) statement.getStatement();
-      throwOnUnsupportedKeyFormat(
-          SourcePropertiesUtil.getKeyFormat(
-              createSource.getProperties(), createSource.getName()).getFormat());
-    }
-
-    if (statement.getStatement() instanceof CreateAsSelect) {
-      final CreateAsSelect createAsSelect = (CreateAsSelect) statement.getStatement();
-      createAsSelect.getProperties().getKeyFormat()
-          .ifPresent(this::throwOnUnsupportedKeyFormat);
-    }
-  }
-
-  private void throwOnUnsupportedKeyFormat(final String keyFormat) {
-    final KsqlConfig ksqlConfig = config.getConfig(true);
-    final Format format = FormatFactory.fromName(keyFormat);
-    if (!KeyFormatUtils.isSupportedKeyFormat(ksqlConfig, format)) {
-      throw new KsqlException("The key format '" + format.name() + "' is not currently supported.");
     }
   }
 

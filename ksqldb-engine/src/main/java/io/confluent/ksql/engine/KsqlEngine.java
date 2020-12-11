@@ -70,6 +70,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final String serviceId;
   private final EngineContext primaryContext;
   private final QueryCleanupService cleanupService;
+  private final OrphanedTransientQueryCleaner orphanedTransientQueryCleaner;
 
   public KsqlEngine(
       final ServiceContext serviceContext,
@@ -101,6 +102,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final QueryIdGenerator queryIdGenerator
   ) {
     this.cleanupService = new QueryCleanupService();
+    this.orphanedTransientQueryCleaner = new OrphanedTransientQueryCleaner(this.cleanupService);
     this.primaryContext = EngineContext.create(
         serviceContext,
         processingLogContext,
@@ -310,6 +312,14 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   @Override
   public void close() {
     close(false);
+  }
+
+  public void cleanupOrphanedInternalTopics(
+      final ServiceContext serviceContext,
+      final Set<String> queryApplicationIds
+  ) {
+    orphanedTransientQueryCleaner
+        .cleanupOrphanedInternalTopics(serviceContext, queryApplicationIds);
   }
 
   /**

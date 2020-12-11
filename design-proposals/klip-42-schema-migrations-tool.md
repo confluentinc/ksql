@@ -199,8 +199,7 @@ CREATE STREAM migration_events (
   version_key  STRING KEY,
   version      STRING,
   name         STRING,
-  state        STRING,
-  undoable     BOOLEAN,
+  state        STRING,  
   checksum     STRING,
   started_on   STRING,
   completed_on STRING,
@@ -217,7 +216,6 @@ The `version_key` column has the version of the migration applied or undone. Spe
 The `version` column has the version of the migration applied or undone.
 The `name` column has the name of the migration.
 The `state` column has the state of the migration process. It can be any of `Pending`, `Running`, `Migrated`, `Error`, `Undone`.
-The `undoable` column specifies if the migration can be undone or not. This requires an undoable migration file (See `Undo migrations`).
 The `checksum` column has the MD5 checksum of the migration file. It is used to validate the schema migrations with the local files.
 The `started_on` column has the date and time when the migration started.
 The `completed_on` column has the date and time when the migration finished.
@@ -244,8 +242,7 @@ CREATE TABLE schema_version
     version_key, 
     latest_by_offset(version) as version, 
     latest_by_offset(name) AS name, 
-    latest_by_offset(state) AS state, 
-    latest_by_offset(undoable) AS undoable, 
+    latest_by_offset(state) AS state,     
     latest_by_offset(checksum) AS checksum, 
     latest_by_offset(started_on) AS started_on, 
     latest_by_offset(completed_on) AS completed_on, 
@@ -258,27 +255,27 @@ The following are the outputs that we'll see on each stream and table, and how t
 
 The `MIGRATION_EVENTS` stream output:
 ```shell script
-+-------------+---------+---------------+----------+----------+------------+---------------------+---------------------+----------+
-| version_key | version | name          | state    | undoable | checksum   | started_on          | completed_on        | previous |
-+-------------+---------+---------------+----------+----------+------------+---------------------+---------------------+----------+
-| 1           | 1       | Initial setup | Migrated | No       | <MD5-sum>  | 12-01-2020 03:48:00 | 12-01-2020 03:48:05 | null     |
-| 2           | 2       | Add users     | Migrated | No       | <MD5-sum>  | 12-03-2020 10:34:30 | 12-03-2020 10:34:34 | 1        |
-| 2           | 2       | Add users     | Undone   | No       | <MD5-sum>  | 12-03-2020 10:34:30 | 12-03-2020 10:34:34 | 1        |
-| CURRENT     | 1       | Initial setup | Migrated | No       | <MD5-sum>  | 12-01-2020 03:48:00 | 12-01-2020 03:48:05 | null     |
-| LATEST      | 2       | Add users     | Undone   | No       | <MD5-sum>  | 12-03-2020 10:34:30 | 12-03-2020 10:34:34 | 1        |
-+-------------+---------+---------------+----------+----------+------------+---------------------+---------------------+----------+
++-------------+---------+---------------+----------+------------+---------------------+---------------------+----------+
+| version_key | version | name          | state    | checksum   | started_on          | completed_on        | previous |
++-------------+---------+---------------+----------+------------+---------------------+---------------------+----------+
+| 1           | 1       | Initial setup | Migrated | <MD5-sum>  | 12-01-2020 03:48:00 | 12-01-2020 03:48:05 | null     |
+| 2           | 2       | Add users     | Migrated | <MD5-sum>  | 12-03-2020 10:34:30 | 12-03-2020 10:34:34 | 1        |
+| 2           | 2       | Add users     | Undone   | <MD5-sum>  | 12-03-2020 10:34:30 | 12-03-2020 10:34:34 | 1        |
+| CURRENT     | 1       | Initial setup | Migrated | <MD5-sum>  | 12-01-2020 03:48:00 | 12-01-2020 03:48:05 | null     |
+| LATEST      | 2       | Add users     | Undone   | <MD5-sum>  | 12-03-2020 10:34:30 | 12-03-2020 10:34:34 | 1        |
++-------------+---------+---------------+----------+------------+---------------------+---------------------+----------+
 ```
 
 The `SCHEMA_VERSION` table output:
 ```shell script
-+-------------+---------+---------------+----------+----------+------------+---------------------+---------------------+----------+
-| version_key | version | name          | state    | undoable | checksum   | started_on          | completed_on        | previous |
-+-------------+---------+---------------+----------+----------+------------+---------------------+---------------------+----------+
-| 1           | 1       | Initial setup | Migrated | No       | <MD5-sum>  | 12-01-2020 03:48:00 | 12-01-2020 03:48:05 | null     |
-| 2           | 2       | Add users     | Undone   | No       | <MD5-sum>  | 12-03-2020 10:34:30 | 12-03-2020 10:34:34 | 1        |
-| CURRENT     | 1       | Initial setup | Migrated | No       | <MD5-sum>  | 12-01-2020 03:48:00 | 12-01-2020 03:48:05 | null     |
-| LATEST      | 2       | Add users     | Undone   | No       | <MD5-sum>  | 12-03-2020 10:34:30 | 12-03-2020 10:34:34 | 1        |
-+-------------+---------+---------------+----------+----------+------------+---------------------+---------------------+----------+
++-------------+---------+---------------+----------+------------+---------------------+---------------------+----------+
+| version_key | version | name          | state    | checksum   | started_on          | completed_on        | previous |
++-------------+---------+---------------+----------+------------+---------------------+---------------------+----------+
+| 1           | 1       | Initial setup | Migrated | <MD5-sum>  | 12-01-2020 03:48:00 | 12-01-2020 03:48:05 | null     |
+| 2           | 2       | Add users     | Undone   | <MD5-sum>  | 12-03-2020 10:34:30 | 12-03-2020 10:34:34 | 1        |
+| CURRENT     | 1       | Initial setup | Migrated | <MD5-sum>  | 12-01-2020 03:48:00 | 12-01-2020 03:48:05 | null     |
+| LATEST      | 2       | Add users     | Undone   | <MD5-sum>  | 12-03-2020 10:34:30 | 12-03-2020 10:34:34 | 1        |
++-------------+---------+---------------+----------+------------+---------------------+---------------------+----------+
 ```
 
 The tool will later use pull queries to identify the current state of the system:

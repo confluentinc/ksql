@@ -298,9 +298,6 @@
       "comments": [
         "note that null defaults to false in protobuf"
       ],
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (F1 BOOLEAN KEY, foo INT) WITH (kafka_topic='input_topic', format='PROTOBUF');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -318,9 +315,6 @@
     },
     {
       "name": "STRUCT BOOLEAN - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='PROTOBUF');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -345,9 +339,6 @@
     },
     {
       "name": "STRUCT INT - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (F1 INT KEY, foo INT) WITH (kafka_topic='input_topic', format='PROTOBUF');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -365,9 +356,6 @@
     },
     {
       "name": "STRUCT INT - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='PROTOBUF');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -392,9 +380,6 @@
     },
     {
       "name": "STRUCT BIGINT - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (F1 BIGINT KEY, foo INT) WITH (kafka_topic='input_topic', format='PROTOBUF');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -412,9 +397,6 @@
     },
     {
       "name": "STRUCT BIGINT - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='PROTOBUF');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -439,9 +421,6 @@
     },
     {
       "name": "STRUCT DOUBLE - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (F1 DOUBLE KEY, foo INT) WITH (kafka_topic='input_topic', format='PROTOBUF');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -459,9 +438,6 @@
     },
     {
       "name": "STRUCT DOUBLE - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='PROTOBUF');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -486,9 +462,6 @@
     },
     {
       "name": "STRUCT STRING - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (F1 VARCHAR KEY, foo INT) WITH (kafka_topic='input_topic', format='PROTOBUF');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -506,9 +479,6 @@
     },
     {
       "name": "STRUCT STRING - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='PROTOBUF');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -533,9 +503,6 @@
     },
     {
       "name": "STRUCT ARRAY STRING - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (F1 ARRAY<VARCHAR> KEY, foo INT) WITH (kafka_topic='input_topic', format='PROTOBUF');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -553,9 +520,6 @@
     },
     {
       "name": "STRUCT ARRAY STRING - key - inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', format='PROTOBUF');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -580,9 +544,6 @@
     },
     {
       "name": "STRUCT multi field - key - no inference",
-      "properties": {
-        "ksql.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (F1 INT KEY, F2 VARCHAR KEY, foo INT) WITH (kafka_topic='input_topic', format='PROTOBUF');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"

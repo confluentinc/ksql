@@ -1511,44 +1511,6 @@ public class KsqlEngineTest {
   }
 
   @Test
-  public void shouldThrowOnUnsupportedKeyFormatForCreateSource() {
-    // Given:
-    givenTopicsExist("foo");
-    final PreparedStatement<?> prepared =
-        prepare(parse("CREATE STREAM FOO (a int) WITH (kafka_topic='foo', value_format='json', key_format='protobuf');").get(0));
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlStatementException.class,
-        () -> sandbox.execute(
-            sandboxServiceContext,
-            ConfiguredStatement.of(prepared, SessionConfig.of(KSQL_CONFIG, Collections.emptyMap()))
-        )
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("The key format 'PROTOBUF' is not currently supported."));
-  }
-
-  @Test
-  public void shouldThrowOnUnsupportedKeyFormatForCSAS() {
-    // When:
-    final KsqlStatementException e = assertThrows(
-        KsqlStatementException.class,
-        () -> KsqlEngineTestUtil.execute(
-            serviceContext,
-            ksqlEngine,
-            "CREATE STREAM FOO WITH (KEY_FORMAT='PROTOBUF') AS SELECT * FROM ORDERS;",
-            KSQL_CONFIG,
-            Collections.emptyMap()
-        )
-    );
-
-    // Then:
-    assertThat(e, rawMessage(containsString("The key format 'PROTOBUF' is not currently supported.")));
-  }
-
-  @Test
   public void shouldThrowOnNoneExecutableDdlStatement() {
     // When:
     final KsqlStatementException e = assertThrows(

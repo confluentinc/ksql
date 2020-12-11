@@ -49,8 +49,7 @@ public final class PlannedTestUtils {
 
   public static boolean isNotExcluded(final TestCase testCase) {
     // Place temporary logic here to exclude test cases based on feature flags, etc.
-    final Map<String, Object> props = testCase.properties();
-    return !(boolean) props.getOrDefault(KsqlConfig.KSQL_KEY_FORMAT_ENABLED, false);
+    return true;
   }
 
   public static boolean isSamePlan(

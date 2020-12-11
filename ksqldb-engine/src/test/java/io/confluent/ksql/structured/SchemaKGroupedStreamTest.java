@@ -108,6 +108,7 @@ public class SchemaKGroupedStreamTest {
   public void setUp() {
     when(keyFormatInfo.getFormat()).thenReturn(FormatFactory.KAFKA.name());
     when(keyFormat.getFormatInfo()).thenReturn(keyFormatInfo);
+    when(keyFormat.getFeatures()).thenReturn(SerdeFeatures.of());
     when(valueFormat.getFormatInfo()).thenReturn(valueformatInfo);
 
     schemaGroupedStream = new SchemaKGroupedStream(
@@ -162,9 +163,10 @@ public class SchemaKGroupedStreamTest {
   }
 
   @Test
-  public void shouldBuildStepForAggregateWhereKeyFormatSupportsBothWrappingAndUnwrapping() {
+  public void shouldBuildStepForAggregateWithKeyFormatSerdeFeatures() {
     // Given:
     when(keyFormatInfo.getFormat()).thenReturn(FormatFactory.JSON.name());
+    when(keyFormat.getFeatures()).thenReturn(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     // When:
     final SchemaKTable result = schemaGroupedStream.aggregate(

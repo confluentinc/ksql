@@ -23,7 +23,7 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.FormatFactory;
-import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -42,7 +42,7 @@ public class PreJoinRepartitionNode extends SingleSourcePlanNode implements Join
   private final LogicalSchema schema;
   private final Optional<JoinNode> joiningNode;
   private final ValueFormat valueFormat;
-  private Optional<FormatInfo> forcedInternalKeyFormat = Optional.empty();
+  private Optional<KeyFormat> forcedInternalKeyFormat = Optional.empty();
   private boolean forceRepartition = false;
   private boolean keyFormatSet = false;
 
@@ -75,7 +75,7 @@ public class PreJoinRepartitionNode extends SingleSourcePlanNode implements Join
   }
 
   @Override
-  public Optional<FormatInfo> getPreferredKeyFormat() {
+  public Optional<KeyFormat> getPreferredKeyFormat() {
     if (requiresRepartition()) {
       return Optional.empty();
     }
@@ -88,8 +88,8 @@ public class PreJoinRepartitionNode extends SingleSourcePlanNode implements Join
   }
 
   @Override
-  public void setKeyFormat(final FormatInfo format) {
-    final Optional<FormatInfo> requiredParentJoinFormat = maybeForceInternalKeyFormat(format);
+  public void setKeyFormat(final KeyFormat format) {
+    final Optional<KeyFormat> requiredParentJoinFormat = maybeForceInternalKeyFormat(format);
 
     if (joiningNode.isPresent()) {
       if (requiredParentJoinFormat.isPresent()) {
@@ -123,9 +123,9 @@ public class PreJoinRepartitionNode extends SingleSourcePlanNode implements Join
   }
 
   // Only safe to call this if joiningNode is empty.
-  private FormatInfo getSourceKeyFormat() {
+  private KeyFormat getSourceKeyFormat() {
     return Iterators.getOnlyElement(getSourceNodes().iterator())
-        .getDataSource().getKsqlTopic().getKeyFormat().getFormatInfo();
+        .getDataSource().getKsqlTopic().getKeyFormat();
   }
 
   /**
@@ -134,11 +134,11 @@ public class PreJoinRepartitionNode extends SingleSourcePlanNode implements Join
    * @param format key format being set on this node
    * @return if applicable, the format that must be set on this node's parent JoinNode
    */
-  private Optional<FormatInfo> maybeForceInternalKeyFormat(final FormatInfo format) {
+  private Optional<KeyFormat> maybeForceInternalKeyFormat(final KeyFormat format) {
     // Force repartition in case of schema inference, to avoid misses due to key schema ID mismatch
     // See https://github.com/confluentinc/ksql/issues/6332 for context, and
     // https://github.com/confluentinc/ksql/issues/6648 for a potential optimization
-    if (FormatFactory.of(format).supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
+    if (FormatFactory.of(format.getFormatInfo()).supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
       forceRepartition = true;
     }
 
@@ -149,7 +149,7 @@ public class PreJoinRepartitionNode extends SingleSourcePlanNode implements Join
     }
 
     if (joiningNode.isPresent()) {
-      final Optional<FormatInfo> preferred = joiningNode.get().getPreferredKeyFormat();
+      final Optional<KeyFormat> preferred = joiningNode.get().getPreferredKeyFormat();
       if (!preferred.isPresent() || preferred.get().equals(format)) {
         // Parent node can handle any key format change
         return Optional.of(format);

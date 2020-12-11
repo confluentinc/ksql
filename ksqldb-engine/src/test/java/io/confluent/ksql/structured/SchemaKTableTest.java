@@ -335,7 +335,7 @@ public class SchemaKTableTest {
             ExecutionStepFactory.tableSelectKey(
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
-                InternalFormats.of(keyFormat.getFormatInfo(), valueFormat.getFormatInfo()),
+                InternalFormats.of(keyFormat, valueFormat.getFormatInfo()),
                 new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))
             )
         )
@@ -572,9 +572,9 @@ public class SchemaKTableTest {
   }
 
   @Test
-  public void shouldBuildStepForGroupByWhereKeyFormatSupportsBothWrappingAndUnwrapping() {
+  public void shouldBuildStepForGroupByBasedOnKeySerdeFeatures() {
     // Given:
-    keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
+    keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
     final String selectQuery = "SELECT col0, col1, col2 FROM test2 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);

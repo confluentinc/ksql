@@ -50,16 +50,16 @@ public final class InternalFormats {
    * @see <a href=https://github.com/confluentinc/ksql/issues/6296>Issue 6296</a>
    * @see SerdeFeaturesFactory#buildInternal
    */
-  public static Formats of(final FormatInfo keyFormat, final FormatInfo valueFormat) {
+  public static Formats of(final KeyFormat keyFormat, final FormatInfo valueFormat) {
     // Do not use NONE format for internal topics:
-    if (keyFormat.getFormat().equals(NoneFormat.NAME)) {
+    if (keyFormat.getFormatInfo().getFormat().equals(NoneFormat.NAME)) {
       throw new IllegalArgumentException(NoneFormat.NAME + " can not be used for internal topics");
     }
 
     return Formats.of(
-        keyFormat,
+        keyFormat.getFormatInfo(),
         valueFormat,
-        SerdeFeaturesFactory.buildInternal(FormatFactory.fromName(keyFormat.getFormat())),
+        keyFormat.getFeatures(),
         SerdeFeatures.of()
     );
   }

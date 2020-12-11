@@ -38,13 +38,10 @@ import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.RefinementInfo;
-import io.confluent.ksql.serde.SerdeFeatures;
-import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -146,13 +143,13 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKTable<K> selectKey(
       final FormatInfo valueFormat,
       final Expression keyExpression,
-      final Optional<FormatInfo> forceInternalKeyFormat,
+      final Optional<KeyFormat> forceInternalKeyFormat,
       final Stacker contextStacker,
       final boolean forceRepartition
   ) {
     final boolean repartitionNeeded = repartitionNeeded(ImmutableList.of(keyExpression));
     final boolean keyFormatChange = forceInternalKeyFormat.isPresent()
-        && !forceInternalKeyFormat.get().equals(keyFormat.getFormatInfo());
+        && !forceInternalKeyFormat.get().equals(keyFormat);
 
     if (!forceRepartition && !keyFormatChange && !repartitionNeeded) {
       return this;
@@ -185,17 +182,12 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
           : "";
       throw new KsqlException(errorMsg + additionalMsg);
     }
-    final KeyFormat newKeyFormat = forceInternalKeyFormat
-        .map(newFmt -> KeyFormat.of(
-            newFmt,
-            SerdeFeaturesFactory.buildInternal(FormatFactory.of(newFmt)),
-            keyFormat.getWindowInfo()))
-        .orElse(keyFormat);
+    final KeyFormat newKeyFormat = forceInternalKeyFormat.orElse(keyFormat);
 
     final ExecutionStep<KTableHolder<K>> step = ExecutionStepFactory.tableSelectKey(
         contextStacker,
         sourceTableStep,
-        InternalFormats.of(newKeyFormat.getFormatInfo(), valueFormat),
+        InternalFormats.of(newKeyFormat, valueFormat),
         keyExpression
     );
 
@@ -224,12 +216,12 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final Stacker contextStacker
   ) {
     final KeyFormat groupedKeyFormat = KeyFormat
-        .nonWindowed(keyFormat.getFormatInfo(), SerdeFeatures.of());
+        .nonWindowed(keyFormat.getFormatInfo(), keyFormat.getFeatures());
 
     final TableGroupBy<K> step = ExecutionStepFactory.tableGroupBy(
         contextStacker,
         sourceTableStep,
-        InternalFormats.of(groupedKeyFormat.getFormatInfo(), valueFormat),
+        InternalFormats.of(groupedKeyFormat, valueFormat),
         groupByExpressions
     );
 
@@ -322,7 +314,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         contextStacker,
         sourceTableStep,
         refinementInfo,
-        InternalFormats.of(keyFormat.getFormatInfo(), valueFormat)
+        InternalFormats.of(keyFormat, valueFormat)
     );
 
     return new SchemaKTable<>(

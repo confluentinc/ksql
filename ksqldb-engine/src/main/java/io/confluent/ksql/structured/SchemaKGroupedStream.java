@@ -77,7 +77,7 @@ public class SchemaKGroupedStream {
       step = ExecutionStepFactory.streamWindowedAggregate(
           contextStacker,
           sourceStep,
-          InternalFormats.of(keyFormat.getFormatInfo(), valueFormat),
+          InternalFormats.of(keyFormat, valueFormat),
           nonAggregateColumns,
           aggregations,
           windowExpression.get().getKsqlWindowExpression()
@@ -87,7 +87,7 @@ public class SchemaKGroupedStream {
       step = ExecutionStepFactory.streamAggregate(
           contextStacker,
           sourceStep,
-          InternalFormats.of(keyFormat.getFormatInfo(), valueFormat),
+          InternalFormats.of(keyFormat, valueFormat),
           nonAggregateColumns,
           aggregations
       );

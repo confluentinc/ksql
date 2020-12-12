@@ -36,7 +36,7 @@ import java.util.Optional;
 public final class KeyFormat {
 
   private final FormatInfo format;
-  private final SerdeFeatures features;
+  private SerdeFeatures features;
   private final Optional<WindowInfo> window;
 
   public static KeyFormat nonWindowed(

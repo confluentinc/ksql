@@ -360,24 +360,21 @@ public class SchemaKStream<K> {
       return groupByKey(keyFormat, valueFormat, contextStacker);
     }
 
-    final FormatInfo keyFmtInfo = keyFormat.getFormatInfo().getFormat().equals(NoneFormat.NAME)
-        ? FormatInfo.of(ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG))
-        : keyFormat.getFormatInfo();
-
-    final KeyFormat rekeyedKeyFormat = KeyFormat
-        .nonWindowed(keyFmtInfo, SerdeFeatures.of());
+    final KeyFormat rekeyedFormat = keyFormat.getFormatInfo().getFormat().equals(NoneFormat.NAME)
+        ? KeyFormat.nonWindowed(FormatInfo.of(ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG)), SerdeFeatures.of())
+        : keyFormat;
 
     final StreamGroupBy<K> source = ExecutionStepFactory.streamGroupBy(
         contextStacker,
         sourceStep,
-        InternalFormats.of(rekeyedKeyFormat, valueFormat),
+        InternalFormats.of(rekeyedFormat, valueFormat),
         groupByExpressions
     );
 
     return new SchemaKGroupedStream(
         source,
         resolveSchema(source),
-        rekeyedKeyFormat,
+        rekeyedFormat,
         ksqlConfig,
         functionRegistry
     );

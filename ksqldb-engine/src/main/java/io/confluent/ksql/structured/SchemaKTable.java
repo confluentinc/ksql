@@ -42,6 +42,7 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.RefinementInfo;
+import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -182,7 +183,13 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
           : "";
       throw new KsqlException(errorMsg + additionalMsg);
     }
-    final KeyFormat newKeyFormat = forceInternalKeyFormat.orElse(keyFormat);
+
+    // use sanitizeKeyFormat(true) because we don't yet support
+    // PARTITION BY or JOIN on multi-column keys
+    final KeyFormat newKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
+        ksqlConfig,
+        forceInternalKeyFormat.orElse(keyFormat),
+        true);
 
     final ExecutionStep<KTableHolder<K>> step = ExecutionStepFactory.tableSelectKey(
         contextStacker,
@@ -215,8 +222,14 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final List<Expression> groupByExpressions,
       final Stacker contextStacker
   ) {
-    final KeyFormat groupedKeyFormat = KeyFormat
-        .nonWindowed(keyFormat.getFormatInfo(), keyFormat.getFeatures());
+    // Since tables must have a key, we know that the keyFormat is both
+    // not NONE and has at least one column; this allows us to inherit
+    // the key format directly (as opposed to the logic in SchemaKStream)
+    final KeyFormat groupedKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
+        ksqlConfig,
+        KeyFormat.nonWindowed(keyFormat.getFormatInfo(), keyFormat.getFeatures()),
+        true
+    );
 
     final TableGroupBy<K> step = ExecutionStepFactory.tableGroupBy(
         contextStacker,

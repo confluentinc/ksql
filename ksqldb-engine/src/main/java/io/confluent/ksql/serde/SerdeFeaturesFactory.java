@@ -18,6 +18,7 @@ package io.confluent.ksql.serde;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
@@ -85,6 +86,57 @@ public final class SerdeFeaturesFactory {
         .ifPresent(builder::add);
 
     return SerdeFeatures.from(builder.build());
+  }
+
+  /**
+   * Not all {@code KeyFormat}s are valid internal topic formats. Specifically,
+   * we want to ensure that the key format is (1) not NONE and (2) explicitly sets
+   * the wrapping if it contains only a single column. This method ensures that
+   * both of these are eagerly set.
+   *
+   * @return the key format to use for the output of the aggregation
+   */
+  public static KeyFormat sanitizeKeyFormat(
+      final KsqlConfig ksqlConfig,
+      final KeyFormat keyFormat,
+      final boolean isSingleKey
+  ) {
+    if (keyFormat.getFormatInfo().getFormat().equals(NoneFormat.NAME)) {
+      // explicitly resolve the current default wrapping and write it into the
+      // format so that the execution step has it serialized for future backwards
+      // incompatible changes to what the default may be
+      final FormatInfo defaultFormat = FormatInfo.of(
+          ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG));
+      final SerdeFeatures defaultWrapping = getKeyWrapping(isSingleKey, defaultFormat.getFormat())
+          .map(SerdeFeatures::of)
+          .orElse(SerdeFeatures.of());
+
+      return KeyFormat.nonWindowed(defaultFormat, defaultWrapping);
+    }
+
+    // it is possible that the source format was either multi-key
+    // or no-key, in which case there would not have been specified
+    // a wrapping configuration - we should specify one here
+    final boolean hasWrappingFeature = keyFormat
+        .getFeatures()
+        .findAny(SerdeFeatures.WRAPPING_FEATURES)
+        .isPresent();
+
+    if (isSingleKey && !hasWrappingFeature) {
+      final SerdeFeatures defaultWrapping = getKeyWrapping(true, keyFormat.getFormat())
+          .map(SerdeFeatures::of)
+          .orElse(SerdeFeatures.of());
+      return keyFormat.withSerdeFeature(defaultWrapping);
+    } else {
+      return keyFormat;
+    }
+  }
+
+  private static Optional<SerdeFeature> getKeyWrapping(
+      final boolean singleKey,
+      final String format
+  ) {
+    return getKeyWrapping(singleKey, FormatFactory.fromName(format));
   }
 
   private static Optional<SerdeFeature> getKeyWrapping(
@@ -162,4 +214,5 @@ public final class SerdeFeaturesFactory {
 
     return Optional.of(feature);
   }
+
 }

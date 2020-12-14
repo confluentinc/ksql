@@ -9,7 +9,7 @@ keywords: ksqldb
 These examples use a `pageviews` stream and a `users` table.
 
 !!! tip
-      The [Stream Processing Cookbook](https://www.confluent.io/product/ksql/stream-processing-cookbook)
+      [Kafka Tutorials](https://kafka-tutorials.confluent.io/)
       contains ksqlDB recipes that provide in-depth tutorials and recommended
       deployment scenarios.
 

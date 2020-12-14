@@ -51,6 +51,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.SerdeFeaturesFactory;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Repartitioning;
@@ -342,7 +343,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         step,
         resolveSchema(step),
-        SerdeFeaturesFactory.sanitizeKeyFormat(ksqlConfig, newKeyFormat, true),
+        SerdeFeaturesFactory.sanitizeKeyFormat(newKeyFormat, true),
         ksqlConfig,
         functionRegistry
     );
@@ -361,13 +362,23 @@ public class SchemaKStream<K> {
       return groupByKey(keyFormat, valueFormat, contextStacker);
     }
 
-    final boolean isSingleKey = groupByExpressions.size() == 1;
-    final KeyFormat rekeyedFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
-        ksqlConfig, keyFormat, isSingleKey);
+    final KeyFormat rekeyedFormat;
+    if (keyFormat.getFormatInfo().getFormat().equals(NoneFormat.NAME)) {
+      final FormatInfo defaultFormat = FormatInfo.of(
+          ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG));
+      rekeyedFormat = KeyFormat.nonWindowed(defaultFormat, SerdeFeatures.of());
+    } else {
+      rekeyedFormat = keyFormat;
+    }
+
+    // we don't yet support "real" multi-column group bys so passing in
+    // true here to sanitizeKeyFormat
+    final KeyFormat sanitizedKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
+        rekeyedFormat, true);
     final StreamGroupBy<K> source = ExecutionStepFactory.streamGroupBy(
         contextStacker,
         sourceStep,
-        InternalFormats.of(rekeyedFormat, valueFormat),
+        InternalFormats.of(sanitizedKeyFormat, valueFormat),
         groupByExpressions
     );
 

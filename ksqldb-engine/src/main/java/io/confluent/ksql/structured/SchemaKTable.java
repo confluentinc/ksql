@@ -187,7 +187,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     // use sanitizeKeyFormat(true) because we don't yet support
     // PARTITION BY or JOIN on multi-column keys
     final KeyFormat newKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
-        ksqlConfig,
         forceInternalKeyFormat.orElse(keyFormat),
         true);
 
@@ -226,7 +225,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     // not NONE and has at least one column; this allows us to inherit
     // the key format directly (as opposed to the logic in SchemaKStream)
     final KeyFormat groupedKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
-        ksqlConfig,
         KeyFormat.nonWindowed(keyFormat.getFormatInfo(), keyFormat.getFeatures()),
         true
     );

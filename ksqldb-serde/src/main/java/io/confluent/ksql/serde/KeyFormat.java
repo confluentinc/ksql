@@ -37,7 +37,7 @@ import java.util.Optional;
 public final class KeyFormat {
 
   private final FormatInfo format;
-  private SerdeFeatures features;
+  private final SerdeFeatures features;
   private final Optional<WindowInfo> window;
 
   public static KeyFormat nonWindowed(
@@ -154,7 +154,7 @@ public final class KeyFormat {
         + '}';
   }
 
-  public KeyFormat withSerdeFeature(final SerdeFeatures additionalFeatures) {
+  public KeyFormat withSerdeFeatures(final SerdeFeatures additionalFeatures) {
     final HashSet<SerdeFeature> features = new HashSet<>(this.features.all());
     features.addAll(additionalFeatures.all());
     return new KeyFormat(

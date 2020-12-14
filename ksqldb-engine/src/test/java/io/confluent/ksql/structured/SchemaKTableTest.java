@@ -335,7 +335,9 @@ public class SchemaKTableTest {
             ExecutionStepFactory.tableSelectKey(
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
-                InternalFormats.of(keyFormat, valueFormat.getFormatInfo()),
+                InternalFormats.of(
+                    keyFormat.withSerdeFeatures(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)),
+                    valueFormat.getFormatInfo()),
                 new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))
             )
         )

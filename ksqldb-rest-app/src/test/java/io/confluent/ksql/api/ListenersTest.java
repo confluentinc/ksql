@@ -141,9 +141,14 @@ public class ListenersTest extends BaseApiTest {
           .get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
       String keyStorePassword = SERVER_KEY_STORE.keyStoreProps()
           .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
+      String keyPassword = SERVER_KEY_STORE.keyStoreProps()
+          .get(SslConfigs.SSL_KEY_PASSWORD_CONFIG);
+      String keyAlias = SERVER_KEY_STORE.getKeyAlias();
 
       config.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, keyStorePath);
       config.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, keyStorePassword);
+      config.put(SslConfigs.SSL_KEY_PASSWORD_CONFIG, keyPassword);
+      config.put(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG, keyAlias);
     }
 
     return new KsqlRestConfig(config);

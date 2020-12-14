@@ -39,7 +39,7 @@ import org.apache.kafka.common.config.SslConfigs;
 
 @SuppressWarnings("WeakerAccess") // Public API
 public final class KsqlClient implements AutoCloseable {
-  private static final String SSL_KEYSTORE_ALIAS_CONFIG = "ssl.keystore.alias";
+  public static final String SSL_KEYSTORE_ALIAS_CONFIG = "ssl.keystore.alias";
 
   static {
     initialize();

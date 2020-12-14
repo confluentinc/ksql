@@ -22,11 +22,8 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class KeystoreUtil {
-  private static final Logger LOG = LoggerFactory.getLogger(KeystoreUtil.class);
   private static final String KEYSTORE_TYPE = "JKS";
 
   private KeystoreUtil() {}

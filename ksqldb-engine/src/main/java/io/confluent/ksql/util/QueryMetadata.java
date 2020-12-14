@@ -265,6 +265,10 @@ public abstract class QueryMetadata {
     return ImmutableList.copyOf(queryErrors);
   }
 
+  public long getCloseTimeout() {
+    return closeTimeout.toMillis();
+  }
+
   public long uptime() {
     return queryStateListener.map(QueryStateListener::uptime).orElse(0L);
   }

@@ -1,9 +1,9 @@
 # KLIP 42 - Schema Migrations Tool
 
 **Author**: Sergio Peña (@spena) |
-**Release Target**: TBD |
-**Status**: _In Discussion_ |
-**Discussion**: TBD
+**Release Target**: 0.16 |
+**Status**: _Design Approved_ |
+**Discussion**: https://github.com/confluentinc/ksql/pull/6721
 
 **tl;dr:** _New tool to provide ksqlDB users for easy and automated schema migrations for their
            ksqlDB environments. This allows users to version control their ksqlDB schema; recreate
@@ -41,20 +41,18 @@ These benefits include:
 This KLIP proposes a new tool for schema migrations. You will learn about the design aspects of the tool, and the features
 to support for a basic schema migration process.
 
-## What is in scope
+## In scope
 
 * Discuss design details for a new tool that provides schema migrations support for ksqlDB
 
     Basic features to support:
     - New CLI and API that can easily integrate with CI/CD environments
     - Apply migrations on any ksqlDB environments
-    - Rollback migrated schemas to previous versions
+    - Dry-run operations to verify what migrations will be applied without altering the cluster
     - Version control ksqlDB schema
 
-* Provide a test plan that validates the new tool will meet the product requirements
 
-
-## What is not in scope
+## Out of scope
 
 * Some features found in existing migrations tools won't be supported
 
@@ -65,9 +63,9 @@ to support for a basic schema migration process.
     our tool to provide of a transaction support for the whole migration process. Also, DDL statements may create or delete topics,
     which falls in the non-transactional process.
 
-  - `Support for simulated or dry-runs executions`
+  - `Support for simulated executions`
 
-    A dry-run requires the tool to know the current state of the ksqlDB schema before attempting to verify the new migrations scripts. This
+    A simulation requires the tool to know the current state of the ksqlDB schema before attempting to verify the new migrations scripts. This
     requires a ksqlDB metastore exporting tool to work. Also, to make this simulation 100% safe, the tool requires a dummy Kafka and SR
     environment that can validate issues with topics and SR subjects names, as well as security restrictions.
 
@@ -86,6 +84,14 @@ to support for a basic schema migration process.
   This is a very important functionality users may want to use. Over time, users may have several small migration files that can be squashed
   into one single file. However, this functionality gets out of scope for the migrations tool. It is easier to write a ksqlDB metastore tool
   that exports the cluster metadata to a SQL file, then use this SQL file as a replacement for the user migrations scripts.
+
+## Future work
+
+* `Undo migrated schemas to previous versions`
+
+  ksqlDB has a few statements that support undo, and some of them are limited. The first version for migrations will not support this feature.
+  Detailed information about undo is explained in the document for future reference. Also, the schema metadata (See Schema metadata) needs to
+  be prepared with future undo operations.
 
 ## Value/Return
 
@@ -111,7 +117,7 @@ testing in a CI/CD environment.
 
 For instance, the following example creates a new file that setups the initial state of the cluster.
 
-`V1__Initial_setup.sql`
+`V000001__Initial_setup.sql`
 ```sql
 CREATE STREAM pageviews (
     user_id INTEGER KEY, 
@@ -141,7 +147,7 @@ Migrating schema to version 1 - Initial setup
 Later, the user needs new changes on the cluster. All previous migrations files are immutable. So, any changes on the cluster require a new migration
 file (or SQL script). Let's create one to create the users table.
 
-`V2__Add_users.sql`
+`V000002__Add_users.sql`
 ```sql
 CREATE TABLE users (
    ID BIGINT PRIMARY KEY, 
@@ -161,6 +167,9 @@ $ ksql-migrations apply
 Current version of schema: 1
 Migrating schema to version 2 - Add users
 ```
+
+All migration files will support only integer versions (no decimal versions). Integer versions are easier to sort when are found in the file name. Also, there are
+too few cases that require decimal versioning (i.e. `1.1`) in schema changes. We don't expect users to use decimal versions on ksqlDB migrations.
 
 The benefit of this tool is that it detects the required updates to execute in the ksqlDB cluster. So, users don't need to know which SQL statements need to perform
 to update the cluster. It also makes it easy to work with multiple clusters. Say that you have devel, stag and prod clusters. The tool will manage and track the version
@@ -213,7 +222,7 @@ CREATE STREAM migration_events (
 ```
 
 The `version_key` column has the version of the migration applied or undone. Special values of the `version_key`, `CURRENT` and `LATEST` will be reserved for internal purposes.
-The `version` column has the version of the migration applied or undone.
+The `version` column has the version of the migration applied.
 The `name` column has the name of the migration.
 The `state` column has the state of the migration process. It can be any of `Pending`, `Running`, `Migrated`, `Error`, `Undone`.
 The `checksum` column has the MD5 checksum of the migration file. It is used to validate the schema migrations with the local files.
@@ -221,14 +230,16 @@ The `started_on` column has the date and time when the migration started.
 The `completed_on` column has the date and time when the migration finished.
 The `previous` column has the previous version applied.
 
-The `SCHEMA_VERSION` table will also keep track of every migration change (including undo changes), but with the difference that being a table the tool will see quickly if a schema
+The `SCHEMA_VERSION` table will also keep track of every migration change (including future work for undo changes), but with the difference that being a table the tool will see quickly if a schema
 version has been migrated or undone. It will also give us a quick view of the `CURRENT` state of the schema. The major advantage is that the tool will use pull queries in this materialized
 view to get the `CURRENT` state of the cluster.
 
-There is another reserved key `LATEST` that will point to the latest change applied (migrated or undone). This will be used by the tool to stream all changes up to the row that `LATEST` points, and stop.
+There is another reserved key `LATEST` that will point to the latest change applied. This will be used by the tool to stream all changes up to the row that `LATEST` points, and stop.
 The `ksql-migrations info` command will use this to display information about the migrations that have been applied or undone. I cannot stream the `MIGRATION_EVENTS` or `SCHEMA_VERSION` directly because
 the tool does not know when to stop.
 
+*Note:*
+The below schema is designed so we support undo operations in the future. When an undo happens, the `CURRENT` key will point to the previous version found.
 
 This is the `CREATE` statement for the `SCHEMA_VERSION` table:
 ```sql
@@ -283,41 +294,6 @@ The tool will later use pull queries to identify the current state of the system
 SELECT version, state, previous FROM SCHEMA_VERSION WHERE version_key = 'CURRENT'; 
 ```
 
-When undo changes happen, the query will first get the current schema version to undo. Apply the revert operations, then set `CURRENT` to
-the previous migrated version. In this case, it will look at the `previous` column in `SCHEMA_VERSION`, then use a pull query to get information
-about the previous migration.
-```sql
-SELECT * FROM SCHEMA_VERSION WHERE version_key = '<previous>';
-```
-
-And set the new `CURRENT` in the `MIGRATION_EVENTS` to update the current schema version.
-
-### Undo migrations
-
-Undo a previous migration is necessary in the application lifecycle. A user sometimes want to revert the changes of an application because of a bug found in it.
-This also requires the database schema to be reverted or rollback to the previous version.
-
-The migrations tool allows users to revert changes. Note that undo is considered a forward migration. A new migration file is required which contains
-the SQL operations to revert the changes of a previous migration. The file in this case should contain the `U` prefix with the version number of the migration to rollback.
-
-For instance, let's undo the migration version 2 applied before. The migration file used before was named `V2__Add_users.sql`. For the undo file, we should add the `U` prefix.
-
-`U2__Add_users.sql`
-```sql
-DROP TABLE users;
-```
-
-The user runs the migration tool on the ksqlDB cluster. The tool detects the cluster has version 2, so it executes only the undo file for version 2.  
-It then sets the state of the cluster to version 1.
-
-```shell script
-$ ksql-migrations undo
-Current version of schema: 2
-Undoing migration of schema to version 2 - Add users
-```
-
-The `undo` action will only revert the previous change. It will not attempt to undo all applied migrations.
-
 
 ### Naming convention
 
@@ -327,21 +303,22 @@ for the tool to detect what migration to apply or revert. Naming files are easie
 The migration files follow the same `Flyway` naming convention.
 `(Prefix)(Version)__(Description).sql`
 
-The `Prefix` specifies whether the file is a new migration (`V`) or undo (`U`) file.
-The `Version` is the version number used for the schema. For minor versions, such as `1.1`, an underscore is required (i.e. `1_1`).
+The `Prefix` specifies whether the file is a new migration (`V`) file. The prefix is used so that we can add other operations in the future, such as undo operations.
+The `Version` is the version number used for the schema. Versions will not support decimal versions. Integers with 6 digits are used.
 The `Description` is a name or description of the new migration. Description uses underscores (automatically replaced by spaces at runtime) or spaces separated the words.
 
 i.e.
 ```
-- V1__Initial_setup.sql    # a new version to migrate (v1) with name 'Initial setup'
-- U1__Initial_setup.sql    # rollback v1 schema
-- V2__Add_users.sql        # a new version to migrate (v2) with name 'Add users'
-- U2__Add_users.sql        # rollback v2 schema
-- V2_1__Fix_topic_name.sql # A new version to migrate (v2.1) with name 'Fix topic name'
-- U2_1__Fix_topic_name.sql # rollback v2.1 schema
+- V000001__Initial_setup.sql    # a new version to migrate (v1) with name 'Initial setup'
+- V000002__Add_users.sql        # a new version to migrate (v2) with name 'Add users'
 ```
 
-It is recommended the user creates these two files on any new migration. The tool will not enforce that. We need specify this recomendation in the ksqlDB documents.
+It is recommended the user creates these two files on any new migration. The tool will not enforce that. We need specify this recommendation in the ksqlDB documents.
+
+### Dry-runs
+
+A dry-run for ksqlDB migrations will only verify what migrations will be applied in the cluster. It will not attempt to execute or simulate any migration statement found in the files. This
+feature will allow users to test that migration files have the right version and description names as well as know what migrations will be applied in a determined cluster.
 
 ### Directory structure
 
@@ -380,8 +357,7 @@ Commands
                
                  i.e.                  
                    $ ksql-migrations create add_users 
-                   Created V2__Add_users.sql
-                   Created U2__Add_users.sql
+                   Created V000002__Add_users.sql
 
   apply ( all | next | until <target> )
   
@@ -390,14 +366,6 @@ Commands
               If 'all' is specified, then it migrates all newer versions available
               If 'next' is specified, then it migrates only the next available version
               If 'until <target>' is specified, then it migrates all available versions before <target>
-  
-  undo ( all | previous | until <target> )
-  
-              Rollbacks a schema to the previous schema version (default: previous)
-              
-              If 'all' is specified, then it rollbacks all previous versions
-              If 'previous' is specified, then it rollbacks the previous version
-              If 'until <target>' is specified, then it rollbacks all previous versions after <target>
   
   info        Displays information about the current and available migrations
   
@@ -417,6 +385,9 @@ Options
   -c, --config-file  Specifies a configuration file
   
   -d, --define       Define variables for the client session (equivalent to the DEFINE statement).
+  
+  --dry-run          Simulates what migrations will be applied in the cluster. Dry-runs do not execute or simulate each migration
+                     statement. Only displays the schema updates that may take place in the cluster without modifying the cluster.
  
   -h, --help         Shows this help  
     
@@ -442,15 +413,9 @@ ksql.migrations.createSchemas='true'
 
 Note: The command line options and other configurations will also be defined during the implementation.
 
-### Questions
-
-- Should I lock writes to the MIGRATION_EVENTS while a migration is happening? In case another user attempts a migration at the same time.
-  How would I achieve this?
-
 ## Test plan
 
 - Verify positive and negative forward migrations
-- Verify positive and negative undo migrations
 - Verify integration with Github and Jenkins
 - Run migrations tool in supported secured environments
 

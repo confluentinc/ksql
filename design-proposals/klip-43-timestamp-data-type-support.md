@@ -29,7 +29,7 @@ lot of math. Having time data in a dedicated data type allows for a lot of new U
 * Support TIMESTAMP usage in STRUCT, MAP and ARRAY
 * Serialization and de-serialization of TIMESTAMPs to Avro, JSON, Protobuf and Delimited formats
 * Update existing built-in functions to use the TIMESTAMP data type
-* Casting TIMESTAMP to and from BIGINT and STRING
+* Casting TIMESTAMP to and from STRING
 
 ## What is not in scope
 * Changing the ROWTIME data type. We will eventually want this to happen, but that is a separate
@@ -39,6 +39,8 @@ for negative timestamps, but until that is implemented, KSQL can only support po
 * DATE and TIME types - because TIMESTAMPs represent a point in time, DATE and TIME types
 would be useful if a user wants to represent a less specific time. These would be added after
 TIMESTAMP is implemented though.
+* TIMESTAMP types that store timezone information (TIMESTAMP_TZ) - Several other databases support
+this. This is something that's useful to add in the future. 
 
 ## Public APIS
 
@@ -61,10 +63,9 @@ TIMESTAMPS will be displayed in console as strings in ODBC canonical format with
 |1994-11-05 13:15:30:112 |
 ```
 
-TIMESTAMPS can be represented by milliseconds from Unix epoch or by date strings:
+TIMESTAMPS can be represented by date strings:
 
 ```roomsql
-INSERT INTO stream_name VALUES (1605927509166);
 INSERT INTO stream_name VALUES ("1994-11-05 13:15:30");
 ```
 
@@ -72,7 +73,7 @@ INSERT INTO stream_name VALUES ("1994-11-05 13:15:30");
 
 ### Serialization/Deserialization
 
-TIMESTAMPs will be handled by the `java.time.Instant` class in UTC within KSQL. The corresponding Kafka Connect type is
+TIMESTAMPs will be handled by the `java.sql.Timestamp` class in UTC within KSQL. The corresponding Kafka Connect type is
 [org.apache.kafka.connect.data.Timestamp](https://kafka.apache.org/0100/javadoc/org/apache/kafka/connect/data/Timestamp.html).
 They are represented as long types in Schema Registry, but also come with a tag indicating that it
 is a timestamp, so they should be distinguishable from long types when handling serialized values in KSQL.
@@ -98,16 +99,18 @@ will be updated to parse timestamps.
 
 ### UDFs
 
-The following UDFs should be updated to use the TIMESTAMP type instead of BIGINT:
+The following UDFs should be deprecated:
 
 * TIMESTAMPTOSTRING
 * STRINGTOTIMESTAMP
 
-Because BIGINTs will be implicitly cast into TIMESTAMPs and vice versa, queries using these functions
-with BIGINT will still work when TIMESTAMP is introduced.
+These functions will still be available so that existing queries using these functions won't break,
+but the documentation will state that they are deprecated and will direct users towards using the
+TIMESTAMP type and the new functions.
 
-The following functions should also be added:
-
+The following functions will be added:
+* `PARSE_TIMESTAMP(format, timestamp_string)` - converts a string into a TIMESTAMP 
+* `FORMAT_TIMESTAMP(format, timestamp)` - returns a string in the specified format
 * `NOW()` - returns the time after the issuing query is done executing
 * `CONVERT_TZ(timestamp, from_tz ,to_tz)` - converts a timestamp from one timezone to another
 
@@ -118,13 +121,6 @@ There are a few existing UDFs that deal with dates. These should be left as is u
 * STRINGTODATE
 
 ### Casting
-
-Casting from TIMESTAMP to BIGINT will return the millisecond representation of the timestamp, and
-casting from BIGINT to TIMESTAMP will return a TIMESTAMP that is the BIGINT number of milliseconds
-from Unix epoch. 
-
-If a user attempts to cast a negative number or a timestamp before Unix epoch, the CAST will throw
-an error.
 
 Casting from TIMESTAMP to STRING will return the timestamp in ODBC canonical form with millisecond
 precision (yyyy-mm-dd HH:mm:ss:fff), and  casting from STRING to TIMESTAMP will attempt to parse the
@@ -194,6 +190,8 @@ There will need to be documentation on the following:
 * TIMESTAMP usage in WHERE/GROUP/PARTITION clauses
 * Arithmetic and duration
 * New and updated UDFs
+* The deprecation of TIMESTAMPTOSTRING and STRINGTOTIMESTAMP should be stated and users should be
+directed to the TIMESTAMP type and the new set of UDFs.
 * We might want to add this into one of the quick-starts
 
 ## Compatibility Implications

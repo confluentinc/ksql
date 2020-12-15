@@ -2,9 +2,10 @@
   "tests": [
     {
       "name": "only key column (stream->table)",
-            "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
-      },"statements": [
+      "properties": {
+        "ksql.multicol.key.format.enabled" : true
+      },
+      "statements": [
         "CREATE STREAM INPUT (ID INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;"
       ],
@@ -35,7 +36,7 @@
     {
       "name": "udafs only in having (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -60,7 +61,7 @@
       "name": "all columns - repartition (stream->table)",
       "comment": "Currently, at least one value column is required...",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (NAME STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -75,7 +76,7 @@
       "name": "all columns - no repartition (stream->table)",
       "comment": "Currently, at least one value column is required...",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (NAME STRING KEY, V0 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -89,7 +90,7 @@
     {
       "name": "value column (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -118,7 +119,7 @@
     {
       "name": "struct field (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, ADDRESS STRUCT<STREET STRING, TOWN STRING>) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -147,7 +148,7 @@
     {
       "name": "single expression (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, DATA STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -176,7 +177,7 @@
     {
       "name": "single column with alias (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -205,7 +206,7 @@
     {
       "name": "single column with alias (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -234,7 +235,7 @@
     {
       "name": "single expression with alias (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -263,7 +264,7 @@
     {
       "name": "single expression with alias (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -292,7 +293,7 @@
     {
       "name": "steam with no key",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (data INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -317,7 +318,7 @@
     {
       "name": "subscript in group-by and select",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (id INT KEY, col1 MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='json');",
@@ -338,7 +339,7 @@
     {
       "name": "subscript in group-by and having",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (id INT KEY, col1 MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='json');",
@@ -358,7 +359,7 @@
     {
       "name": "subscript in group-by and non aggregate function in select",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (id INT KEY, col1 MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='json');",
@@ -380,7 +381,7 @@
     {
       "name": "struct in group-by and non aggregate function in select",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (id INT KEY, col1 STRUCT<a VARCHAR, b INT>) WITH (kafka_topic='test_topic', value_format='json');",
@@ -404,7 +405,7 @@
     {
       "name": "function in group-by and nested function in select",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (id INT KEY, col1 VARCHAR, col2 VARCHAR, col3 VARCHAR) WITH (kafka_topic='test_topic', format='json');",
@@ -426,7 +427,7 @@
     {
       "name": "group by column in nested non-aggregate function in select",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (id INT KEY, col1 VARCHAR, col2 VARCHAR, col3 VARCHAR) WITH (kafka_topic='test_topic', format='json');",
@@ -448,7 +449,7 @@
     {
       "name": "function group by column used in non-aggregate function in having",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (id INT KEY, col1 VARCHAR, col2 VARCHAR, col3 VARCHAR) WITH (kafka_topic='test_topic', format='json');",
@@ -468,7 +469,7 @@
     {
       "name": "arithmetic in group by column used in non-aggregate function in select",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (id INT KEY, col1 INT, col2 INT) WITH (kafka_topic='test_topic', value_format='json');",
@@ -490,7 +491,7 @@
     {
       "name": "expressions used in non-aggregate function in select whose children are not part of group-by",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (id INT KEY, col1 MAP<VARCHAR, INT>, col2 MAP<VARCHAR, INT>) WITH (kafka_topic='test_topic', value_format='json');",
@@ -509,7 +510,7 @@
     {
       "name": "unknown function",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -523,7 +524,7 @@
     {
       "name": "non-table udaf on table",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE INPUT (ID BIGINT PRIMARY KEY, F0 INT, F1 BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -537,7 +538,7 @@
     {
       "name": "multiple expressions",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (f1 INT KEY, f2 INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -566,7 +567,7 @@
     {
       "name": "multiple expressions with struct field and other expression",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (f1 INT KEY, f2 INT, address STRUCT<street STRING, town STRING>) WITH (kafka_topic='test_topic', format='JSON');",
@@ -595,7 +596,7 @@
     {
       "name": "multiple expressions - KAFKA key format",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (f1 INT KEY, f2 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -609,7 +610,7 @@
     {
       "name": "multiple expressions - windowed",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (f1 INT KEY, f2 INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -638,7 +639,7 @@
     {
       "name": "multiple expressions - table aggregate",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE INPUT (ID INT PRIMARY KEY, VALUE INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -663,7 +664,7 @@
     {
       "name": "single expression - key in projection more than once",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='input',value_format='JSON');",
@@ -677,7 +678,7 @@
     {
       "name": "single expression - key missing from projection - with other column of same name",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='input',value_format='JSON');",
@@ -691,7 +692,7 @@
     {
       "name": "single expression - key missing from projection",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (ID INT KEY, NAME STRING) WITH (kafka_topic='input',value_format='JSON');",
@@ -705,7 +706,7 @@
     {
       "name": "multiple expressions - single key missing from projection",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (f1 INT KEY, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -719,7 +720,7 @@
     {
       "name": "multiple expression - key in projection more than once",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (f1 INT KEY, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -733,7 +734,7 @@
     {
       "name": "multiple expressions - all keys missing from projection",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (f1 INT KEY, f2 INT, f3 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -747,7 +748,7 @@
     {
       "name": "select * where all columns in group by",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (id INT KEY, id2 INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -763,7 +764,7 @@
     {
       "name": "select * where not all columns in group by",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (id INT KEY, id2 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -777,7 +778,7 @@
     {
       "name": "with key alias that clashes with value alias",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -791,7 +792,7 @@
     {
       "name": "map used in non-aggregate function in select when group by uses subscript",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (id INT KEY, col1 MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='json');",
@@ -805,7 +806,7 @@
     {
       "name": "complex UDAF params",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (V0 INT KEY, V1 INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -830,7 +831,7 @@
     {
       "name": "complex UDAF params matching GROUP BY",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (V0 INT KEY, V1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -855,7 +856,7 @@
     {
       "name": "complex UDAF params matching HAVING",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (V0 INT KEY, V1 INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -880,7 +881,7 @@
       "name": "single expression with nulls",
       "comment": "bad_udf return every other invocation - tables need a PRIMARY key so null keys are dropped",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -906,7 +907,7 @@
     {
       "name": "complex expressions",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -921,7 +922,7 @@
       "name": "multiple expressions with nulls",
       "comment": "bad_udf returns null every other invocation - tables need a PRIMARY key so null keys are dropped",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -947,7 +948,7 @@
     {
       "name": "field (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -976,7 +977,7 @@
     {
       "name": "field (stream->table) - KAFKA",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, data VARCHAR) WITH (kafka_topic='test_topic', value_format='KAFKA');",
@@ -990,7 +991,7 @@
     {
       "name": "field (stream->table) - format",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
@@ -1020,7 +1021,7 @@
     {
       "name": "int field (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -1049,7 +1050,7 @@
     {
       "name": "fields (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', format='DELIMITED');",
@@ -1078,7 +1079,7 @@
     {
       "name": "fields used in expression",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, f1 INT, f2 INT) WITH (kafka_topic='test_topic', format='DELIMITED');",
@@ -1103,7 +1104,7 @@
     {
       "name": "fields (stream->table) - format",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', key_format='JSON', value_format='{FORMAT}');",
@@ -1133,7 +1134,7 @@
     {
       "name": "with groupings (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, f1 INT, f2 VARCHAR, f3 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1147,7 +1148,7 @@
     {
       "name": "duplicate expressions",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -1161,7 +1162,7 @@
     {
       "name": "with single grouping set (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, f1 INT, f2 VARCHAR, f3 INT) WITH (kafka_topic='test_topic', format='DELIMITED');",
@@ -1190,7 +1191,7 @@
     {
       "name": "fields (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', format='DELIMITED');",
@@ -1221,7 +1222,7 @@
     {
       "name": "fields - copied into value (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', format='DELIMITED');",
@@ -1252,7 +1253,7 @@
     {
       "name": "fields (table->table) - format",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', key_format='JSON', value_format='{FORMAT}');",
@@ -1284,7 +1285,7 @@
     {
       "name": "field with re-key (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, data VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1313,7 +1314,7 @@
     {
       "name": "double field with re-key (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, data double) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1342,7 +1343,7 @@
     {
       "name": "field with re-key (stream->table) - format",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, data VARCHAR) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
@@ -1372,7 +1373,7 @@
     {
       "name": "field with re-key (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1402,7 +1403,7 @@
     {
       "name": "with aggregate arithmetic (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, data VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1427,7 +1428,7 @@
     {
       "name": "with aggregate arithmetic (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1457,7 +1458,7 @@
     {
       "name": "with aggregate arithmetic involving source field (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ITEM INT, COST INT) WITH (kafka_topic='test_topic', format='DELIMITED');",
@@ -1479,7 +1480,7 @@
     {
       "name": "with aggregate arithmetic involving source field (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, f0 INT, f1 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1503,7 +1504,7 @@
     {
       "name": "with aggregate arithmetic involving source field not in group by (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, f0 INT, f1 INT, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1517,7 +1518,7 @@
     {
       "name": "function (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1548,7 +1549,7 @@
     {
       "name": "function (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1578,7 +1579,7 @@
     {
       "name": "int function (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1608,7 +1609,7 @@
     {
       "name": "function with select field that is a subset of group by (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1622,7 +1623,7 @@
     {
       "name": "function with select field that is a subset of group by (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1636,7 +1637,7 @@
     {
       "name": "function with select field that is a superset of group by (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1650,7 +1651,7 @@
     {
       "name": "function with select field that is a superset of group by (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (K INT PRIMARY KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1664,7 +1665,7 @@
     {
       "name": "function with having field that is a subset of group by (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, source VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1678,7 +1679,7 @@
     {
       "name": "json field (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (data STRUCT<field VARCHAR>) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -1700,7 +1701,7 @@
     {
       "name": "int json field (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (data STRUCT<field INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -1722,7 +1723,7 @@
     {
       "name": "key (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1751,7 +1752,7 @@
     {
       "name": "ROWTIME (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1763,7 +1764,7 @@
     {
       "name": "constant (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, ignored VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1787,7 +1788,7 @@
     {
       "name": "constant (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (K INT PRIMARY KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1812,7 +1813,7 @@
     {
       "name": "field with field used in function in projection (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, f1 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1836,7 +1837,7 @@
     {
       "name": "field with field used in function in projection (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (ID INT PRIMARY KEY, user INT, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1861,7 +1862,7 @@
     {
       "name": "string concat using + op (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, f1 VARCHAR, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1885,7 +1886,7 @@
     {
       "name": "string concat using + op (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, user INT, subregion VARCHAR, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1915,7 +1916,7 @@
     {
       "name": "string concat using + op with projection field in wrong order (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, f1 VARCHAR, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1929,7 +1930,7 @@
     {
       "name": "string concat using + op with projection field in wrong order (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, user INT, subregion VARCHAR, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1943,7 +1944,7 @@
     {
       "name": "string concat with separate fields in projection (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, f1 VARCHAR, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1957,7 +1958,7 @@
     {
       "name": "string concat with separate fields in projection (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, user INT, subregion VARCHAR, region VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1971,7 +1972,7 @@
     {
       "name": "arithmetic binary expression with projection in-order & non-commutative group by (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, f1 INT, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -1993,7 +1994,7 @@
     {
       "name": "arithmetic binary expression with projection in-order & non-commutative group by (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, f0 INT, f1 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2018,7 +2019,7 @@
     {
       "name": "arithmetic binary expression with projection out-of-order & non-commutative group by (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, f1 INT, f2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2032,7 +2033,7 @@
     {
       "name": "arithmetic binary expression with projection out-of-order & non-commutative group by (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, f0 INT, f1 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2046,7 +2047,7 @@
     {
       "name": "with having expression (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, f1 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2069,7 +2070,7 @@
     {
       "name": "with having expression (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, f0 INT, f1 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2094,7 +2095,7 @@
     {
       "name": "with multiple having expressions (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2116,7 +2117,7 @@
     {
       "name": "with having expression on non-group-by field (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2140,7 +2141,7 @@
     {
       "name": "with constant having (stream-table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2161,7 +2162,7 @@
     {
       "name": "with constants in the projection (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, f1 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2185,7 +2186,7 @@
     {
       "name": "missing matching projection field (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, data VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -2205,7 +2206,7 @@
     {
       "name": "missing matching projection field (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, f1 INT, f2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2231,7 +2232,7 @@
     {
       "name": "duplicate fields (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, data VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -2251,7 +2252,7 @@
     {
       "name": "duplicate udafs (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, data VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -2271,7 +2272,7 @@
     {
       "name": "with non-aggregate projection field not in group by (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, d1 VARCHAR, d2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2285,7 +2286,7 @@
     {
       "name": "with non-aggregate projection field not in group by (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, d1 VARCHAR, d2 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2299,7 +2300,7 @@
     {
       "name": "aggregate function (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, d1 VARCHAR, d2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2313,7 +2314,7 @@
     {
       "name": "aggregate function nested in arithmetic (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, d1 VARCHAR, d2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2327,7 +2328,7 @@
     {
       "name": "aggregate function nested in UDF (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, d1 VARCHAR, d2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2341,7 +2342,7 @@
     {
       "name": "without aggregate functions (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, d1 VARCHAR, d2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2355,7 +2356,7 @@
     {
       "name": "without group-by (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, d1 VARCHAR, d2 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2369,7 +2370,7 @@
     {
       "name": "UDAF nested in UDF in select expression (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, d1 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2393,7 +2394,7 @@
     {
       "name": "UDAF nested in UDF in select expression (table->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, d0 INT, d1 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2420,7 +2421,7 @@
     {
       "name": "UDF nested in UDAF in select expression (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, d1 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2444,7 +2445,7 @@
     {
       "name": "UDAF nested in UDAF in select expression (stream->table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, d1 VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2459,7 +2460,7 @@
       "name": "should exclude any stream row whose single GROUP BY expression resolves to NULL",
       "comment": "Passing NULL as the POS to SUBSTRING should resolve to NULL without an exception",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, str STRING, pos INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2479,7 +2480,7 @@
       "name": "should exclude any table row whose single GROUP BY expression resolves to NULL",
       "comment": "Passing NULL as the POS to SUBSTRING should resolve to NULL without an exception",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, str STRING, pos INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2498,7 +2499,7 @@
     {
       "name": "should exclude any stream row whose single GROUP BY expression throws",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (K STRING KEY, id INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2513,7 +2514,7 @@
     {
       "name": "should exclude any table row whose single GROUP BY expression throws",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE TEST (K STRING PRIMARY KEY, id INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2528,7 +2529,7 @@
     {
       "name": "by non-STRING key",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, f0 INT) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
@@ -2558,7 +2559,7 @@
     {
       "name": "should handled quoted key and value",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (`Key` STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -2588,7 +2589,7 @@
     {
       "name": "on join",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE t1 (ID BIGINT PRIMARY KEY, TOTAL integer) WITH (kafka_topic='T1', value_format='AVRO');",
@@ -2619,7 +2620,7 @@
     {
       "name": "windowed join",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE A (id varchar primary key, regionid varchar) WITH (kafka_topic='a', value_format='json');",
@@ -2640,7 +2641,7 @@
       "name": "windowed join with window bounds",
       "tracked by": "https://github.com/confluentinc/ksql/issues/5931",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM A (ID VARCHAR, col1 VARCHAR) WITH (kafka_topic='a', value_format='JSON');",
@@ -2655,7 +2656,7 @@
     {
       "name": "zero non-agg columns (stream)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (VALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -2675,7 +2676,7 @@
     {
       "name": "zero non-agg columns (windowed stream)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (VALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -2695,7 +2696,7 @@
     {
       "name": "zero non-agg columns (table)",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE TABLE INPUT (ID INT PRIMARY KEY, VALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -2716,7 +2717,7 @@
       "name": "windowed aggregate with struct key",
       "format": ["JSON", "AVRO"],
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (ID STRUCT<F1 INT, F2 INT> KEY, VAL INT) WITH (kafka_topic='test_topic', format='{FORMAT}');",
@@ -2736,7 +2737,7 @@
     {
       "name": "windowed aggregate with field within struct key",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM INPUT (ID STRUCT<F1 INT, F2 INT> KEY, VAL INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -2756,7 +2757,7 @@
     {
       "name": "non-KAFKA key format",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, VAL BOOLEAN) WITH (kafka_topic='test_topic', format='JSON');",
@@ -2776,7 +2777,7 @@
     {
       "name": "AVRO primitive key",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, VAL BOOLEAN) WITH (kafka_topic='test_topic', format='AVRO');",
@@ -2821,7 +2822,7 @@
     {
       "name": "AVRO struct key group by primitive",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID STRUCT<F1 INT> KEY, VAL BOOLEAN) WITH (kafka_topic='test_topic', format='AVRO');",
@@ -2866,7 +2867,7 @@
     {
       "name": "AVRO group by struct",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='AVRO');",
@@ -2937,7 +2938,7 @@
     {
       "name": "JSON group by array",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -2957,7 +2958,7 @@
     {
       "name": "JSON group by struct",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -2977,7 +2978,7 @@
     {
       "name": "JSON group by struct convert key format",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -3017,7 +3018,7 @@
     {
       "name": "JSON group by struct convert to incompatible key format",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, A INT, B INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -3031,7 +3032,7 @@
     {
       "name": "Struct key used in aggregate expression",
       "properties": {
-        "ksql.multicol.key.format.enabled" : "true"
+        "ksql.multicol.key.format.enabled" : true
       },
       "statements": [
         "CREATE STREAM TEST (ID STRUCT<F1 INT> KEY, VAL INT) WITH (kafka_topic='test_topic', format='JSON');",

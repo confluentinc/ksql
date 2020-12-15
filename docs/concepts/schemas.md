@@ -309,8 +309,8 @@ CREATE STREAM pageviews_avro
     `PAGEVIEWS_AVRO-value`.
 
 For more information, see
-[Changing Data Serialization Format from JSON to Avro](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/changing-data-serialization-format-json-avro)
-in the [Stream Processing Cookbook](https://www.confluent.io/product/ksql/stream-processing-cookbook).
+[How to convert a stream's serialization format](https://kafka-tutorials.confluent.io/changing-serialization-format/ksql.html)
+in [Kafka Tutorials](https://kafka-tutorials.confluent.io/).
 
 You can convert between different key formats in an analogous manner by specifying the
 `KEY_FORMAT` property instead of `VALUE_FORMAT`.

@@ -30,13 +30,13 @@ keywords: ksqldb, architecture, collection, query, schema, window, view
   <div class="card concepts">
     <strong>Streams</strong>
     <p class="card-body"><small>A stream is an immutable, append-only collection of events that represents a series of historical facts.</small></p>
-    <span><a href="#">Learn →</a></span>
+    <span><a href="/concepts/streams">Learn →</a></span>
   </div>
 
   <div class="card concepts">
     <strong>Tables</strong>
     <p class="card-body"><small>A table is a mutable collection of events that models change over time.</small></p>
-    <span><a href="#">Learn →</a></span>
+    <span><a href="/concepts/tables">Learn →</a></span>
   </div>
 
   <div class="card concepts">

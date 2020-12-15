@@ -60,13 +60,13 @@ TIMESTAMPS will be displayed in console as strings in ODBC canonical format with
 +------------------------+
 |time                    |
 +------------------------+
-|1994-11-05 13:15:30:112 |
+|1994-11-05T13:15:30:112 |
 ```
 
 TIMESTAMPS can be represented by date strings:
 
 ```roomsql
-INSERT INTO stream_name VALUES ("1994-11-05 13:15:30");
+INSERT INTO stream_name VALUES ("1994-11-05T13:15:30");
 ```
 
 ## Design
@@ -94,7 +94,7 @@ Protobuf 3 has a Timestamp type. The Protouf deserializer KSQL uses supports thi
 
 #### JSON/Delimited
 
-Timestamps will get stored in JSON and CSV files as long values. The KSQL JSON and delimited deserializers
+Timestamps will get stored in JSON and CSV files in milliseconds as long values. The KSQL JSON and delimited deserializers
 will be updated to parse timestamps.
 
 ### UDFs
@@ -111,7 +111,7 @@ TIMESTAMP type and the new functions.
 The following functions will be added:
 * `PARSE_TIMESTAMP(format, timestamp_string)` - converts a string into a TIMESTAMP 
 * `FORMAT_TIMESTAMP(format, timestamp)` - returns a string in the specified format
-* `NOW()` - returns the time after the issuing query is done executing
+* `NOW()` - returns the time after the logical plan is built. All calls of now() within the same query return the same value.
 * `CONVERT_TZ(timestamp, from_tz ,to_tz)` - converts a timestamp from one timezone to another
 
 There are a few existing UDFs that deal with dates. These should be left as is until a DATE type is implemented:
@@ -125,6 +125,13 @@ There are a few existing UDFs that deal with dates. These should be left as is u
 Casting from TIMESTAMP to STRING will return the timestamp in ODBC canonical form with millisecond
 precision (yyyy-mm-dd HH:mm:ss:fff), and  casting from STRING to TIMESTAMP will attempt to parse the
 string into a TIMESTAMP.
+
+```roomsql
+ > SELECT CAST("1994-11-05T13:15:30" AS TIMESTAMP) FROM stream_name EMIT CHANGES;
+"1994-11-05T13:15:30"
+ > SELECT CAST(time AS STRING) FROM stream_name EMIT CHANGES;
+"1994-11-05T13:15:30"
+```
 
 ### Arithmetic operations and comparisons
 
@@ -157,7 +164,14 @@ Comparisons between TIMESTAMPs and other data types should not be allowed.
 
 ### Durations / Time units
 
-Giving window units a time representation enables timestamp arithmetic. For example,
+KSQL currently recognizes the following time units for defining windows:
+* DAY, DAYS
+* HOUR, HOURS
+* MINUTE, MINUTES
+* SECOND, SECONDS
+* MILLISECOND, MILLISECONDS
+
+These could be repurposed to enable timestamp arithmetic. For example,
 
 ```roomsql
 SELECT TIMESTAMP_ADD(TIME, 1 DAY) FROM FOO;

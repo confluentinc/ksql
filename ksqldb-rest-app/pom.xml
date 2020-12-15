@@ -139,6 +139,12 @@
             <version>${reactive-streams.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-jaas</artifactId>
+            <version>${jetty.version}</version>
+        </dependency>
+
         <!-- Required for running tests -->
 
         <dependency>
@@ -169,20 +175,6 @@
             <artifactId>mbknor-jackson-jsonschema_${kafka.scala.version}</artifactId>
             <version>1.0.39</version>
             <scope>test</scope>
-        </dependency>
-
-        <!-- Only required to provide LoginModule implementation in tests -->
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-jaas</artifactId>
-            <version>${jetty.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-jaas</artifactId>
-            <version>${jetty.version}</version>
-            <scope>compile</scope>
         </dependency>
 
     </dependencies>

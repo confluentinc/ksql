@@ -599,32 +599,6 @@ public class LogicalPlanner {
       }
     };
 
-    final ColumnName keyName;
-    final SqlType keyType;
-
-    if (groupByExps.size() != 1) {
-      keyType = SqlTypes.STRING;
-
-      keyName = ColumnNames.nextKsqlColAlias(
-          sourceSchema,
-          LogicalSchema.builder()
-              .valueColumns(projectionSchema.value())
-              .build()
-      );
-    } else {
-      final ExpressionTypeManager typeManager =
-          new ExpressionTypeManager(sourceSchema, metaStore);
-
-      final Expression expression = groupByExps.get(0);
-
-      keyType = typeManager.getExpressionSqlType(expression);
-      keyName = selectResolver.apply(expression)
-          .orElseGet(() -> expression instanceof ColumnReferenceExp
-              ? ((ColumnReferenceExp) expression).getColumnName()
-              : ColumnNames.uniqueAliasFor(expression, sourceSchema)
-          );
-    }
-
     final List<Column> valueColumns;
     if (analysis.getInto().isPresent()) {
       // Persistent query:
@@ -649,7 +623,49 @@ public class LogicalPlanner {
 
     final Builder builder = LogicalSchema.builder();
 
-    builder.keyColumn(keyName, keyType);
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_MULTICOL_KEY_FORMAT_ENABLED)) {
+      final ExpressionTypeManager typeManager =
+          new ExpressionTypeManager(sourceSchema, metaStore);
+
+      for (final Expression expression : groupByExps) {
+        final SqlType keyType = typeManager.getExpressionSqlType(expression);
+        final ColumnName keyName = selectResolver.apply(expression)
+            .orElseGet(() -> expression instanceof ColumnReferenceExp
+                ? ((ColumnReferenceExp) expression).getColumnName()
+                : ColumnNames.uniqueAliasFor(expression, sourceSchema)
+            );
+
+        builder.keyColumn(keyName, keyType);
+      }
+    } else {
+      final ColumnName keyName;
+      final SqlType keyType;
+
+      if (groupByExps.size() != 1) {
+        keyType = SqlTypes.STRING;
+
+        keyName = ColumnNames.nextKsqlColAlias(
+            sourceSchema,
+            LogicalSchema.builder()
+                .valueColumns(projectionSchema.value())
+                .build()
+        );
+      } else {
+        final ExpressionTypeManager typeManager =
+            new ExpressionTypeManager(sourceSchema, metaStore);
+
+        final Expression expression = groupByExps.get(0);
+
+        keyType = typeManager.getExpressionSqlType(expression);
+        keyName = selectResolver.apply(expression)
+            .orElseGet(() -> expression instanceof ColumnReferenceExp
+                ? ((ColumnReferenceExp) expression).getColumnName()
+                : ColumnNames.uniqueAliasFor(expression, sourceSchema)
+            );
+      }
+
+      builder.keyColumn(keyName, keyType);
+    }
 
     return builder
         .valueColumns(valueColumns)

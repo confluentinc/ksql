@@ -371,10 +371,15 @@ public class SchemaKStream<K> {
       rekeyedFormat = keyFormat;
     }
 
-    // we don't yet support "real" multi-column group bys so passing in
-    // true here to sanitizeKeyFormat
+    final boolean isSingleKey;
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_MULTICOL_KEY_FORMAT_ENABLED)) {
+      isSingleKey = groupByExpressions.size() == 1;
+    } else {
+      isSingleKey = true;
+    }
+
     final KeyFormat sanitizedKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
-        rekeyedFormat, true);
+        rekeyedFormat, isSingleKey);
     final StreamGroupBy<K> source = ExecutionStepFactory.streamGroupBy(
         contextStacker,
         sourceStep,

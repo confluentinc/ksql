@@ -27,13 +27,16 @@ import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.ColumnAliasGenerator;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 final class GroupByParamsFactory {
 
@@ -45,24 +48,26 @@ final class GroupByParamsFactory {
 
   public static LogicalSchema buildSchema(
       final LogicalSchema sourceSchema,
-      final List<ExpressionMetadata> groupBys
+      final List<ExpressionMetadata> groupBys,
+      final KsqlConfig config
   ) {
     final ProcessingLogger logger = NoopProcessingLogContext.NOOP_LOGGER;
 
-    return buildGrouper(sourceSchema, groupBys, logger)
+    return buildGrouper(sourceSchema, groupBys, logger, config)
         .getSchema();
   }
 
   public static GroupByParams build(
       final LogicalSchema sourceSchema,
       final List<ExpressionMetadata> groupBys,
-      final ProcessingLogger logger
+      final ProcessingLogger logger,
+      final KsqlConfig config
   ) {
     if (groupBys.isEmpty()) {
       throw new IllegalArgumentException("No GROUP BY groupBys");
     }
 
-    final Grouper grouper = buildGrouper(sourceSchema, groupBys, logger);
+    final Grouper grouper = buildGrouper(sourceSchema, groupBys, logger, config);
 
     return new GroupByParams(grouper.getSchema(), grouper::apply);
   }
@@ -70,11 +75,16 @@ final class GroupByParamsFactory {
   private static Grouper buildGrouper(
       final LogicalSchema sourceSchema,
       final List<ExpressionMetadata> groupBys,
-      final ProcessingLogger logger
+      final ProcessingLogger logger,
+      final KsqlConfig config
   ) {
-    return groupBys.size() == 1
-        ? new SingleExpressionGrouper(sourceSchema, groupBys.get(0), logger)
-        : new MultiExpressionGrouper(sourceSchema, groupBys, logger);
+    if (config.getBoolean(KsqlConfig.KSQL_MULTICOL_KEY_FORMAT_ENABLED)) {
+      return new ExpressionGrouper(sourceSchema, groupBys, logger);
+    } else {
+      return groupBys.size() == 1
+          ? new SingleExpressionGrouper(sourceSchema, groupBys.get(0), logger)
+          : new MultiExpressionGrouper(sourceSchema, groupBys, logger);
+    }
   }
 
   private static LogicalSchema buildSchemaWithKeyType(
@@ -218,5 +228,70 @@ final class GroupByParamsFactory {
   ) {
     final ColumnName keyName = ColumnNames.nextKsqlColAlias(sourceSchema);
     return buildSchemaWithKeyType(sourceSchema, keyName, SqlTypes.STRING);
+  }
+
+  private static final class ExpressionGrouper implements Grouper {
+
+    private final LogicalSchema schema;
+    private final ImmutableList<ExpressionMetadata> groupBys;
+    private final ProcessingLogger logger;
+
+    ExpressionGrouper(
+        final LogicalSchema sourceSchema,
+        final List<ExpressionMetadata> groupBys,
+        final ProcessingLogger logger
+    ) {
+      this.schema = expressionSchema(sourceSchema, groupBys);
+      this.groupBys = ImmutableList.copyOf(requireNonNull(groupBys, "groupBys"));
+      this.logger = Objects.requireNonNull(logger, "logger");
+
+      if (this.groupBys.isEmpty()) {
+        throw new IllegalArgumentException("Empty group by");
+      }
+    }
+
+    @Override
+    public LogicalSchema getSchema() {
+      return schema;
+    }
+
+    @Override
+    public GenericKey apply(final GenericRow row) {
+      final GenericKey.Builder builder = GenericKey.builder(groupBys.size());
+
+      for (int i = 0; i < groupBys.size(); i++) {
+        final Object result = processColumn(i, groupBys.get(i), row, logger);
+        if (result == null) {
+          return null;
+        }
+
+        builder.append(result);
+      }
+
+      return builder.build();
+    }
+  }
+
+  private static LogicalSchema expressionSchema(
+      final LogicalSchema sourceSchema,
+      final List<ExpressionMetadata> groupBys
+  ) {
+    final ColumnAliasGenerator columnAliasGenerator =
+        ColumnNames.columnAliasGenerator(Stream.of(sourceSchema));
+    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
+
+    for (final ExpressionMetadata groupBy : groupBys) {
+      final Expression groupByExp = groupBy.getExpression();
+
+      final ColumnName columnName = groupByExp instanceof ColumnReferenceExp
+          ? ((ColumnReferenceExp) groupByExp).getColumnName()
+          : columnAliasGenerator.uniqueAliasFor(groupByExp);
+
+      schemaBuilder.keyColumn(columnName, groupBy.getExpressionType());
+    }
+
+    schemaBuilder.valueColumns(sourceSchema.value());
+
+    return schemaBuilder.build();
   }
 }

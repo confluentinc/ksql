@@ -105,23 +105,30 @@ public final class SerdeFeaturesFactory {
       final KeyFormat keyFormat,
       final boolean isSingleKey
   ) {
+    final Optional<SerdeFeature> keyWrapping = keyFormat
+        .getFeatures()
+        .findAny(SerdeFeatures.WRAPPING_FEATURES);
+    final boolean hasWrappingFeature = keyWrapping.isPresent();
+
     // it is possible that the source format was either multi-key
     // or no-key, in which case there would not have been a wrapping
     // configuration specified - we should specify one here
-    final boolean hasWrappingFeature = keyFormat
-        .getFeatures()
-        .findAny(SerdeFeatures.WRAPPING_FEATURES)
-        .isPresent();
-
     if (isSingleKey && !hasWrappingFeature) {
       final SerdeFeatures defaultWrapping =
           getKeyWrapping(true, FormatFactory.of(keyFormat.getFormatInfo()))
               .map(SerdeFeatures::of)
               .orElse(SerdeFeatures.of());
       return keyFormat.withSerdeFeatures(defaultWrapping);
-    } else {
-      return keyFormat;
     }
+
+    // it is also possible that the source format was single-key and had a wrapping
+    // configuration specified, but the new format is not single-key and therefore
+    // should not have a wrapping configuration specified - we remove it here
+    if (!isSingleKey && hasWrappingFeature) {
+      return keyFormat.withoutSerdeFeatures(SerdeFeatures.of(keyWrapping.get()));
+    }
+
+    return keyFormat;
   }
 
   private static Optional<SerdeFeature> getKeyWrapping(

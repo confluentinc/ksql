@@ -15,16 +15,13 @@
 
 package io.confluent.ksql.api.auth;
 
-import java.io.IOException;
-import java.util.Objects;
-import javax.security.auth.callback.Callback;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.callback.NameCallback;
-import javax.security.auth.callback.PasswordCallback;
-import javax.security.auth.callback.TextOutputCallback;
-import javax.security.auth.callback.UnsupportedCallbackException;
+import org.eclipse.jetty.jaas.callback.ObjectCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.security.auth.callback.*;
+import java.io.IOException;
+import java.util.Objects;
 
 class BasicCallbackHandler implements CallbackHandler {
 
@@ -45,6 +42,9 @@ class BasicCallbackHandler implements CallbackHandler {
       if (callback instanceof NameCallback) {
         final NameCallback nc = (NameCallback) callback;
         nc.setName(username);
+      } else if (callback instanceof ObjectCallback) {
+        final ObjectCallback oc = (ObjectCallback)callback;
+        oc.setObject(password);
       } else if (callback instanceof PasswordCallback) {
         final PasswordCallback pc = (PasswordCallback) callback;
         pc.setPassword(password.toCharArray());

@@ -107,11 +107,10 @@ CREATE STREAM pageviews_for_other_users AS
 Next Steps
 ----------
 
-Here are some examples of useful streaming transformations in the
-[Stream Processing Cookbook](https://www.confluent.io/stream-processing-cookbook):
+Here are some examples of useful streaming transformations in
+[Kafka Tutorials](https://kafka-tutorials.confluent.io/):
 
--   [Data Routing](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/data-routing)
--   [Changing Data Serialization Format from Avro to CSV](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/changing-data-serialization-format-avro-csv)
--   [Changing Data Serialization Format from JSON to Avro](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/changing-data-serialization-format-json-avro)
--   [Changing Data Serialization Format from Delimited (CSV) to Avro](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/changing-data-serialization-format-delimited-csv-avro)
+-   [How to transform a stream of events](https://kafka-tutorials.confluent.io/transform-a-stream-of-events/ksql.html)
+-   [How to convert a stream's serialization format](https://kafka-tutorials.confluent.io/changing-serialization-format/ksql.html)
+
 

@@ -172,9 +172,9 @@ public class SchemaKGroupedTableTest {
   }
 
   @Test
-  public void shouldBuildStepForAggregateWhereKeyFormatSupportsBothWrappingAndUnwrapping() {
+  public void shouldBuildStepForAggregateWithKeyFormatSerdeFeatures() {
     // Given:
-    keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
+    keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     final SchemaKGroupedTable kGroupedTable = buildSchemaKGroupedTable();
 

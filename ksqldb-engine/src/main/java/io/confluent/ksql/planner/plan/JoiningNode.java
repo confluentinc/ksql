@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.planner.plan;
 
-import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
 import java.util.Optional;
 
@@ -31,14 +31,14 @@ public interface JoiningNode {
    *
    * @return the preferred key format, if there is one.
    */
-  Optional<FormatInfo> getPreferredKeyFormat();
+  Optional<KeyFormat> getPreferredKeyFormat();
 
   /**
    * Set the key format.
    *
    * @param format the key format.
    */
-  void setKeyFormat(FormatInfo format);
+  void setKeyFormat(KeyFormat format);
 
   static ValueFormat getValueFormatForSource(final PlanNode sourceNode) {
     return sourceNode.getLeftmostSourceNode()

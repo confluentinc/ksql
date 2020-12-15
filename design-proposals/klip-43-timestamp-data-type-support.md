@@ -52,7 +52,7 @@ CREATE STREAM stream_name (time TIMESTAMP, COL2 STRING) AS ...
 CREATE TABLE table_name (col1 STRUCT<field TIMESTAMP>) AS ...
 ```
 
-TIMESTAMPS will be displayed in console as strings in ODBC canonical format with millisecond precision:
+TIMESTAMPS will be displayed in console as strings in ISO-8601 form with millisecond precision:
 
 ```roomsql
 > SELECT time FROM stream_name EMIT CHANGES;
@@ -111,7 +111,7 @@ TIMESTAMP type and the new functions.
 The following functions will be added:
 * `PARSE_TIMESTAMP(format, timestamp_string)` - converts a string into a TIMESTAMP 
 * `FORMAT_TIMESTAMP(format, timestamp)` - returns a string in the specified format
-* `NOW()` - returns the time after the logical plan is built. All calls of now() within the same query return the same value.
+* `NOW()` - returns the timestamp after the logical plan is built. All calls of now() within the same query return the same value.
 * `CONVERT_TZ(timestamp, from_tz ,to_tz)` - converts a timestamp from one timezone to another
 
 There are a few existing UDFs that deal with dates. These should be left as is until a DATE type is implemented:
@@ -122,8 +122,8 @@ There are a few existing UDFs that deal with dates. These should be left as is u
 
 ### Casting
 
-Casting from TIMESTAMP to STRING will return the timestamp in ODBC canonical form with millisecond
-precision (yyyy-mm-dd HH:mm:ss:fff), and  casting from STRING to TIMESTAMP will attempt to parse the
+Casting from TIMESTAMP to STRING will return the timestamp in ISO-8601 form with millisecond
+precision (yyyy-mm-ddTHH:mm:ss:fff), and  casting from STRING to TIMESTAMP will attempt to parse the
 string into a TIMESTAMP.
 
 ```roomsql

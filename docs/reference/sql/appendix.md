@@ -29,6 +29,7 @@ The following table shows all keywords in the language.
 | `DAY`          | time unit of one day for a window     |  `WINDOW TUMBLING (SIZE 30 SECONDS, RETENTION 1 DAY)`                |
 | `DAYS`         | time unit of days for a window        |  `WINDOW TUMBLING (SIZE 30 SECONDS, RETENTION 1000 DAYS)`            |
 | `DECIMAL`      | decimal numeric type                  |                                                                      |
+| `DEFINE`       | define a variable                     | `DEFINE name = 'Tom Sawyer';`                                        |
 | `DELETE`       | remove a {{ site.ak}} topic           | `DROP TABLE <table-name> DELETE TOPIC;`                              |
 | `DESCRIBE`     | list details for an object            | `DESCRIBE PAGEVIEWS;`                                                |
 | `DROP`         | delete an object                      | `DROP CONNECTOR <connector-name>;`                                   |
@@ -110,8 +111,10 @@ The following table shows all keywords in the language.
 | `TUMBLING`     | specify a tumbling window             | `WINDOW TUMBLING (SIZE 5 SECONDS)`                                   |
 | `TYPE`         | alias a complex type declaration      | `CREATE TYPE <type_name> AS <type>;`                                 |
 | `TYPES`        | list all custom type aliases          | `SHOW TYPES;`                                                        |
+| `UNDEFINE`     | undefine a variable                   | `UNDEFINE name;`                                                     |
 | `UNSET`        | unassign a property value             | `UNSET 'auto.offset.reset';`                                         |
 | `VALUES`       | list of values to insert              | `INSERT INTO foo VALUES ('key', 'A');`                               |
+| `VARIABLES`    | list all variables                    | `SHOW VARIABLES;`
 | `WHEN`         | specify condition in a `CASE` block   | `SELECT CASE WHEN condition THEN result [ WHEN … THEN … ] …`         |
 | `WHERE`        | filter records by a condition         | `SELECT * FROM pageviews WHERE pageid < 'Page_20'`                   |
 | `WINDOW`       | groups rows with the same keys        | `SELECT userid, COUNT(*) FROM users WINDOW SESSION (60 SECONDS) …`   |

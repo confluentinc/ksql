@@ -200,7 +200,7 @@ topic due to a {{ site.ak }} producer exception. The default value in ksqlDB is
 `true`, which means if a producer error occurs, then the {{ site.kstreams }}
 thread that encountered the error will shut down. To log the error
 message to the
-[Processing Log](../../../developer-guide/test-and-debug/processing-log.md)
+[Processing Log](../../../reference/processing-log.md)
 and have ksqlDB continue processing as normal, add the following setting
 to your ksqlDB Server properties file:
 
@@ -225,10 +225,15 @@ is `KSQL_KSQL_SCHEMA_REGISTRY_URL`.
 ### ksql.service.id
 
 The service ID of the ksqlDB server. This is used to define the ksqlDB
-cluster membership of a ksqlDB Server instance. If multiple ksqlDB servers
-connect to the same {{ site.ak }} cluster (i.e. the same `bootstrap.servers`
-*and* the same `ksql.service.id`) they will form a ksqlDB cluster and
-share the workload.
+cluster membership of a ksqlDB Server instance.
+
+- If multiple ksqlDB servers connect to the same {{ site.ak }} cluster
+  (i.e. the same `bootstrap.servers` *and* the same `ksql.service.id`)
+  they form a ksqlDB cluster and share the workload.
+
+- If multiple ksqlDB servers connect to the same {{ site.ak }} cluster but
+  *don't* have the same `ksql.service.id`, they each get a different command
+  topic and form separate ksqlDB clusters, by `ksql.service.id`.  
 
 By default, the service ID of ksqlDB servers is `default_`. The service ID
 is also used as the prefix for the internal topics created by ksqlDB.
@@ -246,7 +251,7 @@ becomes `_confluent-ksql-default__command_topic`).
 The number of replicas for the internal topics created by ksqlDB Server.
 The default is 1. Replicas for the record processing log topic should be
 configured separately. For more information, see
-[Processing Log](../../../developer-guide/test-and-debug/processing-log.md).
+[Processing Log](../../../reference/processing-log.md).
 
 The corresponding environment variable in the
 [ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
@@ -513,6 +518,10 @@ The corresponding environment variable in the
 [ksqlDB Server image](https://hub.docker.com/r/confluentinc/ksqldb-server/)
 is `KSQL_KSQL_STREAMS_STATE_DIR`.
 
+### ksql.variable.substitution.enable
+
+Enables variable substitution through [`DEFINE`](../../../../developer-guide/ksqldb-reference/define) statements.
+
 Confluent Control Center Settings
 ---------------------------------
 
@@ -545,7 +554,7 @@ ksqlDB Processing Log Settings
 ------------------------------
 
 The following configuration settings control the behavior of the
-[ksqlDB Processing Log](../../../developer-guide/test-and-debug/processing-log.md).
+[ksqlDB Processing Log](../../../reference/processing-log.md).
 
 !!! note
     To enable security for the KSQL Processing Log, assign log4j properties

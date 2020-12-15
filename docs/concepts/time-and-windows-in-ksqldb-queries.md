@@ -387,9 +387,9 @@ SELECT o.order_id, o.total_amount, o.customer_name, s.shipment_id, s.warehouse
 For more information on joins, see
 [Join Event Streams with ksqlDB](../developer-guide/joins/join-streams-and-tables.md).
 
-### Late arriving events
+### Out-of-order events
 
-Frequently, events that belong to a window can arrive late, for example, over slow networks, 
+Frequently, events that belong to a window can arrive out-of-order, for example, over slow networks, 
 and a grace period may be required to ensure the events are accepted into the window. 
 ksqlDB enables configuring this behavior, for each of the window types. 
 
@@ -403,7 +403,8 @@ SELECT orderzip_code, TOPK(order_total, 5) FROM orders
   EMIT CHANGES;
 ```
 
-Events that arrive later than the grace period are dropped and not included in the aggregate result.
+Events that arrive after the grace period has passed are called *late* and aren't
+included in the aggregation result.
 
 ### Window retention 
 

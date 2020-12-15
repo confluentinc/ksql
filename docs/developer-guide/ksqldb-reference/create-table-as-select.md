@@ -137,7 +137,7 @@ CREATE TABLE pageviews_per_region AS
 ```
 
 ```sql
--- Late arriving events: accept events for up to two hours after the window ends.
+-- out-of-order events: accept events for up to two hours after the window ends.
 SELECT orderzip_code, TOPK(order_total, 5) FROM orders
   WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 2 HOURS) 
   GROUP BY order_zipcode

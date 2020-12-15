@@ -224,13 +224,13 @@ extra:
 
         # Build-related string tokens
         kafkaversion: 2.6
-        kafkarelease: 6.0.0-ccs
+        kafkarelease: 6.1.0-ccs
         ksqldbversion: 0.14.0
-        ksqldbcpversion: 6.1.0-beta200825192044
+        ksqldbcpversion: 6.1.0-beta201006024150
         release: 0.14.0
-        cprelease: 6.0.0
-        releasepostbranch: 6.0.0-post
+        cprelease: 6.1.0
+        releasepostbranch: 6.1.0-post
         scalaversion: 2.13
-        version: 6.0
+        version: 6.1
         voluble_version: 0.3.1
         jdbc_connector_version: 10.0.0

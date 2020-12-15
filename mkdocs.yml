@@ -225,7 +225,7 @@ extra:
         # Build-related string tokens
         kafkaversion: 2.6
         ksqldbversion: 0.14.0
-        ksqldbcpversion: 6.1.0-beta201006024150
+        kstreamsbetatag: 6.1.0-beta201006024150
         release: 0.14.0
         cprelease: 6.0.1
         releasepostbranch: 6.0.1-post

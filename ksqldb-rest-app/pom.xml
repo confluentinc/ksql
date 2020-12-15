@@ -181,13 +181,7 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-jaas</artifactId>
-            <version>9.4.28.v20200408</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-jaas</artifactId>
-            <version>9.4.28.v20200408</version>
+            <version>${jetty.version}</version>
             <scope>compile</scope>
         </dependency>
 

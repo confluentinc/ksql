@@ -14,9 +14,9 @@ keywords: ksqldb, query, application, quickstart, tutorial, walkthrough, how to
 - [ksqlDB with Embedded Connect](embedded-connect.md)
 - [Integrating with PostgreSQL](connect-integration.md)
 
-### Stream Processing Cookbook
+### Kafka Tutorials
 
-The [Stream Processing Cookbook](https://www.confluent.io/product/ksql/stream-processing-cookbook)
+[Kafka Tutorials](https://kafka-tutorials.confluent.io/)
 contains ksqlDB recipes that provide in-depth tutorials and recommended
 deployment scenarios.
 

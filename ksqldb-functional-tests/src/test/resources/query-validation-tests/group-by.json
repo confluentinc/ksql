@@ -459,6 +459,17 @@
       }
     },
     {
+      "name": "unknown function - multi group by",
+      "statements": [
+        "CREATE STREAM TEST (ID INT KEY, data STRING, other STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT DATA, OTHER, WONT_FIND_ME(ID) FROM TEST GROUP BY DATA, OTHER;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Can't find any functions with the name 'WONT_FIND_ME'"
+      }
+    },
+    {
       "name": "non-table udaf on table",
       "statements": [
         "CREATE TABLE INPUT (ID BIGINT PRIMARY KEY, F0 INT, F1 BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');",

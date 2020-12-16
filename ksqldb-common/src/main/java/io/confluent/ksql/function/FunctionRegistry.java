@@ -28,7 +28,7 @@ public interface FunctionRegistry {
   SqlType DEFAULT_FUNCTION_ARG_SCHEMA = SqlTypes.BIGINT;
 
   /**
-   * Test if the supplied {@code functionName} is an aggregate function.
+   * Test if there is an aggregate function with the supplied {@code functionName}.
    *
    * <p>Note: unknown functions result in {@code false} return value.
    *
@@ -38,7 +38,7 @@ public interface FunctionRegistry {
   boolean isAggregate(FunctionName functionName);
 
   /**
-   * Test if the supplied {@code functionName} is a table function.
+   * Test if there is a table function with the supplied {@code functionName}.
    *
    * <p>Note: unknown functions result in {@code false} return value.
    *
@@ -46,6 +46,14 @@ public interface FunctionRegistry {
    * @return {@code true} if it is a table function, {@code false} otherwise.
    */
   boolean isTableFunction(FunctionName functionName);
+
+  /**
+   * Test whether this is a function with the supplied {@code functionName}.
+   *
+   * @param functionName the name of the function to test
+   * @return {@code true} if the function exists, {@code false} otherwise.
+   */
+  boolean isPresent(FunctionName functionName);
 
   /**
    * Get the factory for a UDF.

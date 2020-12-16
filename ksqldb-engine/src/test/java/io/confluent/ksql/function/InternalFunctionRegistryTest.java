@@ -367,6 +367,18 @@ public class InternalFunctionRegistryTest {
     assertThat(functionRegistry.listFunctions(), hasItem(sameInstance(udfFactory)));
   }
 
+  @Test
+  public void shouldKnowIfFunctionIsPresent() {
+    // Given:
+    when(udafFactory.getName()).thenReturn(UDF_NAME);
+    functionRegistry.addAggregateFunctionFactory(udafFactory);
+
+    // When / Then:
+    assertThat(functionRegistry.isPresent(FunctionName.of("count")), is(true));
+    assertThat(functionRegistry.isPresent(FunctionName.of(UDF_NAME)), is(true));
+    assertThat(functionRegistry.isPresent(FunctionName.of("not_found")), is(false));
+  }
+
   private void givenUdfFactoryRegistered() {
     functionRegistry.ensureFunctionFactory(UdfLoaderUtil.createTestUdfFactory(func));
   }

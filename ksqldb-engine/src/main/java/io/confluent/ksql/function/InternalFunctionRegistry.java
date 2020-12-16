@@ -98,6 +98,20 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   }
 
   @Override
+  public boolean isPresent(final FunctionName functionName) {
+    if (udfs.containsKey(functionName.text().toUpperCase())) {
+      return true;
+    }
+    if (udafs.containsKey(functionName.text().toUpperCase())) {
+      return true;
+    }
+    if (udtfs.containsKey(functionName.text().toUpperCase())) {
+      return true;
+    }
+    return false;
+  }
+
+  @Override
   public synchronized KsqlAggregateFunction getAggregateFunction(
       final FunctionName functionName,
       final SqlType argumentType,

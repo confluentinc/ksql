@@ -25,6 +25,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.planner.plan.PullQueryFilterNode;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhysicalOperator {
 
@@ -33,7 +34,7 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
   private final SqlPredicate predicate;
 
   private AbstractPhysicalOperator child;
-  private KsqlTransformer<Object, GenericRow> transformer;
+  private KsqlTransformer<Object, Optional<GenericRow>> transformer;
   private TableRow row;
 
   public SelectOperator(final PullQueryFilterNode logicalNode, final ProcessingLogger logger) {

@@ -45,7 +45,6 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.planner.plan.PullQueryFilterNode;
-import io.confluent.ksql.planner.plan.PullQueryFilterNode.WindowBounds;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -77,8 +76,8 @@ public class PullPhysicalPlanBuilder {
 
   private WhereInfo whereInfo;
   private List<GenericKey> keys;
-  private boolean isWindowed;
-  private WindowBounds windowBounds;
+  //private boolean isWindowed;
+  //private WindowBounds windowBounds;
 
   public PullPhysicalPlanBuilder(
       final MetaStore metaStore,
@@ -184,11 +183,11 @@ public class PullPhysicalPlanBuilder {
 
   private SelectOperator translateFilterNode(final PullQueryFilterNode logicalNode) {
     final boolean windowed = persistentQueryMetadata.getResultTopic().getKeyFormat().isWindowed();
-    isWindowed = logicalNode.isWindowed();
+    //isWindowed = logicalNode.isWindowed();
     keys = logicalNode.getKeys().stream()
         .map(GenericKey::genericKey)
         .collect(ImmutableList.toImmutableList());
-    windowBounds = logicalNode.getWindowBounds();
+    //windowBounds = logicalNode.getWindowBounds();
 
 
     whereInfo = WhereInfo.extractWhereInfo(

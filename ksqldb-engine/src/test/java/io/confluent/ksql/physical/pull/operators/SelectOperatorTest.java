@@ -17,7 +17,8 @@ package io.confluent.ksql.physical.pull.operators;
 
 import static org.mockito.Mockito.verify;
 
-import io.confluent.ksql.planner.plan.FilterNode;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.planner.plan.PullQueryFilterNode;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -27,14 +28,16 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SelectOperatorTest {
 
   @Mock
-  private FilterNode logicalNode;
+  private PullQueryFilterNode logicalNode;
   @Mock
   private AbstractPhysicalOperator child;
+  @Mock
+  private ProcessingLogger logger;
 
   @Test
   public void shouldOpenChild() {
     // Given:
-    SelectOperator selectOperator = new SelectOperator(logicalNode);
+    SelectOperator selectOperator = new SelectOperator(logicalNode, logger);
     selectOperator.addChild(child);
     selectOperator.open();
 
@@ -45,7 +48,7 @@ public class SelectOperatorTest {
   @Test
   public void shouldReturnNextOfChild() {
     // Given:
-    SelectOperator selectOperator = new SelectOperator(logicalNode);
+    SelectOperator selectOperator = new SelectOperator(logicalNode, logger);
     selectOperator.addChild(child);
     selectOperator.next();
 

@@ -17,7 +17,6 @@ package io.confluent.ksql.execution.transform.sqlpredicate;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
@@ -54,8 +53,7 @@ public final class SqlPredicate {
     );
   }
 
-  @VisibleForTesting
-  SqlPredicate(
+  public SqlPredicate(
       final Expression filterExpression,
       final ExpressionMetadata evaluator
   ) {

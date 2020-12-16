@@ -38,6 +38,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
@@ -62,7 +63,7 @@ public class PullQueryFilterNode extends SingleSourcePlanNode {
   private final RewrittenAnalysis analysis;
   private final ExpressionMetadata compiledWhereClause;
 
-  private boolean isKeyedQuery;
+  private boolean isKeyedQuery = false;
   private Set<Object> keys;
   private WindowBounds windowBounds;
 
@@ -436,6 +437,16 @@ public class PullQueryFilterNode extends SingleSourcePlanNode {
 
     private WindowRange start;
     private WindowRange end;
+
+    public WindowBounds(final WindowRange start, final WindowRange end) {
+      this.start = start;
+      this.end = end;
+    }
+
+    public WindowBounds() {
+      this.start = new WindowRange();
+      this.end = new WindowRange();
+    }
 
     public void setEquality(
         final UnqualifiedColumnReferenceExp column,

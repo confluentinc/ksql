@@ -79,7 +79,7 @@ repositories {
 }
 
 dependencies {
-    implementation "io.confluent.ksql:ksqldb-udf:5.5.0"
+    implementation "io.confluent.ksql:ksqldb-udf:{{ site.cprelease }}"
     implementation "org.apache.kafka:kafka_2.13:2.5.0"
     implementation "org.apache.kafka:connect-api:2.5.0"
 }

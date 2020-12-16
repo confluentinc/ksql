@@ -264,8 +264,8 @@ CREATE STREAM pageviews_avro
     `PAGEVIEWS_AVRO-value`.
 
 For more information, see
-[Changing Data Serialization Format from JSON to Avro](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/changing-data-serialization-format-json-avro)
-in the [Stream Processing Cookbook](https://www.confluent.io/product/ksql/stream-processing-cookbook).
+[How to convert a stream's serialization format](https://kafka-tutorials.confluent.io/changing-serialization-format/ksql.html)
+in [Kafka Tutorials](https://kafka-tutorials.confluent.io/).
 
 ## Valid Identifiers
 
@@ -281,22 +281,22 @@ back-tick quotes, for example `` `col0` ``.
 
 The following SQL types are supported by ksqlDB:
 
- * [Primitive types](#primitive-types)
- * [Decimal type](#decimal-type)
- * [Array type](#array-type)
- * [Map type](#map-type)
- * [Struct type](#struct-type)
- * [Custom types](#custom-types)
+* [Primitive types](#primitive-types)
+* [Decimal type](#decimal-type)
+* [Array type](#array-type)
+* [Map type](#map-type)
+* [Struct type](#struct-type)
+* [Custom types](#custom-types)
 
 ### Primitive types
 
 Supported primitive types are:
 
-  * `BOOLEAN`: a binary value
-  * `INT`: 32-bit signed integer
-  * `BIGINT`: 64-bit signed integer
-  * `DOUBLE`: double precision (64-bit) IEEE 754 floating-point number
-  * `STRING`: a unicode character sequence (UTF8)
+* `BOOLEAN`: a binary value
+* `INT`: 32-bit signed integer
+* `BIGINT`: 64-bit signed integer
+* `DOUBLE`: double precision (64-bit) IEEE 754 floating-point number
+* `STRING`: a unicode character sequence (UTF8)
 
 ### Decimal type
 

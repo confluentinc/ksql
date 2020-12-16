@@ -25,10 +25,10 @@ lot of math. Having time data in a dedicated data type allows for a lot of new U
 
 * Add TIMESTAMP type to KSQL
 * Support TIMESTAMP arithmetic and comparisons
-* Allow window units (HOUR, DAY etc) to be used in timestamp functions
+* Allow window units (HOUR, DAY etc) to be used in timestamp arithmetic
 * Support TIMESTAMP usage in STRUCT, MAP and ARRAY
 * Serialization and de-serialization of TIMESTAMPs to Avro, JSON, Protobuf and Delimited formats
-* Update existing built-in functions to use the TIMESTAMP data type
+* New UDFs to support the TIMESTAMP type, as well as deprecating old TIMESTAMP functions
 * Casting TIMESTAMP to and from STRING
 
 ## What is not in scope
@@ -60,7 +60,7 @@ TIMESTAMPS will be displayed in console as strings in ISO-8601 form with millise
 +------------------------+
 |time                    |
 +------------------------+
-|1994-11-05T13:15:30:112 |
+|1994-11-05T13:15:30.112 |
 ```
 
 TIMESTAMPS can be represented by date strings:
@@ -127,10 +127,10 @@ precision (yyyy-mm-ddTHH:mm:ss:fff), and  casting from STRING to TIMESTAMP will 
 string into a TIMESTAMP.
 
 ```roomsql
- > SELECT CAST("1994-11-05T13:15:30" AS TIMESTAMP) FROM stream_name EMIT CHANGES;
-"1994-11-05T13:15:30"
+ > SELECT CAST("1994-11-05T13:15.30" AS TIMESTAMP) FROM stream_name EMIT CHANGES;
+"1994-11-05T13:15.30"
  > SELECT CAST(time AS STRING) FROM stream_name EMIT CHANGES;
-"1994-11-05T13:15:30"
+"1994-11-05T13:15.30"
 ```
 
 ### Arithmetic operations and comparisons
@@ -155,12 +155,16 @@ next section.
 As for comparisons, the following expressions should be supported:
 ```
 time_stamp1 < time_stamp2
+time_stamp1 <= time_stamp2
 time_stamp1 > time_stamp2
+time_stamp1 >= time_stamp2
 time_stamp1 = time_stamp2
+time_stamp1 <> time_stamp2
 time_stamp1 BETWEEN time_stamp2 AND time_stamp3
 ```
 
-Comparisons between TIMESTAMPs and other data types should not be allowed.
+Comparisons between TIMESTAMPs and other data types should not be allowed, though a ISO-8601 formatted datestring can be used to represent TIMESTAMPs
+([This is already supported for system time columns](https://docs.ksqldb.io/en/latest/developer-guide/ksqldb-reference/select-push-query/#example)).
 
 ### Durations / Time units
 

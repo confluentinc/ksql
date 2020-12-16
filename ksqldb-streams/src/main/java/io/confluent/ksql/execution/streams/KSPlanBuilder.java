@@ -97,7 +97,7 @@ public final class KSPlanBuilder implements PlanBuilder {
       final StreamGroupByV1<K> streamGroupBy,
       final PlanInfo planInfo) {
     final KStreamHolder<K> source = streamGroupBy.getSource().build(this, planInfo);
-    return new StreamGroupByBuilder(
+    return new StreamGroupByBuilderV1(
         queryBuilder,
         streamsFactories.getGroupedFactory()
     ).build(
@@ -315,7 +315,7 @@ public final class KSPlanBuilder implements PlanBuilder {
       final TableGroupByV1<K> tableGroupBy,
       final PlanInfo planInfo) {
     final KTableHolder<K> source = tableGroupBy.getSource().build(this, planInfo);
-    return new TableGroupByBuilder(
+    return new TableGroupByBuilderV1(
         queryBuilder,
         streamsFactories.getGroupedFactory()
     ).build(

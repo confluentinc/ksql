@@ -558,7 +558,7 @@ public class SchemaKTableTest {
     assertThat(
         groupedSchemaKTable.getSourceTableStep(),
         equalTo(
-            ExecutionStepFactory.tableGroupBy(
+            ExecutionStepFactory.tableGroupByV1(
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
                 Formats.of(
@@ -593,7 +593,7 @@ public class SchemaKTableTest {
     assertThat(
         groupedSchemaKTable.getSourceTableStep(),
         equalTo(
-            ExecutionStepFactory.tableGroupBy(
+            ExecutionStepFactory.tableGroupByV1(
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
                 Formats.of(
@@ -724,8 +724,6 @@ public class SchemaKTableTest {
   @Test
   public void shouldBuildStepForTableTableJoin() {
     // Given:
-    givenJoin();
-    givenLeftJoin();
     final List<Pair<JoinType, Join>> cases = ImmutableList.of(
         Pair.of(JoinType.LEFT, firstSchemaKTable::leftJoin),
         Pair.of(JoinType.INNER, firstSchemaKTable::join)
@@ -755,8 +753,6 @@ public class SchemaKTableTest {
   @Test
   public void shouldBuildSchemaForTableTableJoin() {
     // Given:
-    givenJoin();
-    givenLeftJoin();
     final List<Pair<JoinType, Join>> cases = ImmutableList.of(
         Pair.of(JoinType.LEFT, firstSchemaKTable::leftJoin),
         Pair.of(JoinType.INNER, firstSchemaKTable::join)
@@ -794,21 +790,5 @@ public class SchemaKTableTest {
 
   private PlanNode buildLogicalPlan(final String query) {
     return AnalysisTestUtil.buildLogicalPlan(ksqlConfig, query, metaStore);
-  }
-
-  private void givenJoin() {
-    final KTable resultTable = mock(KTable.class);
-    when(mockKTable.join(
-        eq(secondKTable),
-        any(KsqlValueJoiner.class))
-    ).thenReturn(resultTable);
-  }
-
-  private void givenLeftJoin() {
-    final KTable resultTable = mock(KTable.class);
-    when(mockKTable.leftJoin(
-        eq(secondKTable),
-        any(KsqlValueJoiner.class))
-    ).thenReturn(resultTable);
   }
 }

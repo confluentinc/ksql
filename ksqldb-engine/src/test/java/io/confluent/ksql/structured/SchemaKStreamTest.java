@@ -395,7 +395,7 @@ public class SchemaKStreamTest {
     assertThat(
         groupedSchemaKStream.getSourceStep(),
         equalTo(
-            ExecutionStepFactory.streamGroupBy(
+            ExecutionStepFactory.streamGroupByV1(
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
                 Formats

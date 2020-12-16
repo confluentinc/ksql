@@ -25,10 +25,10 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
+import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.TableFilter;
-import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableSuppress;
@@ -236,12 +236,22 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         isSingleKey
     );
 
-    final TableGroupBy<K> step = ExecutionStepFactory.tableGroupBy(
-        contextStacker,
-        sourceTableStep,
-        InternalFormats.of(groupedKeyFormat, valueFormat),
-        groupByExpressions
-    );
+    final ExecutionStep<KGroupedTableHolder> step;
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_MULTICOL_KEY_FORMAT_ENABLED)) {
+      step = ExecutionStepFactory.tableGroupBy(
+          contextStacker,
+          sourceTableStep,
+          InternalFormats.of(groupedKeyFormat, valueFormat),
+          groupByExpressions
+      );
+    } else {
+      step = ExecutionStepFactory.tableGroupByV1(
+          contextStacker,
+          sourceTableStep,
+          InternalFormats.of(groupedKeyFormat, valueFormat),
+          groupByExpressions
+      );
+    }
 
     return new SchemaKGroupedTable(
         step,

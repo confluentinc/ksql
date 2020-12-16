@@ -102,7 +102,9 @@ public final class KSPlanBuilder implements PlanBuilder {
         streamsFactories.getGroupedFactory()
     ).build(
         source,
-        streamGroupBy
+        streamGroupBy.getProperties().getQueryContext(),
+        streamGroupBy.getInternalFormats(),
+        streamGroupBy.getGroupByExpressions()
     );
   }
 
@@ -116,7 +118,9 @@ public final class KSPlanBuilder implements PlanBuilder {
         streamsFactories.getGroupedFactory()
     ).build(
         source,
-        streamGroupBy
+        streamGroupBy.getProperties().getQueryContext(),
+        streamGroupBy.getInternalFormats(),
+        streamGroupBy.getGroupByExpressions()
     );
   }
 
@@ -316,7 +320,9 @@ public final class KSPlanBuilder implements PlanBuilder {
         streamsFactories.getGroupedFactory()
     ).build(
         source,
-        tableGroupBy
+        tableGroupBy.getProperties().getQueryContext(),
+        tableGroupBy.getInternalFormats(),
+        tableGroupBy.getGroupByExpressions()
     );
   }
 
@@ -330,7 +336,9 @@ public final class KSPlanBuilder implements PlanBuilder {
         streamsFactories.getGroupedFactory()
     ).build(
         source,
-        tableGroupBy
+        tableGroupBy.getProperties().getQueryContext(),
+        tableGroupBy.getInternalFormats(),
+        tableGroupBy.getGroupByExpressions()
     );
   }
 

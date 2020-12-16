@@ -22,7 +22,7 @@ import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KStreamHolder;
-import io.confluent.ksql.execution.plan.StreamGroupBy;
+import io.confluent.ksql.execution.plan.StreamGroupByV1;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.streams.StreamGroupByBuilderBase.ParamsFactory;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -53,7 +53,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-public class StreamGroupByBuilderTest {
+public class StreamGroupByBuilderV1Test {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
@@ -127,12 +127,12 @@ public class StreamGroupByBuilderTest {
   @Mock
   private Function<GenericRow, GenericKey> mapper;
 
-  private StreamGroupBy<GenericKey> groupBy;
+  private StreamGroupByV1<GenericKey> groupBy;
   private StreamGroupByKey groupByKey;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
-  private StreamGroupByBuilder builder;
+  private StreamGroupByBuilderV1 builder;
 
   @Before
   @SuppressWarnings("unchecked")
@@ -156,7 +156,7 @@ public class StreamGroupByBuilderTest {
     when(filteredStream.groupBy(any(KeyValueMapper.class), any(Grouped.class)))
         .thenReturn(groupedStream);
 
-    groupBy = new StreamGroupBy<>(
+    groupBy = new StreamGroupByV1<>(
         PROPERTIES,
         sourceStep,
         FORMATS,
@@ -165,7 +165,7 @@ public class StreamGroupByBuilderTest {
 
     groupByKey = new StreamGroupByKey(PROPERTIES, sourceStep, FORMATS);
 
-    builder = new StreamGroupByBuilder(queryBuilder, groupedFactory, paramsFactory);
+    builder = new StreamGroupByBuilderV1(queryBuilder, groupedFactory, paramsFactory);
   }
 
   @Test
@@ -313,9 +313,9 @@ public class StreamGroupByBuilderTest {
   }
 
   private static <K> KGroupedStreamHolder buildGroupBy(
-      final StreamGroupByBuilder builder,
+      final StreamGroupByBuilderV1 builder,
       final KStreamHolder<K> stream,
-      final StreamGroupBy<K> step
+      final StreamGroupByV1<K> step
   ) {
     return builder.build(
         stream,

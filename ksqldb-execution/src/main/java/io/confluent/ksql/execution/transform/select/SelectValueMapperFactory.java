@@ -35,15 +35,11 @@ import java.util.stream.Collectors;
 public final class SelectValueMapperFactory {
   private static final String EXP_TYPE = "Select";
 
-  private CodeGenRunner codeGenerator;
+  private final CodeGenRunner codeGenerator;
 
   @VisibleForTesting
   SelectValueMapperFactory(final CodeGenRunner codeGenerator) {
     this.codeGenerator = requireNonNull(codeGenerator, "codeGenerator");
-  }
-
-  @VisibleForTesting
-  SelectValueMapperFactory() {
   }
 
   @VisibleForTesting

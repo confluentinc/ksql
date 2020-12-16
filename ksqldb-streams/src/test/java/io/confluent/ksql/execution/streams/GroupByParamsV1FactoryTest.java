@@ -86,14 +86,11 @@ public class GroupByParamsV1FactoryTest {
   public void setUp() {
     when(groupBy0.getExpression()).thenReturn(new LongLiteral(0));
     when(groupBy0.getExpressionType()).thenReturn(SqlTypes.INTEGER);
-    when(groupBy1.getExpression())
-        .thenReturn(new UnqualifiedColumnReferenceExp(ColumnName.of("K1")));
-    when(groupBy1.getExpressionType()).thenReturn(SqlTypes.INTEGER);
 
-    singleParams = GroupByParamsFactory
+    singleParams = GroupByParamsV1Factory
         .build(SOURCE_SCHEMA, ImmutableList.of(groupBy0), logger);
 
-    multiParams = GroupByParamsFactory
+    multiParams = GroupByParamsV1Factory
         .build(SOURCE_SCHEMA, ImmutableList.of(groupBy0, groupBy1), logger);
 
     when(groupBy0.evaluate(any(), any(), any(), any())).thenReturn(0);
@@ -108,12 +105,12 @@ public class GroupByParamsV1FactoryTest {
         .setDefault(LogicalSchema.class, SOURCE_SCHEMA)
         .setDefault(SqlType.class, SqlTypes.BIGINT)
         .setDefault(KsqlConfig.class, config)
-        .testStaticMethods(GroupByParamsFactory.class, Visibility.PACKAGE);
+        .testStaticMethods(GroupByParamsV1Factory.class, Visibility.PACKAGE);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnEmptyParam() {
-    GroupByParamsFactory
+    GroupByParamsV1Factory
         .build(SOURCE_SCHEMA, Collections.emptyList(), logger);
   }
 
@@ -245,7 +242,7 @@ public class GroupByParamsV1FactoryTest {
         .thenReturn(new UnqualifiedColumnReferenceExp(ColumnName.of("Bob")));
 
     // When:
-    final LogicalSchema schema = GroupByParamsFactory
+    final LogicalSchema schema = GroupByParamsV1Factory
         .buildSchema(SOURCE_SCHEMA, ImmutableList.of(groupBy0));
 
     // Then:
@@ -265,7 +262,7 @@ public class GroupByParamsV1FactoryTest {
     ));
 
     // When:
-    final LogicalSchema schema = GroupByParamsFactory
+    final LogicalSchema schema = GroupByParamsV1Factory
         .buildSchema(SOURCE_SCHEMA, ImmutableList.of(groupBy0));
 
     // Then:
@@ -282,7 +279,7 @@ public class GroupByParamsV1FactoryTest {
         .thenReturn(new LongLiteral(1));
 
     // When:
-    final LogicalSchema schema = GroupByParamsFactory
+    final LogicalSchema schema = GroupByParamsV1Factory
         .buildSchema(SOURCE_SCHEMA, ImmutableList.of(groupBy0));
 
     // Then:
@@ -295,7 +292,7 @@ public class GroupByParamsV1FactoryTest {
   @Test
   public void shouldGenerateKeyNameForMultiGroupBys() {
     // When:
-    final LogicalSchema schema = GroupByParamsFactory
+    final LogicalSchema schema = GroupByParamsV1Factory
         .buildSchema(SOURCE_SCHEMA, ImmutableList.of(groupBy0, groupBy1));
 
     // Then:

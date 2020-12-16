@@ -86,7 +86,6 @@ public class PullProjectNodeTest {
 
 
   private List<SelectItem> selects;
-  private PullProjectNode projectNode;
 
   @Before
   public void setUp() {

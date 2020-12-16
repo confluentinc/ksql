@@ -83,7 +83,7 @@ public final class QueryExecutor {
 
   // Each stream thread has two internal consumer threads running. When closing those consumer
   // threads, the close has a hard-coded 30 seconds timeout per thread.
-  private static long INTERNAL_CONSUMER_THREADS_TIMEOUT = 2 * 30000;
+  private static long INTERNAL_CONSUMER_THREADS_TIMEOUT_MS = 2 * 30_000;
 
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private final SessionConfig config;

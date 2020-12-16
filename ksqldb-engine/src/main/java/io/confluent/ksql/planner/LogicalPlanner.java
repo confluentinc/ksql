@@ -75,7 +75,6 @@ import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -623,46 +622,16 @@ public class LogicalPlanner {
 
     final Builder builder = LogicalSchema.builder();
 
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_MULTICOL_KEY_FORMAT_ENABLED)) {
-      final ExpressionTypeManager typeManager =
-          new ExpressionTypeManager(sourceSchema, metaStore);
+    final ExpressionTypeManager typeManager =
+        new ExpressionTypeManager(sourceSchema, metaStore);
 
-      for (final Expression expression : groupByExps) {
-        final SqlType keyType = typeManager.getExpressionSqlType(expression);
-        final ColumnName keyName = selectResolver.apply(expression)
-            .orElseGet(() -> expression instanceof ColumnReferenceExp
-                ? ((ColumnReferenceExp) expression).getColumnName()
-                : ColumnNames.uniqueAliasFor(expression, sourceSchema)
-            );
-
-        builder.keyColumn(keyName, keyType);
-      }
-    } else {
-      final ColumnName keyName;
-      final SqlType keyType;
-
-      if (groupByExps.size() != 1) {
-        keyType = SqlTypes.STRING;
-
-        keyName = ColumnNames.nextKsqlColAlias(
-            sourceSchema,
-            LogicalSchema.builder()
-                .valueColumns(projectionSchema.value())
-                .build()
-        );
-      } else {
-        final ExpressionTypeManager typeManager =
-            new ExpressionTypeManager(sourceSchema, metaStore);
-
-        final Expression expression = groupByExps.get(0);
-
-        keyType = typeManager.getExpressionSqlType(expression);
-        keyName = selectResolver.apply(expression)
-            .orElseGet(() -> expression instanceof ColumnReferenceExp
-                ? ((ColumnReferenceExp) expression).getColumnName()
-                : ColumnNames.uniqueAliasFor(expression, sourceSchema)
-            );
-      }
+    for (final Expression expression : groupByExps) {
+      final SqlType keyType = typeManager.getExpressionSqlType(expression);
+      final ColumnName keyName = selectResolver.apply(expression)
+          .orElseGet(() -> expression instanceof ColumnReferenceExp
+              ? ((ColumnReferenceExp) expression).getColumnName()
+              : ColumnNames.uniqueAliasFor(expression, sourceSchema)
+          );
 
       builder.keyColumn(keyName, keyType);
     }

@@ -558,7 +558,7 @@ public class SchemaKTableTest {
     assertThat(
         groupedSchemaKTable.getSourceTableStep(),
         equalTo(
-            ExecutionStepFactory.tableGroupByV1(
+            ExecutionStepFactory.tableGroupBy(
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
                 Formats.of(
@@ -593,13 +593,13 @@ public class SchemaKTableTest {
     assertThat(
         groupedSchemaKTable.getSourceTableStep(),
         equalTo(
-            ExecutionStepFactory.tableGroupByV1(
+            ExecutionStepFactory.tableGroupBy(
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
                 Formats.of(
                     initialSchemaKTable.keyFormat.getFormatInfo(),
                     valueFormat.getFormatInfo(),
-                    SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
+                    SerdeFeatures.of(),
                     SerdeFeatures.of()
                 ),
                 groupByExpressions

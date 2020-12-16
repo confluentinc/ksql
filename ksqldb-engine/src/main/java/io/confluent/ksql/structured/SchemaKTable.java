@@ -25,10 +25,10 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
-import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.TableFilter;
+import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableSuppress;
@@ -221,37 +221,20 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final List<Expression> groupByExpressions,
       final Stacker contextStacker
   ) {
-    final boolean isSingleKey;
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_MULTICOL_KEY_FORMAT_ENABLED)) {
-      isSingleKey = groupByExpressions.size() == 1;
-    } else {
-      isSingleKey = true;
-    }
-
     // Since tables must have a key, we know that the keyFormat is both
     // not NONE and has at least one column; this allows us to inherit
     // the key format directly (as opposed to the logic in SchemaKStream)
     final KeyFormat groupedKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
         KeyFormat.nonWindowed(keyFormat.getFormatInfo(), keyFormat.getFeatures()),
-        isSingleKey
+        groupByExpressions.size() == 1
     );
 
-    final ExecutionStep<KGroupedTableHolder> step;
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_MULTICOL_KEY_FORMAT_ENABLED)) {
-      step = ExecutionStepFactory.tableGroupBy(
-          contextStacker,
-          sourceTableStep,
-          InternalFormats.of(groupedKeyFormat, valueFormat),
-          groupByExpressions
-      );
-    } else {
-      step = ExecutionStepFactory.tableGroupByV1(
-          contextStacker,
-          sourceTableStep,
-          InternalFormats.of(groupedKeyFormat, valueFormat),
-          groupByExpressions
-      );
-    }
+    final TableGroupBy<K> step = ExecutionStepFactory.tableGroupBy(
+        contextStacker,
+        sourceTableStep,
+        InternalFormats.of(groupedKeyFormat, valueFormat),
+        groupByExpressions
+    );
 
     return new SchemaKGroupedTable(
         step,

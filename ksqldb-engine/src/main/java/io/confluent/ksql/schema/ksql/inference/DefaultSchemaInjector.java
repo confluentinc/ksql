@@ -125,7 +125,9 @@ public class DefaultSchemaInjector implements Injector {
         props.getKafkaTopic(),
         props.getKeySchemaId(),
         keyFormat,
-        SerdeFeaturesFactory.buildInternal(FormatFactory.of(keyFormat)),
+        // until we support user-configuration of single key wrapping/unwrapping, we choose
+        // to have key schema inference always result in an unwrapped key
+        SerdeFeaturesFactory.buildKeyFeatures(FormatFactory.of(keyFormat), true),
         statement.getStatementText(),
         true
     ));

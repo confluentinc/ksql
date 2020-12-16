@@ -63,9 +63,16 @@ public final class SerdeFeaturesFactory {
       final LogicalSchema schema,
       final Format keyFormat
   ) {
+    return buildKeyFeatures(keyFormat, schema.key().size() == 1);
+  }
+
+  public static SerdeFeatures buildKeyFeatures(
+    final Format keyFormat,
+    final boolean isSingleKey
+  ) {
     final ImmutableSet.Builder<SerdeFeature> builder = ImmutableSet.builder();
 
-    getKeyWrapping(schema.key().size() == 1, keyFormat)
+    getKeyWrapping(isSingleKey, keyFormat)
         .ifPresent(builder::add);
 
     return SerdeFeatures.from(builder.build());

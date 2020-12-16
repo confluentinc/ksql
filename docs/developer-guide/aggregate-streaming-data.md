@@ -127,6 +127,6 @@ Next Steps
 ----------
 
 -   Watch the screencast of [Aggregations](https://www.youtube.com/embed/db5SsmNvej4).
--   [Aggregating Data](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/aggregating-data)
--   [Detecting Abnormal Transactions](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/detecting-abnormal-transactions)
--   [Inline Streaming Aggregation](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/inline-streaming-aggregation)
+-   [Aggregating Data](https://kafka-tutorials.confluent.io/create-tumbling-windows/ksql.html)
+-   [Anomaly detection](https://kafka-tutorials.confluent.io/anomaly-detection/ksql.html)
+-   [How to find the min/max in a stream of events](https://kafka-tutorials.confluent.io/create-stateful-aggregation-minmax/ksql.html)

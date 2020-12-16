@@ -140,7 +140,7 @@ public class StreamGroupByBuilderTest {
     when(streamHolder.getSchema()).thenReturn(SCHEMA);
     when(streamHolder.getStream()).thenReturn(sourceStream);
 
-    when(paramsFactory.build(any(), any(), any(), any())).thenReturn(groupByParams);
+    when(paramsFactory.build(any(), any(), any())).thenReturn(groupByParams);
 
     when(groupByParams.getSchema()).thenReturn(REKEYED_SCHEMA);
     when(groupByParams.getMapper()).thenReturn(mapper);
@@ -189,8 +189,7 @@ public class StreamGroupByBuilderTest {
     verify(paramsFactory).build(
         eq(SCHEMA),
         any(),
-        eq(processingLogger),
-        eq(ksqlConfig)
+        eq(processingLogger)
     );
   }
 
@@ -276,7 +275,7 @@ public class StreamGroupByBuilderTest {
     builder.build(streamHolder, groupByKey);
 
     // Then:
-    verify(paramsFactory, never()).build(any(), any(), any(), any());
+    verify(paramsFactory, never()).build(any(), any(), any());
   }
 
   @Test

@@ -164,16 +164,30 @@ abstract class StructuredDataSource<K> implements DataSource {
       final LogicalSchema schema,
       final LogicalSchema other
   ) {
-    if (!schema.key().equals(other.key())) {
-      return Optional.of("Key columns must be identical.");
+    final Optional<String> keyError = checkSchemas(schema.key(), other.key(), "key ")
+        .map(msg -> "Key columns must be identical. " + msg);
+    if (keyError.isPresent()) {
+      return keyError;
     }
 
-    final ImmutableSet<Column> colA = ImmutableSet.copyOf(schema.columns());
-    final ImmutableSet<Column> colB = ImmutableSet.copyOf(other.columns());
+    return checkSchemas(schema.columns(), other.columns(), "");
+  }
+
+  private static Optional<String> checkSchemas(
+      final List<Column> cols,
+      final List<Column> otherCols,
+      final String colType
+  ) {
+    // We compare sets of Column objects in case the Column objects themselves are reordered
+    // (which is fine), but the actual columns themselves may not be reordered -- the set
+    // comparison fails in that case as Column objects store the index of the column in the schema
+    final ImmutableSet<Column> colA = ImmutableSet.copyOf(cols);
+    final ImmutableSet<Column> colB = ImmutableSet.copyOf(otherCols);
 
     final SetView<Column> difference = Sets.difference(colA, colB);
     if (!difference.isEmpty()) {
-      return Optional.of("The following columns are changed, missing or reordered: " + difference);
+      return Optional.of("The following " + colType + "columns are changed, missing or reordered: "
+          + difference);
     }
 
     return Optional.empty();

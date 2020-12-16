@@ -1,9 +1,6 @@
 /*
-<<<<<<< HEAD
  * Copyright 2021 Confluent Inc.
-=======
  * Copyright 2020 Confluent Inc.
->>>>>>> 957a2e97db... fix: client/server SSL settings fail when 'ssl.key.password' is set
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -20,6 +17,7 @@
 package io.confluent.ksql.util;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.PfxOptions;
@@ -78,6 +76,10 @@ public final class VertxSslOptionsFactory {
 
   private static PfxOptions buildPfxOptions(final String path, final String password) {
     return new PfxOptions().setPath(path).setPassword(Strings.nullToEmpty(password));
+  }
+
+  public static JksOptions getJksTrustStoreOptions(final String path, final String password) {
+    return buildJksOptions(path, password);
   }
 
   /**
@@ -164,6 +166,21 @@ public final class VertxSslOptionsFactory {
     }
 
     return Optional.empty();
+  }
+
+  public static JksOptions buildJksKeyStoreOptions(
+      final String path,
+      final String password,
+      final Optional<String> keyPassword,
+      final Optional<String> alias
+  ) {
+    return buildJksKeyStoreOptions(
+        ImmutableMap.of(
+            SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, path,
+            SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, password,
+            SslConfigs.SSL_KEY_PASSWORD_CONFIG, keyPassword.orElse("")
+        ), alias
+    ).get();
   }
 
   /**

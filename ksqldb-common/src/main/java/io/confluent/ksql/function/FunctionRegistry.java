@@ -48,7 +48,7 @@ public interface FunctionRegistry {
   boolean isTableFunction(FunctionName functionName);
 
   /**
-   * Test whether this is a function with the supplied {@code functionName}.
+   * Test whether there is a function with the supplied {@code functionName}.
    *
    * @param functionName the name of the function to test
    * @return {@code true} if the function exists, {@code false} otherwise.

@@ -106,7 +106,6 @@ nav:
       - SHOW VARIABLES: developer-guide/ksqldb-reference/show-variables.md
       - SPOOL: developer-guide/ksqldb-reference/spool.md
       - TERMINATE: developer-guide/ksqldb-reference/terminate.md
-      - Type Coercion: developer-guide/ksqldb-reference/type-coercion.md
       - UNDEFINE: developer-guide/ksqldb-reference/undefine.md
     - Operators: developer-guide/ksqldb-reference/operators.md
     - Functions:

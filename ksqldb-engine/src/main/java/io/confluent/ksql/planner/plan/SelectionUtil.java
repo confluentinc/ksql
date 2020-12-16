@@ -96,7 +96,13 @@ public final class SelectionUtil {
 
     if (selectItem instanceof SingleColumn) {
       final SingleColumn column = (SingleColumn) selectItem;
-      final Optional<Column> targetColumn = targetSchema.map(schema -> schema.columns().get(idx));
+      // if the column we are trying to coerce into a target schema is beyond
+      // the target schema's max columns ignore it. this will generate a failure
+      // down the line when we check that the result schema is identical to
+      // the schema of the source we are attempting to fit
+      final Optional<Column> targetColumn = targetSchema
+          .filter(schema -> schema.columns().size() > idx)
+          .map(schema -> schema.columns().get(idx));
 
       return resolveSingleColumn(idx, parentNode, column, targetColumn);
     }

@@ -28,11 +28,11 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
+import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
-import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSink;
@@ -380,12 +380,23 @@ public class SchemaKStream<K> {
 
     final KeyFormat sanitizedKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
         rekeyedFormat, isSingleKey);
-    final StreamGroupBy<K> source = ExecutionStepFactory.streamGroupBy(
-        contextStacker,
-        sourceStep,
-        InternalFormats.of(sanitizedKeyFormat, valueFormat),
-        groupByExpressions
-    );
+
+    final ExecutionStep<KGroupedStreamHolder> source;
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_MULTICOL_KEY_FORMAT_ENABLED)) {
+      source = ExecutionStepFactory.streamGroupBy(
+          contextStacker,
+          sourceStep,
+          InternalFormats.of(sanitizedKeyFormat, valueFormat),
+          groupByExpressions
+      );
+    } else {
+      source = ExecutionStepFactory.streamGroupByV1(
+          contextStacker,
+          sourceStep,
+          InternalFormats.of(sanitizedKeyFormat, valueFormat),
+          groupByExpressions
+      );
+    }
 
     return new SchemaKGroupedStream(
         source,

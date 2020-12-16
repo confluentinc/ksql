@@ -1,3 +1,18 @@
+/*
+ * Copyright 2019 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.execution.streams;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -5,7 +20,6 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -20,11 +34,10 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
-import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
-import io.confluent.ksql.execution.plan.KStreamHolder;
-import io.confluent.ksql.execution.plan.StreamGroupBy;
-import io.confluent.ksql.execution.plan.StreamGroupByKey;
-import io.confluent.ksql.execution.streams.StreamGroupByBuilderBase.ParamsFactory;
+import io.confluent.ksql.execution.plan.KGroupedTableHolder;
+import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.TableGroupByV1;
+import io.confluent.ksql.execution.streams.TableGroupByBuilderBase.ParamsFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
@@ -40,8 +53,8 @@ import java.util.List;
 import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Grouped;
-import org.apache.kafka.streams.kstream.KGroupedStream;
-import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KGroupedTable;
+import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.junit.Before;
@@ -53,10 +66,10 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-public class StreamGroupByBuilderTest {
+public class TableGroupByBuilderV1Test {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .keyColumn(ColumnName.of("K0"), SqlTypes.INTEGER)
+      .keyColumn(ColumnName.of("k0"), SqlTypes.DOUBLE)
       .valueColumn(ColumnName.of("PAC"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("MAN"), SqlTypes.STRING)
       .build()
@@ -67,22 +80,19 @@ public class StreamGroupByBuilderTest {
       .valueColumns(SCHEMA.value())
       .build();
 
-  private static final PhysicalSchema PHYSICAL_SCHEMA =
-      PhysicalSchema.from(SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
-
   private static final PhysicalSchema REKEYED_PHYSICAL_SCHEMA =
       PhysicalSchema.from(REKEYED_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
-  private static final List<Expression> GROUP_BY_EXPRESSIONS = ImmutableList.of(
+  private static final List<Expression> GROUPBY_EXPRESSIONS = ImmutableList.of(
       columnReference("PAC"),
       columnReference("MAN")
   );
 
-  private static final QueryContext STEP_CTX =
+  private static final QueryContext STEP_CONTEXT =
       new QueryContext.Stacker().push("foo").push("groupby").getQueryContext();
 
   private static final ExecutionStepPropertiesV1 PROPERTIES = new ExecutionStepPropertiesV1(
-      STEP_CTX
+      STEP_CONTEXT
   );
 
   private static final Formats FORMATS = Formats.of(
@@ -91,6 +101,8 @@ public class StreamGroupByBuilderTest {
       SerdeFeatures.of(),
       SerdeFeatures.of()
   );
+
+  private static final GenericKey KEY = GenericKey.genericKey("key");
 
   @Mock
   private KsqlQueryBuilder queryBuilder;
@@ -101,7 +113,7 @@ public class StreamGroupByBuilderTest {
   @Mock
   private GroupedFactory groupedFactory;
   @Mock
-  private ExecutionStep<KStreamHolder<GenericKey>> sourceStep;
+  private ExecutionStep<KTableHolder<GenericKey>> sourceStep;
   @Mock
   private Serde<GenericKey> keySerde;
   @Mock
@@ -109,36 +121,35 @@ public class StreamGroupByBuilderTest {
   @Mock
   private Grouped<GenericKey, GenericRow> grouped;
   @Mock
-  private KStream<GenericKey, GenericRow> sourceStream;
+  private KTable<GenericKey, GenericRow> sourceTable;
   @Mock
-  private KStream<GenericKey, GenericRow> filteredStream;
+  private KTable<GenericKey, GenericRow> filteredTable;
   @Mock
-  private KGroupedStream<GenericKey, GenericRow> groupedStream;
-  @Captor
-  private ArgumentCaptor<Predicate<GenericKey, GenericRow>> predicateCaptor;
+  private KGroupedTable<GenericKey, GenericRow> groupedTable;
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
-  private KStreamHolder<GenericKey> streamHolder;
-  @Mock
   private ParamsFactory paramsFactory;
+  @Mock
+  private KTableHolder<GenericKey> tableHolder;
   @Mock
   private GroupByParams groupByParams;
   @Mock
   private Function<GenericRow, GenericKey> mapper;
+  @Captor
+  private ArgumentCaptor<Predicate<GenericKey, GenericRow>> predicateCaptor;
 
-  private StreamGroupBy<GenericKey> groupBy;
-  private StreamGroupByKey groupByKey;
+  private TableGroupByV1<GenericKey> groupBy;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
-  private StreamGroupByBuilder builder;
+  private TableGroupByBuilderV1 builder;
 
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(streamHolder.getSchema()).thenReturn(SCHEMA);
-    when(streamHolder.getStream()).thenReturn(sourceStream);
+    when(tableHolder.getSchema()).thenReturn(SCHEMA);
+    when(tableHolder.getTable()).thenReturn(sourceTable);
 
     when(paramsFactory.build(any(), any(), any())).thenReturn(groupByParams);
 
@@ -151,39 +162,36 @@ public class StreamGroupByBuilderTest {
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
     when(groupedFactory.create(any(), any(Serde.class), any())).thenReturn(grouped);
-    when(sourceStream.groupByKey(any(Grouped.class))).thenReturn(groupedStream);
-    when(sourceStream.filter(any())).thenReturn(filteredStream);
-    when(filteredStream.groupBy(any(KeyValueMapper.class), any(Grouped.class)))
-        .thenReturn(groupedStream);
+    when(sourceTable.filter(any())).thenReturn(filteredTable);
+    when(filteredTable.groupBy(any(KeyValueMapper.class), any(Grouped.class)))
+        .thenReturn(groupedTable);
 
-    groupBy = new StreamGroupBy<>(
+    groupBy = new TableGroupByV1<>(
         PROPERTIES,
         sourceStep,
         FORMATS,
-        GROUP_BY_EXPRESSIONS
+        GROUPBY_EXPRESSIONS
     );
 
-    groupByKey = new StreamGroupByKey(PROPERTIES, sourceStep, FORMATS);
-
-    builder = new StreamGroupByBuilder(queryBuilder, groupedFactory, paramsFactory);
+    builder = new TableGroupByBuilderV1(queryBuilder, groupedFactory, paramsFactory);
   }
 
   @Test
   public void shouldPerformGroupByCorrectly() {
     // When:
-    final KGroupedStreamHolder result = buildGroupBy(builder, streamHolder, groupBy);
+    final KGroupedTableHolder result = build(builder, tableHolder, groupBy);
 
     // Then:
-    assertThat(result.getGroupedStream(), is(groupedStream));
-    verify(sourceStream).filter(any());
-    verify(filteredStream).groupBy(any(), same(grouped));
-    verifyNoMoreInteractions(filteredStream, sourceStream);
+    assertThat(result.getGroupedTable(), is(groupedTable));
+    verify(sourceTable).filter(any());
+    verify(filteredTable).groupBy(any(), same(grouped));
+    verifyNoMoreInteractions(filteredTable, sourceTable);
   }
 
   @Test
   public void shouldBuildGroupByParamsCorrectly() {
     // When:
-    buildGroupBy(builder, streamHolder, groupBy);
+    build(builder, tableHolder, groupBy);
 
     // Then:
     verify(paramsFactory).build(
@@ -194,131 +202,68 @@ public class StreamGroupByBuilderTest {
   }
 
   @Test
-  public void shouldFilterNullRowsBeforeGroupBy() {
+  public void shouldReturnCorrectSchema() {
     // When:
-    buildGroupBy(builder, streamHolder, groupBy);
-
-    // Then:
-    verify(sourceStream).filter(predicateCaptor.capture());
-    final Predicate<GenericKey, GenericRow> predicate = predicateCaptor.getValue();
-    assertThat(predicate.test(GenericKey.genericKey("foo"), new GenericRow()), is(true));
-    assertThat(predicate.test(GenericKey.genericKey("foo"), null), is(false));
-  }
-
-  @Test
-  public void shouldBuildGroupedCorrectlyForGroupBy() {
-    // When:
-    buildGroupBy(builder, streamHolder, groupBy);
-
-    // Then:
-    verify(groupedFactory).create("foo-groupby", keySerde, valueSerde);
-  }
-
-  @Test
-  public void shouldReturnCorrectSchemaForGroupBy() {
-    // When:
-    final KGroupedStreamHolder result = buildGroupBy(builder, streamHolder, groupBy);
+    final KGroupedTableHolder result = build(builder, tableHolder, groupBy);
 
     // Then:
     assertThat(result.getSchema(), is(REKEYED_SCHEMA));
   }
 
   @Test
-  public void shouldBuildKeySerdeCorrectlyForGroupBy() {
+  public void shouldFilterNullRowsBeforeGroupBy() {
     // When:
-    buildGroupBy(builder, streamHolder, groupBy);
+    build(builder, tableHolder, groupBy);
 
     // Then:
-    verify(queryBuilder).buildKeySerde(
-        FORMATS.getKeyFormat(),
-        REKEYED_PHYSICAL_SCHEMA,
-        STEP_CTX
-    );
+    verify(sourceTable).filter(predicateCaptor.capture());
+    final Predicate<GenericKey, GenericRow> predicate = predicateCaptor.getValue();
+    assertThat(predicate.test(KEY, new GenericRow()), is(true));
+    assertThat(predicate.test(KEY, null), is(false));
   }
 
   @Test
-  public void shouldBuildValueSerdeCorrectlyForGroupBy() {
+  public void shouldBuildGroupedCorrectlyForGroupBy() {
     // When:
-    buildGroupBy(builder, streamHolder, groupBy);
-
-    // Then:
-    verify(queryBuilder).buildValueSerde(
-        FORMATS.getValueFormat(),
-        REKEYED_PHYSICAL_SCHEMA,
-        STEP_CTX
-    );
-  }
-
-  @Test
-  public void shouldReturnCorrectSchemaForGroupByKey() {
-    // When:
-    final KGroupedStreamHolder result = builder.build(streamHolder, groupByKey);
-
-    // Then:
-    assertThat(result.getSchema(), is(SCHEMA));
-  }
-
-  @Test
-  public void shouldPerformGroupByKeyCorrectly() {
-    // When:
-    final KGroupedStreamHolder result = builder.build(streamHolder, groupByKey);
-
-    // Then:
-    assertThat(result.getGroupedStream(), is(groupedStream));
-    verify(sourceStream).groupByKey(grouped);
-    verifyNoMoreInteractions(sourceStream);
-  }
-
-  @Test
-  public void shouldNotBuildGroupByParamsOnGroupByKey() {
-    // When:
-    builder.build(streamHolder, groupByKey);
-
-    // Then:
-    verify(paramsFactory, never()).build(any(), any(), any());
-  }
-
-  @Test
-  public void shouldBuildGroupedCorrectlyForGroupByKey() {
-    // When:
-    builder.build(streamHolder, groupByKey);
+    build(builder, tableHolder, groupBy);
 
     // Then:
     verify(groupedFactory).create("foo-groupby", keySerde, valueSerde);
   }
 
   @Test
-  public void shouldBuildKeySerdeCorrectlyForGroupByKey() {
+  public void shouldBuildKeySerdeCorrectlyForGroupBy() {
     // When:
-    builder.build(streamHolder, groupByKey);
+    build(builder, tableHolder, groupBy);
 
     // Then:
     verify(queryBuilder).buildKeySerde(
         FORMATS.getKeyFormat(),
-        PHYSICAL_SCHEMA,
-        STEP_CTX);
+        REKEYED_PHYSICAL_SCHEMA,
+        STEP_CONTEXT
+    );
   }
 
   @Test
-  public void shouldBuildValueSerdeCorrectlyForGroupByKey() {
+  public void shouldBuildValueSerdeCorrectlyForGroupBy() {
     // When:
-    builder.build(streamHolder, groupByKey);
+    build(builder, tableHolder, groupBy);
 
     // Then:
     verify(queryBuilder).buildValueSerde(
         FORMATS.getValueFormat(),
-        PHYSICAL_SCHEMA,
-        STEP_CTX
+        REKEYED_PHYSICAL_SCHEMA,
+        STEP_CONTEXT
     );
   }
 
-  private static <K> KGroupedStreamHolder buildGroupBy(
-      final StreamGroupByBuilder builder,
-      final KStreamHolder<K> stream,
-      final StreamGroupBy<K> step
+  private static <K> KGroupedTableHolder build(
+      final TableGroupByBuilderV1 builder,
+      final KTableHolder<K> table,
+      final TableGroupByV1<K> step
   ) {
     return builder.build(
-        stream,
+        table,
         step.getProperties().getQueryContext(),
         step.getInternalFormats(),
         step.getGroupByExpressions()

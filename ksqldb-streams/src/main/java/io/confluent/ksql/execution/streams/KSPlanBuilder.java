@@ -28,6 +28,7 @@ import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
+import io.confluent.ksql.execution.plan.StreamGroupByV1;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSelectKeyV1;
@@ -39,6 +40,7 @@ import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
+import io.confluent.ksql.execution.plan.TableGroupByV1;
 import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSelectKey;
 import io.confluent.ksql.execution.plan.TableSink;
@@ -92,6 +94,22 @@ public final class KSPlanBuilder implements PlanBuilder {
 
   @Override
   public <K> KGroupedStreamHolder visitStreamGroupBy(
+      final StreamGroupByV1<K> streamGroupBy,
+      final PlanInfo planInfo) {
+    final KStreamHolder<K> source = streamGroupBy.getSource().build(this, planInfo);
+    return new StreamGroupByBuilderV1(
+        queryBuilder,
+        streamsFactories.getGroupedFactory()
+    ).build(
+        source,
+        streamGroupBy.getProperties().getQueryContext(),
+        streamGroupBy.getInternalFormats(),
+        streamGroupBy.getGroupByExpressions()
+    );
+  }
+
+  @Override
+  public <K> KGroupedStreamHolder visitStreamGroupBy(
       final StreamGroupBy<K> streamGroupBy,
       final PlanInfo planInfo) {
     final KStreamHolder<K> source = streamGroupBy.getSource().build(this, planInfo);
@@ -100,7 +118,9 @@ public final class KSPlanBuilder implements PlanBuilder {
         streamsFactories.getGroupedFactory()
     ).build(
         source,
-        streamGroupBy
+        streamGroupBy.getProperties().getQueryContext(),
+        streamGroupBy.getInternalFormats(),
+        streamGroupBy.getGroupByExpressions()
     );
   }
 
@@ -292,6 +312,22 @@ public final class KSPlanBuilder implements PlanBuilder {
 
   @Override
   public <K> KGroupedTableHolder visitTableGroupBy(
+      final TableGroupByV1<K> tableGroupBy,
+      final PlanInfo planInfo) {
+    final KTableHolder<K> source = tableGroupBy.getSource().build(this, planInfo);
+    return new TableGroupByBuilderV1(
+        queryBuilder,
+        streamsFactories.getGroupedFactory()
+    ).build(
+        source,
+        tableGroupBy.getProperties().getQueryContext(),
+        tableGroupBy.getInternalFormats(),
+        tableGroupBy.getGroupByExpressions()
+    );
+  }
+
+  @Override
+  public <K> KGroupedTableHolder visitTableGroupBy(
       final TableGroupBy<K> tableGroupBy,
       final PlanInfo planInfo) {
     final KTableHolder<K> source = tableGroupBy.getSource().build(this, planInfo);
@@ -300,7 +336,9 @@ public final class KSPlanBuilder implements PlanBuilder {
         streamsFactories.getGroupedFactory()
     ).build(
         source,
-        tableGroupBy
+        tableGroupBy.getProperties().getQueryContext(),
+        tableGroupBy.getInternalFormats(),
+        tableGroupBy.getGroupByExpressions()
     );
   }
 

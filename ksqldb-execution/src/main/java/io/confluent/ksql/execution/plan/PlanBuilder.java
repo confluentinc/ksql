@@ -28,6 +28,8 @@ public interface PlanBuilder {
 
   <K> KStreamHolder<K> visitStreamFilter(StreamFilter<K> streamFilter, PlanInfo planInfo);
 
+  <K> KGroupedStreamHolder visitStreamGroupBy(StreamGroupByV1<K> streamGroupBy, PlanInfo planInfo);
+
   <K> KGroupedStreamHolder visitStreamGroupBy(StreamGroupBy<K> streamGroupBy, PlanInfo planInfo);
 
   KGroupedStreamHolder visitStreamGroupByKey(StreamGroupByKey streamGroupByKey, PlanInfo planInfo);
@@ -66,6 +68,8 @@ public interface PlanBuilder {
   KTableHolder<GenericKey> visitTableAggregate(TableAggregate tableAggregate, PlanInfo planInfo);
 
   <K> KTableHolder<K> visitTableFilter(TableFilter<K> tableFilter, PlanInfo planInfo);
+
+  <K> KGroupedTableHolder visitTableGroupBy(TableGroupByV1<K> tableGroupBy, PlanInfo planInfo);
 
   <K> KGroupedTableHolder visitTableGroupBy(TableGroupBy<K> tableGroupBy, PlanInfo planInfo);
 

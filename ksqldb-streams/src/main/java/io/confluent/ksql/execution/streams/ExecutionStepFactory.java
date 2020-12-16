@@ -33,6 +33,7 @@ import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
+import io.confluent.ksql.execution.plan.StreamGroupByV1;
 import io.confluent.ksql.execution.plan.StreamSelect;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSink;
@@ -43,6 +44,7 @@ import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
+import io.confluent.ksql.execution.plan.TableGroupByV1;
 import io.confluent.ksql.execution.plan.TableSelect;
 import io.confluent.ksql.execution.plan.TableSelectKey;
 import io.confluent.ksql.execution.plan.TableSink;
@@ -354,6 +356,21 @@ public final class ExecutionStepFactory {
     );
   }
 
+  public static <K> StreamGroupByV1<K> streamGroupByV1(
+      final Stacker stacker,
+      final ExecutionStep<KStreamHolder<K>> sourceStep,
+      final Formats format,
+      final List<Expression> groupingExpressions
+  ) {
+    final QueryContext queryContext = stacker.getQueryContext();
+    return new StreamGroupByV1<>(
+        new ExecutionStepPropertiesV1(queryContext),
+        sourceStep,
+        format,
+        groupingExpressions
+    );
+  }
+
   public static <K> StreamGroupBy<K> streamGroupBy(
       final Stacker stacker,
       final ExecutionStep<KStreamHolder<K>> sourceStep,
@@ -392,6 +409,21 @@ public final class ExecutionStepFactory {
         formats,
         nonAggregateColumns,
         aggregations
+    );
+  }
+
+  public static <K> TableGroupByV1<K> tableGroupByV1(
+      final QueryContext.Stacker stacker,
+      final ExecutionStep<KTableHolder<K>> sourceStep,
+      final Formats format,
+      final List<Expression> groupingExpressions
+  ) {
+    final QueryContext queryContext = stacker.getQueryContext();
+    return new TableGroupByV1<>(
+        new ExecutionStepPropertiesV1(queryContext),
+        sourceStep,
+        format,
+        groupingExpressions
     );
   }
 

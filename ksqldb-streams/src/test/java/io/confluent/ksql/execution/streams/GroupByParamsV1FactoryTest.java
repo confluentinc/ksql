@@ -55,7 +55,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class GroupByParamsFactoryTest {
+public class GroupByParamsV1FactoryTest {
 
   private static final ColumnName COL3 = ColumnName.of("COL3");
   private static final SqlStruct COL3_TYPE = SqlTypes.struct()
@@ -86,14 +86,11 @@ public class GroupByParamsFactoryTest {
   public void setUp() {
     when(groupBy0.getExpression()).thenReturn(new LongLiteral(0));
     when(groupBy0.getExpressionType()).thenReturn(SqlTypes.INTEGER);
-    when(groupBy1.getExpression())
-        .thenReturn(new UnqualifiedColumnReferenceExp(ColumnName.of("K1")));
-    when(groupBy1.getExpressionType()).thenReturn(SqlTypes.INTEGER);
 
-    singleParams = GroupByParamsFactory
+    singleParams = GroupByParamsV1Factory
         .build(SOURCE_SCHEMA, ImmutableList.of(groupBy0), logger);
 
-    multiParams = GroupByParamsFactory
+    multiParams = GroupByParamsV1Factory
         .build(SOURCE_SCHEMA, ImmutableList.of(groupBy0, groupBy1), logger);
 
     when(groupBy0.evaluate(any(), any(), any(), any())).thenReturn(0);
@@ -108,18 +105,33 @@ public class GroupByParamsFactoryTest {
         .setDefault(LogicalSchema.class, SOURCE_SCHEMA)
         .setDefault(SqlType.class, SqlTypes.BIGINT)
         .setDefault(KsqlConfig.class, config)
-        .testStaticMethods(GroupByParamsFactory.class, Visibility.PACKAGE);
+        .testStaticMethods(GroupByParamsV1Factory.class, Visibility.PACKAGE);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnEmptyParam() {
-    GroupByParamsFactory
+    GroupByParamsV1Factory
         .build(SOURCE_SCHEMA, Collections.emptyList(), logger);
   }
 
   @SuppressWarnings("unchecked")
   @Test
-  public void shouldInvokeEvaluatorsWithCorrectParams() {
+  public void shouldInvokeSingleEvaluatorsWithCorrectParams() {
+    // When:
+    singleParams.getMapper().apply(value);
+
+    // Then:
+    final ArgumentCaptor<Supplier<String>> errorMsgCaptor = ArgumentCaptor.forClass(Supplier.class);
+    verify(groupBy0).evaluate(eq(value), any(), eq(logger), errorMsgCaptor.capture());
+
+    assertThat(errorMsgCaptor.getValue().get(), is(
+        "Error calculating group-by column with index 0. The source row will be excluded from the table."
+    ));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldInvokeMultipleEvaluatorsWithCorrectParams() {
     // When:
     multiParams.getMapper().apply(value);
 
@@ -139,7 +151,7 @@ public class GroupByParamsFactoryTest {
   }
 
   @Test
-  public void shouldGenerateGroupByKeyForSingleExpression() {
+  public void shouldGenerateSingleExpressionGroupByKey() {
     // Given:
     when(groupBy0.evaluate(any(), any(), any(), any())).thenReturn(10);
 
@@ -151,7 +163,7 @@ public class GroupByParamsFactoryTest {
   }
 
   @Test
-  public void shouldGenerateExpressionGroupByKeyForMultipleExpressions() {
+  public void shouldGenerateMultiExpressionGroupByKey() {
     // Given:
     when(groupBy0.evaluate(any(), any(), any(), any())).thenReturn(99);
     when(groupBy1.evaluate(any(), any(), any(), any())).thenReturn(-100L);
@@ -160,7 +172,7 @@ public class GroupByParamsFactoryTest {
     final GenericKey result = multiParams.getMapper().apply(value);
 
     // Then:
-    assertThat(result, is(genericKey(99, -100L)));
+    assertThat(result, is(genericKey("99|+|-100")));
   }
 
   @Test
@@ -177,7 +189,7 @@ public class GroupByParamsFactoryTest {
 
   @Test
   public void shouldLogProcessingErrorIfSingleExpressionResolvesToNull() {
-    // Given:
+    // Given
     when(groupBy0.evaluate(any(), any(), any(), any())).thenReturn(null);
 
     // When:
@@ -207,7 +219,7 @@ public class GroupByParamsFactoryTest {
 
   @Test
   public void shouldLogProcessingErrorIfAnyMultiExpressionResolvesToNull() {
-    // Given:
+    // Given
     when(groupBy0.evaluate(any(), any(), any(), any())).thenReturn(null);
 
     // When:
@@ -224,25 +236,24 @@ public class GroupByParamsFactoryTest {
   }
 
   @Test
-  public void shouldSetKeyNameFromColumnName() {
+  public void shouldSetKeyNameFromSingleGroupByColumnName() {
     // Given:
     when(groupBy0.getExpression())
         .thenReturn(new UnqualifiedColumnReferenceExp(ColumnName.of("Bob")));
 
     // When:
-    final LogicalSchema schema = GroupByParamsFactory
-        .buildSchema(SOURCE_SCHEMA, ImmutableList.of(groupBy0, groupBy1));
+    final LogicalSchema schema = GroupByParamsV1Factory
+        .buildSchema(SOURCE_SCHEMA, ImmutableList.of(groupBy0));
 
     // Then:
     assertThat(schema, is(LogicalSchema.builder()
         .keyColumn(ColumnName.of("Bob"), SqlTypes.INTEGER)
-        .keyColumn(ColumnName.of("K1"), SqlTypes.INTEGER)
         .valueColumns(SOURCE_SCHEMA.value())
         .build()));
   }
 
   @Test
-  public void shouldSetKeyNameFromFieldName() {
+  public void shouldSetKeyNameFromSingleGroupByFieldName() {
     // Given:
     when(groupBy0.getExpression()).thenReturn(new DereferenceExpression(
         Optional.empty(),
@@ -251,31 +262,42 @@ public class GroupByParamsFactoryTest {
     ));
 
     // When:
-    final LogicalSchema schema = GroupByParamsFactory
-        .buildSchema(SOURCE_SCHEMA, ImmutableList.of(groupBy0, groupBy1));
+    final LogicalSchema schema = GroupByParamsV1Factory
+        .buildSchema(SOURCE_SCHEMA, ImmutableList.of(groupBy0));
 
     // Then:
     assertThat(schema, is(LogicalSchema.builder()
         .keyColumn(ColumnName.of("someField"), SqlTypes.INTEGER)
-        .keyColumn(ColumnName.of("K1"), SqlTypes.INTEGER)
         .valueColumns(SOURCE_SCHEMA.value())
         .build()));
   }
 
   @Test
-  public void shouldGenerateKeyNameFromOtherExpressionType() {
+  public void shouldGenerateKeyNameFromSingleGroupByOtherExpressionType() {
     // Given:
     when(groupBy0.getExpression())
         .thenReturn(new LongLiteral(1));
 
     // When:
-    final LogicalSchema schema = GroupByParamsFactory
-        .buildSchema(SOURCE_SCHEMA, ImmutableList.of(groupBy0, groupBy1));
+    final LogicalSchema schema = GroupByParamsV1Factory
+        .buildSchema(SOURCE_SCHEMA, ImmutableList.of(groupBy0));
 
     // Then:
     assertThat(schema, is(LogicalSchema.builder()
         .keyColumn(ColumnName.of("KSQL_COL_1"), SqlTypes.INTEGER)
-        .keyColumn(ColumnName.of("K1"), SqlTypes.INTEGER)
+        .valueColumns(SOURCE_SCHEMA.value())
+        .build()));
+  }
+
+  @Test
+  public void shouldGenerateKeyNameForMultiGroupBys() {
+    // When:
+    final LogicalSchema schema = GroupByParamsV1Factory
+        .buildSchema(SOURCE_SCHEMA, ImmutableList.of(groupBy0, groupBy1));
+
+    // Then:
+    assertThat(schema, is(LogicalSchema.builder()
+        .keyColumn(ColumnName.of("KSQL_COL_1"), SqlTypes.STRING)
         .valueColumns(SOURCE_SCHEMA.value())
         .build()));
   }

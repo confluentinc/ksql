@@ -66,7 +66,7 @@ public class BasicCallbackHandlerTest {
 
     // Then:
     verify(nameCallback).setName(USERNAME);
-    verify(objectCallback).setObject(PASSWORD.toCharArray());
+    verify(objectCallback).setObject(PASSWORD);
   }
 
 }

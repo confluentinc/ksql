@@ -66,7 +66,7 @@ class QueryEngine {
 
     final Analysis analysis = queryAnalyzer.analyze(query, sink);
 
-    return new LogicalPlanner(config, analysis, metaStore).buildPlan();
+    return new LogicalPlanner(config, analysis, metaStore).buildPersistentLogicalPlan();
   }
 
   PhysicalPlan buildPhysicalPlan(

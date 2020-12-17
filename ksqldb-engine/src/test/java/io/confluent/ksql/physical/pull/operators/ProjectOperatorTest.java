@@ -23,7 +23,6 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.Window;
@@ -32,17 +31,14 @@ import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper;
 import io.confluent.ksql.execution.transform.select.SelectValueMapperFactory.SelectValueMapperFactorySupplier;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.KsqlConfig;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.junit.Test;
@@ -70,19 +66,11 @@ public class ProjectOperatorTest {
   );
 
   @Mock
-  private KsqlConfig ksqlConfig;
-  @Mock
-  private MetaStore metaStore;
-  @Mock
   private ProcessingLogger logger;
-  @Mock
-  private Materialization mat;
-  @Mock
-  private LogicalSchema outputSchema;
   @Mock
   private SelectValueMapperFactorySupplier selectValueMapperFactorySupplier;
   @Mock
-  private ProjectNode logicalNode;
+  private PullProjectNode logicalNode;
   @Mock
   private AbstractPhysicalOperator child;
   @Mock
@@ -93,16 +81,10 @@ public class ProjectOperatorTest {
   @Test
   public void shouldProjectAllColumnsWhenSelectStarNonWindowed() {
     // Given:
+    when(logicalNode.getIsSelectStar()).thenReturn(true);
     final ProjectOperator projectOperator = new ProjectOperator(
-        ksqlConfig,
-        metaStore,
         logger,
-        mat,
         logicalNode,
-        outputSchema,
-        true,
-        false,
-        false,
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
     final Row row = Row.of(
@@ -128,16 +110,10 @@ public class ProjectOperatorTest {
   @Test
   public void shouldProjectAllColumnsWhenSelectStarWindowed() {
     // Given:
+    when(logicalNode.getIsSelectStar()).thenReturn(true);
     final ProjectOperator projectOperator = new ProjectOperator(
-        ksqlConfig,
-        metaStore,
         logger,
-        mat,
         logicalNode,
-        outputSchema,
-        true,
-        true,
-        false,
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
     final WindowedRow windowedRow = WindowedRow.of(
@@ -163,16 +139,12 @@ public class ProjectOperatorTest {
   @Test
   public void shouldCallTransformWithCorrectArguments() {
     // Given:
+    when(logicalNode.getAddAdditionalColumnsToIntermediateSchema()).thenReturn(true);
+    when(logicalNode.getSchema()).thenReturn(SCHEMA);
+    when(logicalNode.getCompiledSelectExpressions()).thenReturn(Collections.emptyList());
     final ProjectOperator projectOperator = new ProjectOperator(
-        ksqlConfig,
-        metaStore,
         logger,
-        mat,
         logicalNode,
-        SCHEMA,
-        false,
-        false,
-        true,
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
     final Row row = Row.of(
@@ -182,11 +154,10 @@ public class ProjectOperatorTest {
         A_ROWTIME
     );
     when(child.next()).thenReturn(row);
-    when(selectValueMapperFactorySupplier.create(any(), any(), any(), any()))
+    when(selectValueMapperFactorySupplier.create(any(), any()))
         .thenReturn(selectValueMapper);
     when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
     when(transformer.transform(any(), any(), any())).thenReturn(GenericRow.genericRow("k", "a", "b"));
-    when(mat.schema()).thenReturn(SCHEMA);
     projectOperator.open();
 
     // When:
@@ -200,16 +171,12 @@ public class ProjectOperatorTest {
   @Test
   public void shouldCallTransformWithCorrectArgumentsWindowed() {
     // Given:
+    when(logicalNode.getAddAdditionalColumnsToIntermediateSchema()).thenReturn(true);
+    when(logicalNode.getSchema()).thenReturn(SCHEMA);
+    when(logicalNode.getCompiledSelectExpressions()).thenReturn(Collections.emptyList());
     final ProjectOperator projectOperator = new ProjectOperator(
-        ksqlConfig,
-        metaStore,
         logger,
-        mat,
         logicalNode,
-        SCHEMA,
-        false,
-        false,
-        false,
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
     final WindowedRow windowedRow = WindowedRow.of(
@@ -219,11 +186,10 @@ public class ProjectOperatorTest {
         A_ROWTIME
     );
     when(child.next()).thenReturn(windowedRow);
-    when(selectValueMapperFactorySupplier.create(any(), any(), any(), any()))
+    when(selectValueMapperFactorySupplier.create(any(), any()))
         .thenReturn(selectValueMapper);
     when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
     when(transformer.transform(any(), any(), any())).thenReturn(GenericRow.genericRow("k", "a", "b"));
-    when(mat.schema()).thenReturn(SCHEMA);
     projectOperator.open();
 
     // When:
@@ -242,16 +208,12 @@ public class ProjectOperatorTest {
     final LogicalSchema schema = LogicalSchema.builder()
         .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
         .build();
+    when(logicalNode.getAddAdditionalColumnsToIntermediateSchema()).thenReturn(true);
+    when(logicalNode.getSchema()).thenReturn(schema);
+    when(logicalNode.getCompiledSelectExpressions()).thenReturn(Collections.emptyList());
     final ProjectOperator projectOperator = new ProjectOperator(
-        ksqlConfig,
-        metaStore,
         logger,
-        mat,
         logicalNode,
-        schema,
-        false,
-        false,
-        false,
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
     final Row row = Row.of(
@@ -261,12 +223,11 @@ public class ProjectOperatorTest {
         A_ROWTIME
     );
     when(child.next()).thenReturn(row);
-    when(selectValueMapperFactorySupplier.create(any(), any(), any(), any()))
+    when(selectValueMapperFactorySupplier.create(any(), any()))
         .thenReturn(selectValueMapper);
     when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
     when(transformer.transform(A_KEY, GenericRow.genericRow("a", "b", 12335L, "k"), new PullProcessingContext(12335L)))
              .thenAnswer(inv -> GenericRow.genericRow("k"));
-    when(mat.schema()).thenReturn(SCHEMA);
     projectOperator.open();
 
     // When:
@@ -283,16 +244,12 @@ public class ProjectOperatorTest {
         .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
         .build();
+    when(logicalNode.getAddAdditionalColumnsToIntermediateSchema()).thenReturn(true);
+    when(logicalNode.getSchema()).thenReturn(schema);
+    when(logicalNode.getCompiledSelectExpressions()).thenReturn(Collections.emptyList());
     final ProjectOperator projectOperator = new ProjectOperator(
-        ksqlConfig,
-        metaStore,
         logger,
-        mat,
         logicalNode,
-        schema,
-        false,
-        false,
-        false,
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
     final Row row = Row.of(
@@ -302,12 +259,11 @@ public class ProjectOperatorTest {
         A_ROWTIME
     );
     when(child.next()).thenReturn(row);
-    when(selectValueMapperFactorySupplier.create(any(), any(), any(), any()))
+    when(selectValueMapperFactorySupplier.create(any(), any()))
         .thenReturn(selectValueMapper);
     when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
     when(transformer.transform(A_KEY, GenericRow.genericRow("a", "b", 12335L, "k"), new PullProcessingContext(12335L)))
         .thenAnswer(inv -> GenericRow.genericRow("k","b"));
-    when(mat.schema()).thenReturn(SCHEMA);
     projectOperator.open();
 
     // When:
@@ -326,19 +282,14 @@ public class ProjectOperatorTest {
         .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
         .build();
+    when(logicalNode.getAddAdditionalColumnsToIntermediateSchema()).thenReturn(true);
+    when(logicalNode.getSchema()).thenReturn(schema);
+    when(logicalNode.getCompiledSelectExpressions()).thenReturn(Collections.emptyList());
     final ProjectOperator projectOperator = new ProjectOperator(
-        ksqlConfig,
-        metaStore,
         logger,
-        mat,
         logicalNode,
-        schema,
-        false,
-        false,
-        false,
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
-    when(mat.windowType()).thenReturn(Optional.of(WindowType.TUMBLING));
     final WindowedRow windowedRow = WindowedRow.of(
         SCHEMA,
         new Windowed<>(A_KEY, STREAM_WINDOW),
@@ -346,7 +297,7 @@ public class ProjectOperatorTest {
         A_ROWTIME
     );
     when(child.next()).thenReturn(windowedRow);
-    when(selectValueMapperFactorySupplier.create(any(), any(), any(), any()))
+    when(selectValueMapperFactorySupplier.create(any(), any()))
         .thenReturn(selectValueMapper);
     when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
     when(transformer.transform(
@@ -354,7 +305,6 @@ public class ProjectOperatorTest {
         GenericRow.genericRow("a", "b", 12335L, "k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli()),
         new PullProcessingContext(12335L)))
         .thenAnswer(inv -> GenericRow.genericRow("k", "b"));
-    when(mat.schema()).thenReturn(SCHEMA);
     projectOperator.open();
 
     // When:

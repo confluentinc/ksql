@@ -304,7 +304,7 @@ final class EngineExecutor {
       final KsqlConfig config
   ) {
     final OutputNode outputNode = new LogicalPlanner(config, analysis, engineContext.getMetaStore())
-        .buildPlan();
+        .buildPullLogicalPlan();
     return new LogicalPlanNode(
         statement.getStatementText(),
         Optional.of(outputNode)

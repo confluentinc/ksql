@@ -67,6 +67,7 @@ import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.PreJoinProjectNode;
 import io.confluent.ksql.planner.plan.PreJoinRepartitionNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.planner.plan.SelectionUtil;
 import io.confluent.ksql.planner.plan.SuppressNode;
 import io.confluent.ksql.planner.plan.UserRepartitionNode;
@@ -120,7 +121,7 @@ public class LogicalPlanner {
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
-  public OutputNode buildPlan() {
+  public OutputNode buildPersistentLogicalPlan() {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     PlanNode currentNode = buildSourceNode();
 
@@ -169,6 +170,25 @@ public class LogicalPlanner {
 
     return buildOutputNode(currentNode);
   }
+
+  public OutputNode buildPullLogicalPlan() {
+    PlanNode currentNode = buildSourceNode();
+
+    if (analysis.getWhereExpression().isPresent()) {
+      currentNode = buildFilterNode(currentNode, analysis.getWhereExpression().get());
+    }
+
+    currentNode = new PullProjectNode(
+        new PlanNodeId("Project"),
+        currentNode,
+        analysis.getSelectItems(),
+        metaStore,
+        ksqlConfig,
+        analysis);
+
+    return buildOutputNode(currentNode);
+  }
+
 
   private OutputNode buildOutputNode(final PlanNode sourcePlanNode) {
     final LogicalSchema inputSchema = sourcePlanNode.getSchema();

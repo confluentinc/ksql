@@ -48,7 +48,7 @@ public final class AnalysisTestUtil {
     final LogicalPlanner logicalPlanner =
         new LogicalPlanner(ksqlConfig, analyzer.analysis, metaStore);
 
-    return logicalPlanner.buildPlan();
+    return logicalPlanner.buildPersistentLogicalPlan();
   }
 
   private static class Analyzer {

@@ -116,9 +116,11 @@ substitute `PROTOBUF` or `JSON_SR` for `AVRO` in each statement.
     When performing schema inference to infer value schemas, ksqlDB takes user-specified
     [single field (un)wrapping](../developer-guide/serialization.md#single-field-unwrapping) 
     into account. When performing schema inference on key schemas, the resulting key schema
-    will always be unwrapped. If your key is contained in an outer record or object, the
-    inferred key will be represented as a `STRUCT`. You can access individual fields within
-    the `STRUCT` via [STRUCT dereference](../developer-guide/ksqldb-reference/operators.md#struct-dereference).
+    is always unwrapped. If your key is contained in an outer record or object, the
+    inferred key is represented as a `STRUCT`. You can access individual fields within
+    the `STRUCT` by using [STRUCT dereference](../developer-guide/ksqldb-reference/operators.md#struct-dereference).
+    Alternatively, you can specify the individual fields as key columns explicitly and
+    avoid schema inference altogether.
 
 ### Create a new stream
 

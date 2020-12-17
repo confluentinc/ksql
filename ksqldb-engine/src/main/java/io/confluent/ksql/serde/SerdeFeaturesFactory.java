@@ -67,8 +67,8 @@ public final class SerdeFeaturesFactory {
   }
 
   public static SerdeFeatures buildKeyFeatures(
-    final Format keyFormat,
-    final boolean isSingleKey
+      final Format keyFormat,
+      final boolean isSingleKey
   ) {
     final ImmutableSet.Builder<SerdeFeature> builder = ImmutableSet.builder();
 

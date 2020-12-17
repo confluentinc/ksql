@@ -234,10 +234,6 @@ The `SCHEMA_VERSION` table will also keep track of every migration change (inclu
 version has been migrated or undone. It will also give us a quick view of the `CURRENT` state of the schema. The major advantage is that the tool will use pull queries in this materialized
 view to get the `CURRENT` state of the cluster.
 
-There is another reserved key `LATEST` that will point to the latest change applied. This will be used by the tool to stream all changes up to the row that `LATEST` points, and stop.
-The `ksql-migrations info` command will use this to display information about the migrations that have been applied or undone. I cannot stream the `MIGRATION_EVENTS` or `SCHEMA_VERSION` directly because
-the tool does not know when to stop.
-
 *Note:*
 The below schema is designed so we support undo operations in the future. When an undo happens, the `CURRENT` key will point to the previous version found.
 
@@ -270,10 +266,9 @@ The `MIGRATION_EVENTS` stream output:
 | version_key | version | name          | state    | checksum   | started_on          | completed_on        | previous |
 +-------------+---------+---------------+----------+------------+---------------------+---------------------+----------+
 | 1           | 1       | Initial setup | Migrated | <MD5-sum>  | 12-01-2020 03:48:00 | 12-01-2020 03:48:05 | null     |
-| 2           | 2       | Add users     | Migrated | <MD5-sum>  | 12-03-2020 10:34:30 | 12-03-2020 10:34:34 | 1        |
-| 2           | 2       | Add users     | Undone   | <MD5-sum>  | 12-03-2020 10:34:30 | 12-03-2020 10:34:34 | 1        |
 | CURRENT     | 1       | Initial setup | Migrated | <MD5-sum>  | 12-01-2020 03:48:00 | 12-01-2020 03:48:05 | null     |
-| LATEST      | 2       | Add users     | Undone   | <MD5-sum>  | 12-03-2020 10:34:30 | 12-03-2020 10:34:34 | 1        |
+| 2           | 2       | Add users     | Migrated | <MD5-sum>  | 12-03-2020 10:34:30 | 12-03-2020 10:34:34 | 1        |
+| CURRENT     | 2       | Add users     | Migrated | <MD5-sum>  | 12-03-2020 10:34:30 | 12-03-2020 10:34:34 | 1        |
 +-------------+---------+---------------+----------+------------+---------------------+---------------------+----------+
 ```
 
@@ -284,8 +279,7 @@ The `SCHEMA_VERSION` table output:
 +-------------+---------+---------------+----------+------------+---------------------+---------------------+----------+
 | 1           | 1       | Initial setup | Migrated | <MD5-sum>  | 12-01-2020 03:48:00 | 12-01-2020 03:48:05 | null     |
 | 2           | 2       | Add users     | Undone   | <MD5-sum>  | 12-03-2020 10:34:30 | 12-03-2020 10:34:34 | 1        |
-| CURRENT     | 1       | Initial setup | Migrated | <MD5-sum>  | 12-01-2020 03:48:00 | 12-01-2020 03:48:05 | null     |
-| LATEST      | 2       | Add users     | Undone   | <MD5-sum>  | 12-03-2020 10:34:30 | 12-03-2020 10:34:34 | 1        |
+| CURRENT     | 2       | Add users     | Undone   | <MD5-sum>  | 12-03-2020 10:34:30 | 12-03-2020 10:34:34 | 1        |
 +-------------+---------+---------------+----------+------------+---------------------+---------------------+----------+
 ```
 
@@ -312,8 +306,6 @@ i.e.
 - V000001__Initial_setup.sql    # a new version to migrate (v1) with name 'Initial setup'
 - V000002__Add_users.sql        # a new version to migrate (v2) with name 'Add users'
 ```
-
-It is recommended the user creates these two files on any new migration. The tool will not enforce that. We need specify this recommendation in the ksqlDB documents.
 
 ### Dry-runs
 
@@ -345,7 +337,13 @@ Usage:
 Commands
   new  <project-path>  Creates a new migrations project, directory structure and config file.
 
-  initialize   Initializes the schema version table
+  initialize [-v <version> -d <description>]
+   
+                 Initializes the schema metadata (stream and table). 
+                 
+                 It also initializes the current schema to the specified <version> and <description>.
+  
+               
   
   create [-v <version>] <desc> 
   

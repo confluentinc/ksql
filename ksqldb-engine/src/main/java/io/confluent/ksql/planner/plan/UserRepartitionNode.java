@@ -24,28 +24,30 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.streams.PartitionByParamsFactory;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.Projection;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.SchemaKStream;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 public class UserRepartitionNode extends SingleSourcePlanNode {
 
-  private final Expression partitionBy;
+  private final List<Expression> partitionBy;
   private final LogicalSchema schema;
-  private final Expression originalPartitionBy;
+  private final List<Expression> originalPartitionBy;
   private final ValueFormat valueFormat;
 
   public UserRepartitionNode(
       final PlanNodeId id,
       final PlanNode source,
       final LogicalSchema schema,
-      final Expression originalPartitionBy,
-      final Expression partitionBy
+      final List<Expression> originalPartitionBy, // TODO: rename?
+      final List<Expression> partitionBy
   ) {
     super(id, source.getNodeOutputType(), source.getSourceName(), source);
     this.schema = requireNonNull(schema, "schema");
@@ -75,17 +77,19 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
   }
 
   @VisibleForTesting
-  public Expression getPartitionBy() {
+  public List<Expression> getPartitionBy() {
     return partitionBy;
   }
 
   @Override
   public Expression resolveSelect(final int idx, final Expression expression) {
-    // after issuing a PARTITION BY, there will only be one key column because we
-    // do not support PARTITION BY multiple columns
-    return partitionBy.equals(expression)
-        ? new UnqualifiedColumnReferenceExp(Iterables.getOnlyElement(getSchema().key()).name())
-        : expression;
+    for (int i = 0; i < partitionBy.size(); i++) {
+      if (partitionBy.get(i).equals(expression)) {
+        return new UnqualifiedColumnReferenceExp(getSchema().key().get(i).name());
+      }
+    }
+
+    return expression;
   }
 
   @Override
@@ -103,9 +107,19 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
 
   @Override
   void validateKeyPresent(final SourceName sinkName, final Projection projection) {
-    if (!(partitionBy instanceof NullLiteral) && !projection.containsExpression(partitionBy)) {
-      final ImmutableList<Expression> keys = ImmutableList.of(originalPartitionBy);
+    if (!PartitionByParamsFactory.isPartitionByNull(partitionBy)
+        && !containsExpressions(projection, partitionBy)) {
+      final ImmutableList<Expression> keys = ImmutableList.copyOf(originalPartitionBy);
+      // TODO: fix error message to only mention the ones that are missing
       throwKeysNotIncludedError(sinkName, "partitioning expression", keys);
     }
+  }
+
+  // TODO: clean this up
+  private static boolean containsExpressions(
+      final Projection projection,
+      final List<Expression> expressions
+  ) {
+    return expressions.stream().allMatch(projection::containsExpression);
   }
 }

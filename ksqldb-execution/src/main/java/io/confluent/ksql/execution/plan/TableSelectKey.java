@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
@@ -36,7 +37,8 @@ public class TableSelectKey<K> implements ExecutionStep<KTableHolder<K>> {
   );
 
   private final ExecutionStepPropertiesV1 properties;
-  private final Expression keyExpression;
+  @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY) // TODO: add tests to prove this works
+  private final List<Expression> keyExpression;
   @EffectivelyImmutable
   private final ExecutionStep<? extends KTableHolder<K>> source;
   private final Formats internalFormats;
@@ -46,7 +48,7 @@ public class TableSelectKey<K> implements ExecutionStep<KTableHolder<K>> {
       @JsonProperty(value = "source", required = true) final
       ExecutionStep<? extends KTableHolder<K>> source,
       @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats,
-      @JsonProperty(value = "keyExpression", required = true) final Expression keyExpression
+      @JsonProperty(value = "keyExpression", required = true) final List<Expression> keyExpression // TODO: name is broken
   ) {
     this.properties = Objects.requireNonNull(props, "props");
     this.source = Objects.requireNonNull(source, "source");
@@ -69,9 +71,9 @@ public class TableSelectKey<K> implements ExecutionStep<KTableHolder<K>> {
     return internalFormats;
   }
 
-  public Expression getKeyExpression() {
+  public List<Expression> getKeyExpression() {
     return keyExpression;
-  }
+  } // TODO: rename? but that affects serializer
 
   public ExecutionStep<? extends KTableHolder<K>> getSource() {
     return source;

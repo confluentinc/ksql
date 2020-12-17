@@ -265,7 +265,7 @@ public final class StepSchemaResolver {
 
   private LogicalSchema handleStreamSelectKey(
       final LogicalSchema sourceSchema,
-      final StreamSelectKey step
+      final StreamSelectKey<?> step
   ) {
     return PartitionByParamsFactory.buildSchema(
         sourceSchema,
@@ -331,7 +331,7 @@ public final class StepSchemaResolver {
 
   private LogicalSchema handleTableSelectKey(
       final LogicalSchema sourceSchema,
-      final TableSelectKey step
+      final TableSelectKey<?> step
   ) {
     return PartitionByParamsFactory.buildSchema(
         sourceSchema,

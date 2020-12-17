@@ -16,6 +16,7 @@ package io.confluent.ksql.execution.plan;
 
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import java.util.List;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,20 +34,20 @@ public class StreamSelectKeyTest {
   @Mock
   private ExecutionStep<KStreamHolder<Struct>> source2;
   @Mock
-  private Expression expression1;
+  private List<Expression> expression1;
   @Mock
-  private Expression expression2;
+  private List<Expression> expression2;
 
   @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new StreamSelectKey(properties1, source1, expression1),
-            new StreamSelectKey(properties1, source1, expression1))
-        .addEqualityGroup(new StreamSelectKey(properties2, source1, expression1))
-        .addEqualityGroup(new StreamSelectKey(properties1, source2, expression1))
-        .addEqualityGroup(new StreamSelectKey(properties1, source1, expression2))
+            new StreamSelectKey<>(properties1, source1, expression1),
+            new StreamSelectKey<>(properties1, source1, expression1))
+        .addEqualityGroup(new StreamSelectKey<>(properties2, source1, expression1))
+        .addEqualityGroup(new StreamSelectKey<>(properties1, source2, expression1))
+        .addEqualityGroup(new StreamSelectKey<>(properties1, source1, expression2))
         .testEquals();
   }
 }

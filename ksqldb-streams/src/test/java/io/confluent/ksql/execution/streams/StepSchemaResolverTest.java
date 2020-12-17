@@ -311,7 +311,7 @@ public class StepSchemaResolverTest {
     final StreamSelectKey<GenericKey> step = new StreamSelectKey<>(
         PROPERTIES,
         streamSource,
-        keyExpression
+        ImmutableList.of(keyExpression)
     );
 
     // When:
@@ -324,6 +324,7 @@ public class StepSchemaResolverTest {
         .build()
     ));
   }
+  // TODO: add test for multi-column schema
 
   @Test
   public void shouldResolveSchemaForStreamSource() {
@@ -489,7 +490,7 @@ public class StepSchemaResolverTest {
         PROPERTIES,
         tableSource,
         formats,
-        keyExpression
+        ImmutableList.of(keyExpression)
     );
 
     // When:
@@ -502,6 +503,7 @@ public class StepSchemaResolverTest {
         .build()
     ));
   }
+  // TODO: add test for multi-column schema
 
   @Test
   public void shouldResolveSchemaForTableFilter() {

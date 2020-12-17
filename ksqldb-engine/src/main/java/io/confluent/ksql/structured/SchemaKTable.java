@@ -143,12 +143,12 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKTable<K> selectKey(
       final FormatInfo valueFormat,
-      final Expression keyExpression,
+      final List<Expression> keyExpression,
       final Optional<KeyFormat> forceInternalKeyFormat,
       final Stacker contextStacker,
       final boolean forceRepartition
   ) {
-    final boolean repartitionNeeded = repartitionNeeded(ImmutableList.of(keyExpression));
+    final boolean repartitionNeeded = repartitionNeeded(keyExpression);
     final boolean keyFormatChange = forceInternalKeyFormat.isPresent()
         && !forceInternalKeyFormat.get().equals(keyFormat);
 
@@ -184,11 +184,10 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       throw new KsqlException(errorMsg + additionalMsg);
     }
 
-    // use sanitizeKeyFormat(true) because we don't yet support
-    // PARTITION BY or JOIN on multi-column keys
     final KeyFormat newKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
         forceInternalKeyFormat.orElse(keyFormat),
-        true);
+        keyExpression.size() == 1
+    );
 
     final ExecutionStep<KTableHolder<K>> step = ExecutionStepFactory.tableSelectKey(
         contextStacker,

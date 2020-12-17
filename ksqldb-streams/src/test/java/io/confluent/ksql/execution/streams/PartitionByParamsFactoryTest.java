@@ -53,6 +53,7 @@ import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.streams.KeyValue;
 import org.junit.Before;
@@ -139,7 +140,7 @@ public class PartitionByParamsFactoryTest {
   @Test
   public void shouldBuildResultSchemaWhenPartitioningByColumnRef() {
     // Given:
-    final Expression partitionBy = new UnqualifiedColumnReferenceExp(COL1);
+    final List<Expression> partitionBy = ImmutableList.of(new UnqualifiedColumnReferenceExp(COL1));
 
     // When:
     final LogicalSchema resultSchema = PartitionByParamsFactory.buildSchema(
@@ -162,11 +163,11 @@ public class PartitionByParamsFactoryTest {
   @Test
   public void shouldBuildResultSchemaWhenPartitioningByStructField() {
     // Given:
-    final Expression partitionBy = new DereferenceExpression(
+    final List<Expression> partitionBy = ImmutableList.of(new DereferenceExpression(
         Optional.empty(),
         new UnqualifiedColumnReferenceExp(COL3),
         "someField"
-    );
+    ));
 
     // When:
     final LogicalSchema resultSchema = PartitionByParamsFactory.buildSchema(
@@ -190,11 +191,11 @@ public class PartitionByParamsFactoryTest {
   @Test
   public void shouldBuildResultSchemaWhenPartitioningByOtherExpressionType() {
     // Given:
-    final Expression partitionBy = new ArithmeticUnaryExpression(
+    final List<Expression> partitionBy = ImmutableList.of(new ArithmeticUnaryExpression(
         Optional.empty(),
         Sign.MINUS,
         new UnqualifiedColumnReferenceExp(COL1)
-    );
+    ));
 
     // When:
     final LogicalSchema resultSchema = PartitionByParamsFactory.buildSchema(
@@ -218,7 +219,7 @@ public class PartitionByParamsFactoryTest {
   @Test
   public void shouldBuildResultSchemaWhenPartitioningByNull() {
     // Given:
-    final Expression partitionBy = new NullLiteral();
+    final List<Expression> partitionBy = ImmutableList.of(new NullLiteral());
 
     // When:
     final LogicalSchema resultSchema = PartitionByParamsFactory.buildSchema(
@@ -240,7 +241,7 @@ public class PartitionByParamsFactoryTest {
   @Test
   public void shouldLogOnErrorExtractingNewKey() {
     // Given:
-    final Mapper<GenericKey> mapper = partitionBy(FAILING_UDF).getMapper();
+    final Mapper<GenericKey> mapper = partitionBy(ImmutableList.of(FAILING_UDF)).getMapper();
 
     // When:
     mapper.apply(key, value);
@@ -253,7 +254,7 @@ public class PartitionByParamsFactoryTest {
   public void shouldPartitionByNullAnyRowsWhereFailedToExtractKey() {
     // Given:
     final Mapper<GenericKey> mapper =
-        partitionBy(FAILING_UDF).getMapper();
+        partitionBy(ImmutableList.of(FAILING_UDF)).getMapper();
 
     // When:
     final KeyValue<GenericKey, GenericRow> result = mapper.apply(key, value);
@@ -266,7 +267,7 @@ public class PartitionByParamsFactoryTest {
   public void shouldSetNewKey() {
     // Given:
     final Mapper<GenericKey> mapper =
-        partitionBy(new UnqualifiedColumnReferenceExp(COL1)).getMapper();
+        partitionBy(ImmutableList.of(new UnqualifiedColumnReferenceExp(COL1))).getMapper();
 
     // When:
     final KeyValue<GenericKey, GenericRow> result = mapper.apply(key, value);
@@ -279,7 +280,7 @@ public class PartitionByParamsFactoryTest {
   public void shouldPropagateNullValueWhenPartitioningByKey() {
     // Given:
     final Mapper<GenericKey> mapper =
-        partitionBy(new UnqualifiedColumnReferenceExp(COL0)).getMapper();
+        partitionBy(ImmutableList.of(new UnqualifiedColumnReferenceExp(COL0))).getMapper();
 
     // When:
     final KeyValue<GenericKey, GenericRow> result = mapper.apply(key, null);
@@ -293,11 +294,11 @@ public class PartitionByParamsFactoryTest {
   public void shouldPropagateNullValueWhenPartitioningByKeyExpression() {
     // Given:
     final Mapper<GenericKey> mapper =
-        partitionBy(new ArithmeticBinaryExpression(
+        partitionBy(ImmutableList.of(new ArithmeticBinaryExpression(
             Operator.ADD,
             new UnqualifiedColumnReferenceExp(COL0),
             new StringLiteral("-foo"))
-        ).getMapper();
+        )).getMapper();
 
     // When:
     final KeyValue<GenericKey, GenericRow> result = mapper.apply(key, null);
@@ -311,7 +312,7 @@ public class PartitionByParamsFactoryTest {
   public void shouldNotChangeValueIfPartitioningByColumnReference() {
     // Given:
     final Mapper<GenericKey> mapper =
-        partitionBy(new UnqualifiedColumnReferenceExp(COL1)).getMapper();
+        partitionBy(ImmutableList.of(new UnqualifiedColumnReferenceExp(COL1))).getMapper();
 
     final ImmutableList<Object> originals = ImmutableList.copyOf(value.values());
 
@@ -326,7 +327,7 @@ public class PartitionByParamsFactoryTest {
   public void shouldNotChangeValueIfPartitioningByKeyColumnReference() {
     // Given:
     final Mapper<GenericKey> mapper =
-        partitionBy(new UnqualifiedColumnReferenceExp(COL0)).getMapper();
+        partitionBy(ImmutableList.of(new UnqualifiedColumnReferenceExp(COL0))).getMapper();
 
     final ImmutableList<Object> originals = ImmutableList.copyOf(value.values());
 
@@ -341,10 +342,10 @@ public class PartitionByParamsFactoryTest {
   public void shouldAppendNewKeyColumnToValueIfNotPartitioningByColumnReference() {
     // Given:
     final Mapper<GenericKey> mapper =
-        partitionBy(new FunctionCall(
+        partitionBy(ImmutableList.of(new FunctionCall(
             CONSTANT_UDF_NAME,
             ImmutableList.of(new UnqualifiedColumnReferenceExp(COL1)))
-        ).getMapper();
+        )).getMapper();
 
     final ImmutableList<Object> originals = ImmutableList.copyOf(value.values());
 
@@ -359,11 +360,11 @@ public class PartitionByParamsFactoryTest {
   public void shouldAppendNewKeyColumnToValueIfPartitioningByKeyExpression() {
     // Given:
     final Mapper<GenericKey> mapper =
-        partitionBy(new ArithmeticBinaryExpression(
+        partitionBy(ImmutableList.of(new ArithmeticBinaryExpression(
             Operator.ADD,
             new UnqualifiedColumnReferenceExp(COL0),
             new StringLiteral("-foo"))
-        ).getMapper();
+        )).getMapper();
 
     final ImmutableList<Object> originals = ImmutableList.copyOf(value.values());
 
@@ -377,7 +378,7 @@ public class PartitionByParamsFactoryTest {
   @Test
   public void shouldNotChangeValueIfPartitioningByNull() {
     // Given:
-    final Mapper<GenericKey> mapper = partitionBy(new NullLiteral()).getMapper();
+    final Mapper<GenericKey> mapper = partitionBy(ImmutableList.of(new NullLiteral())).getMapper();
 
     final ImmutableList<Object> originals = ImmutableList.copyOf(value.values());
 
@@ -388,7 +389,7 @@ public class PartitionByParamsFactoryTest {
     assertThat(result.value, is(GenericRow.fromList(originals)));
   }
 
-  private PartitionByParams<GenericKey> partitionBy(final Expression expression) {
+  private PartitionByParams<GenericKey> partitionBy(final List<Expression> expression) {
     final ExecutionKeyFactory<GenericKey> factory = ExecutionKeyFactory.unwindowed(queryBuilder);
 
     return PartitionByParamsFactory

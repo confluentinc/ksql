@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
@@ -35,7 +36,8 @@ public class StreamSelectKey<K> implements ExecutionStep<KStreamHolder<K>> {
   );
 
   private final ExecutionStepPropertiesV1 properties;
-  private final Expression keyExpression;
+  @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY) // TODO: add tests to prove this works
+  private final List<Expression> keyExpression;
   @EffectivelyImmutable
   private final ExecutionStep<? extends KStreamHolder<K>> source;
 
@@ -43,7 +45,7 @@ public class StreamSelectKey<K> implements ExecutionStep<KStreamHolder<K>> {
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "source", required = true) final
       ExecutionStep<? extends KStreamHolder<K>> source,
-      @JsonProperty(value = "keyExpression", required = true) final Expression keyExpression
+      @JsonProperty(value = "keyExpression", required = true) final List<Expression> keyExpression // TODO: name is broken
   ) {
     this.properties = Objects.requireNonNull(props, "props");
     this.source = Objects.requireNonNull(source, "source");
@@ -61,9 +63,9 @@ public class StreamSelectKey<K> implements ExecutionStep<KStreamHolder<K>> {
     return Collections.singletonList(source);
   }
 
-  public Expression getKeyExpression() {
+  public List<Expression> getKeyExpression() {
     return keyExpression;
-  }
+  } // TODO: rename? but that affects serializer
 
   public ExecutionStep<? extends KStreamHolder<K>> getSource() {
     return source;

@@ -822,7 +822,7 @@ public class StatementRewriterTest {
     // Given:
     final PartitionBy partitionBy = new PartitionBy(
         location,
-        expression
+        ImmutableList.of(expression)
     );
     when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
 
@@ -832,7 +832,7 @@ public class StatementRewriterTest {
     // Then:
     assertThat(rewritten, equalTo(new PartitionBy(
         location,
-        rewrittenExpression
+        ImmutableList.of(rewrittenExpression)
     )));
   }
 

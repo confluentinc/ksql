@@ -359,6 +359,17 @@ public class KsqlConfig extends AbstractConfig {
   private static final String KSQL_PROPERTIES_OVERRIDES_DENYLIST_DOC = "Comma-separated list of "
       + "properties that KSQL users cannot override.";
 
+  public static final String KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING =
+      "ksql.cache.max.bytes.buffering.total";
+  public static final long KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_DEFAULT = -1;
+  public static final String KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_DOC = "Limit on the total bytes "
+      + "used by Kafka Streams cache across all persistent queries";
+  public static final String KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT =
+      "ksql.transient.cache.max.bytes.buffering.total";
+  public static final long KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT_DEFAULT = -1;
+  public static final String KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT_DOC = "Limit on the "
+      + "total bytes used by Kafka Streams cache across all transient queries";
+
   public static final String KSQL_VARIABLE_SUBSTITUTION_ENABLE
       = "ksql.variable.substitution.enable";
   public static final boolean KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT = true;
@@ -835,6 +846,20 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_VARIABLE_SUBSTITUTION_ENABLE_DEFAULT,
             Importance.LOW,
             KSQL_VARIABLE_SUBSTITUTION_ENABLE_DOC
+        )
+        .define(
+            KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING,
+            Type.LONG,
+            KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_DEFAULT,
+            Importance.LOW,
+            KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_DOC
+        )
+        .define(
+            KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT,
+            Type.LONG,
+            KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT_DEFAULT,
+            Importance.LOW,
+            KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT_DOC
         )
         .withClientSslSupport();
 

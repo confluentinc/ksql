@@ -2002,6 +2002,28 @@
           {"row":{"columns":[10, 1]}}
         ]}
       ]
+    },
+    {
+      "name": "multi-column aggregation",
+      "properties": {
+        "ksql.multicol.key.format.enabled" : true
+      },
+      "statements": [
+        "CREATE STREAM INPUT (ID1 STRING KEY, ID2 INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID1, ID2, COUNT(1) AS COUNT FROM INPUT GROUP BY ID1, ID2;",
+        "SELECT * FROM AGGREGATE WHERE ID1='11' AND ID2=10;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id2": 10}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID1` STRING KEY, `ID2` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["11", 10, 1]}}
+        ]}
+      ]
     }
   ]
 }

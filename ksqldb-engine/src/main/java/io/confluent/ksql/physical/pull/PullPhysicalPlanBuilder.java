@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.physical.pull;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
@@ -198,10 +197,7 @@ public class PullPhysicalPlanBuilder {
     if (whereInfo == null) {
       throw new KsqlException("Pull queries must have a WHERE clause");
     }
-    keys = whereInfo.getKeysBound().stream()
-        .map(GenericKey::genericKey)
-        .collect(ImmutableList.toImmutableList());
-
+    keys = whereInfo.getKeysBound();
     if (!whereInfo.isWindowed()) {
       return new KeyedTableLookupOperator(mat, logicalNode);
     } else {

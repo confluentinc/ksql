@@ -23,6 +23,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.engine.generic.GenericExpressionResolver;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
@@ -39,6 +40,7 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -49,6 +51,8 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -80,11 +84,11 @@ public final class WhereInfo {
       GrammaticalJoiner.and().join(VALID_WINDOW_BOUNDS_TYPES);
 
 
-  private final List<Object> keysBound;
+  private final List<GenericKey> keysBound;
   private final Optional<WindowBounds> windowBounds;
 
   private WhereInfo(
-      final List<Object> keysBound,
+      final List<GenericKey> keysBound,
       final Optional<WindowBounds> windowBounds
   ) {
     this.keysBound = keysBound;
@@ -98,21 +102,16 @@ public final class WhereInfo {
       final MetaStore metaStore,
       final KsqlConfig config
   ) {
-    if (schema.key().size() != 1) {
-      throw invalidWhereClauseException("Schemas with multiple "
-          + "KEY columns are not supported", windowed);
-    }
-
     final KeyAndWindowBounds keyAndWindowBounds = extractComparisons(where, schema);
     final List<ComparisonExpression> keyComparison = keyAndWindowBounds.getKeyColExpression();
     final List<InPredicate> inPredicate = keyAndWindowBounds.getInPredicate();
     if (keyComparison.size() == 0 && inPredicate.size() == 0) {
       throw invalidWhereClauseException("WHERE clause missing key column", windowed);
-    } else if ((keyComparison.size() + inPredicate.size()) > 1) {
+    } else if ((keyComparison.size() > 0 && inPredicate.size() > 0)) {
       throw invalidWhereClauseException("Multiple bounds on key column", windowed);
     }
 
-    final List<Object> keys;
+    final List<GenericKey> keys;
     if (keyComparison.size() > 0) {
       keys = ImmutableList.of(
           extractKeyWhereClause(
@@ -148,7 +147,7 @@ public final class WhereInfo {
     return new WhereInfo(keys, Optional.of(windowBounds));
   }
 
-  public List<Object> getKeysBound() {
+  public List<GenericKey> getKeysBound() {
     return keysBound;
   }
 
@@ -176,7 +175,10 @@ public final class WhereInfo {
             + System.lineSeparator()
             + "Pull queries require a WHERE clause that:"
             + System.lineSeparator()
-            + " - limits the query to a single key, e.g. `SELECT * FROM X WHERE <key-column>=Y;`."
+            + " - limits the query to keys only, e.g. `SELECT * FROM X WHERE <key-column>=Y;`."
+            + System.lineSeparator()
+            + " - specifies an equality condition that is a conjunction of equality expressions "
+            + "that cover all keys."
             + additional
     );
   }
@@ -185,38 +187,67 @@ public final class WhereInfo {
     return getWindowBounds().isPresent();
   }
 
-  private static List<Object> extractKeysFromInPredicate(
+  private static List<GenericKey> extractKeysFromInPredicate(
       final List<InPredicate> inPredicates,
       final LogicalSchema schema,
       final MetaStore metaStore,
       final KsqlConfig config
   ) {
+    if (schema.key().size() > 1) {
+      throw invalidWhereClauseException("Schemas with multiple "
+          + "KEY columns are not supported", false);
+    }
+
     final InPredicate inPredicate = Iterables.getLast(inPredicates);
     final Column keyColumn = Iterables.getOnlyElement(schema.key());
     return inPredicate.getValueList()
         .getValues()
         .stream()
         .map(expression -> resolveKey(expression, keyColumn, metaStore, config, inPredicate))
+        .map(GenericKey::genericKey)
         .collect(Collectors.toList());
   }
 
-  private static Object extractKeyWhereClause(
+  private static GenericKey extractKeyWhereClause(
       final List<ComparisonExpression> comparisons,
       final boolean windowed,
       final LogicalSchema schema,
       final MetaStore metaStore,
       final KsqlConfig config
   ) {
-    final ComparisonExpression comparison = Iterables.getLast(comparisons);
-    if (comparison.getType() != Type.EQUAL) {
-      final ColumnName keyColumn = Iterables.getOnlyElement(schema.key()).name();
-      throw invalidWhereClauseException("Bound on '" + keyColumn.text()
-          + "' must currently be '='", windowed);
+    final Object[] keyContents = new Object[schema.key().size()];
+    final BitSet seenKeys = new BitSet(schema.key().size());
+
+    for (ComparisonExpression comparison : comparisons) {
+      if (comparison.getType() != Type.EQUAL) {
+        throw invalidWhereClauseException("Bound on key columns '" + schema.key()
+            + "' must currently be '='", windowed);
+      }
+
+      final Expression other = getNonColumnRefSide(comparison);
+      final ColumnName keyColName = getColumnRefSide(comparison).getColumnName();
+      final Column keyColumn = schema.findColumn(keyColName)
+          .orElseThrow(() -> invalidWhereClauseException(
+              "Bound on non-key column " + keyColName, windowed));
+
+      final Object key = resolveKey(other, keyColumn, metaStore, config, comparison);
+      keyContents[keyColumn.index()] = key;
+      seenKeys.set(keyColumn.index());
     }
 
-    final Expression other = getNonColumnRefSide(comparison);
-    final Column keyColumn = schema.key().get(0);
-    return resolveKey(other, keyColumn, metaStore, config, comparison);
+    if (seenKeys.cardinality() != schema.key().size()) {
+      final List<ColumnName> seenKeyNames = seenKeys
+          .stream()
+          .boxed()
+          .map(i -> schema.key().get(i))
+          .map(Column::name)
+          .collect(Collectors.toList());
+      throw invalidWhereClauseException(
+          "Multi-column sources must specify every key in the WHERE clause. Specified: "
+              + seenKeyNames + " Expected: " + schema.key(), windowed);
+    }
+
+    return GenericKey.fromList(Arrays.asList(keyContents));
   }
 
 
@@ -372,13 +403,13 @@ public final class WhereInfo {
       return new KeyAndWindowBounds().addWindowEndExpression(comparison);
     }
 
-    final ColumnName keyColumn = Iterables.getOnlyElement(schema.key()).name();
-    if (columnName.equals(keyColumn)) {
+    final Optional<Column> col = schema.findColumn(columnName);
+    if (col.isPresent() && col.get().namespace() == Namespace.KEY) {
       return new KeyAndWindowBounds().addKeyColExpression(comparison);
     }
 
     throw invalidWhereClauseException(
-        "WHERE clause on unsupported column: " + columnName.text(),
+        "WHERE clause on non-key column: " + columnName.text(),
         false
     );
   }
@@ -564,6 +595,12 @@ public final class WhereInfo {
     return comparison.getRight() instanceof UnqualifiedColumnReferenceExp
         ? comparison.getLeft()
         : comparison.getRight();
+  }
+
+  private static UnqualifiedColumnReferenceExp getColumnRefSide(final ComparisonExpression comp) {
+    return (UnqualifiedColumnReferenceExp)
+        (comp.getRight() instanceof UnqualifiedColumnReferenceExp
+            ? comp.getRight() : comp.getLeft());
   }
 
   private static Instant asInstant(final Expression other) {

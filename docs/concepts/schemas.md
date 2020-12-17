@@ -104,13 +104,23 @@ don't supply one the stream is created without a key column.
 
 The following example statements show how to create streams and tables that have 
 Avro-formatted data. If you want to use Protobuf- or JSON-formatted data,
-substitute `PROTOBUF`, `JSON` or `JSON_SR` for `AVRO` in each statement.
+substitute `PROTOBUF` or `JSON_SR` for `AVRO` in each statement.
 
 !!! note
     ksqlDB handles the `JSON` and `JSON_SR` formats differently. `JSON_SR` reads and 
     registers new schemas with {{ site.sr }} as necessary, while `JSON` requires you
     to specify the schema. Data formatted with `JSON_SR` is not binary compatible with
     the `JSON` format.
+    
+!!! note
+    When performing schema inference to infer value schemas, ksqlDB takes user-specified
+    [single field (un)wrapping](../developer-guide/serialization.md#single-field-unwrapping) 
+    into account. When performing schema inference on key schemas, the resulting key schema
+    is always unwrapped. If your key is contained in an outer record or object, the
+    inferred key is represented as a `STRUCT`. You can access individual fields within
+    the `STRUCT` by using [STRUCT dereference](../developer-guide/ksqldb-reference/operators.md#struct-dereference).
+    Alternatively, you can specify the individual fields as key columns explicitly and
+    avoid schema inference altogether.
 
 ### Create a new stream
 

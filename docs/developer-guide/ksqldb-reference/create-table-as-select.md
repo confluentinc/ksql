@@ -55,14 +55,15 @@ See [Partition Data to Enable Joins](../joins/partition-data.md) for more inform
 correctly partition your data for joins.
 
 The primary key of the resulting table is determined by the following rules, in order of priority:
- 1. if the query has a  `GROUP BY`: 
-    1. if the `GROUP BY` is on a single source column reference, the primary key will match the 
-       name, type and contents of the source column.
-    1. if the `GROUP BY` is any other single expression, the primary key will have a system 
+ 1. if the query has a  `GROUP BY`, then the resulting number of primary key columns will match the
+    number of grouping expressions. For each grouping expression: 
+    1. if the grouping expression is a single source column reference, the corresponding primary key
+       column will match the name, type and contents of the source column.
+    1. if the grouping expression is a reference to a field within a `STRUCT`-type column, then the
+       corresponding primary key column will match the name, type, and contents of the `STRUCT` field.
+    1. if the `GROUP BY` is any other expression, the primary key will have a system 
        generated name, unless you provide an alias in the projection, and will match the type and 
        contents of the result of the expression.
-    1. otherwise, the primary key will have a system generated name, and will be of type `STRING` 
-       and contain the grouping expression concatenated together.
  1. if the query has a join see [Join Synthetic Key Columns](../joins/synthetic-keys) for more info.
  1. otherwise, the primary key will match the name, unless you provide an alias in the projection, 
     and type of the source table's primary key.

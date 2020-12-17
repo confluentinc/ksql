@@ -142,11 +142,11 @@
         {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1|+|2", "value": {"COUNT": 1}}
+        {"topic": "OUTPUT", "key": {"K": 1, "K2": 2}, "value": {"COUNT": 1}}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "KSQL_COL_0 STRING KEY, COUNT BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "K INTEGER KEY, K2 INTEGER KEY, COUNT BIGINT"}
         ]
       }
     },
@@ -176,8 +176,8 @@
         {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": null}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1|+|2", "value": {"COUNT": 1}},
-        {"topic": "OUTPUT", "key": "1|+|2", "value": {"COUNT": 0}}
+        {"topic": "OUTPUT", "key": {"K": 1, "K2": 2}, "value": {"COUNT": 1}},
+        {"topic": "OUTPUT", "key": {"K": 1, "K2": 2}, "value": {"COUNT": 0}}
       ]
     },
     {
@@ -190,11 +190,11 @@
         {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "1|+|2", "value": {"KV": 1, "KV2": 2, "COUNT": 1}}
+        {"topic": "OUTPUT", "key": {"K": 1, "K2": 2}, "value": {"KV": 1, "KV2": 2, "COUNT": 1}}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "KSQL_COL_0 STRING KEY, KV INT, KV2 INT, COUNT BIGINT"}
+          {"name": "OUTPUT", "type": "table", "schema": "K INTEGER KEY, K2 INTEGER KEY, KV INT, KV2 INT, COUNT BIGINT"}
         ]
       }
     },

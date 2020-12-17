@@ -53,7 +53,6 @@ public class BasicCallbackHandlerTest {
   public void shouldHandlePasswordCallback() throws Exception {
     // When:
     callbackHandler.handle(new Callback[]{nameCallback, passwordCallback});
-
     // Then:
     verify(nameCallback).setName(USERNAME);
     verify(passwordCallback).setPassword(PASSWORD.toCharArray());
@@ -63,7 +62,6 @@ public class BasicCallbackHandlerTest {
   public void shouldHandleObjectCallback() throws Exception {
     // When:
     callbackHandler.handle(new Callback[]{nameCallback, objectCallback});
-
     // Then:
     verify(nameCallback).setName(USERNAME);
     verify(objectCallback).setObject(PASSWORD);

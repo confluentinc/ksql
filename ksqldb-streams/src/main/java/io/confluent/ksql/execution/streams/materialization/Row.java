@@ -33,6 +33,8 @@ public final class Row implements TableRow {
   private final long rowTime;
   private final Validator validator;
 
+  public final static Row EMPTY_ROW = new Row();
+
   public static Row of(
       final LogicalSchema schema,
       final GenericKey key,
@@ -57,6 +59,18 @@ public final class Row implements TableRow {
     this.validator = requireNonNull(validator, "validator");
 
     validator.validate(schema, key, value);
+  }
+
+  /**
+   * Used to create an empty row for pull queries to signal the WHERE clause does not match but
+   * not end of state store iterator.
+   */
+  private Row() {
+    this.schema = null;
+    this.key = null;
+    this.value = null;
+    this.rowTime = -1;
+    this.validator = null;
   }
 
   @Override

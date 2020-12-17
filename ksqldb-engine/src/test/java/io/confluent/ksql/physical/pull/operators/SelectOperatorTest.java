@@ -18,7 +18,7 @@ package io.confluent.ksql.physical.pull.operators;
 import static org.mockito.Mockito.verify;
 
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.planner.plan.PullQueryFilterNode;
+import io.confluent.ksql.planner.plan.PullFilterNode;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -28,7 +28,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SelectOperatorTest {
 
   @Mock
-  private PullQueryFilterNode logicalNode;
+  private PullFilterNode logicalNode;
   @Mock
   private AbstractPhysicalOperator child;
   @Mock

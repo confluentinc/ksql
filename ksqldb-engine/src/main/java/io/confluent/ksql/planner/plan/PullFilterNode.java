@@ -21,6 +21,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
+import io.confluent.ksql.engine.generic.GenericExpressionResolver;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
@@ -29,26 +30,36 @@ import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
+import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-public class PullQueryFilterNode extends SingleSourcePlanNode {
+public class PullFilterNode extends SingleSourcePlanNode {
 
   private static final Set<Type> VALID_WINDOW_BOUND_COMPARISONS = ImmutableSet.of(
       Type.EQUAL,
@@ -58,16 +69,23 @@ public class PullQueryFilterNode extends SingleSourcePlanNode {
       Type.LESS_THAN_OR_EQUAL
   );
 
+  private final static String KEY_COL = "keys";
+  private final static String SYSTEM_COL = "system";
+
   private final Expression predicate;
   private final boolean isWindowed;
   private final RewrittenAnalysis analysis;
   private final ExpressionMetadata compiledWhereClause;
+  private final boolean addAdditionalColumnsToIntermediateSchema;
+  private final LogicalSchema intermediateSchema;
+  private final MetaStore metaStore;
+  private final KsqlConfig ksqlConfig;
 
   private boolean isKeyedQuery = false;
-  private Set<Object> keys;
+  private Map<String, Set<UnqualifiedColumnReferenceExp>> keysAndSystemCols;
   private WindowBounds windowBounds;
 
-  public PullQueryFilterNode(
+  public PullFilterNode(
       final PlanNodeId id,
       final PlanNode source,
       final Expression predicate,
@@ -79,25 +97,31 @@ public class PullQueryFilterNode extends SingleSourcePlanNode {
 
     this.predicate = Objects.requireNonNull(predicate, "predicate");
     this.analysis = Objects.requireNonNull(analysis, "analysis");
+    this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.isWindowed = analysis
         .getFrom()
         .getDataSource()
         .getKsqlTopic()
         .getKeyFormat().isWindowed();
+
     final Validator validator = new Validator();
     validator.process(predicate, null);
     if (!isKeyedQuery) {
       throw invalidWhereClauseException("WHERE clause missing key column", isWindowed);
     }
+    windowBounds = extractWindowBounds();
+    keysAndSystemCols = extractKeysAndSystemCols();
+    this.addAdditionalColumnsToIntermediateSchema = shouldAddAdditionalColumnsInSchema();
+    this.intermediateSchema = buildIntermediateSchema();
     compiledWhereClause = CodeGenRunner.compileExpression(
         predicate,
         "Predicate",
-        getSchema(),
+        intermediateSchema,
         ksqlConfig,
         metaStore
     );
-    keys = extractKeys();
-    windowBounds = extractWindowBounds();
+
   }
 
   public Expression getPredicate() {
@@ -126,21 +150,34 @@ public class PullQueryFilterNode extends SingleSourcePlanNode {
     return isWindowed;
   }
 
-  public Set<Object> getKeys() {
+  public List<Object> getKeyValues() {
+    final List<Object> keys = new ArrayList<>();
+
+    new KeyValueExtractor().process(predicate, keys);
     return keys;
+  }
+
+  public Set<UnqualifiedColumnReferenceExp> getKeyColumns() {
+    return keysAndSystemCols.get(KEY_COL);
   }
 
   public WindowBounds getWindowBounds() {
     return windowBounds;
   }
 
-  private Set<Object> extractKeys() {
-    final Set<Object> keys = new HashSet<>();
+  public boolean getAddAdditionalColumnsToIntermediateSchema() {
+    return addAdditionalColumnsToIntermediateSchema;
+  }
 
-    if (isKeyedQuery) {
-      new KeyExtractor().process(predicate, keys);
-    }
-    return keys;
+  public LogicalSchema getIntermediateSchema() {
+    return intermediateSchema;
+  }
+
+  private Map<String, Set<UnqualifiedColumnReferenceExp>> extractKeysAndSystemCols() {
+    final Map<String, Set<UnqualifiedColumnReferenceExp>> cols = new HashMap<>();
+
+    new KeyAndSystemColsExtractor().process(predicate, cols);
+    return cols;
   }
 
   private WindowBounds extractWindowBounds() {
@@ -188,23 +225,23 @@ public class PullQueryFilterNode extends SingleSourcePlanNode {
         final ComparisonExpression node,
         final Object context
     ) {
-      final ComparisonExpression comparison = (ComparisonExpression) predicate;
       final ColumnName keyColumn = Iterables.getOnlyElement(getSource().getSchema().key()).name();
-      if (comparison.getType() != Type.EQUAL) {
-        throw invalidWhereClauseException(
-            "Bound on '" + keyColumn.text() + "' must currently be '='", isWindowed);
-      }
+
       final UnqualifiedColumnReferenceExp column;
-      if (comparison.getRight() instanceof UnqualifiedColumnReferenceExp) {
-        column = (UnqualifiedColumnReferenceExp) comparison.getRight();
-      } else if (comparison.getLeft() instanceof UnqualifiedColumnReferenceExp) {
-        column = (UnqualifiedColumnReferenceExp) comparison.getLeft();
+      if (node.getRight() instanceof UnqualifiedColumnReferenceExp) {
+        column = (UnqualifiedColumnReferenceExp) node.getRight();
+      } else if (node.getLeft() instanceof UnqualifiedColumnReferenceExp) {
+        column = (UnqualifiedColumnReferenceExp) node.getLeft();
       } else {
         return null;
       }
       final ColumnName columnName = column.getColumnName();
 
       if (columnName.equals(keyColumn)) {
+        if (node.getType() != Type.EQUAL) {
+          throw invalidWhereClauseException(
+              "Bound on '" + keyColumn.text() + "' must currently be '='", isWindowed);
+        }
         if (isKeyedQuery) {
           throw invalidWhereClauseException(
               "An equality condition on the key column cannot be combined with other comparisons"
@@ -213,15 +250,15 @@ public class PullQueryFilterNode extends SingleSourcePlanNode {
         }
         isKeyedQuery = true;
       } else if (columnName.equals(SystemColumns.WINDOWSTART_NAME)
-          && columnName.equals(SystemColumns.WINDOWEND_NAME)) {
-        final Type type = comparison.getType();
+          || columnName.equals(SystemColumns.WINDOWEND_NAME)) {
+        final Type type = node.getType();
         if (!VALID_WINDOW_BOUND_COMPARISONS.contains(type)) {
           throw invalidWhereClauseException(
               "Unsupported " + columnName + " bounds: " + type, true);
         }
 
         //  check if bounds on windowed column is among the allowed ones
-        //  check of equality bound is combined with lesser/greated and throw
+        //  check if equality bound is combined with lesser/greater and throw
         //  check for duplicate bounds
         if (!isWindowed) {
           throw invalidWhereClauseException(
@@ -242,9 +279,8 @@ public class PullQueryFilterNode extends SingleSourcePlanNode {
         final InPredicate node,
         final Object context
     ) {
-      final InPredicate inPredicate = (InPredicate) predicate;
       final UnqualifiedColumnReferenceExp column
-          = (UnqualifiedColumnReferenceExp) inPredicate.getValue();
+          = (UnqualifiedColumnReferenceExp) node.getValue();
       final ColumnName keyColumn = Iterables.getOnlyElement(getSource().getSchema().key()).name();
       if (column.getColumnName().equals(keyColumn)) {
         if (isKeyedQuery) {
@@ -262,23 +298,121 @@ public class PullQueryFilterNode extends SingleSourcePlanNode {
   /**
    * Extracts the key columns that appear in the WHERE clause.
    */
-  private final class KeyExtractor extends TraversalExpressionVisitor<Set<Object>> {
+  private final class KeyAndSystemColsExtractor
+      extends TraversalExpressionVisitor<Map<String, Set<UnqualifiedColumnReferenceExp>> > {
 
     @Override
     public Void visitUnqualifiedColumnReference(
         final UnqualifiedColumnReferenceExp node,
-        final Set<Object> keys
+        final Map<String, Set<UnqualifiedColumnReferenceExp>> cols
     ) {
       final ColumnName keyColumn = Iterables.getOnlyElement(getSource().getSchema().key()).name();
       if (node.getColumnName().equals(keyColumn)) {
-        keys.add(node);
+        cols.putIfAbsent(KEY_COL, new HashSet<>());
+        cols.get(KEY_COL).add(node);
+      } else if (SystemColumns.isSystemColumn(node.getColumnName())) {
+        cols.putIfAbsent(SYSTEM_COL, new HashSet<>());
+        cols.get(SYSTEM_COL).add(node);
       }
       return null;
     }
   }
 
   /**
+   * Extracts the values for the keys that appear in the WHERE clause.
+   * Necessary so that we can do key lookups when scanning the data stores.
+   */
+  private final class KeyValueExtractor extends TraversalExpressionVisitor<List<Object>> {
+
+    @Override
+    public Void visitComparisonExpression(
+        final ComparisonExpression node,
+        final List<Object> keys
+    ) {
+      final Column keyColumn = Iterables.getOnlyElement(getSource().getSchema().key());
+      final ColumnName keyColumnName = keyColumn.name();
+
+      final UnqualifiedColumnReferenceExp column;
+      final Expression other;
+      if (node.getRight() instanceof UnqualifiedColumnReferenceExp) {
+        column = (UnqualifiedColumnReferenceExp) node.getRight();
+        other = node.getLeft();
+      } else if (node.getLeft() instanceof UnqualifiedColumnReferenceExp) {
+        column = (UnqualifiedColumnReferenceExp) node.getLeft();
+        other = node.getRight();
+      } else {
+        return null;
+      }
+      final ColumnName columnName = column.getColumnName();
+
+      if (columnName.equals(keyColumnName)) {
+        keys.add(resolveKey(other, keyColumn, metaStore, ksqlConfig, node));
+      }
+      return null;
+    }
+
+    @Override
+    public Void visitInPredicate(
+        final InPredicate node,
+        final List<Object> keys
+    ) {
+      final InPredicate inPredicate = (InPredicate) predicate;
+      final UnqualifiedColumnReferenceExp column
+          = (UnqualifiedColumnReferenceExp) inPredicate.getValue();
+      final Column keyColumn = Iterables.getOnlyElement(getSource().getSchema().key());
+      final ColumnName keyColumnName = keyColumn.name();
+      if (column.getColumnName().equals(keyColumnName)) {
+        keys.addAll(inPredicate.getValueList()
+            .getValues()
+            .stream()
+            .map(expression -> resolveKey(expression, keyColumn, metaStore, ksqlConfig, inPredicate))
+            .collect(Collectors.toList()));
+      }
+      return null;
+    }
+
+    private Object resolveKey(
+        final Expression exp,
+        final Column keyColumn,
+        final MetaStore metaStore,
+        final KsqlConfig config,
+        final Expression errorMessageHint
+    ) {
+      final Object obj;
+      if (exp instanceof NullLiteral) {
+        obj = null;
+      } else if (exp instanceof Literal) {
+        // skip the GenericExpressionResolver because this is
+        // a critical code path executed once-per-query
+        obj = ((Literal) exp).getValue();
+      } else {
+        obj = new GenericExpressionResolver(
+            keyColumn.type(),
+            keyColumn.name(),
+            metaStore,
+            config,
+            "pull query"
+        ).resolve(exp);
+      }
+
+      if (obj == null) {
+        throw new KsqlException("Primary key columns can not be NULL: " + errorMessageHint);
+      }
+
+      return DefaultSqlValueCoercer.STRICT.coerce(obj, keyColumn.type())
+          .orElseThrow(() -> new KsqlException("'" + obj + "' can not be converted "
+                                                   + "to the type of the key column: " + keyColumn.toString(
+              FormatOptions.noEscape())))
+          .orElse(null);
+    }
+  }
+
+
+  /**
    * Extracts the upper and lower bounds on windowstart/windowend columns.
+   * Performs the following validations on the window bounds:
+   * 1. An equality bound cannot be combined with other bounds.
+   * 2. No duplicate bounds are allowed, such as multiple greater than bounds.
    */
   private final class WindowBoundsExtractor extends TraversalExpressionVisitor<WindowBounds> {
 
@@ -300,24 +434,55 @@ public class PullQueryFilterNode extends SingleSourcePlanNode {
           && !column.getColumnName().equals(SystemColumns.WINDOWEND_NAME)) {
         return null;
       }
-
+      boolean result = false;
       if (node.getType().equals(Type.EQUAL)) {
         final Range<Instant> instant = Range.singleton(asInstant(getNonColumnRefSide(node)));
-        windowBounds.setEquality(column, instant);
+        result = windowBounds.setEquality(column, instant);
       }
       final Type type = getSimplifiedBoundType(node);
 
       if (type.equals(Type.LESS_THAN)) {
         final Instant upper = asInstant(getNonColumnRefSide(node));
         final BoundType upperType = getRangeBoundType(node);
-        windowBounds.setUpper(column, Range.upTo(upper, upperType));
+        result = windowBounds.setUpper(column, Range.upTo(upper, upperType));
       } else if (type.equals(Type.GREATER_THAN)) {
         final Instant lower = asInstant(getNonColumnRefSide(node));
         final BoundType lowerType = getRangeBoundType(node);
-        windowBounds.setLower(column, Range.downTo(lower, lowerType));
+        result = windowBounds.setLower(column, Range.downTo(lower, lowerType));
       }
-
+      validateEqualityBound(windowBounds, node, column);
+      if (!result) {
+        throw invalidWhereClauseException(
+            "Duplicate " + column.getColumnName() + " bounds on: " + type, true);
+      }
       return null;
+    }
+
+    private void validateEqualityBound(
+        final WindowBounds bound,
+        final ComparisonExpression expression,
+        final UnqualifiedColumnReferenceExp column
+    ) {
+      if (column.getColumnName().equals(SystemColumns.WINDOWSTART_NAME)) {
+        if (bound.getStart().getEqual() != null
+            && (bound.getStart().getUpper() != null || bound.getStart().getLower() != null)) {
+          throw invalidWhereClauseException(
+              "`" + expression + "` cannot be combined with other " + column.getColumnName()
+                  + " bounds",
+              true
+          );
+        }
+      } else {
+        if (bound.getEnd().getEqual() != null
+            && (bound.getEnd().getUpper() != null || bound.getEnd().getLower() != null)) {
+          throw invalidWhereClauseException(
+              "`" + expression + "` cannot be combined with other " + column.getColumnName()
+                  + " bounds",
+              true
+          );
+
+        }
+      }
     }
 
     private Type getSimplifiedBoundType(final ComparisonExpression comparison) {
@@ -448,37 +613,52 @@ public class PullQueryFilterNode extends SingleSourcePlanNode {
       this.end = new WindowRange();
     }
 
-    public void setEquality(
+    public boolean setEquality(
         final UnqualifiedColumnReferenceExp column,
         final Range<Instant> range
     ) {
       if (column.getColumnName().equals(SystemColumns.WINDOWSTART_NAME)) {
+        if (start.equal != null)
+          return false;
         start.equal = range;
       } else {
+        if (end.equal != null)
+          return false;
         end.equal = range;
       }
+      return true;
     }
 
-    public void setUpper(
+    public boolean setUpper(
         final UnqualifiedColumnReferenceExp column,
         final Range<Instant> range
     ) {
       if (column.getColumnName().equals(SystemColumns.WINDOWSTART_NAME)) {
+        if (start.upper != null)
+          return false;
         start.upper = range;
       } else {
+        if (end.upper != null)
+          return false;
         end.upper = range;
       }
+      return true;
     }
 
-    public void setLower(
+    public boolean setLower(
         final UnqualifiedColumnReferenceExp column,
         final Range<Instant> range
     ) {
       if (column.getColumnName().equals(SystemColumns.WINDOWSTART_NAME)) {
+        if (start.lower != null)
+          return false;
         start.lower = range;
       } else {
+        if (end.lower != null)
+          return false;
         end.lower = range;
       }
+      return true;
     }
 
     public WindowRange getStart() {
@@ -525,7 +705,7 @@ public class PullQueryFilterNode extends SingleSourcePlanNode {
           + '}';
     }
 
-    private static final class WindowRange {
+    static final class WindowRange {
       private Range<Instant> equal;
       private Range<Instant> upper;
       private Range<Instant> lower;
@@ -558,4 +738,32 @@ public class PullQueryFilterNode extends SingleSourcePlanNode {
     }
   }
 
+  /**
+   * Builds the schema used for codegen to compile expressions into bytecode. The input schema may
+   * need to be extended with system columns if they are part of the projection.
+   * @return the intermediate schema
+   */
+  private LogicalSchema buildIntermediateSchema() {
+    final LogicalSchema parentSchema = getSource().getSchema();
+
+    if (!addAdditionalColumnsToIntermediateSchema) {
+      return parentSchema;
+    } else {
+      return parentSchema
+          .withPseudoAndKeyColsInValue(isWindowed);
+    }
+  }
+
+  /**
+   * Checks whether the intermediate schema should be extended with system and key columns.
+   * @return true if the intermediate schema should be extended
+   */
+  private boolean shouldAddAdditionalColumnsInSchema() {
+
+    final boolean hasSystemColumns = keysAndSystemCols.containsKey(SYSTEM_COL);
+
+    final boolean hasKeyColumns = keysAndSystemCols.containsKey(KEY_COL);
+
+    return hasSystemColumns || hasKeyColumns;
+  }
 }

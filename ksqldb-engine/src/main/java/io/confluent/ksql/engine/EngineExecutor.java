@@ -60,6 +60,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
 import io.confluent.ksql.util.TransientQueryMetadata;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
@@ -174,7 +175,9 @@ final class EngineExecutor {
     } catch (final Exception e) {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
       throw new KsqlStatementException(
-          e.getMessage() == null ? "Server Error" : e.getMessage(),
+          e.getMessage() == null
+              ? "Server Error" + Arrays.toString(e.getStackTrace())
+              : e.getMessage(),
           statement.getStatementText(),
           e
       );

@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
+import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.TableRow;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper;
@@ -29,6 +30,7 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -67,9 +69,9 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
   @Override
   public void open() {
     child.open();
-    if (logicalNode.getIsSelectStar()) {
-      return;
-    }
+//    if (logicalNode.getIsSelectStar()) {
+//      return;
+//    }
 
     final SelectValueMapper<Object> select = selectValueMapperFactorySupplier.create(
         logicalNode.getSelectExpressions(),
@@ -84,10 +86,14 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
     row = (TableRow)child.next();
     if (row == null) {
       return null;
+    } else if(row == Row.EMPTY_ROW)
+    {
+      return Collections.emptyList();
     }
-    if (logicalNode.getIsSelectStar()) {
-      return createRow(row);
-    }
+
+//    if (logicalNode.getIsSelectStar()) {
+//      return createRow(row);
+//    }
     final GenericRow intermediate = getIntermediateRow(row);
 
     final GenericRow mapped = transformer.transform(

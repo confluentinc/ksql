@@ -68,6 +68,7 @@ import io.confluent.ksql.planner.plan.PreJoinProjectNode;
 import io.confluent.ksql.planner.plan.PreJoinRepartitionNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.PullProjectNode;
+import io.confluent.ksql.planner.plan.PullFilterNode;
 import io.confluent.ksql.planner.plan.SelectionUtil;
 import io.confluent.ksql.planner.plan.SuppressNode;
 import io.confluent.ksql.planner.plan.UserRepartitionNode;
@@ -175,7 +176,13 @@ public class LogicalPlanner {
     PlanNode currentNode = buildSourceNode();
 
     if (analysis.getWhereExpression().isPresent()) {
-      currentNode = buildFilterNode(currentNode, analysis.getWhereExpression().get());
+      currentNode = new PullFilterNode(
+          new PlanNodeId("WhereFilter"),
+          currentNode,
+          analysis.getWhereExpression().get(),
+          analysis,
+          metaStore,
+          ksqlConfig);
     }
 
     currentNode = new PullProjectNode(

@@ -39,12 +39,11 @@ import io.confluent.ksql.physical.pull.operators.WhereInfo;
 import io.confluent.ksql.physical.pull.operators.WindowedTableScanOperator;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
-import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PullProjectNode;
-import io.confluent.ksql.planner.plan.PullQueryFilterNode;
+import io.confluent.ksql.planner.plan.PullFilterNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -127,8 +126,8 @@ public class PullPhysicalPlanBuilder {
       AbstractPhysicalOperator currentPhysicalOp = null;
       if (currentLogicalNode instanceof PullProjectNode) {
         currentPhysicalOp = translateProjectNode((PullProjectNode)currentLogicalNode);
-      } else if (currentLogicalNode instanceof FilterNode) {
-        currentPhysicalOp = translateFilterNode((FilterNode)currentLogicalNode);
+      } else if (currentLogicalNode instanceof PullFilterNode) {
+        currentPhysicalOp = translateFilterNode((PullFilterNode) currentLogicalNode);
       } else if (currentLogicalNode instanceof DataSourceNode) {
         currentPhysicalOp = translateDataSourceNode(
             (DataSourceNode) currentLogicalNode);
@@ -181,10 +180,10 @@ public class PullPhysicalPlanBuilder {
     );
   }
 
-  private SelectOperator translateFilterNode(final PullQueryFilterNode logicalNode) {
+  private SelectOperator translateFilterNode(final PullFilterNode logicalNode) {
     final boolean windowed = persistentQueryMetadata.getResultTopic().getKeyFormat().isWindowed();
     //isWindowed = logicalNode.isWindowed();
-    keys = logicalNode.getKeys().stream()
+    keys = logicalNode.getKeyValues().stream()
         .map(GenericKey::genericKey)
         .collect(ImmutableList.toImmutableList());
     //windowBounds = logicalNode.getWindowBounds();

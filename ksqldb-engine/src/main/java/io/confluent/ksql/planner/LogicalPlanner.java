@@ -291,13 +291,13 @@ public class LogicalPlanner {
         getTargetSchema()
     );
 
-    final LogicalSchema schema =
-        buildAggregateSchema(sourcePlanNode, groupBy, projectionExpressions);
-
     final RewrittenAggregateAnalysis aggregateAnalysis = new RewrittenAggregateAnalysis(
         aggregateAnalyzer.analyze(analysis, projectionExpressions),
         refRewriter::process
     );
+
+    final LogicalSchema schema =
+        buildAggregateSchema(sourcePlanNode, groupBy, projectionExpressions);
 
     if (analysis.getHavingExpression().isPresent()) {
       final FilterTypeValidator validator = new FilterTypeValidator(

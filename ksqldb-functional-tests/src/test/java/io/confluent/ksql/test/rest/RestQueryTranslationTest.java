@@ -72,7 +72,6 @@ import org.junit.runners.Parameterized;
  */
 @Category({IntegrationTest.class})
 @RunWith(Parameterized.class)
-@Ignore
 public class RestQueryTranslationTest {
 
   private static final Path TEST_DIR = Paths.get("rest-query-validation-tests");

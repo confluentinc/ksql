@@ -15,7 +15,7 @@ Synopsis
 ```sql
 SELECT select_expr [, ...]
   FROM aggregate_table
-  WHERE key_column=key [, ...]
+  WHERE key_column=key [AND ...]
   [AND window_bounds];
 ```
 
@@ -49,8 +49,9 @@ SELECT * FROM pageviews_by_region
     AND 1570051876000 <= WINDOWSTART AND WINDOWEND <= 1570138276000;
 ```
 
-If the `pageviews_by_region` was created as an aggregation of multiple columns (e.g. `countryId`
-and `regionId`) then each key column must be present in the WHERE clause:
+If the `pageviews_by_region` table was created as an aggregation of multiple columns,
+then each key column must be present in the WHERE clause. The following example shows how to 
+query the table if `countryId` and `regionId` where both key columns:
 
 ```sql
 SELECT * FROM pageviews_by_region

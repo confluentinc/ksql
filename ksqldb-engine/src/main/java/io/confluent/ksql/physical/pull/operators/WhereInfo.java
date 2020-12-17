@@ -193,11 +193,6 @@ public final class WhereInfo {
       final MetaStore metaStore,
       final KsqlConfig config
   ) {
-    if (schema.key().size() > 1) {
-      throw invalidWhereClauseException("Schemas with multiple "
-          + "KEY columns are not supported", false);
-    }
-
     final InPredicate inPredicate = Iterables.getLast(inPredicates);
     final Column keyColumn = Iterables.getOnlyElement(schema.key());
     return inPredicate.getValueList()
@@ -418,6 +413,11 @@ public final class WhereInfo {
       final InPredicate inPredicate,
       final LogicalSchema schema
   ) {
+    if (schema.key().size() > 1) {
+      throw invalidWhereClauseException("Schemas with multiple "
+          + "KEY columns are not supported for IN predicates", false);
+    }
+
     final UnqualifiedColumnReferenceExp column
         = (UnqualifiedColumnReferenceExp) inPredicate.getValue();
     final ColumnName keyColumn = Iterables.getOnlyElement(schema.key()).name();

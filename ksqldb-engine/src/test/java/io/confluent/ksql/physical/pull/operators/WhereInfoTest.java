@@ -693,7 +693,7 @@ public class WhereInfoTest {
 
 
   @Test
-  public void shouldSupportMultiKeyExpressionsThatDontCoverAllKeys() {
+  public void shouldNotSupportMultiKeyExpressionsThatDontCoverAllKeys() {
     // Given:
     final Expression expression = new ComparisonExpression(
         Type.EQUAL,
@@ -909,6 +909,25 @@ public class WhereInfoTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Primary key columns can not be NULL: (K = null)"));
+  }
+
+  @Test
+  public void shouldThrowOnInExpressionWithMultiColKeySchema() {
+    // Given:
+    final Expression expression = new InPredicate(
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+        new InListExpression(
+            ImmutableList.of(new IntegerLiteral(1), new IntegerLiteral(2))
+        )
+    );
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> WhereInfo.extractWhereInfo(expression, MULTI_KEY_SCHEMA, false, METASTORE, CONFIG));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Schemas with multiple KEY columns are not supported for IN predicates"));
   }
 
 }

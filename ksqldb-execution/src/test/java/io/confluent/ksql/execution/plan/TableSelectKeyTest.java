@@ -14,9 +14,9 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import java.util.List;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,21 +39,21 @@ public class TableSelectKeyTest {
   @Mock
   private Formats formats2;
   @Mock
-  private List<Expression> expressions1;
+  private Expression expression1;
   @Mock
-  private List<Expression> expressions2;
+  private Expression expression2;
 
   @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new TableSelectKey<>(properties1, source1, formats1, expressions1),
-            new TableSelectKey<>(properties1, source1, formats1, expressions1))
-        .addEqualityGroup(new TableSelectKey<>(properties2, source1, formats1, expressions1))
-        .addEqualityGroup(new TableSelectKey<>(properties1, source2, formats1, expressions1))
-        .addEqualityGroup(new TableSelectKey<>(properties1, source2, formats2, expressions1))
-        .addEqualityGroup(new TableSelectKey<>(properties1, source1, formats1, expressions2))
+            new TableSelectKey<>(properties1, source1, formats1, ImmutableList.of(expression1)),
+            new TableSelectKey<>(properties1, source1, formats1, ImmutableList.of(expression1)))
+        .addEqualityGroup(new TableSelectKey<>(properties2, source1, formats1, ImmutableList.of(expression1)))
+        .addEqualityGroup(new TableSelectKey<>(properties1, source2, formats1, ImmutableList.of(expression1)))
+        .addEqualityGroup(new TableSelectKey<>(properties1, source2, formats2, ImmutableList.of(expression1)))
+        .addEqualityGroup(new TableSelectKey<>(properties1, source1, formats1, ImmutableList.of(expression2)))
         .testEquals();
   }
 }

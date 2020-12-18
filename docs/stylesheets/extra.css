@@ -120,18 +120,18 @@ ul.card-items li {
 }
 
 .card.tutorial {
-    background-color: #faf7ff;
+    border-top: 3.5px solid #C3C5DD;
 }
 
 .card.how-to-guide {
-    background-color: #f7f8ff;
+    border-top: 3.5px solid #994552;
 }
 
 .card.how-to-guide.contribute {
     background: repeating-linear-gradient(
       45deg,
-      #f7f8ff,
-      #f7f8ff 10px,
+      #f6f8f8,
+      #f6f8f8 10px,
       #ffffff 10px,
       #ffffff 20px
     );
@@ -139,9 +139,12 @@ ul.card-items li {
     border: 2px dashed #eee;
 }
 
+.card.getting-started {
+    border-top: 3.5px solid #ef5762;
+}
 
 .card.concepts {
-    background-color: #f7fffd;
+    border-top: 3.5px solid #252839;
 }
 
 .card.operations {
@@ -149,5 +152,5 @@ ul.card-items li {
 }
 
 .card.reference {
-    background-color: #fffff7;
+    border-top: 3.5px solid #F26135;
 }

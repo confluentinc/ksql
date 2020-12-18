@@ -19,26 +19,27 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
+import java.sql.Timestamp;
 import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
 public class TimestampLiteral extends Literal {
 
-  private final String value;
+  private final long value;
 
-  public TimestampLiteral(final String value) {
+  public TimestampLiteral(final Timestamp value) {
     this(Optional.empty(), value);
   }
 
-  public TimestampLiteral(final Optional<NodeLocation> location, final String value) {
+  public TimestampLiteral(final Optional<NodeLocation> location, final Timestamp value) {
     super(location);
-    this.value = requireNonNull(value, "value");
+    this.value = requireNonNull(value, "value").getTime();
   }
 
   @Override
-  public String getValue() {
-    return value;
+  public Timestamp getValue() {
+    return new Timestamp(value);
   }
 
   @Override
@@ -61,6 +62,6 @@ public class TimestampLiteral extends Literal {
 
   @Override
   public int hashCode() {
-    return value.hashCode();
+    return Long.hashCode(value);
   }
 }

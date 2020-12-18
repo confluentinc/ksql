@@ -22,6 +22,7 @@ import static io.confluent.ksql.execution.testutil.TestExpressions.COL3;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL7;
 import static io.confluent.ksql.execution.testutil.TestExpressions.MAPCOL;
 import static io.confluent.ksql.execution.testutil.TestExpressions.SCHEMA;
+import static io.confluent.ksql.execution.testutil.TestExpressions.TIMESTAMPCOL;
 import static io.confluent.ksql.execution.testutil.TestExpressions.literal;
 import static io.confluent.ksql.name.SourceName.of;
 import static java.util.Optional.empty;
@@ -29,6 +30,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
@@ -42,6 +44,7 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
@@ -77,6 +80,7 @@ import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -806,6 +810,54 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
+  public void shouldGenerateCorrectCodeForTimestampTimestampLT() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.LESS_THAN,
+        TIMESTAMPCOL,
+        TIMESTAMPCOL
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(COL10.compareTo(COL10) < 0)"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForTimestampStringEQ() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.EQUAL,
+        TIMESTAMPCOL,
+        new StringLiteral("2020-01-01T00:00:00")
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(COL10.compareTo(SqlTimestamps.parseTimestamp(\"2020-01-01T00:00:00\")) == 0)"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForTimestampStringGEQ() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.GREATER_THAN_OR_EQUAL,
+        new StringLiteral("2020-01-01T00:00:00"),
+        TIMESTAMPCOL
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(SqlTimestamps.parseTimestamp(\"2020-01-01T00:00:00\").compareTo(COL10) >= 0)"));
+  }
+
+  @Test
   public void shouldThrowOnQualifiedColumnReference() {
     // Given:
     final Expression expression = new QualifiedColumnReferenceExp(
@@ -857,15 +909,6 @@ public class SqlToJavaVisitorTest {
     assertThrows(
         UnsupportedOperationException.class,
         () -> sqlToJavaVisitor.process(new TimeLiteral("TIME '00:00:00'"))
-    );
-  }
-
-  @Test
-  public void shouldThrowOnTimestampLiteral() {
-    // When:
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> sqlToJavaVisitor.process(new TimestampLiteral("TIMESTAMP '00:00:00'"))
     );
   }
 

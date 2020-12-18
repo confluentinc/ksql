@@ -90,5 +90,18 @@ public class GenericExpressionResolverTest {
     assertThat(e.getMessage(), containsString("Expected type ARRAY<INTEGER> for field `FOO` but got INTEGER(1)"));
   }
 
+  @Test
+  public void shouldThrowIfCannotParseTimestamp() {
+    // Given:
+    final SqlType type = SqlTypes.TIMESTAMP;
+    final Expression exp = new StringLiteral("abc");
 
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> new GenericExpressionResolver(type, FIELD_NAME, registry, config, "insert value").resolve(exp));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Timestamp format must be yyyy-mm-ddThh:mm:ss[.S]"));
+  }
 }

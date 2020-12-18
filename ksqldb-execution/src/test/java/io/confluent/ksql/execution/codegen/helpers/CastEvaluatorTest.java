@@ -15,6 +15,10 @@
 
 package io.confluent.ksql.execution.codegen.helpers;
 
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.ARRAY;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.MAP;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.STRUCT;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.TIMESTAMP;
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -40,18 +44,21 @@ import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
+import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -130,7 +137,7 @@ public class CastEvaluatorTest {
     public void shouldEvalCodeWithNonNullArgument() {
       if (supportedCast) {
         // Given:
-        final Object argument = InstanceInstances.instanceFor(from);
+        final Object argument = InstanceInstances.instanceFor(from, to);
 
         // When:
         final Object result = eval(from, to, config, argument);
@@ -146,6 +153,7 @@ public class CastEvaluatorTest {
         // Given:
         final Matcher<Object> expected = returnJavaType.equals(String.class)
             && !from.equals(SqlTypes.STRING)
+            && !from.equals(SqlTypes.TIMESTAMP)
             && !from.baseType().equals(SqlBaseType.DECIMAL)
             && !config.getBoolean(KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE)
             ? is("null")
@@ -206,6 +214,27 @@ public class CastEvaluatorTest {
 
       // Then:
       assertThat(exception.getMessage(), containsString("Invalid double value: NaN"));
+    }
+  }
+
+  @RunWith(MockitoJUnitRunner.class)
+  public static final class TimestampTest {
+
+    @Mock
+    private KsqlConfig config;
+
+    @Test
+    public void shouldNotCastPositiveInfinite() {
+      // Given:
+      final Evaluator evaluator = cookCode(SqlTypes.STRING, SqlTypes.TIMESTAMP, config);
+      // When:
+      final Exception exception = assertThrows(
+          KsqlException.class,
+          () -> evaluator.rawEvaluate("woof")
+      );
+
+      // Then:
+      assertThat(exception.getMessage(), containsString("Required format is: \"yyyy-MM-dd'T'HH:mm:ss.SSS\", with an optional numeric"));
     }
   }
 
@@ -355,7 +384,7 @@ public class CastEvaluatorTest {
     @Test
     public void shouldReturnStructWithCorrectSchema() {
       // Given:
-      final Struct struct = (Struct) InstanceInstances.instanceFor(FROM);
+      final Struct struct = (Struct) InstanceInstances.instanceFor(FROM, TO);
 
       // When:
       final Struct result = CastEvaluator.castStruct(struct, mappers, TO_CONNECT_SCHEMA);
@@ -367,7 +396,7 @@ public class CastEvaluatorTest {
     @Test
     public void shouldMapFields() {
       // Given:
-      final Struct struct = (Struct) InstanceInstances.instanceFor(FROM);
+      final Struct struct = (Struct) InstanceInstances.instanceFor(FROM, TO);
 
       // When:
       final Struct result = CastEvaluator.castStruct(struct, mappers, TO_CONNECT_SCHEMA);
@@ -413,7 +442,7 @@ public class CastEvaluatorTest {
 
       final Schema schema = SchemaConverters.sqlToConnectConverter().toConnectSchema(to);
 
-      final Object argument = InstanceInstances.instanceFor(from);
+      final Object argument = InstanceInstances.instanceFor(from, to);
 
       // When:
       final Object result = eval(from, to, config, argument);
@@ -564,13 +593,13 @@ public class CastEvaluatorTest {
           .collect(Collectors.toSet());
 
       assertThat(
-          "This test will fail is a new base type is added to remind you to think about what"
+          "This test will fail if a new base type is added to remind you to think about what"
               + "CASTs should be supported for the new type.",
           allTypes,
           is(ImmutableSet.of(
               SqlBaseType.BOOLEAN, SqlBaseType.INTEGER, SqlBaseType.BIGINT, SqlBaseType.DECIMAL,
-              SqlBaseType.DOUBLE, SqlBaseType.STRING, SqlBaseType.ARRAY, SqlBaseType.MAP,
-              SqlBaseType.STRUCT
+              SqlBaseType.DOUBLE, SqlBaseType.STRING, SqlBaseType.ARRAY, MAP,
+              SqlBaseType.STRUCT, TIMESTAMP
           ))
       );
     }
@@ -630,10 +659,11 @@ public class CastEvaluatorTest {
         .put(SqlBaseType.DOUBLE, SqlTypes.DOUBLE)
         .put(SqlBaseType.STRING, SqlTypes.STRING)
         .put(SqlBaseType.ARRAY, SqlTypes.array(SqlTypes.BIGINT))
-        .put(SqlBaseType.MAP, SqlTypes.map(SqlTypes.BIGINT, SqlTypes.STRING))
+        .put(MAP, SqlTypes.map(SqlTypes.BIGINT, SqlTypes.STRING))
         .put(SqlBaseType.STRUCT, SqlTypes.struct()
             .field("Bob", SqlTypes.STRING)
             .build())
+        .put(SqlBaseType.TIMESTAMP, SqlTypes.TIMESTAMP)
         .build();
 
     static SqlType typeInstanceFor(final SqlBaseType baseType) {
@@ -657,26 +687,48 @@ public class CastEvaluatorTest {
         .put(SqlBaseType.DECIMAL, new BigDecimal("12.01"))
         .put(SqlBaseType.DOUBLE, 34.98d)
         .put(SqlBaseType.STRING, "\t 11 \t")
+        .put(TIMESTAMP, new Timestamp(500))
         .build();
 
-    static Object instanceFor(final SqlType type) {
+    static Object instanceFor(final SqlType type, final SqlType to) {
       switch (type.baseType()) {
         case ARRAY:
-          final Object element = instanceFor(((SqlArray) type).getItemType());
+          final Object element = (to.baseType() == ARRAY)
+              ? instanceFor(((SqlArray) type).getItemType(), ((SqlArray) to).getItemType())
+              : instanceFor(((SqlArray) type).getItemType(), to);
           return ImmutableList.of(element);
         case MAP:
-          final Object key = instanceFor(((SqlMap) type).getKeyType());
-          final Object value = instanceFor(((SqlMap) type).getValueType());
-          return ImmutableMap.of(key, value);
+          if (to.baseType() == MAP) {
+            final Object key = instanceFor(((SqlMap) type).getKeyType(), ((SqlMap) to).getKeyType());
+            final Object value = instanceFor(((SqlMap) type).getValueType(), ((SqlMap) to).getValueType());
+            return ImmutableMap.of(key, value);
+          } else {
+            final Object key = instanceFor(((SqlMap) type).getKeyType(), to);
+            final Object value = instanceFor(((SqlMap) type).getValueType(), to);
+            return ImmutableMap.of(key, value);
+          }
         case STRUCT:
           final SqlStruct sqlStruct = (SqlStruct) type;
           final Struct struct = new Struct(
               SchemaConverters.sqlToConnectConverter().toConnectSchema(type));
-
-          sqlStruct.fields()
-              .forEach(field -> struct.put(field.name(), instanceFor(field.type())));
+          if (to.baseType() == STRUCT) {
+            sqlStruct.fields()
+                .forEach(field -> {
+                  final Optional<Field> toField = ((SqlStruct) to).field(field.name());
+                  struct.put(
+                        field.name(),
+                        instanceFor(field.type(), toField.isPresent() ? toField.get().type(): to));
+                });
+          } else {
+            sqlStruct.fields()
+                .forEach(field -> struct.put(field.name(), instanceFor(field.type(), to)));
+          }
 
           return struct;
+        case STRING:
+          if (to.baseType() == TIMESTAMP) {
+            return "2020-05-26T07:59:58.000";
+          }
         default:
           final Object instance = INSTANCES.get(type.baseType());
           assertThat(
@@ -732,17 +784,22 @@ public class CastEvaluatorTest {
                 .add(SqlBaseType.DECIMAL)
                 .add(SqlBaseType.DOUBLE)
                 .add(SqlBaseType.STRING)
+                .add(TIMESTAMP)
                 .build())
             .put(SqlBaseType.ARRAY, ImmutableSet.<SqlBaseType>builder()
                 .add(SqlBaseType.ARRAY)
                 .add(SqlBaseType.STRING)
                 .build())
-            .put(SqlBaseType.MAP, ImmutableSet.<SqlBaseType>builder()
-                .add(SqlBaseType.MAP)
+            .put(MAP, ImmutableSet.<SqlBaseType>builder()
+                .add(MAP)
                 .add(SqlBaseType.STRING)
                 .build())
             .put(SqlBaseType.STRUCT, ImmutableSet.<SqlBaseType>builder()
                 .add(SqlBaseType.STRUCT)
+                .add(SqlBaseType.STRING)
+                .build())
+            .put(TIMESTAMP, ImmutableSet.<SqlBaseType>builder()
+                .add(TIMESTAMP)
                 .add(SqlBaseType.STRING)
                 .build())
             .build();

@@ -30,6 +30,7 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.connect.data.Struct;
@@ -146,6 +147,14 @@ public class UdfUtilTest {
     assertThat(
         UdfUtil.getSchemaFromType(BigDecimal.class),
         is(ParamTypes.DECIMAL)
+    );
+  }
+
+  @Test
+  public void shouldGetTimestampSchemaForTimestampClass() {
+    assertThat(
+        UdfUtil.getSchemaFromType(Timestamp.class),
+        is(ParamTypes.TIMESTAMP)
     );
   }
 

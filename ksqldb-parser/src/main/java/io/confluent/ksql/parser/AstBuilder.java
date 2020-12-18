@@ -53,7 +53,6 @@ import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
-import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
@@ -1210,9 +1209,6 @@ public class AstBuilder {
 
       if (type.equals("TIME")) {
         return new TimeLiteral(location, value);
-      }
-      if (type.equals("TIMESTAMP")) {
-        return new TimestampLiteral(location, value);
       }
       if (type.equals("DECIMAL")) {
         return new DecimalLiteral(location, new BigDecimal(value));

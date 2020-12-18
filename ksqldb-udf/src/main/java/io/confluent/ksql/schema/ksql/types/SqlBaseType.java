@@ -22,7 +22,7 @@ import java.util.stream.Stream;
  * The SQL types supported by KSQL.
  */
 public enum SqlBaseType {
-  BOOLEAN, INTEGER, BIGINT, DECIMAL, DOUBLE, STRING, ARRAY, MAP, STRUCT;
+  BOOLEAN, INTEGER, BIGINT, DECIMAL, DOUBLE, STRING, ARRAY, MAP, STRUCT, TIMESTAMP;
 
   /**
    * @return {@code true} if numeric type.
@@ -41,8 +41,9 @@ public enum SqlBaseType {
    * @return true if this type can be implicitly cast to the supplied type.
    */
   public boolean canImplicitlyCast(final SqlBaseType to) {
-    return this.equals(to)
-        || (isNumber() && to.isNumber() && this.ordinal() <= to.ordinal());
+    final boolean canCastNumber = (isNumber() && to.isNumber() && this.ordinal() <= to.ordinal());
+    final boolean canCastTimestamp = this.equals(STRING) && to.equals(TIMESTAMP);
+    return this.equals(to) || canCastNumber || canCastTimestamp;
   }
 
   public static Stream<SqlBaseType> numbers() {

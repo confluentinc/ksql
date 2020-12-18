@@ -56,6 +56,7 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.name.Name;
+import io.confluent.ksql.schema.ksql.SqlTimestamps;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
@@ -182,7 +183,7 @@ public final class ExpressionFormatter {
 
     @Override
     public String visitTimestampLiteral(final TimestampLiteral node, final Context context) {
-      return "TIMESTAMP '" + node.getValue() + "'";
+      return SqlTimestamps.formatTimestamp(node.getValue());
     }
 
     @Override

@@ -129,6 +129,11 @@ public class PartialStringToTimestampParserTest {
             + "with an optional numeric 4-digit timezone"));
   }
 
+  @Test
+  public void shouldParseToTimestamp() {
+    assertThat(parser.parseToTimestamp("2017-11-13T23:59:58.999-0100").getTime(), is(1510621198999L));
+  }
+
   private static long fullParse(final String text) {
     return FULL_PARSER.parse(text);
   }

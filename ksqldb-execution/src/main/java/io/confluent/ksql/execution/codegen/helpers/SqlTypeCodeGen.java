@@ -66,6 +66,11 @@ public final class SqlTypeCodeGen {
     }
 
     @Override
+    public String visitTimestamp(final SqlPrimitiveType type) {
+      return "SqlTypes.TIMESTAMP";
+    }
+
+    @Override
     public String visitDecimal(final SqlDecimal type) {
       return "SqlTypes.decimal(" + type.getPrecision() + "," + type.getScale() + ")";
     }

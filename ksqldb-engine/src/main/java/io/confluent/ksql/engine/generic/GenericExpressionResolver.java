@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.engine.generic;
 
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.STRING;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.TIMESTAMP;
+
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
@@ -100,13 +103,17 @@ public class GenericExpressionResolver {
           .orElseThrow(() -> {
             final SqlBaseType valueSqlType = SchemaConverters.javaToSqlConverter()
                 .toSqlType(value.getClass());
-
-            return new KsqlException(
-                String.format("Expected type %s for field %s but got %s(%s)",
-                    fieldType,
-                    fieldName,
-                    valueSqlType,
-                    value));
+            final String errorMessage = String.format(
+                "Expected type %s for field %s but got %s(%s)%s",
+                fieldType,
+                fieldName,
+                valueSqlType,
+                value,
+                (fieldType == TIMESTAMP && valueSqlType == STRING)
+                    ? ". Timestamp format must be yyyy-mm-ddThh:mm:ss[.S]" :
+                    ""
+            );
+            return new KsqlException(errorMessage);
           })
           .orElse(null);
     }

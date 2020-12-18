@@ -24,6 +24,7 @@ import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.Timestamp;
 import javax.annotation.Nonnull;
 
 public final class JsonSerdeUtils {
@@ -127,6 +128,20 @@ public final class JsonSerdeUtils {
     }
 
     throw invalidConversionException(object, SqlBaseType.DOUBLE);
+  }
+
+  static Timestamp toTimestamp(final JsonNode object) {
+    if (object instanceof NumericNode) {
+      return new Timestamp(object.asLong());
+    }
+    if (object instanceof TextNode) {
+      try {
+        return new Timestamp(Long.parseLong(object.textValue()));
+      } catch (final NumberFormatException e) {
+        throw failedStringCoercionException(SqlBaseType.TIMESTAMP);
+      }
+    }
+    throw invalidConversionException(object, SqlBaseType.TIMESTAMP);
   }
 
   static IllegalArgumentException invalidConversionException(

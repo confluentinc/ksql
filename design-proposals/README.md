@@ -83,4 +83,4 @@ Next KLIP number: **44**
 | KLIP-40: Prepared Statements for Java Client                                                         | Proposal | | | |
 | [KLIP-41: ksqlDB .NET Client](klip-41-ksqldb-.net-client.md)                                         | Proposal | | | [Discussion](https://github.com/confluentinc/ksql/pull/6613)|
 | KLIP-42: Schema Migrations Tool                                                                      | Proposal | | | |
-| KLIP-43: TIMESTAMP data type support                                                                 | Proposal | | | [Discussion](https://github.com/confluentinc/ksql/pull/6649) |
+| [KLIP-43: TIMESTAMP data type support ](klip-43-timestamp-data-type-support.md)                      | Approved | | | [Discussion](https://github.com/confluentinc/ksql/pull/6649) |

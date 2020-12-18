@@ -1,8 +1,8 @@
 # KLIP-43: TIMESTAMP Data Type Support
 
 **Author**: @jzaralim | 
-**Release Target**: 0.15, 0.16 | 
-**Status**: In Discussion | 
+**Release Target**: 0.16 | 
+**Status**: Approved | 
 **Discussion**: https://github.com/confluentinc/ksql/pull/6649
 
 **tl;dr:** _Add support for TIMESTAMP column types in ksqlDB. This will allow users to easily migrate

@@ -77,6 +77,7 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
+import java.sql.Timestamp;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
@@ -735,15 +736,6 @@ public class ExpressionTypeManagerTest {
     assertThrows(
         UnsupportedOperationException.class,
         () -> expressionTypeManager.getExpressionSqlType(new TimeLiteral("TIME '00:00:00'"))
-    );
-  }
-
-  @Test
-  public void shouldThrowOnTimestampLiteral() {
-    // When:
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> expressionTypeManager.getExpressionSqlType(new TimestampLiteral("TIMESTAMP '00:00:00'"))
     );
   }
 

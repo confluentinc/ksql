@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.schema.utils.SchemaException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Test;
@@ -47,6 +48,8 @@ public class SqlPrimitiveTypeTest {
             SqlPrimitiveType.of(SqlBaseType.DOUBLE))
         .addEqualityGroup(SqlPrimitiveType.of(SqlBaseType.STRING),
             SqlPrimitiveType.of(SqlBaseType.STRING))
+        .addEqualityGroup(SqlPrimitiveType.of(SqlBaseType.TIMESTAMP),
+            SqlPrimitiveType.of(SqlBaseType.TIMESTAMP))
         .addEqualityGroup(SqlArray.of(SqlPrimitiveType.of(SqlBaseType.STRING)))
         .testEquals();
   }
@@ -107,13 +110,14 @@ public class SqlPrimitiveTypeTest {
   @Test
   public void shouldSupportSqlPrimitiveTypes() {
     // Given:
-    final java.util.Map<String, SqlBaseType> primitives = ImmutableMap.of(
-        "BooleaN", SqlBaseType.BOOLEAN,
-        "IntegeR", SqlBaseType.INTEGER,
-        "BigInT", SqlBaseType.BIGINT,
-        "DoublE", SqlBaseType.DOUBLE,
-        "StrinG", SqlBaseType.STRING
-    );
+    final java.util.Map<String, SqlBaseType> primitives = new ImmutableMap.Builder<String, SqlBaseType>()
+        .put("BooleaN", SqlBaseType.BOOLEAN)
+        .put("IntegeR", SqlBaseType.INTEGER)
+        .put("BigInT", SqlBaseType.BIGINT)
+        .put("DoublE", SqlBaseType.DOUBLE)
+        .put("StrinG", SqlBaseType.STRING)
+        .put("tImeStamP", SqlBaseType.TIMESTAMP)
+        .build();
 
     primitives.forEach((string, expected) ->
         // Then:
@@ -144,7 +148,8 @@ public class SqlPrimitiveTypeTest {
         "BOOLEAN",
         "BIGINT",
         "DOUBLE",
-        "STRING"
+        "STRING",
+        "TIMESTAMP"
     );
 
     // When:
@@ -173,7 +178,8 @@ public class SqlPrimitiveTypeTest {
         SqlBaseType.INTEGER,
         SqlBaseType.BIGINT,
         SqlBaseType.DOUBLE,
-        SqlBaseType.STRING
+        SqlBaseType.STRING,
+        SqlBaseType.TIMESTAMP
     ).forEach(type -> {
       // Then:
       assertThat(SqlPrimitiveType.of(type).toString(), is(type.toString()));

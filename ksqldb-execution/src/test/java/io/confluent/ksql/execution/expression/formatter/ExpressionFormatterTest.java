@@ -67,6 +67,7 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.Optional;
 import org.junit.Test;
@@ -169,7 +170,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatTimestampLiteral() {
-    assertThat(ExpressionFormatter.formatExpression(new TimestampLiteral("15673839303")), equalTo("TIMESTAMP '15673839303'"));
+    assertThat(ExpressionFormatter.formatExpression(new TimestampLiteral(new Timestamp(500))), equalTo("1970-01-01T00:00:00.500"));
   }
 
   @Test

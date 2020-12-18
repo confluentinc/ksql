@@ -312,17 +312,6 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Cannot repartition a TABLE source. If this is a join, joins on tables with multiple columns is not yet supported."
       }
-    },
-    {
-      "name": "multi-column partition",
-      "statements": [
-        "CREATE STREAM S (K STRING KEY, ID VARCHAR) WITH (kafka_topic='S', format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT * FROM S PARTITION BY K, ID;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "mismatched input ',' expecting ';'"
-      }
     }
   ]
 }

@@ -27,7 +27,7 @@ row is identified by its `PRIMARY KEY`. A row's `PRIMARY KEY` can not be `NULL`.
 underlying Kafka topic with the same key as an existing row will _replace_ the existing row in the
 table, or _delete_ the row if the message's value is `NULL`, i.e. a _tombstone_, as long as it has
 a later timestamp / `ROWTIME`. 
-This situation is handled differently by [ksqlDB STREAM](./create-stream), as shown in the following table.
+This situation is handled differently by [ksqlDB STREAM](../create-stream), as shown in the following table.
 
 |                          |  STREAM                                                       | TABLE                                                             |
 | ------------------------ | --------------------------------------------------------------| ----------------------------------------------------------------- |

@@ -29,7 +29,7 @@ stream with the same name already exists.
 A ksqlDB STREAM is a stream of _facts_. Each fact is immutable and unique.
 A stream can store its data in either `KEY` or `VALUE` columns.
 Both `KEY` and `VALUE` columns can be NULL. No special processing is done if two rows have the same
-key. This situation is handled differently by [ksqlDB TABLEs](./create-table), as shown in the following table.
+key. This situation is handled differently by [ksqlDB TABLEs](../create-table), as shown in the following table.
 
 |                          |  STREAM                                                       | TABLE                                                             |
 | ------------------------ | --------------------------------------------------------------| ----------------------------------------------------------------- |

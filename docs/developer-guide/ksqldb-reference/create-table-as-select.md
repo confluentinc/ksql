@@ -63,7 +63,7 @@ The primary key of the resulting table is determined by the following rules, in 
        contents of the result of the expression.
     1. otherwise, the primary key will have a system generated name, and will be of type `STRING` 
        and contain the grouping expression concatenated together.
- 1. if the query has a join see [Join Synthetic Key Columns](../joins/synthetic-keys) for more info.
+ 1. if the query has a join see [Join Synthetic Key Columns](/concepts/joins/synthetic-keys) for more info.
  1. otherwise, the primary key will match the name, unless you provide an alias in the projection, 
     and type of the source table's primary key.
  

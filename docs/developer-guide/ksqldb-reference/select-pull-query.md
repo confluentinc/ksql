@@ -15,7 +15,7 @@ Synopsis
 ```sql
 SELECT select_expr [, ...]
   FROM aggregate_table
-  WHERE key_column=key
+  WHERE key_column=key [AND ...]
   [AND window_bounds];
 ```
 
@@ -35,7 +35,7 @@ request/response flows. For asynchronous application flows, see
 Execute a pull query by sending an HTTP request to the ksqlDB REST API, and
 the API responds with a single response.  
 
-The WHERE clause must contain a single primary-key to retrieve and may
+The WHERE clause must contain a value for each primary-key column to retrieve and may
 optionally include bounds on `WINDOWSTART` and `WINDOWEND` if the materialized table is windowed.
 For more information, see 
 [Time and Windows in ksqlDB](../../concepts/time-and-windows-in-ksqldb-queries.md).
@@ -46,6 +46,16 @@ Example
 ```sql
 SELECT * FROM pageviews_by_region
   WHERE regionId = 'Region_1'
+    AND 1570051876000 <= WINDOWSTART AND WINDOWEND <= 1570138276000;
+```
+
+If the `pageviews_by_region` table was created as an aggregation of multiple columns,
+then each key column must be present in the WHERE clause. The following example shows how to 
+query the table if `countryId` and `regionId` where both key columns:
+
+```sql
+SELECT * FROM pageviews_by_region
+  WHERE countryId = 'USA' AND regionId = 'Region_1'
     AND 1570051876000 <= WINDOWSTART AND WINDOWEND <= 1570138276000;
 ```
 

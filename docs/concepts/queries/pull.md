@@ -36,7 +36,7 @@ Pull query features and limitations
   with a GROUP BY clause.
 - For non-windowed aggregations, pull queries only support looking up events
   by key.
-- WHERE clauses can only have constraints on the key column for non-windowed tables.
+- WHERE clauses must have constraints that encompass all key column(s) for non-windowed tables.
 
 - In addition, windowed tables support bounds on `WINDOWSTART` and `WINDOWEND` using operators
   `<=`, `<`, `=`, `>`, `>=`.

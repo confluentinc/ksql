@@ -63,9 +63,16 @@ public final class SerdeFeaturesFactory {
       final LogicalSchema schema,
       final Format keyFormat
   ) {
+    return buildKeyFeatures(keyFormat, schema.key().size() == 1);
+  }
+
+  public static SerdeFeatures buildKeyFeatures(
+      final Format keyFormat,
+      final boolean isSingleKey
+  ) {
     final ImmutableSet.Builder<SerdeFeature> builder = ImmutableSet.builder();
 
-    getKeyWrapping(schema.key().size() == 1, keyFormat)
+    getKeyWrapping(isSingleKey, keyFormat)
         .ifPresent(builder::add);
 
     return SerdeFeatures.from(builder.build());
@@ -85,6 +92,50 @@ public final class SerdeFeaturesFactory {
         .ifPresent(builder::add);
 
     return SerdeFeatures.from(builder.build());
+  }
+
+  /**
+   * Not all {@code KeyFormat}s are valid internal topic formats. Specifically,
+   * we want to ensure that the key format is (1) not NONE and (2) explicitly sets
+   * the wrapping if it contains only a single column. This method ensures that
+   * both of these are eagerly set.
+   *
+   * <p>Note that while it is safe to call this method multiple times (it is idempotent),
+   * it should be called before we build the execution steps to make sure that we never
+   * serialize an execution step with a single key column and no wrapping serde features.
+   * To achieve this, we've audited the SchemaKStream, SchemaKTable and SchemaGroupedKStream
+   * classes to ensure that anytime a key is changed we properly set the key format.
+   *
+   * @return the key format to use
+   */
+  public static KeyFormat sanitizeKeyFormat(
+      final KeyFormat keyFormat,
+      final boolean isSingleKey
+  ) {
+    final Optional<SerdeFeature> keyWrapping = keyFormat
+        .getFeatures()
+        .findAny(SerdeFeatures.WRAPPING_FEATURES);
+    final boolean hasWrappingFeature = keyWrapping.isPresent();
+
+    // it is possible that the source format was either multi-key
+    // or no-key, in which case there would not have been a wrapping
+    // configuration specified - we should specify one here
+    if (isSingleKey && !hasWrappingFeature) {
+      final SerdeFeatures defaultWrapping =
+          getKeyWrapping(true, FormatFactory.of(keyFormat.getFormatInfo()))
+              .map(SerdeFeatures::of)
+              .orElse(SerdeFeatures.of());
+      return keyFormat.withSerdeFeatures(defaultWrapping);
+    }
+
+    // it is also possible that the source format was single-key and had a wrapping
+    // configuration specified, but the new format is not single-key and therefore
+    // should not have a wrapping configuration specified - we remove it here
+    if (!isSingleKey && hasWrappingFeature) {
+      return keyFormat.withoutSerdeFeatures(SerdeFeatures.of(keyWrapping.get()));
+    }
+
+    return keyFormat;
   }
 
   private static Optional<SerdeFeature> getKeyWrapping(
@@ -162,4 +213,5 @@ public final class SerdeFeaturesFactory {
 
     return Optional.of(feature);
   }
+
 }

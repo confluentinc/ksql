@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
@@ -31,23 +32,27 @@ public class StreamSelectKey<K> implements ExecutionStep<KStreamHolder<K>> {
   private static final ImmutableList<Property> MUST_MATCH = ImmutableList.of(
       new Property("class", Object::getClass),
       new Property("properties", ExecutionStep::getProperties),
-      new Property("keyExpression", s -> ((StreamSelectKey<?>) s).keyExpression)
+      new Property("keyExpressions", s -> ((StreamSelectKey<?>) s).keyExpressions)
   );
 
   private final ExecutionStepPropertiesV1 properties;
-  private final Expression keyExpression;
+  @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+  private final ImmutableList<Expression> keyExpressions;
   @EffectivelyImmutable
   private final ExecutionStep<? extends KStreamHolder<K>> source;
 
   public StreamSelectKey(
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
-      @JsonProperty(value = "source", required = true) final
-      ExecutionStep<? extends KStreamHolder<K>> source,
-      @JsonProperty(value = "keyExpression", required = true) final Expression keyExpression
+      @JsonProperty(value = "source", required = true)
+      final ExecutionStep<? extends KStreamHolder<K>> source,
+      // maintain legacy name for backwards compatibility
+      @JsonProperty(value = "keyExpression", required = true)
+      final List<Expression> keyExpressions
   ) {
     this.properties = Objects.requireNonNull(props, "props");
     this.source = Objects.requireNonNull(source, "source");
-    this.keyExpression = Objects.requireNonNull(keyExpression, "keyExpression");
+    this.keyExpressions = ImmutableList.copyOf(
+        Objects.requireNonNull(keyExpressions, "keyExpressions"));
   }
 
   @Override
@@ -61,8 +66,10 @@ public class StreamSelectKey<K> implements ExecutionStep<KStreamHolder<K>> {
     return Collections.singletonList(source);
   }
 
-  public Expression getKeyExpression() {
-    return keyExpression;
+  // maintain legacy name for backwards compatibility
+  @JsonProperty(value = "keyExpression", required = true)
+  public List<Expression> getKeyExpressions() {
+    return keyExpressions;
   }
 
   public ExecutionStep<? extends KStreamHolder<K>> getSource() {
@@ -93,14 +100,14 @@ public class StreamSelectKey<K> implements ExecutionStep<KStreamHolder<K>> {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final StreamSelectKey that = (StreamSelectKey) o;
+    final StreamSelectKey<?> that = (StreamSelectKey<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
-        && Objects.equals(keyExpression, that.keyExpression);
+        && Objects.equals(keyExpressions, that.keyExpressions);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(properties, source, keyExpression);
+    return Objects.hash(properties, source, keyExpressions);
   }
 }

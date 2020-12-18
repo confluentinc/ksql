@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.transform.select;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -32,7 +33,6 @@ import java.util.stream.Collectors;
  * Factor class for {@link SelectValueMapper}.
  */
 public final class SelectValueMapperFactory {
-
   private static final String EXP_TYPE = "Select";
 
   private final CodeGenRunner codeGenerator;
@@ -46,10 +46,15 @@ public final class SelectValueMapperFactory {
   public interface SelectValueMapperFactorySupplier {
     <K> SelectValueMapper<K> create(
         List<SelectExpression> selectExpressions,
-        LogicalSchema sourceSchema,
-        KsqlConfig ksqlConfig,
-        FunctionRegistry functionRegistry
+        List<ExpressionMetadata> compiledSelectExpressions
     );
+  }
+
+  public static <K> SelectValueMapper<K> create(
+      final List<SelectExpression> selectExpressions,
+      final List<ExpressionMetadata> compiledSelectExpressions
+  ) {
+    return new SelectValueMapper<>(buildSelects(selectExpressions, compiledSelectExpressions));
   }
 
   public static <K> SelectValueMapper<K> create(
@@ -70,12 +75,6 @@ public final class SelectValueMapperFactory {
     return new SelectValueMapper<>(buildSelects(selectExpressions));
   }
 
-  private List<SelectInfo> buildSelects(final List<SelectExpression> selectExpressions) {
-    return selectExpressions.stream()
-        .map(this::buildSelect)
-        .collect(Collectors.toList());
-  }
-
   private SelectInfo buildSelect(final SelectExpression selectExpression) {
     final ExpressionMetadata evaluator = codeGenerator
         .buildCodeGenFromParseTree(selectExpression.getExpression(), EXP_TYPE);
@@ -84,5 +83,24 @@ public final class SelectValueMapperFactory {
         selectExpression.getAlias(),
         evaluator
     );
+  }
+
+  private List<SelectInfo> buildSelects(final List<SelectExpression> selectExpressions) {
+    return selectExpressions.stream()
+        .map(this::buildSelect)
+        .collect(Collectors.toList());
+  }
+
+  private static List<SelectInfo> buildSelects(
+      final List<SelectExpression> selectExpressions,
+      final List<ExpressionMetadata> compiledSelectExpressions
+  ) {
+    final ImmutableList.Builder<SelectInfo> result = ImmutableList.builder();
+
+    for (int i = 0; i < selectExpressions.size(); i++) {
+      result.add(SelectInfo.of(
+          selectExpressions.get(i).getAlias(), compiledSelectExpressions.get(i)));
+    }
+    return result.build();
   }
 }

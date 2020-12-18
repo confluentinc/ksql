@@ -1241,7 +1241,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Cannot repartition a TABLE source. If this is a join, make sure that the criteria uses the TABLE's key column K instead of ID"
+        "message": "Cannot repartition a TABLE source. If this is a join, make sure that the criteria uses the TABLE's key column K instead of [ID]"
       }
     },
     {
@@ -1712,7 +1712,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Cannot repartition a TABLE source. If this is a join, make sure that the criteria uses the TABLE's key column K instead of ID"
+        "message": "Cannot repartition a TABLE source. If this is a join, make sure that the criteria uses the TABLE's key column K instead of [ID]"
       }
     },
     {
@@ -1907,37 +1907,19 @@
       }
     },
     {
-      "name": "matching time-windowed",
+      "name": "matching time-windowed join with different windows fails",
       "comments": [
         "Note: the two streams use a different window size. However, only the start of the window is serialized, so its possible to get a matching binary key",
-        "This may meet users requirements, hence KSQL allows such joins",
-        "Note: the key format is currently taken from the left source."
+        "This may meet users requirements, but KSQL does not support these joins... because it's crazy!"
       ],
       "statements": [
         "CREATE STREAM S1 (ID INT KEY, V bigint) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Hopping', WINDOW_SIZE='5 SECONDS');",
         "CREATE STREAM S2 (ID INT KEY, V bigint) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='2 SECOND');",
         "CREATE STREAM OUTPUT as SELECT *, S1.ROWTIME, S2.ROWTIME FROM S1 JOIN S2 WITHIN 1 MINUTE ON S1.ID = S2.ID;"
       ],
-      "inputs": [
-        {"topic": "left_topic", "key": 1, "value": {"V": 1}, "timestamp": 0, "window": {"start": 0, "end": 5000, "type": "time"}},
-        {"topic": "left_topic", "key": 1, "value": {"V": 2}, "timestamp": 1000, "window": {"start": 1000, "end": 6000, "type": "time"}},
-        {"topic": "left_topic", "key": 1, "value": {"V": 3}, "timestamp": 2000, "window": {"start": 2000, "end": 7000, "type": "time"}},
-        {"topic": "right_topic", "key": 1, "value": {"V": 4}, "timestamp": 0, "window": {"start": 0, "end": 2000, "type": "time"}},
-        {"topic": "right_topic", "key": 1, "value": {"V": 5}, "timestamp": 2000, "window": {"start": 2000, "end": 4000, "type": "time"}}
-      ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"S1_ROWTIME": 0, "S1_WINDOWSTART": 0, "S1_WINDOWEND": 5000, "S1_V": 1, "S2_ROWTIME": 0, "S2_WINDOWSTART": 0, "S2_WINDOWEND": 2000, "S2_ID": 1, "S2_V": 4}, "timestamp": 0, "window": {"start": 0, "end":5000, "type": "time"}},
-        {"topic": "OUTPUT", "key": 1, "value": {"S1_ROWTIME": 2000, "S1_WINDOWSTART": 2000, "S1_WINDOWEND": 7000, "S1_V": 3, "S2_ROWTIME": 2000, "S2_WINDOWSTART": 2000, "S2_WINDOWEND": 4000, "S2_ID": 1, "S2_V": 5}, "timestamp": 2000, "window": {"start": 2000, "end":7000, "type": "time"}}
-      ],
-      "post": {
-        "sources": [
-          {
-            "name": "OUTPUT",
-            "type": "stream",
-            "keyFormat": {"format": "KAFKA", "windowType": "HOPPING", "windowSize": 5000},
-            "schema": "S1_ID INT KEY, `S1_WINDOWSTART` BIGINT, `S1_WINDOWEND` BIGINT, `S1_V` BIGINT, S2_ID INTEGER, `S2_WINDOWSTART` BIGINT, `S2_WINDOWEND` BIGINT, `S2_V` BIGINT, S1_ROWTIME BIGINT, S2_ROWTIME BIGINT"
-          }
-        ]
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Implicit repartitioning of windowed sources is not supported."
       }
     },
     {
@@ -3262,7 +3244,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Cannot repartition a TABLE source. If this is a join, make sure that the criteria uses the TABLE's key column ID instead of VAL"
+        "message": "Cannot repartition a TABLE source. If this is a join, make sure that the criteria uses the TABLE's key column ID instead of [VAL]"
       }
     }
   ]

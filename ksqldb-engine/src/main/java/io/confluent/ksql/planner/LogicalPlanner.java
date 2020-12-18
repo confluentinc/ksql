@@ -67,6 +67,7 @@ import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.PreJoinProjectNode;
 import io.confluent.ksql.planner.plan.PreJoinRepartitionNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.planner.plan.SelectionUtil;
 import io.confluent.ksql.planner.plan.SuppressNode;
 import io.confluent.ksql.planner.plan.UserRepartitionNode;
@@ -75,7 +76,6 @@ import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -88,6 +88,7 @@ import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -120,7 +121,7 @@ public class LogicalPlanner {
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
-  public OutputNode buildPlan() {
+  public OutputNode buildPersistentLogicalPlan() {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     PlanNode currentNode = buildSourceNode();
 
@@ -169,6 +170,25 @@ public class LogicalPlanner {
 
     return buildOutputNode(currentNode);
   }
+
+  public OutputNode buildPullLogicalPlan() {
+    PlanNode currentNode = buildSourceNode();
+
+    if (analysis.getWhereExpression().isPresent()) {
+      currentNode = buildFilterNode(currentNode, analysis.getWhereExpression().get());
+    }
+
+    currentNode = new PullProjectNode(
+        new PlanNodeId("Project"),
+        currentNode,
+        analysis.getSelectItems(),
+        metaStore,
+        ksqlConfig,
+        analysis);
+
+    return buildOutputNode(currentNode);
+  }
+
 
   private OutputNode buildOutputNode(final PlanNode sourcePlanNode) {
     final LogicalSchema inputSchema = sourcePlanNode.getSchema();
@@ -291,13 +311,13 @@ public class LogicalPlanner {
         getTargetSchema()
     );
 
-    final LogicalSchema schema =
-        buildAggregateSchema(sourcePlanNode, groupBy, projectionExpressions);
-
     final RewrittenAggregateAnalysis aggregateAnalysis = new RewrittenAggregateAnalysis(
         aggregateAnalyzer.analyze(analysis, projectionExpressions),
         refRewriter::process
     );
+
+    final LogicalSchema schema =
+        buildAggregateSchema(sourcePlanNode, groupBy, projectionExpressions);
 
     if (analysis.getHavingExpression().isPresent()) {
       final FilterTypeValidator validator = new FilterTypeValidator(
@@ -361,18 +381,19 @@ public class LogicalPlanner {
       final PlanNode currentNode,
       final PartitionBy partitionBy
   ) {
-    final Expression rewrittenPartitionBy =
-        ExpressionTreeRewriter.rewriteWith(refRewriter::process, partitionBy.getExpression());
+    final List<Expression> rewrittenPartitionBys = partitionBy.getExpressions().stream()
+        .map(exp -> ExpressionTreeRewriter.rewriteWith(refRewriter::process, exp))
+        .collect(Collectors.toList());
 
     final LogicalSchema schema =
-        buildRepartitionedSchema(currentNode, rewrittenPartitionBy);
+        buildRepartitionedSchema(currentNode, rewrittenPartitionBys);
 
     return new UserRepartitionNode(
         new PlanNodeId("PartitionBy"),
         currentNode,
         schema,
-        partitionBy.getExpression(),
-        rewrittenPartitionBy
+        partitionBy.getExpressions(),
+        rewrittenPartitionBys
     );
   }
 
@@ -386,7 +407,7 @@ public class LogicalPlanner {
         ExpressionTreeRewriter.rewriteWith(plugin, joinExpression);
 
     final LogicalSchema schema =
-        buildRepartitionedSchema(source, rewrittenPartitionBy);
+        buildRepartitionedSchema(source, Collections.singletonList(rewrittenPartitionBy));
 
     return new PreJoinRepartitionNode(
         new PlanNodeId(side + "SourceKeyed"),
@@ -599,32 +620,6 @@ public class LogicalPlanner {
       }
     };
 
-    final ColumnName keyName;
-    final SqlType keyType;
-
-    if (groupByExps.size() != 1) {
-      keyType = SqlTypes.STRING;
-
-      keyName = ColumnNames.nextKsqlColAlias(
-          sourceSchema,
-          LogicalSchema.builder()
-              .valueColumns(projectionSchema.value())
-              .build()
-      );
-    } else {
-      final ExpressionTypeManager typeManager =
-          new ExpressionTypeManager(sourceSchema, metaStore);
-
-      final Expression expression = groupByExps.get(0);
-
-      keyType = typeManager.getExpressionSqlType(expression);
-      keyName = selectResolver.apply(expression)
-          .orElseGet(() -> expression instanceof ColumnReferenceExp
-              ? ((ColumnReferenceExp) expression).getColumnName()
-              : ColumnNames.uniqueAliasFor(expression, sourceSchema)
-          );
-    }
-
     final List<Column> valueColumns;
     if (analysis.getInto().isPresent()) {
       // Persistent query:
@@ -649,7 +644,19 @@ public class LogicalPlanner {
 
     final Builder builder = LogicalSchema.builder();
 
-    builder.keyColumn(keyName, keyType);
+    final ExpressionTypeManager typeManager =
+        new ExpressionTypeManager(sourceSchema, metaStore);
+
+    for (final Expression expression : groupByExps) {
+      final SqlType keyType = typeManager.getExpressionSqlType(expression);
+      final ColumnName keyName = selectResolver.apply(expression)
+          .orElseGet(() -> expression instanceof ColumnReferenceExp
+              ? ((ColumnReferenceExp) expression).getColumnName()
+              : ColumnNames.uniqueAliasFor(expression, sourceSchema)
+          );
+
+      builder.keyColumn(keyName, keyType);
+    }
 
     return builder
         .valueColumns(valueColumns)
@@ -658,13 +665,13 @@ public class LogicalPlanner {
 
   private LogicalSchema buildRepartitionedSchema(
       final PlanNode sourceNode,
-      final Expression partitionBy
+      final List<Expression> partitionBys
   ) {
     final LogicalSchema sourceSchema = sourceNode.getSchema();
 
     return PartitionByParamsFactory.buildSchema(
         sourceSchema,
-        partitionBy,
+        partitionBys,
         metaStore
     );
   }

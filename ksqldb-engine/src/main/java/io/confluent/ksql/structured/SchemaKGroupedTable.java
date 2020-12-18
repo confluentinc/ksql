@@ -98,7 +98,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
     final TableAggregate step = ExecutionStepFactory.tableAggregate(
         contextStacker,
         sourceTableStep,
-        InternalFormats.of(keyFormat.getFormatInfo(), valueFormat),
+        InternalFormats.of(keyFormat, valueFormat),
         nonAggregateColumns,
         aggregations
     );

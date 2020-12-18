@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
@@ -238,8 +239,8 @@ public class LogicalPlannerTest {
         .getSources().get(0).getSources().get(0);
 
     assertThat(
-        repart.getPartitionBy(),
-        equalTo(new UnqualifiedColumnReferenceExp(ColumnName.of("T1_COL1")))
+        repart.getPartitionBys(),
+        equalTo(ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("T1_COL1"))))
     );
   }
 

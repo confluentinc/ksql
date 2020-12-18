@@ -185,8 +185,8 @@ CREATE STREAM products_rekeyed
 ```
 
 For more information, see
-[Inspecting and Changing Topic Keys](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/inspecting-changing-topic-keys)
-in the [Stream Processing Cookbook](https://www.confluent.io/product/ksql/stream-processing-cookbook).
+[How to rekey a stream with a value](https://kafka-tutorials.confluent.io/rekey-a-stream/ksql.html)
+in [Kafka Tutorials](https://kafka-tutorials.confluent.io/).
 
 ### Records Have the Same Number of Partitions
 

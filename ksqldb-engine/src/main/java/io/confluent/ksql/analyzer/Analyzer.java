@@ -30,8 +30,8 @@ import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
-import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
+import io.confluent.ksql.execution.streams.PartitionByParamsFactory;
 import io.confluent.ksql.execution.util.ColumnExtractor;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.metastore.MetaStore;
@@ -205,7 +205,7 @@ class Analyzer {
         final FormatInfo sourceFormat
     ) {
       final boolean partitioningByNull = analysis.getPartitionBy()
-          .map(pb -> pb.getExpression() instanceof NullLiteral)
+          .map(pb -> PartitionByParamsFactory.isPartitionByNull(pb.getExpressions()))
           .orElse(false);
       if (partitioningByNull) {
         final boolean nonNoneExplicitFormat = explicitFormat
@@ -291,8 +291,9 @@ class Analyzer {
           .forEach(expression -> columnValidator.analyzeExpression(expression, "GROUP BY"));
 
       analysis.getPartitionBy()
-          .map(PartitionBy::getExpression)
-          .ifPresent(expression -> columnValidator.analyzeExpression(expression, "PARTITION BY"));
+          .map(PartitionBy::getExpressions)
+          .orElseGet(ImmutableList::of)
+          .forEach(expression -> columnValidator.analyzeExpression(expression, "PARTITION BY"));
 
       analysis.getHavingExpression()
           .ifPresent(expression -> columnValidator.analyzeExpression(expression, "HAVING"));

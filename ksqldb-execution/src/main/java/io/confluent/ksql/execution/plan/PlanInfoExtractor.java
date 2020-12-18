@@ -28,6 +28,10 @@ public class PlanInfoExtractor {
     return visitSingleSourceStep(streamFilter);
   }
 
+  public <K> PlanInfo visitStreamGroupBy(final StreamGroupByV1<K> streamGroupBy) {
+    return visitSingleSourceStep(streamGroupBy);
+  }
+
   public <K> PlanInfo visitStreamGroupBy(final StreamGroupBy<K> streamGroupBy) {
     return visitSingleSourceStep(streamGroupBy);
   }
@@ -96,6 +100,10 @@ public class PlanInfoExtractor {
 
   public <K> PlanInfo visitTableFilter(final TableFilter<K> tableFilter) {
     return visitSingleSourceStep(tableFilter);
+  }
+
+  public <K> PlanInfo visitTableGroupBy(final TableGroupByV1<K> tableGroupBy) {
+    return visitSingleSourceStep(tableGroupBy);
   }
 
   public <K> PlanInfo visitTableGroupBy(final TableGroupBy<K> tableGroupBy) {

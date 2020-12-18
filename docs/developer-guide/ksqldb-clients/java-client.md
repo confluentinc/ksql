@@ -69,7 +69,7 @@ Start by creating a `pom.xml` for your Java application:
         <repository>
             <id>confluent</id>
             <name>Confluent</name>
-            <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/{{ site.ksqldbcpversion }}/1/maven/</url>
+            <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/{{ site.kstreamsbetatag }}/1/maven/</url>
         </repository>
     </repositories>
 
@@ -80,7 +80,7 @@ Start by creating a `pom.xml` for your Java application:
         </pluginRepository>
         <pluginRepository>
             <id>confluent</id>
-            <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/{{ site.ksqldbcpversion }}/1/maven/</url>
+            <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/{{ site.kstreamsbetatag }}/1/maven/</url>
         </pluginRepository>
     </pluginRepositories>
 
@@ -152,11 +152,24 @@ Receive query results one row at a time (streamQuery())<a name="stream-query"></
 The `streamQuery()` method enables client apps to receive query results one row at a time,
 either asynchronously via a Reactive Streams subscriber or synchronously in a polling fashion.
 
+You can use this method to issue both push and pull queries, but the usage pattern is better for push queries.
+For pull queries, consider using the [`executeQuery()`](#execute-query)
+method instead.
+
+Query properties can be passed as an optional second argument. For more information, see the [client API reference](api/io/confluent/ksql/api/client/Client.html#streamQuery(java.lang.String,java.util.Map)).
+
+By default, push queries return only newly arriving rows. To start from the beginning of the stream or table,
+set the `auto.offset.reset` property to `earliest`.
+
 ```java
 public interface Client {
 
   /**
    * Executes a query (push or pull) and returns the results one row at a time.
+   * 
+   * <p>This method may be used to issue both push and pull queries, but the usage 
+   * pattern is better for push queries. For pull queries, consider using the 
+   * {@link Client#executeQuery(String)} method instead.
    *
    * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
    * failed.
@@ -171,15 +184,6 @@ public interface Client {
   
 }
 ```
-
-You can use this method to issue both push and pull queries, but the usage pattern is better for push queries.
-For pull queries, consider using the [`executeQuery()`](#execute-query)
-method instead.
-
-Query properties can be passed as an optional second argument. For more information, see the [client API reference](api/io/confluent/ksql/api/client/Client.html#streamQuery(java.lang.String,java.util.Map)).
-
-By default, push queries return only newly arriving rows. To start from the beginning of the stream or table,
-set the `auto.offset.reset` property to `earliest`.
 
 ### Asynchronous Usage ###
 
@@ -270,12 +274,26 @@ Receive query results in a single batch (executeQuery())<a name="execute-query">
 The `executeQuery()` method enables client apps to receive query results as a single batch
 that's returned when the query completes.
 
+This method is suitable for both pull queries and for terminating push queries,
+for example, queries that have a `LIMIT` clause. For non-terminating push queries,
+use the [`streamQuery()`](#stream-query) method instead.
+
+Query properties can be passed as an optional second argument. For more
+information, see the [client API reference](api/io/confluent/ksql/api/client/Client.html#executeQuery(java.lang.String,java.util.Map)).
+
+By default, push queries return only newly arriving rows. To start from the beginning of the stream or table,
+set the `auto.offset.reset` property to `earliest`.
+
 ```java
 public interface Client {
 
   /**
    * Executes a query (push or pull) and returns all result rows in a single batch, once the query
    * has completed.
+   * 
+   * <p>This method is suitable for both pull queries and for terminating push queries,
+   * for example, queries that have a {@code LIMIT} clause. For non-terminating push queries,
+   * use the {@link Client#streamQuery(String)} method instead.
    *
    * @param sql statement of query to execute
    * @return query result
@@ -286,17 +304,6 @@ public interface Client {
   
 }
 ```
-
-This method is suitable for both pull queries and for terminating push queries,
-for example, queries that have a `LIMIT` clause). For non-terminating push queries,
-use the [`streamQuery()`](#stream-query)
-method instead.
-
-Query properties can be passed as an optional second argument. For more
-information, see the [client API reference](api/io/confluent/ksql/api/client/Client.html#executeQuery(java.lang.String,java.util.Map)).
-
-By default, push queries return only newly arriving rows. To start from the beginning of the stream or table,
-set the `auto.offset.reset` property to `earliest`.
 
 ### Example Usage ###
 

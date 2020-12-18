@@ -17,7 +17,6 @@ package io.confluent.ksql.structured;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.rewrite.StatementRewriteForMagicPseudoTimestamp;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -45,7 +44,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
@@ -167,7 +165,7 @@ public class SchemaKStream<K> {
   ) {
     throwOnJoinKeyFormatsMismatch(schemaKTable);
 
-    final Formats fmts = InternalFormats.of(keyFormat.getFormatInfo(), leftValueFormat);
+    final Formats fmts = InternalFormats.of(keyFormat, leftValueFormat);
 
     final StreamTableJoin<K> step = ExecutionStepFactory.streamTableJoin(
         contextStacker,
@@ -201,8 +199,8 @@ public class SchemaKStream<K> {
         contextStacker,
         JoinType.LEFT,
         keyColName,
-        InternalFormats.of(keyFormat.getFormatInfo(), leftFormat),
-        InternalFormats.of(keyFormat.getFormatInfo(), rightFormat),
+        InternalFormats.of(keyFormat, leftFormat),
+        InternalFormats.of(keyFormat, rightFormat),
         sourceStep,
         otherSchemaKStream.sourceStep,
         joinWindows
@@ -229,7 +227,7 @@ public class SchemaKStream<K> {
         contextStacker,
         JoinType.INNER,
         keyColName,
-        InternalFormats.of(keyFormat.getFormatInfo(), leftValueFormat),
+        InternalFormats.of(keyFormat, leftValueFormat),
         sourceStep,
         schemaKTable.getSourceTableStep()
     );
@@ -257,8 +255,8 @@ public class SchemaKStream<K> {
         contextStacker,
         JoinType.INNER,
         keyColName,
-        InternalFormats.of(keyFormat.getFormatInfo(), leftFormat),
-        InternalFormats.of(keyFormat.getFormatInfo(), rightFormat),
+        InternalFormats.of(keyFormat, leftFormat),
+        InternalFormats.of(keyFormat, rightFormat),
         sourceStep,
         otherSchemaKStream.sourceStep,
         joinWindows
@@ -287,8 +285,8 @@ public class SchemaKStream<K> {
         contextStacker,
         JoinType.OUTER,
         keyColName,
-        InternalFormats.of(keyFormat.getFormatInfo(), leftFormat),
-        InternalFormats.of(keyFormat.getFormatInfo(), rightFormat),
+        InternalFormats.of(keyFormat, leftFormat),
+        InternalFormats.of(keyFormat, rightFormat),
         sourceStep,
         otherSchemaKStream.sourceStep,
         joinWindows
@@ -315,15 +313,15 @@ public class SchemaKStream<K> {
    */
   public SchemaKStream<K> selectKey(
       final FormatInfo valueFormat,
-      final Expression keyExpression,
-      final Optional<FormatInfo> forceInternalKeyFormat,
+      final List<Expression> keyExpression,
+      final Optional<KeyFormat> forceInternalKeyFormat,
       final Stacker contextStacker,
       final boolean forceRepartition
   ) {
     final boolean keyFormatChange = forceInternalKeyFormat.isPresent()
-        && !forceInternalKeyFormat.get().equals(keyFormat.getFormatInfo());
+        && !forceInternalKeyFormat.get().equals(keyFormat);
 
-    final boolean repartitionNeeded = repartitionNeeded(ImmutableList.of(keyExpression));
+    final boolean repartitionNeeded = repartitionNeeded(keyExpression);
     if (!keyFormatChange && !forceRepartition && !repartitionNeeded) {
       return this;
     }
@@ -338,17 +336,13 @@ public class SchemaKStream<K> {
     final ExecutionStep<KStreamHolder<K>> step = ExecutionStepFactory
         .streamSelectKey(contextStacker, sourceStep, keyExpression);
 
-    final KeyFormat newKeyFormat = forceInternalKeyFormat
-        .map(newFmt -> KeyFormat.of(
-            newFmt,
-            SerdeFeaturesFactory.buildInternal(FormatFactory.of(newFmt)),
-            keyFormat.getWindowInfo()))
-        .orElse(keyFormat);
-
+    final KeyFormat newKeyFormat = forceInternalKeyFormat.orElse(keyFormat);
     return new SchemaKStream<>(
         step,
         resolveSchema(step),
-        newKeyFormat,
+        SerdeFeaturesFactory.sanitizeKeyFormat(
+            newKeyFormat,
+            keyExpression.size() == 1),
         ksqlConfig,
         functionRegistry
     );
@@ -364,27 +358,33 @@ public class SchemaKStream<K> {
       final Stacker contextStacker
   ) {
     if (!repartitionNeeded(groupByExpressions)) {
-      return groupByKey(keyFormat.getFormatInfo(), valueFormat, contextStacker);
+      return groupByKey(keyFormat, valueFormat, contextStacker);
     }
 
-    final FormatInfo keyFmtInfo = keyFormat.getFormatInfo().getFormat().equals(NoneFormat.NAME)
-        ? FormatInfo.of(ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG))
-        : keyFormat.getFormatInfo();
+    final KeyFormat rekeyedFormat;
+    if (keyFormat.getFormatInfo().getFormat().equals(NoneFormat.NAME)) {
+      final FormatInfo defaultFormat = FormatInfo.of(
+          ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG));
+      rekeyedFormat = KeyFormat.nonWindowed(defaultFormat, SerdeFeatures.of());
+    } else {
+      rekeyedFormat = keyFormat;
+    }
 
-    final KeyFormat rekeyedKeyFormat = KeyFormat
-        .nonWindowed(keyFmtInfo, SerdeFeatures.of());
-
+    final KeyFormat sanitizedKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
+        rekeyedFormat,
+        groupByExpressions.size() == 1
+    );
     final StreamGroupBy<K> source = ExecutionStepFactory.streamGroupBy(
         contextStacker,
         sourceStep,
-        InternalFormats.of(rekeyedKeyFormat.getFormatInfo(), valueFormat),
+        InternalFormats.of(sanitizedKeyFormat, valueFormat),
         groupByExpressions
     );
 
     return new SchemaKGroupedStream(
         source,
         resolveSchema(source),
-        rekeyedKeyFormat,
+        rekeyedFormat,
         ksqlConfig,
         functionRegistry
     );
@@ -392,9 +392,9 @@ public class SchemaKStream<K> {
 
   @SuppressWarnings({"unchecked", "rawtypes"})
   private SchemaKGroupedStream groupByKey(
-      final FormatInfo rekeyedKeyFormat,
+      final KeyFormat rekeyedKeyFormat,
       final FormatInfo valueFormat,
-      final QueryContext.Stacker contextStacker
+      final Stacker contextStacker
   ) {
     if (keyFormat.isWindowed()) {
       throw new UnsupportedOperationException("Group by on windowed should always require rekey");

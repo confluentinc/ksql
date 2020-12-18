@@ -45,6 +45,7 @@ import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -118,22 +119,22 @@ public class JoinNode extends PlanNode implements JoiningNode {
    * @see <a href="https://github.com/confluentinc/ksql/blob/master/design-proposals/klip-33-key-format.md">KLIP-33</a>
    */
   public void resolveKeyFormats() {
-    final FormatInfo joinKeyFormat = getPreferredKeyFormat()
+    final KeyFormat joinKeyFormat = getPreferredKeyFormat()
         .orElseGet(this::getDefaultSourceKeyFormat);
 
     setKeyFormat(joinKeyFormat);
   }
 
   @Override
-  public Optional<FormatInfo> getPreferredKeyFormat() {
-    final Optional<FormatInfo> leftPreferred = leftJoining.getPreferredKeyFormat();
+  public Optional<KeyFormat> getPreferredKeyFormat() {
+    final Optional<KeyFormat> leftPreferred = leftJoining.getPreferredKeyFormat();
     return leftPreferred.isPresent()
         ? leftPreferred
         : rightJoining.getPreferredKeyFormat();
   }
 
   @Override
-  public void setKeyFormat(final FormatInfo format) {
+  public void setKeyFormat(final KeyFormat format) {
     leftJoining.setKeyFormat(format);
     rightJoining.setKeyFormat(format);
   }
@@ -254,16 +255,17 @@ public class JoinNode extends PlanNode implements JoiningNode {
             + "number of partitions match.");
   }
 
-  private FormatInfo getDefaultSourceKeyFormat() {
+  private KeyFormat getDefaultSourceKeyFormat() {
     return Stream.of(left, right)
         .flatMap(PlanNode::getSourceNodes)
         .map(DataSourceNode::getDataSource)
         .map(DataSource::getKsqlTopic)
         .map(KsqlTopic::getKeyFormat)
-        .map(KeyFormat::getFormatInfo)
-        .filter(format -> !format.getFormat().equals(NoneFormat.NAME))
+        .filter(format -> !format.getFormatInfo().getFormat().equals(NoneFormat.NAME))
         .findFirst()
-        .orElse(FormatInfo.of(defaultKeyFormat));
+        // if none exist, assume non-Windowed since that would mean that both sources
+        // were of NONE format, which doesn't support windowed operations
+        .orElse(KeyFormat.nonWindowed(FormatInfo.of(defaultKeyFormat), SerdeFeatures.of()));
   }
 
   private static SourceName getSourceName(final PlanNode node) {

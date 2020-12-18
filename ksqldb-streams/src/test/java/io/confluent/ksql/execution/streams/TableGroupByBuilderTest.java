@@ -1,3 +1,18 @@
+/*
+ * Copyright 2019 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.execution.streams;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -22,7 +37,7 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableGroupBy;
-import io.confluent.ksql.execution.streams.TableGroupByBuilder.ParamsFactory;
+import io.confluent.ksql.execution.streams.TableGroupByBuilderBase.ParamsFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
@@ -164,7 +179,7 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldPerformGroupByCorrectly() {
     // When:
-    final KGroupedTableHolder result = builder.build(tableHolder, groupBy);
+    final KGroupedTableHolder result = build(builder, tableHolder, groupBy);
 
     // Then:
     assertThat(result.getGroupedTable(), is(groupedTable));
@@ -176,7 +191,7 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldBuildGroupByParamsCorrectly() {
     // When:
-    builder.build(tableHolder, groupBy);
+    build(builder, tableHolder, groupBy);
 
     // Then:
     verify(paramsFactory).build(
@@ -189,7 +204,7 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldReturnCorrectSchema() {
     // When:
-    final KGroupedTableHolder result = builder.build(tableHolder, groupBy);
+    final KGroupedTableHolder result = build(builder, tableHolder, groupBy);
 
     // Then:
     assertThat(result.getSchema(), is(REKEYED_SCHEMA));
@@ -198,7 +213,7 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldFilterNullRowsBeforeGroupBy() {
     // When:
-    builder.build(tableHolder, groupBy);
+    build(builder, tableHolder, groupBy);
 
     // Then:
     verify(sourceTable).filter(predicateCaptor.capture());
@@ -210,7 +225,7 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldBuildGroupedCorrectlyForGroupBy() {
     // When:
-    builder.build(tableHolder, groupBy);
+    build(builder, tableHolder, groupBy);
 
     // Then:
     verify(groupedFactory).create("foo-groupby", keySerde, valueSerde);
@@ -219,7 +234,7 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldBuildKeySerdeCorrectlyForGroupBy() {
     // When:
-    builder.build(tableHolder, groupBy);
+    build(builder, tableHolder, groupBy);
 
     // Then:
     verify(queryBuilder).buildKeySerde(
@@ -232,13 +247,26 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldBuildValueSerdeCorrectlyForGroupBy() {
     // When:
-    builder.build(tableHolder, groupBy);
+    build(builder, tableHolder, groupBy);
 
     // Then:
     verify(queryBuilder).buildValueSerde(
         FORMATS.getValueFormat(),
         REKEYED_PHYSICAL_SCHEMA,
         STEP_CONTEXT
+    );
+  }
+
+  private static <K> KGroupedTableHolder build(
+      final TableGroupByBuilder builder,
+      final KTableHolder<K> table,
+      final TableGroupBy<K> step
+  ) {
+    return builder.build(
+        table,
+        step.getProperties().getQueryContext(),
+        step.getInternalFormats(),
+        step.getGroupByExpressions()
     );
   }
 

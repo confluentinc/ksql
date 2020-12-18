@@ -304,7 +304,7 @@ final class EngineExecutor {
       final KsqlConfig config
   ) {
     final OutputNode outputNode = new LogicalPlanner(config, analysis, engineContext.getMetaStore())
-        .buildPlan();
+        .buildPullLogicalPlan();
     return new LogicalPlanNode(
         statement.getStatementText(),
         Optional.of(outputNode)
@@ -478,7 +478,7 @@ final class EngineExecutor {
   }
 
   private String buildPlanSummary(final QueryId queryId, final ExecutionStep<?> plan) {
-    return new PlanSummary(queryId, config.getConfig(false), engineContext.getMetaStore())
+    return new PlanSummary(queryId, config.getConfig(true), engineContext.getMetaStore())
         .summarize(plan);
   }
 }

@@ -18,6 +18,7 @@ package io.confluent.ksql.structured;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -108,6 +109,8 @@ public class SchemaKGroupedStreamTest {
   public void setUp() {
     when(keyFormatInfo.getFormat()).thenReturn(FormatFactory.KAFKA.name());
     when(keyFormat.getFormatInfo()).thenReturn(keyFormatInfo);
+    when(keyFormat.withSerdeFeatures(any())).thenReturn(keyFormat);
+    when(keyFormat.getFeatures()).thenReturn(SerdeFeatures.of());
     when(valueFormat.getFormatInfo()).thenReturn(valueformatInfo);
 
     schemaGroupedStream = new SchemaKGroupedStream(
@@ -162,9 +165,45 @@ public class SchemaKGroupedStreamTest {
   }
 
   @Test
-  public void shouldBuildStepForAggregateWhereKeyFormatSupportsBothWrappingAndUnwrapping() {
+  public void shouldBuildStepForAggregateWithKeyFormatSerdeFeaturesInherited() {
     // Given:
     when(keyFormatInfo.getFormat()).thenReturn(FormatFactory.JSON.name());
+    when(keyFormat.getFeatures()).thenReturn(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+
+    // When:
+    final SchemaKTable result = schemaGroupedStream.aggregate(
+        NON_AGGREGATE_COLUMNS,
+        ImmutableList.of(AGG),
+        Optional.empty(),
+        valueFormat.getFormatInfo(),
+        queryContext
+    );
+
+    // Then:
+    assertThat(
+        result.getSourceTableStep(),
+        equalTo(
+            ExecutionStepFactory.streamAggregate(
+                queryContext,
+                schemaGroupedStream.getSourceStep(),
+                Formats.of(keyFormatInfo, valueformatInfo, SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES), SerdeFeatures.of()),
+                NON_AGGREGATE_COLUMNS,
+                ImmutableList.of(AGG)
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldBuildStepForAggregateWithKeyFormatSerdeFeaturesWrappingIsNotSet() {
+    // Given:
+    final SerdeFeatures[] features = new SerdeFeatures[]{SerdeFeatures.of()};
+    when(keyFormatInfo.getFormat()).thenReturn(FormatFactory.JSON.name());
+    when(keyFormat.getFeatures()).thenAnswer(inv -> features[0]);
+    when(keyFormat.withSerdeFeatures(any())).thenAnswer(inv -> {
+      features[0] = inv.getArgument(0);
+      return keyFormat;
+    });
 
     // When:
     final SchemaKTable result = schemaGroupedStream.aggregate(

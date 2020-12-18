@@ -298,7 +298,7 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable<?> resultSchemaKTable = initialSchemaKTable.selectKey(
         valueFormat.getFormatInfo(),
-        new UnqualifiedColumnReferenceExp(ColumnName.of("COL0")),
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))),
         Optional.empty(),
         childContextStacker,
         true
@@ -322,7 +322,7 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable<?> resultSchemaKTable = initialSchemaKTable.selectKey(
         valueFormat.getFormatInfo(),
-        new UnqualifiedColumnReferenceExp(ColumnName.of("COL0")),
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))),
         Optional.empty(),
         childContextStacker,
         true
@@ -335,8 +335,10 @@ public class SchemaKTableTest {
             ExecutionStepFactory.tableSelectKey(
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
-                InternalFormats.of(keyFormat.getFormatInfo(), valueFormat.getFormatInfo()),
-                new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))
+                InternalFormats.of(
+                    keyFormat.withSerdeFeatures(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)),
+                    valueFormat.getFormatInfo()),
+                ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL0")))
             )
         )
     );
@@ -354,7 +356,7 @@ public class SchemaKTableTest {
         UnsupportedOperationException.class,
         () -> initialSchemaKTable.selectKey(
             valueFormat.getFormatInfo(),
-            new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
+            ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"))),
             Optional.empty(),
             childContextStacker,
             true
@@ -376,7 +378,7 @@ public class SchemaKTableTest {
         UnsupportedOperationException.class,
         () -> initialSchemaKTable.selectKey(
             valueFormat.getFormatInfo(),
-            new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
+            ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"))),
             Optional.empty(),
             childContextStacker,
             false
@@ -572,9 +574,9 @@ public class SchemaKTableTest {
   }
 
   @Test
-  public void shouldBuildStepForGroupByWhereKeyFormatSupportsBothWrappingAndUnwrapping() {
+  public void shouldBuildStepForGroupByBasedOnKeySerdeFeatures() {
     // Given:
-    keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
+    keyFormat = KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
     final String selectQuery = "SELECT col0, col1, col2 FROM test2 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
@@ -597,7 +599,7 @@ public class SchemaKTableTest {
                 Formats.of(
                     initialSchemaKTable.keyFormat.getFormatInfo(),
                     valueFormat.getFormatInfo(),
-                    SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES),
+                    SerdeFeatures.of(),
                     SerdeFeatures.of()
                 ),
                 groupByExpressions
@@ -722,8 +724,6 @@ public class SchemaKTableTest {
   @Test
   public void shouldBuildStepForTableTableJoin() {
     // Given:
-    givenJoin();
-    givenLeftJoin();
     final List<Pair<JoinType, Join>> cases = ImmutableList.of(
         Pair.of(JoinType.LEFT, firstSchemaKTable::leftJoin),
         Pair.of(JoinType.INNER, firstSchemaKTable::join)
@@ -753,8 +753,6 @@ public class SchemaKTableTest {
   @Test
   public void shouldBuildSchemaForTableTableJoin() {
     // Given:
-    givenJoin();
-    givenLeftJoin();
     final List<Pair<JoinType, Join>> cases = ImmutableList.of(
         Pair.of(JoinType.LEFT, firstSchemaKTable::leftJoin),
         Pair.of(JoinType.INNER, firstSchemaKTable::join)
@@ -792,21 +790,5 @@ public class SchemaKTableTest {
 
   private PlanNode buildLogicalPlan(final String query) {
     return AnalysisTestUtil.buildLogicalPlan(ksqlConfig, query, metaStore);
-  }
-
-  private void givenJoin() {
-    final KTable resultTable = mock(KTable.class);
-    when(mockKTable.join(
-        eq(secondKTable),
-        any(KsqlValueJoiner.class))
-    ).thenReturn(resultTable);
-  }
-
-  private void givenLeftJoin() {
-    final KTable resultTable = mock(KTable.class);
-    when(mockKTable.leftJoin(
-        eq(secondKTable),
-        any(KsqlValueJoiner.class))
-    ).thenReturn(resultTable);
   }
 }

@@ -109,9 +109,6 @@
     },
     {
       "name": "multi-column key",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K1 STRING KEY, K2 STRING KEY, V INT) WITH (kafka_topic='input_topic', format='DELIMITED');",
         "CREATE STREAM OUTPUT WITH (key_format='JSON') AS SELECT * FROM INPUT;"
@@ -129,9 +126,6 @@
     },
     {
       "name": "multi-column key with different kv delimiters",
-      "properties": {
-        "ksql.multicol.key.format.enabled": true
-      },
       "statements": [
         "CREATE STREAM INPUT (K1 STRING KEY, K2 STRING KEY, V INT, V2 INT) WITH (kafka_topic='input_topic', format='DELIMITED', key_delimiter=';', value_delimiter='-');",
         "CREATE STREAM OUTPUT WITH (key_format='JSON') AS SELECT * FROM INPUT;"

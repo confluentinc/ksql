@@ -5,6 +5,13 @@ tagline: Detailed changelog for ksqlDB
 description: Lists changes to the ksqlDB codebase
 keywords: ksqldb, changelog
 ---
+Version 0.14.0
+--------------
+
+- [Announcing ksqlDB 0.14.0](https://www.confluent.io/blog/announcing-ksqldb-0-14-0/)
+- [ksqlDB v0.14.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0140-2020-10-28)
+
+
 Version 0.13.0
 --------------
 

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.physical.pull.operators;
 
+import io.confluent.ksql.planner.plan.PlanNode;
 import java.util.List;
 
 /**
@@ -28,6 +29,8 @@ public abstract class AbstractPhysicalOperator {
   public abstract Object next();
 
   public abstract void close();
+
+  public abstract PlanNode getLogicalNode();
 
   public abstract void addChild(AbstractPhysicalOperator child);
 

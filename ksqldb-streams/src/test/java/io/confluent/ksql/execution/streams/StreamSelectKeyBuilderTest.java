@@ -23,11 +23,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -46,6 +48,7 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
@@ -69,8 +72,8 @@ public class StreamSelectKeyBuilderTest {
       .build()
       .withPseudoAndKeyColsInValue(false);
 
-  private static final UnqualifiedColumnReferenceExp KEY =
-      new UnqualifiedColumnReferenceExp(ColumnName.of("BOI"));
+  private static final List<Expression> KEY =
+      ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("BOI")));
 
   private static final LogicalSchema RESULT_SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("BOI"), SqlTypes.BIGINT)

@@ -24,7 +24,7 @@ import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
-import io.confluent.ksql.execution.streams.StreamGroupByBuilder.ParamsFactory;
+import io.confluent.ksql.execution.streams.StreamGroupByBuilderBase.ParamsFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
@@ -171,7 +171,7 @@ public class StreamGroupByBuilderTest {
   @Test
   public void shouldPerformGroupByCorrectly() {
     // When:
-    final KGroupedStreamHolder result = builder.build(streamHolder, groupBy);
+    final KGroupedStreamHolder result = buildGroupBy(builder, streamHolder, groupBy);
 
     // Then:
     assertThat(result.getGroupedStream(), is(groupedStream));
@@ -183,7 +183,7 @@ public class StreamGroupByBuilderTest {
   @Test
   public void shouldBuildGroupByParamsCorrectly() {
     // When:
-    builder.build(streamHolder, groupBy);
+    buildGroupBy(builder, streamHolder, groupBy);
 
     // Then:
     verify(paramsFactory).build(
@@ -196,7 +196,7 @@ public class StreamGroupByBuilderTest {
   @Test
   public void shouldFilterNullRowsBeforeGroupBy() {
     // When:
-    builder.build(streamHolder, groupBy);
+    buildGroupBy(builder, streamHolder, groupBy);
 
     // Then:
     verify(sourceStream).filter(predicateCaptor.capture());
@@ -208,7 +208,7 @@ public class StreamGroupByBuilderTest {
   @Test
   public void shouldBuildGroupedCorrectlyForGroupBy() {
     // When:
-    builder.build(streamHolder, groupBy);
+    buildGroupBy(builder, streamHolder, groupBy);
 
     // Then:
     verify(groupedFactory).create("foo-groupby", keySerde, valueSerde);
@@ -217,7 +217,7 @@ public class StreamGroupByBuilderTest {
   @Test
   public void shouldReturnCorrectSchemaForGroupBy() {
     // When:
-    final KGroupedStreamHolder result = builder.build(streamHolder, groupBy);
+    final KGroupedStreamHolder result = buildGroupBy(builder, streamHolder, groupBy);
 
     // Then:
     assertThat(result.getSchema(), is(REKEYED_SCHEMA));
@@ -226,7 +226,7 @@ public class StreamGroupByBuilderTest {
   @Test
   public void shouldBuildKeySerdeCorrectlyForGroupBy() {
     // When:
-    builder.build(streamHolder, groupBy);
+    buildGroupBy(builder, streamHolder, groupBy);
 
     // Then:
     verify(queryBuilder).buildKeySerde(
@@ -239,7 +239,7 @@ public class StreamGroupByBuilderTest {
   @Test
   public void shouldBuildValueSerdeCorrectlyForGroupBy() {
     // When:
-    builder.build(streamHolder, groupBy);
+    buildGroupBy(builder, streamHolder, groupBy);
 
     // Then:
     verify(queryBuilder).buildValueSerde(
@@ -309,6 +309,19 @@ public class StreamGroupByBuilderTest {
         FORMATS.getValueFormat(),
         PHYSICAL_SCHEMA,
         STEP_CTX
+    );
+  }
+
+  private static <K> KGroupedStreamHolder buildGroupBy(
+      final StreamGroupByBuilder builder,
+      final KStreamHolder<K> stream,
+      final StreamGroupBy<K> step
+  ) {
+    return builder.build(
+        stream,
+        step.getProperties().getQueryContext(),
+        step.getInternalFormats(),
+        step.getGroupByExpressions()
     );
   }
 

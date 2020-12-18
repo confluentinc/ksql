@@ -283,7 +283,7 @@ public class PhysicalPlanBuilderTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "Cannot repartition a TABLE source. If this is a join, make "
-            + "sure that the criteria uses the TABLE's key column ID instead of COL0"));
+            + "sure that the criteria uses the TABLE's key column ID instead of [COL0]"));
   }
 
   @Test
@@ -303,7 +303,7 @@ public class PhysicalPlanBuilderTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "Cannot repartition a TABLE source. If this is a join, make "
-            + "sure that the criteria uses the TABLE's key column ID instead of COL0"));
+            + "sure that the criteria uses the TABLE's key column ID instead of [COL0]"));
   }
 
   @Test

@@ -24,6 +24,7 @@ import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Range;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
@@ -59,6 +60,12 @@ public class WhereInfoTest {
       .valueColumn(ColumnName.of("C1"), SqlTypes.INTEGER)
       .build();
 
+  private static final LogicalSchema MULTI_KEY_SCHEMA = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("K1"), SqlTypes.INTEGER)
+      .keyColumn(ColumnName.of("K2"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("C1"), SqlTypes.INTEGER)
+      .build();
+
   @Test
   public void shouldExtractFromLiteralEquals() {
     // Given:
@@ -72,7 +79,7 @@ public class WhereInfoTest {
     final WhereInfo where = WhereInfo.extractWhereInfo(expression, SCHEMA, false, METASTORE, CONFIG);
 
     // Then:
-    assertThat(where.getKeysBound(), is(ImmutableList.of(1)));
+    assertThat(where.getKeysBound(), is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(where.isWindowed(), is(false));
     assertThat(where.getWindowBounds(), is(Optional.empty()));
   }
@@ -90,7 +97,7 @@ public class WhereInfoTest {
     final WhereInfo where = WhereInfo.extractWhereInfo(expression, SCHEMA, false, METASTORE, CONFIG);
 
     // Then:
-    assertThat(where.getKeysBound(), is(ImmutableList.of(-1)));
+    assertThat(where.getKeysBound(), is(ImmutableList.of(GenericKey.genericKey(-1))));
     assertThat(where.isWindowed(), is(false));
     assertThat(where.getWindowBounds(), is(Optional.empty()));
   }
@@ -109,7 +116,7 @@ public class WhereInfoTest {
     final WhereInfo where = WhereInfo.extractWhereInfo(expression, SCHEMA, false, METASTORE, CONFIG);
 
     // Then:
-    assertThat(where.getKeysBound(), is(ImmutableList.of(1, 2)));
+    assertThat(where.getKeysBound(), is(ImmutableList.of(GenericKey.genericKey(1), GenericKey.genericKey(2))));
     assertThat(where.isWindowed(), is(false));
     assertThat(where.getWindowBounds(), is(Optional.empty()));
   }
@@ -129,7 +136,7 @@ public class WhereInfoTest {
     final WhereInfo where = WhereInfo.extractWhereInfo(expression, SCHEMA, true, METASTORE, CONFIG);
 
     // Then:
-    assertThat(where.getKeysBound(), is(ImmutableList.of(1)));
+    assertThat(where.getKeysBound(), is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(where.isWindowed(), is(true));
     assertThat(where.getWindowBounds(), is(Optional.of(
         new WindowBounds(
@@ -162,7 +169,7 @@ public class WhereInfoTest {
     final WhereInfo where = WhereInfo.extractWhereInfo(expression, SCHEMA, true, METASTORE, CONFIG);
 
     // Then:
-    assertThat(where.getKeysBound(), is(ImmutableList.of(1)));
+    assertThat(where.getKeysBound(), is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(where.isWindowed(), is(true));
     assertThat(where.getWindowBounds(), is(Optional.of(
         new WindowBounds(
@@ -195,7 +202,7 @@ public class WhereInfoTest {
     final WhereInfo where = WhereInfo.extractWhereInfo(expression, SCHEMA, true, METASTORE, CONFIG);
 
     // Then:
-    assertThat(where.getKeysBound(), is(ImmutableList.of(1)));
+    assertThat(where.getKeysBound(), is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(where.isWindowed(), is(true));
     assertThat(where.getWindowBounds(), is(Optional.of(
         new WindowBounds(
@@ -228,7 +235,7 @@ public class WhereInfoTest {
     final WhereInfo where = WhereInfo.extractWhereInfo(expression, SCHEMA, true, METASTORE, CONFIG);
 
     // Then:
-    assertThat(where.getKeysBound(), is(ImmutableList.of(1)));
+    assertThat(where.getKeysBound(), is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(where.isWindowed(), is(true));
     assertThat(where.getWindowBounds(), is(Optional.of(
         new WindowBounds(
@@ -261,7 +268,7 @@ public class WhereInfoTest {
     final WhereInfo where = WhereInfo.extractWhereInfo(expression, SCHEMA, true, METASTORE, CONFIG);
 
     // Then:
-    assertThat(where.getKeysBound(), is(ImmutableList.of(1)));
+    assertThat(where.getKeysBound(), is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(where.isWindowed(), is(true));
     assertThat(where.getWindowBounds(), is(Optional.of(
         new WindowBounds(
@@ -294,7 +301,7 @@ public class WhereInfoTest {
     final WhereInfo where = WhereInfo.extractWhereInfo(expression, SCHEMA, true, METASTORE, CONFIG);
 
     // Then:
-    assertThat(where.getKeysBound(), is(ImmutableList.of(1)));
+    assertThat(where.getKeysBound(), is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(where.isWindowed(), is(true));
     assertThat(where.getWindowBounds(), is(Optional.of(
         new WindowBounds(
@@ -327,7 +334,7 @@ public class WhereInfoTest {
     final WhereInfo where = WhereInfo.extractWhereInfo(expression, SCHEMA, true, METASTORE, CONFIG);
 
     // Then:
-    assertThat(where.getKeysBound(), is(ImmutableList.of(1)));
+    assertThat(where.getKeysBound(), is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(where.isWindowed(), is(true));
     assertThat(where.getWindowBounds(), is(Optional.of(
         new WindowBounds(
@@ -360,7 +367,7 @@ public class WhereInfoTest {
     final WhereInfo where = WhereInfo.extractWhereInfo(expression, SCHEMA, true, METASTORE, CONFIG);
 
     // Then:
-    assertThat(where.getKeysBound(), is(ImmutableList.of(1)));
+    assertThat(where.getKeysBound(), is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(where.isWindowed(), is(true));
     assertThat(where.getWindowBounds(), is(Optional.of(
         new WindowBounds(
@@ -393,7 +400,7 @@ public class WhereInfoTest {
     final WhereInfo where = WhereInfo.extractWhereInfo(expression, SCHEMA, true, METASTORE, CONFIG);
 
     // Then:
-    assertThat(where.getKeysBound(), is(ImmutableList.of(1)));
+    assertThat(where.getKeysBound(), is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(where.isWindowed(), is(true));
     assertThat(where.getWindowBounds(), is(Optional.of(
         new WindowBounds(
@@ -426,7 +433,7 @@ public class WhereInfoTest {
     final WhereInfo where = WhereInfo.extractWhereInfo(expression, SCHEMA, true, METASTORE, CONFIG);
 
     // Then:
-    assertThat(where.getKeysBound(), is(ImmutableList.of(1)));
+    assertThat(where.getKeysBound(), is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(where.isWindowed(), is(true));
     assertThat(where.getWindowBounds(), is(Optional.of(
         new WindowBounds(
@@ -470,7 +477,7 @@ public class WhereInfoTest {
     final WhereInfo where = WhereInfo.extractWhereInfo(expression, SCHEMA, true, METASTORE, CONFIG);
 
     // Then:
-    assertThat(where.getKeysBound(), is(ImmutableList.of(1)));
+    assertThat(where.getKeysBound(), is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(where.isWindowed(), is(true));
     assertThat(where.getWindowBounds(), is(Optional.of(
         new WindowBounds(
@@ -503,7 +510,7 @@ public class WhereInfoTest {
     final WhereInfo where = WhereInfo.extractWhereInfo(expression, SCHEMA, true, METASTORE, CONFIG);
 
     // Then:
-    assertThat(where.getKeysBound(), is(ImmutableList.of(1)));
+    assertThat(where.getKeysBound(), is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(where.isWindowed(), is(true));
     assertThat(where.getWindowBounds(), is(Optional.of(
         new WindowBounds(
@@ -659,39 +666,16 @@ public class WhereInfoTest {
   }
 
   @Test
-  public void shouldThrowOnMultiColKeySchema() {
-    // Given:
-    final LogicalSchema multiSchema = LogicalSchema.builder()
-        .keyColumn(ColumnName.of("K"), SqlTypes.INTEGER)
-        .keyColumn(ColumnName.of("K2"), SqlTypes.INTEGER)
-        .valueColumn(ColumnName.of("C1"), SqlTypes.INTEGER)
-        .build();
-    final Expression expression = new ComparisonExpression(
-        Type.EQUAL,
-        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
-        new ArithmeticUnaryExpression(Optional.empty(), Sign.MINUS, new IntegerLiteral(1))
-    );
-
-    // When:
-    final KsqlException e = assertThrows(
-        KsqlException.class,
-        () -> WhereInfo.extractWhereInfo(expression, multiSchema, false, METASTORE, CONFIG));
-
-    // Then:
-    assertThat(e.getMessage(), containsString("Schemas with multiple KEY columns are not supported"));
-  }
-
-  @Test
-  public void shouldThrowOnMultiKeyExpressions() {
+  public void shouldSupportMultiKeyExpressions() {
     // Given:
     final Expression expression1 = new ComparisonExpression(
         Type.EQUAL,
-        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K1")),
         new IntegerLiteral(1)
     );
     final Expression expression2 = new ComparisonExpression(
         Type.EQUAL,
-        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K2")),
         new IntegerLiteral(2)
     );
     final Expression expression  = new LogicalBinaryExpression(
@@ -701,12 +685,31 @@ public class WhereInfoTest {
     );
 
     // When:
-    final KsqlException e = assertThrows(
-        KsqlException.class,
-        () -> WhereInfo.extractWhereInfo(expression, SCHEMA, false, METASTORE, CONFIG));
+    final WhereInfo where = WhereInfo.extractWhereInfo(expression, MULTI_KEY_SCHEMA, true, METASTORE, CONFIG);
 
     // Then:
-    assertThat(e.getMessage(), containsString("Multiple bounds on key column."));
+    assertThat(where.getKeysBound(), is(ImmutableList.of(GenericKey.genericKey(1, 2))));
+  }
+
+
+  @Test
+  public void shouldNotSupportMultiKeyExpressionsThatDontCoverAllKeys() {
+    // Given:
+    final Expression expression = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K1")),
+        new IntegerLiteral(1)
+    );
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> WhereInfo.extractWhereInfo(expression, MULTI_KEY_SCHEMA, false, METASTORE, CONFIG));
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Multi-column sources must specify every key in the WHERE clause. "
+            + "Specified: [`K1`] Expected: [`K1` INTEGER KEY, `K2` INTEGER KEY]"));
   }
 
   @Test
@@ -767,7 +770,7 @@ public class WhereInfoTest {
         () -> WhereInfo.extractWhereInfo(expression, SCHEMA, false, METASTORE, CONFIG));
 
     // Then:
-    assertThat(e.getMessage(), containsString("WHERE clause on unsupported column: C1"));
+    assertThat(e.getMessage(), containsString("WHERE clause on non-key column: C1"));
   }
 
   @Test
@@ -785,7 +788,7 @@ public class WhereInfoTest {
         () -> WhereInfo.extractWhereInfo(expression, SCHEMA, false, METASTORE, CONFIG));
 
     // Then:
-    assertThat(e.getMessage(), containsString("Bound on 'K' must currently be '='."));
+    assertThat(e.getMessage(), containsString("Bound on key columns '[`K` INTEGER KEY]' must currently be '='"));
   }
 
   @Test
@@ -906,6 +909,25 @@ public class WhereInfoTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Primary key columns can not be NULL: (K = null)"));
+  }
+
+  @Test
+  public void shouldThrowOnInExpressionWithMultiColKeySchema() {
+    // Given:
+    final Expression expression = new InPredicate(
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+        new InListExpression(
+            ImmutableList.of(new IntegerLiteral(1), new IntegerLiteral(2))
+        )
+    );
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> WhereInfo.extractWhereInfo(expression, MULTI_KEY_SCHEMA, false, METASTORE, CONFIG));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Schemas with multiple KEY columns are not supported for IN predicates"));
   }
 
 }

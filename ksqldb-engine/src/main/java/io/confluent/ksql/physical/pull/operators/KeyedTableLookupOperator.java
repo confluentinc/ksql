@@ -21,6 +21,7 @@ import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartition
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.planner.plan.DataSourceNode;
+import io.confluent.ksql.planner.plan.PlanNode;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -34,7 +35,7 @@ public class KeyedTableLookupOperator
   private static final Logger LOG = LoggerFactory.getLogger(KeyedTableLookupOperator.class);
 
   private final Materialization mat;
-  private final DataSourceNode logicalOperator;
+  private final DataSourceNode logicalNode;
 
   private List<KsqlPartitionLocation> partitionLocations;
   private Iterator<Row> resultIterator;
@@ -48,7 +49,7 @@ public class KeyedTableLookupOperator
       final DataSourceNode logicalNode
   ) {
     this.mat = Objects.requireNonNull(mat, "mat");
-    this.logicalOperator = Objects.requireNonNull(logicalNode, "logicalNode");
+    this.logicalNode = Objects.requireNonNull(logicalNode, "logicalNode");
   }
 
   @Override
@@ -99,6 +100,11 @@ public class KeyedTableLookupOperator
   @Override
   public void close() {
 
+  }
+
+  @Override
+  public PlanNode getLogicalNode() {
+    return logicalNode;
   }
 
   @Override

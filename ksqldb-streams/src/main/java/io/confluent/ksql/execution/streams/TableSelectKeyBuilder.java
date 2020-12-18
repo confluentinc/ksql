@@ -29,6 +29,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
@@ -71,7 +72,7 @@ public final class TableSelectKeyBuilder {
     final PartitionByParams<K> params = paramsBuilder.build(
         sourceSchema,
         table.getExecutionKeyFactory(),
-        selectKey.getKeyExpression(),
+        selectKey.getKeyExpressions(),
         queryBuilder.getKsqlConfig(),
         queryBuilder.getFunctionRegistry(),
         logger
@@ -113,7 +114,7 @@ public final class TableSelectKeyBuilder {
     <K> PartitionByParams<K> build(
         LogicalSchema sourceSchema,
         ExecutionKeyFactory<K> executionKeyFactory,
-        Expression partitionBy,
+        List<Expression> partitionBy,
         KsqlConfig ksqlConfig,
         FunctionRegistry functionRegistry,
         ProcessingLogger logger

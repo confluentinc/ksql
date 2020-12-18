@@ -360,12 +360,12 @@ public class KsqlConfig extends AbstractConfig {
       + "properties that KSQL users cannot override.";
 
   public static final String KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING =
-      "ksql.cache.max.bytes.buffering.total";
+      "ksql.query.persistent.max.bytes.buffering.total";
   public static final long KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_DEFAULT = -1;
   public static final String KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_DOC = "Limit on the total bytes "
       + "used by Kafka Streams cache across all persistent queries";
   public static final String KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT =
-      "ksql.transient.cache.max.bytes.buffering.total";
+      "ksql.query.transient.max.bytes.buffering.total";
   public static final long KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT_DEFAULT = -1;
   public static final String KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT_DOC = "Limit on the "
       + "total bytes used by Kafka Streams cache across all transient queries";

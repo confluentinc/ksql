@@ -96,23 +96,23 @@ public final class PartitionByParamsFactory {
       // is already present in the current value
       mapper = (k, v) -> new KeyValue<>(null, v);
     } else {
-      final Set<? extends ColumnReferenceExp> sourceColsInPartitionBy = partitionBy.stream()
-          .flatMap(pby -> ColumnExtractor.extractColumns(pby).stream())
-          .collect(Collectors.toSet());
-      final boolean partitionByInvolvesKeyColsOnly = sourceColsInPartitionBy.stream()
-          .map(ColumnReferenceExp::getColumnName)
-          .allMatch(sourceSchema::isKeyColumn);
-
-      // TODO: what should be the behavior if some partition by expressions involve value columns but others don't, and a tombstone is received? should we drop the entire record? that's what's currently happening in this implementation. I think -- check
       final List<PartitionByExpressionEvaluator> evaluators = partitionBy.stream()
-          .map(pby -> buildExpressionEvaluator(
-              sourceSchema,
-              pby,
-              ksqlConfig,
-              functionRegistry,
-              logger,
-              partitionByInvolvesKeyColsOnly
-          )).collect(Collectors.toList());
+          .map(pby -> {
+            final Set<? extends ColumnReferenceExp> sourceColsInPartitionBy =
+                ColumnExtractor.extractColumns(pby);
+            final boolean partitionByInvolvesKeyColsOnly = sourceColsInPartitionBy.stream()
+                .map(ColumnReferenceExp::getColumnName)
+                .allMatch(sourceSchema::isKeyColumn);
+
+            return buildExpressionEvaluator(
+                sourceSchema,
+                pby,
+                ksqlConfig,
+                functionRegistry,
+                logger,
+                partitionByInvolvesKeyColsOnly
+            );
+          }).collect(Collectors.toList());
       mapper = buildMapper(resultSchema, partitionByCols, evaluators, serdeFactory);
     }
 
@@ -128,22 +128,6 @@ public final class PartitionByParamsFactory {
         getPartitionByColumnName(sourceSchema, partitionBy);
 
     return buildSchema(sourceSchema, partitionBy, functionRegistry, partitionByCols);
-  }
-
-  // TODO: move
-  public static boolean isPartitionByNull(final List<Expression> partitionBys) {
-    final boolean nullExpressionPresent = partitionBys.stream()
-        .anyMatch(pb -> pb instanceof NullLiteral);
-
-    if (!nullExpressionPresent) {
-      return false;
-    }
-
-    if (partitionBys.size() > 1) {
-      throw new KsqlException("Cannot PARTITION BY multiple columns including NULL");
-    }
-
-    return true;
   }
 
   private static LogicalSchema buildSchema(
@@ -179,6 +163,21 @@ public final class PartitionByParamsFactory {
 
       return builder.build();
     }
+  }
+
+  public static boolean isPartitionByNull(final List<Expression> partitionBys) {
+    final boolean nullExpressionPresent = partitionBys.stream()
+        .anyMatch(pb -> pb instanceof NullLiteral);
+
+    if (!nullExpressionPresent) {
+      return false;
+    }
+
+    if (partitionBys.size() > 1) {
+      throw new KsqlException("Cannot PARTITION BY multiple columns including NULL");
+    }
+
+    return true;
   }
 
   // TODO: move, add accessors?

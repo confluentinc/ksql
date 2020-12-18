@@ -38,7 +38,7 @@ import org.junit.Test;
 @SuppressWarnings("ConstantConditions")
 public class DecimalUtilTest {
 
-  private static final Schema DECIMAL_SCHEMA = DecimalUtil.builder(2, 1).build();
+  private static final Schema DECIMAL_SCHEMA = DecimalUtil.builder(2, 1).optional().build();
 
   @Test
   public void shouldBuildCorrectSchema() {
@@ -49,7 +49,7 @@ public class DecimalUtilTest {
   @Test
   public void shouldCopyBuilder() {
     // When:
-    final Schema copy = DecimalUtil.builder(DECIMAL_SCHEMA).build();
+    final Schema copy = DecimalUtil.builder(DECIMAL_SCHEMA).optional().build();
 
     // Then:
     assertThat(copy, is(DECIMAL_SCHEMA));

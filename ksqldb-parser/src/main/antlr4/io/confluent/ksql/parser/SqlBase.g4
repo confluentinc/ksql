@@ -324,11 +324,11 @@ booleanValue
     ;
 
 type
-    : type ARRAY
-    | ARRAY '<' type '>'
-    | MAP '<' type ',' type '>'
-    | STRUCT '<' (identifier type (',' identifier type)*)? '>'
-    | DECIMAL '(' number ',' number ')'
+    : type ARRAY constraint?
+    | ARRAY '<' type '>' constraint?
+    | MAP '<' type ',' type '>' constraint?
+    | STRUCT '<' (identifier type (',' identifier type)*)? '>' constraint?
+    | DECIMAL '(' number ',' number ')' constraint?
     | baseType ('(' typeParameter (',' typeParameter)* ')')?
     ;
 
@@ -337,7 +337,12 @@ typeParameter
     ;
 
 baseType
-    : identifier
+    : identifier constraint?
+    ;
+
+constraint
+    : NOT NULL
+    | NULL
     ;
 
 whenClause

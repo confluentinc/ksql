@@ -1375,8 +1375,8 @@ public class ClientTest extends BaseApiTest {
                 KsqlQueryType.PERSISTENT)),
             Collections.emptyList(),
             ImmutableList.of(
-                new FieldInfo("f1", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.of(FieldType.KEY)),
-                new FieldInfo("f2", new SchemaInfo(SqlBaseType.INTEGER, null, null), Optional.empty())),
+                new FieldInfo("f1", new SchemaInfo(SqlBaseType.STRING, null, null, true), Optional.of(FieldType.KEY)),
+                new FieldInfo("f2", new SchemaInfo(SqlBaseType.INTEGER, null, null, false), Optional.empty())),
             "TABLE",
             "",
             "",
@@ -1405,9 +1405,11 @@ public class ClientTest extends BaseApiTest {
     assertThat(description.fields().get(0).name(), is("f1"));
     assertThat(description.fields().get(0).type().getType(), is(ColumnType.Type.STRING));
     assertThat(description.fields().get(0).isKey(), is(true));
+    assertThat(description.fields().get(0).isOptional(), is(true));
     assertThat(description.fields().get(1).name(), is("f2"));
     assertThat(description.fields().get(1).type().getType(), is(ColumnType.Type.INTEGER));
     assertThat(description.fields().get(1).isKey(), is(false));
+    assertThat(description.fields().get(1).isOptional(), is(false));
     assertThat(description.topic(), is("topic"));
     assertThat(description.keyFormat(), is("KAFKA"));
     assertThat(description.valueFormat(), is("JSON"));

@@ -98,8 +98,8 @@ public class SqlSchemaFormatterTest {
 
   @Test
   public void shouldFormatDecimal() {
-    assertThat(DEFAULT.format(DecimalUtil.builder(2, 1).build()), is("DECIMAL(2, 1)"));
-    assertThat(STRICT.format(DecimalUtil.builder(2, 1).build()), is("DECIMAL(2, 1)"));
+    assertThat(DEFAULT.format(DecimalUtil.builder(2, 1).optional().build()), is("DECIMAL(2, 1)"));
+    assertThat(STRICT.format(DecimalUtil.builder(2, 1).optional().build()), is("DECIMAL(2, 1)"));
   }
 
   @Test

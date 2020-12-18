@@ -24,17 +24,30 @@ public class FieldInfoImplTest {
   public void shouldImplementHashCodeAndEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false),
-            new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false)
+            new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false, true),
+            new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false,true)
         )
         .addEqualityGroup(
-            new FieldInfoImpl("f2", new ColumnTypeImpl("STRING"), false)
+            new FieldInfoImpl("f2", new ColumnTypeImpl("STRING"), false, true)
         )
         .addEqualityGroup(
-            new FieldInfoImpl("f1", new ColumnTypeImpl("BOOLEAN"), false)
+            new FieldInfoImpl("f1", new ColumnTypeImpl("BOOLEAN"), false,true)
         )
         .addEqualityGroup(
-            new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), true)
+            new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), true,true)
+        )
+        .addEqualityGroup(
+            new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false, false),
+            new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false,false)
+        )
+        .addEqualityGroup(
+            new FieldInfoImpl("f2", new ColumnTypeImpl("STRING"), false, false)
+        )
+        .addEqualityGroup(
+            new FieldInfoImpl("f1", new ColumnTypeImpl("BOOLEAN"), false,false)
+        )
+        .addEqualityGroup(
+            new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), true,false)
         )
         .testEquals();
   }

@@ -72,12 +72,16 @@ public class QueryDescriptionFactoryTest {
   private static final LogicalSchema TRANSIENT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("field3"), SqlTypes.INTEGER.required())
+      .valueColumn(ColumnName.of("field4"), SqlTypes.STRING.required())
       .build();
 
   private static final LogicalSchema PERSISTENT_SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("field3"), SqlTypes.INTEGER.required())
+      .valueColumn(ColumnName.of("field4"), SqlTypes.STRING.required())
       .build();
 
   private static final Map<String, Object> STREAMS_PROPS = Collections.singletonMap("k1", "v1");
@@ -219,16 +223,20 @@ public class QueryDescriptionFactoryTest {
   @Test
   public void shouldExposeValueFieldsForTransientQueries() {
     assertThat(transientQueryDescription.getFields(), contains(
-        new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null), Optional.empty()),
-        new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.empty())));
+        new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null, true), Optional.empty()),
+        new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null,true), Optional.empty()),
+        new FieldInfo("field3", new SchemaInfo(SqlBaseType.INTEGER, null, null,false), Optional.empty()),
+        new FieldInfo("field4", new SchemaInfo(SqlBaseType.STRING, null, null,false), Optional.empty())));
   }
 
   @Test
   public void shouldExposeAllFieldsForPersistentQueries() {
     assertThat(persistentQueryDescription.getFields(), contains(
-        new FieldInfo("k0", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.of(FieldType.KEY)),
-        new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null), Optional.empty()),
-        new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.empty())));
+        new FieldInfo("k0", new SchemaInfo(SqlBaseType.STRING, null, null,true), Optional.of(FieldType.KEY)),
+        new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null,true), Optional.empty()),
+        new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null,true), Optional.empty()),
+        new FieldInfo("field3", new SchemaInfo(SqlBaseType.INTEGER, null, null,false), Optional.empty()),
+        new FieldInfo("field4", new SchemaInfo(SqlBaseType.STRING, null, null,false), Optional.empty())));
   }
 
   @Test
@@ -264,6 +272,7 @@ public class QueryDescriptionFactoryTest {
         .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("ROWTIME"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("field3"), SqlTypes.STRING.required())
         .build();
 
     transientQuery = new TransientQueryMetadata(
@@ -291,9 +300,10 @@ public class QueryDescriptionFactoryTest {
 
     // Then:
     assertThat(transientQueryDescription.getFields(), contains(
-        new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null), Optional.empty()),
-        new FieldInfo("ROWTIME", new SchemaInfo(SqlBaseType.BIGINT, null, null), Optional.empty()),
-        new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.empty())));
+        new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null,true), Optional.empty()),
+        new FieldInfo("ROWTIME", new SchemaInfo(SqlBaseType.BIGINT, null, null,true), Optional.empty()),
+        new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null,true), Optional.empty()),
+        new FieldInfo("field3", new SchemaInfo(SqlBaseType.STRING, null, null,false), Optional.empty())));
   }
 
   @Test
@@ -303,6 +313,7 @@ public class QueryDescriptionFactoryTest {
         .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("field3"), SqlTypes.STRING.required())
         .build();
 
     transientQuery = new TransientQueryMetadata(
@@ -330,8 +341,9 @@ public class QueryDescriptionFactoryTest {
 
     // Then:
     assertThat(transientQueryDescription.getFields(), contains(
-        new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null), Optional.empty()),
-        new FieldInfo("ROWKEY", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.empty()),
-        new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.empty())));
+        new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null,true), Optional.empty()),
+        new FieldInfo("ROWKEY", new SchemaInfo(SqlBaseType.STRING, null, null,true), Optional.empty()),
+        new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null,true), Optional.empty()),
+        new FieldInfo("field3", new SchemaInfo(SqlBaseType.STRING, null, null,false), Optional.empty())));
   }
 }

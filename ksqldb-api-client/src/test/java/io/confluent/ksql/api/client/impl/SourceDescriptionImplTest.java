@@ -30,7 +30,7 @@ public class SourceDescriptionImplTest {
             new SourceDescriptionImpl(
                 "name",
                 "type",
-                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false)),
+                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false, true)),
                 "topic",
                 "keyFormat",
                 "valueFormat",
@@ -45,7 +45,7 @@ public class SourceDescriptionImplTest {
             new SourceDescriptionImpl(
                 "name",
                 "type",
-                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false)),
+                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false, true)),
                 "topic",
                 "keyFormat",
                 "valueFormat",
@@ -62,7 +62,7 @@ public class SourceDescriptionImplTest {
             new SourceDescriptionImpl(
                 "other_name",
                 "type",
-                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false)),
+                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false, true)),
                 "topic",
                 "keyFormat",
                 "valueFormat",
@@ -79,7 +79,7 @@ public class SourceDescriptionImplTest {
             new SourceDescriptionImpl(
                 "name",
                 "other_type",
-                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false)),
+                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false, true)),
                 "topic",
                 "keyFormat",
                 "valueFormat",
@@ -96,7 +96,7 @@ public class SourceDescriptionImplTest {
             new SourceDescriptionImpl(
                 "name",
                 "type",
-                Collections.singletonList(new FieldInfoImpl("other_f", new ColumnTypeImpl("STRING"), false)),
+                Collections.singletonList(new FieldInfoImpl("other_f", new ColumnTypeImpl("STRING"), false, true)),
                 "topic",
                 "keyFormat",
                 "valueFormat",
@@ -113,7 +113,7 @@ public class SourceDescriptionImplTest {
             new SourceDescriptionImpl(
                 "name",
                 "type",
-                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("INTEGER"), false)),
+                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("INTEGER"), false,true)),
                 "topic",
                 "keyFormat",
                 "valueFormat",
@@ -130,7 +130,7 @@ public class SourceDescriptionImplTest {
             new SourceDescriptionImpl(
                 "name",
                 "type",
-                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false)),
+                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false, true)),
                 "other_topic",
                 "keyFormat",
                 "valueFormat",
@@ -147,7 +147,7 @@ public class SourceDescriptionImplTest {
             new SourceDescriptionImpl(
                 "name",
                 "type",
-                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false)),
+                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false, true)),
                 "topic",
                 "other_keyFormat",
                 "valueFormat",
@@ -164,7 +164,7 @@ public class SourceDescriptionImplTest {
             new SourceDescriptionImpl(
                 "name",
                 "type",
-                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false)),
+                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false, true)),
                 "topic",
                 "keyFormat",
                 "other_valueFormat",
@@ -181,7 +181,7 @@ public class SourceDescriptionImplTest {
             new SourceDescriptionImpl(
                 "name",
                 "type",
-                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false)),
+                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false, true)),
                 "topic",
                 "keyFormat",
                 "valueFormat",
@@ -197,7 +197,7 @@ public class SourceDescriptionImplTest {
             new SourceDescriptionImpl(
                 "name",
                 "type",
-                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false)),
+                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false, true)),
                 "topic",
                 "keyFormat",
                 "valueFormat",
@@ -213,7 +213,7 @@ public class SourceDescriptionImplTest {
             new SourceDescriptionImpl(
                 "name",
                 "type",
-                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false)),
+                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false, true)),
                 "topic",
                 "keyFormat",
                 "valueFormat",
@@ -230,7 +230,7 @@ public class SourceDescriptionImplTest {
             new SourceDescriptionImpl(
                 "name",
                 "type",
-                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false)),
+                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false, true)),
                 "topic",
                 "keyFormat",
                 "valueFormat",
@@ -247,7 +247,7 @@ public class SourceDescriptionImplTest {
             new SourceDescriptionImpl(
                 "name",
                 "type",
-                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false)),
+                Collections.singletonList(new FieldInfoImpl("f1", new ColumnTypeImpl("STRING"), false, true)),
                 "topic",
                 "keyFormat",
                 "valueFormat",

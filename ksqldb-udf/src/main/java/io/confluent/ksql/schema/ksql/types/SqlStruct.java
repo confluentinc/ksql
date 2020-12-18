@@ -45,8 +45,9 @@ public final class SqlStruct extends SqlType {
     return new Builder();
   }
 
-  private SqlStruct(final List<Field> fields, final Map<String, Field> byName) {
-    super(SqlBaseType.STRUCT);
+  private SqlStruct(final List<Field> fields, final Map<String, Field> byName,
+                    final boolean optional) {
+    super(SqlBaseType.STRUCT, optional);
     this.fields = ImmutableList.copyOf(requireNonNull(fields, "fields"));
     this.byName = ImmutableMap.copyOf(requireNonNull(byName, "byName"));
   }
@@ -60,6 +61,11 @@ public final class SqlStruct extends SqlType {
   }
 
   @Override
+  public SqlStruct required() {
+    return new SqlStruct(fields, byName, false);
+  }
+
+  @Override
   public boolean equals(final Object o) {
     if (this == o) {
       return true;
@@ -68,12 +74,13 @@ public final class SqlStruct extends SqlType {
       return false;
     }
     final SqlStruct struct = (SqlStruct) o;
-    return fields.equals(struct.fields);
+    return fields.equals(struct.fields)
+           && Objects.equals(isOptional(), struct.isOptional());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(fields);
+    return Objects.hash(fields, isOptional());
   }
 
   @Override
@@ -83,13 +90,14 @@ public final class SqlStruct extends SqlType {
 
   @Override
   public String toString(final FormatOptions formatOptions) {
+    final String notNull = (!this.isOptional() ? " NOT NULL" : "");
     if (fields.isEmpty()) {
-      return EMPTY_STRUCT;
+      return EMPTY_STRUCT + notNull;
     }
 
     return fields.stream()
         .map(f -> f.toString(formatOptions))
-        .collect(Collectors.joining(", ", PREFIX, POSTFIX));
+        .collect(Collectors.joining(", ", PREFIX, POSTFIX)) + notNull;
   }
 
   public static final class Builder {
@@ -119,7 +127,7 @@ public final class SqlStruct extends SqlType {
     }
 
     public SqlStruct build() {
-      return new SqlStruct(fields, byName);
+      return new SqlStruct(fields, byName, true);
     }
   }
 

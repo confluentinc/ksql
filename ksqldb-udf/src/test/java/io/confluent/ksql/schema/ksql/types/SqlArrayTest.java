@@ -32,17 +32,26 @@ public class SqlArrayTest {
         .addEqualityGroup(SqlArray.of(SOME_TYPE), SqlArray.of(SOME_TYPE))
         .addEqualityGroup(SqlArray.of(SqlPrimitiveType.of(SqlBaseType.BOOLEAN)))
         .addEqualityGroup(SqlMap.of(SqlTypes.STRING, SqlTypes.BOOLEAN))
+        .addEqualityGroup(SqlArray.of(SOME_TYPE.required()).required(), SqlArray.of(SOME_TYPE.required()).required())
+        .addEqualityGroup(SqlArray.of(SqlPrimitiveType.of(SqlBaseType.BOOLEAN).required()).required())
+        .addEqualityGroup(SqlMap.of(SqlTypes.STRING.required(), SqlTypes.BOOLEAN.required()).required())
         .testEquals();
   }
 
   @Test
   public void shouldReturnSqlType() {
     assertThat(SqlArray.of(SOME_TYPE).baseType(), is(SqlBaseType.ARRAY));
+    assertThat(SqlArray.of(SOME_TYPE).isOptional(), is(true));
+    assertThat(SqlArray.of(SOME_TYPE).required().baseType(), is(SqlBaseType.ARRAY));
+    assertThat(SqlArray.of(SOME_TYPE).required().isOptional(), is(false));
   }
 
   @Test
   public void shouldReturnValueType() {
     assertThat(SqlArray.of(SOME_TYPE).getItemType(), is(SOME_TYPE));
+    assertThat(SqlArray.of(SOME_TYPE).getItemType().isOptional(), is(true));
+    assertThat(SqlArray.of(SOME_TYPE.required()).getItemType(), is(SOME_TYPE.required()));
+    assertThat(SqlArray.of(SOME_TYPE.required()).getItemType().isOptional(), is(false));
   }
 
   @Test
@@ -51,6 +60,16 @@ public class SqlArrayTest {
         "ARRAY<"
             + SOME_TYPE.toString()
             + ">"
+    ));
+    assertThat(SqlArray.of(SOME_TYPE.required()).toString(), is(
+            "ARRAY<"
+                    + SOME_TYPE.toString() + " NOT NULL"
+                    + ">"
+    ));
+    assertThat(SqlArray.of(SOME_TYPE).required().toString(), is(
+            "ARRAY<"
+                    + SOME_TYPE.toString()
+                    + "> NOT NULL"
     ));
   }
 }

@@ -328,7 +328,8 @@ final class AdminResponseHandlers {
               .map(f -> new FieldInfoImpl(
                   f.getString("name"),
                   new ColumnTypeImpl(f.getJsonObject("schema").getString("type")),
-                  "KEY".equals(f.getString("type"))))
+                  "KEY".equals(f.getString("type")),
+                   f.getJsonObject("schema").getBoolean("optional")))
               .collect(Collectors.toList()),
           source.getString("topic"),
           source.getString("keyFormat"),

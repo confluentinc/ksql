@@ -87,6 +87,23 @@
           }
         ]
       }
+    },
+    {
+      "name": "struct args, UDFs that returns non-optional data types ",
+      "statements": [
+        "CREATE STREAM INPUT (col0 VARCHAR) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT test_udtf(1) as col0 FROM INPUT EMIT CHANGES;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"col0":  "mytest"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"COL0": {"TEST1": "1", "TEST2": "2"}}}
+      ],
+      "expectedException": {
+        "type": "org.apache.kafka.streams.errors.StreamsException",
+        "message": "Error encountered sending record to topic OUTPUT for task 0_0 due to:\norg.apache.kafka.common.errors.SerializationException: Failed to prepare Struct value field 'COL0' for serialization. This could happen if the value was produced by a user-defined function where the schema has non-optional return types."
+      }
     }
   ]
 }

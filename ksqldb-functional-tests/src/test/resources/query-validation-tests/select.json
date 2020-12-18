@@ -107,6 +107,42 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Line: 3, Col: 3: SELECT column 'I.BOB' cannot be resolved."
       }
+    },
+    {
+      "name": "value column NULL",
+      "statements": [
+        "CREATE STREAM SOURCE1 (data INT NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;"
+      ],
+      "inputs": [
+        {"topic": "insert-source",  "value": {"data":  1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": {"DATA": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "data INT NULL"}
+        ]
+      }
+    },
+    {
+      "name": "value column NOT NULL",
+      "statements": [
+        "CREATE STREAM SOURCE1 (data INT NOT NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;"
+      ],
+      "inputs": [
+        {"topic": "insert-source",  "value": {"data":  1}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": {"DATA": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "data INT NOT NULL"}
+        ]
+      }
     }
   ]
 }

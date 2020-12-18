@@ -899,7 +899,7 @@ public class KsqlAvroSerializerTest {
         LogicalTypes.decimal(4, 2));
 
     shouldSerializeFieldTypeCorrectly(
-        DecimalUtil.builder(4, 2).build(),
+        DecimalUtil.builder(4, 2).optional().build(),
         value,
         DECIMAL_SCHEMA,
         bytes

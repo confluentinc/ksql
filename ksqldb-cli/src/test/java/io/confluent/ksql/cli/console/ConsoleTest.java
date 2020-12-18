@@ -359,7 +359,7 @@ public class ConsoleTest {
             ImmutableList.of(
                 new FieldInfo(
                     "name",
-                    new SchemaInfo(SqlBaseType.STRING, ImmutableList.of(), null),
+                    new SchemaInfo(SqlBaseType.STRING, ImmutableList.of(), null, true),
                     Optional.empty())),
             ImmutableSet.of("source"),
             ImmutableSet.of("sink"),
@@ -661,17 +661,18 @@ public class ConsoleTest {
             "typeB", new SchemaInfo(
                 SqlBaseType.ARRAY,
                 null,
-                new SchemaInfo(SqlBaseType.STRING, null, null)),
+                new SchemaInfo(SqlBaseType.STRING, null, null, false), false),
             "typeA", new SchemaInfo(
                 SqlBaseType.STRUCT,
                 ImmutableList.of(
-                    new FieldInfo("f1", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.empty())),
-                null),
+                    new FieldInfo("f1", new SchemaInfo(SqlBaseType.STRING, null, null, false), Optional.empty())),
+                null, false),
             "typeC", new SchemaInfo(
                 SqlBaseType.DECIMAL,
                 null,
                 null,
-                ImmutableMap.of("precision", 10, "scale", 9)
+                ImmutableMap.of("precision", 10, "scale", 9),
+                true
             )
         ))
     ));

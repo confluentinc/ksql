@@ -57,6 +57,9 @@ public class SqlPrimitiveTypeTest {
   @Test
   public void shouldReturnSqlType() {
     assertThat(SqlPrimitiveType.of(SqlBaseType.INTEGER).baseType(), is(SqlBaseType.INTEGER));
+    assertThat(SqlPrimitiveType.of(SqlBaseType.INTEGER).isOptional(), is(true));
+    assertThat(SqlPrimitiveType.of(SqlBaseType.INTEGER).required().baseType(), is(SqlBaseType.INTEGER));
+    assertThat(SqlPrimitiveType.of(SqlBaseType.INTEGER).required().isOptional(), is(false));
   }
 
   @Test
@@ -119,9 +122,13 @@ public class SqlPrimitiveTypeTest {
         .put("tImeStamP", SqlBaseType.TIMESTAMP)
         .build();
 
-    primitives.forEach((string, expected) ->
+    primitives.forEach((string, expected) -> {
         // Then:
-        assertThat(SqlPrimitiveType.of(string).baseType(), is(expected))
+        assertThat(SqlPrimitiveType.of(string).baseType(), is(expected));
+        assertThat(SqlPrimitiveType.of(string).isOptional(), is(true));
+        assertThat(SqlPrimitiveType.of(string).required().baseType(), is(expected));
+        assertThat(SqlPrimitiveType.of(string).required().isOptional(), is(false));
+      }
     );
   }
 
@@ -133,9 +140,13 @@ public class SqlPrimitiveTypeTest {
         "VarchaR", SqlBaseType.STRING
     );
 
-    primitives.forEach((string, expected) ->
+    primitives.forEach((string, expected) -> {
         // Then:
-        assertThat(SqlPrimitiveType.of(string).baseType(), is(expected))
+        assertThat(SqlPrimitiveType.of(string).baseType(), is(expected));
+        assertThat(SqlPrimitiveType.of(string).isOptional(), is(true));
+        assertThat(SqlPrimitiveType.of(string).required().baseType(), is(expected));
+        assertThat(SqlPrimitiveType.of(string).required().isOptional(), is(false));
+      }
     );
   }
 
@@ -183,6 +194,8 @@ public class SqlPrimitiveTypeTest {
     ).forEach(type -> {
       // Then:
       assertThat(SqlPrimitiveType.of(type).toString(), is(type.toString()));
+      assertThat(SqlPrimitiveType.of(type).required().toString(), is(type.toString() + " NOT NULL"));
+
     });
   }
 }

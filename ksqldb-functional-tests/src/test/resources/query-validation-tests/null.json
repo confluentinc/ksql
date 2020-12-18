@@ -259,6 +259,40 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Invalid comparison expression 'null' in join '(L.A = null)'. Each side of the join comparision must contain references from exactly one source."
       }
+    },
+    {
+      "name": "null values in column NOT NULL",
+      "statements": [
+        "CREATE STREAM SOURCE1 (v1 INT NOT NULL, v2 STRING) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;"
+      ],
+      "inputs": [
+        {"topic": "insert-source",  "value": {"v1":  1, "v2": "v2"}},
+        {"topic": "insert-source",  "value": {"v1":  null, "v2": "v2"}},
+        {"topic": "insert-source",  "value": {"v2": "v2"}}
+      ],
+      "outputs": [
+        {"topic": "insert-source", "key":null,  "value": {"v1":  1, "v2": "v2"}},
+        {"topic": "insert-source", "key":null,  "value": {"v1":  null, "v2": "v2"}},
+        {"topic": "insert-source", "key":null,  "value": {"v2": "v2"}}
+      ]
+    },
+    {
+      "name": "null values in column NOT NULL DELIMITED",
+      "statements": [
+        "CREATE STREAM SOURCE1 (v1 INT NOT NULL, v2 STRING) WITH (kafka_topic='insert-source', value_format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;"
+      ],
+      "inputs": [
+        {"topic": "insert-source",  "value": "1, 'bob'"},
+        {"topic": "insert-source",  "value": "'bob'"},
+        {"topic": "insert-source",  "value": "'bob'"}
+      ],
+      "outputs": [
+        {"topic": "insert-source", "key":null,  "value": "1, 'bob'"},
+        {"topic": "insert-source", "key":null,  "value": "'bob'"},
+        {"topic": "insert-source", "key":null,  "value": "'bob'"}
+      ]
     }
   ]
 }

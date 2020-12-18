@@ -26,6 +26,7 @@ import io.confluent.ksql.parser.SqlBaseLexer;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.TypeContext;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlConstraint;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
@@ -33,11 +34,15 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserUtil;
+
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.atn.PredictionMode;
+import org.antlr.v4.runtime.tree.ErrorNode;
 
 public final class SqlTypeParser {
 
@@ -72,7 +77,11 @@ public final class SqlTypeParser {
     if (type.baseType() != null) {
       final String baseType = baseTypeToString(type.baseType());
       if (SqlPrimitiveType.isPrimitiveTypeName(baseType)) {
-        return SqlPrimitiveType.of(baseType);
+        final SqlPrimitiveType sqlPrimitiveType = SqlPrimitiveType.of(baseType);
+        if (isNotNull(type.baseType().constraint())) {
+          return sqlPrimitiveType.required();
+        }
+        return sqlPrimitiveType;
       } else {
         return typeRegistry
             .resolveType(baseType)
@@ -81,32 +90,64 @@ public final class SqlTypeParser {
     }
 
     if (type.DECIMAL() != null) {
-      return SqlDecimal.of(
-          ParserUtil.processIntegerNumber(type.number(0), "DECIMAL(PRECISION)"),
-          ParserUtil.processIntegerNumber(type.number(1), "DECIMAL(SCALE)")
-      );
+      return toDecimal(type);
     }
 
     if (type.ARRAY() != null) {
-      return SqlArray.of(getSqlType(type.type(0)));
+      return toArray(type);
     }
 
     if (type.MAP() != null) {
-      return SqlMap.of(getSqlType(type.type(0)), getSqlType(type.type(1)));
+      return toMap(type);
     }
 
     if (type.STRUCT() != null) {
-      final SqlStruct.Builder builder = SqlStruct.builder();
-
-      for (int i = 0; i < type.identifier().size(); i++) {
-        final String fieldName = ParserUtil.getIdentifierText(type.identifier(i));
-        final SqlType fieldType = getSqlType(type.type(i));
-        builder.field(fieldName, fieldType);
-      }
-      return builder.build();
+      return toStruct(type);
     }
 
     throw new IllegalArgumentException("Unsupported type specification: " + type.getText());
+  }
+
+  private SqlType toDecimal(final SqlBaseParser.TypeContext type) {
+    final SqlDecimal sqlDecimal = SqlDecimal.of(
+            ParserUtil.processIntegerNumber(type.number(0), "DECIMAL(PRECISION)"),
+            ParserUtil.processIntegerNumber(type.number(1), "DECIMAL(SCALE)")
+    );
+    if (isNotNull(type.constraint())) {
+      return sqlDecimal.required();
+    }
+    return sqlDecimal;
+  }
+
+  private SqlType toArray(final SqlBaseParser.TypeContext type) {
+    final SqlArray sqlArray = SqlArray.of(getSqlType(type.type(0)));
+    if (isNotNull(type.constraint())) {
+      return sqlArray.required();
+    }
+    return sqlArray;
+  }
+
+  private SqlType toMap(final SqlBaseParser.TypeContext type) {
+    final SqlMap sqlMap = SqlMap.of(getSqlType(type.type(0)), getSqlType(type.type(1)));
+    if (isNotNull(type.constraint())) {
+      return sqlMap.required();
+    }
+    return sqlMap;
+  }
+
+  private SqlType toStruct(final SqlBaseParser.TypeContext type) {
+    final SqlStruct.Builder builder = SqlStruct.builder();
+
+    for (int i = 0; i < type.identifier().size(); i++) {
+      final String fieldName = ParserUtil.getIdentifierText(type.identifier(i));
+      final SqlType fieldType = getSqlType(type.type(i));
+      builder.field(fieldName, fieldType);
+    }
+    final SqlStruct sqlStruct = builder.build();
+    if (isNotNull(type.constraint())) {
+      return sqlStruct.required();
+    }
+    return sqlStruct;
   }
 
   private static TypeContext parseTypeContext(final String schema) {
@@ -129,5 +170,24 @@ public final class SqlTypeParser {
               + "time with time zone, or timestamp with time zone"
       );
     }
+  }
+
+  private static boolean isNotNull(final SqlBaseParser.ConstraintContext constraintContext) {
+    if (constraintContext == null) {
+      return false;
+    }
+    final String constraint = constraintContext.children.stream()
+            .filter(i -> !(i instanceof ErrorNode))
+            .map(i -> i.getText().toUpperCase())
+            .collect(Collectors.joining());
+    try {
+      final SqlConstraint sqlConstraint = SqlConstraint.valueOf(constraint);
+      if (SqlConstraint.NOTNULL.equals(sqlConstraint)) {
+        return true;
+      }
+    } catch (final IllegalArgumentException e) {
+      throw new KsqlException("Unknown constraint");
+    }
+    return false;
   }
 }

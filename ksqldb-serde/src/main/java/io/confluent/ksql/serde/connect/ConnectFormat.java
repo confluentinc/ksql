@@ -192,9 +192,7 @@ public abstract class ConnectFormat implements Format {
           throw new SerializationException(
               "Failed to prepare Struct value field '" + field.name() + "' for serialization. "
                   + "This could happen if the value was produced by a user-defined function "
-                  + "where the schema has non-optional return types. ksqlDB requires all "
-                  + "schemas to be optional at all levels of the Struct: the Struct itself, "
-                  + "schemas for all fields within the Struct, and so on.",
+                  + "where the schema has non-optional return types.",
               e);
         }
       }

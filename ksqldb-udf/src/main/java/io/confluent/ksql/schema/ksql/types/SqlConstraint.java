@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,31 +13,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.client;
+package io.confluent.ksql.schema.ksql.types;
 
 /**
- * Represents a field/column of a ksqlDB stream/table.
+ * The SQL constraints supported by KSQL.
  */
-public interface FieldInfo {
-
-  /**
-   * @return name of this field
-   */
-  String name();
-
-  /**
-   * @return type of this field
-   */
-  ColumnType type();
-
-  /**
-   * @return whether this field is a key field, rather than a value field
-   */
-  boolean isKey();
-
-  /**
-   * @return whether this field is a optional field or not
-   */
-  boolean isOptional();
-
+public enum SqlConstraint {
+  NULL, NOTNULL
 }

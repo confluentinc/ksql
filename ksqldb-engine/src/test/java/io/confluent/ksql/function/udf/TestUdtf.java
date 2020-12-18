@@ -21,8 +21,12 @@ import io.confluent.ksql.function.udtf.UdtfDescription;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
 @UdtfDescription(name = "test_udtf", description = "test")
@@ -127,6 +131,26 @@ public class TestUdtf {
   @Udtf(schema = "STRUCT<A VARCHAR>")
   public List<Struct> listStructReturn(@UdfParameter(schema = "STRUCT<A VARCHAR>") final Struct struct) {
     return ImmutableList.of(struct);
+  }
+
+
+   //Test inspired by https://github.com/confluentinc/ksql/issues/5364
+  @Udtf(schema ="STRUCT< TEST1 INT, TEST2 INT>")
+  public List<Struct> structTest(@UdfParameter final int myValue) {
+
+    // Here, we are testing the output of a function in a structure format.
+    // We are simulating the split of one Kafka message into multiple, separate messages
+    // each with a potentially complex structure.
+
+    List<Struct> myList = new ArrayList<>();
+    final Schema outputSchema = SchemaBuilder.struct().optional()
+            .field("TEST1", Schema.INT32_SCHEMA)
+            .field("TEST2", Schema.INT32_SCHEMA)
+            .build();
+    myList.add(new Struct(outputSchema)
+            .put("TEST1", 1)
+            .put("TEST2", 2));
+    return myList;
   }
 
   @UdfSchemaProvider

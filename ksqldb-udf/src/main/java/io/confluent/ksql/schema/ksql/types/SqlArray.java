@@ -27,12 +27,17 @@ public final class SqlArray extends SqlType {
   private final SqlType itemType;
 
   public static SqlArray of(final SqlType itemType) {
-    return new SqlArray(itemType);
+    return new SqlArray(itemType, true);
   }
 
-  private SqlArray(final SqlType itemType) {
-    super(SqlBaseType.ARRAY);
+  private SqlArray(final SqlType itemType, final boolean optional) {
+    super(SqlBaseType.ARRAY, optional);
     this.itemType = requireNonNull(itemType, "itemType");
+  }
+
+  @Override
+  public SqlArray required() {
+    return new SqlArray(itemType, false);
   }
 
   public SqlType getItemType() {
@@ -48,12 +53,13 @@ public final class SqlArray extends SqlType {
       return false;
     }
     final SqlArray array = (SqlArray) o;
-    return Objects.equals(itemType, array.itemType);
+    return Objects.equals(itemType, array.itemType)
+           && Objects.equals(isOptional(), array.isOptional());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(itemType);
+    return Objects.hash(itemType, isOptional());
   }
 
   @Override
@@ -63,6 +69,7 @@ public final class SqlArray extends SqlType {
 
   @Override
   public String toString(final FormatOptions formatOptions) {
-    return "ARRAY<" + itemType.toString(formatOptions) + '>';
+    return "ARRAY<" + itemType.toString(formatOptions) + '>'
+            + (!this.isOptional() ? " NOT NULL" : "");
   }
 }

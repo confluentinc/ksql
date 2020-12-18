@@ -66,7 +66,8 @@ public class StreamSelectKey<K> implements ExecutionStep<KStreamHolder<K>> {
     return Collections.singletonList(source);
   }
 
-  @JsonProperty("keyExpression") // maintain legacy name for backwards compatibility
+  // maintain legacy name for backwards compatibility
+  @JsonProperty(value = "keyExpression", required = true)
   public List<Expression> getKeyExpressions() {
     return keyExpressions;
   }

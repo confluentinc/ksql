@@ -74,7 +74,8 @@ public class TableSelectKey<K> implements ExecutionStep<KTableHolder<K>> {
     return internalFormats;
   }
 
-  @JsonProperty("keyExpression") // maintain legacy name for backwards compatibility
+  // maintain legacy name for backwards compatibility
+  @JsonProperty(value = "keyExpression", required = true)
   public List<Expression> getKeyExpressions() {
     return keyExpressions;
   }

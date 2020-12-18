@@ -111,7 +111,7 @@ public class PreJoinRepartitionNode extends SingleSourcePlanNode implements Join
     return getSource().buildStream(builder)
         .selectKey(
             valueFormat.getFormatInfo(),
-            partitionBy,
+            ImmutableList.of(partitionBy),
             forcedInternalKeyFormat,
             builder.buildNodeContext(getId().toString()),
             forceRepartition

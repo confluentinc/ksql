@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -92,8 +93,13 @@ public class UserRepartitionNodeTest {
     when(source.getKsqlTopic()).thenReturn(topic);
     when(topic.getValueFormat()).thenReturn(valueFormat);
 
-    repartitionNode =
-        new UserRepartitionNode(PLAN_ID, parent, SCHEMA, originalPartitionBy, rewrittenPartitionBy);
+    repartitionNode = new UserRepartitionNode(
+        PLAN_ID,
+        parent,
+        SCHEMA,
+        ImmutableList.of(originalPartitionBy),
+        ImmutableList.of(rewrittenPartitionBy)
+    );
   }
 
   @Test

@@ -514,9 +514,11 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitPartitionBy(final PartitionBy node, final Integer indent) {
-      final String expression = formatExpression(node.getExpression());
+      final String expressions = node.getExpressions().stream()
+          .map(SqlFormatter::formatExpression)
+          .collect(Collectors.joining(", "));
 
-      append(indent, "PARTITION BY " + expression)
+      append(indent, "PARTITION BY " + expressions)
           .append('\n');
 
       return null;

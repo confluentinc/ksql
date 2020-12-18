@@ -17,7 +17,6 @@ package io.confluent.ksql.structured;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.rewrite.StatementRewriteForMagicPseudoTimestamp;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -314,7 +313,7 @@ public class SchemaKStream<K> {
    */
   public SchemaKStream<K> selectKey(
       final FormatInfo valueFormat,
-      final Expression keyExpression,
+      final List<Expression> keyExpression,
       final Optional<KeyFormat> forceInternalKeyFormat,
       final Stacker contextStacker,
       final boolean forceRepartition
@@ -322,7 +321,7 @@ public class SchemaKStream<K> {
     final boolean keyFormatChange = forceInternalKeyFormat.isPresent()
         && !forceInternalKeyFormat.get().equals(keyFormat);
 
-    final boolean repartitionNeeded = repartitionNeeded(ImmutableList.of(keyExpression));
+    final boolean repartitionNeeded = repartitionNeeded(keyExpression);
     if (!keyFormatChange && !forceRepartition && !repartitionNeeded) {
       return this;
     }
@@ -337,13 +336,13 @@ public class SchemaKStream<K> {
     final ExecutionStep<KStreamHolder<K>> step = ExecutionStepFactory
         .streamSelectKey(contextStacker, sourceStep, keyExpression);
 
-    // use sanitizeKeyFormat(true) because we don't yet support
-    // PARTITION BY or JOIN on multi-column keys
     final KeyFormat newKeyFormat = forceInternalKeyFormat.orElse(keyFormat);
     return new SchemaKStream<>(
         step,
         resolveSchema(step),
-        SerdeFeaturesFactory.sanitizeKeyFormat(newKeyFormat, true),
+        SerdeFeaturesFactory.sanitizeKeyFormat(
+            newKeyFormat,
+            keyExpression.size() == 1),
         ksqlConfig,
         functionRegistry
     );

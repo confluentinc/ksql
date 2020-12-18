@@ -105,7 +105,7 @@ query
       (WINDOW  windowExpression)?
       (WHERE where=booleanExpression)?
       (GROUP BY groupBy)?
-      (PARTITION BY partitionBy=valueExpression)?
+      (PARTITION BY partitionBy)?
       (HAVING having=booleanExpression)?
       (EMIT resultMaterialization)?
       limitClause?
@@ -187,6 +187,11 @@ windowUnit
     ;
 
 groupBy
+    : valueExpression (',' valueExpression)*
+    | '(' (valueExpression (',' valueExpression)*)? ')'
+    ;
+
+partitionBy
     : valueExpression (',' valueExpression)*
     | '(' (valueExpression (',' valueExpression)*)? ')'
     ;

@@ -28,6 +28,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.List;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Named;
 
@@ -59,7 +60,7 @@ public final class StreamSelectKeyBuilder {
     final PartitionByParams<K> params = paramsBuilder.build(
         sourceSchema,
         stream.getExecutionKeyFactory(),
-        selectKey.getKeyExpression(),
+        selectKey.getKeyExpressions(),
         queryBuilder.getKsqlConfig(),
         queryBuilder.getFunctionRegistry(),
         logger
@@ -84,7 +85,7 @@ public final class StreamSelectKeyBuilder {
     <K> PartitionByParams<K> build(
         LogicalSchema sourceSchema,
         ExecutionKeyFactory<K> executionKeyFactory,
-        Expression partitionBy,
+        List<Expression> partitionBy,
         KsqlConfig ksqlConfig,
         FunctionRegistry functionRegistry,
         ProcessingLogger logger

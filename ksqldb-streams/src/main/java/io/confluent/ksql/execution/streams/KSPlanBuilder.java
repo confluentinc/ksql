@@ -256,7 +256,7 @@ public final class KSPlanBuilder implements PlanBuilder {
         tableSource,
         streamsFactories.getConsumedFactory(),
         streamsFactories.getMaterializedFactory(),
-        (PlanInfo) planInfo
+        planInfo
     );
   }
 
@@ -270,7 +270,7 @@ public final class KSPlanBuilder implements PlanBuilder {
         windowedTableSource,
         streamsFactories.getConsumedFactory(),
         streamsFactories.getMaterializedFactory(),
-        (PlanInfo) planInfo
+        planInfo
     );
   }
 

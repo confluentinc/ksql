@@ -22,7 +22,7 @@ writing the processing log to {{ site.ak }} and consuming it as ksqlDB stream.
     for the server logs, assign the `log4j.appender.kafka_appender.Topic`
     and `log4j.logger.io.confluent.ksql` configuration settings in the ksqlDB
     Server config file. For more information, see
-    [ksqlDB Server Log Settings](../../operate-and-deploy/installation/server-config/config-reference.md#ksqldb-server-log-settings).
+    [ksqlDB Server Log Settings](/operate-and-deploy/installation/server-config/config-reference#ksqldb-server-log-settings).
 
 Logger Names
 ------------

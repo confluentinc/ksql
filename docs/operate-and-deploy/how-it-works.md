@@ -55,15 +55,69 @@ ksqlDB and Kafka Streams
 
 ksqlDB is built on {{ site.kstreams }}, a robust stream processing framework
 that is part of {{ site.aktm }}. You can use ksqlDB and {{ site.kstreams }}
-together in your event streaming applications. For more information on
-their relationship, see [ksqlDB and Kafka Streams](ksqldb-and-kafka-streams.md).
-For more information on {{ site.kstreams }}, see
-[Streams Architecture](https://docs.confluent.io/current/streams/architecture.html).
+together in your event streaming applications.
+
+![The Confluent Platform stack, with ksqlDB built on Kafka Streams](../img/ksqldb-kafka-streams-core-kafka-stack.png)
+
+ksqlDB gives you a query layer for building event streaming applications on
+{{ site.ak }} topics. ksqlDB abstracts away much of the complex programming
+that's required for real-time operations on streams of data, so that one line
+of SQL can do the work of a dozen lines of Java or Scala.
+
+For example, to implement simple fraud-detection logic on a {{ site.ak }} topic
+named `payments`, you could write one line of SQL:
+
+```sql
+CREATE STREAM fraudulent_payments AS
+ SELECT fraudProbability(data) FROM payments
+ WHERE fraudProbability(data) > 0.8
+ EMIT CHANGES;
+```
+
+The equivalent Scala code on {{ site.kstreams }} might resemble:
+
+```scala
+// Example fraud-detection logic using the Kafka Streams API.
+object FraudFilteringApplication extends App {
+
+  val builder: StreamsBuilder = new StreamsBuilder()
+  val fraudulentPayments: KStream[String, Payment] = builder
+    .stream[String, Payment]("payments-kafka-topic")
+    .filter((_ ,payment) => payment.fraudProbability > 0.8)
+  fraudulentPayments.to("fraudulent-payments-topic")
+
+  val config = new java.util.Properties 
+  config.put(StreamsConfig.APPLICATION_ID_CONFIG, "fraud-filtering-app")
+  config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka-broker1:9092")
+
+  val streams: KafkaStreams = new KafkaStreams(builder.build(), config)
+  streams.start()
+}
+```
+
+ksqlDB is easier to use, and {{ site.kstreams }} is more flexible. Which
+technology you choose for your real-time streaming applications depends
+on a number of considerations. Keep in mind that you can use both ksqlDB
+and {{ site.kstreams }} together in your implementations.
 
 Also, you can implement custom logic and aggregations in your ksqlDB
-applications by implementing user defined functions (UDFs) in Java. For more
-information, see
-[Custom Function Reference](functions.md).
+applications by implementing [user defined functions](/how-to-guides/create-a-user-defined-function) (UDFs) in Java.
+
+Differences Between ksqlDB and Kafka Streams
+--------------------------------------------
+
+The following table summarizes some of the differences between ksqlDB and
+{{ site.kstreams }}.
+
+|    Differences    |                   ksqlDB                    |                    {{ site.kstreams }}                    |
+| ----------------- | ------------------------------------------- | --------------------------------------------------------- |
+| You write:        | SQL statements                              | JVM applications                                          |
+| Graphical UI      | Yes, in {{ site.c3 }} and {{ site.ccloud }} | No                                                        |
+| Console           | Yes                                         | No                                                        |
+| Data formats      | Avro, Protobuf, JSON, JSON_SR, CSV          | Any data format, including Avro, JSON, CSV, Protobuf, XML |
+| REST API included | Yes                                         | No, but you can implement your own                        |
+| Runtime included  | Yes, the ksqlDB server                      | Applications run as standard JVM processes                |
+| Queryable state   | No                                          | Yes                                                       |
 
 ksqlDB Language Elements
 ----------------------
@@ -389,84 +443,6 @@ If the DML statement is CREATE STREAM AS SELECT or CREATE TABLE AS
 SELECT, the result from the generated {{ site.kstreams }} application is a
 persistent query that writes continuously to its output topic until the
 query is terminated.
-
-## Combined page, remove me
-
----
-layout: page
-title: Kafka Streams and ksqlDB
-tagline: The relationship between ksqlDB and Kafka Streams 
-description: How ksqlDB leverages the technology of Kafka Streams
-keywords: ksqldb, kafka streams
----
-
-ksqlDB is the streaming database for {{ site.aktm }}. With ksqlDB, you can
-write event streaming applications by using a lightweight SQL syntax.
-
-{{ site.kstreams }} is the {{ site.ak }} library for writing streaming
-applications and microservices in Java and Scala.
-
-ksqlDB is built on {{ site.kstreams }}, a robust stream processing framework
-that is part of {{ site.ak }}.
-
-![The Confluent Platform stack, with ksqlDB built on Kafka Streams](../img/ksqldb-kafka-streams-core-kafka-stack.png)
-
-ksqlDB gives you a query layer for building event streaming applications on
-{{ site.ak }} topics. ksqlDB abstracts away much of the complex programming
-that's required for real-time operations on streams of data, so that one line
-of SQL can do the work of a dozen lines of Java or Scala.
-
-For example, to implement simple fraud-detection logic on a {{ site.ak }} topic
-named `payments`, you could write one line of SQL:
-
-```sql
-CREATE STREAM fraudulent_payments AS
- SELECT fraudProbability(data) FROM payments
- WHERE fraudProbability(data) > 0.8
- EMIT CHANGES;
-```
-
-The equivalent Scala code on {{ site.kstreams }} might resemble:
-
-```scala
-// Example fraud-detection logic using the Kafka Streams API.
-object FraudFilteringApplication extends App {
-
-  val builder: StreamsBuilder = new StreamsBuilder()
-  val fraudulentPayments: KStream[String, Payment] = builder
-    .stream[String, Payment]("payments-kafka-topic")
-    .filter((_ ,payment) => payment.fraudProbability > 0.8)
-  fraudulentPayments.to("fraudulent-payments-topic")
-
-  val config = new java.util.Properties 
-  config.put(StreamsConfig.APPLICATION_ID_CONFIG, "fraud-filtering-app")
-  config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka-broker1:9092")
-
-  val streams: KafkaStreams = new KafkaStreams(builder.build(), config)
-  streams.start()
-}
-```
-
-ksqlDB is easier to use, and {{ site.kstreams }} is more flexible. Which
-technology you choose for your real-time streaming applications depends
-on a number of considerations. Keep in mind that you can use both ksqlDB
-and {{ site.kstreams }} together in your implementations.
-
-Differences Between ksqlDB and Kafka Streams
---------------------------------------------
-
-The following table summarizes some of the differences between ksqlDB and
-{{ site.kstreams }}.
-
-|    Differences    |                   ksqlDB                    |                    {{ site.kstreams }}                    |
-| ----------------- | ------------------------------------------- | --------------------------------------------------------- |
-| You write:        | SQL statements                              | JVM applications                                          |
-| Graphical UI      | Yes, in {{ site.c3 }} and {{ site.ccloud }} | No                                                        |
-| Console           | Yes                                         | No                                                        |
-| Data formats      | Avro, Protobuf, JSON, JSON_SR, CSV          | Any data format, including Avro, JSON, CSV, Protobuf, XML |
-| REST API included | Yes                                         | No, but you can implement your own                        |
-| Runtime included  | Yes, the ksqlDB server                      | Applications run as standard JVM processes                |
-| Queryable state   | No                                          | Yes                                                       |
 
 Developer Workflows
 -------------------

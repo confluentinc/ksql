@@ -1,6 +1,6 @@
 ## Schema Inference
 
-For supported [serialization formats](../developer-guide/serialization.md),
+For supported [serialization formats](/reference/serialization),
 ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
 ksqlDB automatically retrieves (reads) and registers (writes) schemas as needed,
 which spares you from defining columns and data types manually in `CREATE`
@@ -28,7 +28,7 @@ value format, and only one of the two formats supports schema inference,
 you can explicitly provide the columns for the format that does not support schema inference
 while still having ksqlDB load columns for the format that does support schema inference
 from {{ site.sr }}. This is known as _partial schema inference_. To infer value columns
-for a keyless stream, set the key format to the [`NONE` format](../developer-guide/serialization.md#none).
+for a keyless stream, set the key format to the [`NONE` format](/reference/serialization#none).
 
 Tables require a `PRIMARY KEY`, so you must supply one explicitly in your
 `CREATE TABLE` statement. `KEY` columns are optional for streams, so if you
@@ -320,7 +320,7 @@ CREATE STREAM APP_LOG (
 
 ## Schema Inference
 
-For supported [serialization formats](../developer-guide/serialization.md),
+For supported [serialization formats](/reference/serialization),
 ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
 ksqlDB automatically retrieves (reads) and registers (writes) schemas as needed,
 which spares you from defining columns and data types manually in `CREATE`
@@ -344,7 +344,7 @@ value format, and only one of the two formats supports schema inference,
 you can explicitly provide the columns for the format that does not support schema inference
 while still having ksqlDB load columns for the format that does support schema inference
 from {{ site.sr }}. This is known as _partial schema inference_. To infer value columns
-for a keyless stream, set the key format to the [`NONE` format](../developer-guide/serialization.md#none).
+for a keyless stream, set the key format to the [`NONE` format](/reference/serialization#none).
 
 Tables require a `PRIMARY KEY`, so you must supply one explicitly in your
 `CREATE TABLE` statement. `KEY` columns are optional for streams, so if you

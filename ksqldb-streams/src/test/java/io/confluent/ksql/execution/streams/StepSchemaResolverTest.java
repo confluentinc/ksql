@@ -305,13 +305,15 @@ public class StepSchemaResolverTest {
   @Test
   public void shouldResolveSchemaForStreamSelectKeyV2() {
     // Given:
-    final UnqualifiedColumnReferenceExp keyExpression =
+    final UnqualifiedColumnReferenceExp keyExpression1 =
         new UnqualifiedColumnReferenceExp(ColumnName.of("ORANGE"));
+    final UnqualifiedColumnReferenceExp keyExpression2 =
+        new UnqualifiedColumnReferenceExp(ColumnName.of("APPLE"));
 
     final StreamSelectKey<GenericKey> step = new StreamSelectKey<>(
         PROPERTIES,
         streamSource,
-        ImmutableList.of(keyExpression)
+        ImmutableList.of(keyExpression1, keyExpression2)
     );
 
     // When:
@@ -319,12 +321,12 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .keyColumn(keyExpression.getColumnName(), SqlTypes.INTEGER)
+        .keyColumn(keyExpression1.getColumnName(), SqlTypes.INTEGER)
+        .keyColumn(keyExpression2.getColumnName(), SqlTypes.BIGINT)
         .valueColumns(SCHEMA.value())
         .build()
     ));
   }
-  // TODO: add test for multi-column schema
 
   @Test
   public void shouldResolveSchemaForStreamSource() {
@@ -483,14 +485,16 @@ public class StepSchemaResolverTest {
   @Test
   public void shouldResolveSchemaForTableSelectKey() {
     // Given:
-    final UnqualifiedColumnReferenceExp keyExpression =
+    final UnqualifiedColumnReferenceExp keyExpression1 =
         new UnqualifiedColumnReferenceExp(ColumnName.of("ORANGE"));
+    final UnqualifiedColumnReferenceExp keyExpression2 =
+        new UnqualifiedColumnReferenceExp(ColumnName.of("APPLE"));
 
     final TableSelectKey<GenericKey> step = new TableSelectKey<>(
         PROPERTIES,
         tableSource,
         formats,
-        ImmutableList.of(keyExpression)
+        ImmutableList.of(keyExpression1, keyExpression2)
     );
 
     // When:
@@ -498,12 +502,12 @@ public class StepSchemaResolverTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .keyColumn(keyExpression.getColumnName(), SqlTypes.INTEGER)
+        .keyColumn(keyExpression1.getColumnName(), SqlTypes.INTEGER)
+        .keyColumn(keyExpression2.getColumnName(), SqlTypes.BIGINT)
         .valueColumns(SCHEMA.value())
         .build()
     ));
   }
-  // TODO: add test for multi-column schema
 
   @Test
   public void shouldResolveSchemaForTableFilter() {

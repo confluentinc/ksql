@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.streams;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -53,7 +54,7 @@ public class PlanInfoExtractorTest {
   @Mock
   private ColumnName joinKey;
   @Mock
-  private List<Expression> repartitionKey;
+  private Expression repartitionKey;
 
   private StreamSource streamSource;
   private TableSource tableSource;
@@ -84,7 +85,7 @@ public class PlanInfoExtractorTest {
     streamSourceRepartitioned = new StreamSelectKey<>(
         new ExecutionStepPropertiesV1(queryContext),
         streamSource,
-        repartitionKey
+        ImmutableList.of(repartitionKey)
     );
     streamAndTableJoined = new StreamTableJoin<>(
         new ExecutionStepPropertiesV1(queryContext),
@@ -105,7 +106,7 @@ public class PlanInfoExtractorTest {
     streamAndTableJoinedRepartitioned = new StreamSelectKey<>(
         new ExecutionStepPropertiesV1(queryContext),
         streamAndTableJoined,
-        repartitionKey
+        ImmutableList.of(repartitionKey)
     );
 
     planInfoExtractor = new PlanInfoExtractor();

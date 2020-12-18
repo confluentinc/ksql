@@ -520,7 +520,10 @@
           "$ref" : "#/definitions/ExecutionStep"
         },
         "keyExpression" : {
-          "type" : "string"
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
         }
       },
       "title" : "streamSelectKeyV2",
@@ -947,7 +950,10 @@
           "$ref" : "#/definitions/Formats"
         },
         "keyExpression" : {
-          "type" : "string"
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
         }
       },
       "title" : "tableSelectKeyV1",

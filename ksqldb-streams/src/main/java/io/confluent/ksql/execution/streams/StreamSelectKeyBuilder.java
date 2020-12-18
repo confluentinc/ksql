@@ -60,7 +60,7 @@ public final class StreamSelectKeyBuilder {
     final PartitionByParams<K> params = paramsBuilder.build(
         sourceSchema,
         stream.getExecutionKeyFactory(),
-        selectKey.getKeyExpression(),
+        selectKey.getKeyExpressions(),
         queryBuilder.getKsqlConfig(),
         queryBuilder.getFunctionRegistry(),
         logger

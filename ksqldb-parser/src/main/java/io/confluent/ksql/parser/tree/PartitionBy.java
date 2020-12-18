@@ -69,8 +69,8 @@ public class PartitionBy extends AstNode {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final PartitionBy groupBy = (PartitionBy) o;
-    return Objects.equals(partitionByExpressions, groupBy.partitionByExpressions);
+    final PartitionBy partitionBy = (PartitionBy) o;
+    return Objects.equals(partitionByExpressions, partitionBy.partitionByExpressions);
   }
 
   @Override

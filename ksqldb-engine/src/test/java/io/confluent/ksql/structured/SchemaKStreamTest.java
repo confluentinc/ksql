@@ -221,7 +221,7 @@ public class SchemaKStreamTest {
     final UserRepartitionNode repartitionNode = (UserRepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     // When:
-    initialSchemaKStream.selectKey(valueFormat.getFormatInfo(), repartitionNode.getPartitionBy(),
+    initialSchemaKStream.selectKey(valueFormat.getFormatInfo(), repartitionNode.getPartitionBys(),
         Optional.empty(), childContextStacker, false
     );
   }

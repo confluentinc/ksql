@@ -665,13 +665,13 @@ public class LogicalPlanner {
 
   private LogicalSchema buildRepartitionedSchema(
       final PlanNode sourceNode,
-      final List<Expression> partitionBy // TODO: rename?
+      final List<Expression> partitionBys
   ) {
     final LogicalSchema sourceSchema = sourceNode.getSchema();
 
     return PartitionByParamsFactory.buildSchema(
         sourceSchema,
-        partitionBy,
+        partitionBys,
         metaStore
     );
   }

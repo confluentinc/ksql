@@ -79,24 +79,24 @@ public final class PartitionByParamsFactory {
   public static <K> PartitionByParams<K> build(
       final LogicalSchema sourceSchema,
       final ExecutionKeyFactory<K> serdeFactory,
-      final List<Expression> partitionBy, // TODO: rename?
+      final List<Expression> partitionBys,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final ProcessingLogger logger
   ) {
     final List<PartitionByColumn> partitionByCols =
-        getPartitionByColumnName(sourceSchema, partitionBy);
+        getPartitionByColumnName(sourceSchema, partitionBys);
 
     final LogicalSchema resultSchema =
-        buildSchema(sourceSchema, partitionBy, functionRegistry, partitionByCols);
+        buildSchema(sourceSchema, partitionBys, functionRegistry, partitionByCols);
 
     final Mapper<K> mapper;
-    if (isPartitionByNull(partitionBy)) {
+    if (isPartitionByNull(partitionBys)) {
       // In case of PARTITION BY NULL, it is sufficient to set the new key to null as the old key
       // is already present in the current value
       mapper = (k, v) -> new KeyValue<>(null, v);
     } else {
-      final List<PartitionByExpressionEvaluator> evaluators = partitionBy.stream()
+      final List<PartitionByExpressionEvaluator> evaluators = partitionBys.stream()
           .map(pby -> {
             final Set<? extends ColumnReferenceExp> sourceColsInPartitionBy =
                 ColumnExtractor.extractColumns(pby);
@@ -113,48 +113,48 @@ public final class PartitionByParamsFactory {
                 partitionByInvolvesKeyColsOnly
             );
           }).collect(Collectors.toList());
-      mapper = buildMapper(resultSchema, partitionByCols, evaluators, serdeFactory);
+      mapper = buildMapper(partitionByCols, evaluators, serdeFactory);
     }
 
-    return new PartitionByParams<K>(resultSchema, mapper); // TODO: remove K
+    return new PartitionByParams<>(resultSchema, mapper);
   }
 
   public static LogicalSchema buildSchema(
       final LogicalSchema sourceSchema,
-      final List<Expression> partitionBy, // TODO: rename?
+      final List<Expression> partitionBys,
       final FunctionRegistry functionRegistry
   ) {
     final List<PartitionByColumn> partitionByCols =
-        getPartitionByColumnName(sourceSchema, partitionBy);
+        getPartitionByColumnName(sourceSchema, partitionBys);
 
-    return buildSchema(sourceSchema, partitionBy, functionRegistry, partitionByCols);
+    return buildSchema(sourceSchema, partitionBys, functionRegistry, partitionByCols);
   }
 
   private static LogicalSchema buildSchema(
       final LogicalSchema sourceSchema,
-      final List<Expression> partitionBy, // TODO: rename?
+      final List<Expression> partitionBys,
       final FunctionRegistry functionRegistry,
       final List<PartitionByColumn> partitionByCols
   ) {
     final ExpressionTypeManager expressionTypeManager =
         new ExpressionTypeManager(sourceSchema, functionRegistry);
 
-    final List<SqlType> keyTypes = partitionBy.stream()
+    final List<SqlType> keyTypes = partitionBys.stream()
         .map(expressionTypeManager::getExpressionSqlType)
         .collect(Collectors.toList());
 
-    if (isPartitionByNull(partitionBy)) {
+    if (isPartitionByNull(partitionBys)) {
       final Builder builder = LogicalSchema.builder();
       builder.valueColumns(sourceSchema.value());
       return builder.build();
     } else {
       final Builder builder = LogicalSchema.builder();
-      for (int i = 0; i < partitionBy.size(); i++) {
+      for (int i = 0; i < partitionBys.size(); i++) {
         builder.keyColumn(partitionByCols.get(i).name, keyTypes.get(i));
       }
 
       builder.valueColumns(sourceSchema.value());
-      for (int i = 0; i < partitionBy.size(); i++) {
+      for (int i = 0; i < partitionBys.size(); i++) {
         if (partitionByCols.get(i).shouldAppend) {
           // New key column added, copy in to value schema:
           builder.valueColumn(partitionByCols.get(i).name, keyTypes.get(i));
@@ -180,17 +180,6 @@ public final class PartitionByParamsFactory {
     return true;
   }
 
-  // TODO: move, add accessors?
-  private static class PartitionByColumn {
-    final ColumnName name;
-    final boolean shouldAppend;
-
-    PartitionByColumn(final ColumnName name, final boolean shouldAppend) {
-      this.name = Objects.requireNonNull(name, "name");
-      this.shouldAppend = shouldAppend;
-    }
-  }
-
   private static List<PartitionByColumn> getPartitionByColumnName(
       final LogicalSchema sourceSchema,
       final List<Expression> partitionByExpressions
@@ -200,7 +189,6 @@ public final class PartitionByParamsFactory {
     return partitionByExpressions.stream()
         .map(partitionBy -> {
           if (partitionBy instanceof ColumnReferenceExp) {
-            // PARTITION BY column:
             final ColumnName columnName = ((ColumnReferenceExp) partitionBy).getColumnName();
 
             final Column column = sourceSchema
@@ -217,8 +205,7 @@ public final class PartitionByParamsFactory {
   }
 
   private static <K> Mapper<K> buildMapper(
-      final LogicalSchema resultSchema, // TODO: remove dead param (and simplify build())
-      final List<PartitionByColumn> partitionByCol,
+      final List<PartitionByColumn> partitionByCols,
       final List<PartitionByExpressionEvaluator> evaluators,
       final ExecutionKeyFactory<K> executionKeyFactory
   ) {
@@ -231,8 +218,8 @@ public final class PartitionByParamsFactory {
           executionKeyFactory.constructNewKey(oldK, GenericKey.fromList(newKeyComponents));
 
       if (row != null) {
-        for (int i = 0; i < partitionByCol.size(); i++) {
-          if (partitionByCol.get(i).shouldAppend) {
+        for (int i = 0; i < partitionByCols.size(); i++) {
+          if (partitionByCols.get(i).shouldAppend) {
             // If partitioning by something other than an existing column, then a new key will have
             // been synthesized. This new key must be appended to the value to make it available for
             // stream processing, in the same way SourceBuilder appends the key and rowtime to the
@@ -298,6 +285,22 @@ public final class PartitionByParamsFactory {
           ? GenericRow.fromList(KeyUtil.asList(key))
           : value;
       return expressionMetadata.evaluate(row, null, logger, errorMsg);
+    }
+  }
+
+  private static class PartitionByColumn {
+
+    final ColumnName name;
+    /**
+     * If partitioning by something other than an existing column, then a new key will have
+     * been synthesized. This new key must be appended to the value to make it available for
+     * stream processing dowmsteam in the topology.
+     */
+    final boolean shouldAppend;
+
+    PartitionByColumn(final ColumnName name, final boolean shouldAppend) {
+      this.name = Objects.requireNonNull(name, "name");
+      this.shouldAppend = shouldAppend;
     }
   }
 }

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.parser.NodeLocation;
@@ -31,21 +32,21 @@ public class PartitionByTest {
   private static final NodeLocation LOCATION = new NodeLocation(1, 4);
 
   @Mock
-  private List<Expression> exp1;
+  private Expression exp1;
   @Mock
-  private List<Expression> exp2;
+  private Expression exp2;
 
   @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {
     new EqualsTester()
         .addEqualityGroup(
-            new PartitionBy(Optional.empty(), exp1),
-            new PartitionBy(Optional.empty(), exp1),
-            new PartitionBy(Optional.of(LOCATION), exp1)
+            new PartitionBy(Optional.empty(), ImmutableList.of(exp1)),
+            new PartitionBy(Optional.empty(), ImmutableList.of(exp1)),
+            new PartitionBy(Optional.of(LOCATION), ImmutableList.of(exp1))
         )
         .addEqualityGroup(
-            new PartitionBy(Optional.empty(), exp2)
+            new PartitionBy(Optional.empty(), ImmutableList.of(exp2))
         )
         .testEquals();
   }

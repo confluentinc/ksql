@@ -238,7 +238,7 @@ public class LogicalPlannerTest {
         .getSources().get(0).getSources().get(0);
 
     assertThat(
-        repart.getPartitionBy(),
+        repart.getPartitionBys(),
         equalTo(new UnqualifiedColumnReferenceExp(ColumnName.of("T1_COL1")))
     );
   }

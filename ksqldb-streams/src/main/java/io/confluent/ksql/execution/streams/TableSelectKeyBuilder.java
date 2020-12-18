@@ -72,7 +72,7 @@ public final class TableSelectKeyBuilder {
     final PartitionByParams<K> params = paramsBuilder.build(
         sourceSchema,
         table.getExecutionKeyFactory(),
-        selectKey.getKeyExpression(),
+        selectKey.getKeyExpressions(),
         queryBuilder.getKsqlConfig(),
         queryBuilder.getFunctionRegistry(),
         logger

@@ -25,6 +25,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StreamSelectKeyTest {
+
   @Mock
   private ExecutionStepPropertiesV1 properties1;
   @Mock
@@ -34,20 +35,20 @@ public class StreamSelectKeyTest {
   @Mock
   private ExecutionStep<KStreamHolder<Struct>> source2;
   @Mock
-  private List<Expression> expression1;
+  private List<Expression> expressions1;
   @Mock
-  private List<Expression> expression2;
+  private List<Expression> expressions2;
 
   @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new StreamSelectKey<>(properties1, source1, expression1),
-            new StreamSelectKey<>(properties1, source1, expression1))
-        .addEqualityGroup(new StreamSelectKey<>(properties2, source1, expression1))
-        .addEqualityGroup(new StreamSelectKey<>(properties1, source2, expression1))
-        .addEqualityGroup(new StreamSelectKey<>(properties1, source1, expression2))
+            new StreamSelectKey<>(properties1, source1, expressions1),
+            new StreamSelectKey<>(properties1, source1, expressions1))
+        .addEqualityGroup(new StreamSelectKey<>(properties2, source1, expressions1))
+        .addEqualityGroup(new StreamSelectKey<>(properties1, source2, expressions1))
+        .addEqualityGroup(new StreamSelectKey<>(properties1, source1, expressions2))
         .testEquals();
   }
 }

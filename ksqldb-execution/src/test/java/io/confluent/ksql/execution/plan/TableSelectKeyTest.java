@@ -39,21 +39,21 @@ public class TableSelectKeyTest {
   @Mock
   private Formats formats2;
   @Mock
-  private List<Expression> expression1;
+  private List<Expression> expressions1;
   @Mock
-  private List<Expression> expression2;
+  private List<Expression> expressions2;
 
   @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new TableSelectKey<>(properties1, source1, formats1, expression1),
-            new TableSelectKey<>(properties1, source1, formats1, expression1))
-        .addEqualityGroup(new TableSelectKey<>(properties2, source1, formats1, expression1))
-        .addEqualityGroup(new TableSelectKey<>(properties1, source2, formats1, expression1))
-        .addEqualityGroup(new TableSelectKey<>(properties1, source2, formats2, expression1))
-        .addEqualityGroup(new TableSelectKey<>(properties1, source1, formats1, expression2))
+            new TableSelectKey<>(properties1, source1, formats1, expressions1),
+            new TableSelectKey<>(properties1, source1, formats1, expressions1))
+        .addEqualityGroup(new TableSelectKey<>(properties2, source1, formats1, expressions1))
+        .addEqualityGroup(new TableSelectKey<>(properties1, source2, formats1, expressions1))
+        .addEqualityGroup(new TableSelectKey<>(properties1, source2, formats2, expressions1))
+        .addEqualityGroup(new TableSelectKey<>(properties1, source1, formats1, expressions2))
         .testEquals();
   }
 }

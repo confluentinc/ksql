@@ -269,7 +269,7 @@ public final class StepSchemaResolver {
   ) {
     return PartitionByParamsFactory.buildSchema(
         sourceSchema,
-        step.getKeyExpression(),
+        step.getKeyExpressions(),
         functionRegistry
     );
   }
@@ -335,7 +335,7 @@ public final class StepSchemaResolver {
   ) {
     return PartitionByParamsFactory.buildSchema(
         sourceSchema,
-        step.getKeyExpression(),
+        step.getKeyExpressions(),
         functionRegistry
     );
   }

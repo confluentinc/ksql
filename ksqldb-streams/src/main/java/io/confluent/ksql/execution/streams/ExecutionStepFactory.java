@@ -246,12 +246,12 @@ public final class ExecutionStepFactory {
   public static <K> StreamSelectKey<K> streamSelectKey(
       final QueryContext.Stacker stacker,
       final ExecutionStep<? extends KStreamHolder<K>> source,
-      final List<Expression> fieldName // TODO: rename
+      final List<Expression> partitionBys
   ) {
     final ExecutionStepPropertiesV1 props =
         new ExecutionStepPropertiesV1(stacker.getQueryContext());
 
-    return new StreamSelectKey<K>(props, source, fieldName); // TODO: remove K
+    return new StreamSelectKey<>(props, source, partitionBys);
   }
 
   public static <K> TableSink<K> tableSink(
@@ -414,12 +414,12 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<? extends KTableHolder<K>> source,
       final Formats formats,
-      final List<Expression> fieldName // TODO: rename?
+      final List<Expression> partitionBys
   ) {
     final ExecutionStepPropertiesV1 props =
         new ExecutionStepPropertiesV1(stacker.getQueryContext());
 
-    return new TableSelectKey<>(props, source, formats, fieldName);
+    return new TableSelectKey<>(props, source, formats, partitionBys);
   }
 
   public static <K> TableSuppress<K> tableSuppress(

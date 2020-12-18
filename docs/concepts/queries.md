@@ -11,7 +11,7 @@ from existing streams or tables.
 
 ## Push
 
-![Illustration of a push query](../../img/ksqldb-push-query.svg)
+![Illustration of a push query](/img/ksqldb-push-query.svg)
 
 A [push query](/developer-guide/ksqldb-reference/select-push-query) is
 a form of query issued by a client that subscribes to a result
@@ -43,7 +43,7 @@ CREATE TABLE AS SELECT or CREATE STREAM AS SELECT statement.
 
 ## Pull
 
-![Illustration of a pull query](../../img/ksqldb-pull-query.svg)
+![Illustration of a pull query](/img/ksqldb-pull-query.svg)
 
 A [pull query](/developer-guide/ksqldb-reference/select-pull-query)
 is a form of query issued by a client that retrieves a result as

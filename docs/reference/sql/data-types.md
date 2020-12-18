@@ -104,7 +104,7 @@ SQL type.
 The elements of an array are one-indexed and can be accessed by using
 the `[]` operator passing in the index. For example, `SOME_ARRAY[1]`
 retrieves the first element from the array. For more information, see
-[Operators](ksqldb-reference/operators.md).
+[Operators](/developer-guide/ksqldb-reference/operators).
 
 You can define arrays within a `CREATE TABLE` or `CREATE STREAM`
 statement by using the syntax `ARRAY<ElementType>`. For example,
@@ -141,7 +141,7 @@ that have a specific type. The field types can be any valid SQL type.
 
 Access the fields of a struct by using the `->` operator. For example,
 `SOME_STRUCT->ID` retrieves the value of the struct's `ID` field. For
-more information, see [Operators](ksqldb-reference/operators.md).
+more information, see [Operators](/developer-guide/ksqldb-reference/operators).
 
 You can define a structs within a `CREATE TABLE` or `CREATE STREAM`
 statement by using the syntax `STRUCT<FieldName FieldType, ...>`. For
@@ -167,7 +167,7 @@ value type can be any valid SQL type.
 Access the values of a map by using the `[]` operator and passing in the
 key. For example, `SOME_MAP['cost']` retrieves the value for the entry
 with key `cost`, or `null` For more information, see
-[Operators](ksqldb-reference/operators.md).
+[Operators](/developer-guide/ksqldb-reference/operators).
 
 You can define maps within a `CREATE TABLE` or `CREATE STREAM` statement
 by using the syntax `MAP<KeyType, ValueType>`. For example,

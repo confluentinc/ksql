@@ -36,9 +36,8 @@ correct key and partitioning.
     The use case will determine if these ordering guarantees are acceptable.
 
 ksqlDB requires keys to use the `KAFKA` format. For more information, see
-[Serialization Formats](../serialization.md#serialization-formats). If internally
-repartitioning, ksqlDB uses the correct format. If the data in your {{ site.ak }} topics 
-does not have a suitable key format, see [Key Requirements](../syntax-reference.md#key-requirements).
+[Serialization Formats](/reference/serialization#serialization-formats). If internally
+repartitioning, ksqlDB uses the correct format.
 
 The KAFKA format doesn't support serializing the column name within the data, so the key column name is 
 not important for joins. The key column type is important: for the join to be valid,

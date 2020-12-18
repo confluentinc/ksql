@@ -10,7 +10,7 @@ The following list shows valid time units for the `SIZE`, `ADVANCE BY`,
 -   `MILLISECOND`, `MILLISECONDS`
 
 For more information, see
-[Windows in SQL Queries](../concepts/time-and-windows-in-ksqldb-queries.md#windows-in-sql-queries).
+[Windows in SQL Queries](/concepts/time-and-windows-in-ksqldb-queries#windows-in-sql-queries).
 
 ### Timestamp formats
 

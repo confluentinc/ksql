@@ -30,7 +30,7 @@ import java.util.Optional;
 @Immutable
 public class PartitionBy extends AstNode {
 
-  private final List<Expression> partitionByExpressions;
+  private final ImmutableList<Expression> partitionByExpressions;
 
   public PartitionBy(
       final Optional<NodeLocation> location,

@@ -59,7 +59,7 @@ The key of the resulting stream is determined by the following rules, in order o
        name, type and contents of the source column.
     1. otherwise the key will have a system generated name, unless you provide an alias in the 
        projection, and will match the type and contents of the result of the expression.
- 1. if the query has a join see [Join Synthetic Key Columns](/concepts/joins/synthetic-keys) for more info.
+ 1. if the query has a join see [Join Synthetic Key Columns](/developer-guide/joins/synthetic-keys) for more info.
  1. otherwise, the primary key will match the name, unless you provide an alias in the projection, 
     and type of the source stream's key.
 

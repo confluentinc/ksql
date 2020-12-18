@@ -986,7 +986,7 @@ user.
 
 #### Interactive ksqlDB clusters pre Kafka 2.0
 
-[Interactive ksqlDB clusters](../../../concepts/ksqldb-architecture.md#interactive-deployment),
+[Interactive ksqlDB clusters](/operate-and-deploy/how-it-works#interactive-deployment),
 (which is the default configuration), require that the authenticated
 ksqlDB user has open access to create, read, write, delete topics, and use
 any consumer group:

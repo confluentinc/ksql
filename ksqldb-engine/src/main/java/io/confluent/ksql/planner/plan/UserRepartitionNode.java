@@ -18,7 +18,6 @@ package io.confluent.ksql.planner.plan;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -107,8 +106,7 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
   void validateKeyPresent(final SourceName sinkName, final Projection projection) {
     if (!PartitionByParamsFactory.isPartitionByNull(partitionBys)
         && !containsExpressions(projection, partitionBys)) {
-      final ImmutableList<Expression> keys = ImmutableList.copyOf(originalPartitionBys);
-      throwKeysNotIncludedError(sinkName, "partitioning expression", keys);
+      throwKeysNotIncludedError(sinkName, "partitioning expression", originalPartitionBys);
     }
   }
 

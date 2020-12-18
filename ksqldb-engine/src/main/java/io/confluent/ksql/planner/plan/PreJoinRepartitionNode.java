@@ -28,7 +28,6 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.Repartitioning;
-import java.util.Collections;
 import java.util.Optional;
 
 /**
@@ -112,7 +111,7 @@ public class PreJoinRepartitionNode extends SingleSourcePlanNode implements Join
     return getSource().buildStream(builder)
         .selectKey(
             valueFormat.getFormatInfo(),
-            Collections.singletonList(partitionBy),
+            ImmutableList.of(partitionBy),
             forcedInternalKeyFormat,
             builder.buildNodeContext(getId().toString()),
             forceRepartition

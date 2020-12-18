@@ -17,7 +17,6 @@ package io.confluent.ksql.structured;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.rewrite.StatementRewriteForMagicPseudoTimestamp;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -322,7 +321,7 @@ public class SchemaKStream<K> {
     final boolean keyFormatChange = forceInternalKeyFormat.isPresent()
         && !forceInternalKeyFormat.get().equals(keyFormat);
 
-    final boolean repartitionNeeded = repartitionNeeded(ImmutableList.copyOf(keyExpression));
+    final boolean repartitionNeeded = repartitionNeeded(keyExpression);
     if (!keyFormatChange && !forceRepartition && !repartitionNeeded) {
       return this;
     }

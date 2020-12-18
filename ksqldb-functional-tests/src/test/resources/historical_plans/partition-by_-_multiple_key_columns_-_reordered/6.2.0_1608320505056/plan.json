@@ -1,37 +1,36 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM INPUT (AGE INTEGER KEY, NAME STRING, ID INTEGER) WITH (FORMAT='JSON', KAFKA_TOPIC='input');",
+    "statementText" : "CREATE STREAM INPUT (NAME STRING KEY, ID INTEGER KEY, AGE INTEGER) WITH (FORMAT='DELIMITED', KAFKA_TOPIC='input');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "INPUT",
-      "schema" : "`AGE` INTEGER KEY, `NAME` STRING, `ID` INTEGER",
+      "schema" : "`NAME` STRING KEY, `ID` INTEGER KEY, `AGE` INTEGER",
       "topicName" : "input",
       "formats" : {
         "keyFormat" : {
-          "format" : "JSON"
+          "format" : "DELIMITED"
         },
         "valueFormat" : {
-          "format" : "JSON"
-        },
-        "keyFeatures" : [ "UNWRAP_SINGLES" ]
+          "format" : "DELIMITED"
+        }
       },
       "orReplace" : false
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  ABS(INPUT.ID) KSQL_COL_0,\n  1 KSQL_COL_1,\n  (INPUT.AGE + 2) KSQL_COL_2,\n  INPUT.AGE AGE,\n  INPUT.NAME NAME\nFROM INPUT INPUT\nPARTITION BY ABS(INPUT.ID), 1, (INPUT.AGE + 2)\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  INPUT.ID ID,\n  INPUT.AGE AGE,\n  INPUT.NAME NAME\nFROM INPUT INPUT\nPARTITION BY INPUT.ID, INPUT.NAME\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "OUTPUT",
-      "schema" : "`KSQL_COL_0` INTEGER KEY, `KSQL_COL_1` INTEGER KEY, `KSQL_COL_2` INTEGER KEY, `AGE` INTEGER, `NAME` STRING",
+      "schema" : "`ID` INTEGER KEY, `NAME` STRING KEY, `AGE` INTEGER",
       "topicName" : "OUTPUT",
       "formats" : {
         "keyFormat" : {
-          "format" : "JSON"
+          "format" : "DELIMITED"
         },
         "valueFormat" : {
-          "format" : "JSON"
+          "format" : "DELIMITED"
         }
       },
       "orReplace" : false
@@ -62,26 +61,25 @@
               "topicName" : "input",
               "formats" : {
                 "keyFormat" : {
-                  "format" : "JSON"
+                  "format" : "DELIMITED"
                 },
                 "valueFormat" : {
-                  "format" : "JSON"
-                },
-                "keyFeatures" : [ "UNWRAP_SINGLES" ]
+                  "format" : "DELIMITED"
+                }
               },
-              "sourceSchema" : "`AGE` INTEGER KEY, `NAME` STRING, `ID` INTEGER"
+              "sourceSchema" : "`NAME` STRING KEY, `ID` INTEGER KEY, `AGE` INTEGER"
             },
-            "keyExpression" : [ "ABS(ID)", "1", "(AGE + 2)" ]
+            "keyExpression" : [ "ID", "NAME" ]
           },
-          "keyColumnNames" : [ "KSQL_COL_0", "KSQL_COL_1", "KSQL_COL_2" ],
-          "selectExpressions" : [ "AGE AS AGE", "NAME AS NAME" ]
+          "keyColumnNames" : [ "ID", "NAME" ],
+          "selectExpressions" : [ "AGE AS AGE" ]
         },
         "formats" : {
           "keyFormat" : {
-            "format" : "JSON"
+            "format" : "DELIMITED"
           },
           "valueFormat" : {
-            "format" : "JSON"
+            "format" : "DELIMITED"
           }
         },
         "topicName" : "OUTPUT"

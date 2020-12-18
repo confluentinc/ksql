@@ -1125,10 +1125,28 @@
       }
     },
     {
+      "name": "multiple key columns - reordered",
+      "statements": [
+        "CREATE STREAM INPUT (NAME STRING KEY, ID INT KEY, AGE INT) with (kafka_topic='input', format='DELIMITED');",
+        "CREATE STREAM OUTPUT AS select ID, AGE, NAME from INPUT partition by ID, NAME;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "bob,10", "value": "30"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "10,bob", "value": "30"}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, NAME STRING KEY, AGE INT"}
+        ]
+      }
+    },
+    {
       "name": "multiple columns with expressions",
       "statements": [
         "CREATE STREAM INPUT (AGE INT KEY, NAME STRING, ID INT) with (kafka_topic='input', format='JSON');",
-        "CREATE STREAM OUTPUT AS select ABS(ID), 1, AGE + 2, AGE, NAME from INPUT partition by ABS(ID), 1, AGE + 2;"
+        "CREATE STREAM OUTPUT AS select ABS(ID), 1, AGE + 2 AS K3, AGE, NAME from INPUT partition by ABS(ID), 1, AGE + 2;"
       ],
       "inputs": [
         {"topic": "input", "key": null, "value": {"NAME": "bob", "ID": 10}},
@@ -1137,14 +1155,14 @@
         {"topic": "input", "key": null, "value": null}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": {"KSQL_COL_0": 10, "KSQL_COL_1": 1, "KSQL_COL_2": null}, "value": {"AGE": null, "NAME": "bob"}},
-        {"topic": "OUTPUT", "key": {"KSQL_COL_0": null, "KSQL_COL_1": 1, "KSQL_COL_2": 32}, "value": {"AGE": 30, "NAME": "bob"}},
-        {"topic": "OUTPUT", "key": {"KSQL_COL_0": null, "KSQL_COL_1": 1, "KSQL_COL_2": 32}, "value": null},
-        {"topic": "OUTPUT", "key": {"KSQL_COL_0": null, "KSQL_COL_1": 1, "KSQL_COL_2": null}, "value": null}
+        {"topic": "OUTPUT", "key": {"KSQL_COL_0": 10, "KSQL_COL_1": 1, "K3": null}, "value": {"AGE": null, "NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"KSQL_COL_0": null, "KSQL_COL_1": 1, "K3": 32}, "value": {"AGE": 30, "NAME": "bob"}},
+        {"topic": "OUTPUT", "key": {"KSQL_COL_0": null, "KSQL_COL_1": 1, "K3": 32}, "value": null},
+        {"topic": "OUTPUT", "key": {"KSQL_COL_0": null, "KSQL_COL_1": 1, "K3": null}, "value": null}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "KSQL_COL_0 INT KEY, KSQL_COL_1 INT KEY, KSQL_COL_2 INT KEY, AGE INT, NAME STRING"}
+          {"name": "OUTPUT", "type": "stream", "schema": "KSQL_COL_0 INT KEY, KSQL_COL_1 INT KEY, K3 INT KEY, AGE INT, NAME STRING"}
         ]
       }
     },

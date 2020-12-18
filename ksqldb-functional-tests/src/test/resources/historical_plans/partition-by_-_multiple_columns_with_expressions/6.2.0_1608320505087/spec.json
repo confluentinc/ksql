@@ -1,6 +1,6 @@
 {
   "version" : "6.2.0",
-  "timestamp" : 1608276239888,
+  "timestamp" : 1608320505087,
   "path" : "query-validation-tests/partition-by.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
@@ -14,7 +14,7 @@
       }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`KSQL_COL_0` INTEGER KEY, `KSQL_COL_1` INTEGER KEY, `KSQL_COL_2` INTEGER KEY, `AGE` INTEGER, `NAME` STRING",
+      "schema" : "`KSQL_COL_0` INTEGER KEY, `KSQL_COL_1` INTEGER KEY, `K3` INTEGER KEY, `AGE` INTEGER, `NAME` STRING",
       "keyFormat" : {
         "format" : "JSON"
       },
@@ -53,7 +53,7 @@
       "key" : {
         "KSQL_COL_0" : 10,
         "KSQL_COL_1" : 1,
-        "KSQL_COL_2" : null
+        "K3" : null
       },
       "value" : {
         "AGE" : null,
@@ -64,7 +64,7 @@
       "key" : {
         "KSQL_COL_0" : null,
         "KSQL_COL_1" : 1,
-        "KSQL_COL_2" : 32
+        "K3" : 32
       },
       "value" : {
         "AGE" : 30,
@@ -75,7 +75,7 @@
       "key" : {
         "KSQL_COL_0" : null,
         "KSQL_COL_1" : 1,
-        "KSQL_COL_2" : 32
+        "K3" : 32
       },
       "value" : null
     }, {
@@ -83,7 +83,7 @@
       "key" : {
         "KSQL_COL_0" : null,
         "KSQL_COL_1" : 1,
-        "KSQL_COL_2" : null
+        "K3" : null
       },
       "value" : null
     } ],
@@ -96,7 +96,7 @@
       "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM INPUT (AGE INT KEY, NAME STRING, ID INT) with (kafka_topic='input', format='JSON');", "CREATE STREAM OUTPUT AS select ABS(ID), 1, AGE + 2, AGE, NAME from INPUT partition by ABS(ID), 1, AGE + 2;" ],
+    "statements" : [ "CREATE STREAM INPUT (AGE INT KEY, NAME STRING, ID INT) with (kafka_topic='input', format='JSON');", "CREATE STREAM OUTPUT AS select ABS(ID), 1, AGE + 2 AS K3, AGE, NAME from INPUT partition by ABS(ID), 1, AGE + 2;" ],
     "post" : {
       "sources" : [ {
         "name" : "INPUT",
@@ -111,7 +111,7 @@
       }, {
         "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`KSQL_COL_0` INTEGER KEY, `KSQL_COL_1` INTEGER KEY, `KSQL_COL_2` INTEGER KEY, `AGE` INTEGER, `NAME` STRING",
+        "schema" : "`KSQL_COL_0` INTEGER KEY, `KSQL_COL_1` INTEGER KEY, `K3` INTEGER KEY, `AGE` INTEGER, `NAME` STRING",
         "keyFormat" : {
           "format" : "JSON"
         },

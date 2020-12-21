@@ -133,8 +133,7 @@ FROM clicks
 
 Tables created on top of existing Kafka topics, for example those created with
 a `CREATE TABLE` statement, are keyed on the data held in the key of the records
-in the {{ site.ak }} topic. ksqlDB presents this data in the `PRIMARY KEY` column
-and requires the data to be in the `KAFKA` format.
+in the {{ site.ak }} topic. ksqlDB presents this data in the `PRIMARY KEY` column.
 
 Tables created inside ksqlDB from other sources, for example those created with
 a `CREATE TABLE AS SELECT` statement, will copy the key from their source(s)
@@ -160,7 +159,7 @@ if these ordering guarantees are acceptable.
 
 !!! important
       If the PARTITION BY expression evaluates to NULL, the resulting row is produced to a
-      random partition. You many want to use [COALESCE](../ksqldb-reference/scalar-functions.md#coalesce) to wrap
+      random partition. You may want to use [COALESCE](../ksqldb-reference/scalar-functions.md#coalesce) to wrap
       the expression and convert any NULL values to a default value, for example,
       `PARTITION BY COALESCE(MY_UDF_THAT_MAY_FAIL(Col0), 0)`.
 
@@ -172,8 +171,8 @@ use the following SQL statement:
 CREATE STREAM products_rekeyed 
   WITH (PARTITIONS=6) AS 
   SELECT * 
-   FROM products PARTITION 
-   BY product_id;
+   FROM products
+   PARTITION BY product_id;
 ```
 
 For more information, see

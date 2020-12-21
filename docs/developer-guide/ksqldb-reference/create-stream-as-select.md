@@ -56,11 +56,11 @@ units, see [Time Units](../syntax-reference.md#time-units).
 The key of the resulting stream is determined by the following rules, in order of priority:
  1. if the query has a `PARTITION BY`, then the resulting number of key columns will match the
     number of expressions in the `PARTITION BY` clause. For each expression: 
-    1. if the `PARITION BY` expression is a single source column reference, the corresponding key
+    1. if the `PARTITION BY` expression is a single source column reference, the corresponding key
        column will match the name, type and contents of the source column.
-    1. if the `PARITION BY` expression is a reference to a field within a `STRUCT`-type column, then the
+    1. if the `PARTITION BY` expression is a reference to a field within a `STRUCT`-type column, then the
        corresponding key column will match the name, type, and contents of the `STRUCT` field.
-    1. if the `PARITION BY` expression is any other expression, the key column will have a system 
+    1. if the `PARTITION BY` expression is any other expression, the key column will have a system 
        generated name, unless you provide an alias in the projection, and will match the type and 
        contents of the result of the expression.
  1. if the query has a join see [Join Synthetic Key Columns](../joins/synthetic-keys) for more info.

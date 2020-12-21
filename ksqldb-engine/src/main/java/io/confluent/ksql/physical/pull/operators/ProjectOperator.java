@@ -16,7 +16,6 @@
 package io.confluent.ksql.physical.pull.operators;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
 import io.confluent.ksql.execution.streams.materialization.Row;
@@ -29,7 +28,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -69,9 +67,6 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
   @Override
   public void open() {
     child.open();
-//    if (logicalNode.getIsSelectStar()) {
-//      return;
-//    }
 
     final SelectValueMapper<Object> select = selectValueMapperFactorySupplier.create(
         logicalNode.getSelectExpressions(),
@@ -86,15 +81,12 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
     row = (TableRow)child.next();
     if (row == null) {
       return null;
-    } else if(row == Row.EMPTY_ROW)
-    {
+    } else if (row == Row.EMPTY_ROW) {
       return Collections.emptyList();
     }
 
-//    if (logicalNode.getIsSelectStar()) {
-//      return createRow(row);
-//    }
-    final GenericRow intermediate = getIntermediateRow(row);
+    final GenericRow intermediate = PullPhysicalOperatorUtil.getIntermediateRow(
+        row, logicalNode.getAddAdditionalColumnsToIntermediateSchema());
 
     final GenericRow mapped = transformer.transform(
         row.key(),
@@ -140,34 +132,6 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
     throw new UnsupportedOperationException();
   }
 
-  private GenericRow getIntermediateRow(final TableRow row) {
-
-    if (!logicalNode.getAddAdditionalColumnsToIntermediateSchema()) {
-      return row.value();
-    }
-
-    final GenericKey key = row.key();
-    final GenericRow value = row.value();
-
-    final List<?> keyFields = key.values();
-
-    value.ensureAdditionalCapacity(
-        1 // ROWTIME
-            + keyFields.size()
-            + row.window().map(w -> 2).orElse(0)
-    );
-
-    value.append(row.rowTime());
-    value.appendAll(keyFields);
-
-    row.window().ifPresent(window -> {
-      value.append(window.start().toEpochMilli());
-      value.append(window.end().toEpochMilli());
-    });
-
-    return value;
-  }
-
   private static void validateProjection(
       final GenericRow fullRow,
       final LogicalSchema schema
@@ -180,18 +144,5 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
                                           + ", got:" + actual
       );
     }
-  }
-
-  private static List<?> createRow(final TableRow row) {
-    final List<Object> rowList = new ArrayList<>(row.key().values());
-
-    row.window().ifPresent(window -> {
-      rowList.add(window.start().toEpochMilli());
-      rowList.add(window.end().toEpochMilli());
-    });
-
-    rowList.addAll(row.value().values());
-
-    return rowList;
   }
 }

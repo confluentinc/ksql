@@ -67,8 +67,8 @@ import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.PreJoinProjectNode;
 import io.confluent.ksql.planner.plan.PreJoinRepartitionNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.planner.plan.PullFilterNode;
+import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.planner.plan.SelectionUtil;
 import io.confluent.ksql.planner.plan.SuppressNode;
 import io.confluent.ksql.planner.plan.UserRepartitionNode;
@@ -173,16 +173,31 @@ public class LogicalPlanner {
   }
 
   public OutputNode buildPullLogicalPlan() {
+    final boolean isWindowed = analysis
+        .getFrom()
+        .getDataSource()
+        .getKsqlTopic()
+        .getKeyFormat().isWindowed();
+
     PlanNode currentNode = buildSourceNode();
 
     if (analysis.getWhereExpression().isPresent()) {
+      final Expression whereExpression = analysis.getWhereExpression().get();
+      final FilterTypeValidator validator = new FilterTypeValidator(
+          currentNode.getSchema(),
+          metaStore,
+          FilterType.WHERE);
+
+      validator.validateFilterExpression(whereExpression);
+
       currentNode = new PullFilterNode(
           new PlanNodeId("WhereFilter"),
           currentNode,
-          analysis.getWhereExpression().get(),
+          whereExpression,
           analysis,
           metaStore,
-          ksqlConfig);
+          ksqlConfig,
+          isWindowed);
     }
 
     currentNode = new PullProjectNode(
@@ -191,7 +206,8 @@ public class LogicalPlanner {
         analysis.getSelectItems(),
         metaStore,
         ksqlConfig,
-        analysis);
+        analysis,
+        isWindowed);
 
     return buildOutputNode(currentNode);
   }

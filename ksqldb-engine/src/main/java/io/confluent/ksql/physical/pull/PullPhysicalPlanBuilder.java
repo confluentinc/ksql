@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.physical.pull;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
@@ -24,10 +25,8 @@ import io.confluent.ksql.execution.context.QueryLoggerUtil.QueryType;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.pull.operators.DataSourceOperator;
 import io.confluent.ksql.physical.pull.operators.KeyedTableLookupOperator;
@@ -35,23 +34,22 @@ import io.confluent.ksql.physical.pull.operators.KeyedWindowedTableLookupOperato
 import io.confluent.ksql.physical.pull.operators.ProjectOperator;
 import io.confluent.ksql.physical.pull.operators.SelectOperator;
 import io.confluent.ksql.physical.pull.operators.TableScanOperator;
-import io.confluent.ksql.physical.pull.operators.WhereInfo;
 import io.confluent.ksql.physical.pull.operators.WindowedTableScanOperator;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.planner.plan.PullFilterNode;
+import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds;
+import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Traverses the logical plan top-down and creates a physical plan for pull queries.
@@ -63,38 +61,28 @@ import java.util.Objects;
 public class PullPhysicalPlanBuilder {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private final MetaStore metaStore;
   private final ProcessingLogContext processingLogContext;
-  private final KsqlConfig config;
   private final Stacker contextStacker;
   private final ImmutableAnalysis analysis;
-  private final ConfiguredStatement<Query> statement;
   private final PersistentQueryMetadata persistentQueryMetadata;
   private final QueryId queryId;
   private final Materialization mat;
 
-  private WhereInfo whereInfo;
   private List<GenericKey> keys;
-  //private boolean isWindowed;
-  //private WindowBounds windowBounds;
+  private boolean isWindowed;
+  private Optional<WindowBounds> windowBounds;
 
   public PullPhysicalPlanBuilder(
-      final MetaStore metaStore,
       final ProcessingLogContext processingLogContext,
       final PersistentQueryMetadata persistentQueryMetadata,
-      final KsqlConfig config,
-      final ImmutableAnalysis analysis,
-      final ConfiguredStatement<Query> statement
+      final ImmutableAnalysis analysis
   ) {
-    this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
     this.processingLogContext = Objects.requireNonNull(
         processingLogContext, "processingLogContext");
     this.persistentQueryMetadata = Objects.requireNonNull(
         persistentQueryMetadata, "persistentQueryMetadata");
-    this.config = Objects.requireNonNull(config, "config");
     this.analysis = Objects.requireNonNull(analysis, "analysis");
     this.contextStacker = new Stacker();
-    this.statement = Objects.requireNonNull(statement, "statement");
     queryId = uniqueQueryId();
     mat = this.persistentQueryMetadata
         .getMaterialization(queryId, contextStacker)
@@ -108,8 +96,6 @@ public class PullPhysicalPlanBuilder {
    */
   public PullPhysicalPlan buildPullPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
     DataSourceOperator dataSourceOperator = null;
-
-    // Basic validation, should be moved to logical plan builder
     final OutputNode outputNode = logicalPlanNode.getNode()
         .orElseThrow(() -> new IllegalArgumentException("Need an output node to build a plan"));
 
@@ -181,21 +167,11 @@ public class PullPhysicalPlanBuilder {
   }
 
   private SelectOperator translateFilterNode(final PullFilterNode logicalNode) {
-    final boolean windowed = persistentQueryMetadata.getResultTopic().getKeyFormat().isWindowed();
-    //isWindowed = logicalNode.isWindowed();
+    isWindowed = logicalNode.isWindowed();
     keys = logicalNode.getKeyValues().stream()
         .map(GenericKey::genericKey)
         .collect(ImmutableList.toImmutableList());
-    //windowBounds = logicalNode.getWindowBounds();
-
-
-    whereInfo = WhereInfo.extractWhereInfo(
-        analysis.getWhereExpression().orElseThrow(
-            () -> WhereInfo.invalidWhereClauseException("Missing WHERE clause", windowed)),
-        persistentQueryMetadata.getLogicalSchema(),
-        windowed,
-        metaStore,
-        config);
+    windowBounds = logicalNode.getWindowBounds();
 
     final ProcessingLogger logger = processingLogContext
         .getLoggerFactory()
@@ -209,28 +185,10 @@ public class PullPhysicalPlanBuilder {
   private AbstractPhysicalOperator translateDataSourceNode(
       final DataSourceNode logicalNode
   ) {
-    final boolean windowed = persistentQueryMetadata.getResultTopic().getKeyFormat().isWindowed();
-    if (whereInfo == null) {
-      if (!config.getBoolean(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED)) {
-        throw WhereInfo.invalidWhereClauseException("Missing WHERE clause", windowed);
-      }
-      // Full table scan has no keys
-      keys = Collections.emptyList();
-    } else {
-      keys = whereInfo.getKeysBound();
-    }
-
-    if (keys.isEmpty()) {
-      if (!windowed) {
-        return new TableScanOperator(mat, logicalNode);
-      } else {
-        return new WindowedTableScanOperator(mat, logicalNode);
-      }
-    } else if (!windowed) {
+    if (!isWindowed) {
       return new KeyedTableLookupOperator(mat, logicalNode);
     } else {
-      return new KeyedWindowedTableLookupOperator(
-          mat, logicalNode, whereInfo.getWindowBounds().get());
+      return new KeyedWindowedTableLookupOperator(mat, logicalNode, windowBounds.get());
     }
   }
 

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.streams;
 
+import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -29,4 +30,12 @@ public interface SqlPredicateFactory {
       KsqlConfig ksqlConfig,
       FunctionRegistry functionRegistry
   );
+
+  default SqlPredicate create(
+      Expression filterExpression,
+      ExpressionMetadata expressionMetadata
+  ) {
+    return new SqlPredicate(filterExpression, expressionMetadata);
+  }
+
 }

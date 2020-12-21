@@ -112,7 +112,8 @@ public class PullProjectNodeTest {
         selects,
         metaStore,
         ksqlConfig,
-        analysis
+        analysis,
+        false
     );
 
     // Then:
@@ -134,7 +135,8 @@ public class PullProjectNodeTest {
         selects,
         metaStore,
         ksqlConfig,
-        analysis
+        analysis,
+        true
     );
 
     // Then:
@@ -155,7 +157,8 @@ public class PullProjectNodeTest {
         selects,
         metaStore,
         ksqlConfig,
-        analysis
+        analysis,
+        false
     );
 
     // Then:
@@ -175,7 +178,8 @@ public class PullProjectNodeTest {
         selects,
         metaStore,
         ksqlConfig,
-        analysis
+        analysis,
+        false
     );
 
     // Then:
@@ -208,7 +212,8 @@ public class PullProjectNodeTest {
         selects,
         metaStore,
         ksqlConfig,
-        analysis
+        analysis,
+        true
     );
 
     // Then:
@@ -243,7 +248,8 @@ public class PullProjectNodeTest {
         selects,
         metaStore,
         ksqlConfig,
-        analysis
+        analysis,
+        true
     );
 
     // Then:

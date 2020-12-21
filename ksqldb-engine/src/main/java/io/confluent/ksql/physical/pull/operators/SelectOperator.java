@@ -15,11 +15,13 @@
 
 package io.confluent.ksql.physical.pull.operators;
 
-import io.confluent.ksql.GenericKey;
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.streams.SqlPredicateFactory;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.TableRow;
+import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -40,14 +42,23 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
   private TableRow row;
 
   public SelectOperator(final PullFilterNode logicalNode, final ProcessingLogger logger) {
+    this(logicalNode, logger, SqlPredicate::new);
+  }
+
+  @VisibleForTesting
+  SelectOperator(
+      final PullFilterNode logicalNode,
+      final ProcessingLogger logger,
+      final SqlPredicateFactory predicateFactory
+  ) {
     this.logicalNode = Objects.requireNonNull(logicalNode, "logicalNode");
     this.logger = Objects.requireNonNull(logger, "logger");
-    this.predicate = new SqlPredicate(
-        logicalNode.getPredicate(),
+    this.predicate = predicateFactory.create(
+        logicalNode.getRewrittenPredicate(),
         logicalNode.getCompiledWhereClause()
     );
-
   }
+
 
   @Override
   public void open() {
@@ -62,13 +73,23 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
       return null;
     }
 
-    final GenericRow intermediate = getIntermediateRow(row);
+    final GenericRow intermediate = PullPhysicalOperatorUtil.getIntermediateRow(
+        row, logicalNode.getAddAdditionalColumnsToIntermediateSchema());
 
     return transformer.transform(
         row.key(),
         intermediate,
         new PullProcessingContext(row.rowTime()))
-        .map(r -> Row.of(logicalNode.getIntermediateSchema(), row.key(), r, row.rowTime()))
+        .map(r -> {
+          if (logicalNode.isWindowed()) {
+            return WindowedRow.of(
+                logicalNode.getIntermediateSchema(),
+                ((WindowedRow) row).windowedKey(),
+                r,
+                row.rowTime());
+          }
+          return Row.of(logicalNode.getIntermediateSchema(), row.key(), r, row.rowTime());
+        })
         .orElse(Row.EMPTY_ROW);
   }
 
@@ -104,33 +125,5 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
   @Override
   public List<AbstractPhysicalOperator> getChildren() {
     throw new UnsupportedOperationException();
-  }
-
-  private GenericRow getIntermediateRow(final TableRow row) {
-
-    if (!logicalNode.getAddAdditionalColumnsToIntermediateSchema()) {
-      return row.value();
-    }
-
-    final GenericKey key = row.key();
-    final GenericRow value = row.value();
-
-    final List<?> keyFields = key.values();
-
-    value.ensureAdditionalCapacity(
-        1 // ROWTIME
-            + keyFields.size()
-            + row.window().map(w -> 2).orElse(0)
-    );
-
-    value.append(row.rowTime());
-    value.appendAll(keyFields);
-
-    row.window().ifPresent(window -> {
-      value.append(window.start().toEpochMilli());
-      value.append(window.end().toEpochMilli());
-    });
-
-    return value;
   }
 }

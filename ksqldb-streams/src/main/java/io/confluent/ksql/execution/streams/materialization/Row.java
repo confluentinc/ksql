@@ -27,13 +27,13 @@ import java.util.Optional;
 
 public final class Row implements TableRow {
 
+  public static final Row EMPTY_ROW = new Row();
+
   private final LogicalSchema schema;
   private final GenericKey key;
   private final GenericRow value;
   private final long rowTime;
   private final Validator validator;
-
-  public final static Row EMPTY_ROW = new Row();
 
   public static Row of(
       final LogicalSchema schema,

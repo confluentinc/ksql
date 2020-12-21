@@ -334,12 +334,9 @@ final class EngineExecutor {
   ) {
 
     final PullPhysicalPlanBuilder builder = new PullPhysicalPlanBuilder(
-        engineContext.getMetaStore(),
         engineContext.getProcessingLogContext(),
         PullQueryExecutionUtil.findMaterializingQuery(engineContext, analysis),
-        config,
-        analysis,
-        statement
+        analysis
     );
     return builder.buildPullPhysicalPlan(logicalPlan);
   }

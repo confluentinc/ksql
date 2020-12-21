@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
@@ -34,6 +35,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -44,16 +46,41 @@ import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ProjectOperatorTest {
 
-  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+  private static final LogicalSchema OUTPUT_SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
+      .build();
+
+  private static final LogicalSchema INTERMEDIATE_SCHEMA_WITH_PSEUDO = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
+      .valueColumn(SystemColumns.ROWTIME_NAME, SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("k0"), SqlTypes.STRING)
+      .build();
+
+  private static final LogicalSchema WINDOWED_OUTPUT_SCHEMA = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+      .keyColumn(SystemColumns.WINDOWSTART_NAME, SqlTypes.BIGINT)
+      .keyColumn(SystemColumns.WINDOWEND_NAME, SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
+      .build();
+
+  private static final LogicalSchema WINDOWED_INTERMEDIATE_SCHEMA_WITH_PSEUDO = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
+      .valueColumn(SystemColumns.ROWTIME_NAME, SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("k0"), SqlTypes.STRING)
+      .valueColumn(SystemColumns.WINDOWSTART_NAME, SqlTypes.BIGINT)
+      .valueColumn(SystemColumns.WINDOWEND_NAME, SqlTypes.BIGINT)
       .build();
 
   private static final GenericKey A_KEY = GenericKey.genericKey("k");
@@ -81,19 +108,24 @@ public class ProjectOperatorTest {
   @Test
   public void shouldProjectAllColumnsWhenSelectStarNonWindowed() {
     // Given:
-    when(logicalNode.getIsSelectStar()).thenReturn(true);
+    when(logicalNode.getSchema()).thenReturn(OUTPUT_SCHEMA);
     final ProjectOperator projectOperator = new ProjectOperator(
         logger,
         logicalNode,
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
     final Row row = Row.of(
-        SCHEMA,
+        INTERMEDIATE_SCHEMA_WITH_PSEUDO,
         A_KEY,
-        GenericRow.genericRow("a", "b"),
+        GenericRow.genericRow("a", "b", A_ROWTIME, "k"),
         A_ROWTIME
     );
     when(child.next()).thenReturn(row);
+    when(selectValueMapperFactorySupplier.create(any(), any()))
+        .thenReturn(selectValueMapper);
+    when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
+    when(transformer.transform(A_KEY, row.value(), new PullProcessingContext(12335L)))
+        .thenReturn(GenericRow.genericRow("k", "a", "b"));
     projectOperator.open();
 
     // When:
@@ -101,28 +133,32 @@ public class ProjectOperatorTest {
 
     // Then:
     final List<Object> expected = new ArrayList<>(row.key().values());
-    expected.addAll(row.value().values());
+    expected.add("a");
+    expected.add("b");
     assertThat(result, is(expected));
-    Mockito.verifyZeroInteractions(selectValueMapper);
-
   }
 
   @Test
   public void shouldProjectAllColumnsWhenSelectStarWindowed() {
     // Given:
-    when(logicalNode.getIsSelectStar()).thenReturn(true);
+    when(logicalNode.getSchema()).thenReturn(WINDOWED_OUTPUT_SCHEMA);
     final ProjectOperator projectOperator = new ProjectOperator(
         logger,
         logicalNode,
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
     final WindowedRow windowedRow = WindowedRow.of(
-        SCHEMA,
+        WINDOWED_INTERMEDIATE_SCHEMA_WITH_PSEUDO,
         new Windowed<>(A_KEY, STREAM_WINDOW),
-        GenericRow.genericRow("a", "b"),
+        GenericRow.genericRow("a", "b", A_ROWTIME, "k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli()),
         A_ROWTIME
     );
     when(child.next()).thenReturn(windowedRow);
+    when(selectValueMapperFactorySupplier.create(any(), any()))
+        .thenReturn(selectValueMapper);
+    when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
+    when(transformer.transform(A_KEY, windowedRow.value(), new PullProcessingContext(A_ROWTIME)))
+        .thenReturn(GenericRow.genericRow("k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli(), "a", "b"));
     projectOperator.open();
 
     // When:
@@ -132,7 +168,8 @@ public class ProjectOperatorTest {
     final List<Object> expected = new ArrayList<>(windowedRow.key().values());
     expected.add(windowedRow.window().get().start().toEpochMilli());
     expected.add(windowedRow.window().get().end().toEpochMilli());
-    expected.addAll(windowedRow.value().values());
+    expected.add("a");
+    expected.add("b");
     assertThat(result, is(expected));
   }
 
@@ -140,7 +177,7 @@ public class ProjectOperatorTest {
   public void shouldCallTransformWithCorrectArguments() {
     // Given:
     when(logicalNode.getAddAdditionalColumnsToIntermediateSchema()).thenReturn(true);
-    when(logicalNode.getSchema()).thenReturn(SCHEMA);
+    when(logicalNode.getSchema()).thenReturn(OUTPUT_SCHEMA);
     when(logicalNode.getCompiledSelectExpressions()).thenReturn(Collections.emptyList());
     final ProjectOperator projectOperator = new ProjectOperator(
         logger,
@@ -148,9 +185,9 @@ public class ProjectOperatorTest {
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
     final Row row = Row.of(
-        SCHEMA,
+        INTERMEDIATE_SCHEMA_WITH_PSEUDO,
         A_KEY,
-        GenericRow.genericRow("a", "b"),
+        GenericRow.genericRow("a", "b", A_ROWTIME, "k"),
         A_ROWTIME
     );
     when(child.next()).thenReturn(row);
@@ -165,14 +202,14 @@ public class ProjectOperatorTest {
 
     // Then:
     verify(transformer).transform(
-        A_KEY, GenericRow.genericRow("a", "b", 12335L, "k"), new PullProcessingContext(12335L));
+        A_KEY, GenericRow.genericRow("a", "b", 12335L, "k", 12335L, "k"), new PullProcessingContext(12335L));
   }
 
   @Test
   public void shouldCallTransformWithCorrectArgumentsWindowed() {
     // Given:
     when(logicalNode.getAddAdditionalColumnsToIntermediateSchema()).thenReturn(true);
-    when(logicalNode.getSchema()).thenReturn(SCHEMA);
+    when(logicalNode.getSchema()).thenReturn(OUTPUT_SCHEMA);
     when(logicalNode.getCompiledSelectExpressions()).thenReturn(Collections.emptyList());
     final ProjectOperator projectOperator = new ProjectOperator(
         logger,
@@ -180,9 +217,9 @@ public class ProjectOperatorTest {
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
     final WindowedRow windowedRow = WindowedRow.of(
-        SCHEMA,
+        WINDOWED_INTERMEDIATE_SCHEMA_WITH_PSEUDO,
         new Windowed<>(A_KEY, STREAM_WINDOW),
-        GenericRow.genericRow("a", "b"),
+        GenericRow.genericRow("a", "b", A_ROWTIME, "k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli()),
         A_ROWTIME
     );
     when(child.next()).thenReturn(windowedRow);
@@ -198,7 +235,8 @@ public class ProjectOperatorTest {
     // Then:
     verify(transformer).transform(
         A_KEY,
-        GenericRow.genericRow("a", "b", 12335L, "k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli()),
+        GenericRow.genericRow("a", "b", 12335L, "k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli(),
+                              12335L, "k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli()),
         new PullProcessingContext(12335L));
   }
 
@@ -217,17 +255,17 @@ public class ProjectOperatorTest {
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
     final Row row = Row.of(
-        SCHEMA,
+        INTERMEDIATE_SCHEMA_WITH_PSEUDO,
         A_KEY,
-        GenericRow.genericRow("a", "b"),
+        GenericRow.genericRow("a", "b", A_ROWTIME, "k"),
         A_ROWTIME
     );
     when(child.next()).thenReturn(row);
     when(selectValueMapperFactorySupplier.create(any(), any()))
         .thenReturn(selectValueMapper);
     when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
-    when(transformer.transform(A_KEY, GenericRow.genericRow("a", "b", 12335L, "k"), new PullProcessingContext(12335L)))
-             .thenAnswer(inv -> GenericRow.genericRow("k"));
+    when(transformer.transform(A_KEY, row.value(), new PullProcessingContext(12335L)))
+             .thenReturn(GenericRow.genericRow("k"));
     projectOperator.open();
 
     // When:
@@ -236,6 +274,77 @@ public class ProjectOperatorTest {
     // Then:
     assertThat(result, is(row.key().values()));
   }
+
+  @Test
+  public void shouldProjectOnlyValueNonWindowed() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
+        .build();
+    when(logicalNode.getAddAdditionalColumnsToIntermediateSchema()).thenReturn(false);
+    when(logicalNode.getSchema()).thenReturn(schema);
+    when(logicalNode.getCompiledSelectExpressions()).thenReturn(Collections.emptyList());
+    final ProjectOperator projectOperator = new ProjectOperator(
+        logger,
+        logicalNode,
+        selectValueMapperFactorySupplier);
+    projectOperator.addChild(child);
+    final Row row = Row.of(
+        INTERMEDIATE_SCHEMA_WITH_PSEUDO,
+        A_KEY,
+        GenericRow.genericRow("a", "b", A_ROWTIME, "k"),
+        A_ROWTIME
+    );
+    when(child.next()).thenReturn(row);
+    when(selectValueMapperFactorySupplier.create(any(), any()))
+        .thenReturn(selectValueMapper);
+    when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
+    when(transformer.transform(A_KEY, row.value(), new PullProcessingContext(12335L)))
+        .thenReturn(GenericRow.genericRow("b"));
+    projectOperator.open();
+
+    // When:
+    Object result = projectOperator.next();
+
+    // Then:
+    assertThat(result, is(ImmutableList.of("b")));
+  }
+
+  @Test
+  public void shouldProjectOnlyWindowStartWindowed() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueColumn(SystemColumns.WINDOWSTART_NAME, SqlTypes.BIGINT)
+        .build();
+    when(logicalNode.getAddAdditionalColumnsToIntermediateSchema()).thenReturn(true);
+    when(logicalNode.getSchema()).thenReturn(schema);
+    when(logicalNode.getCompiledSelectExpressions()).thenReturn(Collections.emptyList());
+    final ProjectOperator projectOperator = new ProjectOperator(
+        logger,
+        logicalNode,
+        selectValueMapperFactorySupplier);
+    projectOperator.addChild(child);
+    final WindowedRow windowedRow = WindowedRow.of(
+        WINDOWED_INTERMEDIATE_SCHEMA_WITH_PSEUDO,
+        new Windowed<>(A_KEY, STREAM_WINDOW),
+        GenericRow.genericRow("a", "b", A_ROWTIME, "k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli()),
+        A_ROWTIME
+    );
+    when(child.next()).thenReturn(windowedRow);
+    when(selectValueMapperFactorySupplier.create(any(), any()))
+        .thenReturn(selectValueMapper);
+    when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
+    when(transformer.transform(A_KEY, windowedRow.value(), new PullProcessingContext(12335L)))
+        .thenReturn(GenericRow.genericRow(A_WINDOW.start().toEpochMilli()));
+    projectOperator.open();
+
+    // When:
+    Object result = projectOperator.next();
+
+    // Then:
+    assertThat(result, is(ImmutableList.of(A_WINDOW.start().toEpochMilli())));
+  }
+
 
   @Test
   public void shouldProjectKeyAndValueNonWindowed() {
@@ -253,17 +362,17 @@ public class ProjectOperatorTest {
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
     final Row row = Row.of(
-        SCHEMA,
+        INTERMEDIATE_SCHEMA_WITH_PSEUDO,
         A_KEY,
-        GenericRow.genericRow("a", "b"),
+        GenericRow.genericRow("a", "b", A_ROWTIME, "k"),
         A_ROWTIME
     );
     when(child.next()).thenReturn(row);
     when(selectValueMapperFactorySupplier.create(any(), any()))
         .thenReturn(selectValueMapper);
     when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
-    when(transformer.transform(A_KEY, GenericRow.genericRow("a", "b", 12335L, "k"), new PullProcessingContext(12335L)))
-        .thenAnswer(inv -> GenericRow.genericRow("k","b"));
+    when(transformer.transform(A_KEY, row.value(), new PullProcessingContext(12335L)))
+        .thenReturn(GenericRow.genericRow("k","b"));
     projectOperator.open();
 
     // When:
@@ -291,9 +400,9 @@ public class ProjectOperatorTest {
         selectValueMapperFactorySupplier);
     projectOperator.addChild(child);
     final WindowedRow windowedRow = WindowedRow.of(
-        SCHEMA,
+        WINDOWED_INTERMEDIATE_SCHEMA_WITH_PSEUDO,
         new Windowed<>(A_KEY, STREAM_WINDOW),
-        GenericRow.genericRow("a", "b"),
+        GenericRow.genericRow("a", "b", A_ROWTIME, "k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli()),
         A_ROWTIME
     );
     when(child.next()).thenReturn(windowedRow);
@@ -302,9 +411,9 @@ public class ProjectOperatorTest {
     when(selectValueMapper.getTransformer(logger)).thenReturn(transformer);
     when(transformer.transform(
         A_KEY,
-        GenericRow.genericRow("a", "b", 12335L, "k", A_WINDOW.start().toEpochMilli(), A_WINDOW.end().toEpochMilli()),
+        windowedRow.value(),
         new PullProcessingContext(12335L)))
-        .thenAnswer(inv -> GenericRow.genericRow("k", "b"));
+        .thenReturn(GenericRow.genericRow("k", "b"));
     projectOperator.open();
 
     // When:

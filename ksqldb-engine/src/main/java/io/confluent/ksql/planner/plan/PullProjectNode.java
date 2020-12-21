@@ -75,7 +75,8 @@ public class PullProjectNode extends ProjectNode {
       final List<SelectItem> selectItems,
       final MetaStore metaStore,
       final KsqlConfig ksqlConfig,
-      final RewrittenAnalysis analysis
+      final RewrittenAnalysis analysis,
+      final boolean isWindowed
   ) {
     super(id, source);
     this.projection = Projection.of(selectItems);
@@ -85,7 +86,11 @@ public class PullProjectNode extends ProjectNode {
     this.isSelectStar = isSelectStar();
     this.addAdditionalColumnsToIntermediateSchema = shouldAddAdditionalColumnsInSchema();
     this.outputSchema = buildOutputSchema(metaStore);
-    this.intermediateSchema = buildIntermediateSchema();
+    this.intermediateSchema = PullLogicalPlanUtil.buildIntermediateSchema(
+          source.getSchema(),
+          addAdditionalColumnsToIntermediateSchema,
+          isWindowed
+      );
     this.compiledSelectExpressions = selectExpressions
         .stream()
         .map(selectExpression -> CodeGenRunner.compileExpression(
@@ -123,29 +128,6 @@ public class PullProjectNode extends ProjectNode {
 
   public boolean getAddAdditionalColumnsToIntermediateSchema() {
     return addAdditionalColumnsToIntermediateSchema;
-  }
-
-  /**
-   * Builds the schema used for codegen to compile expressions into bytecode. The input schema may
-   * need to be extended with system columns if they are part of the projection.
-   * @return the intermediate schema
-   */
-  private LogicalSchema buildIntermediateSchema() {
-    final LogicalSchema parentSchema = getSource().getSchema();
-
-    if (!addAdditionalColumnsToIntermediateSchema) {
-      return parentSchema;
-    } else {
-      // SelectValueMapper requires the rowTime & key fields in the value schema :(
-      final boolean isWindowed = analysis
-          .getFrom()
-          .getDataSource()
-          .getKsqlTopic()
-          .getKeyFormat().isWindowed();
-
-      return parentSchema
-          .withPseudoAndKeyColsInValue(isWindowed);
-    }
   }
 
   /**

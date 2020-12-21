@@ -54,21 +54,25 @@ records that both occur within a specified time interval. For valid time
 units, see [Time Units](../syntax-reference.md#time-units).
 
 The key of the resulting stream is determined by the following rules, in order of priority:
- 1. if the query has a  `PARTITION BY`: 
-    1. if the `PARITION BY` is on a single source column reference, the key will match the 
-       name, type and contents of the source column.
-    1. otherwise the key will have a system generated name, unless you provide an alias in the 
-       projection, and will match the type and contents of the result of the expression.
+ 1. if the query has a `PARTITION BY`, then the resulting number of key columns will match the
+    number of expressions in the `PARTITION BY` clause. For each expression: 
+    1. if the `PARITION BY` expression is a single source column reference, the corresponding key
+       column will match the name, type and contents of the source column.
+    1. if the `PARITION BY` expression is a reference to a field within a `STRUCT`-type column, then the
+       corresponding key column will match the name, type, and contents of the `STRUCT` field.
+    1. if the `PARITION BY` expression is any other expression, the key column will have a system 
+       generated name, unless you provide an alias in the projection, and will match the type and 
+       contents of the result of the expression.
  1. if the query has a join see [Join Synthetic Key Columns](../joins/synthetic-keys) for more info.
- 1. otherwise, the primary key will match the name, unless you provide an alias in the projection, 
+ 1. otherwise, the key will match the name, unless you provide an alias in the projection, 
     and type of the source stream's key.
 
 The projection must include all columns required in the result, including any key columns.
 
 For supported [serialization formats](../../developer-guide/serialization.md),
 ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
-ksqlDB registers the value schema of the new stream with {{ site.sr }} automatically. 
-The schema is registered under the subject `<topic-name>-value`.
+ksqlDB registers the key and/or value schema(s) of the new stream with {{ site.sr }} automatically. 
+Key and value schemas are registered under the subjects `<topic-name>-key` and `<topic-name>-value`, respectively.
 
 The WITH clause for the result supports the following properties:
 
@@ -87,7 +91,7 @@ The WITH clause for the result supports the following properties:
 
 
 !!! note
-      - To use Avro, you must have {{ site.sr }} enabled and
+      - To use Avro or Protobuf, you must have {{ site.sr }} enabled and
         `ksql.schema.registry.url` must be set in the ksqlDB server configuration
         file. See [Configure ksqlDB for Avro, Protobuf, and JSON schemas](../../operate-and-deploy/installation/server-config/avro-schema.md). 
       - Avro field names are not case sensitive in ksqlDB. This matches the ksqlDB

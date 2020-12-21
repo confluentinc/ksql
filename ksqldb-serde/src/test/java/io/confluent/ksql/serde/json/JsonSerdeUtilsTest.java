@@ -157,12 +157,12 @@ public class JsonSerdeUtilsTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldNotConvertIncorrectStringToTimestamp() {
-    final Timestamp d = JsonSerdeUtils.toTimestamp(JsonNodeFactory.instance.textNode("ha"));
+    JsonSerdeUtils.toTimestamp(JsonNodeFactory.instance.textNode("ha"));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingIncompatibleTimestamp() {
-    final Timestamp d = JsonSerdeUtils.toTimestamp(JsonNodeFactory.instance.booleanNode(false));
+    JsonSerdeUtils.toTimestamp(JsonNodeFactory.instance.booleanNode(false));
   }
 
   @Test(expected = IllegalArgumentException.class)

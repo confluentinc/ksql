@@ -35,15 +35,6 @@ correct key and partitioning.
     after the repartition. Otherwise, {{ site.ak }} is likely to interleave messages.
     The use case will determine if these ordering guarantees are acceptable.
 
-ksqlDB requires keys to use the `KAFKA` format. For more information, see
-[Serialization Formats](../serialization.md#serialization-formats). If internally
-repartitioning, ksqlDB uses the correct format. If the data in your {{ site.ak }} topics 
-does not have a suitable key format, see [Key Requirements](../syntax-reference.md#key-requirements).
-
-The KAFKA format doesn't support serializing the column name within the data, so the key column name is 
-not important for joins. The key column type is important: for the join to be valid,
-both sides must have a key with the same SQL type.
-
 The following example shows a `users` table joined with a `clicks` stream
 on the click's `userId` column. The `users` table has a correct primary key,
 `id`, of the same SQL type. The `clicks` stream doesn't have a defined key, 

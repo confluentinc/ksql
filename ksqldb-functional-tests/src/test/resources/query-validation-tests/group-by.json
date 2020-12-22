@@ -486,6 +486,9 @@
       "inputs": [
         {"topic": "test_topic", "key": 1, "value": {"f2": "2"}},
         {"topic": "test_topic", "key": 2, "value": {"f2": "4"}},
+        {"topic": "test_topic", "key": 1, "value": {"f2": null}},
+        {"topic": "test_topic", "key": 1, "value": null},
+        {"topic": "test_topic", "key": null, "value": {"f2": "1"}},
         {"topic": "test_topic", "key": 1, "value": {"f2": "2"}},
         {"topic": "test_topic", "key": 2, "value": {"f2": "4"}},
         {"topic": "test_topic", "key": 2, "value": {"f2": "1"}}
@@ -575,12 +578,17 @@
       "inputs": [
         {"topic": "test_topic", "key": 10, "value": {"VALUE": 0}},
         {"topic": "test_topic", "key": 1666, "value": {"VALUE": 0}},
-        {"topic": "test_topic", "key": 98, "value": {"VALUE": 0}}
+        {"topic": "test_topic", "key": 98, "value": {"VALUE": 0}},
+        {"topic": "test_topic", "key": 98, "value": {"VALUE": 1}},
+        {"topic": "test_topic", "key": 2, "value": {"VALUE": null}},
+        {"topic": "test_topic", "key": 2, "value": null}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": {"VALUE": 0, "K": 1}, "value": {"ID": 1}},
         {"topic": "OUTPUT", "key": {"VALUE": 0, "K": 1}, "value": {"ID": 2}},
-        {"topic": "OUTPUT", "key": {"VALUE": 0, "K": 1}, "value": {"ID": 3}}
+        {"topic": "OUTPUT", "key": {"VALUE": 0, "K": 1}, "value": {"ID": 3}},
+        {"topic": "OUTPUT", "key": {"VALUE": 0, "K": 1}, "value": {"ID": 2}},
+        {"topic": "OUTPUT", "key": {"VALUE": 1, "K": 1}, "value": {"ID": 1}}
       ],
       "post": {
         "sources": [

@@ -57,10 +57,15 @@
         "CREATE TABLE OUTPUT AS SELECT * FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}}
+        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}},
+        {"topic": "input_topic", "key": {"K": null, "K2": 2}, "value": {"V": 0}},
+        {"topic": "input_topic", "key": {"K": null, "K2": 2}, "value": null},
+        {"topic": "input_topic", "key": null, "value": {"V": 0}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": {"K": 1, "K2": 2}, "value": {"V": 0}}
+        {"topic": "OUTPUT", "key": {"K": 1, "K2": 2}, "value": {"V": 0}},
+        {"topic": "OUTPUT", "key": {"K": null, "K2": 2}, "value": {"V": 0}},
+        {"topic": "OUTPUT", "key": {"K": null, "K2": 2}, "value": null}
       ],
       "post": {
         "sources": [

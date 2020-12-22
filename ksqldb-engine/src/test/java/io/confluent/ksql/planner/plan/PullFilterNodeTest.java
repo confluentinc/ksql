@@ -24,9 +24,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
-import io.confluent.ksql.analyzer.Analysis;
-import io.confluent.ksql.analyzer.RewrittenAnalysis;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
@@ -41,14 +39,12 @@ import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds;
 import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds.WindowRange;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Instant;
@@ -74,23 +70,19 @@ public class PullFilterNodeTest {
       .valueColumn(K, SqlTypes.INTEGER)
       .build();
 
+  private static final LogicalSchema MULTI_KEY_SCHEMA = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("K1"), SqlTypes.INTEGER)
+      .keyColumn(ColumnName.of("K2"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("C1"), SqlTypes.INTEGER)
+      .build();
+
+
   @Mock
   private PlanNode source;
   @Mock
   private MetaStore metaStore;
   @Mock
   private KsqlConfig ksqlConfig;
-  @Mock
-  private RewrittenAnalysis analysis;
-  @Mock
-  private Analysis.AliasedDataSource aliasedDataSource;
-  @Mock
-  private DataSource dataSource;
-  @Mock
-  private KsqlTopic ksqlTopic;
-  @Mock
-  private KeyFormat keyFormat;
-
 
   @Before
   public void setUp() {
@@ -110,17 +102,16 @@ public class PullFilterNodeTest {
         NODE_ID,
         source,
         expression,
-        analysis,
         metaStore,
         ksqlConfig,
         false
     );
 
     // When:
-    final List<Object> keys = filterNode.getKeyValues();
+    final List<GenericKey> keys = filterNode.getKeyValues();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(1)));
+    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(false));
     assertThat(filterNode.getWindowBounds(), is(Optional.empty()));
   }
@@ -141,7 +132,6 @@ public class PullFilterNodeTest {
             NODE_ID,
             source,
             expression,
-            analysis,
             metaStore,
             ksqlConfig,
             false
@@ -164,17 +154,16 @@ public class PullFilterNodeTest {
         NODE_ID,
         source,
         expression,
-        analysis,
         metaStore,
         ksqlConfig,
         false
     );
 
     // When:
-    final List<Object> keys = filterNode.getKeyValues();
+    final List<GenericKey> keys = filterNode.getKeyValues();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(-1)));
+    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(-1))));
     assertThat(filterNode.isWindowed(), is(false));
     assertThat(filterNode.getWindowBounds(), is(Optional.empty()));
   }
@@ -192,17 +181,16 @@ public class PullFilterNodeTest {
         NODE_ID,
         source,
         expression,
-        analysis,
         metaStore,
         ksqlConfig,
         false
     );
 
     // When:
-    final List<Object> keys = filterNode.getKeyValues();
+    final List<GenericKey> keys = filterNode.getKeyValues();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(1,2)));
+    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1),GenericKey.genericKey(2))));
     assertThat(filterNode.isWindowed(), is(false));
     assertThat(filterNode.getWindowBounds(), is(Optional.empty()));
   }
@@ -221,17 +209,16 @@ public class PullFilterNodeTest {
         NODE_ID,
         source,
         expression,
-        analysis,
         metaStore,
         ksqlConfig,
         true
     );
 
     // When:
-    final List<Object> keys = filterNode.getKeyValues();
+    final List<GenericKey> keys = filterNode.getKeyValues();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(1)));
+    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
     assertThat(filterNode.getWindowBounds(), is(Optional.of(
         new WindowBounds()
@@ -260,18 +247,17 @@ public class PullFilterNodeTest {
         NODE_ID,
         source,
         expression,
-        analysis,
         metaStore,
         ksqlConfig,
         true
     );
 
     // When:
-    final List<Object> keys = filterNode.getKeyValues();
+    final List<GenericKey> keys = filterNode.getKeyValues();
     final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(1)));
+    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
     assertThat(windowBounds, is(Optional.of(
         new WindowBounds(
@@ -304,18 +290,17 @@ public class PullFilterNodeTest {
         NODE_ID,
         source,
         expression,
-        analysis,
         metaStore,
         ksqlConfig,
         true
     );
 
     // When:
-    final List<Object> keys = filterNode.getKeyValues();
+    final List<GenericKey> keys = filterNode.getKeyValues();
     final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(1)));
+    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
     assertThat(windowBounds, is(Optional.of(
         new WindowBounds(
@@ -348,18 +333,17 @@ public class PullFilterNodeTest {
         NODE_ID,
         source,
         expression,
-        analysis,
         metaStore,
         ksqlConfig,
         true
     );
 
     // When:
-    final List<Object> keys = filterNode.getKeyValues();
+    final List<GenericKey> keys = filterNode.getKeyValues();
     final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(1)));
+    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
     assertThat(windowBounds, is(Optional.of(
         new WindowBounds(
@@ -392,18 +376,17 @@ public class PullFilterNodeTest {
         NODE_ID,
         source,
         expression,
-        analysis,
         metaStore,
         ksqlConfig,
         true
     );
 
     // When:
-    final List<Object> keys = filterNode.getKeyValues();
+    final List<GenericKey> keys = filterNode.getKeyValues();
     final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(1)));
+    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
     assertThat(windowBounds, is(Optional.of(
         new WindowBounds(
@@ -436,18 +419,17 @@ public class PullFilterNodeTest {
         NODE_ID,
         source,
         expression,
-        analysis,
         metaStore,
         ksqlConfig,
         true
     );
 
     // When:
-    final List<Object> keys = filterNode.getKeyValues();
+    final List<GenericKey> keys = filterNode.getKeyValues();
     final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(1)));
+    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
     assertThat(windowBounds, is(Optional.of(
         new WindowBounds(
@@ -480,18 +462,17 @@ public class PullFilterNodeTest {
         NODE_ID,
         source,
         expression,
-        analysis,
         metaStore,
         ksqlConfig,
         true
     );
 
     // When:
-    final List<Object> keys = filterNode.getKeyValues();
+    final List<GenericKey> keys = filterNode.getKeyValues();
     final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(1)));
+    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
     assertThat(windowBounds, is(Optional.of(
         new WindowBounds(
@@ -524,18 +505,17 @@ public class PullFilterNodeTest {
         NODE_ID,
         source,
         expression,
-        analysis,
         metaStore,
         ksqlConfig,
         true
     );
 
     // When:
-    final List<Object> keys = filterNode.getKeyValues();
+    final List<GenericKey> keys = filterNode.getKeyValues();
     final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(1)));
+    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
     assertThat(windowBounds, is(Optional.of(
         new WindowBounds(
@@ -568,18 +548,17 @@ public class PullFilterNodeTest {
         NODE_ID,
         source,
         expression,
-        analysis,
         metaStore,
         ksqlConfig,
         true
     );
 
     // When:
-    final List<Object> keys = filterNode.getKeyValues();
+    final List<GenericKey> keys = filterNode.getKeyValues();
     final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(1)));
+    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
     assertThat(windowBounds, is(Optional.of(
         new WindowBounds(
@@ -612,18 +591,17 @@ public class PullFilterNodeTest {
         NODE_ID,
         source,
         expression,
-        analysis,
         metaStore,
         ksqlConfig,
         true
     );
 
     // When:
-    final List<Object> keys = filterNode.getKeyValues();
+    final List<GenericKey> keys = filterNode.getKeyValues();
     final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(1)));
+    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
     assertThat(windowBounds, is(Optional.of(
         new WindowBounds(
@@ -667,18 +645,17 @@ public class PullFilterNodeTest {
         NODE_ID,
         source,
         expression,
-        analysis,
         metaStore,
         ksqlConfig,
         true
     );
 
     // When:
-    final List<Object> keys = filterNode.getKeyValues();
+    final List<GenericKey> keys = filterNode.getKeyValues();
     final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(1)));
+    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
     assertThat(windowBounds, is(Optional.of(
         new WindowBounds(
@@ -716,18 +693,17 @@ public class PullFilterNodeTest {
         NODE_ID,
         source,
         expression,
-        analysis,
         metaStore,
         ksqlConfig,
         true
     );
 
     // When:
-    final List<Object> keys = filterNode.getKeyValues();
+    final List<GenericKey> keys = filterNode.getKeyValues();
     final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(1)));
+    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
     assertThat(windowBounds, is(Optional.of(
         new WindowBounds(
@@ -737,6 +713,71 @@ public class PullFilterNodeTest {
         )
     )));
   }
+
+  @Test
+  public void shouldSupportMultiKeyExpressions() {
+    // Given:
+    when(source.getSchema()).thenReturn(MULTI_KEY_SCHEMA);
+    final Expression expression1 = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K1")),
+        new IntegerLiteral(1)
+    );
+    final Expression expression2 = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K2")),
+        new IntegerLiteral(2)
+    );
+    final Expression expression  = new LogicalBinaryExpression(
+        LogicalBinaryExpression.Type.AND,
+        expression1,
+        expression2
+    );
+    PullFilterNode filterNode = new PullFilterNode(
+        NODE_ID,
+        source,
+        expression,
+        metaStore,
+        ksqlConfig,
+        true
+    );
+
+    // When:
+    final List<GenericKey> keys = filterNode.getKeyValues();
+
+    // Then:
+    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1, 2))));
+  }
+
+
+  @Test
+  public void shouldThrowMultiKeyExpressionsThatDontCoverAllKeys() {
+    // Given:
+    when(source.getSchema()).thenReturn(MULTI_KEY_SCHEMA);
+    final Expression expression = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K1")),
+        new IntegerLiteral(1)
+    );
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> new PullFilterNode(
+            NODE_ID,
+            source,
+            expression,
+            metaStore,
+            ksqlConfig,
+            false
+        ));
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Multi-column sources must specify every key in the WHERE clause. "
+            + "Specified: [`K1`] Expected: [`K1` INTEGER KEY, `K2` INTEGER KEY]"));
+  }
+
 
   @Test
   public void shouldThrowIfComparisonOnNonKey() {
@@ -754,14 +795,13 @@ public class PullFilterNodeTest {
             NODE_ID,
             source,
             expression,
-            analysis,
             metaStore,
             ksqlConfig,
             false
         ));
 
     // Then:
-    assertThat(e.getMessage(), containsString("WHERE clause on unsupported column: C1"));
+    assertThat(e.getMessage(), containsString("Bound on non-key column `C1`."));
   }
 
   @Test
@@ -776,7 +816,6 @@ public class PullFilterNodeTest {
             NODE_ID,
             source,
             expression,
-            analysis,
             metaStore,
             ksqlConfig,
             false
@@ -803,14 +842,13 @@ public class PullFilterNodeTest {
             NODE_ID,
             source,
             expression,
-            analysis,
             metaStore,
             ksqlConfig,
             false
         ));
 
     // Then:
-    assertThat(e.getMessage(), containsString("Bound on 'K' must currently be '='."));
+    assertThat(e.getMessage(), containsString("Bound on key columns '[`K` INTEGER KEY]' must currently be '='."));
   }
 
   @Test
@@ -840,7 +878,6 @@ public class PullFilterNodeTest {
             NODE_ID,
             source,
             expression,
-            analysis,
             metaStore,
             ksqlConfig,
             false
@@ -866,7 +903,6 @@ public class PullFilterNodeTest {
             NODE_ID,
             source,
             expression,
-            analysis,
             metaStore,
             ksqlConfig,
             false
@@ -898,14 +934,13 @@ public class PullFilterNodeTest {
             NODE_ID,
             source,
             expression,
-            analysis,
             metaStore,
             ksqlConfig,
             false
         ));
 
     // Then:
-    assertThat(e.getMessage(), containsString("Schemas with multiple KEY columns are not supported"));
+    assertThat(e.getMessage(), containsString("Multi-column sources must specify every key in the WHERE clause. Specified: [`K`] Expected: [`K` INTEGER KEY, `K2` INTEGER KEY]."));
   }
 
   @Test
@@ -934,7 +969,6 @@ public class PullFilterNodeTest {
             NODE_ID,
             source,
             expression,
-            analysis,
             metaStore,
             ksqlConfig,
             false
@@ -970,7 +1004,6 @@ public class PullFilterNodeTest {
             NODE_ID,
             source,
             expression,
-            analysis,
             metaStore,
             ksqlConfig,
             false
@@ -1006,7 +1039,6 @@ public class PullFilterNodeTest {
             NODE_ID,
             source,
             expression,
-            analysis,
             metaStore,
             ksqlConfig,
             true
@@ -1054,7 +1086,6 @@ public class PullFilterNodeTest {
             NODE_ID,
             source,
             expression,
-            analysis,
             metaStore,
             ksqlConfig,
             true
@@ -1101,7 +1132,6 @@ public class PullFilterNodeTest {
             NODE_ID,
             source,
             expression,
-            analysis,
             metaStore,
             ksqlConfig,
             true
@@ -1137,7 +1167,6 @@ public class PullFilterNodeTest {
             NODE_ID,
             source,
             expression,
-            analysis,
             metaStore,
             ksqlConfig,
             true
@@ -1184,7 +1213,6 @@ public class PullFilterNodeTest {
             NODE_ID,
             source,
             expression,
-            analysis,
             metaStore,
             ksqlConfig,
             true
@@ -1220,7 +1248,6 @@ public class PullFilterNodeTest {
             NODE_ID,
             source,
             expression,
-            analysis,
             metaStore,
             ksqlConfig,
             false

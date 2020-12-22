@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.physical.pull;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
@@ -63,7 +62,6 @@ public class PullPhysicalPlanBuilder {
 
   private final ProcessingLogContext processingLogContext;
   private final Stacker contextStacker;
-  private final ImmutableAnalysis analysis;
   private final PersistentQueryMetadata persistentQueryMetadata;
   private final QueryId queryId;
   private final Materialization mat;
@@ -81,7 +79,6 @@ public class PullPhysicalPlanBuilder {
         processingLogContext, "processingLogContext");
     this.persistentQueryMetadata = Objects.requireNonNull(
         persistentQueryMetadata, "persistentQueryMetadata");
-    this.analysis = Objects.requireNonNull(analysis, "analysis");
     this.contextStacker = new Stacker();
     queryId = uniqueQueryId();
     mat = this.persistentQueryMetadata
@@ -168,9 +165,7 @@ public class PullPhysicalPlanBuilder {
 
   private SelectOperator translateFilterNode(final PullFilterNode logicalNode) {
     isWindowed = logicalNode.isWindowed();
-    keys = logicalNode.getKeyValues().stream()
-        .map(GenericKey::genericKey)
-        .collect(ImmutableList.toImmutableList());
+    keys = logicalNode.getKeyValues();
     windowBounds = logicalNode.getWindowBounds();
 
     final ProcessingLogger logger = processingLogContext

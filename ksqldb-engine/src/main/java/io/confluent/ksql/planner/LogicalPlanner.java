@@ -194,7 +194,6 @@ public class LogicalPlanner {
           new PlanNodeId("WhereFilter"),
           currentNode,
           whereExpression,
-          analysis,
           metaStore,
           ksqlConfig,
           isWindowed);

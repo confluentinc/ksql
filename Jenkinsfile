@@ -1,8 +1,8 @@
 def baseConfig = {
     owner = 'ksql'
     slackChannel = '#ksql-alerts'
-    ksql_db_version = "0.14.0"  // next version to be released
-    cp_version = "6.1.0-beta201006024150"  // must be a beta version from the packaging build
+    ksql_db_version = "0.15.0"  // next version to be released
+    cp_version = "6.2.0-beta201122193350"  // must be a beta version from the packaging build
     packaging_build_number = "1"
     default_git_revision = 'refs/heads/master'
     dockerRegistry = '368821881613.dkr.ecr.us-west-2.amazonaws.com/'

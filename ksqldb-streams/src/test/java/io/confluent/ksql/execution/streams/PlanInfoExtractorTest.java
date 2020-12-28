@@ -18,8 +18,10 @@ package io.confluent.ksql.execution.streams;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
@@ -32,6 +34,7 @@ import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,7 +54,7 @@ public class PlanInfoExtractorTest {
   @Mock
   private ColumnName joinKey;
   @Mock
-  private UnqualifiedColumnReferenceExp repartitionKey;
+  private Expression repartitionKey;
 
   private StreamSource streamSource;
   private TableSource tableSource;
@@ -82,7 +85,7 @@ public class PlanInfoExtractorTest {
     streamSourceRepartitioned = new StreamSelectKey<>(
         new ExecutionStepPropertiesV1(queryContext),
         streamSource,
-        repartitionKey
+        ImmutableList.of(repartitionKey)
     );
     streamAndTableJoined = new StreamTableJoin<>(
         new ExecutionStepPropertiesV1(queryContext),
@@ -103,7 +106,7 @@ public class PlanInfoExtractorTest {
     streamAndTableJoinedRepartitioned = new StreamSelectKey<>(
         new ExecutionStepPropertiesV1(queryContext),
         streamAndTableJoined,
-        repartitionKey
+        ImmutableList.of(repartitionKey)
     );
 
     planInfoExtractor = new PlanInfoExtractor();
@@ -112,7 +115,7 @@ public class PlanInfoExtractorTest {
   @Test
   public void shouldExtractSource() {
     // When:
-    final PlanInfo planInfo = (PlanInfo) streamSource.extractPlanInfo(planInfoExtractor);
+    final PlanInfo planInfo = streamSource.extractPlanInfo(planInfoExtractor);
 
     // Then:
     assertThat(planInfo.isRepartitionedInPlan(streamSource), is(false));
@@ -121,7 +124,7 @@ public class PlanInfoExtractorTest {
   @Test
   public void shouldExtractSourceWithRepartition() {
     // When:
-    final PlanInfo planInfo = (PlanInfo) streamSourceRepartitioned.extractPlanInfo(planInfoExtractor);
+    final PlanInfo planInfo = streamSourceRepartitioned.extractPlanInfo(planInfoExtractor);
 
     // Then:
     assertThat(planInfo.isRepartitionedInPlan(streamSource), is(true));
@@ -130,7 +133,7 @@ public class PlanInfoExtractorTest {
   @Test
   public void shouldExtractMultipleSources() {
     // When:
-    final PlanInfo planInfo = (PlanInfo) streamAndTableJoined.extractPlanInfo(planInfoExtractor);
+    final PlanInfo planInfo = streamAndTableJoined.extractPlanInfo(planInfoExtractor);
 
     // Then:
     assertThat(planInfo.isRepartitionedInPlan(streamSource), is(false));
@@ -140,7 +143,7 @@ public class PlanInfoExtractorTest {
   @Test
   public void shouldExtractRepartitionBeforeJoin() {
     // When:
-    final PlanInfo planInfo = (PlanInfo) streamRepartitionedAndTableJoined.extractPlanInfo(planInfoExtractor);
+    final PlanInfo planInfo = streamRepartitionedAndTableJoined.extractPlanInfo(planInfoExtractor);
 
     // Then:
     assertThat(planInfo.isRepartitionedInPlan(streamSource), is(true));
@@ -150,7 +153,7 @@ public class PlanInfoExtractorTest {
   @Test
   public void shouldExtractRepartitionAfterJoin() {
     // When:
-    final PlanInfo planInfo = (PlanInfo) streamAndTableJoinedRepartitioned.extractPlanInfo(planInfoExtractor);
+    final PlanInfo planInfo = streamAndTableJoinedRepartitioned.extractPlanInfo(planInfoExtractor);
 
     // Then:
     assertThat(planInfo.isRepartitionedInPlan(streamSource), is(false));

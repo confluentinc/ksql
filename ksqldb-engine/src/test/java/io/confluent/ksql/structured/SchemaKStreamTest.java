@@ -151,7 +151,13 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream<?> result = initialSchemaKStream
-        .selectKey(valueFormat.getFormatInfo(), new UnqualifiedColumnReferenceExp(ColumnName.of("COL0")), Optional.empty(), childContextStacker, false);
+        .selectKey(
+            valueFormat.getFormatInfo(),
+            ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))),
+            Optional.empty(),
+            childContextStacker,
+            false
+        );
 
     // Then:
     assertThat(result, is(initialSchemaKStream));
@@ -168,7 +174,7 @@ public class SchemaKStreamTest {
     final KsqlException e = assertThrows(KsqlException.class, () -> initialSchemaKStream
         .selectKey(
             valueFormat.getFormatInfo(),
-            new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
+            ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"))),
             Optional.empty(),
             childContextStacker,
             true)
@@ -187,8 +193,12 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
-        valueFormat.getFormatInfo(), new UnqualifiedColumnReferenceExp(ColumnName.of("COL0")),
-        Optional.empty(), childContextStacker, true);
+        valueFormat.getFormatInfo(),
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))),
+        Optional.empty(),
+        childContextStacker,
+        true
+    );
 
     // Then:
     assertThat(
@@ -197,7 +207,7 @@ public class SchemaKStreamTest {
             ExecutionStepFactory.streamSelectKey(
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
-                new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))
+                ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL0")))
             )
         )
     );
@@ -211,7 +221,7 @@ public class SchemaKStreamTest {
     final UserRepartitionNode repartitionNode = (UserRepartitionNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     // When:
-    initialSchemaKStream.selectKey(valueFormat.getFormatInfo(), repartitionNode.getPartitionBy(),
+    initialSchemaKStream.selectKey(valueFormat.getFormatInfo(), repartitionNode.getPartitionBys(),
         Optional.empty(), childContextStacker, false
     );
   }
@@ -225,7 +235,13 @@ public class SchemaKStreamTest {
         new UnqualifiedColumnReferenceExp(ColumnName.of("COL2"));
 
     // When:
-    schemaKTable.selectKey(valueFormat.getFormatInfo(), col2, Optional.empty(), childContextStacker, false);
+    schemaKTable.selectKey(
+        valueFormat.getFormatInfo(),
+        ImmutableList.of(col2),
+        Optional.empty(),
+        childContextStacker,
+        false
+    );
   }
 
   @Test
@@ -289,8 +305,12 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
-        valueFormat.getFormatInfo(), new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
-        Optional.empty(), childContextStacker, false);
+        valueFormat.getFormatInfo(),
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"))),
+        Optional.empty(),
+        childContextStacker,
+        false
+    );
 
     // Then:
     assertThat(
@@ -299,7 +319,7 @@ public class SchemaKStreamTest {
             ExecutionStepFactory.streamSelectKey(
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
-                new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"))
+                ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")))
             )
         )
     );
@@ -312,8 +332,12 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
-        valueFormat.getFormatInfo(), new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
-        Optional.empty(), childContextStacker, false);
+        valueFormat.getFormatInfo(),
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"))),
+        Optional.empty(),
+        childContextStacker,
+        false
+    );
 
     // Then:
     assertThat(

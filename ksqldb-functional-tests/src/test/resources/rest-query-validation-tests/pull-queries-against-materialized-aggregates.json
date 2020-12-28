@@ -1054,7 +1054,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Multiple bounds on key column",
+        "message": "Bound on key columns '[`ID` STRING KEY]' must currently be '='.",
         "status": 400
       }
     },
@@ -1067,7 +1067,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Bound on 'ID' must currently be '='.",
+        "message": "Bound on key columns '[`ID` STRING KEY]' must currently be '='. ",
         "status": 400
       }
     },
@@ -1080,7 +1080,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "WHERE clause on unsupported column: COUNT",
+        "message": "WHERE clause on non-key column: COUNT",
         "status": 400
       }
     },
@@ -2005,9 +2005,6 @@
     },
     {
       "name": "multi-column aggregation",
-      "properties": {
-        "ksql.multicol.key.format.enabled" : true
-      },
       "statements": [
         "CREATE STREAM INPUT (ID1 STRING KEY, ID2 INT) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT ID1, ID2, COUNT(1) AS COUNT FROM INPUT GROUP BY ID1, ID2;",

@@ -139,7 +139,7 @@ public class PullQueryValidatorTest {
     // Given:
     when(analysis.getPartitionBy()).thenReturn(Optional.of(new PartitionBy(
         Optional.empty(),
-        AN_EXPRESSION
+        ImmutableList.of(AN_EXPRESSION)
     )));
 
     // When:

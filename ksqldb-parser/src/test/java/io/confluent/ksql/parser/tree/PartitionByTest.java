@@ -15,9 +15,11 @@
 
 package io.confluent.ksql.parser.tree;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.parser.NodeLocation;
+import java.util.List;
 import java.util.Optional;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,12 +41,12 @@ public class PartitionByTest {
   public void shouldImplementHashCodeAndEqualsProperty() {
     new EqualsTester()
         .addEqualityGroup(
-            new PartitionBy(Optional.empty(), exp1),
-            new PartitionBy(Optional.empty(), exp1),
-            new PartitionBy(Optional.of(LOCATION), exp1)
+            new PartitionBy(Optional.empty(), ImmutableList.of(exp1)),
+            new PartitionBy(Optional.empty(), ImmutableList.of(exp1)),
+            new PartitionBy(Optional.of(LOCATION), ImmutableList.of(exp1))
         )
         .addEqualityGroup(
-            new PartitionBy(Optional.empty(), exp2)
+            new PartitionBy(Optional.empty(), ImmutableList.of(exp2))
         )
         .testEquals();
   }

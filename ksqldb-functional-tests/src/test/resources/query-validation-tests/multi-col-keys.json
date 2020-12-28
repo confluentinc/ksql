@@ -57,10 +57,15 @@
         "CREATE TABLE OUTPUT AS SELECT * FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}}
+        {"topic": "input_topic", "key": {"K": 1, "K2": 2}, "value": {"V": 0}},
+        {"topic": "input_topic", "key": {"K": null, "K2": 2}, "value": {"V": 0}},
+        {"topic": "input_topic", "key": {"K": null, "K2": 2}, "value": null},
+        {"topic": "input_topic", "key": null, "value": {"V": 0}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": {"K": 1, "K2": 2}, "value": {"V": 0}}
+        {"topic": "OUTPUT", "key": {"K": 1, "K2": 2}, "value": {"V": 0}},
+        {"topic": "OUTPUT", "key": {"K": null, "K2": 2}, "value": {"V": 0}},
+        {"topic": "OUTPUT", "key": {"K": null, "K2": 2}, "value": null}
       ],
       "post": {
         "sources": [
@@ -339,17 +344,6 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Cannot repartition a TABLE source. If this is a join, joins on tables with multiple columns is not yet supported."
-      }
-    },
-    {
-      "name": "multi-column partition",
-      "statements": [
-        "CREATE STREAM S (K STRING KEY, ID VARCHAR) WITH (kafka_topic='S', format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT * FROM S PARTITION BY K, ID;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "mismatched input ',' expecting ';'"
       }
     }
   ]

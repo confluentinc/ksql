@@ -298,7 +298,7 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable<?> resultSchemaKTable = initialSchemaKTable.selectKey(
         valueFormat.getFormatInfo(),
-        new UnqualifiedColumnReferenceExp(ColumnName.of("COL0")),
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))),
         Optional.empty(),
         childContextStacker,
         true
@@ -322,7 +322,7 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable<?> resultSchemaKTable = initialSchemaKTable.selectKey(
         valueFormat.getFormatInfo(),
-        new UnqualifiedColumnReferenceExp(ColumnName.of("COL0")),
+        ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))),
         Optional.empty(),
         childContextStacker,
         true
@@ -338,7 +338,7 @@ public class SchemaKTableTest {
                 InternalFormats.of(
                     keyFormat.withSerdeFeatures(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)),
                     valueFormat.getFormatInfo()),
-                new UnqualifiedColumnReferenceExp(ColumnName.of("COL0"))
+                ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL0")))
             )
         )
     );
@@ -356,7 +356,7 @@ public class SchemaKTableTest {
         UnsupportedOperationException.class,
         () -> initialSchemaKTable.selectKey(
             valueFormat.getFormatInfo(),
-            new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
+            ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"))),
             Optional.empty(),
             childContextStacker,
             true
@@ -378,7 +378,7 @@ public class SchemaKTableTest {
         UnsupportedOperationException.class,
         () -> initialSchemaKTable.selectKey(
             valueFormat.getFormatInfo(),
-            new UnqualifiedColumnReferenceExp(ColumnName.of("COL1")),
+            ImmutableList.of(new UnqualifiedColumnReferenceExp(ColumnName.of("COL1"))),
             Optional.empty(),
             childContextStacker,
             false

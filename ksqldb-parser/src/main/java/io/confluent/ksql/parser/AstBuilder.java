@@ -450,9 +450,6 @@ public class AstBuilder {
 
       final OptionalInt limit = getLimit(context.limitClause());
 
-      final Optional<PartitionBy> partitionBy =
-          visitIfPresent(context.partitionBy, Expression.class)
-              .map(e -> new PartitionBy(getLocation(context.PARTITION()), e));
       return new Query(
           getLocation(context),
           select,
@@ -460,7 +457,7 @@ public class AstBuilder {
           visitIfPresent(context.windowExpression(), WindowExpression.class),
           visitIfPresent(context.where, Expression.class),
           visitIfPresent(context.groupBy(), GroupBy.class),
-          partitionBy,
+          visitIfPresent(context.partitionBy(), PartitionBy.class),
           visitIfPresent(context.having, Expression.class),
           refinementInfo,
           pullQuery,
@@ -607,6 +604,13 @@ public class AstBuilder {
       final List<Expression> expressions = visit(ctx.valueExpression(), Expression.class);
 
       return new GroupBy(getLocation(ctx), expressions);
+    }
+
+    @Override
+    public Node visitPartitionBy(final SqlBaseParser.PartitionByContext ctx) {
+      final List<Expression> expressions = visit(ctx.valueExpression(), Expression.class);
+
+      return new PartitionBy(getLocation(ctx), expressions);
     }
 
     @Override

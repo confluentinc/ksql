@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
@@ -32,26 +33,30 @@ public class TableSelectKey<K> implements ExecutionStep<KTableHolder<K>> {
       new Property("class", Object::getClass),
       new Property("properties", ExecutionStep::getProperties),
       new Property("internal formats", t -> ((TableSelectKey<?>) t).internalFormats),
-      new Property("keyExpression", t -> ((TableSelectKey<?>) t).keyExpression)
+      new Property("keyExpressions", t -> ((TableSelectKey<?>) t).keyExpressions)
   );
 
   private final ExecutionStepPropertiesV1 properties;
-  private final Expression keyExpression;
+  @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+  private final ImmutableList<Expression> keyExpressions;
   @EffectivelyImmutable
   private final ExecutionStep<? extends KTableHolder<K>> source;
   private final Formats internalFormats;
 
   public TableSelectKey(
       @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
-      @JsonProperty(value = "source", required = true) final
-      ExecutionStep<? extends KTableHolder<K>> source,
+      @JsonProperty(value = "source", required = true)
+      final ExecutionStep<? extends KTableHolder<K>> source,
       @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats,
-      @JsonProperty(value = "keyExpression", required = true) final Expression keyExpression
+      // maintain legacy name for backwards compatibility
+      @JsonProperty(value = "keyExpression", required = true)
+      final List<Expression> keyExpressions
   ) {
     this.properties = Objects.requireNonNull(props, "props");
     this.source = Objects.requireNonNull(source, "source");
     this.internalFormats = Objects.requireNonNull(internalFormats, "internalFormats");
-    this.keyExpression = Objects.requireNonNull(keyExpression, "keyExpression");
+    this.keyExpressions = ImmutableList.copyOf(
+        Objects.requireNonNull(keyExpressions, "keyExpressions"));
   }
 
   @Override
@@ -69,8 +74,10 @@ public class TableSelectKey<K> implements ExecutionStep<KTableHolder<K>> {
     return internalFormats;
   }
 
-  public Expression getKeyExpression() {
-    return keyExpression;
+  // maintain legacy name for backwards compatibility
+  @JsonProperty(value = "keyExpression", required = true)
+  public List<Expression> getKeyExpressions() {
+    return keyExpressions;
   }
 
   public ExecutionStep<? extends KTableHolder<K>> getSource() {
@@ -105,11 +112,11 @@ public class TableSelectKey<K> implements ExecutionStep<KTableHolder<K>> {
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(internalFormats, that.internalFormats)
-        && Objects.equals(keyExpression, that.keyExpression);
+        && Objects.equals(keyExpressions, that.keyExpressions);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(properties, source, internalFormats, keyExpression);
+    return Objects.hash(properties, source, internalFormats, keyExpressions);
   }
 }

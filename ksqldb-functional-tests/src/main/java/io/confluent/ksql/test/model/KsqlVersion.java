@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
 public final class KsqlVersion implements Comparable<KsqlVersion> {
 
   private static final Pattern VERSION_PATTERN = Pattern
-      .compile("(?<major>\\d+)\\.(?<minor>\\d+)(?<patch>.\\d+)?(?:-(SNAPSHOT|\\d+))?");
+      .compile("(?<major>\\d+)\\.(?<minor>\\d+)(?<patch>.\\d+)?(?:-([A-Za-z0-9]+|\\d+))?");
 
   @EffectivelyImmutable
   private static final Comparator<KsqlVersion> COMPARATOR =
@@ -53,7 +53,7 @@ public final class KsqlVersion implements Comparable<KsqlVersion> {
     if (!matcher.matches()) {
       throw new IllegalArgumentException(
           "Failed to parse version: '" + version + "'. "
-              + "Version must be in format <major>.<minor>[.<patch>][-SNAPSHOT]"
+              + "Version must be in format '" + VERSION_PATTERN.pattern() + "'. "
       );
     }
 

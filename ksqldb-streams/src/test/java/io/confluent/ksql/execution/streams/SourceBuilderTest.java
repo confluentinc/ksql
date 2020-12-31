@@ -34,7 +34,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -143,7 +143,7 @@ public class SourceBuilderTest {
 
   private final QueryContext ctx = new Stacker().push("base").push("source").getQueryContext();
   @Mock
-  private KsqlQueryBuilder queryBuilder;
+  private RuntimeBuildContext queryBuilder;
   @Mock
   private StreamsBuilder streamsBuilder;
   @Mock
@@ -204,6 +204,7 @@ public class SourceBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void setup() {
+    when(queryBuilder.getApplicationId()).thenReturn("appid");
     when(queryBuilder.getStreamsBuilder()).thenReturn(streamsBuilder);
     when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
     when(streamsBuilder.stream(anyString(), any(Consumed.class))).thenReturn(kStream);
@@ -216,7 +217,6 @@ public class SourceBuilderTest {
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(queryBuilder.getServiceContext()).thenReturn(serviceContext);
-    when(queryBuilder.getQueryId()).thenReturn(new QueryId("id"));
     when(queryBuilder.getKsqlConfig()).thenReturn(KSQL_CONFIG);
     when(processorCtx.timestamp()).thenReturn(A_ROWTIME);
     when(serviceContext.getSchemaRegistryClient()).thenReturn(srClient);
@@ -353,7 +353,7 @@ public class SourceBuilderTest {
 
     verify(consumed).withValueSerde(serdeCaptor.capture());
     final StaticTopicSerde<GenericRow> value = serdeCaptor.getValue();
-    assertThat(value.getTopic(), is("_confluent-ksql-default_query_id-base-Reduce-changelog"));
+    assertThat(value.getTopic(), is("appid-base-Reduce-changelog"));
   }
 
   @Test

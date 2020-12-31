@@ -23,7 +23,6 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
@@ -32,6 +31,7 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterializationFactory;
 import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory;
@@ -154,14 +154,12 @@ public final class QueryExecutor {
       final Optional<WindowInfo> windowInfo,
       final boolean excludeTombstones
   ) {
-    final KsqlQueryBuilder ksqlQueryBuilder = queryBuilder(queryId);
-    final Object buildResult = buildQueryImplementation(physicalPlan, ksqlQueryBuilder);
+    final KsqlConfig ksqlConfig = config.getConfig(true);
+    final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
+    final RuntimeBuildContext runtimeBuildContext = queryBuilder(applicationId, queryId);
+    final Object buildResult = buildQueryImplementation(physicalPlan, runtimeBuildContext);
 
     final BlockingRowQueue queue = buildTransientQueryQueue(buildResult, limit, excludeTombstones);
-
-    final KsqlConfig ksqlConfig = config.getConfig(true);
-
-    final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
     final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
@@ -203,9 +201,6 @@ public final class QueryExecutor {
       final ExecutionStep<?> physicalPlan,
       final String planSummary
   ) {
-    final KsqlQueryBuilder ksqlQueryBuilder = queryBuilder(queryId);
-    final Object result = buildQueryImplementation(physicalPlan, ksqlQueryBuilder);
-
     final KsqlConfig ksqlConfig = config.getConfig(true);
 
     final String applicationId = QueryApplicationId.build(ksqlConfig, true, queryId);
@@ -217,6 +212,9 @@ public final class QueryExecutor {
         sinkDataSource.getKsqlTopic().getKeyFormat().getFeatures(),
         sinkDataSource.getKsqlTopic().getValueFormat().getFeatures()
     );
+
+    final RuntimeBuildContext runtimeBuildContext = queryBuilder(applicationId, queryId);
+    final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
 
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
         materializationProviderBuilder = getMaterializationInfo(result).map(info ->
@@ -244,7 +242,7 @@ public final class QueryExecutor {
         applicationId,
         topology,
         kafkaStreamsBuilder,
-        ksqlQueryBuilder.getSchemas(),
+        runtimeBuildContext.getSchemas(),
         streamsProperties,
         config.getOverrides(),
         queryCloseCallback,
@@ -297,19 +295,20 @@ public final class QueryExecutor {
 
   private static Object buildQueryImplementation(
       final ExecutionStep<?> physicalPlan,
-      final KsqlQueryBuilder ksqlQueryBuilder
+      final RuntimeBuildContext runtimeBuildContext
   ) {
-    final PlanBuilder planBuilder = new KSPlanBuilder(ksqlQueryBuilder);
+    final PlanBuilder planBuilder = new KSPlanBuilder(runtimeBuildContext);
     return physicalPlan.build(planBuilder);
   }
 
-  private KsqlQueryBuilder queryBuilder(final QueryId queryId) {
-    return KsqlQueryBuilder.of(
+  private RuntimeBuildContext queryBuilder(final String applicationId, final QueryId queryId) {
+    return RuntimeBuildContext.of(
         streamsBuilder,
         config.getConfig(true),
         serviceContext,
         processingLogContext,
         functionRegistry,
+        applicationId,
         queryId
     );
   }

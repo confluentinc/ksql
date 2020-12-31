@@ -10,7 +10,7 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
@@ -46,7 +46,7 @@ public class StreamFilterBuilderTest {
   @Mock
   private KsqlTransformer<GenericKey, Optional<GenericRow>> predicate;
   @Mock
-  private KsqlQueryBuilder queryBuilder;
+  private RuntimeBuildContext queryBuilder;
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
@@ -83,7 +83,6 @@ public class StreamFilterBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(queryBuilder.getQueryId()).thenReturn(new QueryId("foo"));
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);

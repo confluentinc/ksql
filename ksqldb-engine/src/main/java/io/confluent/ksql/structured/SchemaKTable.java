@@ -16,7 +16,6 @@
 package io.confluent.ksql.structured;
 
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -36,6 +35,7 @@ import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.InternalFormats;
@@ -121,7 +121,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final List<ColumnName> keyColumnNames,
       final List<SelectExpression> selectExpressions,
       final Stacker contextStacker,
-      final KsqlQueryBuilder ksqlQueryBuilder
+      final PlanBuildContext builderContext
   ) {
     final TableSelect<K> step = ExecutionStepFactory.tableMapValues(
         contextStacker,

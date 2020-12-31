@@ -17,7 +17,6 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
@@ -82,11 +81,11 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
+  public SchemaKStream<?> buildStream(final PlanBuildContext builderContext) {
     final PlanNode source = getSource();
-    final SchemaKStream<?> schemaKStream = source.buildStream(builder);
+    final SchemaKStream<?> schemaKStream = source.buildStream(builderContext);
 
-    final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId().toString());
+    final QueryContext.Stacker contextStacker = builderContext.buildNodeContext(getId().toString());
 
     return schemaKStream.into(
         ksqlTopic,

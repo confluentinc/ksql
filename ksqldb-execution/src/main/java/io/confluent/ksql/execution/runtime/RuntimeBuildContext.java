@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.builder;
+package io.confluent.ksql.execution.runtime;
 
 import static java.util.Objects.requireNonNull;
 
@@ -44,7 +44,7 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
 
-public final class KsqlQueryBuilder {
+public final class RuntimeBuildContext {
 
   /**
    * System property to turn on tracking of serde operations. Must never be turned on in production
@@ -60,22 +60,25 @@ public final class KsqlQueryBuilder {
   private final KeySerdeFactory keySerdeFactory;
   private final ValueSerdeFactory valueSerdeFactory;
   private final QueryId queryId;
+  private final String applicationId;
   private final QuerySchemas schemas = new QuerySchemas();
 
-  public static KsqlQueryBuilder of(
+  public static RuntimeBuildContext of(
       final StreamsBuilder streamsBuilder,
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
+      final String applicationId,
       final QueryId queryId
   ) {
-    return new KsqlQueryBuilder(
+    return new RuntimeBuildContext(
         streamsBuilder,
         ksqlConfig,
         serviceContext,
         processingLogContext,
         functionRegistry,
+        applicationId,
         queryId,
         new GenericKeySerDe(),
         new GenericRowSerDe()
@@ -83,12 +86,13 @@ public final class KsqlQueryBuilder {
   }
 
   @VisibleForTesting
-  KsqlQueryBuilder(
+  RuntimeBuildContext(
       final StreamsBuilder streamsBuilder,
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
+      final String applicationId,
       final QueryId queryId,
       final KeySerdeFactory keySerdeFactory,
       final ValueSerdeFactory valueSerdeFactory
@@ -98,6 +102,7 @@ public final class KsqlQueryBuilder {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.processingLogContext = requireNonNull(processingLogContext, "processingLogContext");
     this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
+    this.applicationId = requireNonNull(applicationId, "applicationId");
     this.queryId = requireNonNull(queryId, "queryId");
     this.keySerdeFactory = requireNonNull(keySerdeFactory, "keySerdeFactory");
     this.valueSerdeFactory = requireNonNull(valueSerdeFactory, "valueSerdeFactory");
@@ -121,33 +126,16 @@ public final class KsqlQueryBuilder {
     return functionRegistry;
   }
 
+  public String getApplicationId() {
+    return applicationId;
+  }
+
   public StreamsBuilder getStreamsBuilder() {
     return streamsBuilder;
   }
 
   public QuerySchemas getSchemas() {
     return schemas;
-  }
-
-  public QueryId getQueryId() {
-    return queryId;
-  }
-
-  public KsqlQueryBuilder withKsqlConfig(final KsqlConfig newConfig) {
-    return of(
-        streamsBuilder,
-        newConfig,
-        serviceContext,
-        processingLogContext,
-        functionRegistry,
-        queryId
-    );
-  }
-
-  @SuppressWarnings("MethodMayBeStatic") // Non-static to allow DI/mocking
-  public QueryContext.Stacker buildNodeContext(final String context) {
-    return new QueryContext.Stacker()
-        .push(context);
   }
 
   public Serde<GenericKey> buildKeySerde(

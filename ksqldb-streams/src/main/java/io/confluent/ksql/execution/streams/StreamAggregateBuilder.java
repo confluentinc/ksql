@@ -17,7 +17,6 @@ package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.function.udaf.KudafAggregator;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
@@ -27,6 +26,7 @@ import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
@@ -60,7 +60,7 @@ public final class StreamAggregateBuilder {
   public static KTableHolder<GenericKey> build(
       final KGroupedStreamHolder groupedStream,
       final StreamAggregate aggregate,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final MaterializedFactory materializedFactory) {
     return build(
         groupedStream,
@@ -74,7 +74,7 @@ public final class StreamAggregateBuilder {
   static KTableHolder<GenericKey> build(
       final KGroupedStreamHolder groupedStream,
       final StreamAggregate aggregate,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final MaterializedFactory materializedFactory,
       final AggregateParamsFactory aggregateParamsFactory) {
     final LogicalSchema sourceSchema = groupedStream.getSchema();
@@ -132,7 +132,7 @@ public final class StreamAggregateBuilder {
   public static KTableHolder<Windowed<GenericKey>> build(
       final KGroupedStreamHolder groupedStream,
       final StreamWindowedAggregate aggregate,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final MaterializedFactory materializedFactory
   ) {
     return build(
@@ -148,7 +148,7 @@ public final class StreamAggregateBuilder {
   static KTableHolder<Windowed<GenericKey>> build(
       final KGroupedStreamHolder groupedStream,
       final StreamWindowedAggregate aggregate,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final MaterializedFactory materializedFactory,
       final AggregateParamsFactory aggregateParamsFactory
   ) {
@@ -217,7 +217,7 @@ public final class StreamAggregateBuilder {
     final QueryContext queryContext;
     final Formats formats;
     final KGroupedStream<GenericKey, GenericRow> groupedStream;
-    final KsqlQueryBuilder queryBuilder;
+    final RuntimeBuildContext queryBuilder;
     final MaterializedFactory materializedFactory;
     final Serde<GenericKey> keySerde;
     final Serde<GenericRow> valueSerde;
@@ -227,7 +227,7 @@ public final class StreamAggregateBuilder {
         final KGroupedStream<GenericKey, GenericRow> groupedStream,
         final StreamWindowedAggregate aggregate,
         final LogicalSchema aggregateSchema,
-        final KsqlQueryBuilder queryBuilder,
+        final RuntimeBuildContext queryBuilder,
         final MaterializedFactory materializedFactory,
         final AggregateParams aggregateParams) {
       Objects.requireNonNull(aggregate, "aggregate");

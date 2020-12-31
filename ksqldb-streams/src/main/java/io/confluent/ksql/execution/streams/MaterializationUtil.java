@@ -17,11 +17,11 @@ package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.SchemaNotSupportedException;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import org.apache.kafka.common.serialization.Serde;
@@ -50,7 +50,7 @@ final class MaterializationUtil {
       final ExecutionStep<?> step,
       final LogicalSchema aggregateSchema,
       final Formats formats,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final MaterializedFactory materializedFactory,
       final ExecutionKeyFactory<K> executionKeyFactory
   ) {
@@ -91,7 +91,7 @@ final class MaterializationUtil {
 
   private static Serde<GenericRow> buildValueSerde(
       final Formats formats,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final PhysicalSchema physicalAggregationSchema,
       final QueryContext queryContext
   ) {

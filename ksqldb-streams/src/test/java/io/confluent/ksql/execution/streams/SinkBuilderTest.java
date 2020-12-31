@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
@@ -79,7 +79,7 @@ public class SinkBuilderTest {
       .from(SCHEMA.withoutPseudoAndKeyColsInValue(), SerdeFeatures.of(), SerdeFeatures.of());
 
   @Mock
-  private KsqlQueryBuilder queryBuilder;
+  private RuntimeBuildContext queryBuilder;
   @Mock
   private ExecutionKeyFactory<Struct> executionKeyFactory;
   @Mock

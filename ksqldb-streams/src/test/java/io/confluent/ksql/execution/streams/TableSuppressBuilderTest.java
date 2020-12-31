@@ -23,7 +23,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
@@ -54,7 +54,7 @@ import org.mockito.junit.MockitoRule;
 public class TableSuppressBuilderTest {
 
   @Mock
-  private KsqlQueryBuilder queryBuilder;
+  private RuntimeBuildContext queryBuilder;
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock

@@ -18,7 +18,6 @@ package io.confluent.ksql.planner.plan;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.streams.PartitionByParamsFactory;
@@ -62,13 +61,13 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
-    return getSource().buildStream(builder)
+  public SchemaKStream<?> buildStream(final PlanBuildContext builderContext) {
+    return getSource().buildStream(builderContext)
         .selectKey(
             valueFormat.getFormatInfo(),
             partitionBys,
             Optional.empty(),
-            builder.buildNodeContext(getId().toString()),
+            builderContext.buildNodeContext(getId().toString()),
             false
         );
   }

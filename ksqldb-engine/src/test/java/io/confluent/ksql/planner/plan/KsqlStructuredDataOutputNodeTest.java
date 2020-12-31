@@ -28,7 +28,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -72,7 +71,7 @@ public class KsqlStructuredDataOutputNodeTest {
       .of(FormatInfo.of(FormatFactory.JSON.name()), SerdeFeatures.of());
 
   @Mock
-  private KsqlQueryBuilder ksqlStreamBuilder;
+  private PlanBuildContext planBuildContext;
   @Mock
   private FinalProjectNode sourceNode;
   @Mock
@@ -94,12 +93,12 @@ public class KsqlStructuredDataOutputNodeTest {
 
     when(sourceNode.getSchema()).thenReturn(LogicalSchema.builder().build());
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
-    when(sourceNode.buildStream(ksqlStreamBuilder)).thenReturn((SchemaKStream) sourceStream);
+    when(sourceNode.buildStream(planBuildContext)).thenReturn((SchemaKStream) sourceStream);
 
     when(sourceStream.into(any(), any(), any()))
         .thenReturn((SchemaKStream) sinkStream);
 
-    when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
+    when(planBuildContext.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker()
             .push(inv.getArgument(0).toString()));
 
@@ -131,10 +130,10 @@ public class KsqlStructuredDataOutputNodeTest {
   @Test
   public void shouldBuildSourceNode() {
     // When:
-    outputNode.buildStream(ksqlStreamBuilder);
+    outputNode.buildStream(planBuildContext);
 
     // Then:
-    verify(sourceNode).buildStream(ksqlStreamBuilder);
+    verify(sourceNode).buildStream(planBuildContext);
   }
 
   @Test
@@ -159,7 +158,7 @@ public class KsqlStructuredDataOutputNodeTest {
     );
 
     // When:
-    outputNode.buildStream(ksqlStreamBuilder);
+    outputNode.buildStream(planBuildContext);
 
     // Then:
     verify(sourceStream).into(eq(ksqlTopic), any(), any());
@@ -168,7 +167,7 @@ public class KsqlStructuredDataOutputNodeTest {
   @Test
   public void shouldCallInto() {
     // When:
-    final SchemaKStream<?> result = outputNode.buildStream(ksqlStreamBuilder);
+    final SchemaKStream<?> result = outputNode.buildStream(planBuildContext);
 
     // Then:
     verify(sourceStream).into(

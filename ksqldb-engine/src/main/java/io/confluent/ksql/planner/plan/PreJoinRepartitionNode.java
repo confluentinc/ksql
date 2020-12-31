@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.FormatFactory;
@@ -103,17 +102,17 @@ public class PreJoinRepartitionNode extends SingleSourcePlanNode implements Join
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
+  public SchemaKStream<?> buildStream(final PlanBuildContext builderContext) {
     if (!keyFormatSet) {
       throw new IllegalStateException("PreJoinRepartitionNode must set key format");
     }
 
-    return getSource().buildStream(builder)
+    return getSource().buildStream(builderContext)
         .selectKey(
             valueFormat.getFormatInfo(),
             ImmutableList.of(partitionBy),
             forcedInternalKeyFormat,
-            builder.buildNodeContext(getId().toString()),
+            builderContext.buildNodeContext(getId().toString()),
             forceRepartition
         );
   }

@@ -17,11 +17,11 @@ package io.confluent.ksql.execution.streams;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableSuppress;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -46,7 +46,7 @@ public final class TableSuppressBuilder {
   public <K> KTableHolder<K> build(
       final KTableHolder<K> table,
       final TableSuppress<K> step,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final ExecutionKeyFactory<K> executionKeyFactory
   ) {
     return build(
@@ -64,7 +64,7 @@ public final class TableSuppressBuilder {
   <K> KTableHolder<K> build(
       final KTableHolder<K> table,
       final TableSuppress<K> step,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final ExecutionKeyFactory<K> executionKeyFactory,
       final PhysicalSchemaFactory physicalSchemaFactory,
       final BiFunction<Serde<K>, Serde<GenericRow>, Materialized> materializedFactory

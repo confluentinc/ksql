@@ -17,10 +17,10 @@ package io.confluent.ksql.execution.streams;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.timestamp.KsqlTimestampExtractor;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
@@ -54,7 +54,7 @@ public final class SinkBuilder {
       final KStream<K, GenericRow> stream,
       final ExecutionKeyFactory<K> executionKeyFactory,
       final QueryContext queryContext,
-      final KsqlQueryBuilder queryBuilder
+      final RuntimeBuildContext queryBuilder
   ) {
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
         schema,
@@ -90,7 +90,7 @@ public final class SinkBuilder {
   }
 
   private static  <K> Optional<TransformTimestamp<K>> timestampTransformer(
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final QueryContext queryContext,
       final LogicalSchema sourceSchema,
       final Optional<TimestampColumn> timestampColumn

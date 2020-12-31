@@ -39,7 +39,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
@@ -97,7 +97,9 @@ public class AggregateNodeTest {
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(new HashMap<>());
 
   @Mock
-  private KsqlQueryBuilder ksqlStreamBuilder;
+  private PlanBuildContext builderContext;
+  @Mock
+  private RuntimeBuildContext runtimeBuildContext;
   @Mock
   private Serde<GenericKey> keySerde;
   @Mock
@@ -291,7 +293,7 @@ public class AggregateNodeTest {
     buildQuery(node, KSQL_CONFIG);
 
     // Then:
-    verify(ksqlStreamBuilder, times(3)).buildValueSerde(
+    verify(runtimeBuildContext, times(3)).buildValueSerde(
         any(),
         any(),
         queryContextCaptor.capture()
@@ -317,17 +319,19 @@ public class AggregateNodeTest {
   }
 
   private SchemaKStream buildQuery(final AggregateNode aggregateNode, final KsqlConfig ksqlConfig) {
-    when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
-    when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
-    when(ksqlStreamBuilder.getProcessingLogger(any())).thenReturn(processLogger);
-    when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(FUNCTION_REGISTRY);
-    when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
+    when(builderContext.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(builderContext.getFunctionRegistry()).thenReturn(FUNCTION_REGISTRY);
+    when(builderContext.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker()
             .push(inv.getArgument(0).toString()));
-    when(ksqlStreamBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(runtimeBuildContext.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(runtimeBuildContext.getFunctionRegistry()).thenReturn(FUNCTION_REGISTRY);
+    when(runtimeBuildContext.getStreamsBuilder()).thenReturn(builder);
+    when(runtimeBuildContext.getProcessingLogger(any())).thenReturn(processLogger);
+    when(runtimeBuildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
 
-    final SchemaKTable schemaKTable = (SchemaKTable) aggregateNode.buildStream(ksqlStreamBuilder);
-    schemaKTable.getSourceTableStep().build(new KSPlanBuilder(ksqlStreamBuilder));
+    final SchemaKTable schemaKTable = (SchemaKTable) aggregateNode.buildStream(builderContext);
+    schemaKTable.getSourceTableStep().build(new KSPlanBuilder(runtimeBuildContext));
     return schemaKTable;
   }
 

@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -28,6 +27,7 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -38,12 +38,12 @@ import org.apache.kafka.streams.kstream.KGroupedStream;
 
 class StreamGroupByBuilderBase {
 
-  private final KsqlQueryBuilder queryBuilder;
+  private final RuntimeBuildContext queryBuilder;
   private final GroupedFactory groupedFactory;
   private final ParamsFactory paramsFactory;
 
   StreamGroupByBuilderBase(
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final GroupedFactory groupedFactory,
       final ParamsFactory paramsFactory
   ) {
@@ -109,7 +109,7 @@ class StreamGroupByBuilderBase {
       final Formats formats,
       final LogicalSchema schema,
       final QueryContext queryContext,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final GroupedFactory groupedFactory
   ) {
     final PhysicalSchema physicalSchema = PhysicalSchema.from(

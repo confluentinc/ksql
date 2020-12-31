@@ -35,7 +35,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -137,7 +137,9 @@ public class DataSourceNodeTest {
   @Mock
   private Serde<String> keySerde;
   @Mock
-  private KsqlQueryBuilder ksqlStreamBuilder;
+  private PlanBuildContext builderContext;
+  @Mock
+  private RuntimeBuildContext executeContext;
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
@@ -162,17 +164,18 @@ public class DataSourceNodeTest {
   public void before() {
     realBuilder = new StreamsBuilder();
 
-    when(ksqlStreamBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
-    when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(realConfig);
-    when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(realBuilder);
-    when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
+    when(builderContext.getKsqlConfig()).thenReturn(realConfig);
+    when(builderContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(builderContext.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker()
             .push(inv.getArgument(0).toString()));
 
-    when(ksqlStreamBuilder.buildKeySerde(any(), any(), any()))
+    when(executeContext.getKsqlConfig()).thenReturn(realConfig);
+    when(executeContext.getStreamsBuilder()).thenReturn(realBuilder);
+    when(executeContext.getProcessingLogger(any())).thenReturn(processingLogger);
+    when(executeContext.buildKeySerde(any(), any(), any()))
         .thenReturn((Serde)keySerde);
-    when(ksqlStreamBuilder.buildValueSerde(any(), any(), any())).thenReturn(rowSerde);
-    when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(executeContext.buildValueSerde(any(), any(), any())).thenReturn(rowSerde);
 
     when(rowSerde.serializer()).thenReturn(mock(Serializer.class));
     when(rowSerde.deserializer()).thenReturn(mock(Deserializer.class));
@@ -286,7 +289,7 @@ public class DataSourceNodeTest {
     givenNodeWithMockSource();
 
     // When:
-    node.buildStream(ksqlStreamBuilder);
+    node.buildStream(builderContext);
 
     // Then:
     verify(schemaKStreamFactory).create(any(), any(), any());
@@ -300,7 +303,7 @@ public class DataSourceNodeTest {
     givenNodeWithMockSource();
 
     // When:
-    node.buildStream(ksqlStreamBuilder);
+    node.buildStream(builderContext);
 
     // Then:
     verify(schemaKStreamFactory).create(any(), any(), any());
@@ -313,12 +316,12 @@ public class DataSourceNodeTest {
     givenNodeWithMockSource();
 
     // When:
-    final SchemaKStream<?> returned = node.buildStream(ksqlStreamBuilder);
+    final SchemaKStream<?> returned = node.buildStream(builderContext);
 
     // Then:
     assertThat(returned, is(stream));
     verify(schemaKStreamFactory).create(
-        same(ksqlStreamBuilder),
+        same(builderContext),
         same(dataSource),
         stackerCaptor.capture()
     );
@@ -334,11 +337,11 @@ public class DataSourceNodeTest {
     givenNodeWithMockSource();
 
     // When:
-    node.buildStream(ksqlStreamBuilder);
+    node.buildStream(builderContext);
 
     // Then:
     verify(schemaKStreamFactory).create(
-        same(ksqlStreamBuilder),
+        same(builderContext),
         same(dataSource),
         stackerCaptor.capture()
     );
@@ -354,7 +357,7 @@ public class DataSourceNodeTest {
     givenNodeWithMockSource();
 
     // When:
-    final SchemaKStream<?> returned = node.buildStream(ksqlStreamBuilder);
+    final SchemaKStream<?> returned = node.buildStream(builderContext);
 
     // Then:
     assertThat(returned, is(table));
@@ -455,12 +458,12 @@ public class DataSourceNodeTest {
   }
 
   private SchemaKStream<?> buildStream(final DataSourceNode node) {
-    final SchemaKStream<?> stream = node.buildStream(ksqlStreamBuilder);
+    final SchemaKStream<?> stream = node.buildStream(builderContext);
     if (stream instanceof SchemaKTable) {
       final SchemaKTable<?> table = (SchemaKTable<?>) stream;
-      table.getSourceTableStep().build(new KSPlanBuilder(ksqlStreamBuilder));
+      table.getSourceTableStep().build(new KSPlanBuilder(executeContext));
     } else {
-      stream.getSourceStep().build(new KSPlanBuilder(ksqlStreamBuilder));
+      stream.getSourceStep().build(new KSPlanBuilder(executeContext));
     }
     return stream;
   }

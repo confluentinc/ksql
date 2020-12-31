@@ -25,7 +25,6 @@ import io.confluent.ksql.analyzer.AggregateExpressionRewriter;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
@@ -143,15 +142,15 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
-    final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId().toString());
-    final SchemaKStream<?> sourceSchemaKStream = getSource().buildStream(builder);
+  public SchemaKStream<?> buildStream(final PlanBuildContext builderContext) {
+    final QueryContext.Stacker contextStacker = builderContext.buildNodeContext(getId().toString());
+    final SchemaKStream<?> sourceSchemaKStream = getSource().buildStream(builderContext);
 
     final InternalSchema internalSchema =
         new InternalSchema(requiredColumns, aggregateFunctionArguments);
 
-    final SchemaKStream<?> preSelected =
-        selectRequiredInputColumns(sourceSchemaKStream, internalSchema, contextStacker, builder);
+    final SchemaKStream<?> preSelected = selectRequiredInputColumns(
+        sourceSchemaKStream, internalSchema, contextStacker, builderContext);
 
     final SchemaKGroupedStream grouped = groupBy(contextStacker, preSelected);
 
@@ -159,7 +158,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
 
     aggregated = applyHavingFilter(aggregated, contextStacker);
 
-    return selectRequiredOutputColumns(aggregated, contextStacker, builder);
+    return selectRequiredOutputColumns(aggregated, contextStacker, builderContext);
   }
 
   @Override
@@ -179,7 +178,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
       final SchemaKStream<?> sourceSchemaKStream,
       final InternalSchema internalSchema,
       final Stacker contextStacker,
-      final KsqlQueryBuilder builder
+      final PlanBuildContext builderContext
   ) {
     final List<ColumnName> keyColumnNames = getSource().getSchema().key().stream()
         .map(Column::name)
@@ -189,7 +188,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
         keyColumnNames,
         internalSchema.getAggArgExpansionList(),
         contextStacker.push(PREPARE_OP_NAME),
-        builder
+        builderContext
     );
   }
 
@@ -228,7 +227,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
   private SchemaKStream<?> selectRequiredOutputColumns(
       final SchemaKTable<?> aggregated,
       final Stacker contextStacker,
-      final KsqlQueryBuilder builder
+      final PlanBuildContext builderContext
   ) {
     final List<ColumnName> keyColumnNames = getSchema().key().stream()
         .map(Column::name)
@@ -238,7 +237,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
         keyColumnNames,
         finalSelectExpressions,
         contextStacker.push(PROJECT_OP_NAME),
-        builder
+        builderContext
     );
   }
 

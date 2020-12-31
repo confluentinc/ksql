@@ -17,13 +17,13 @@ package io.confluent.ksql.execution.streams;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableSelectKey;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.PartitionByParams.Mapper;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -44,7 +44,7 @@ public final class TableSelectKeyBuilder {
   public static <K> KTableHolder<K> build(
       final KTableHolder<K> table,
       final TableSelectKey<K> selectKey,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final MaterializedFactory materializedFactory
   ) {
     return build(
@@ -60,7 +60,7 @@ public final class TableSelectKeyBuilder {
   static <K> KTableHolder<K> build(
       final KTableHolder<K> table,
       final TableSelectKey<K> selectKey,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final MaterializedFactory materializedFactory,
       final PartitionByParamsBuilder paramsBuilder
   ) {

@@ -17,12 +17,12 @@ package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamSelectKeyV1;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.function.Function;
@@ -38,7 +38,7 @@ public final class StreamSelectKeyBuilderV1 {
   public static KStreamHolder<GenericKey> build(
       final KStreamHolder<?> stream,
       final StreamSelectKeyV1 selectKey,
-      final KsqlQueryBuilder queryBuilder
+      final RuntimeBuildContext queryBuilder
   ) {
     final LogicalSchema sourceSchema = stream.getSchema();
 
@@ -74,7 +74,7 @@ public final class StreamSelectKeyBuilderV1 {
 
   private static ExpressionMetadata buildExpressionEvaluator(
       final StreamSelectKeyV1 selectKey,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final LogicalSchema sourceSchema
   ) {
     final CodeGenRunner codeGen = new CodeGenRunner(

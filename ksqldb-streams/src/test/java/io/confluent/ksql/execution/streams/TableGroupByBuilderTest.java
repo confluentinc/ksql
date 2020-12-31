@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -105,7 +105,7 @@ public class TableGroupByBuilderTest {
   private static final GenericKey KEY = GenericKey.genericKey("key");
 
   @Mock
-  private KsqlQueryBuilder queryBuilder;
+  private RuntimeBuildContext queryBuilder;
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock

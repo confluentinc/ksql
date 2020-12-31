@@ -16,9 +16,9 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamFilter;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
@@ -37,14 +37,14 @@ public final class StreamFilterBuilder {
   public static <K> KStreamHolder<K> build(
       final KStreamHolder<K> stream,
       final StreamFilter<K> step,
-      final KsqlQueryBuilder queryBuilder) {
+      final RuntimeBuildContext queryBuilder) {
     return build(stream, step, queryBuilder, SqlPredicate::new);
   }
 
   static <K> KStreamHolder<K> build(
       final KStreamHolder<K> stream,
       final StreamFilter<K> step,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final SqlPredicateFactory predicateFactory
   ) {
     final SqlPredicate predicate = predicateFactory.create(

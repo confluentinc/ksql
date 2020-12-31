@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -27,6 +26,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -40,12 +40,12 @@ import org.apache.kafka.streams.kstream.KeyValueMapper;
 
 class TableGroupByBuilderBase {
 
-  private final KsqlQueryBuilder queryBuilder;
+  private final RuntimeBuildContext queryBuilder;
   private final GroupedFactory groupedFactory;
   private final ParamsFactory paramsFactory;
 
   TableGroupByBuilderBase(
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final GroupedFactory groupedFactory,
       final ParamsFactory paramsFactory
   ) {

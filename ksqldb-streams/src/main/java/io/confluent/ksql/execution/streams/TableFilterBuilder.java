@@ -16,10 +16,10 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableFilter;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -39,14 +39,14 @@ public final class TableFilterBuilder {
   public static <K> KTableHolder<K> build(
       final KTableHolder<K> table,
       final TableFilter<K> step,
-      final KsqlQueryBuilder queryBuilder) {
+      final RuntimeBuildContext queryBuilder) {
     return build(table, step, queryBuilder, SqlPredicate::new);
   }
 
   static <K> KTableHolder<K> build(
       final KTableHolder<K> table,
       final TableFilter<K> step,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final SqlPredicateFactory sqlPredicateFactory
   ) {
     final SqlPredicate predicate = sqlPredicateFactory.create(

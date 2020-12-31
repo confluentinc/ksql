@@ -16,7 +16,6 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KStreamHolder;
@@ -49,6 +48,7 @@ import io.confluent.ksql.execution.plan.TableSuppress;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import java.util.Objects;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -58,12 +58,12 @@ import org.apache.kafka.streams.kstream.Windowed;
  * Kafka Streams app
  */
 public final class KSPlanBuilder implements PlanBuilder {
-  private final KsqlQueryBuilder queryBuilder;
+  private final RuntimeBuildContext queryBuilder;
   private final SqlPredicateFactory sqlPredicateFactory;
   private final AggregateParamsFactory aggregateParamFactory;
   private final StreamsFactories streamsFactories;
 
-  public KSPlanBuilder(final KsqlQueryBuilder queryBuilder) {
+  public KSPlanBuilder(final RuntimeBuildContext queryBuilder) {
     this(
         queryBuilder,
         SqlPredicate::new,
@@ -73,7 +73,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   public KSPlanBuilder(
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final SqlPredicateFactory sqlPredicateFactory,
       final AggregateParamsFactory aggregateParamFactory,
       final StreamsFactories streamsFactories) {

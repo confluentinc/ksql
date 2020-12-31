@@ -14,13 +14,10 @@
 
 package io.confluent.ksql.execution.streams;
 
-import static io.confluent.ksql.util.KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_CONFIG;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
@@ -33,6 +30,7 @@ import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.execution.streams.timestamp.TimestampExtractionPolicyFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
@@ -46,7 +44,6 @@ import io.confluent.ksql.serde.StaticTopicSerde;
 import io.confluent.ksql.serde.StaticTopicSerde.Callback;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -82,7 +79,7 @@ public final class SourceBuilder {
   }
 
   public static KStreamHolder<GenericKey> buildStream(
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final StreamSource source,
       final ConsumedFactory consumedFactory
   ) {
@@ -120,7 +117,7 @@ public final class SourceBuilder {
   }
 
   static KStreamHolder<Windowed<GenericKey>> buildWindowedStream(
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final WindowedStreamSource source,
       final ConsumedFactory consumedFactory
   ) {
@@ -160,7 +157,7 @@ public final class SourceBuilder {
   }
 
   public static KTableHolder<GenericKey> buildTable(
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final TableSource source,
       final ConsumedFactory consumedFactory,
       final MaterializedFactory materializedFactory,
@@ -212,7 +209,7 @@ public final class SourceBuilder {
   }
 
   static KTableHolder<Windowed<GenericKey>> buildWindowedTable(
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final WindowedTableSource source,
       final ConsumedFactory consumedFactory,
       final MaterializedFactory materializedFactory,
@@ -275,7 +272,7 @@ public final class SourceBuilder {
   }
 
   private static Serde<GenericRow> getValueSerde(
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final SourceStep<?> streamSource,
       final PhysicalSchema physicalSchema) {
     return queryBuilder.buildValueSerde(
@@ -295,7 +292,7 @@ public final class SourceBuilder {
 
   private static <K> KStream<K, GenericRow> buildKStream(
       final SourceStep<?> streamSource,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final Consumed<K, GenericRow> consumed,
       final Function<K, Collection<?>> keyGenerator
   ) {
@@ -308,7 +305,7 @@ public final class SourceBuilder {
 
   private static <K> KTable<K, GenericRow> buildKTable(
       final SourceStep<?> streamSource,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final Consumed<K, GenericRow> consumed,
       final Function<K, Collection<?>> keyGenerator,
       final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized,
@@ -360,7 +357,7 @@ public final class SourceBuilder {
   }
 
   private static StaticTopicSerde.Callback getRegisterCallback(
-      final KsqlQueryBuilder builder,
+      final RuntimeBuildContext builder,
       final FormatInfo valueFormat
   ) {
     final boolean schemaRegistryEnabled = !builder
@@ -387,13 +384,10 @@ public final class SourceBuilder {
    * </pre>
    */
   private static String changelogTopic(
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final String stateStoreName
   ) {
-    return ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX
-        + queryBuilder.getKsqlConfig().getString(KSQL_SERVICE_ID_CONFIG)
-        + queryBuilder.getKsqlConfig().getString(KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG)
-        + queryBuilder.getQueryId().toString()
+    return queryBuilder.getApplicationId()
         + "-"
         + stateStoreName
         + "-changelog";
@@ -404,7 +398,7 @@ public final class SourceBuilder {
       final LogicalSchema sourceSchema,
       final Optional<TimestampColumn> timestampColumn,
       final SourceStep<?> streamSource,
-      final KsqlQueryBuilder queryBuilder
+      final RuntimeBuildContext queryBuilder
   ) {
     final TimestampExtractionPolicy timestampPolicy = TimestampExtractionPolicyFactory.create(
         ksqlConfig,
@@ -429,7 +423,7 @@ public final class SourceBuilder {
       final Serde<K> keySerde,
       final Serde<GenericRow> valueSerde,
       final Topology.AutoOffsetReset defaultReset,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final ConsumedFactory consumedFactory) {
     final TimestampExtractor timestampExtractor = timestampExtractor(
         queryBuilder.getKsqlConfig(),
@@ -526,7 +520,7 @@ public final class SourceBuilder {
 
   private static Topology.AutoOffsetReset getAutoOffsetReset(
       final Topology.AutoOffsetReset defaultValue,
-      final KsqlQueryBuilder queryBuilder) {
+      final RuntimeBuildContext queryBuilder) {
     final Object offestReset = queryBuilder.getKsqlConfig()
         .getKsqlStreamConfigProps()
         .get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);

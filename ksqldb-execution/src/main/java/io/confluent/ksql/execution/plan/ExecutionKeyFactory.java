@@ -15,8 +15,8 @@
 package io.confluent.ksql.execution.plan;
 
 import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.WindowInfo;
@@ -44,7 +44,7 @@ public interface ExecutionKeyFactory<K> {
   /**
    * @return a new {@code ExecutionKeyFactory}
    */
-  ExecutionKeyFactory<K> withQueryBuilder(KsqlQueryBuilder builder);
+  ExecutionKeyFactory<K> withQueryBuilder(RuntimeBuildContext builder);
 
   /**
    * This method can construct a new key given the old key and the
@@ -56,12 +56,12 @@ public interface ExecutionKeyFactory<K> {
    */
   K constructNewKey(K oldKey, GenericKey newKey);
 
-  static ExecutionKeyFactory<GenericKey> unwindowed(final KsqlQueryBuilder queryBuilder) {
+  static ExecutionKeyFactory<GenericKey> unwindowed(final RuntimeBuildContext queryBuilder) {
     return new UnwindowedFactory(queryBuilder);
   }
 
   static ExecutionKeyFactory<Windowed<GenericKey>> windowed(
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final WindowInfo windowInfo
   ) {
     return new WindowedFactory(windowInfo, queryBuilder);
@@ -69,9 +69,9 @@ public interface ExecutionKeyFactory<K> {
 
   class UnwindowedFactory implements ExecutionKeyFactory<GenericKey> {
 
-    private final KsqlQueryBuilder queryBuilder;
+    private final RuntimeBuildContext queryBuilder;
 
-    public UnwindowedFactory(final KsqlQueryBuilder queryBuilder) {
+    public UnwindowedFactory(final RuntimeBuildContext queryBuilder) {
       this.queryBuilder = Objects.requireNonNull(queryBuilder, "queryBuilder");
     }
 
@@ -85,7 +85,7 @@ public interface ExecutionKeyFactory<K> {
     }
 
     @Override
-    public ExecutionKeyFactory<GenericKey> withQueryBuilder(final KsqlQueryBuilder builder) {
+    public ExecutionKeyFactory<GenericKey> withQueryBuilder(final RuntimeBuildContext builder) {
       return new UnwindowedFactory(builder);
     }
 
@@ -98,9 +98,12 @@ public interface ExecutionKeyFactory<K> {
   class WindowedFactory implements ExecutionKeyFactory<Windowed<GenericKey>> {
 
     private final WindowInfo windowInfo;
-    private final KsqlQueryBuilder queryBuilder;
+    private final RuntimeBuildContext queryBuilder;
 
-    public WindowedFactory(final WindowInfo windowInfo, final KsqlQueryBuilder queryBuilder) {
+    public WindowedFactory(
+        final WindowInfo windowInfo,
+        final RuntimeBuildContext queryBuilder
+    ) {
       this.windowInfo = Objects.requireNonNull(windowInfo, "windowInfo");
       this.queryBuilder = Objects.requireNonNull(queryBuilder, "queryBuilder");
     }
@@ -115,7 +118,7 @@ public interface ExecutionKeyFactory<K> {
 
     @Override
     public ExecutionKeyFactory<Windowed<GenericKey>> withQueryBuilder(
-        final KsqlQueryBuilder builder
+        final RuntimeBuildContext builder
     ) {
       return new WindowedFactory(windowInfo, builder);
     }

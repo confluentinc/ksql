@@ -16,12 +16,12 @@
 package io.confluent.ksql.execution.streams;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 
 public final class StreamGroupByBuilderV1 extends StreamGroupByBuilderBase {
 
   public StreamGroupByBuilderV1(
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final GroupedFactory groupedFactory
   ) {
     this(queryBuilder, groupedFactory, GroupByParamsV1Factory::build);
@@ -29,7 +29,7 @@ public final class StreamGroupByBuilderV1 extends StreamGroupByBuilderBase {
 
   @VisibleForTesting
   StreamGroupByBuilderV1(
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext queryBuilder,
       final GroupedFactory groupedFactory,
       final ParamsFactory paramsFactory
   ) {

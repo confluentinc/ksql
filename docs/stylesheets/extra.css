@@ -137,6 +137,7 @@ ul.card-items li {
     );
 
     border: 2px dashed #eee;
+    border-top: 3.5px solid #42cceb;
 }
 
 .card.getting-started {

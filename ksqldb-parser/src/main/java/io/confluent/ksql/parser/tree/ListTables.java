@@ -26,14 +26,24 @@ import java.util.Optional;
 public class ListTables extends Statement {
 
   private final boolean showExtended;
+  private final boolean showDescription;
 
-  public ListTables(final Optional<NodeLocation> location, final boolean showExtended) {
+  public ListTables(
+      final Optional<NodeLocation> location,
+      final boolean showExtended,
+      final boolean showDescription
+  ) {
     super(location);
     this.showExtended = showExtended;
+    this.showDescription = showDescription;
   }
 
   public boolean getShowExtended() {
     return showExtended;
+  }
+
+  public boolean getShowDescription() {
+    return showDescription;
   }
 
   @Override
@@ -50,7 +60,7 @@ public class ListTables extends Statement {
       return false;
     }
     final ListTables that = (ListTables) o;
-    return showExtended == that.showExtended;
+    return (showExtended == that.showExtended && showDescription == that.showDescription);
   }
 
   @Override
@@ -62,6 +72,7 @@ public class ListTables extends Statement {
   public String toString() {
     return toStringHelper(this)
         .add("showExtended", showExtended)
+        .add("showDescription", showDescription)
         .toString();
   }
 }

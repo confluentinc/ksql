@@ -665,13 +665,13 @@ public class AstBuilder {
     @Override
     public Node visitListStreams(final SqlBaseParser.ListStreamsContext context) {
       return new ListStreams(
-          getLocation(context), context.EXTENDED() != null);
+          getLocation(context), context.EXTENDED() != null, context.DESCRIPTION() != null);
     }
 
     @Override
     public Node visitListTables(final SqlBaseParser.ListTablesContext context) {
       return new ListTables(
-          getLocation(context), context.EXTENDED() != null);
+          getLocation(context), context.EXTENDED() != null, context.DESCRIPTION() != null);
     }
 
     @Override

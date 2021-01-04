@@ -26,14 +26,24 @@ import java.util.Optional;
 public class ListStreams extends Statement {
 
   private final boolean showExtended;
+  private final boolean showDescription;
 
-  public ListStreams(final Optional<NodeLocation> location, final boolean showExtended) {
+  public ListStreams(
+      final Optional<NodeLocation> location,
+      final boolean showExtended,
+      final boolean showDescription
+  ) {
     super(location);
     this.showExtended = showExtended;
+    this.showDescription = showDescription;
   }
 
   public boolean getShowExtended() {
     return showExtended;
+  }
+
+  public boolean getShowDescription() {
+    return showDescription;
   }
 
   @Override
@@ -50,7 +60,7 @@ public class ListStreams extends Statement {
       return false;
     }
     final ListStreams that = (ListStreams) o;
-    return showExtended == that.showExtended;
+    return (showExtended == that.showExtended && showDescription == that.showDescription);
   }
 
   @Override
@@ -62,6 +72,7 @@ public class ListStreams extends Statement {
   public String toString() {
     return toStringHelper(this)
         .add("showExtended", showExtended)
+        .add("showDescription", showDescription)
         .toString();
   }
 }

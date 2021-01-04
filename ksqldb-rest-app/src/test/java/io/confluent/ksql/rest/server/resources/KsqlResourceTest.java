@@ -529,6 +529,44 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldShowStreamsDescription() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+        .valueColumn(ColumnName.of("FIELD1"), SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("FIELD2"), SqlTypes.STRING)
+        .build();
+
+    givenSource(
+        DataSourceType.KSTREAM, "new_stream", "new_topic",
+        schema);
+
+    // When:
+    final SourceDescriptionList descriptionList = makeSingleRequest(
+        "SHOW STREAMS DESCRIPTION;", SourceDescriptionList.class);
+
+    // Then:
+    assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
+        SourceDescriptionFactory.create(
+            ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_STREAM")),
+            false,
+            Collections.emptyList(),
+            Collections.emptyList(),
+            Optional.empty(),
+            Collections.emptyList(),
+            Collections.emptyList()),
+        SourceDescriptionFactory.create(
+            ksqlEngine.getMetaStore().getSource(SourceName.of("new_stream")),
+            false,
+            Collections.emptyList(),
+            Collections.emptyList(),
+            Optional.empty(),
+            Collections.emptyList(),
+            Collections.emptyList()))
+    );
+  }
+
+  @Test
   public void shouldShowTablesExtended() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
@@ -557,6 +595,44 @@ public class KsqlResourceTest {
             ksqlEngine.getMetaStore().getSource(SourceName.of("new_table")),
             true, Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("new_topic")),
+            Collections.emptyList(),
+            Collections.emptyList()))
+    );
+  }
+
+  @Test
+  public void shouldShowTablesDescription() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+        .valueColumn(ColumnName.of("FIELD1"), SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("FIELD2"), SqlTypes.STRING)
+        .build();
+
+    givenSource(
+        DataSourceType.KTABLE, "new_table", "new_topic",
+        schema, ImmutableSet.of(SourceName.of("TEST_TABLE")));
+
+    // When:
+    final SourceDescriptionList descriptionList = makeSingleRequest(
+        "SHOW TABLES DESCRIPTION;", SourceDescriptionList.class);
+
+    // Then:
+    assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
+        SourceDescriptionFactory.create(
+            ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_TABLE")),
+            false,
+            Collections.emptyList(),
+            Collections.emptyList(),
+            Optional.empty(),
+            Collections.emptyList(),
+            Collections.emptyList()),
+        SourceDescriptionFactory.create(
+            ksqlEngine.getMetaStore().getSource(SourceName.of("new_table")),
+            false,
+            Collections.emptyList(),
+            Collections.emptyList(),
+            Optional.empty(),
             Collections.emptyList(),
             Collections.emptyList()))
     );

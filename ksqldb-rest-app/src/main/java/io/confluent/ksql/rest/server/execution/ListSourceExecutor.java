@@ -81,7 +81,8 @@ public final class ListSourceExecutor {
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
-      final List<? extends DataSource> sources
+      final List<? extends DataSource> sources,
+      final boolean extended
   ) {
     final List<SourceDescriptionWithWarnings> descriptions = sources.stream()
         .map(
@@ -90,7 +91,7 @@ public final class ListSourceExecutor {
                 executionContext,
                 serviceContext,
                 s.getName(),
-                true,
+                extended,
                 statement.getStatementText())
         )
         .collect(Collectors.toList());
@@ -112,13 +113,14 @@ public final class ListSourceExecutor {
     final List<KsqlStream<?>> ksqlStreams = getSpecificStreams(executionContext);
 
     final ListStreams listStreams = statement.getStatement();
-    if (listStreams.getShowExtended()) {
+    if (listStreams.getShowExtended() || listStreams.getShowDescription()) {
       return sourceDescriptionList(
           statement,
           sessionProperties,
           executionContext,
           serviceContext,
-          ksqlStreams
+          ksqlStreams,
+          listStreams.getShowExtended()
       );
     }
 
@@ -138,13 +140,14 @@ public final class ListSourceExecutor {
     final List<KsqlTable<?>> ksqlTables = getSpecificTables(executionContext);
 
     final ListTables listTables = statement.getStatement();
-    if (listTables.getShowExtended()) {
+    if (listTables.getShowExtended() || listTables.getShowDescription()) {
       return sourceDescriptionList(
           statement,
           sessionProperties,
           executionContext,
           serviceContext,
-          ksqlTables
+          ksqlTables,
+          listTables.getShowExtended()
       );
     }
     return Optional.of(new TablesList(

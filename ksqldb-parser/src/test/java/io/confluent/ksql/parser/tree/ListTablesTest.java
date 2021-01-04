@@ -30,11 +30,11 @@ public class ListTablesTest {
     new EqualsTester()
         .addEqualityGroup(
             // Note: At the moment location does not take part in equality testing
-            new ListTables(Optional.of(SOME_LOCATION), true),
-            new ListTables(Optional.of(OTHER_LOCATION), true)
+            new ListTables(Optional.of(SOME_LOCATION), true, true),
+            new ListTables(Optional.of(OTHER_LOCATION), true, true)
         )
         .addEqualityGroup(
-            new ListTables(Optional.of(SOME_LOCATION), false)
+            new ListTables(Optional.of(SOME_LOCATION), false, true)
         )
         .testEquals();
   }

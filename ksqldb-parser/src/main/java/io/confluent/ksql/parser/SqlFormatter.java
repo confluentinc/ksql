@@ -423,6 +423,8 @@ public final class SqlFormatter {
       builder.append("SHOW STREAMS");
       if (node.getShowExtended()) {
         visitExtended();
+      } else if (node.getShowDescription()) {
+        visitDescription();
       }
       return null;
     }
@@ -432,6 +434,8 @@ public final class SqlFormatter {
       builder.append("SHOW TABLES");
       if (node.getShowExtended()) {
         visitExtended();
+      } else if (node.getShowDescription()) {
+        visitDescription();
       }
       return null;
     }
@@ -484,6 +488,10 @@ public final class SqlFormatter {
 
     private void visitExtended() {
       builder.append(" EXTENDED");
+    }
+
+    private void visitDescription() {
+      builder.append(" DESCRIPTION");
     }
 
     @Override

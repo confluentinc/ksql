@@ -784,7 +784,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatShowTables() {
     // Given:
-    final ListTables listTables = new ListTables(Optional.empty(), false);
+    final ListTables listTables = new ListTables(Optional.empty(), false, false);
 
     // When:
     final String formatted = SqlFormatter.formatSql(listTables);
@@ -796,13 +796,25 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatShowTablesExtended() {
     // Given:
-    final ListTables listTables = new ListTables(Optional.empty(), true);
+    final ListTables listTables = new ListTables(Optional.empty(), true, false);
 
     // When:
     final String formatted = SqlFormatter.formatSql(listTables);
 
     // Then:
     assertThat(formatted, is("SHOW TABLES EXTENDED"));
+  }
+
+  @Test
+  public void shouldFormatShowTablesDescription() {
+    // Given:
+    final ListTables listTables = new ListTables(Optional.empty(), false, true);
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(listTables);
+
+    // Then:
+    assertThat(formatted, is("SHOW TABLES DESCRIPTION"));
   }
 
   @Test
@@ -820,7 +832,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatShowStreams() {
     // Given:
-    final ListStreams listStreams = new ListStreams(Optional.empty(), false);
+    final ListStreams listStreams = new ListStreams(Optional.empty(), false, false);
 
     // When:
     final String formatted = SqlFormatter.formatSql(listStreams);
@@ -832,13 +844,25 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatShowStreamsExtended() {
     // Given:
-    final ListStreams listStreams = new ListStreams(Optional.empty(), true);
+    final ListStreams listStreams = new ListStreams(Optional.empty(), true, false);
 
     // When:
     final String formatted = SqlFormatter.formatSql(listStreams);
 
     // Then:
     assertThat(formatted, is("SHOW STREAMS EXTENDED"));
+  }
+
+  @Test
+  public void shouldFormatShowStreamsDescription() {
+    // Given:
+    final ListStreams listStreams = new ListStreams(Optional.empty(), false, true);
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(listStreams);
+
+    // Then:
+    assertThat(formatted, is("SHOW STREAMS DESCRIPTION"));
   }
 
   @Test

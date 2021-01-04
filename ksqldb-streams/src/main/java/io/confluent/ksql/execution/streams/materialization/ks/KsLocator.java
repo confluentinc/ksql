@@ -54,6 +54,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Kafka Streams implementation of {@link Locator}.
+ * Uses streams metadata to determine which hosts to contact for a given key/partition.
  */
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 public final class KsLocator implements Locator {
@@ -90,19 +91,26 @@ public final class KsLocator implements Locator {
     final Map<Integer, List<KsqlNode>> locationsByPartition = new LinkedHashMap<>();
     final Set<Integer> filterPartitions = routingOptions.getPartitions();
 
+    // Depending on whether this is a key-based lookup, determine which metadata method to use.
+    // If we don't have keys, find the metadata for all partitions since we'll run the query for
+    // all partitions of the state store rather than a particular one.
     final Metadata metadata = keys.isEmpty()
         ? getMetadataForAllPartitions(filterPartitions)
         : getMetadataForKeys(keys, filterPartitions);
+    // Go through the metadata and group them by partition.
     for (KeyQueryMetadata keyQueryMetadata : metadata.getMetadataList()) {
       LOG.debug("Handling pull query for partition {} of state store {}.",
           keyQueryMetadata.partition(), stateStoreName);
       final HostInfo activeHost = keyQueryMetadata.activeHost();
       final Set<HostInfo> standByHosts = keyQueryMetadata.standbyHosts();
 
+      // We'll only do a single call per partition, so if we've determined the set one hosts
+      // already, we're done
       if (locationsByPartition.containsKey(keyQueryMetadata.partition())) {
         continue;
       }
 
+      // For a given partition, find the ordered, filtered list of hosts to consider
       final List<KsqlNode> filteredHosts = getFilteredHosts(routingOptions, routingFilterFactory,
           activeHost, standByHosts, keyQueryMetadata.partition());
 
@@ -115,6 +123,14 @@ public final class KsLocator implements Locator {
         .collect(ImmutableList.toImmutableList());
   }
 
+  /**
+   * Gets the Metadata when looking up a list of keys.  This is used when the set of keys are known.
+   * @param keys The non-empty set of keys to lookup metadata for
+   * @param filterPartitions The partitions to limit lookups to, if non empty. Partitions which
+   *                         exist by are not listed here are omitted. If empty, no filtering is
+   *                         done.
+   * @return The metadata associated with the keys
+   */
   private Metadata getMetadataForKeys(
       final List<GenericKey> keys,
       final Set<Integer> filterPartitions
@@ -152,6 +168,13 @@ public final class KsLocator implements Locator {
     return new Metadata(metadataList, Optional.of(keysByPartition));
   }
 
+  /**
+   * Gets the metadata for all partitions associated with the state store.
+   * @param filterPartitions The partitions to limit lookups to, if non empty. Partitions which
+   *                         exist by are not listed here are omitted. If empty, no filtering is
+   *                         done.
+   * @return The metadata associated with all partitions
+   */
   private Metadata getMetadataForAllPartitions(final Set<Integer> filterPartitions) {
     final Map<Integer, HostInfo> activeHostByPartition = new HashMap<>();
     final Map<Integer, Set<HostInfo>> standbyHostsByPartition = new HashMap<>();
@@ -185,6 +208,17 @@ public final class KsLocator implements Locator {
     return new Metadata(metadataList, Optional.empty());
   }
 
+  /**
+   * Returns the filtered, ordered list of nodes which host the given partition. The returned nodes
+   * will be contacted to run the query, in order.
+   * @param routingOptions The routing options to use when determining the list of nodes
+   * @param routingFilterFactory The factory used to create the RoutingFilter used to filter the
+   *                             list of nodes
+   * @param activeHost Which node is active for the given partition
+   * @param standByHosts Which nodes are standbys for the given partition
+   * @param partition The partition being located
+   * @return The filtered, ordered list of nodes used to run the given query
+   */
   private List<KsqlNode> getFilteredHosts(
       final RoutingOptions routingOptions,
       final RoutingFilterFactory routingFilterFactory,
@@ -343,6 +377,9 @@ public final class KsLocator implements Locator {
     }
   }
 
+  /**
+   * Metadata kept about a given partition hosting the data we're wanting to fetch
+   */
   private static class Metadata {
 
     private final List<KeyQueryMetadata> metadataList;
@@ -356,12 +393,51 @@ public final class KsLocator implements Locator {
       this.keysByPartition = keysByPartition;
     }
 
+    /**
+     * The list of KeyQueryMetadata, which includes active and standby hosts, for the located
+     * partitions.
+     * This is used even when no keys are provided since KeyQueryMetadata is a convenient wrapper
+     * class.
+     * @return The list of KeyQueryMetadata for a set of partitions
+     */
     public List<KeyQueryMetadata> getMetadataList() {
       return metadataList;
     }
 
+    /**
+     * If this is a key-based query, contains the mapping from partition to set of keys.
+     * @return
+     */
     public Optional<Map<Integer, Set<GenericKey>>> getKeysByPartition() {
       return keysByPartition;
+    }
+  }
+
+  private static class PartitionMetadata {
+    private final HostInfo activeHost;
+    private final Set<HostInfo> standbyHosts;
+    private final int partition;
+
+    public PartitionMetadata(
+        final HostInfo activeHost,
+        final Set<HostInfo> standbyHosts,
+        final int partition
+    ) {
+      this.activeHost = activeHost;
+      this.standbyHosts = standbyHosts;
+      this.partition = partition;
+    }
+
+    public HostInfo getActiveHost() {
+      return activeHost;
+    }
+
+    public Set<HostInfo> getStandbyHosts() {
+      return standbyHosts;
+    }
+
+    public int getPartition() {
+      return partition;
     }
   }
 }

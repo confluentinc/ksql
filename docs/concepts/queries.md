@@ -48,7 +48,7 @@ CREATE TABLE AS SELECT or CREATE STREAM AS SELECT statement.
 A pull query is a form of query issued by a client that retrieves a result as
 of "now", like a query against a traditional RDBS. 
 
-As a dual to the [push query](push.md) example, a pull query for a geographic
+As a dual to the [push query](/developer-guide/ksqldb-reference/select-push-query/) example, a pull query for a geographic
 location would ask for the current map coordinates of a particular user.
 Because it's a pull query, it returns immediately with a finite result and
 closes its connection. This is ideal for rendering a user interface once, at
@@ -59,7 +59,7 @@ Pull queries enable you to fetch the current state of a materialized view.
 Because materialized views are incrementally updated as new events arrive,
 pull queries run with predictably low latency. They're a great match for
 request/response flows. For asynchronous application flows, see
-[Push Query](push.md).
+[Push Query](/developer-guide/ksqldb-reference/select-push-query/).
 
 Execute a pull query by sending an HTTP request to the ksqlDB REST API, and
 the API responds with a single response.

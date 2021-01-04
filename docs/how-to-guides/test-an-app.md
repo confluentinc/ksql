@@ -229,3 +229,20 @@ the testing tool inspects the source topics for the query in the simulated
 Kafka cluster and processes any messages in these topics. For `JOIN` queries
 that have more than one source topic, the testing tool first processes the
 left-side topic and then processes the right-side topic.
+
+## Generate an input file from an existing topic
+
+You can use [`kafkacat`](https://github.com/edenhill/kafkacat) and
+[`jq`](https://stedolan.github.io/jq/) in combination to create an input file
+based on data already in a Kafka topic:
+
+```bash
+kafkacat -b broker:29092 -t my_topic -C -e -J | \
+  jq --slurp '{inputs:[.[]|{topic:.topic,timestamp: .ts, key: .key, value: .payload|fromjson}]}' \
+  > input.json
+```
+
+Replace `broker:29092` with your broker host and port, and `my_topic` with the
+name of your topic. You can limit how many messages are written to the file by
+adding a `-c` flag to the `kafkacat` statement—for example, `-c42` would write
+the first 42 messages from the topic.

@@ -18,10 +18,6 @@ Here's what you can do with schema inference in ksqlDB:
     `CREATE TABLE AS SELECT` statements, by declaring the required output
     format in the `WITH` clause. For example, you can convert a stream from
     Avro to JSON.
-
-!!! note
-    Message *keys* in Protobuf are not supported. If your message keys
-    are in an unsupported format, see [What to do if your key is not set or is in a different format](../developer-guide/syntax-reference.md#what-to-do-if-your-key-is-not-set-or-is-in-a-different-format). 
     
 If you're declaring a stream or table with a key format that's different from its
 value format, and only one of the two formats supports schema inference,

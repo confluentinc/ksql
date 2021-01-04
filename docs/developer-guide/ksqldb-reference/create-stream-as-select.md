@@ -51,7 +51,7 @@ correctly partition your data for joins.
 
 For stream-stream joins, you must specify a WITHIN clause for matching
 records that both occur within a specified time interval. For valid time
-units, see [Time Units](../syntax-reference.md#time-units).
+units, see [Time Units](/reference/sql/time/#time-units).
 
 The key of the resulting stream is determined by the following rules, in order of priority:
  1. if the query has a `PARTITION BY`, then the resulting number of key columns will match the

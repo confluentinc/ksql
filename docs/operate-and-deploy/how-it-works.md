@@ -165,9 +165,6 @@ The CSAS and CTAS statements occupy both categories, because they
 perform both a metadata change, like adding a stream, and they
 manipulate data, by creating a derivative of existing records.
 
-For more information, see
-[ksqlDB Syntax Reference](../developer-guide/syntax-reference.md).
-
 ksqlDB Deployment Modes
 -----------------------
 

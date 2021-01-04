@@ -177,8 +177,13 @@ public final class WhereInfo {
             + System.lineSeparator()
             + " - limits the query to keys only, e.g. `SELECT * FROM X WHERE <key-column>=Y;`."
             + System.lineSeparator()
-            + " - specifies an equality condition that is a conjunction of equality expressions "
-            + "that cover all keys."
+            + " - either:"
+            + System.lineSeparator()
+            + "   \t - specifies an equality condition that is a conjunction of equality "
+            + "expressions that cover all keys."
+            + System.lineSeparator()
+            + "   \t - specifies a list of literal values for the key column of interest, e.g. "
+            + "`SELECT * FROM X WHERE <key-column> IN ('value_1', 'value_2');`"
             + additional
     );
   }

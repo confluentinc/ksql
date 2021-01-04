@@ -38,8 +38,8 @@ ksqlDB supports these serialization formats:
 -   [`KAFKA`](#kafka) supports primitives serialized using the standard Kafka serializers. 
 -   [`PROTOBUF`](#protobuf) supports Protocol Buffers.
 
-
-Not all formats can be used as both key and value formats. See individual formats for details.
+With the exception of the `NONE` format, all formats may be used as both key and value formats.
+See individual formats for details.
 
 ### NONE
 

@@ -75,6 +75,36 @@ public class KsqlVersionTest {
   }
 
   @Test
+  public void shouldParsePrerelease() {
+    // When:
+    final KsqlVersion result = KsqlVersion.parse("6.2.0-foo123456");
+
+    // Then:
+    assertThat(result.getName(), is("6.2.0-foo123456"));
+    assertThat(result.getVersion(), is(SemanticVersion.of(6, 2, 0)));
+  }
+
+  @Test
+  public void shouldParsePrereleaseAlpha() {
+    // When:
+    final KsqlVersion result = KsqlVersion.parse("6.2.0-alpha1");
+
+    // Then:
+    assertThat(result.getName(), is("6.2.0-alpha1"));
+    assertThat(result.getVersion(), is(SemanticVersion.of(6, 2, 0)));
+  }
+
+  @Test
+  public void shouldParsePrereleaseBeta() {
+    // When:
+    final KsqlVersion result = KsqlVersion.parse("6.2.0-beta1234568");
+
+    // Then:
+    assertThat(result.getName(), is("6.2.0-beta1234568"));
+    assertThat(result.getVersion(), is(SemanticVersion.of(6, 2, 0)));
+  }
+
+  @Test
   public void shouldCompareUsingTimestamps() {
     // Given:
     final KsqlVersion v1 = KsqlVersion.parse("5.4.1").withTimestamp(123);

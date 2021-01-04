@@ -172,7 +172,7 @@ CREATE STREAM stream_name
     [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ]
     ON join_criteria]* 
   [ WHERE condition ]
-  [PARTITION BY column_name]
+  [PARTITION BY new_key_expr [, ...]]
   EMIT CHANGES;
 ```
 
@@ -367,13 +367,13 @@ Stream the result of a SELECT query into an existing stream and its underlying
 
 ```sql
 INSERT INTO stream_name
-  SELECT select_expr [., ...]
+  SELECT select_expr [, ...]
   FROM from_stream
   [ LEFT | FULL | INNER ] JOIN [join_table | join_stream]
     [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ]
     ON join_criteria
   [ WHERE condition ]
-  [ PARTITION BY column_name ]
+  [ PARTITION BY new_key_expr [, ...] ]
   EMIT CHANGES;
 ```
 
@@ -403,7 +403,7 @@ SELECT column_name(s)
 Match a string with the specified pattern.
 
 ```sql hl_lines="3"
-  SELECT select_expr [., ...]
+  SELECT select_expr [, ...]
     FROM from_stream | from_table
     WHERE exp LIKE pattern_string;
 ```
@@ -425,7 +425,7 @@ SELECT user_id
 Specifies multiple `OR` conditions.
 
 ```sql hl_lines"3"
-  SELECT select_expr [., ...]
+  SELECT select_expr [, ...]
     FROM from_stream | from_table
     WHERE exp IN (exp0, exp1, exp2);
 ```
@@ -433,7 +433,7 @@ Specifies multiple `OR` conditions.
 The above is equivalent to:
 
 ```sql hl_lines"3"
-  SELECT select_expr [., ...]
+  SELECT select_expr [, ...]
     FROM from_stream | from_table
     WHERE exp = exp0 OR exp = exp1 OR exp = exp2;
 ```
@@ -446,9 +446,9 @@ Repartition a stream. For more information, see
 CREATE STREAM stream_name
   WITH ([...,]
         PARTITIONS=number_of_partitions)
-  AS SELECT select_expr [., ...]
+  AS SELECT select_expr [, ...]
   FROM from_stream
-  PARTITION BY key_field
+  PARTITION BY new_key_expr [, ...]
   EMIT CHANGES;
 ```
 
@@ -489,7 +489,7 @@ SELECT select_expr [, ...]
   [ LEFT JOIN join_table ON join_criteria ]
   [ WINDOW window_expression ]
   [ WHERE condition ]
-  [ GROUP BY grouping_expression ]
+  [ GROUP BY grouping_expression [, ...] ]
   [ HAVING having_expression ]
   EMIT CHANGES
   [ LIMIT count ];

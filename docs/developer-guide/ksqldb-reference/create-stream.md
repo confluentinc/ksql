@@ -6,19 +6,16 @@ description: Syntax for the CREATE STREAM statement in ksqlDB
 keywords: ksqlDB, create, stream
 ---
 
-CREATE STREAM
-=============
+# CREATE STREAM
 
-Synopsis
---------
+## Synopsis
 
 ```sql
 CREATE [OR REPLACE] STREAM [IF NOT EXISTS] stream_name ( { column_name data_type [KEY] } [, ...] )
   WITH ( property_name = expression [, ...] );
 ```
 
-Description
------------
+## Description
 
 Create a new stream with the specified columns and properties.
 
@@ -93,8 +90,7 @@ For more information on timestamp formats, see
     file. See [Configure ksqlDB for Avro, Protobuf, and JSON schemas](../../operate-and-deploy/installation/server-config/avro-schema.md). 
     - Avro and Protobuf field names are not case sensitive in ksqlDB. This matches the ksqlDB column name behavior.
 
-Example
--------
+## Example
 
 ```sql
 -- stream with a page_id column loaded from the kafka message value:

@@ -1,3 +1,5 @@
+import java.util.regex.Pattern
+
 def baseConfig = {
     owner = 'ksql'
     slackChannel = '#ksql-alerts'
@@ -208,12 +210,22 @@ def job = {
                                 sh "docker pull ${config.dockerRegistry}${dockerRepo}:${config.cp_version}-latest"
                             }
 
+                            // We need to replace the parent version range before we can run any maven commands
+                            def pomFile = readFile('pom.xml')
+                            def parentVersionPattern = Pattern.compile(/(.*<parent>.*<groupId>io.confluent\S*<\/groupId>.*<version>)\[\d+\.\d+\.\d+-\d+\,\s+\d+\.\d+\.\d+-\d+\)(<\/version>.*<\/parent>.*)/, Pattern.DOTALL)
+                            // Groovy regex replaces the groups we didn't match, so we print the beginning of the file, our version, and the rest of the file.
+                            def newPomFile = pomFile.replaceFirst(parentVersionPattern, "\$1${config.cp_version}\$2")
+                            writeFile(file: 'pom.xml', text: newPomFile)
+
                             // Set the project versions in the pom files
                             sh "set -x"
                             sh "mvn --batch-mode versions:set -DnewVersion=${config.ksql_db_artifact_version} -DgenerateBackupPoms=false"
 
-                            // Set the version of the parent project to use.
-                            sh "mvn --batch-mode versions:update-parent -DparentVersion=\"[${config.cp_version}]\" -DgenerateBackupPoms=false"
+                            // Set the repo version property
+                            sh "mvn --batch-mode versions:set-property -DgenerateBackupPoms=false -DnewVersion=${config.ksql_db_artifact_version} -Dproperty=io.confluent.ksql.version"
+
+                            // Set the version of schema-registry to use
+                            sh "mvn --batch-mode versions:set-property -DgenerateBackupPoms=false -DnewVersion=${config.cp_version} -Dproperty=io.confluent.schema-registry.version"
 
                             cmd = "mvn --batch-mode -Pjenkins clean package dependency:analyze site validate -U "
                             cmd += "-DskipTests "

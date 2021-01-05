@@ -195,7 +195,7 @@ public class KsMaterializedWindowTableTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Failed to get value from materialized table"));
+        "Failed to scan materialized table"));
     assertThat(e.getCause(), (instanceOf(MaterializationTimeOutException.class)));
   }
 

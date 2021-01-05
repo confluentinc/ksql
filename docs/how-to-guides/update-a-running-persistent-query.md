@@ -38,10 +38,10 @@ ksqlDB provides two mechanisms to change a query that is already running:
 
 Obviously, it would be preferable to always perform an in-place upgrade
 when you change a query. But because of how streaming programs are constructed,
-it's not always possible to do that.
+this isn't not always possible to do that.
 
 To better understand the different types of upgrades that are allowed on persistent
-queries, here is a taxonomy usin gthe combination of three
+queries, here's a taxonomy usin gthe combination of three
 types of query characteristics: _source query_, _upgrade_ and (optionally) _environment_.
 
 | **Category** | **Characteristic** | **Description** |

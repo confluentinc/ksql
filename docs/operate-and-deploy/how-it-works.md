@@ -1,3 +1,10 @@
+----
+layout: page
+title: ksqlDB Architecture
+tagline: Internals of ksqlDB
+description: Quick tour under the hood of the ksqlDB engine.
+----
+
 You can use ksqlDB to build event streaming applications from {{ site.aktm }}
 topics by using only SQL statements and queries. ksqlDB is built on
 {{ site.kstreams }}, so a ksqlDB application communicates with a {{ site.ak }}

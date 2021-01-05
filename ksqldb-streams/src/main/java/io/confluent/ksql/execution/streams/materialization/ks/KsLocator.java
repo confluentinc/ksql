@@ -390,7 +390,7 @@ public final class KsLocator implements Locator {
     private final int partition;
     private final Optional<Set<GenericKey>> keys;
 
-    public PartitionMetadata(
+    PartitionMetadata(
         final HostInfo activeHost,
         final Set<HostInfo> standbyHosts,
         final int partition,

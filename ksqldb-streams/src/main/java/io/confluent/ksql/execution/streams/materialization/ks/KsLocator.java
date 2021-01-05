@@ -86,9 +86,6 @@ public final class KsLocator implements Locator {
       final RoutingOptions routingOptions,
       final RoutingFilterFactory routingFilterFactory
   ) {
-    // Maintain request order for reproducibility by using a LinkedHashMap, even though it's
-    // not a guarantee of the API.
-    final Map<Integer, List<KsqlNode>> locationsByPartition = new LinkedHashMap<>();
     final ImmutableList.Builder<KsqlPartitionLocation> partitionLocations = ImmutableList.builder();
     final Set<Integer> filterPartitions = routingOptions.getPartitions();
 
@@ -128,8 +125,10 @@ public final class KsLocator implements Locator {
       final List<GenericKey> keys,
       final Set<Integer> filterPartitions
   ) {
+    // Maintain request order for reproducibility by using a LinkedHashMap, even though it's
+    // not a guarantee of the API.
+    final Map<Integer, KeyQueryMetadata> metadataByPartition = new LinkedHashMap<>();
     final Map<Integer, Set<GenericKey>> keysByPartition = new HashMap<>();
-    final List<KeyQueryMetadata> metadataList = new ArrayList<>();
     for (GenericKey key : keys) {
       final KeyQueryMetadata metadata = kafkaStreams
           .queryMetadataForKey(stateStoreName, key, keySerializer);
@@ -152,22 +151,18 @@ public final class KsLocator implements Locator {
         continue;
       }
 
-      keysByPartition.putIfAbsent(metadata.partition(), new LinkedHashSet<>());
+      keysByPartition.computeIfAbsent(metadata.partition(), k -> new LinkedHashSet<>());
       keysByPartition.get(metadata.partition()).add(key);
-      metadataList.add(metadata);
+      metadataByPartition.putIfAbsent(metadata.partition(), metadata);
     }
 
-    // Maintain request order for reproducibility by using a LinkedHashMap, even though it's
-    // not a guarantee of the API.
-    final Map<Integer, PartitionMetadata> metadataByPartition = new LinkedHashMap<>();
-    for (KeyQueryMetadata metadata : metadataList) {
-      final HostInfo activeHost = metadata.activeHost();
-      final Set<HostInfo> standByHosts = metadata.standbyHosts();
-      metadataByPartition.put(metadata.partition(),
-          new PartitionMetadata(activeHost, standByHosts, metadata.partition(),
-              Optional.of(keysByPartition.get(metadata.partition()))));
-    }
-    return new ArrayList<>(metadataByPartition.values());
+    return metadataByPartition.values().stream()
+        .map(metadata -> {
+          final HostInfo activeHost = metadata.activeHost();
+          final Set<HostInfo> standByHosts = metadata.standbyHosts();
+          return new PartitionMetadata(activeHost, standByHosts, metadata.partition(),
+              Optional.of(keysByPartition.get(metadata.partition())));
+        }).collect(Collectors.toList());
   }
 
   /**

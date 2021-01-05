@@ -214,6 +214,8 @@ def job = {
 
                             // Set the version of the parent project to use.
                             sh "mvn --batch-mode versions:update-parent -DparentVersion=\"[${config.cp_version}]\" -DgenerateBackupPoms=false"
+                            // Set the ksql version to use for dependencies.
+                            sh "mvn --batch-mode versions:set-property -Dproperty=io.confluent.ksql.version -DnewVersion=${config.ksql_db_artifact_version}"
 
                             cmd = "mvn --batch-mode -Pjenkins clean package dependency:analyze site validate -U "
                             cmd += "-DskipTests "

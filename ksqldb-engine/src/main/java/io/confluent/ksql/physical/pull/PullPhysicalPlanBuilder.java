@@ -193,9 +193,10 @@ public class PullPhysicalPlanBuilder {
   private AbstractPhysicalOperator translateDataSourceNode(
       final DataSourceNode logicalNode
   ) {
+    final boolean windowed = persistentQueryMetadata.getResultTopic().getKeyFormat().isWindowed();
     if (whereInfo == null) {
       if (!config.getBoolean(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED)) {
-        throw new KsqlException("Pull queries must have a WHERE clause");
+        throw WhereInfo.invalidWhereClauseException("Missing WHERE clause", windowed);
       }
       // Full table scan has no keys
       keys = Collections.emptyList();
@@ -203,7 +204,6 @@ public class PullPhysicalPlanBuilder {
       keys = whereInfo.getKeysBound();
     }
 
-    final boolean windowed = persistentQueryMetadata.getResultTopic().getKeyFormat().isWindowed();
     if (keys.isEmpty()) {
       if (!windowed) {
         return new TableScanOperator(mat, logicalNode);

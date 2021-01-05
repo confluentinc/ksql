@@ -689,7 +689,7 @@ public class KsqlConfig extends AbstractConfig {
             Type.BOOLEAN,
             KSQL_QUERY_PULL_ENABLE_DEFAULT,
             Importance.LOW,
-            KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DOC
+            KSQL_QUERY_PULL_ENABLE_DOC
         ).define(
             KSQL_QUERY_PULL_ENABLE_STANDBY_READS,
             Type.BOOLEAN,

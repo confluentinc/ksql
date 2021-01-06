@@ -149,7 +149,7 @@ ul.card-items li {
 }
 
 .card.operations {
-    background-color: #F8F6F6;
+    border-top: 3.5px solid #00AFBA;
 }
 
 .card.reference {

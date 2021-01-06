@@ -1,5 +1,6 @@
-What is it?
-----------
+# Materialized cache
+
+## What is it?
 
 A materialized view, sometimes called a "[materialized cache](https://www.confluent.io/blog/build-materialized-cache-with-ksqldb/)", is an approach to precomputing the results of a query and storing them for fast read access. In contrast with a regular database query, which does all of its work at read-time, a materialized view does nearly all of its work at write-time. This is why materialized views can offer highly performant reads.
 
@@ -9,8 +10,7 @@ A standard way of building a materialized cache is to capture the changelog of a
 
 One way you might do this is to capture the changelog of MySQL using the [Debezium](https://debezium.io) {{ site.ak }} connector. The changelog is stored in {{ site.ak }} and processed by a stream processor. As the materialization updates, it's updated in Redis so that applications can query the materializations. This can work, but is there a better way?
 
-Why ksqlDB?
------------
+## Why ksqlDB?
 
 Running all of the above systems is a lot to manage. In addition to your database, you end up managing clusters for {{ site.ak }}, connectors, the stream processor, and another data store. It's challenging to monitor, secure, and scale all of these systems as one. ksqlDB helps to consolidate this complexity by slimming the architecture down to two things: storage ({{ site.ak }}) and compute (ksqlDB).
 
@@ -18,8 +18,7 @@ Running all of the above systems is a lot to manage. In addition to your databas
 
 Using ksqlDB, you can run any {{ site.kconnectlong }} connector by embedding it in ksqlDB's servers. You can also directly query ksqlDB's tables of state, eliminating the need to sink your data to another data store. This gives you one mental model, in SQL, for managing your materialized views end-to-end.
 
-Implement it
-------------
+## Implement it
 
 Imagine that you work at a company with a call center. People frequently call in about purchasing a product, to ask for a refund, and other things. Because the volume of calls is rather high, it isn't practical to run queries over the database storing all the calls every time someone calls in.
 
@@ -389,8 +388,7 @@ It's much more useful to query them from within your applications. To do that, y
 use the [Java client for ksqlDB](../../developer-guide/ksqldb-clients/java-client/) or
 submit queries to ksqlDB's servers through its [REST API](../../developer-guide/api/).
 
-Next steps
-----------
+## Next steps
 
 Want to learn more? Try another use case tutorial:
 

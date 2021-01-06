@@ -51,7 +51,7 @@ The metadata includes:
 The client must expose these metadata fields as part of its API. In particular, the query ID is used for
 [terminating push queries](#terminating-push-queries).
 
-The client representation of result rows must support all of the different [data types](../../concepts/schemas.md#sql-data-types)
+The client representation of result rows must support all of the different [data types](/reference/sql/data-types)
 supported by ksqlDB. The following table contains examples of how different types are represented
 in the metadata header returned from the `/query-stream` server endpoint:
 
@@ -68,7 +68,7 @@ in the metadata header returned from the `/query-stream` server endpoint:
 | STRUCT    | STRUCT<\`F1\` STRING, \`F2\` INTEGER>  |
 
 Array, map, and struct types may be recursively nested within each other, and may contain any of the other types as well.
-Though ksqlDB supports [custom type definitions](../../concepts/schemas.md#custom-types),
+Though ksqlDB supports [custom type definitions](/reference/sql/data-types#custom-types),
 custom types are expanded into base types in the metadata header from the `/query-stream` endpoint,
 so no special handling for custom types is required of the client. 
 

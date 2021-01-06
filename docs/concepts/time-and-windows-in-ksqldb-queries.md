@@ -109,7 +109,7 @@ ingestion-time. This approach implements *payload-time* semantics.
       milliseconds that have elapsed since 1 January 1970 at midnight UTC/GMT.
       Also, you can specify the timestamp as a string when you provide a
       TIMESTAMP_FORMAT. For more information, see
-      [Timestamp Formats](../developer-guide/syntax-reference.md#timestamp-formats).
+      [Timestamp Formats](/reference/sql/time/#timestamp-formats).
 
 When working with time you should also make sure that additional aspects
 of time, like time zones and calendars, are correctly synchronized — or

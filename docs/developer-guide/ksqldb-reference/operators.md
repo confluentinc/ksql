@@ -94,4 +94,4 @@ Combine `->` with `.` when using aliases:
 SELECT USERID, USERS.ADDRESS->STREET, U.ADDRESS->STREET FROM USERS U EMIT CHANGES;
 ```
 
-For more information on nested data, see [STRUCT](../syntax-reference.md#struct).
+For more information on nested data, see [STRUCT](/reference/sql/data-types/#struct).

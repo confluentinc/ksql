@@ -6,13 +6,11 @@ description: Operators to use in  ksqlDB statements and queries
 keywords: ksqlDB, operator
 ---
 
-Operators
-=========
+# Operators
 
 ksqlDB supports the following operators in value expressions.
 
-Arithmetic
-----------
+## Arithmetic
 
 The usual arithmetic operators (`+,-,/,*,%`) may be
 applied to numeric types, like INT, BIGINT, and DOUBLE:
@@ -21,8 +19,7 @@ applied to numeric types, like INT, BIGINT, and DOUBLE:
 SELECT USERID, LEN(FIRST_NAME) + LEN(LAST_NAME) AS NAME_LENGTH FROM USERS EMIT CHANGES;
 ```
 
-Concatenation
--------------
+## Concatenation
 
 The concatenation operator  (`+,||`) can be used to
 concatenate STRING values.
@@ -47,10 +44,9 @@ SELECT USERID,
   EMIT CHANGES;
 ```
 
-In
---
+## Containment
 
-The IN operator enables specifying multiple values in a `WHERE` clause.
+The `IN` operator enables specifying multiple values in a `WHERE` clause.
 
 It provides the equivalent of multiple `OR` conditions.
 
@@ -58,8 +54,7 @@ It provides the equivalent of multiple `OR` conditions.
 SELECT * FROM USERS WHERE USERID IN (1543, 6256, 87569);
 ```
 
-Source Dereference
-------------------
+## Source dereference
 
 The source dereference operator (`.`) can be used
 to specify columns by dereferencing the source stream or table.
@@ -68,8 +63,7 @@ to specify columns by dereferencing the source stream or table.
 SELECT USERID, USERS.FIRST_NAME FROM USERS EMIT CHANGES;
 ```
 
-Subscript
----------
+## Subscript
 
 The subscript operator (`[subscript_expr]`) is used to
 reference the value at an array index or a map key.
@@ -78,8 +72,7 @@ reference the value at an array index or a map key.
 SELECT USERID, NICKNAMES[1] FROM USERS EMIT CHANGES;
 ```
 
-STRUCT dereference
-------------------
+## Struct dereference
 
 Access nested data by declaring a STRUCT and using the
 dereference operator (`->`) to access its fields:

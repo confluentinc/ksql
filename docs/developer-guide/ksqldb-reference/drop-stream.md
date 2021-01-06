@@ -6,18 +6,15 @@ description: Syntax for the DROP STREAM statement in ksqlDB
 keywords: ksqlDB, stream, delete
 ---
 
-DROP STREAM
-===========
+# DROP STREAM
 
-Synopsis
---------
+## Synopsis
 
 ```sql
 DROP STREAM [IF EXISTS] stream_name [DELETE TOPIC];
 ```
 
-Description
------------
+## Description
 
 Drops an existing stream.
 

@@ -117,8 +117,8 @@ public class KsqlRestConfig extends AbstractConfig {
 
   public static final String SSL_STORE_TYPE_JKS = "JKS";
   public static final String SSL_STORE_TYPE_PKCS12 = "PKCS12";
-  public static final ConfigDef.ValidString SSL_STORE_TYPE_VALIDATOR =
-      ConfigDef.ValidString.in(
+    public static final ConfigDef.CaseInsensitiveValidString SSL_STORE_TYPE_VALIDATOR =
+            ConfigDef.CaseInsensitiveValidString.in(
           SSL_STORE_TYPE_JKS,
           SSL_STORE_TYPE_PKCS12
       );

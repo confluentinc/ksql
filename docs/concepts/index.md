@@ -6,6 +6,8 @@ description: Learn about ksqlDB under the hood.
 keywords: ksqldb, architecture, collection, query, schema, window, view
 ---
 
+Learn the core concepts that ksqlDB is built around.
+
 <div class="cards">
   <div class="card concepts">
     <strong>Events</strong>

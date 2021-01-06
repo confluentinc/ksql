@@ -6,6 +6,8 @@ description: Syntax Reference for statements and queries in ksqlDB
 keywords: ksqldb, sql, syntax, query, api
 ---
 
+Look up critical information quickly as you use the project.
+
 <div class="cards">
   <div class="card reference">
     <strong>The SQL language</strong>

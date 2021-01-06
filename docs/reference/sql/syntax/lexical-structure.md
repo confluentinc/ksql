@@ -6,6 +6,8 @@ description: Details about SQL commands and statements in ksqlDB
 keywords: ksqldb, sql, keyword, identifier, constant, operator
 ---
 
+# Lexical structure
+
 SQL is a domain-specific language for managing and manipulating data. It’s
 used primarily to work with structured data, where the types and relationships
 across entities are well-defined. Originally adopted for relational databases,

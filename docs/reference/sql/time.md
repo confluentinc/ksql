@@ -1,4 +1,6 @@
-### Time units
+# Time operations
+
+## Time units
 
 The following list shows valid time units for the `SIZE`, `ADVANCE BY`,
 `SESSION`, and `WITHIN` clauses.
@@ -12,7 +14,7 @@ The following list shows valid time units for the `SIZE`, `ADVANCE BY`,
 For more information, see
 [Windows in SQL Queries](/concepts/time-and-windows-in-ksqldb-queries#windows-in-sql-queries).
 
-### Timestamp formats
+## Timestamp formats
 
 Time-based operations, like windowing, process records according to the
 timestamp in `ROWTIME`. By default, the implicit `ROWTIME` pseudo column is the

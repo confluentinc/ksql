@@ -6,6 +6,8 @@ description: Overview of data types in ksqlDB
 keywords: ksqldb, sql, syntax, data type
 ---
 
+# Data types
+
 ## Boolean types
 
 | name      | description                          | backing Java type

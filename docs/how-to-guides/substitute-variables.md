@@ -5,6 +5,8 @@ tagline: Use variables in SQL statements
 description: Learn how to use variables in SQL statements
 ---
 
+# How to substitute variables
+
 ## Context
 
 You have a set of SQL statements, and you want to vary the exact content depending on where you use them. To do that, ksqlDB supports *variables* so that you can supply different values.

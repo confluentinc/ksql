@@ -12,14 +12,14 @@ stream processing applications on top of {{ site.aktm }}.
 ## Try it
 
 <div class="cards">
-  <div class="card">
+  <div class="card getting-started">
     <strong>Quickstarts</strong>
     <ul class="card-items">
       <li><a href="https://ksqldb.io/quickstart.html">Standalone quickstart</a></li>
     </ul>
   </div>
 
-  <div class="card">
+  <div class="card getting-started">
     <strong>How-to guides</strong>
     <ul class="card-items">
       <li><a href="/how-to-guides/query-structured-data/">Structured data</a></li>
@@ -30,7 +30,7 @@ stream processing applications on top of {{ site.aktm }}.
     <small><a href="/how-to-guides/" class="card-more">More →</a></small>
   </div>
 
-  <div class="card">
+  <div class="card getting-started">
     <strong>Tutorials</strong>
     <ul class="card-items">
       <li><a href="/tutorials/materialized/">Materialized cache</a></li>
@@ -44,7 +44,7 @@ stream processing applications on top of {{ site.aktm }}.
 ## Learn
 
 <div class="cards">
-  <div class="card">
+  <div class="card getting-started">
     <strong>How it works</strong>
     <ul class="card-items">
       <li><a href="https://www.confluent.io/blog/how-real-time-stream-processing-works-with-ksqldb/">SQL Stream processing</a></li>
@@ -53,10 +53,10 @@ stream processing applications on top of {{ site.aktm }}.
     </ul>
   </div>
 
-  <div class="card">
+  <div class="card getting-started">
     <strong>Concepts</strong>
     <ul class="card-items">
-      <li><a href="/overview/apache-kafka-primer/">Apache Kafka primer</a></li>
+      <li><a href="/concepts/apache-kafka-primer/">Apache Kafka primer</a></li>
       <li><a href="/concepts/stream-processing/">Stream processing</a></li>
       <li><a href="/concepts/time-and-windows-in-ksqldb-queries/">Time and windowing</a></li>
       <li><a href="/concepts/connectors/">Connectors</a></li>
@@ -64,8 +64,8 @@ stream processing applications on top of {{ site.aktm }}.
     <small><a href="/concepts/" class="card-more">More →</a></small>
   </div>
 
-  <div class="card">
-    <strong>How it's used</strong>
+  <div class="card getting-started">
+    <strong>Case studies</strong>
     <ul class="card-items">
       <li><a href="https://www.confluent.io/blog/real-time-data-replication-with-ksqldb/">Real-time data replication</a></li>
       <li><a href="https://www.confluent.io/blog/how-pushowl-uses-ksqldb-to-scale-analytics-and-reporting-use-cases/">Real-time analytics</a></li>
@@ -79,7 +79,7 @@ stream processing applications on top of {{ site.aktm }}.
 ## Watch
 
 <div class="cards">
-  <div class="card">
+  <div class="card getting-started">
     <strong>Intros</strong>
     <ul class="card-items">
       <li><a href="https://www.youtube.com/watch?v=-kFU6mCnOFw">Stream processing fundamentals</a></li>
@@ -88,7 +88,7 @@ stream processing applications on top of {{ site.aktm }}.
     </ul>
   </div>
 
-  <div class="card">
+  <div class="card getting-started">
     <strong>Demos</strong>
     <ul class="card-items">
       <li><a href="https://www.youtube.com/watch?v=D5QMqapzX8o">Building a movie rating app</a></li>

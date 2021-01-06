@@ -6,7 +6,7 @@ description: Learn how to create ksqlDB applications
 keywords: ksqldb, query, application, quickstart, tutorial, walkthrough, how to
 ---
 
-The tutorials are end-to-end examples of how to use ksqlDB for specific use cases.
+Get up and running by trying these end-to-end examples of specific use cases.
 
 <div class="cards">
   <div class="card tutorial">

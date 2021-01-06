@@ -15,8 +15,8 @@ CREATE TABLE OUTPUT AS
 ```
 
 The previous statement seems straightforward enough: create a new table that's the result of
-performing a full outer join of two source tables, joining on their ID columns. In a 
-full-outer join, however, either (1) `L.ID` or `R.ID` may be missing (`NULL`) or (2) both 
+performing a full outer join of two source tables, joining on their ID columns. But in a 
+full-outer join, either `L.ID` or `R.ID` may be missing (`NULL`), or both 
 may have the same value. Since the data produced to {{ site.aktm }} should always have a non-null 
 message key, ksql selects the first non-null key to use:
 

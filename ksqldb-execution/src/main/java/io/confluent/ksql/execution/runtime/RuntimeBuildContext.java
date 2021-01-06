@@ -44,6 +44,11 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
 
+/**
+ * Contains all the context required to build the final runtime topology fom an execution plan.
+ * Ultimately we should make this more abstract to support different runtimes, but for now the
+ * assumed runtime is Kafka Streams.
+ */
 public final class RuntimeBuildContext {
 
   /**

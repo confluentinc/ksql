@@ -60,12 +60,12 @@ public final class StreamAggregateBuilder {
   public static KTableHolder<GenericKey> build(
       final KGroupedStreamHolder groupedStream,
       final StreamAggregate aggregate,
-      final RuntimeBuildContext queryBuilder,
+      final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory) {
     return build(
         groupedStream,
         aggregate,
-        queryBuilder,
+        buildContext,
         materializedFactory,
         new AggregateParamsFactory()
     );
@@ -74,7 +74,7 @@ public final class StreamAggregateBuilder {
   static KTableHolder<GenericKey> build(
       final KGroupedStreamHolder groupedStream,
       final StreamAggregate aggregate,
-      final RuntimeBuildContext queryBuilder,
+      final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
       final AggregateParamsFactory aggregateParamsFactory) {
     final LogicalSchema sourceSchema = groupedStream.getSchema();
@@ -82,7 +82,7 @@ public final class StreamAggregateBuilder {
     final AggregateParams aggregateParams = aggregateParamsFactory.create(
         sourceSchema,
         nonFuncColumns,
-        queryBuilder.getFunctionRegistry(),
+        buildContext.getFunctionRegistry(),
         aggregate.getAggregationFunctions(),
         false
     );
@@ -93,9 +93,9 @@ public final class StreamAggregateBuilder {
             aggregate,
             aggregateSchema,
             aggregate.getInternalFormats(),
-            queryBuilder,
+            buildContext,
             materializedFactory,
-            ExecutionKeyFactory.unwindowed(queryBuilder)
+            ExecutionKeyFactory.unwindowed(buildContext)
         );
 
     final KudafAggregator<GenericKey> aggregator = aggregateParams.getAggregator();
@@ -124,7 +124,7 @@ public final class StreamAggregateBuilder {
     return KTableHolder.materialized(
         result,
         resultSchema,
-        ExecutionKeyFactory.unwindowed(queryBuilder),
+        ExecutionKeyFactory.unwindowed(buildContext),
         materializationBuilder
     );
   }
@@ -132,13 +132,13 @@ public final class StreamAggregateBuilder {
   public static KTableHolder<Windowed<GenericKey>> build(
       final KGroupedStreamHolder groupedStream,
       final StreamWindowedAggregate aggregate,
-      final RuntimeBuildContext queryBuilder,
+      final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory
   ) {
     return build(
         groupedStream,
         aggregate,
-        queryBuilder,
+        buildContext,
         materializedFactory,
         new AggregateParamsFactory()
     );
@@ -148,7 +148,7 @@ public final class StreamAggregateBuilder {
   static KTableHolder<Windowed<GenericKey>> build(
       final KGroupedStreamHolder groupedStream,
       final StreamWindowedAggregate aggregate,
-      final RuntimeBuildContext queryBuilder,
+      final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
       final AggregateParamsFactory aggregateParamsFactory
   ) {
@@ -157,7 +157,7 @@ public final class StreamAggregateBuilder {
     final AggregateParams aggregateParams = aggregateParamsFactory.create(
         sourceSchema,
         nonFuncColumns,
-        queryBuilder.getFunctionRegistry(),
+        buildContext.getFunctionRegistry(),
         aggregate.getAggregationFunctions(),
         true
     );
@@ -169,7 +169,7 @@ public final class StreamAggregateBuilder {
             groupedStream.getGroupedStream(),
             aggregate,
             aggregateSchema,
-            queryBuilder,
+            buildContext,
             materializedFactory,
             aggregateParams
         ),
@@ -207,7 +207,7 @@ public final class StreamAggregateBuilder {
     return KTableHolder.materialized(
         reduced,
         resultSchema,
-        ExecutionKeyFactory.windowed(queryBuilder, ksqlWindowExpression.getWindowInfo()),
+        ExecutionKeyFactory.windowed(buildContext, ksqlWindowExpression.getWindowInfo()),
         materializationBuilder
     );
   }
@@ -217,7 +217,7 @@ public final class StreamAggregateBuilder {
     final QueryContext queryContext;
     final Formats formats;
     final KGroupedStream<GenericKey, GenericRow> groupedStream;
-    final RuntimeBuildContext queryBuilder;
+    final RuntimeBuildContext buildContext;
     final MaterializedFactory materializedFactory;
     final Serde<GenericKey> keySerde;
     final Serde<GenericRow> valueSerde;
@@ -227,12 +227,12 @@ public final class StreamAggregateBuilder {
         final KGroupedStream<GenericKey, GenericRow> groupedStream,
         final StreamWindowedAggregate aggregate,
         final LogicalSchema aggregateSchema,
-        final RuntimeBuildContext queryBuilder,
+        final RuntimeBuildContext buildContext,
         final MaterializedFactory materializedFactory,
         final AggregateParams aggregateParams) {
       Objects.requireNonNull(aggregate, "aggregate");
       this.groupedStream = Objects.requireNonNull(groupedStream, "groupedStream");
-      this.queryBuilder = Objects.requireNonNull(queryBuilder, "queryBuilder");
+      this.buildContext = Objects.requireNonNull(buildContext, "buildContext");
       this.materializedFactory = Objects.requireNonNull(materializedFactory, "materializedFactory");
       this.aggregateParams = Objects.requireNonNull(aggregateParams, "aggregateParams");
       this.queryContext = MaterializationUtil.materializeContext(aggregate);
@@ -243,12 +243,12 @@ public final class StreamAggregateBuilder {
           formats.getValueFeatures()
       );
 
-      keySerde = queryBuilder.buildKeySerde(
+      keySerde = buildContext.buildKeySerde(
           formats.getKeyFormat(),
           physicalSchema,
           queryContext
       );
-      valueSerde = queryBuilder.buildValueSerde(
+      valueSerde = buildContext.buildValueSerde(
           formats.getValueFormat(),
           physicalSchema,
           queryContext

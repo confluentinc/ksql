@@ -54,7 +54,7 @@ import org.mockito.junit.MockitoRule;
 public class TableSuppressBuilderTest {
 
   @Mock
-  private RuntimeBuildContext queryBuilder;
+  private RuntimeBuildContext buildContext;
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
@@ -108,9 +108,9 @@ public class TableSuppressBuilderTest {
     when(physicalSchemaFactory.create(any(), any(), any())).thenReturn(physicalSchema);
     materializedFactory = (a,b) -> materialized;
 
-    when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
+    when(buildContext.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(executionKeyFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(buildContext.getKsqlConfig()).thenReturn(ksqlConfig);
     when(ksqlConfig.getLong(any())).thenReturn(maxBytes);
 
     when(tableHolder.getTable()).thenReturn(sourceKTable);
@@ -126,7 +126,7 @@ public class TableSuppressBuilderTest {
   @SuppressWarnings("unchecked")
   public void shouldSuppressSourceTable() {
     // When:
-    final KTableHolder<Struct> result = builder.build(tableHolder, tableSuppress, queryBuilder, executionKeyFactory, physicalSchemaFactory, materializedFactory);
+    final KTableHolder<Struct> result = builder.build(tableHolder, tableSuppress, buildContext, executionKeyFactory, physicalSchemaFactory, materializedFactory);
 
     // Then:
     assertThat(result, is(suppressedtable));

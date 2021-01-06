@@ -39,24 +39,24 @@ public final class TableFilterBuilder {
   public static <K> KTableHolder<K> build(
       final KTableHolder<K> table,
       final TableFilter<K> step,
-      final RuntimeBuildContext queryBuilder) {
-    return build(table, step, queryBuilder, SqlPredicate::new);
+      final RuntimeBuildContext buildContext) {
+    return build(table, step, buildContext, SqlPredicate::new);
   }
 
   static <K> KTableHolder<K> build(
       final KTableHolder<K> table,
       final TableFilter<K> step,
-      final RuntimeBuildContext queryBuilder,
+      final RuntimeBuildContext buildContext,
       final SqlPredicateFactory sqlPredicateFactory
   ) {
     final SqlPredicate predicate = sqlPredicateFactory.create(
         step.getFilterExpression(),
         table.getSchema(),
-        queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry()
+        buildContext.getKsqlConfig(),
+        buildContext.getFunctionRegistry()
     );
 
-    final ProcessingLogger processingLogger = queryBuilder
+    final ProcessingLogger processingLogger = buildContext
         .getProcessingLogger(step.getProperties().getQueryContext());
 
     final Stacker stacker = Stacker.of(step.getProperties().getQueryContext());

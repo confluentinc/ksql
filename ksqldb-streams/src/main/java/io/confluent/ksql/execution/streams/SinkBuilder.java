@@ -54,7 +54,7 @@ public final class SinkBuilder {
       final KStream<K, GenericRow> stream,
       final ExecutionKeyFactory<K> executionKeyFactory,
       final QueryContext queryContext,
-      final RuntimeBuildContext queryBuilder
+      final RuntimeBuildContext buildContext
   ) {
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
         schema,
@@ -68,14 +68,14 @@ public final class SinkBuilder {
         queryContext
     );
 
-    final Serde<GenericRow> valueSerde = queryBuilder.buildValueSerde(
+    final Serde<GenericRow> valueSerde = buildContext.buildValueSerde(
         formats.getValueFormat(),
         physicalSchema,
         queryContext
     );
 
     final Optional<TransformTimestamp<K>> tsTransformer = timestampTransformer(
-        queryBuilder,
+        buildContext,
         queryContext,
         schema,
         timestampColumn
@@ -90,7 +90,7 @@ public final class SinkBuilder {
   }
 
   private static  <K> Optional<TransformTimestamp<K>> timestampTransformer(
-      final RuntimeBuildContext queryBuilder,
+      final RuntimeBuildContext buildContext,
       final QueryContext queryContext,
       final LogicalSchema sourceSchema,
       final Optional<TimestampColumn> timestampColumn
@@ -100,7 +100,7 @@ public final class SinkBuilder {
     }
 
     final TimestampExtractionPolicy timestampPolicy = TimestampExtractionPolicyFactory.create(
-        queryBuilder.getKsqlConfig(),
+        buildContext.getKsqlConfig(),
         sourceSchema,
         timestampColumn
     );
@@ -109,7 +109,7 @@ public final class SinkBuilder {
         .map(TimestampColumn::getColumn)
         .map(c -> sourceSchema.findColumn(c).orElseThrow(IllegalStateException::new))
         .map(c -> timestampPolicy.create(Optional.of(c)))
-        .map(te -> new TransformTimestamp<>(te, queryBuilder.getProcessingLogger(queryContext)));
+        .map(te -> new TransformTimestamp<>(te, buildContext.getProcessingLogger(queryContext)));
   }
 
   static class TransformTimestamp<K>

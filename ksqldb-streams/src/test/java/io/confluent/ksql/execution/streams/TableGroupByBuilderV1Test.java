@@ -105,7 +105,7 @@ public class TableGroupByBuilderV1Test {
   private static final GenericKey KEY = GenericKey.genericKey("key");
 
   @Mock
-  private RuntimeBuildContext queryBuilder;
+  private RuntimeBuildContext buildContext;
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
@@ -156,11 +156,11 @@ public class TableGroupByBuilderV1Test {
     when(groupByParams.getSchema()).thenReturn(REKEYED_SCHEMA);
     when(groupByParams.getMapper()).thenReturn(mapper);
 
-    when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
-    when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
-    when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
+    when(buildContext.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(buildContext.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
+    when(buildContext.getProcessingLogger(any())).thenReturn(processingLogger);
     when(groupedFactory.create(any(), any(Serde.class), any())).thenReturn(grouped);
     when(sourceTable.filter(any())).thenReturn(filteredTable);
     when(filteredTable.groupBy(any(KeyValueMapper.class), any(Grouped.class)))
@@ -173,7 +173,7 @@ public class TableGroupByBuilderV1Test {
         GROUPBY_EXPRESSIONS
     );
 
-    builder = new TableGroupByBuilderV1(queryBuilder, groupedFactory, paramsFactory);
+    builder = new TableGroupByBuilderV1(buildContext, groupedFactory, paramsFactory);
   }
 
   @Test
@@ -237,7 +237,7 @@ public class TableGroupByBuilderV1Test {
     build(builder, tableHolder, groupBy);
 
     // Then:
-    verify(queryBuilder).buildKeySerde(
+    verify(buildContext).buildKeySerde(
         FORMATS.getKeyFormat(),
         REKEYED_PHYSICAL_SCHEMA,
         STEP_CONTEXT
@@ -250,7 +250,7 @@ public class TableGroupByBuilderV1Test {
     build(builder, tableHolder, groupBy);
 
     // Then:
-    verify(queryBuilder).buildValueSerde(
+    verify(buildContext).buildValueSerde(
         FORMATS.getValueFormat(),
         REKEYED_PHYSICAL_SCHEMA,
         STEP_CONTEXT

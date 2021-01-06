@@ -120,7 +120,7 @@ public class PartitionByParamsFactoryTest {
   @Mock
   private UdfFactory constantUdfFactory;
   @Mock
-  private RuntimeBuildContext queryBuilder;
+  private RuntimeBuildContext buildContext;
 
   private final GenericKey key = genericKey(OLD_KEY);
   private final GenericRow value = new GenericRow();
@@ -496,7 +496,7 @@ public class PartitionByParamsFactoryTest {
   }
 
   private PartitionByParams<GenericKey> partitionBy(final List<Expression> expression) {
-    final ExecutionKeyFactory<GenericKey> factory = ExecutionKeyFactory.unwindowed(queryBuilder);
+    final ExecutionKeyFactory<GenericKey> factory = ExecutionKeyFactory.unwindowed(buildContext);
 
     return PartitionByParamsFactory
         .build(

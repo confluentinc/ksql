@@ -40,16 +40,16 @@ import org.apache.kafka.streams.kstream.KeyValueMapper;
 
 class TableGroupByBuilderBase {
 
-  private final RuntimeBuildContext queryBuilder;
+  private final RuntimeBuildContext buildContext;
   private final GroupedFactory groupedFactory;
   private final ParamsFactory paramsFactory;
 
   TableGroupByBuilderBase(
-      final RuntimeBuildContext queryBuilder,
+      final RuntimeBuildContext buildContext,
       final GroupedFactory groupedFactory,
       final ParamsFactory paramsFactory
   ) {
-    this.queryBuilder = requireNonNull(queryBuilder, "queryBuilder");
+    this.buildContext = requireNonNull(buildContext, "buildContext");
     this.groupedFactory = requireNonNull(groupedFactory, "groupedFactory");
     this.paramsFactory = requireNonNull(paramsFactory, "paramsFactory");
   }
@@ -66,11 +66,11 @@ class TableGroupByBuilderBase {
         groupByExpressions.stream(),
         "Group By",
         sourceSchema,
-        queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry()
+        buildContext.getKsqlConfig(),
+        buildContext.getFunctionRegistry()
     );
 
-    final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
+    final ProcessingLogger logger = buildContext.getProcessingLogger(queryContext);
 
     final GroupByParams params = paramsFactory
         .build(sourceSchema, groupBy, logger);
@@ -81,12 +81,12 @@ class TableGroupByBuilderBase {
         formats.getValueFeatures()
     );
 
-    final Serde<GenericKey> keySerde = queryBuilder.buildKeySerde(
+    final Serde<GenericKey> keySerde = buildContext.buildKeySerde(
         formats.getKeyFormat(),
         physicalSchema,
         queryContext
     );
-    final Serde<GenericRow> valSerde = queryBuilder.buildValueSerde(
+    final Serde<GenericRow> valSerde = buildContext.buildValueSerde(
         formats.getValueFormat(),
         physicalSchema,
         queryContext

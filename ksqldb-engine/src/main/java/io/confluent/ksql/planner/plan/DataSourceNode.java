@@ -111,10 +111,10 @@ public class DataSourceNode extends PlanNode {
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final PlanBuildContext builder) {
-    final Stacker contextStacker = builder.buildNodeContext(getId().toString());
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
+    final Stacker contextStacker = buildContext.buildNodeContext(getId().toString());
     return schemaKStreamFactory.create(
-        builder,
+        buildContext,
         dataSource,
         contextStacker.push(SOURCE_OP_NAME)
     );
@@ -200,7 +200,7 @@ public class DataSourceNode extends PlanNode {
   interface SchemaKStreamFactory {
 
     SchemaKStream<?> create(
-        PlanBuildContext builder,
+        PlanBuildContext buildContext,
         DataSource dataSource,
         QueryContext.Stacker contextStacker
     );

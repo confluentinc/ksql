@@ -102,17 +102,17 @@ public class PreJoinRepartitionNode extends SingleSourcePlanNode implements Join
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final PlanBuildContext builderContext) {
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
     if (!keyFormatSet) {
       throw new IllegalStateException("PreJoinRepartitionNode must set key format");
     }
 
-    return getSource().buildStream(builderContext)
+    return getSource().buildStream(buildContext)
         .selectKey(
             valueFormat.getFormatInfo(),
             ImmutableList.of(partitionBy),
             forcedInternalKeyFormat,
-            builderContext.buildNodeContext(getId().toString()),
+            buildContext.buildNodeContext(getId().toString()),
             forceRepartition
         );
   }

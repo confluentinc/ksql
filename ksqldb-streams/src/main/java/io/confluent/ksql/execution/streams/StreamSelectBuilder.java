@@ -33,7 +33,7 @@ public final class StreamSelectBuilder {
   public static <K> KStreamHolder<K> build(
       final KStreamHolder<K> stream,
       final StreamSelect<K> step,
-      final RuntimeBuildContext queryBuilder
+      final RuntimeBuildContext buildContext
   ) {
     final QueryContext queryContext = step.getProperties().getQueryContext();
 
@@ -43,13 +43,13 @@ public final class StreamSelectBuilder {
         sourceSchema,
         step.getKeyColumnNames(),
         step.getSelectExpressions(),
-        queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry()
+        buildContext.getKsqlConfig(),
+        buildContext.getFunctionRegistry()
     );
 
     final SelectValueMapper<K> selectMapper = selection.getMapper();
 
-    final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
+    final ProcessingLogger logger = buildContext.getProcessingLogger(queryContext);
 
     final Named selectName =
         Named.as(StreamsUtil.buildOpName(queryContext));

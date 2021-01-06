@@ -79,7 +79,7 @@ public class SinkBuilderTest {
       .from(SCHEMA.withoutPseudoAndKeyColsInValue(), SerdeFeatures.of(), SerdeFeatures.of());
 
   @Mock
-  private RuntimeBuildContext queryBuilder;
+  private RuntimeBuildContext buildContext;
   @Mock
   private ExecutionKeyFactory<Struct> executionKeyFactory;
   @Mock
@@ -105,8 +105,8 @@ public class SinkBuilderTest {
   public void setup() {
     when(executionKeyFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
 
-    when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valSerde);
-    when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
+    when(buildContext.buildValueSerde(any(), any(), any())).thenReturn(valSerde);
+    when(buildContext.getProcessingLogger(any())).thenReturn(processingLogger);
     when(queryContext.getContext()).thenReturn(ImmutableList.of(QUERY_CONTEXT_NAME));
   }
 
@@ -125,7 +125,7 @@ public class SinkBuilderTest {
     buildDefaultSinkBuilder();
 
     // Then:
-    verify(queryBuilder).buildValueSerde(
+    verify(buildContext).buildValueSerde(
         VALUE_FORMAT,
         PHYSICAL_SCHEMA,
         queryContext
@@ -161,7 +161,7 @@ public class SinkBuilderTest {
         kStream,
         executionKeyFactory,
         queryContext,
-        queryBuilder
+        buildContext
     );
 
     // Then
@@ -285,7 +285,7 @@ public class SinkBuilderTest {
         kStream,
         executionKeyFactory,
         queryContext,
-        queryBuilder
+        buildContext
     );
   }
 

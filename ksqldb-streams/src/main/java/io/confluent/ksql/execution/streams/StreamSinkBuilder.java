@@ -26,7 +26,7 @@ public final class StreamSinkBuilder {
   public static <K> void build(
       final KStreamHolder<K> stream,
       final StreamSink<K> streamSink,
-      final RuntimeBuildContext queryBuilder) {
+      final RuntimeBuildContext buildContext) {
     SinkBuilder.build(
         stream.getSchema(),
         streamSink.getFormats(),
@@ -35,7 +35,7 @@ public final class StreamSinkBuilder {
         stream.getStream(),
         stream.getExecutionKeyFactory(),
         streamSink.getProperties().getQueryContext(),
-        queryBuilder
+        buildContext
     );
   }
 }

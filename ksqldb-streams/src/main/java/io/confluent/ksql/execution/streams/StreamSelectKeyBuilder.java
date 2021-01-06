@@ -40,29 +40,29 @@ public final class StreamSelectKeyBuilder {
   public static <K> KStreamHolder<K> build(
       final KStreamHolder<K> stream,
       final StreamSelectKey<K> selectKey,
-      final RuntimeBuildContext queryBuilder
+      final RuntimeBuildContext buildContext
   ) {
-    return build(stream, selectKey, queryBuilder, PartitionByParamsFactory::build);
+    return build(stream, selectKey, buildContext, PartitionByParamsFactory::build);
   }
 
   @VisibleForTesting
   static <K> KStreamHolder<K> build(
       final KStreamHolder<K> stream,
       final StreamSelectKey<K> selectKey,
-      final RuntimeBuildContext queryBuilder,
+      final RuntimeBuildContext buildContext,
       final PartitionByParamsBuilder paramsBuilder
   ) {
     final LogicalSchema sourceSchema = stream.getSchema();
     final QueryContext queryContext = selectKey.getProperties().getQueryContext();
 
-    final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
+    final ProcessingLogger logger = buildContext.getProcessingLogger(queryContext);
 
     final PartitionByParams<K> params = paramsBuilder.build(
         sourceSchema,
         stream.getExecutionKeyFactory(),
         selectKey.getKeyExpressions(),
-        queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry(),
+        buildContext.getKsqlConfig(),
+        buildContext.getFunctionRegistry(),
         logger
     );
 
@@ -76,7 +76,7 @@ public final class StreamSelectKeyBuilder {
     return new KStreamHolder<>(
         reKeyed,
         params.getSchema(),
-        stream.getExecutionKeyFactory().withQueryBuilder(queryBuilder)
+        stream.getExecutionKeyFactory().withQueryBuilder(buildContext)
     );
   }
 

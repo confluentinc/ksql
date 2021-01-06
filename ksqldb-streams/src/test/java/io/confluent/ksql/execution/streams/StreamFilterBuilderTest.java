@@ -46,7 +46,7 @@ public class StreamFilterBuilderTest {
   @Mock
   private KsqlTransformer<GenericKey, Optional<GenericRow>> predicate;
   @Mock
-  private RuntimeBuildContext queryBuilder;
+  private RuntimeBuildContext buildContext;
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
@@ -83,9 +83,9 @@ public class StreamFilterBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
-    when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
+    when(buildContext.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(buildContext.getProcessingLogger(any())).thenReturn(processingLogger);
     when(sourceStep.getProperties()).thenReturn(sourceProperties);
     when(sourceKStream
         .flatTransformValues(any(ValueTransformerWithKeySupplier.class), any(Named.class)))
@@ -99,7 +99,7 @@ public class StreamFilterBuilderTest {
     ));
     final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(queryContext);
     planBuilder = new KSPlanBuilder(
-        queryBuilder,
+        buildContext,
         predicateFactory,
         mock(AggregateParamsFactory.class),
         mock(StreamsFactories.class)
@@ -146,6 +146,6 @@ public class StreamFilterBuilderTest {
     step.build(planBuilder, planInfo);
 
     // Then:
-    verify(queryBuilder).getProcessingLogger(queryContext);
+    verify(buildContext).getProcessingLogger(queryContext);
   }
 }

@@ -22,6 +22,9 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 
+/**
+ * Contains all the context required to build an execution plan from a logical plan.
+ */
 public final class PlanBuildContext {
   private final KsqlConfig ksqlConfig;
   private final ServiceContext serviceContext;

@@ -157,14 +157,14 @@ public class JoinNode extends PlanNode implements JoiningNode {
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final PlanBuildContext builderContext) {
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
 
-    ensureMatchingPartitionCounts(builderContext.getServiceContext().getTopicClient());
+    ensureMatchingPartitionCounts(buildContext.getServiceContext().getTopicClient());
 
     final JoinerFactory joinerFactory = new JoinerFactory(
-        builderContext,
+        buildContext,
         this,
-        builderContext.buildNodeContext(getId().toString()));
+        buildContext.buildNodeContext(getId().toString()));
 
     return joinerFactory.getJoiner(left.getNodeOutputType(), right.getNodeOutputType()).join();
   }
@@ -278,17 +278,17 @@ public class JoinNode extends PlanNode implements JoiningNode {
         Supplier<Joiner<?>>> joinerMap;
 
     JoinerFactory(
-        final PlanBuildContext builderContext,
+        final PlanBuildContext buildContext,
         final JoinNode joinNode,
         final QueryContext.Stacker contextStacker
     ) {
       this.joinerMap = ImmutableMap.of(
           new Pair<>(DataSourceType.KSTREAM, DataSourceType.KSTREAM),
-          () -> new StreamToStreamJoiner<>(builderContext, joinNode, contextStacker),
+          () -> new StreamToStreamJoiner<>(buildContext, joinNode, contextStacker),
           new Pair<>(DataSourceType.KSTREAM, DataSourceType.KTABLE),
-          () -> new StreamToTableJoiner<>(builderContext, joinNode, contextStacker),
+          () -> new StreamToTableJoiner<>(buildContext, joinNode, contextStacker),
           new Pair<>(DataSourceType.KTABLE, DataSourceType.KTABLE),
-          () -> new TableToTableJoiner<>(builderContext, joinNode, contextStacker)
+          () -> new TableToTableJoiner<>(buildContext, joinNode, contextStacker)
       );
     }
 
@@ -304,16 +304,16 @@ public class JoinNode extends PlanNode implements JoiningNode {
 
   private abstract static class Joiner<K> {
 
-    final PlanBuildContext builderContext;
+    final PlanBuildContext buildContext;
     final JoinNode joinNode;
     final QueryContext.Stacker contextStacker;
 
     Joiner(
-        final PlanBuildContext builderContext,
+        final PlanBuildContext buildContext,
         final JoinNode joinNode,
         final QueryContext.Stacker contextStacker
     ) {
-      this.builderContext = requireNonNull(builderContext, "builderContext");
+      this.buildContext = requireNonNull(buildContext, "buildContext");
       this.joinNode = requireNonNull(joinNode, "joinNode");
       this.contextStacker = requireNonNull(contextStacker, "contextStacker");
     }
@@ -322,13 +322,13 @@ public class JoinNode extends PlanNode implements JoiningNode {
 
     @SuppressWarnings("unchecked")
     SchemaKStream<K> buildStream(final PlanNode node) {
-      return (SchemaKStream<K>) node.buildStream(builderContext);
+      return (SchemaKStream<K>) node.buildStream(buildContext);
     }
 
     @SuppressWarnings("unchecked")
     SchemaKTable<K> buildTable(final PlanNode node) {
       final SchemaKStream<?> schemaKStream = node.buildStream(
-          builderContext.withKsqlConfig(builderContext.getKsqlConfig()
+          buildContext.withKsqlConfig(buildContext.getKsqlConfig()
               .cloneWithPropertyOverwrite(Collections.singletonMap(
                   ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")))
       );
@@ -343,11 +343,11 @@ public class JoinNode extends PlanNode implements JoiningNode {
 
   private static final class StreamToStreamJoiner<K> extends Joiner<K> {
     private StreamToStreamJoiner(
-        final PlanBuildContext builderContext,
+        final PlanBuildContext buildContext,
         final JoinNode joinNode,
         final QueryContext.Stacker contextStacker
     ) {
-      super(builderContext, joinNode, contextStacker);
+      super(buildContext, joinNode, contextStacker);
     }
 
     @Override
@@ -400,11 +400,11 @@ public class JoinNode extends PlanNode implements JoiningNode {
   private static final class StreamToTableJoiner<K> extends Joiner<K> {
 
     private StreamToTableJoiner(
-        final PlanBuildContext builderContext,
+        final PlanBuildContext buildContext,
         final JoinNode joinNode,
         final QueryContext.Stacker contextStacker
     ) {
-      super(builderContext, joinNode, contextStacker);
+      super(buildContext, joinNode, contextStacker);
     }
 
     @Override
@@ -446,11 +446,11 @@ public class JoinNode extends PlanNode implements JoiningNode {
   private static final class TableToTableJoiner<K> extends Joiner<K> {
 
     TableToTableJoiner(
-        final PlanBuildContext builderContext,
+        final PlanBuildContext buildContext,
         final JoinNode joinNode,
         final QueryContext.Stacker contextStacker
     ) {
-      super(builderContext, joinNode, contextStacker);
+      super(buildContext, joinNode, contextStacker);
     }
 
     @Override

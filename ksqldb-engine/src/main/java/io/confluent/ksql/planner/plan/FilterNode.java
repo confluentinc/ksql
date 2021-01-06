@@ -45,10 +45,10 @@ public class FilterNode extends SingleSourcePlanNode {
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final PlanBuildContext builder) {
-    final Stacker contextStacker = builder.buildNodeContext(getId().toString());
+  public SchemaKStream<?> buildStream(final PlanBuildContext builderContext) {
+    final Stacker contextStacker = builderContext.buildNodeContext(getId().toString());
 
-    return getSource().buildStream(builder)
+    return getSource().buildStream(builderContext)
         .filter(
             getPredicate(),
             contextStacker

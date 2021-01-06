@@ -122,7 +122,7 @@ public class StreamStreamJoinBuilderTest {
   @Mock
   private StreamJoinedFactory streamJoinedFactory;
   @Mock
-  private RuntimeBuildContext queryBuilder;
+  private RuntimeBuildContext buildContext;
   @Mock
   private ExecutionKeyFactory<Struct> executionKeyFactory;
   @Mock
@@ -141,9 +141,9 @@ public class StreamStreamJoinBuilderTest {
   @SuppressWarnings("unchecked")
   public void init() {
     when(executionKeyFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(queryBuilder.buildValueSerde(eq(FormatInfo.of(FormatFactory.JSON.name())), any(), any()))
+    when(buildContext.buildValueSerde(eq(FormatInfo.of(FormatFactory.JSON.name())), any(), any()))
         .thenReturn(leftSerde);
-    when(queryBuilder.buildValueSerde(eq(FormatInfo.of(FormatFactory.AVRO.name())), any(), any()))
+    when(buildContext.buildValueSerde(eq(FormatInfo.of(FormatFactory.AVRO.name())), any(), any()))
         .thenReturn(rightSerde);
     when(streamJoinedFactory.create(any(Serde.class), any(Serde.class), any(Serde.class), anyString(), anyString())).thenReturn(joined);
     when(left.build(any(), eq(planInfo))).thenReturn(
@@ -156,7 +156,7 @@ public class StreamStreamJoinBuilderTest {
     when(leftKStream.join(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
 
     planBuilder = new KSPlanBuilder(
-        queryBuilder,
+        buildContext,
         mock(SqlPredicateFactory.class),
         mock(AggregateParamsFactory.class),
         new StreamsFactories(
@@ -346,7 +346,7 @@ public class StreamStreamJoinBuilderTest {
 
     // Then:
     final QueryContext leftCtx = QueryContext.Stacker.of(CTX).push("Left").getQueryContext();
-    verify(queryBuilder).buildValueSerde(FormatInfo.of(FormatFactory.JSON.name()), LEFT_PHYSICAL, leftCtx);
+    verify(buildContext).buildValueSerde(FormatInfo.of(FormatFactory.JSON.name()), LEFT_PHYSICAL, leftCtx);
   }
 
   @Test
@@ -359,7 +359,7 @@ public class StreamStreamJoinBuilderTest {
 
     // Then:
     final QueryContext leftCtx = QueryContext.Stacker.of(CTX).push("Right").getQueryContext();
-    verify(queryBuilder).buildValueSerde(FormatInfo.of(FormatFactory.AVRO.name()), RIGHT_PHYSICAL, leftCtx);
+    verify(buildContext).buildValueSerde(FormatInfo.of(FormatFactory.AVRO.name()), RIGHT_PHYSICAL, leftCtx);
   }
 
   private void givenLeftJoin(final ColumnName keyName) {

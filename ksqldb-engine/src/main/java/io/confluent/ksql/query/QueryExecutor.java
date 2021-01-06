@@ -156,7 +156,7 @@ public final class QueryExecutor {
   ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
     final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
-    final RuntimeBuildContext runtimeBuildContext = queryBuilder(applicationId, queryId);
+    final RuntimeBuildContext runtimeBuildContext = buildContext(applicationId, queryId);
     final Object buildResult = buildQueryImplementation(physicalPlan, runtimeBuildContext);
 
     final BlockingRowQueue queue = buildTransientQueryQueue(buildResult, limit, excludeTombstones);
@@ -213,7 +213,7 @@ public final class QueryExecutor {
         sinkDataSource.getKsqlTopic().getValueFormat().getFeatures()
     );
 
-    final RuntimeBuildContext runtimeBuildContext = queryBuilder(applicationId, queryId);
+    final RuntimeBuildContext runtimeBuildContext = buildContext(applicationId, queryId);
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
 
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
@@ -301,7 +301,7 @@ public final class QueryExecutor {
     return physicalPlan.build(planBuilder);
   }
 
-  private RuntimeBuildContext queryBuilder(final String applicationId, final QueryId queryId) {
+  private RuntimeBuildContext buildContext(final String applicationId, final QueryId queryId) {
     return RuntimeBuildContext.of(
         streamsBuilder,
         config.getConfig(true),

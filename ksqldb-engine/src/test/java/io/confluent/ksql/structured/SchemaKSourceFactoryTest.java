@@ -66,7 +66,7 @@ public class SchemaKSourceFactoryTest {
   private static final KsqlConfig CONFIG = new KsqlConfig(ImmutableMap.of());
 
   @Mock
-  private PlanBuildContext builderContext;
+  private PlanBuildContext buildContext;
   @Mock
   private DataSource dataSource;
   @Mock
@@ -99,8 +99,8 @@ public class SchemaKSourceFactoryTest {
 
     when(contextStacker.getQueryContext()).thenReturn(queryContext);
 
-    when(builderContext.getKsqlConfig()).thenReturn(CONFIG);
-    when(builderContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(buildContext.getKsqlConfig()).thenReturn(CONFIG);
+    when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
 
     when(keyFormat.getFormatInfo()).thenReturn(keyFormatInfo);
     when(keyFormat.getFeatures()).thenReturn(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
@@ -117,7 +117,7 @@ public class SchemaKSourceFactoryTest {
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
-        builderContext,
+        buildContext,
         dataSource,
         contextStacker
     );
@@ -139,7 +139,7 @@ public class SchemaKSourceFactoryTest {
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
-        builderContext,
+        buildContext,
         dataSource,
         contextStacker
     );
@@ -161,7 +161,7 @@ public class SchemaKSourceFactoryTest {
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
-        builderContext,
+        buildContext,
         dataSource,
         contextStacker
     );
@@ -183,7 +183,7 @@ public class SchemaKSourceFactoryTest {
 
     // When:
     final SchemaKStream<?> result = SchemaKSourceFactory.buildSource(
-        builderContext,
+        buildContext,
         dataSource,
         contextStacker
     );

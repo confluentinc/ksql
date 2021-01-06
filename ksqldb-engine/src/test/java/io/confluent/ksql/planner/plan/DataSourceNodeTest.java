@@ -137,7 +137,7 @@ public class DataSourceNodeTest {
   @Mock
   private Serde<String> keySerde;
   @Mock
-  private PlanBuildContext builderContext;
+  private PlanBuildContext buildContext;
   @Mock
   private RuntimeBuildContext executeContext;
   @Mock
@@ -164,9 +164,9 @@ public class DataSourceNodeTest {
   public void before() {
     realBuilder = new StreamsBuilder();
 
-    when(builderContext.getKsqlConfig()).thenReturn(realConfig);
-    when(builderContext.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(builderContext.buildNodeContext(any())).thenAnswer(inv ->
+    when(buildContext.getKsqlConfig()).thenReturn(realConfig);
+    when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(buildContext.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker()
             .push(inv.getArgument(0).toString()));
 
@@ -289,7 +289,7 @@ public class DataSourceNodeTest {
     givenNodeWithMockSource();
 
     // When:
-    node.buildStream(builderContext);
+    node.buildStream(buildContext);
 
     // Then:
     verify(schemaKStreamFactory).create(any(), any(), any());
@@ -303,7 +303,7 @@ public class DataSourceNodeTest {
     givenNodeWithMockSource();
 
     // When:
-    node.buildStream(builderContext);
+    node.buildStream(buildContext);
 
     // Then:
     verify(schemaKStreamFactory).create(any(), any(), any());
@@ -316,12 +316,12 @@ public class DataSourceNodeTest {
     givenNodeWithMockSource();
 
     // When:
-    final SchemaKStream<?> returned = node.buildStream(builderContext);
+    final SchemaKStream<?> returned = node.buildStream(buildContext);
 
     // Then:
     assertThat(returned, is(stream));
     verify(schemaKStreamFactory).create(
-        same(builderContext),
+        same(buildContext),
         same(dataSource),
         stackerCaptor.capture()
     );
@@ -337,11 +337,11 @@ public class DataSourceNodeTest {
     givenNodeWithMockSource();
 
     // When:
-    node.buildStream(builderContext);
+    node.buildStream(buildContext);
 
     // Then:
     verify(schemaKStreamFactory).create(
-        same(builderContext),
+        same(buildContext),
         same(dataSource),
         stackerCaptor.capture()
     );
@@ -357,7 +357,7 @@ public class DataSourceNodeTest {
     givenNodeWithMockSource();
 
     // When:
-    final SchemaKStream<?> returned = node.buildStream(builderContext);
+    final SchemaKStream<?> returned = node.buildStream(buildContext);
 
     // Then:
     assertThat(returned, is(table));
@@ -458,7 +458,7 @@ public class DataSourceNodeTest {
   }
 
   private SchemaKStream<?> buildStream(final DataSourceNode node) {
-    final SchemaKStream<?> stream = node.buildStream(builderContext);
+    final SchemaKStream<?> stream = node.buildStream(buildContext);
     if (stream instanceof SchemaKTable) {
       final SchemaKTable<?> table = (SchemaKTable<?>) stream;
       table.getSourceTableStep().build(new KSPlanBuilder(executeContext));

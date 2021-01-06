@@ -142,15 +142,15 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final PlanBuildContext builderContext) {
-    final QueryContext.Stacker contextStacker = builderContext.buildNodeContext(getId().toString());
-    final SchemaKStream<?> sourceSchemaKStream = getSource().buildStream(builderContext);
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
+    final QueryContext.Stacker contextStacker = buildContext.buildNodeContext(getId().toString());
+    final SchemaKStream<?> sourceSchemaKStream = getSource().buildStream(buildContext);
 
     final InternalSchema internalSchema =
         new InternalSchema(requiredColumns, aggregateFunctionArguments);
 
     final SchemaKStream<?> preSelected = selectRequiredInputColumns(
-        sourceSchemaKStream, internalSchema, contextStacker, builderContext);
+        sourceSchemaKStream, internalSchema, contextStacker, buildContext);
 
     final SchemaKGroupedStream grouped = groupBy(contextStacker, preSelected);
 
@@ -158,7 +158,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
 
     aggregated = applyHavingFilter(aggregated, contextStacker);
 
-    return selectRequiredOutputColumns(aggregated, contextStacker, builderContext);
+    return selectRequiredOutputColumns(aggregated, contextStacker, buildContext);
   }
 
   @Override
@@ -178,7 +178,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
       final SchemaKStream<?> sourceSchemaKStream,
       final InternalSchema internalSchema,
       final Stacker contextStacker,
-      final PlanBuildContext builderContext
+      final PlanBuildContext buildContext
   ) {
     final List<ColumnName> keyColumnNames = getSource().getSchema().key().stream()
         .map(Column::name)
@@ -188,7 +188,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
         keyColumnNames,
         internalSchema.getAggArgExpansionList(),
         contextStacker.push(PREPARE_OP_NAME),
-        builderContext
+        buildContext
     );
   }
 
@@ -227,7 +227,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
   private SchemaKStream<?> selectRequiredOutputColumns(
       final SchemaKTable<?> aggregated,
       final Stacker contextStacker,
-      final PlanBuildContext builderContext
+      final PlanBuildContext buildContext
   ) {
     final List<ColumnName> keyColumnNames = getSchema().key().stream()
         .map(Column::name)
@@ -237,7 +237,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
         keyColumnNames,
         finalSelectExpressions,
         contextStacker.push(PROJECT_OP_NAME),
-        builderContext
+        buildContext
     );
   }
 

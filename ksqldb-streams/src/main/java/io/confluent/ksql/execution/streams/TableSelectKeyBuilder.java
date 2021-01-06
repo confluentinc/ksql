@@ -44,13 +44,13 @@ public final class TableSelectKeyBuilder {
   public static <K> KTableHolder<K> build(
       final KTableHolder<K> table,
       final TableSelectKey<K> selectKey,
-      final RuntimeBuildContext queryBuilder,
+      final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory
   ) {
     return build(
         table,
         selectKey,
-        queryBuilder,
+        buildContext,
         materializedFactory,
         PartitionByParamsFactory::build
     );
@@ -60,21 +60,21 @@ public final class TableSelectKeyBuilder {
   static <K> KTableHolder<K> build(
       final KTableHolder<K> table,
       final TableSelectKey<K> selectKey,
-      final RuntimeBuildContext queryBuilder,
+      final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
       final PartitionByParamsBuilder paramsBuilder
   ) {
     final LogicalSchema sourceSchema = table.getSchema();
     final QueryContext queryContext = selectKey.getProperties().getQueryContext();
 
-    final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
+    final ProcessingLogger logger = buildContext.getProcessingLogger(queryContext);
 
     final PartitionByParams<K> params = paramsBuilder.build(
         sourceSchema,
         table.getExecutionKeyFactory(),
         selectKey.getKeyExpressions(),
-        queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry(),
+        buildContext.getKsqlConfig(),
+        buildContext.getFunctionRegistry(),
         logger
     );
 
@@ -87,7 +87,7 @@ public final class TableSelectKeyBuilder {
             selectKey,
             params.getSchema(),
             selectKey.getInternalFormats(),
-            queryBuilder,
+            buildContext,
             materializedFactory,
             table.getExecutionKeyFactory()
         );
@@ -104,7 +104,7 @@ public final class TableSelectKeyBuilder {
     return KTableHolder.materialized(
         reKeyed,
         params.getSchema(),
-        table.getExecutionKeyFactory().withQueryBuilder(queryBuilder),
+        table.getExecutionKeyFactory().withQueryBuilder(buildContext),
         materializationBuilder
     );
   }

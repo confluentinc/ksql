@@ -37,24 +37,24 @@ public final class StreamFilterBuilder {
   public static <K> KStreamHolder<K> build(
       final KStreamHolder<K> stream,
       final StreamFilter<K> step,
-      final RuntimeBuildContext queryBuilder) {
-    return build(stream, step, queryBuilder, SqlPredicate::new);
+      final RuntimeBuildContext buildContext) {
+    return build(stream, step, buildContext, SqlPredicate::new);
   }
 
   static <K> KStreamHolder<K> build(
       final KStreamHolder<K> stream,
       final StreamFilter<K> step,
-      final RuntimeBuildContext queryBuilder,
+      final RuntimeBuildContext buildContext,
       final SqlPredicateFactory predicateFactory
   ) {
     final SqlPredicate predicate = predicateFactory.create(
         step.getFilterExpression(),
         stream.getSchema(),
-        queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry()
+        buildContext.getKsqlConfig(),
+        buildContext.getFunctionRegistry()
     );
 
-    final ProcessingLogger processingLogger = queryBuilder
+    final ProcessingLogger processingLogger = buildContext
         .getProcessingLogger(step.getProperties().getQueryContext());
 
     final KStream<K, GenericRow> filtered = stream.getStream()

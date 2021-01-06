@@ -160,7 +160,7 @@ public class StreamAggregateBuilderTest {
   @Mock
   private KTable<Windowed<GenericKey>, GenericRow> windowedWithWindowBounds;
   @Mock
-  private RuntimeBuildContext queryBuilder;
+  private RuntimeBuildContext buildContext;
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
@@ -206,9 +206,9 @@ public class StreamAggregateBuilderTest {
   @Before
   public void init() {
     when(sourceStep.build(any(), eq(planInfo))).thenReturn(KGroupedStreamHolder.of(groupedStream, INPUT_SCHEMA));
-    when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
-    when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(buildContext.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
+    when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
     when(aggregateParamsFactory.create(any(), any(), any(), any(), anyBoolean()))
         .thenReturn(aggregateParams);
     when(aggregateParams.getAggregator()).thenReturn((KudafAggregator) aggregator);
@@ -219,7 +219,7 @@ public class StreamAggregateBuilderTest {
     when(aggregateParams.getInitializer()).thenReturn(initializer);
 
     planBuilder = new KSPlanBuilder(
-        queryBuilder,
+        buildContext,
         mock(SqlPredicateFactory.class),
         aggregateParamsFactory,
         new StreamsFactories(
@@ -396,7 +396,7 @@ public class StreamAggregateBuilderTest {
     aggregate.build(planBuilder, planInfo);
 
     // Then:
-    verify(queryBuilder).buildKeySerde(KEY_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, MATERIALIZE_CTX);
+    verify(buildContext).buildKeySerde(KEY_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, MATERIALIZE_CTX);
   }
 
   @Test
@@ -408,7 +408,7 @@ public class StreamAggregateBuilderTest {
     aggregate.build(planBuilder, planInfo);
 
     // Then:
-    verify(queryBuilder).buildValueSerde(
+    verify(buildContext).buildValueSerde(
         VALUE_FORMAT,
         PHYSICAL_AGGREGATE_SCHEMA,
         MATERIALIZE_CTX
@@ -595,14 +595,14 @@ public class StreamAggregateBuilderTest {
   public void shouldBuildKeySerdeCorrectlyForWindowedAggregate() {
     for (final Runnable given : given()) {
       // Given:
-      clearInvocations(groupedStream, timeWindowedStream, sessionWindowedStream, aggregated, queryBuilder);
+      clearInvocations(groupedStream, timeWindowedStream, sessionWindowedStream, aggregated, buildContext);
       given.run();
 
       // When:
       windowedAggregate.build(planBuilder, planInfo);
 
       // Then:
-      verify(queryBuilder)
+      verify(buildContext)
           .buildKeySerde(KEY_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, MATERIALIZE_CTX);
     }
   }
@@ -611,7 +611,7 @@ public class StreamAggregateBuilderTest {
   public void shouldReturnCorrectSerdeForWindowedAggregate() {
     for (final Runnable given : given()) {
       // Given:
-      clearInvocations(groupedStream, timeWindowedStream, sessionWindowedStream, aggregated, queryBuilder);
+      clearInvocations(groupedStream, timeWindowedStream, sessionWindowedStream, aggregated, buildContext);
       given.run();
 
       // When:
@@ -623,7 +623,7 @@ public class StreamAggregateBuilderTest {
       final PhysicalSchema mockSchema = mock(PhysicalSchema.class);
       final QueryContext mockCtx = mock(QueryContext.class);
       serdeFactory.buildKeySerde(mockFormat, mockSchema, mockCtx);
-      verify(queryBuilder).buildKeySerde(
+      verify(buildContext).buildKeySerde(
           same(mockFormat),
           eq(windowedAggregate.getWindowExpression().getWindowInfo()),
           same(mockSchema),
@@ -636,14 +636,14 @@ public class StreamAggregateBuilderTest {
   public void shouldBuildValueSerdeCorrectlyForWindowedAggregate() {
     for (final Runnable given : given()) {
       // Given:
-      clearInvocations(groupedStream, timeWindowedStream, sessionWindowedStream, aggregated, queryBuilder);
+      clearInvocations(groupedStream, timeWindowedStream, sessionWindowedStream, aggregated, buildContext);
       given.run();
 
       // When:
       windowedAggregate.build(planBuilder, planInfo);
 
       // Then:
-      verify(queryBuilder)
+      verify(buildContext)
           .buildValueSerde(VALUE_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, MATERIALIZE_CTX);
     }
   }

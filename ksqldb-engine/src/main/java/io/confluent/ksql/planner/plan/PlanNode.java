@@ -83,7 +83,7 @@ public abstract class PlanNode {
 
   protected abstract int getPartitions(KafkaTopicClient kafkaTopicClient);
 
-  public abstract SchemaKStream<?> buildStream(PlanBuildContext builderContext);
+  public abstract SchemaKStream<?> buildStream(PlanBuildContext buildContext);
 
   Optional<SourceName> getSourceName() {
     return sourceName;

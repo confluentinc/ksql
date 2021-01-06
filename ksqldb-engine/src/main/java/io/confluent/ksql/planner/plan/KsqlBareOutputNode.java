@@ -48,8 +48,8 @@ public class KsqlBareOutputNode extends OutputNode {
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final PlanBuildContext builderContext) {
-    return getSource().buildStream(builderContext);
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
+    return getSource().buildStream(buildContext);
   }
 
   public Optional<WindowInfo> getWindowInfo() {

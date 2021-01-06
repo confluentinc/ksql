@@ -102,7 +102,7 @@ public class SchemaKStreamTest {
   @Mock
   private ExecutionStep sourceStep;
   @Mock
-  private PlanBuildContext builderContext;
+  private PlanBuildContext buildContext;
   @Mock
   private KsqlTopic topic;
 
@@ -133,7 +133,7 @@ public class SchemaKStreamTest {
         ImmutableList.of(ColumnName.of("K")),
         selectExpressions,
         childContextStacker,
-        builderContext);
+        buildContext);
 
     // Then:
     assertThat(

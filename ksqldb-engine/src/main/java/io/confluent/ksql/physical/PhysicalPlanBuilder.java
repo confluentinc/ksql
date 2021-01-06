@@ -59,13 +59,13 @@ public class PhysicalPlanBuilder {
     final OutputNode outputNode = logicalPlanNode.getNode()
         .orElseThrow(() -> new IllegalArgumentException("Need an output node to build a plan"));
 
-    final PlanBuildContext ksqlQueryExecuteContext = PlanBuildContext.of(
+    final PlanBuildContext buildContext = PlanBuildContext.of(
         ksqlConfig,
         serviceContext,
         functionRegistry
     );
 
-    final SchemaKStream<?> resultStream = outputNode.buildStream(ksqlQueryExecuteContext);
+    final SchemaKStream<?> resultStream = outputNode.buildStream(buildContext);
 
     final LogicalSchema logicalSchema = outputNode.getSchema();
     final LogicalSchema physicalSchema = resultStream.getSchema();

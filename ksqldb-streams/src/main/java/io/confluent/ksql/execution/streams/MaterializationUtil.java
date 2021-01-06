@@ -50,7 +50,7 @@ final class MaterializationUtil {
       final ExecutionStep<?> step,
       final LogicalSchema aggregateSchema,
       final Formats formats,
-      final RuntimeBuildContext queryBuilder,
+      final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
       final ExecutionKeyFactory<K> executionKeyFactory
   ) {
@@ -66,7 +66,7 @@ final class MaterializationUtil {
         buildKeySerde(formats, physicalAggregationSchema, queryContext, executionKeyFactory);
 
     final Serde<GenericRow> valueSerde =
-        buildValueSerde(formats, queryBuilder, physicalAggregationSchema, queryContext);
+        buildValueSerde(formats, buildContext, physicalAggregationSchema, queryContext);
 
     return materializedFactory
         .create(keySerde, valueSerde, StreamsUtil.buildOpName(queryContext));
@@ -91,12 +91,12 @@ final class MaterializationUtil {
 
   private static Serde<GenericRow> buildValueSerde(
       final Formats formats,
-      final RuntimeBuildContext queryBuilder,
+      final RuntimeBuildContext buildContext,
       final PhysicalSchema physicalAggregationSchema,
       final QueryContext queryContext
   ) {
     try {
-      return queryBuilder.buildValueSerde(
+      return buildContext.buildValueSerde(
           formats.getValueFormat(),
           physicalAggregationSchema,
           queryContext

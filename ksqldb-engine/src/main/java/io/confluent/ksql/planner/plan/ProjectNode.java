@@ -34,8 +34,8 @@ public abstract class ProjectNode extends SingleSourcePlanNode {
   public abstract List<SelectExpression> getSelectExpressions();
 
   @Override
-  public SchemaKStream<?> buildStream(final PlanBuildContext builderContext) {
-    final SchemaKStream<?> stream = getSource().buildStream(builderContext);
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
+    final SchemaKStream<?> stream = getSource().buildStream(buildContext);
 
     final List<ColumnName> keyColumnNames = getSchema().key().stream()
         .map(Column::name)
@@ -44,8 +44,8 @@ public abstract class ProjectNode extends SingleSourcePlanNode {
     return stream.select(
         keyColumnNames,
         getSelectExpressions(),
-        builderContext.buildNodeContext(getId().toString()),
-        builderContext
+        buildContext.buildNodeContext(getId().toString()),
+        buildContext
     );
   }
 }

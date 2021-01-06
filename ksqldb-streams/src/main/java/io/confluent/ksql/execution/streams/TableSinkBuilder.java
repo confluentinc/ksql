@@ -26,7 +26,7 @@ public final class TableSinkBuilder {
   public static <K> void build(
       final KTableHolder<K> table,
       final TableSink<K> tableSink,
-      final RuntimeBuildContext queryBuilder) {
+      final RuntimeBuildContext buildContext) {
     SinkBuilder.build(
         table.getSchema(),
         tableSink.getFormats(),
@@ -35,7 +35,7 @@ public final class TableSinkBuilder {
         table.getTable().toStream(),
         table.getExecutionKeyFactory(),
         tableSink.getProperties().getQueryContext(),
-        queryBuilder
+        buildContext
     );
   }
 }

@@ -52,7 +52,7 @@ public class TableFilterBuilderTest {
   @Mock
   private KsqlTransformer<Struct, Optional<GenericRow>> preTransformer;
   @Mock
-  private RuntimeBuildContext queryBuilder;
+  private RuntimeBuildContext buildContext;
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
@@ -104,9 +104,9 @@ public class TableFilterBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
-    when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
+    when(buildContext.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(buildContext.getProcessingLogger(any())).thenReturn(processingLogger);
     when(sourceStep.getProperties()).thenReturn(sourceProperties);
     when(sourceKTable.transformValues(any(), any(Named.class))).thenReturn((KTable)preKTable);
     when(preKTable.filter(any(), any(Named.class))).thenReturn((KTable)filteredKTable);
@@ -121,7 +121,7 @@ public class TableFilterBuilderTest {
     ;
     when(preTransformer.transform(any(), any(), any())).thenReturn(Optional.empty());
     planBuilder = new KSPlanBuilder(
-        queryBuilder,
+        buildContext,
         predicateFactory,
         mock(AggregateParamsFactory.class),
         mock(StreamsFactories.class)
@@ -167,7 +167,7 @@ public class TableFilterBuilderTest {
     step.build(planBuilder, planInfo);
 
     // Then:
-    verify(queryBuilder).getProcessingLogger(queryContext);
+    verify(buildContext).getProcessingLogger(queryContext);
   }
 
   @Test

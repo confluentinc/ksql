@@ -148,7 +148,7 @@ public class SchemaKTableTest {
   private PlanBuilder planBuilder;
 
   @Mock
-  private PlanBuildContext builderContext;
+  private PlanBuildContext buildContext;
   @Mock
   private RuntimeBuildContext executeContext;
   @Mock
@@ -280,7 +280,7 @@ public class SchemaKTableTest {
         ImmutableList.of(ColumnName.of("K")),
         projectNode.getSelectExpressions(),
         childContextStacker,
-        builderContext
+        buildContext
     );
 
     // Then:
@@ -403,7 +403,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable<?> projectedSchemaKStream = initialSchemaKTable.select(ImmutableList.of(),
-        projectNode.getSelectExpressions(), childContextStacker, builderContext);
+        projectNode.getSelectExpressions(), childContextStacker, buildContext);
 
     // Then:
     assertThat(projectedSchemaKStream.getSchema(),
@@ -426,7 +426,7 @@ public class SchemaKTableTest {
         ImmutableList.of(),
         projectNode.getSelectExpressions(),
         childContextStacker,
-        builderContext
+        buildContext
     );
 
     // Then:

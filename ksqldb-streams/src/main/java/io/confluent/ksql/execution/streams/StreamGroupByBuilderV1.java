@@ -21,18 +21,18 @@ import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 public final class StreamGroupByBuilderV1 extends StreamGroupByBuilderBase {
 
   public StreamGroupByBuilderV1(
-      final RuntimeBuildContext queryBuilder,
+      final RuntimeBuildContext buildContext,
       final GroupedFactory groupedFactory
   ) {
-    this(queryBuilder, groupedFactory, GroupByParamsV1Factory::build);
+    this(buildContext, groupedFactory, GroupByParamsV1Factory::build);
   }
 
   @VisibleForTesting
   StreamGroupByBuilderV1(
-      final RuntimeBuildContext queryBuilder,
+      final RuntimeBuildContext buildContext,
       final GroupedFactory groupedFactory,
       final ParamsFactory paramsFactory
   ) {
-    super(queryBuilder, groupedFactory, paramsFactory);
+    super(buildContext, groupedFactory, paramsFactory);
   }
 }

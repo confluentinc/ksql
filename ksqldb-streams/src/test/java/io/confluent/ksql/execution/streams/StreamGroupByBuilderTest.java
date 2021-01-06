@@ -93,7 +93,7 @@ public class StreamGroupByBuilderTest {
   );
 
   @Mock
-  private RuntimeBuildContext queryBuilder;
+  private RuntimeBuildContext buildContext;
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
@@ -145,11 +145,11 @@ public class StreamGroupByBuilderTest {
     when(groupByParams.getSchema()).thenReturn(REKEYED_SCHEMA);
     when(groupByParams.getMapper()).thenReturn(mapper);
 
-    when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
-    when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
-    when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
+    when(buildContext.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(buildContext.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
+    when(buildContext.getProcessingLogger(any())).thenReturn(processingLogger);
     when(groupedFactory.create(any(), any(Serde.class), any())).thenReturn(grouped);
     when(sourceStream.groupByKey(any(Grouped.class))).thenReturn(groupedStream);
     when(sourceStream.filter(any())).thenReturn(filteredStream);
@@ -165,7 +165,7 @@ public class StreamGroupByBuilderTest {
 
     groupByKey = new StreamGroupByKey(PROPERTIES, sourceStep, FORMATS);
 
-    builder = new StreamGroupByBuilder(queryBuilder, groupedFactory, paramsFactory);
+    builder = new StreamGroupByBuilder(buildContext, groupedFactory, paramsFactory);
   }
 
   @Test
@@ -229,7 +229,7 @@ public class StreamGroupByBuilderTest {
     buildGroupBy(builder, streamHolder, groupBy);
 
     // Then:
-    verify(queryBuilder).buildKeySerde(
+    verify(buildContext).buildKeySerde(
         FORMATS.getKeyFormat(),
         REKEYED_PHYSICAL_SCHEMA,
         STEP_CTX
@@ -242,7 +242,7 @@ public class StreamGroupByBuilderTest {
     buildGroupBy(builder, streamHolder, groupBy);
 
     // Then:
-    verify(queryBuilder).buildValueSerde(
+    verify(buildContext).buildValueSerde(
         FORMATS.getValueFormat(),
         REKEYED_PHYSICAL_SCHEMA,
         STEP_CTX
@@ -293,7 +293,7 @@ public class StreamGroupByBuilderTest {
     builder.build(streamHolder, groupByKey);
 
     // Then:
-    verify(queryBuilder).buildKeySerde(
+    verify(buildContext).buildKeySerde(
         FORMATS.getKeyFormat(),
         PHYSICAL_SCHEMA,
         STEP_CTX);
@@ -305,7 +305,7 @@ public class StreamGroupByBuilderTest {
     builder.build(streamHolder, groupByKey);
 
     // Then:
-    verify(queryBuilder).buildValueSerde(
+    verify(buildContext).buildValueSerde(
         FORMATS.getValueFormat(),
         PHYSICAL_SCHEMA,
         STEP_CTX

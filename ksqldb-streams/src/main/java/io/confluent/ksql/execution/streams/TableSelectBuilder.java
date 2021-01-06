@@ -37,7 +37,7 @@ public final class TableSelectBuilder {
   public static <K> KTableHolder<K> build(
       final KTableHolder<K> table,
       final TableSelect<K> step,
-      final RuntimeBuildContext queryBuilder
+      final RuntimeBuildContext buildContext
   ) {
     final LogicalSchema sourceSchema = table.getSchema();
     final QueryContext queryContext = step.getProperties().getQueryContext();
@@ -46,13 +46,13 @@ public final class TableSelectBuilder {
         sourceSchema,
         step.getKeyColumnNames(),
         step.getSelectExpressions(),
-        queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry()
+        buildContext.getKsqlConfig(),
+        buildContext.getFunctionRegistry()
     );
 
     final SelectValueMapper<K> selectMapper = selection.getMapper();
 
-    final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
+    final ProcessingLogger logger = buildContext.getProcessingLogger(queryContext);
 
     final Named selectName = Named.as(StreamsUtil.buildOpName(queryContext));
 

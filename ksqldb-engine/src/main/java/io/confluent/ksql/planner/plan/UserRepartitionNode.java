@@ -61,13 +61,13 @@ public class UserRepartitionNode extends SingleSourcePlanNode {
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final PlanBuildContext builderContext) {
-    return getSource().buildStream(builderContext)
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
+    return getSource().buildStream(buildContext)
         .selectKey(
             valueFormat.getFormatInfo(),
             partitionBys,
             Optional.empty(),
-            builderContext.buildNodeContext(getId().toString()),
+            buildContext.buildNodeContext(getId().toString()),
             false
         );
   }

@@ -39,7 +39,7 @@ public final class StreamTableJoinBuilder {
       final KStreamHolder<K> left,
       final KTableHolder<K> right,
       final StreamTableJoin<K> join,
-      final RuntimeBuildContext queryBuilder,
+      final RuntimeBuildContext buildContext,
       final JoinedFactory joinedFactory
   ) {
     final Formats leftFormats = join.getInternalFormats();
@@ -52,7 +52,7 @@ public final class StreamTableJoinBuilder {
         leftFormats.getValueFeatures()
     );
 
-    final Serde<GenericRow> leftSerde = queryBuilder.buildValueSerde(
+    final Serde<GenericRow> leftSerde = buildContext.buildValueSerde(
         leftFormats.getValueFormat(),
         leftPhysicalSchema,
         stacker.push(SERDE_CTX).getQueryContext()

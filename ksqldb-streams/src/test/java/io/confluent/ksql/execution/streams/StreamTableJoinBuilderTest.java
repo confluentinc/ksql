@@ -93,7 +93,7 @@ public class StreamTableJoinBuilderTest {
   @Mock
   private JoinedFactory joinedFactory;
   @Mock
-  private RuntimeBuildContext queryBuilder;
+  private RuntimeBuildContext buildContext;
   @Mock
   private ExecutionKeyFactory<Struct> executionKeyFactory;
   @Mock
@@ -110,7 +110,7 @@ public class StreamTableJoinBuilderTest {
   @SuppressWarnings("unchecked")
   public void init() {
     when(executionKeyFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(queryBuilder.buildValueSerde(eq(FormatInfo.of(FormatFactory.JSON.name())), any(), any()))
+    when(buildContext.buildValueSerde(eq(FormatInfo.of(FormatFactory.JSON.name())), any(), any()))
         .thenReturn(leftSerde);
     when(joinedFactory.create(any(Serde.class), any(), any(), any())).thenReturn(joined);
     when(left.build(any(), eq(planInfo))).thenReturn(
@@ -122,7 +122,7 @@ public class StreamTableJoinBuilderTest {
     when(leftKStream.join(any(KTable.class), any(), any())).thenReturn(resultStream);
 
     planBuilder = new KSPlanBuilder(
-        queryBuilder,
+        buildContext,
         mock(SqlPredicateFactory.class),
         mock(AggregateParamsFactory.class),
         new StreamsFactories(
@@ -294,7 +294,7 @@ public class StreamTableJoinBuilderTest {
 
     // Then:
     final QueryContext leftCtx = QueryContext.Stacker.of(CTX).push("Left").getQueryContext();
-    verify(queryBuilder).buildValueSerde(FormatInfo.of(FormatFactory.JSON.name()), LEFT_PHYSICAL, leftCtx);
+    verify(buildContext).buildValueSerde(FormatInfo.of(FormatFactory.JSON.name()), LEFT_PHYSICAL, leftCtx);
   }
 
   private void givenLeftJoin(final ColumnName keyName) {

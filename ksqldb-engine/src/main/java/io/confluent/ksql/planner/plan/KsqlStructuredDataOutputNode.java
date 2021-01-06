@@ -81,11 +81,11 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final PlanBuildContext builderContext) {
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
     final PlanNode source = getSource();
-    final SchemaKStream<?> schemaKStream = source.buildStream(builderContext);
+    final SchemaKStream<?> schemaKStream = source.buildStream(buildContext);
 
-    final QueryContext.Stacker contextStacker = builderContext.buildNodeContext(getId().toString());
+    final QueryContext.Stacker contextStacker = buildContext.buildNodeContext(getId().toString());
 
     return schemaKStream.into(
         ksqlTopic,

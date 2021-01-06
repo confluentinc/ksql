@@ -43,7 +43,7 @@ public final class SchemaKSourceFactory {
   }
 
   public static SchemaKStream<?> buildSource(
-      final PlanBuildContext builder,
+      final PlanBuildContext buildContext,
       final DataSource dataSource,
       final QueryContext.Stacker contextStacker
   ) {
@@ -52,11 +52,11 @@ public final class SchemaKSourceFactory {
       case KSTREAM:
         return windowed
             ? buildWindowedStream(
-            builder,
+            buildContext,
             dataSource,
             contextStacker
         ) : buildStream(
-            builder,
+            buildContext,
             dataSource,
             contextStacker
         );
@@ -64,11 +64,11 @@ public final class SchemaKSourceFactory {
       case KTABLE:
         return windowed
             ? buildWindowedTable(
-            builder,
+            buildContext,
             dataSource,
             contextStacker
         ) : buildTable(
-            builder,
+            buildContext,
             dataSource,
             contextStacker
         );
@@ -79,7 +79,7 @@ public final class SchemaKSourceFactory {
   }
 
   private static SchemaKStream<?> buildWindowedStream(
-      final PlanBuildContext builder,
+      final PlanBuildContext buildContext,
       final DataSource dataSource,
       final Stacker contextStacker
   ) {
@@ -96,15 +96,15 @@ public final class SchemaKSourceFactory {
     );
 
     return schemaKStream(
-        builder,
-        resolveSchema(builder, step, dataSource),
+        buildContext,
+        resolveSchema(buildContext, step, dataSource),
         dataSource.getKsqlTopic().getKeyFormat(),
         step
     );
   }
 
   private static SchemaKStream<?> buildStream(
-      final PlanBuildContext builder,
+      final PlanBuildContext buildContext,
       final DataSource dataSource,
       final Stacker contextStacker
   ) {
@@ -121,15 +121,15 @@ public final class SchemaKSourceFactory {
     );
 
     return schemaKStream(
-        builder,
-        resolveSchema(builder, step, dataSource),
+        buildContext,
+        resolveSchema(buildContext, step, dataSource),
         dataSource.getKsqlTopic().getKeyFormat(),
         step
     );
   }
 
   private static SchemaKTable<?> buildWindowedTable(
-      final PlanBuildContext builder,
+      final PlanBuildContext buildContext,
       final DataSource dataSource,
       final Stacker contextStacker
   ) {
@@ -146,15 +146,15 @@ public final class SchemaKSourceFactory {
     );
 
     return schemaKTable(
-        builder,
-        resolveSchema(builder, step, dataSource),
+        buildContext,
+        resolveSchema(buildContext, step, dataSource),
         dataSource.getKsqlTopic().getKeyFormat(),
         step
     );
   }
 
   private static SchemaKTable<?> buildTable(
-      final PlanBuildContext builder,
+      final PlanBuildContext buildContext,
       final DataSource dataSource,
       final Stacker contextStacker
   ) {
@@ -171,15 +171,15 @@ public final class SchemaKSourceFactory {
     );
 
     return schemaKTable(
-        builder,
-        resolveSchema(builder, step, dataSource),
+        buildContext,
+        resolveSchema(buildContext, step, dataSource),
         dataSource.getKsqlTopic().getKeyFormat(),
         step
     );
   }
 
   private static <K> SchemaKStream<K> schemaKStream(
-      final PlanBuildContext builder,
+      final PlanBuildContext buildContext,
       final LogicalSchema schema,
       final KeyFormat keyFormat,
       final SourceStep<KStreamHolder<K>> streamSource
@@ -188,13 +188,13 @@ public final class SchemaKSourceFactory {
         streamSource,
         schema,
         keyFormat,
-        builder.getKsqlConfig(),
-        builder.getFunctionRegistry()
+        buildContext.getKsqlConfig(),
+        buildContext.getFunctionRegistry()
     );
   }
 
   private static <K> SchemaKTable<K> schemaKTable(
-      final PlanBuildContext builder,
+      final PlanBuildContext buildContext,
       final LogicalSchema schema,
       final KeyFormat keyFormat,
       final SourceStep<KTableHolder<K>> tableSource
@@ -203,18 +203,18 @@ public final class SchemaKSourceFactory {
         tableSource,
         schema,
         keyFormat,
-        builder.getKsqlConfig(),
-        builder.getFunctionRegistry()
+        buildContext.getKsqlConfig(),
+        buildContext.getFunctionRegistry()
     );
   }
 
   private static LogicalSchema resolveSchema(
-      final PlanBuildContext builderContext,
+      final PlanBuildContext buildContext,
       final ExecutionStep<?> step,
       final DataSource dataSource) {
     return new StepSchemaResolver(
-        builderContext.getKsqlConfig(),
-        builderContext.getFunctionRegistry()
+        buildContext.getKsqlConfig(),
+        buildContext.getFunctionRegistry()
     ).resolve(step, dataSource.getSchema());
   }
 }

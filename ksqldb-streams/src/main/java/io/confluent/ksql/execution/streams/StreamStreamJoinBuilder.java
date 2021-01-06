@@ -39,7 +39,7 @@ public final class StreamStreamJoinBuilder {
       final KStreamHolder<K> left,
       final KStreamHolder<K> right,
       final StreamStreamJoin<K> join,
-      final RuntimeBuildContext queryBuilder,
+      final RuntimeBuildContext buildContext,
       final StreamJoinedFactory streamJoinedFactory) {
     final Formats leftFormats = join.getLeftInternalFormats();
     final QueryContext queryContext = join.getProperties().getQueryContext();
@@ -51,7 +51,7 @@ public final class StreamStreamJoinBuilder {
         leftFormats.getValueFeatures()
     );
 
-    final Serde<GenericRow> leftSerde = queryBuilder.buildValueSerde(
+    final Serde<GenericRow> leftSerde = buildContext.buildValueSerde(
         leftFormats.getValueFormat(),
         leftPhysicalSchema,
         stacker.push(LEFT_SERDE_CTX).getQueryContext()
@@ -64,7 +64,7 @@ public final class StreamStreamJoinBuilder {
         rightFormats.getValueFeatures()
     );
 
-    final Serde<GenericRow> rightSerde = queryBuilder.buildValueSerde(
+    final Serde<GenericRow> rightSerde = buildContext.buildValueSerde(
         rightFormats.getValueFormat(),
         rightPhysicalSchema,
         stacker.push(RIGHT_SERDE_CTX).getQueryContext()

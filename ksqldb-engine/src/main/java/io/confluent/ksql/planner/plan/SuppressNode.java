@@ -66,9 +66,9 @@ public class SuppressNode extends SingleSourcePlanNode implements VerifiableNode
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final PlanBuildContext builderContext) {
-    final QueryContext.Stacker contextStacker = builderContext.buildNodeContext(getId().toString());
-    final SchemaKStream<?> schemaKStream = getSource().buildStream(builderContext);
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
+    final QueryContext.Stacker contextStacker = buildContext.buildNodeContext(getId().toString());
+    final SchemaKStream<?> schemaKStream = getSource().buildStream(buildContext);
 
     if (!(schemaKStream instanceof SchemaKTable)) {
       throw new KsqlException("Failed in suppress node. Expected to find a Table, but "

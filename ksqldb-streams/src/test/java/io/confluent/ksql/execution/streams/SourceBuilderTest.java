@@ -143,7 +143,7 @@ public class SourceBuilderTest {
 
   private final QueryContext ctx = new Stacker().push("base").push("source").getQueryContext();
   @Mock
-  private RuntimeBuildContext queryBuilder;
+  private RuntimeBuildContext buildContext;
   @Mock
   private StreamsBuilder streamsBuilder;
   @Mock
@@ -204,9 +204,9 @@ public class SourceBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void setup() {
-    when(queryBuilder.getApplicationId()).thenReturn("appid");
-    when(queryBuilder.getStreamsBuilder()).thenReturn(streamsBuilder);
-    when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
+    when(buildContext.getApplicationId()).thenReturn("appid");
+    when(buildContext.getStreamsBuilder()).thenReturn(streamsBuilder);
+    when(buildContext.getProcessingLogger(any())).thenReturn(processingLogger);
     when(streamsBuilder.stream(anyString(), any(Consumed.class))).thenReturn(kStream);
     when(streamsBuilder.table(anyString(), any(), any())).thenReturn(kTable);
     when(streamsBuilder.table(anyString(), any(Consumed.class))).thenReturn(kTable);
@@ -214,10 +214,10 @@ public class SourceBuilderTest {
     when(kTable.mapValues(any(ValueMapper.class), any(Materialized.class))).thenReturn(kTable);
     when(kStream.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kStream);
     when(kTable.transformValues(any(ValueTransformerWithKeySupplier.class))).thenReturn(kTable);
-    when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
-    when(queryBuilder.getServiceContext()).thenReturn(serviceContext);
-    when(queryBuilder.getKsqlConfig()).thenReturn(KSQL_CONFIG);
+    when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(buildContext.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
+    when(buildContext.getServiceContext()).thenReturn(serviceContext);
+    when(buildContext.getKsqlConfig()).thenReturn(KSQL_CONFIG);
     when(processorCtx.timestamp()).thenReturn(A_ROWTIME);
     when(serviceContext.getSchemaRegistryClient()).thenReturn(srClient);
     when(streamsFactories.getConsumedFactory()).thenReturn(consumedFactory);
@@ -227,7 +227,7 @@ public class SourceBuilderTest {
     when(valueFormatInfo.getFormat()).thenReturn(FormatFactory.AVRO.name());
 
     planBuilder = new KSPlanBuilder(
-        queryBuilder,
+        buildContext,
         mock(SqlPredicateFactory.class),
         mock(AggregateParamsFactory.class),
         streamsFactories
@@ -281,7 +281,7 @@ public class SourceBuilderTest {
   @Test
   public void shouldUseConfiguredResetPolicyForStream() {
     // Given:
-    when(queryBuilder.getKsqlConfig()).thenReturn(new KsqlConfig(
+    when(buildContext.getKsqlConfig()).thenReturn(new KsqlConfig(
         ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
     ));
     givenUnwindowedSourceStream();
@@ -381,7 +381,7 @@ public class SourceBuilderTest {
   @Test
   public void shouldApplyCreateSchemaRegistryCallbackIfSchemaRegistryIsEnabled() {
     // Given:
-    when(queryBuilder.getKsqlConfig()).thenReturn(
+    when(buildContext.getKsqlConfig()).thenReturn(
         KSQL_CONFIG.cloneWithPropertyOverwrite(
             ImmutableMap.of(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "foo")));
     givenUnwindowedSourceTable(false);
@@ -424,7 +424,7 @@ public class SourceBuilderTest {
   @Test
   public void shouldUseConfiguredResetPolicyForTable() {
     // Given:
-    when(queryBuilder.getKsqlConfig()).thenReturn(new KsqlConfig(
+    when(buildContext.getKsqlConfig()).thenReturn(new KsqlConfig(
         ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest")
     ));
     givenUnwindowedSourceTable(true);
@@ -469,7 +469,7 @@ public class SourceBuilderTest {
     streamSource.build(planBuilder, planInfo);
 
     // Then:
-    verify(queryBuilder).buildValueSerde(valueFormatInfo, PHYSICAL_SCHEMA, ctx);
+    verify(buildContext).buildValueSerde(valueFormatInfo, PHYSICAL_SCHEMA, ctx);
   }
 
   @Test
@@ -481,7 +481,7 @@ public class SourceBuilderTest {
     windowedStreamSource.build(planBuilder, planInfo);
 
     // Then:
-    verify(queryBuilder).buildKeySerde(
+    verify(buildContext).buildKeySerde(
         keyFormatInfo,
         windowInfo,
         PhysicalSchema.from(SOURCE_SCHEMA, KEY_FEATURES, VALUE_FEATURES),
@@ -727,7 +727,7 @@ public class SourceBuilderTest {
     windowedStreamSource.build(planBuilder, planInfo);
 
     // Then:
-    verify(queryBuilder).buildKeySerde(
+    verify(buildContext).buildKeySerde(
         keyFormatInfo,
         windowInfo,
         PhysicalSchema.from(SOURCE_SCHEMA, KEY_FEATURES, VALUE_FEATURES),
@@ -744,7 +744,7 @@ public class SourceBuilderTest {
     streamSource.build(planBuilder, planInfo);
 
     // Then:
-    verify(queryBuilder).buildKeySerde(
+    verify(buildContext).buildKeySerde(
         keyFormatInfo,
         PhysicalSchema.from(SOURCE_SCHEMA, KEY_FEATURES, VALUE_FEATURES),
         ctx
@@ -760,9 +760,9 @@ public class SourceBuilderTest {
     final KStreamHolder<?> stream = streamSource.build(planBuilder, planInfo);
 
     // Then:
-    reset(queryBuilder);
+    reset(buildContext);
     stream.getExecutionKeyFactory().buildKeySerde(keyFormatInfo, PHYSICAL_SCHEMA, ctx);
-    verify(queryBuilder).buildKeySerde(keyFormatInfo, PHYSICAL_SCHEMA, ctx);
+    verify(buildContext).buildKeySerde(keyFormatInfo, PHYSICAL_SCHEMA, ctx);
   }
 
   @Test
@@ -774,9 +774,9 @@ public class SourceBuilderTest {
     final KStreamHolder<?> stream = windowedStreamSource.build(planBuilder, planInfo);
 
     // Then:
-    reset(queryBuilder);
+    reset(buildContext);
     stream.getExecutionKeyFactory().buildKeySerde(keyFormatInfo, PHYSICAL_SCHEMA, ctx);
-    verify(queryBuilder).buildKeySerde(keyFormatInfo, windowInfo, PHYSICAL_SCHEMA, ctx);
+    verify(buildContext).buildKeySerde(keyFormatInfo, windowInfo, PHYSICAL_SCHEMA, ctx);
   }
 
   @Test
@@ -814,7 +814,7 @@ public class SourceBuilderTest {
   }
 
   private void givenWindowedSourceStream() {
-    when(queryBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
+    when(buildContext.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     windowedStreamSource = new WindowedStreamSource(
         new ExecutionStepPropertiesV1(ctx),
@@ -827,7 +827,7 @@ public class SourceBuilderTest {
   }
 
   private void givenUnwindowedSourceStream() {
-    when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
     streamSource = new StreamSource(
         new ExecutionStepPropertiesV1(ctx),
@@ -839,7 +839,7 @@ public class SourceBuilderTest {
   }
 
   private void givenMultiColumnSourceStream() {
-    when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
     streamSource = new StreamSource(
         new ExecutionStepPropertiesV1(ctx),
@@ -851,7 +851,7 @@ public class SourceBuilderTest {
   }
 
   private void givenWindowedSourceTable() {
-    when(queryBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
+    when(buildContext.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     givenConsumed(consumedWindowed, windowedKeySerde);
     windowedTableSource = new WindowedTableSource(
@@ -865,7 +865,7 @@ public class SourceBuilderTest {
   }
 
   private void givenUnwindowedSourceTable(final Boolean forceChangelog) {
-    when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     givenConsumed(consumed, keySerde);
     tableSource = new TableSource(
         new ExecutionStepPropertiesV1(ctx),

@@ -78,11 +78,11 @@ public class FlatMapNode extends SingleSourcePlanNode {
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final PlanBuildContext builderContext) {
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
 
-    final QueryContext.Stacker contextStacker = builderContext.buildNodeContext(getId().toString());
+    final QueryContext.Stacker contextStacker = buildContext.buildNodeContext(getId().toString());
 
-    return getSource().buildStream(builderContext).flatMap(
+    return getSource().buildStream(buildContext).flatMap(
         tableFunctions,
         contextStacker
     );
@@ -95,7 +95,7 @@ public class FlatMapNode extends SingleSourcePlanNode {
     final TableFunctionExpressionRewriter tableFunctionExpressionRewriter =
         new TableFunctionExpressionRewriter(functionRegistry);
 
-    final ImmutableMap.Builder<Integer, Expression> builderContext = ImmutableMap
+    final ImmutableMap.Builder<Integer, Expression> buildContext = ImmutableMap
         .builder();
 
     for (int idx = 0; idx < analysis.getSelectItems().size(); idx++) {
@@ -109,11 +109,11 @@ public class FlatMapNode extends SingleSourcePlanNode {
           tableFunctionExpressionRewriter::process, singleColumn.getExpression());
 
       if (!rewritten.equals(singleColumn.getExpression())) {
-        builderContext.put(idx, rewritten);
+        buildContext.put(idx, rewritten);
       }
     }
 
-    return builderContext.build();
+    return buildContext.build();
   }
 
   private static class TableFunctionExpressionRewriter

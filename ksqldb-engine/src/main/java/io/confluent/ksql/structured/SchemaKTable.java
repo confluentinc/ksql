@@ -121,7 +121,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final List<ColumnName> keyColumnNames,
       final List<SelectExpression> selectExpressions,
       final Stacker contextStacker,
-      final PlanBuildContext builderContext
+      final PlanBuildContext buildContext
   ) {
     final TableSelect<K> step = ExecutionStepFactory.tableMapValues(
         contextStacker,

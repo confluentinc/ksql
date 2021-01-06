@@ -52,13 +52,13 @@ public final class StreamFlatMapBuilder {
   public static <K> KStreamHolder<K> build(
       final KStreamHolder<K> stream,
       final StreamFlatMap<K> step,
-      final RuntimeBuildContext queryBuilder
+      final RuntimeBuildContext buildContext
   ) {
     final List<FunctionCall> tableFunctions = step.getTableFunctions();
     final LogicalSchema schema = stream.getSchema();
     final Builder<TableFunctionApplier> tableFunctionAppliersBuilder = ImmutableList.builder();
     final CodeGenRunner codeGenRunner =
-        new CodeGenRunner(schema, queryBuilder.getKsqlConfig(), queryBuilder.getFunctionRegistry());
+        new CodeGenRunner(schema, buildContext.getKsqlConfig(), buildContext.getFunctionRegistry());
 
     for (final FunctionCall functionCall: tableFunctions) {
       final List<ExpressionMetadata> expressionMetadataList = new ArrayList<>(
@@ -69,7 +69,7 @@ public final class StreamFlatMapBuilder {
         expressionMetadataList.add(expressionMetadata);
       }
       final KsqlTableFunction tableFunction = UdtfUtil.resolveTableFunction(
-          queryBuilder.getFunctionRegistry(),
+          buildContext.getFunctionRegistry(),
           functionCall,
           schema
       );
@@ -80,7 +80,7 @@ public final class StreamFlatMapBuilder {
 
     final QueryContext queryContext = step.getProperties().getQueryContext();
 
-    final ProcessingLogger processingLogger = queryBuilder.getProcessingLogger(queryContext);
+    final ProcessingLogger processingLogger = buildContext.getProcessingLogger(queryContext);
 
     final ImmutableList<TableFunctionApplier> tableFunctionAppliers = tableFunctionAppliersBuilder
         .build();
@@ -95,7 +95,7 @@ public final class StreamFlatMapBuilder {
         buildSchema(
             stream.getSchema(),
             step.getTableFunctions(),
-            queryBuilder.getFunctionRegistry()
+            buildContext.getFunctionRegistry()
         )
     );
   }

@@ -44,7 +44,7 @@ public interface ExecutionKeyFactory<K> {
   /**
    * @return a new {@code ExecutionKeyFactory}
    */
-  ExecutionKeyFactory<K> withQueryBuilder(RuntimeBuildContext builder);
+  ExecutionKeyFactory<K> withQueryBuilder(RuntimeBuildContext buildContext);
 
   /**
    * This method can construct a new key given the old key and the
@@ -56,23 +56,23 @@ public interface ExecutionKeyFactory<K> {
    */
   K constructNewKey(K oldKey, GenericKey newKey);
 
-  static ExecutionKeyFactory<GenericKey> unwindowed(final RuntimeBuildContext queryBuilder) {
-    return new UnwindowedFactory(queryBuilder);
+  static ExecutionKeyFactory<GenericKey> unwindowed(final RuntimeBuildContext buildContext) {
+    return new UnwindowedFactory(buildContext);
   }
 
   static ExecutionKeyFactory<Windowed<GenericKey>> windowed(
-      final RuntimeBuildContext queryBuilder,
+      final RuntimeBuildContext buildContext,
       final WindowInfo windowInfo
   ) {
-    return new WindowedFactory(windowInfo, queryBuilder);
+    return new WindowedFactory(windowInfo, buildContext);
   }
 
   class UnwindowedFactory implements ExecutionKeyFactory<GenericKey> {
 
-    private final RuntimeBuildContext queryBuilder;
+    private final RuntimeBuildContext buildContext;
 
-    public UnwindowedFactory(final RuntimeBuildContext queryBuilder) {
-      this.queryBuilder = Objects.requireNonNull(queryBuilder, "queryBuilder");
+    public UnwindowedFactory(final RuntimeBuildContext buildContext) {
+      this.buildContext = Objects.requireNonNull(buildContext, "buildContext");
     }
 
     @Override
@@ -81,12 +81,14 @@ public interface ExecutionKeyFactory<K> {
         final PhysicalSchema physicalSchema,
         final QueryContext queryContext
     ) {
-      return queryBuilder.buildKeySerde(format, physicalSchema, queryContext);
+      return buildContext.buildKeySerde(format, physicalSchema, queryContext);
     }
 
     @Override
-    public ExecutionKeyFactory<GenericKey> withQueryBuilder(final RuntimeBuildContext builder) {
-      return new UnwindowedFactory(builder);
+    public ExecutionKeyFactory<GenericKey> withQueryBuilder(
+        final RuntimeBuildContext buildContext
+    ) {
+      return new UnwindowedFactory(buildContext);
     }
 
     @Override
@@ -98,14 +100,14 @@ public interface ExecutionKeyFactory<K> {
   class WindowedFactory implements ExecutionKeyFactory<Windowed<GenericKey>> {
 
     private final WindowInfo windowInfo;
-    private final RuntimeBuildContext queryBuilder;
+    private final RuntimeBuildContext buildContext;
 
     public WindowedFactory(
         final WindowInfo windowInfo,
-        final RuntimeBuildContext queryBuilder
+        final RuntimeBuildContext buildContext
     ) {
       this.windowInfo = Objects.requireNonNull(windowInfo, "windowInfo");
-      this.queryBuilder = Objects.requireNonNull(queryBuilder, "queryBuilder");
+      this.buildContext = Objects.requireNonNull(buildContext, "buildContext");
     }
 
     @Override
@@ -113,14 +115,14 @@ public interface ExecutionKeyFactory<K> {
         final FormatInfo format,
         final PhysicalSchema physicalSchema,
         final QueryContext queryContext) {
-      return queryBuilder.buildKeySerde(format, windowInfo, physicalSchema, queryContext);
+      return buildContext.buildKeySerde(format, windowInfo, physicalSchema, queryContext);
     }
 
     @Override
     public ExecutionKeyFactory<Windowed<GenericKey>> withQueryBuilder(
-        final RuntimeBuildContext builder
+        final RuntimeBuildContext buildContext
     ) {
-      return new WindowedFactory(windowInfo, builder);
+      return new WindowedFactory(windowInfo, buildContext);
     }
 
     @Override

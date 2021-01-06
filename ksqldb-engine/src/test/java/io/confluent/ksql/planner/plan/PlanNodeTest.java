@@ -150,7 +150,7 @@ public class PlanNodeTest {
     }
 
     @Override
-    public SchemaKStream<?> buildStream(final PlanBuildContext builderContext) {
+    public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
       return null;
     }
   }

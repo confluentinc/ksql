@@ -97,7 +97,7 @@ public class AggregateNodeTest {
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(new HashMap<>());
 
   @Mock
-  private PlanBuildContext builderContext;
+  private PlanBuildContext buildContext;
   @Mock
   private RuntimeBuildContext runtimeBuildContext;
   @Mock
@@ -319,9 +319,9 @@ public class AggregateNodeTest {
   }
 
   private SchemaKStream buildQuery(final AggregateNode aggregateNode, final KsqlConfig ksqlConfig) {
-    when(builderContext.getKsqlConfig()).thenReturn(ksqlConfig);
-    when(builderContext.getFunctionRegistry()).thenReturn(FUNCTION_REGISTRY);
-    when(builderContext.buildNodeContext(any())).thenAnswer(inv ->
+    when(buildContext.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(buildContext.getFunctionRegistry()).thenReturn(FUNCTION_REGISTRY);
+    when(buildContext.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker()
             .push(inv.getArgument(0).toString()));
     when(runtimeBuildContext.getKsqlConfig()).thenReturn(ksqlConfig);
@@ -330,7 +330,7 @@ public class AggregateNodeTest {
     when(runtimeBuildContext.getProcessingLogger(any())).thenReturn(processLogger);
     when(runtimeBuildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
 
-    final SchemaKTable schemaKTable = (SchemaKTable) aggregateNode.buildStream(builderContext);
+    final SchemaKTable schemaKTable = (SchemaKTable) aggregateNode.buildStream(buildContext);
     schemaKTable.getSourceTableStep().build(new KSPlanBuilder(runtimeBuildContext));
     return schemaKTable;
   }

@@ -5,6 +5,8 @@ tagline: Debug your SQL statements in ksqlDB
 description: Learn how to debug your ksqlDB applications by using the processing log
 ---
 
+# Processing log
+
 ksqlDB emits a log of record processing events, named the "processing log",
 to help you with debugging your SQL queries. As ksqlDB executes a query,
 it writes records to the processing log that detail how it processes
@@ -22,10 +24,9 @@ writing the processing log to {{ site.ak }} and consuming it as ksqlDB stream.
     for the server logs, assign the `log4j.appender.kafka_appender.Topic`
     and `log4j.logger.io.confluent.ksql` configuration settings in the ksqlDB
     Server config file. For more information, see
-    [ksqlDB Server Log Settings](../../operate-and-deploy/installation/server-config/config-reference.md#ksqldb-server-log-settings).
+    [ksqlDB Server Log Settings](/operate-and-deploy/installation/server-config/config-reference#ksqldb-server-log-settings).
 
-Logger Names
-------------
+## Logger Names
 
 The logger name identifies the logger that emits a log record. Logger
 names are hierarchical. The logger name always has the prefix
@@ -45,8 +46,7 @@ Execution plan
          > [ SOURCE ] | Schema: [PAGEVIEWS_ORIGINAL.ROWTIME : BIGINT, PAGEVIEWS_ORIGINAL.VIEWTIME : BIGINT, PAGEVIEWS_ORIGINAL.USERID : VARCHAR, PAGEVIEWS_ORIGINAL.PAGEID : VARCHAR] | Logger: processing.CSAS_PAGEVIEWS_UPPER_0.KsqlTopic
 ```
 
-Configuration Using Log4J
--------------------------
+## Configuration Using Log4J
 
 Internally, the log uses log4j to write entries, so you can configure it
 just like you would the normal ksqlDB log. All entries are written under
@@ -64,8 +64,7 @@ log4j.additivity.processing=false
 
 Restart the ksqlDB Server for the configuration change to take effect.
 
-Processing Log Security
------------------------
+## Processing Log Security
 
 By default, the record-processing log doesn't log any actual row data.
 To help you debug, you can enable including row data in log messages by
@@ -89,8 +88,7 @@ log4j.logger.processing=OFF
     as shown in
     [log4j-secure.properties](https://github.com/confluentinc/cp-demo/blob/master/scripts/helper/log4j-secure.properties).
 
-Log Schema
-----------
+## Log Schema
 
 Log entries are structured and have the following schema:
 
@@ -218,8 +216,7 @@ message.kafkaStreamsThreadError.cause (LIST<STRING>)
 :   A list of strings containing human-readable error messages
     for the chain of exceptions that caused the main error.
 
-Log Stream
-----------
+## Log Stream
 
 We recommend configuring the query processing log to write entries back
 to {{ site.ak }}. This way, you can configure ksqlDB to set up a stream over the

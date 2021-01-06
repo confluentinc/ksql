@@ -86,7 +86,7 @@ public final class PropertiesUtil {
   public static Map<String, String> toMapStrings(final Map<String, Object> props) {
     final Map<String, String> stringsProps = new HashMap<>();
     for (Map.Entry<String, Object> entry : props.entrySet()) {
-      stringsProps.put(entry.getKey(), entry.getValue().toString());
+      stringsProps.put(entry.getKey(), String.valueOf(entry.getValue()));
     }
     return stringsProps;
   }

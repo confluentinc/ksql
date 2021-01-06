@@ -21,6 +21,7 @@ import static org.easymock.EasyMock.niceMock;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -305,7 +306,7 @@ public class TestKsqlRestApp extends ExternalResource {
           () -> serviceContext.get().getSchemaRegistryClient(),
           vertx,
           InternalKsqlClientFactory.createInternalClient(
-              KsqlRestApplication.toClientProps(ksqlRestConfig.originals()),
+              PropertiesUtil.toMapStrings(ksqlRestConfig.originals()),
               SocketAddress::inetSocketAddress,
               vertx));
 

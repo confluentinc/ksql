@@ -52,6 +52,7 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
+import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.ErrorMessages;
 import io.confluent.ksql.rest.Errors;
@@ -122,7 +123,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -616,7 +616,7 @@ public final class KsqlRestApplication implements Executable {
             .setMetricsOptions(setUpHttpMetrics(ksqlConfig)));
     vertx.exceptionHandler(t -> log.error("Unhandled exception in Vert.x", t));
     final KsqlClient sharedClient = InternalKsqlClientFactory.createInternalClient(
-        toClientProps(ksqlConfig.originals()),
+        PropertiesUtil.toMapStrings(ksqlConfig.originals()),
         SocketAddress::inetSocketAddress,
         vertx
     );
@@ -1117,14 +1117,4 @@ public final class KsqlRestApplication implements Executable {
     }
     return metricsOptions;
   }
-
-  @VisibleForTesting
-  static Map<String, String> toClientProps(final Map<String, Object> config) {
-    final Map<String, String> clientProps = new HashMap<>();
-    for (Map.Entry<String, Object> entry : config.entrySet()) {
-      clientProps.put(entry.getKey(), entry.getValue().toString());
-    }
-    return clientProps;
-  }
-
 }

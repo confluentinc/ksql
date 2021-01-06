@@ -78,6 +78,20 @@ public final class PropertiesUtil {
   }
 
   /**
+   * Convert object properties values to its string form.
+   *
+   * @param props The map that contains values of different type.
+   * @return A map with all values converted to strings.
+   */
+  public static Map<String, String> toMapStrings(final Map<String, Object> props) {
+    final Map<String, String> stringsProps = new HashMap<>();
+    for (Map.Entry<String, Object> entry : props.entrySet()) {
+      stringsProps.put(entry.getKey(), String.valueOf(entry.getValue()));
+    }
+    return stringsProps;
+  }
+
+  /**
    * Apply non-blacklisted entries in the suplied {@code overrides} to the supplied {@code props}.
    *
    * @param props the props to overwrite with sys props.

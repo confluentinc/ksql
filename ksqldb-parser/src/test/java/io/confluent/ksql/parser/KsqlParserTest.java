@@ -701,7 +701,7 @@ public class KsqlParserTest {
     final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
     Assert.assertTrue(statement instanceof ListStreams);
     final ListStreams listStreams = (ListStreams) statement;
-    assertThat(listStreams.toString(), is("ListStreams{showExtended=false, showDescription=false}"));
+    assertThat(listStreams.toString(), is("ListStreams{descriptionType=BASE}"));
     assertThat(listStreams.getShowExtended(), is(false));
   }
 
@@ -711,7 +711,7 @@ public class KsqlParserTest {
     final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
     Assert.assertTrue(statement instanceof ListTables);
     final ListTables listTables = (ListTables) statement;
-    assertThat(listTables.toString(), is("ListTables{showExtended=false, showDescription=false}"));
+    assertThat(listTables.toString(), is("ListTables{descriptionType=BASE}"));
     assertThat(listTables.getShowExtended(), is(false));
   }
 
@@ -828,6 +828,7 @@ public class KsqlParserTest {
     assertThat(statement, instanceOf(ListStreams.class));
     final ListStreams listStreams = (ListStreams) statement;
     assertThat(listStreams.getShowExtended(), is(true));
+    assertThat(listStreams.getShowDescription(), is(false));
   }
 
   @Test
@@ -853,6 +854,7 @@ public class KsqlParserTest {
     assertThat(statement, instanceOf(ListTables.class));
     final ListTables listTables = (ListTables) statement;
     assertThat(listTables.getShowExtended(), is(true));
+    assertThat(listTables.getShowDescription(), is(false));
   }
 
   @Test

@@ -16,6 +16,9 @@
 package io.confluent.ksql.parser.tree;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
+import static io.confluent.ksql.parser.tree.DescriptionType.BASE;
+import static io.confluent.ksql.parser.tree.DescriptionType.DESCRIPTION;
+import static io.confluent.ksql.parser.tree.DescriptionType.EXTENDED;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
@@ -25,8 +28,7 @@ import java.util.Optional;
 @Immutable
 public class ListTables extends Statement {
 
-  private final boolean showExtended;
-  private final boolean showDescription;
+  private final DescriptionType descriptionType;
 
   public ListTables(
       final Optional<NodeLocation> location,
@@ -34,16 +36,15 @@ public class ListTables extends Statement {
       final boolean showDescription
   ) {
     super(location);
-    this.showExtended = showExtended;
-    this.showDescription = showDescription;
+    this.descriptionType = showExtended ? EXTENDED : (showDescription ? DESCRIPTION : BASE);
   }
 
   public boolean getShowExtended() {
-    return showExtended;
+    return descriptionType == EXTENDED;
   }
 
   public boolean getShowDescription() {
-    return showDescription;
+    return descriptionType == DESCRIPTION;
   }
 
   @Override
@@ -60,19 +61,18 @@ public class ListTables extends Statement {
       return false;
     }
     final ListTables that = (ListTables) o;
-    return (showExtended == that.showExtended && showDescription == that.showDescription);
+    return descriptionType == that.descriptionType;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(showExtended);
+    return Objects.hash(descriptionType);
   }
 
   @Override
   public String toString() {
     return toStringHelper(this)
-        .add("showExtended", showExtended)
-        .add("showDescription", showDescription)
+        .add("descriptionType", descriptionType)
         .toString();
   }
 }

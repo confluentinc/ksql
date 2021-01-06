@@ -26,11 +26,13 @@ import java.time.format.DateTimeFormatter;
  */
 public final class SqlTimestamps {
 
+  private static PartialStringToTimestampParser PARSER = new PartialStringToTimestampParser();
+
   private SqlTimestamps() {
   }
 
   /**
-   * Parse a SQL double from a string.
+   * Parse a SQL timestamp from a string.
    *
    * <p>Rejects {@code Infinity} and {@code Nan} as invalid.
    *
@@ -38,7 +40,7 @@ public final class SqlTimestamps {
    * @return the double value.
    */
   public static Timestamp parseTimestamp(final String str) {
-    return new PartialStringToTimestampParser().parseToTimestamp(str);
+    return PARSER.parseToTimestamp(str);
   }
 
   public static String formatTimestamp(final Timestamp timestamp) {

@@ -59,7 +59,7 @@ class KsqlDelimitedDeserializer implements Deserializer<List<?>> {
       .put(SqlBaseType.DOUBLE, t -> Double::parseDouble)
       .put(SqlBaseType.STRING, t -> v -> v)
       .put(SqlBaseType.DECIMAL, KsqlDelimitedDeserializer::decimalParser)
-      .put(SqlBaseType.TIMESTAMP,KsqlDelimitedDeserializer::dateParser)
+      .put(SqlBaseType.TIMESTAMP,KsqlDelimitedDeserializer::timestampParser)
       .build();
 
   private final CSVFormat csvFormat;
@@ -128,7 +128,7 @@ class KsqlDelimitedDeserializer implements Deserializer<List<?>> {
     return v -> DecimalUtil.ensureFit(new BigDecimal(v), decimalType);
   }
 
-  private static Parser dateParser(final SqlType sqlType) {
+  private static Parser timestampParser(final SqlType sqlType) {
     return v -> new Timestamp(Long.parseLong(v));
   }
 

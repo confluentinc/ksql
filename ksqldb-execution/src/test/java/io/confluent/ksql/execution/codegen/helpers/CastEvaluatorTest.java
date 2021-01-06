@@ -599,7 +599,7 @@ public class CastEvaluatorTest {
           is(ImmutableSet.of(
               SqlBaseType.BOOLEAN, SqlBaseType.INTEGER, SqlBaseType.BIGINT, SqlBaseType.DECIMAL,
               SqlBaseType.DOUBLE, SqlBaseType.STRING, SqlBaseType.ARRAY, MAP,
-              SqlBaseType.STRUCT, TIMESTAMP
+              SqlBaseType.STRUCT, SqlBaseType.TIMESTAMP
           ))
       );
     }
@@ -687,7 +687,7 @@ public class CastEvaluatorTest {
         .put(SqlBaseType.DECIMAL, new BigDecimal("12.01"))
         .put(SqlBaseType.DOUBLE, 34.98d)
         .put(SqlBaseType.STRING, "\t 11 \t")
-        .put(TIMESTAMP, new Timestamp(500))
+        .put(SqlBaseType.TIMESTAMP, new Timestamp(500))
         .build();
 
     static Object instanceFor(final SqlType type, final SqlType to) {
@@ -784,7 +784,7 @@ public class CastEvaluatorTest {
                 .add(SqlBaseType.DECIMAL)
                 .add(SqlBaseType.DOUBLE)
                 .add(SqlBaseType.STRING)
-                .add(TIMESTAMP)
+                .add(SqlBaseType.TIMESTAMP)
                 .build())
             .put(SqlBaseType.ARRAY, ImmutableSet.<SqlBaseType>builder()
                 .add(SqlBaseType.ARRAY)
@@ -798,8 +798,8 @@ public class CastEvaluatorTest {
                 .add(SqlBaseType.STRUCT)
                 .add(SqlBaseType.STRING)
                 .build())
-            .put(TIMESTAMP, ImmutableSet.<SqlBaseType>builder()
-                .add(TIMESTAMP)
+            .put(SqlBaseType.TIMESTAMP, ImmutableSet.<SqlBaseType>builder()
+                .add(SqlBaseType.TIMESTAMP)
                 .add(SqlBaseType.STRING)
                 .build())
             .build();

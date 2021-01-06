@@ -2,7 +2,7 @@
 
 **Author**: @jzaralim | 
 **Release Target**: 0.16 | 
-**Status**: Approved | 
+**Status**: In development | 
 **Discussion**: https://github.com/confluentinc/ksql/pull/6649
 
 **tl;dr:** _Add support for TIMESTAMP column types in ksqlDB. This will allow users to easily migrate

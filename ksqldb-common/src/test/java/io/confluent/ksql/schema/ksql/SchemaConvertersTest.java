@@ -64,7 +64,7 @@ public class SchemaConvertersTest {
   private static final Schema CONNECT_DOUBLE_SCHEMA = SchemaBuilder.float64().optional().build();
   private static final Schema CONNECT_STRING_SCHEMA = SchemaBuilder.string().optional().build();
   private static final Schema CONNECT_TIMESTAMP_SCHEMA =
-      SchemaBuilder.int64().name("org.apache.kafka.connect.data.Timestamp").version(1).optional().build();
+      org.apache.kafka.connect.data.Timestamp.builder().optional().schema();
 
   private static final BiMap<SqlType, Schema> SQL_TO_LOGICAL = ImmutableBiMap.<SqlType, Schema>builder()
       .put(SqlTypes.BOOLEAN, CONNECT_BOOLEAN_SCHEMA)

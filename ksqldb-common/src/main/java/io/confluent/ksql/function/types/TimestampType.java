@@ -23,7 +23,7 @@ public final class TimestampType extends ObjectType {
 
   @Override
   public int hashCode() {
-    return 0;
+    return 7;
   }
 
   @Override

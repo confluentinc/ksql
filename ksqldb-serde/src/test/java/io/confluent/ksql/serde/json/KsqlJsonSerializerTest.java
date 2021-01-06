@@ -93,7 +93,7 @@ public class KsqlJsonSerializerTest {
           .optional()
           .build())
       .field(DECIMALCOL, Decimal.builder(5).optional().parameter(DecimalUtil.PRECISION_FIELD, "10").build())
-      .field(TIMESTAMPCOL, SchemaBuilder.int64().name("org.apache.kafka.connect.data.Timestamp").version(1).optional().build())
+      .field(TIMESTAMPCOL, Timestamp.builder().optional().build())
       .build();
 
   private static final Schema ADDRESS_SCHEMA = SchemaBuilder.struct()

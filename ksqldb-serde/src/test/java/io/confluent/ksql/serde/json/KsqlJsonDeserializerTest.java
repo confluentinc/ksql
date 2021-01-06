@@ -89,8 +89,7 @@ public class KsqlJsonDeserializerTest {
           .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
           .optional()
           .build())
-      .field(TIMESTAMPFIELD,
-          SchemaBuilder.int64().name("org.apache.kafka.connect.data.Timestamp").version(1).optional().build())
+      .field(TIMESTAMPFIELD, Timestamp.builder().optional().build())
       .build();
 
   private static final Map<String, Object> AN_ORDER = ImmutableMap.<String, Object>builder()

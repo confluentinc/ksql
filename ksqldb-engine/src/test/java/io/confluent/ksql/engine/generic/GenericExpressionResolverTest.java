@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -22,6 +23,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.sql.Timestamp;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -29,7 +31,7 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 /**
- * NOTE: most of the funcitonal test coverage is in DefaultSqlValueCoercerTest
+ * NOTE: most of the functional test coverage is in DefaultSqlValueCoercerTest
  * or ExpressionMetadataTest, this test class just covers the functionality
  * in the GenericExpressionResolver
  */
@@ -103,5 +105,19 @@ public class GenericExpressionResolverTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Timestamp format must be yyyy-mm-ddThh:mm:ss[.S]"));
+  }
+
+  @Test
+  public void shouldParseTimestamp() {
+    // Given:
+    final SqlType type = SqlTypes.TIMESTAMP;
+    final Expression exp = new StringLiteral("2021-01-09T04:40:02");
+
+    // When:
+    Object o = new GenericExpressionResolver(type, FIELD_NAME, registry, config, "insert value").resolve(exp);
+
+    // Then:
+    assertTrue(o instanceof Timestamp);
+    assertThat(((Timestamp) o).getTime(), is(1610167202000L));
   }
 }

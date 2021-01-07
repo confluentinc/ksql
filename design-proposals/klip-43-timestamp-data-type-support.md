@@ -63,11 +63,13 @@ TIMESTAMPS will be displayed in console as strings in ISO-8601 form with millise
 |1994-11-05T13:15:30.112 |
 ```
 
-TIMESTAMPS can be represented by date strings:
+TIMESTAMPS can be represented by ISO-8601 date strings:
 
 ```roomsql
 INSERT INTO stream_name VALUES ("1994-11-05T13:15:30");
 ```
+
+Date strings with time zones will be converted to UTC.
 
 ## Design
 

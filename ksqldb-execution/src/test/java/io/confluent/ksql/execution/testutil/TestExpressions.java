@@ -34,6 +34,7 @@ public final class TestExpressions {
       .valueColumn(ColumnName.of("COL7"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("COL8"), SqlTypes.decimal(2, 1))
       .valueColumn(ColumnName.of("COL9"), SqlTypes.decimal(2, 1))
+      .valueColumn(ColumnName.of("COL10"), SqlTypes.TIMESTAMP)
       .build();
 
   public static final UnqualifiedColumnReferenceExp COL0 = columnRef("COL0");
@@ -44,6 +45,7 @@ public final class TestExpressions {
   public static final UnqualifiedColumnReferenceExp ARRAYCOL = columnRef("COL4");
   public static final UnqualifiedColumnReferenceExp MAPCOL = columnRef("COL5");
   public static final UnqualifiedColumnReferenceExp COL7 = columnRef("COL7");
+  public static final UnqualifiedColumnReferenceExp TIMESTAMPCOL = columnRef("COL10");
 
   private static UnqualifiedColumnReferenceExp columnRef(final String name) {
     return new UnqualifiedColumnReferenceExp(ColumnName.of(name));

@@ -63,6 +63,7 @@ import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Timestamp;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -1308,14 +1309,24 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeTimestampFieldToBigint() {
+  public void shouldDeserializeTimestampFieldToTimestamp() {
     shouldDeserializeFieldTypeCorrectly(
         LogicalTypes.timestampMillis().addToSchema(
             org.apache.avro.SchemaBuilder.builder().longType()),
-        ChronoUnit.MILLIS.between(
-            LocalDateTime.of(LocalDate.ofEpochDay(0), LocalTime.MIDNIGHT),
-            LocalDateTime.now()),
-        Schema.OPTIONAL_INT64_SCHEMA
+        500L,
+        Timestamp.SCHEMA,
+        new java.sql.Timestamp(500)
+    );
+  }
+
+  @Test
+  public void shouldDeserializeTimestampFieldToLong() {
+    shouldDeserializeFieldTypeCorrectly(
+        LogicalTypes.timestampMillis().addToSchema(
+            org.apache.avro.SchemaBuilder.builder().longType()),
+        500L,
+        OPTIONAL_INT64_SCHEMA,
+        500L
     );
   }
 

@@ -136,6 +136,20 @@ public class SqlTypeWalkerTest {
   }
 
   @Test
+  public void shouldVisitTimestamp() {
+    // Given:
+    final SqlPrimitiveType type = SqlTypes.TIMESTAMP;
+    when(visitor.visitTimestamp(any())).thenReturn("Expected");
+
+    // When:
+    final String result = SqlTypeWalker.visit(type, visitor);
+
+    // Then:
+    verify(visitor).visitTimestamp(same(type));
+    assertThat(result, is("Expected"));
+  }
+
+  @Test
   public void shouldVisitArray() {
     // Given:
     final SqlArray type = SqlTypes.array(SqlTypes.BIGINT);
@@ -328,7 +342,8 @@ public class SqlTypeWalkerTest {
         SqlTypes.INTEGER,
         SqlTypes.BIGINT,
         SqlTypes.DOUBLE,
-        SqlTypes.STRING
+        SqlTypes.STRING,
+        SqlTypes.TIMESTAMP
     );
   }
 

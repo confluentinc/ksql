@@ -37,6 +37,7 @@ public final class ParamTypes {
   public static final StringType STRING = StringType.INSTANCE;
   public static final LongType LONG = LongType.INSTANCE;
   public static final ParamType DECIMAL = DecimalType.INSTANCE;
+  public static final TimestampType TIMESTAMP = TimestampType.INSTANCE;
 
   public static boolean areCompatible(final SqlType actual, final ParamType declared) {
     return areCompatible(actual, declared, false);
@@ -102,6 +103,7 @@ public final class ParamTypes {
         || base == SqlBaseType.BOOLEAN  && declared instanceof BooleanType
         || base == SqlBaseType.DOUBLE   && declared instanceof DoubleType
         || base == SqlBaseType.DECIMAL  && declared instanceof DecimalType
+        || base == SqlBaseType.TIMESTAMP  && declared instanceof TimestampType
         || allowCast && base.canImplicitlyCast(functionToSqlBaseConverter().toBaseType(declared));
     // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
   }

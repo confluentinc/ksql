@@ -38,6 +38,7 @@ public class SqlTypeCodeGenTest {
         .put(SqlBaseType.DECIMAL, SqlTypes.decimal(4, 2))
         .put(SqlBaseType.DOUBLE, SqlTypes.DOUBLE)
         .put(SqlBaseType.STRING, SqlTypes.STRING)
+        .put(SqlBaseType.TIMESTAMP, SqlTypes.TIMESTAMP)
         .put(SqlBaseType.ARRAY, SqlTypes.array(SqlTypes.BIGINT))
         .put(SqlBaseType.MAP, SqlTypes.map(SqlTypes.BIGINT, SqlTypes.STRING))
         .put(SqlBaseType.STRUCT, SqlTypes.struct()

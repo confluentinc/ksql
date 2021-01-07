@@ -24,6 +24,7 @@ import static io.confluent.ksql.schema.ksql.types.SqlBaseType.INTEGER;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.MAP;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.STRING;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.STRUCT;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.TIMESTAMP;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
@@ -40,6 +41,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -295,6 +297,7 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
             .put(key(DOUBLE, DOUBLE), Coercer.PASS_THROUGH)
             // STRING:
             .put(key(STRING, STRING), Coercer.PASS_THROUGH)
+            .put(key(STRING, TIMESTAMP), parser((v, t) -> SqlTimestamps.parseTimestamp(v)))
             // ARRAY:
             .put(key(ARRAY, ARRAY), coercer(
                 DefaultSqlValueCoercer::canCoerceToArray,
@@ -310,6 +313,8 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
                 DefaultSqlValueCoercer::canCoerceToStruct,
                 DefaultSqlValueCoercer::coerceToStruct
             ))
+            // TIMESTAMP:
+            .put(key(TIMESTAMP, TIMESTAMP), Coercer.PASS_THROUGH)
             .build();
 
     private static final ImmutableMap<SupportedCoercion, Coercer> LAX_ADDITIONAL =
@@ -332,6 +337,9 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
             .put(key(STRING, DECIMAL), parser((v, t) -> DecimalUtil
                 .ensureFit(new BigDecimal(v), (SqlDecimal) t)))
             .put(key(STRING, DOUBLE), parser((v, t) -> SqlDoubles.parseDouble(v)))
+            // TIMESTAMP:
+            .put(key(TIMESTAMP, STRING), coercer((c, v, t)
+                -> Result.of(SqlTimestamps.formatTimestamp((Timestamp) v))))
             .build();
 
     private static Coercer parser(final BiFunction<String, SqlType, Object> parserFunction) {

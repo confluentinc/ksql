@@ -40,19 +40,21 @@ public class ComparisonUtilTest {
       SqlTypes.STRING,
       SqlTypes.array(SqlTypes.STRING),
       SqlTypes.map(SqlTypes.BIGINT, SqlTypes.STRING),
-      SqlTypes.struct().field("foo", SqlTypes.BIGINT).build()
+      SqlTypes.struct().field("foo", SqlTypes.BIGINT).build(),
+      SqlTypes.TIMESTAMP
   );
 
   private static final List<List<Boolean>> expectedResults = ImmutableList.of(
-      ImmutableList.of(true, false, false, false, false, false, false, false, false), // Boolean
-      ImmutableList.of(false, true, true, true, true, false, false, false, false), // Int
-      ImmutableList.of(false, true, true, true, true, false, false, false, false), // BigInt
-      ImmutableList.of(false, true, true, true, true, false, false, false, false), // Double
-      ImmutableList.of(false, true, true, true, true, false, false, false, false),  // Decimal
-      ImmutableList.of(false, false, false, false, false, true, false, false, false),  // String
-      ImmutableList.of(false, false, false, false, false, false, true, false, false), // Array
-      ImmutableList.of(false, false, false, false, false, false, false, true, false), // Map
-      ImmutableList.of(false, false, false, false, false, false, false, false, true) // Struct
+      ImmutableList.of(true, false, false, false, false, false, false, false, false, false), // Boolean
+      ImmutableList.of(false, true, true, true, true, false, false, false, false, false), // Int
+      ImmutableList.of(false, true, true, true, true, false, false, false, false, false), // BigInt
+      ImmutableList.of(false, true, true, true, true, false, false, false, false, false), // Double
+      ImmutableList.of(false, true, true, true, true, false, false, false, false, false),  // Decimal
+      ImmutableList.of(false, false, false, false, false, true, false, false, false, true),  // String
+      ImmutableList.of(false, false, false, false, false, false, true, false, false, false), // Array
+      ImmutableList.of(false, false, false, false, false, false, false, true, false, false), // Map
+      ImmutableList.of(false, false, false, false, false, false, false, false, true, false), // Struct
+      ImmutableList.of(false, false, false, false, false, true, false, false, false, true) // Timestamp
   );
 
   @Test

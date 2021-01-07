@@ -19,15 +19,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import io.confluent.ksql.function.types.ArrayType;
-import io.confluent.ksql.function.types.BooleanType;
-import io.confluent.ksql.function.types.DecimalType;
-import io.confluent.ksql.function.types.DoubleType;
 import io.confluent.ksql.function.types.GenericType;
-import io.confluent.ksql.function.types.IntegerType;
-import io.confluent.ksql.function.types.LongType;
 import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
-import io.confluent.ksql.function.types.StringType;
 import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
@@ -220,18 +214,9 @@ public final class GenericsUtil {
   }
 
   private static boolean matches(final ParamType schema, final SqlType instance) {
-    switch (instance.baseType()) {
-      case BOOLEAN: return schema instanceof BooleanType;
-      case INTEGER: return schema instanceof IntegerType;
-      case BIGINT:  return schema instanceof LongType;
-      case DECIMAL: return schema instanceof DecimalType;
-      case DOUBLE:  return schema instanceof DoubleType;
-      case STRING:  return schema instanceof StringType;
-      case ARRAY:   return schema instanceof ArrayType;
-      case MAP:     return schema instanceof MapType;
-      case STRUCT:  return schema instanceof StructType;
-      default:      return false;
-    }
+    final ParamType instanceParamType = SchemaConverters
+        .sqlToFunctionConverter().toFunctionType(instance);
+    return schema.getClass() == instanceParamType.getClass();
   }
 
   /**

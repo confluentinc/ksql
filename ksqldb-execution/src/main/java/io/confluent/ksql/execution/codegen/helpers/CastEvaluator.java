@@ -24,6 +24,7 @@ import static io.confluent.ksql.schema.ksql.types.SqlBaseType.INTEGER;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.MAP;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.STRING;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.STRUCT;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.TIMESTAMP;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
@@ -88,6 +89,7 @@ public final class CastEvaluator {
       .put(key(STRING, BIGINT), nonNullSafeCode("Long.parseLong(%s.trim())"))
       .put(key(STRING, DECIMAL), CastEvaluator::castToDecimal)
       .put(key(STRING, DOUBLE), nonNullSafeCode("SqlDoubles.parseDouble(%s.trim())"))
+      .put(key(STRING, TIMESTAMP), nonNullSafeCode("SqlTimestamps.parseTimestamp(%s.trim())"))
       // ARRAY:
       .put(key(ARRAY, ARRAY), CastEvaluator::castArrayToArray)
       .put(key(ARRAY, STRING), CastEvaluator::castToString)
@@ -97,6 +99,8 @@ public final class CastEvaluator {
       // STRUCT:
       .put(key(STRUCT, STRUCT), CastEvaluator::castStructToStruct)
       .put(key(STRUCT, STRING), CastEvaluator::castToString)
+      // TIMESTAMP:
+      .put(key(TIMESTAMP, STRING), nonNullSafeCode("SqlTimestamps.formatTimestamp(%s)"))
       .build();
 
   private CastEvaluator() {

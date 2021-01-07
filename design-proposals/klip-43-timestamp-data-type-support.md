@@ -1,8 +1,8 @@
 # KLIP-43: TIMESTAMP Data Type Support
 
 **Author**: @jzaralim | 
-**Release Target**: 0.15, 0.16 | 
-**Status**: In Discussion | 
+**Release Target**: 0.16 | 
+**Status**: In development | 
 **Discussion**: https://github.com/confluentinc/ksql/pull/6649
 
 **tl;dr:** _Add support for TIMESTAMP column types in ksqlDB. This will allow users to easily migrate
@@ -63,11 +63,13 @@ TIMESTAMPS will be displayed in console as strings in ISO-8601 form with millise
 |1994-11-05T13:15:30.112 |
 ```
 
-TIMESTAMPS can be represented by date strings:
+TIMESTAMPS can be represented by ISO-8601 date strings:
 
 ```roomsql
 INSERT INTO stream_name VALUES ("1994-11-05T13:15:30");
 ```
+
+Date strings with time zones will be converted to UTC.
 
 ## Design
 

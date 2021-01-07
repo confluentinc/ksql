@@ -30,6 +30,7 @@ import io.confluent.ksql.planner.plan.PullFilterNode;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 
 public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhysicalOperator {
 
@@ -68,15 +69,14 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
 
   @Override
   public Object next() {
-    row = (TableRow)child.next();
+    row = (TableRow) child.next();
     if (row == null) {
       return null;
     }
 
     final GenericRow intermediate = PullPhysicalOperatorUtil.getIntermediateRow(
         row, logicalNode.getAddAdditionalColumnsToIntermediateSchema());
-
-    return transformer.transform(
+    final Function<TableRow, Optional<TableRow>> transformRow = row -> transformer.transform(
         row.key(),
         intermediate,
         new PullProcessingContext(row.rowTime()))
@@ -89,8 +89,17 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
                 row.rowTime());
           }
           return Row.of(logicalNode.getIntermediateSchema(), row.key(), r, row.rowTime());
-        })
-        .orElse(Row.EMPTY_ROW);
+        });
+
+    Optional<TableRow> result = transformRow.apply(row);
+    while (result.equals(Optional.empty())) {
+      row = (TableRow)child.next();
+      if (row == null) {
+        return null;
+      }
+      result = transformRow.apply(row);
+    }
+    return result;
   }
 
   @Override

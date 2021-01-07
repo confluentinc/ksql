@@ -27,8 +27,6 @@ import java.util.Optional;
 
 public final class Row implements TableRow {
 
-  public static final Row EMPTY_ROW = new Row();
-
   private final LogicalSchema schema;
   private final GenericKey key;
   private final GenericRow value;
@@ -59,18 +57,6 @@ public final class Row implements TableRow {
     this.validator = requireNonNull(validator, "validator");
 
     validator.validate(schema, key, value);
-  }
-
-  /**
-   * Used to create an empty row for pull queries to signal the WHERE clause does not match but
-   * not end of state store iterator.
-   */
-  private Row() {
-    this.schema = null;
-    this.key = null;
-    this.value = null;
-    this.rowTime = -1;
-    this.validator = null;
   }
 
   @Override

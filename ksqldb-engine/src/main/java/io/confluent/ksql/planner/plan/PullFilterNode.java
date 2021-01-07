@@ -80,15 +80,10 @@ public class PullFilterNode extends SingleSourcePlanNode {
   private final LogicalSchema schema = getSource().getSchema();
 
   private Expression rewrittenPredicate;
-  private boolean isKeyedQuery = false;
   private Optional<WindowBounds> windowBounds;
   private List<GenericKey> keyValues;
   private Set<UnqualifiedColumnReferenceExp> keyColumns;
   private Set<UnqualifiedColumnReferenceExp> systemColumns;
-  private List<GenericKey> inKeys;
-  private BitSet seenKeys;
-  private Object[] keyContents;
-  private boolean containsINkeys;
 
   public PullFilterNode(
       final PlanNodeId id,
@@ -150,20 +145,12 @@ public class PullFilterNode extends SingleSourcePlanNode {
     return compiledWhereClause;
   }
 
-  public boolean isKeyedQuery() {
-    return isKeyedQuery;
-  }
-
   public boolean isWindowed() {
     return isWindowed;
   }
 
   public List<GenericKey> getKeyValues() {
     return keyValues;
-  }
-
-  public Set<UnqualifiedColumnReferenceExp> getKeyColumns() {
-    return keyColumns;
   }
 
   public Optional<WindowBounds> getWindowBounds() {
@@ -179,15 +166,14 @@ public class PullFilterNode extends SingleSourcePlanNode {
   }
 
   private void validateWhereClause() {
-    seenKeys = new BitSet(schema.key().size());
     final Validator validator = new Validator();
     validator.process(rewrittenPredicate, null);
-    if (!isKeyedQuery) {
+    if (!validator.isKeyedQuery) {
       throw invalidWhereClauseException("WHERE clause missing key column", isWindowed);
     }
 
-    if (!seenKeys.isEmpty() && seenKeys.cardinality() != schema.key().size()) {
-      final List<ColumnName> seenKeyNames = seenKeys
+    if (!validator.seenKeys.isEmpty() && validator.seenKeys.cardinality() != schema.key().size()) {
+      final List<ColumnName> seenKeyNames = validator.seenKeys
           .stream()
           .boxed()
           .map(i -> schema.key().get(i))
@@ -205,17 +191,23 @@ public class PullFilterNode extends SingleSourcePlanNode {
     new KeyAndSystemColsExtractor().process(rewrittenPredicate, null);
   }
 
+  /**
+   * The WHERE clause is currently limited to either having a single IN predicate
+   * or equality conditions on the keys.
+   * inKeys has the key values as specificed in the IN predicate.
+   * seenKeys is used to make sure that all columns of a multi-column
+   * key are constrained via an equality condition.
+   * keyContents has the key values for each columns of a key.
+   * @return the constrains on the key values used to to do keyed lookup.
+   */
   private List<GenericKey> extractKeyValues() {
-    inKeys = new ArrayList<>();
-    keyContents = new Object[schema.key().size()];
-    seenKeys = new BitSet(schema.key().size());
-
-    new KeyValueExtractor().process(rewrittenPredicate, null);
-    if (!inKeys.isEmpty()) {
-      return (inKeys);
+    final KeyValueExtractor keyValueExtractor = new KeyValueExtractor();
+    keyValueExtractor.process(rewrittenPredicate, null);
+    if (!keyValueExtractor.inKeys.isEmpty()) {
+      return keyValueExtractor.inKeys;
     }
 
-    return ImmutableList.of(GenericKey.fromList(Arrays.asList(keyContents)));
+    return ImmutableList.of(GenericKey.fromList(Arrays.asList(keyValueExtractor.keyContents)));
   }
 
   private WindowBounds extractWindowBounds() {
@@ -236,6 +228,15 @@ public class PullFilterNode extends SingleSourcePlanNode {
    * 6. The IN predicate cannot use multi-keys.
    */
   private final class Validator extends TraversalExpressionVisitor<Object> {
+    private final BitSet seenKeys;
+    private boolean containsINkeys;
+    private boolean isKeyedQuery;
+
+    Validator() {
+      isKeyedQuery = false;
+      seenKeys = new BitSet(schema.key().size());
+      containsINkeys = false;
+    }
 
     @Override
     public Void process(final Expression node, final Object context) {
@@ -378,6 +379,15 @@ public class PullFilterNode extends SingleSourcePlanNode {
    * Necessary so that we can do key lookups when scanning the data stores.
    */
   private final class KeyValueExtractor extends TraversalExpressionVisitor<Object> {
+    private final List<GenericKey> inKeys;
+    private final BitSet seenKeys;
+    private final Object[] keyContents;
+
+    KeyValueExtractor() {
+      inKeys = new ArrayList<>();
+      keyContents = new Object[schema.key().size()];
+      seenKeys = new BitSet(schema.key().size());
+    }
 
     @Override
     public Void visitComparisonExpression(

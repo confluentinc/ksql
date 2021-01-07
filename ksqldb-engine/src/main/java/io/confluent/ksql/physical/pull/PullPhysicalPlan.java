@@ -68,9 +68,7 @@ public class PullPhysicalPlan {
     final List<List<?>> localResult = new ArrayList<>();
     List<?> row = null;
     while ((row = (List<?>)next()) != null) {
-      if (!row.isEmpty()) {
-        localResult.add(row);
-      }
+      localResult.add(row);
     }
     close();
 

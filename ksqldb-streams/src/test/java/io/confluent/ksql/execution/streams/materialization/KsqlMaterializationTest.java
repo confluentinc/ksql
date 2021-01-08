@@ -30,7 +30,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Range;
+import com.google.common.collect.Streams;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericKey;
@@ -43,8 +46,10 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Instant;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
@@ -65,6 +70,7 @@ public class KsqlMaterializationTest {
       .build();
 
   private static final GenericKey A_KEY = GenericKey.genericKey("k");
+  private static final GenericKey A_KEY2 = GenericKey.genericKey("k2");
 
   private static final long A_ROWTIME = 12335L;
 
@@ -80,6 +86,7 @@ public class KsqlMaterializationTest {
   private static final int PARTITION = 0;
 
   private static final GenericRow A_VALUE = GenericRow.genericRow("a", "b");
+  private static final GenericRow A_VALUE2 = GenericRow.genericRow("a2", "b2");
   private static final GenericRow TRANSFORMED = GenericRow.genericRow("x", "y");
   private static final Window A_WINDOW = Window.of(Instant.now(), Instant.now().plusMillis(10));
   private static final TimeWindow STREAM_WINDOW = new TimeWindow(
@@ -94,10 +101,24 @@ public class KsqlMaterializationTest {
       A_ROWTIME
   );
 
+  private static final Row ROW2 = Row.of(
+      SCHEMA,
+      A_KEY2,
+      A_VALUE2,
+      A_ROWTIME
+  );
+
   private static final WindowedRow WINDOWED_ROW = WindowedRow.of(
       SCHEMA,
       new Windowed<>(A_KEY, STREAM_WINDOW),
       A_VALUE,
+      A_ROWTIME
+  );
+
+  private static final WindowedRow WINDOWED_ROW2 = WindowedRow.of(
+      SCHEMA,
+      new Windowed<>(A_KEY2, STREAM_WINDOW),
+      A_VALUE2,
       A_ROWTIME
   );
 
@@ -126,7 +147,10 @@ public class KsqlMaterializationTest {
     when(inner.windowed()).thenReturn(innerWindowed);
 
     when(innerNonWindowed.get(any(), anyInt())).thenReturn(Optional.of(ROW));
+    when(innerNonWindowed.get(anyInt())).thenReturn(Iterators.forArray(ROW, ROW2));
     when(innerWindowed.get(any(), anyInt(), any(), any())).thenReturn(ImmutableList.of(WINDOWED_ROW));
+    when(innerWindowed.get(anyInt(), any(), any()))
+        .thenReturn(ImmutableList.of(WINDOWED_ROW, WINDOWED_ROW2).iterator());
   }
 
   @SuppressWarnings("UnstableApiUsage")
@@ -302,6 +326,34 @@ public class KsqlMaterializationTest {
   }
 
   @Test
+  public void shouldFilterNonWindowed_fullScan() {
+    // Given:
+    final MaterializedTable table = materialization.nonWindowed();
+    givenNoopProject();
+    when(filter.apply(any(), any(), any())).thenReturn(Optional.empty());
+
+    // When:
+    final Iterator<?> result = table.get(PARTITION);
+
+    // Then:
+    assertThat(result.hasNext(), is(false));
+  }
+
+  @Test
+  public void shouldFilterWindowed_fullScan() {
+    // Given:
+    final MaterializedWindowedTable table = materialization.windowed();
+    givenNoopProject();
+    when(filter.apply(any(), any(), any())).thenReturn(Optional.empty());
+
+    // When:
+    final Iterator<?> result = table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+
+    // Then:
+    assertThat(result.hasNext(), is(false));
+  }
+
+  @Test
   public void shouldCallTransformsInOrder() {
     // Given:
     final MaterializedTable table = materialization.nonWindowed();
@@ -358,6 +410,46 @@ public class KsqlMaterializationTest {
     // Then:
     verify(filter).apply(
         new Windowed<>(A_KEY, STREAM_WINDOW),
+        TRANSFORMED,
+        new PullProcessingContext(A_ROWTIME)
+    );
+  }
+
+  @Test
+  public void shouldPipeTransforms_fullTableScan() {
+    // Given:
+    final MaterializedTable table = materialization.nonWindowed();
+    givenNoopFilter();
+    when(project.apply(any(), any(), any())).thenReturn(Optional.of(TRANSFORMED));
+
+    // When:
+    Streams.stream(table.get(PARTITION)).collect(Collectors.toList());
+
+
+    // Then:
+    verify(filter).apply(A_KEY, TRANSFORMED, new PullProcessingContext(A_ROWTIME));
+    verify(filter).apply(A_KEY2, TRANSFORMED, new PullProcessingContext(A_ROWTIME));
+  }
+
+  @Test
+  public void shouldPipeTransformsWindowed_fullTableScan() {
+    // Given:
+    final MaterializedWindowedTable table = materialization.windowed();
+    givenNoopFilter();
+    when(project.apply(any(), any(), any())).thenReturn(Optional.of(TRANSFORMED));
+
+    // When:
+    Streams.stream(table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
+        .collect(Collectors.toList());
+
+    // Then:
+    verify(filter).apply(
+        new Windowed<>(A_KEY, STREAM_WINDOW),
+        TRANSFORMED,
+        new PullProcessingContext(A_ROWTIME)
+    );
+    verify(filter).apply(
+        new Windowed<>(A_KEY2, STREAM_WINDOW),
         TRANSFORMED,
         new PullProcessingContext(A_ROWTIME)
     );

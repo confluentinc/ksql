@@ -16,6 +16,7 @@ theme:
     custom_dir: docs/overrides
     features:
       - navigation.tabs
+      - navigation.sections
 
 extra_css:
   - stylesheets/extra.css
@@ -63,27 +64,51 @@ nav:
       - Materialized cache: tutorials/materialized.md
       - Streaming ETL pipeline: tutorials/etl.md
       - Event-driven microservice: tutorials/event-driven-microservice.md
-  - Operate and Deploy:
-      - Operations Index: operate-and-deploy/index.md
-      - How it works: operate-and-deploy/how-it-works.md
+  - Production deployment:
+      - Synopsis: operate-and-deploy/index.md
+      - Plan:
+          - Distributions: production-deployment/distributions.md
+          - How it works: production-deployment/how-it-works.md
+          - Client access: production-deployment/client-access.md
+          - Multi-tenancy: production-deployment/multi-tenancy.md
+          - Capacity planning: production-deployment/capacity-planning.md
       - Deploy:
-          - Install ksqlDB: operate-and-deploy/installation/index.md
-          - Configure ksqlDB CLI: operate-and-deploy/installation/cli-config.md
-          - Configure ksqlDB with Docker: operate-and-deploy/installation/install-ksqldb-with-docker.md
-          - Install ksqlDB by using Docker: operate-and-deploy/installation/installing.md
-          - Check the Health of a ksqlDB Server: operate-and-deploy/installation/check-ksqldb-server-health.md
-          - Server Configuration:
-              - Configure ksqlDB Server: operate-and-deploy/installation/server-config/index.md
-              - Configure ksqlDB for Avro, Protobuf, and JSON schemas: operate-and-deploy/installation/server-config/avro-schema.md
-              - Configuration Parameter Reference: operate-and-deploy/installation/server-config/config-reference.md
-              - Configure Security for ksqlDB: operate-and-deploy/installation/server-config/security.md
-          - Upgrade ksqlDB: operate-and-deploy/installation/upgrading.md
-      - Monitoring: operate-and-deploy/monitoring.md
-      - Exactly once semantics: operate-and-deploy/exactly-once-semantics.md
-      - Schema Registry integration: operate-and-deploy/schema-registry-integration.md
-      - Plan Capacity: operate-and-deploy/capacity-planning.md
-      - KSQL and ksqlDB: operate-and-deploy/ksql-vs-ksqldb.md
-      - Changelog: operate-and-deploy/changelog.md
+          - Single node: production-deployment/single-node.md
+          - Clustered: production-deployment/clustered.md
+          - High availability: production-deployment/high-availability.md
+          - Docker deployments: production-deployment/docker-deployments.md
+          - Upgrade/downgrade: production-deployment/upgrade-downgrade.md
+          - Durability: production-deployment/durability.md
+          - Security: production-deployment/security.md
+          - Schema Registry integration: production-deployment/schema-registry-integration.md
+      - Operate:
+          - Running persistent queries: production-deployment/running-persistent-queries.md
+          - Scaling: production-deployment/scaling.md
+          - Monitoring: production-deployment/monitoring.md
+          - Logging: production-deployment/logging.md
+          - Healthchecks: production-deployment/healthchecks.md
+          - Disaster recovery: production-deployment/disaster-recovery.md
+          - Exactly-once semantics: production-deployment/exactly-once-semantics.md
+
+      # - How it works: operate-and-deploy/how-it-works.md
+      # - Deploy:
+      #     - Install ksqlDB: operate-and-deploy/installation/index.md
+      #     - Configure ksqlDB CLI: operate-and-deploy/installation/cli-config.md
+      #     - Configure ksqlDB with Docker: operate-and-deploy/installation/install-ksqldb-with-docker.md
+      #     - Install ksqlDB by using Docker: operate-and-deploy/installation/installing.md
+      #     - Check the Health of a ksqlDB Server: operate-and-deploy/installation/check-ksqldb-server-health.md
+      #     - Server Configuration:
+      #         - Configure ksqlDB Server: operate-and-deploy/installation/server-config/index.md
+      #         - Configure ksqlDB for Avro, Protobuf, and JSON schemas: operate-and-deploy/installation/server-config/avro-schema.md
+      #         - Configuration Parameter Reference: operate-and-deploy/installation/server-config/config-reference.md
+      #         - Configure Security for ksqlDB: operate-and-deploy/installation/server-config/security.md
+      #     - Upgrade ksqlDB: operate-and-deploy/installation/upgrading.md
+      # - Monitoring: operate-and-deploy/monitoring.md
+      # - Exactly once semantics: operate-and-deploy/exactly-once-semantics.md
+      # - Schema Registry integration: operate-and-deploy/schema-registry-integration.md
+      # - Plan Capacity: operate-and-deploy/capacity-planning.md
+      # - KSQL and ksqlDB: operate-and-deploy/ksql-vs-ksqldb.md
+      # - Changelog: operate-and-deploy/changelog.md
   - Reference:
     - Synopsis: reference/index.md
     - The SQL language:

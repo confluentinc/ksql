@@ -12,6 +12,7 @@ Because SQL has a type system that is independent from Java’s, user-defined fu
 | `DOUBLE`  | `double`, `java.lang.Double`          |
 | `DECIMAL` | `java.math.BigDecimal`                |
 | `VARCHAR` | `java.lang.String`                    |
+|`TIMESTAMP`| `java.sql.Timestamp`                |
 | `ARRAY`   | `java.util.List`                      |
 | `MAP`     | `java.util.Map`                       |
 | `STRUCT`  | `org.apache.kafka.connect.data.Struct`|

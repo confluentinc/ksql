@@ -221,6 +221,18 @@ Stream
 Return the minimum value for a given column and window.
 Rows that have `col1` set to null are ignored.
 
+## `STD_DEV_SAMP`
+
+Since: -
+
+```sql
+STD_DEV_SAMP(col1)
+```
+
+Stream, Table
+
+Returns the sample standard deviation for the column.
+
 ## `SUM`
 
 Since: -

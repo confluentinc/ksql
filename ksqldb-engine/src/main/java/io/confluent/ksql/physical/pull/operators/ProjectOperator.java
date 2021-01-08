@@ -18,7 +18,6 @@ package io.confluent.ksql.physical.pull.operators;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
-import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.TableRow;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper;
@@ -28,7 +27,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -81,9 +79,7 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
     row = (TableRow)child.next();
     if (row == null) {
       return null;
-    } else if (row == Row.EMPTY_ROW) {
-      return Collections.emptyList();
-    }
+    } 
 
     final GenericRow intermediate = PullPhysicalOperatorUtil.getIntermediateRow(
         row, logicalNode.getAddAdditionalColumnsToIntermediateSchema());

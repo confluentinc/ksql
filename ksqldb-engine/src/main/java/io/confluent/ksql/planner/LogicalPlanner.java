@@ -197,6 +197,10 @@ public class LogicalPlanner {
           metaStore,
           ksqlConfig,
           isWindowed);
+    } else {
+      if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED)) {
+        throw PullFilterNode.invalidWhereClauseException("Missing WHERE clause", isWindowed);
+      }
     }
 
     currentNode = new PullProjectNode(

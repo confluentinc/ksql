@@ -69,7 +69,7 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
 
   @Override
   public Object next() {
-    row = (TableRow) child.next();
+    row = (TableRow)child.next();
     if (row == null) {
       return null;
     }
@@ -99,7 +99,7 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
       }
       result = transformRow.apply(row);
     }
-    return result;
+    return result.get();
   }
 
   @Override

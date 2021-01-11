@@ -32,10 +32,6 @@ public class PullQueryValidator implements QueryValidator {
 
   private static final List<Rule> RULES = ImmutableList.of(
       Rule.of(
-          analysis -> analysis.getWhereExpression().isPresent(),
-          "Missing WHERE clause."
-      ),
-      Rule.of(
           analysis -> !analysis.getInto().isPresent(),
           "Pull queries don't support output to sinks."
       ),

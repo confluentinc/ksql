@@ -194,7 +194,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
   /**
    * The WHERE clause is currently limited to either having a single IN predicate
    * or equality conditions on the keys.
-   * inKeys has the key values as specificed in the IN predicate.
+   * inKeys has the key values as specified in the IN predicate.
    * seenKeys is used to make sure that all columns of a multi-column
    * key are constrained via an equality condition.
    * keyContents has the key values for each columns of a key.
@@ -467,7 +467,8 @@ public class PullFilterNode extends SingleSourcePlanNode {
    * 1. An equality bound cannot be combined with other bounds.
    * 2. No duplicate bounds are allowed, such as multiple greater than bounds.
    */
-  private final class WindowBoundsExtractor extends TraversalExpressionVisitor<WindowBounds> {
+  private static final class WindowBoundsExtractor
+      extends TraversalExpressionVisitor<WindowBounds> {
 
     @Override
     public Void visitComparisonExpression(
@@ -597,7 +598,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
     }
   }
 
-  private KsqlException invalidWhereClauseException(
+  public static KsqlException invalidWhereClauseException(
       final String msg,
       final boolean windowed
   ) {

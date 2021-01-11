@@ -57,25 +57,8 @@ public class PullQueryValidatorTest {
   @Before
   public void setUp() {
     validator = new PullQueryValidator();
-    when(analysis.getWhereExpression()).thenReturn(Optional.of(AN_EXPRESSION));
     when(analysis.getRefinementInfo()).thenReturn(Optional.of(RefinementInfo.of(OutputRefinement.FINAL)));
   }
-
-  @Test
-  public void shouldThrowOnPullQueryMissingWhereClause() {
-    // Given:
-    when(analysis.getWhereExpression()).thenReturn(Optional.empty());
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> validator.validate(analysis)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("Missing WHERE clause."));
-  }
-
 
   @Test
   public void shouldThrowOnPullQueryThatHasRefinement() {

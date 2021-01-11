@@ -43,6 +43,7 @@ import io.confluent.ksql.planner.plan.PullFilterNode;
 import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds;
 import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
@@ -65,15 +66,18 @@ public class PullPhysicalPlanBuilder {
   private final PersistentQueryMetadata persistentQueryMetadata;
   private final QueryId queryId;
   private final Materialization mat;
+  private final KsqlConfig ksqlConfig;
 
   private List<GenericKey> keys;
   private boolean isWindowed;
   private Optional<WindowBounds> windowBounds;
+  private boolean seenSelectOperator = false;
 
   public PullPhysicalPlanBuilder(
       final ProcessingLogContext processingLogContext,
       final PersistentQueryMetadata persistentQueryMetadata,
-      final ImmutableAnalysis analysis
+      final ImmutableAnalysis analysis,
+      final KsqlConfig ksqlConfig
   ) {
     this.processingLogContext = Objects.requireNonNull(
         processingLogContext, "processingLogContext");
@@ -84,6 +88,7 @@ public class PullPhysicalPlanBuilder {
     mat = this.persistentQueryMetadata
         .getMaterialization(queryId, contextStacker)
         .orElseThrow(() -> notMaterializedException(getSourceName(analysis)));
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
   }
 
   /**
@@ -93,6 +98,7 @@ public class PullPhysicalPlanBuilder {
    */
   public PullPhysicalPlan buildPullPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
     DataSourceOperator dataSourceOperator = null;
+
     final OutputNode outputNode = logicalPlanNode.getNode()
         .orElseThrow(() -> new IllegalArgumentException("Need an output node to build a plan"));
 
@@ -105,12 +111,12 @@ public class PullPhysicalPlanBuilder {
     AbstractPhysicalOperator prevPhysicalOp = null;
     AbstractPhysicalOperator rootPhysicalOp = null;
     while (true) {
-
       AbstractPhysicalOperator currentPhysicalOp = null;
       if (currentLogicalNode instanceof PullProjectNode) {
         currentPhysicalOp = translateProjectNode((PullProjectNode)currentLogicalNode);
       } else if (currentLogicalNode instanceof PullFilterNode) {
         currentPhysicalOp = translateFilterNode((PullFilterNode) currentLogicalNode);
+        seenSelectOperator = true;
       } else if (currentLogicalNode instanceof DataSourceNode) {
         currentPhysicalOp = translateDataSourceNode(
             (DataSourceNode) currentLogicalNode);
@@ -180,6 +186,14 @@ public class PullPhysicalPlanBuilder {
   private AbstractPhysicalOperator translateDataSourceNode(
       final DataSourceNode logicalNode
   ) {
+    if (!seenSelectOperator) {
+      keys = Collections.emptyList();
+      if (!isWindowed) {
+        return new TableScanOperator(mat, logicalNode);
+      } else {
+        return new WindowedTableScanOperator(mat, logicalNode);
+      }
+    }
     if (!isWindowed) {
       return new KeyedTableLookupOperator(mat, logicalNode);
     } else {

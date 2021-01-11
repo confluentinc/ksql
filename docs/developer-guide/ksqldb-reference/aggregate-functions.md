@@ -223,7 +223,7 @@ Rows that have `col1` set to null are ignored.
 
 ## `STD_DEV_SAMP`
 
-Since: -
+Since: - 0.15.0
 
 ```sql
 STD_DEV_SAMP(col1)

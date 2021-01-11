@@ -4,7 +4,7 @@
 
 
 
-###Highlights
+### Highlights
 * Add support for IN clause to pull queries ([#6409](https://github.com/confluentinc/ksql/pull/6409)) ([d5fc365](https://github.com/confluentinc/ksql/commit/d5fc3658a8d7df1fe267a416dfcd3e0721b8a9c4))
 * Add support for ALTER STREAM|TABLE ([#6400](https://github.com/confluentinc/ksql/pull/6400)) ([a58e041](https://github.com/confluentinc/ksql/commit/a58e041cba721a1ad5f28bb0be1c792cb73bec14))
 * support variable substitution in SQL statements ([#6504](https://github.com/confluentinc/ksql/pull/6504)) ([e185c1f](https://github.com/confluentinc/ksql/commit/e185c1fcf86821f5024e51736a77c6f2876fb9ab))

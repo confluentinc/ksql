@@ -1021,11 +1021,15 @@ may differ depending on the local time of different ksqlDB Server instances.
 Since: 0.6.0
 
 ```sql
-UNIX_TIMESTAMP()
+UNIX_TIMESTAMP([timestamp])
 ```
 
-Gets the Unix timestamp in milliseconds, represented as a BIGINT. The returned
-timestamp may differ depending on the local time of different ksqlDB Server instances.
+If `UNIX_TIMESTAMP` is called with the timestamp parameter, the function returns the TIMESTAMP
+value as a BIGINT value representing the number of milliseconds since `1970-01-01T00:00:00 UTC`.
+
+If the `timestamp` parameter is not provided, it returns the current Unix timestamp in milliseconds,
+represented as a BIGINT. The returned timestamp may differ depending on the local time of different
+ksqlDB Server instances.
 
 ### `DATETOSTRING`
 
@@ -1059,6 +1063,8 @@ quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
 
 Since: -
 
+Deprecated since 0.16.0
+
 ```sql
 STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
 ```
@@ -1080,6 +1086,8 @@ more information on timestamp formats, see
 
 Since: -
 
+Deprecated since 0.16.0
+
 ```sql
 TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
 ```
@@ -1095,6 +1103,52 @@ java.util.TimeZone ID format, for example: "UTC",
 "America/Los_Angeles", "PDT", "Europe/London". For
 more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `FORMATTIMESTAMP`
+
+```sql
+FORMATTIMESTAMP(timestamp, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
+```
+
+Converts a TIMESTAMP value into the string representation of the timestamp in the given format.
+Single quotes in the timestamp format can be escaped with two successive single quotes, `''`, for
+example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
+
+TIMEZONE is an optional parameter and it is a java.util.TimeZone ID format, for example: "UTC",
+"America/Los_Angeles", "PDT", "Europe/London". For more information on timestamp formats, see
+[DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `PARSETIMESTAMP`
+
+```sql
+PARSETIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
+```
+
+Converts a string value in the given format into the TIMESTAMP value. Single quotes in the timestamp
+format can be escaped with two successive single quotes, `''`, for example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
+
+TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, for example: "UTC",
+"America/Los_Angeles", "PDT", "Europe/London". For more information on timestamp formats, see
+[DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `CONVERT_TZ`
+
+```sql
+CONVERT_TZ(col1, 'from_timezone' 'to_timezone')
+```
+
+Converts a TIMESTAMP value from `from_timezone` to `to_timezone`. `from_timezone` and
+`to_timezone` are `java.util.TimeZone` ID formats, for example: "UTC", "America/Los_Angeles",
+"PDT","Europe/London". For more information on timestamp formats,
+see [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `FROM_UNIXTIME`
+
+```sql
+FROM_UNIXTIME(milliseconds)
+```
+
+Converts a BIGINT millisecond timestamp value into a TIMESTAMP value.
 
 ## URLs
 

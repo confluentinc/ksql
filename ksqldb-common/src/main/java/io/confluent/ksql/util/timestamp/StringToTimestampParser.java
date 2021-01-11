@@ -17,6 +17,7 @@ package io.confluent.ksql.util.timestamp;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.util.KsqlException;
+import java.sql.Timestamp;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -38,6 +39,25 @@ public class StringToTimestampParser {
 
   public StringToTimestampParser(final String pattern) {
     formatter = DateTimeFormatter.ofPattern(pattern, Locale.ROOT);
+  }
+
+  /**
+   * Parse with a default time zone of {@code ZoneId#systemDefault}
+   *
+   * @see #parse(String, ZoneId)
+   */
+  public Timestamp parseToTimestamp(final String text) {
+    return parseToTimestamp(text, ZoneId.systemDefault());
+  }
+
+  /**
+   * @param text    the textual representation of the timestamp
+   * @param zoneId  the zoneId to use, if none present in {@code text}
+   *
+   * @return the millis since epoch that {@code text} represents
+   */
+  public Timestamp parseToTimestamp(final String text, final ZoneId zoneId) {
+    return Timestamp.from(parseZoned(text, zoneId).toInstant());
   }
 
   /**

@@ -38,19 +38,19 @@ public final class StandardDeviationSampUdaf {
   private static final String M2 = "M2";
   private static final Schema STRUCT_LONG = SchemaBuilder.struct().optional()
       .field(SUM, Schema.OPTIONAL_INT64_SCHEMA)
-      .field(COUNT, Schema.OPTIONAL_INT32_SCHEMA)
+      .field(COUNT, Schema.OPTIONAL_INT64_SCHEMA)
       .field(M2, Schema.OPTIONAL_FLOAT64_SCHEMA)
       .build();
 
   private static final Schema STRUCT_INT = SchemaBuilder.struct().optional()
       .field(SUM, Schema.OPTIONAL_INT32_SCHEMA)
-      .field(COUNT, Schema.OPTIONAL_INT32_SCHEMA)
+      .field(COUNT, Schema.OPTIONAL_INT64_SCHEMA)
       .field(M2, Schema.OPTIONAL_FLOAT64_SCHEMA)
       .build();
 
   private static final Schema STRUCT_DOUBLE = SchemaBuilder.struct().optional()
       .field(SUM, Schema.OPTIONAL_FLOAT64_SCHEMA)
-      .field(COUNT, Schema.OPTIONAL_INT32_SCHEMA)
+      .field(COUNT, Schema.OPTIONAL_INT64_SCHEMA)
       .field(M2, Schema.OPTIONAL_FLOAT64_SCHEMA)
       .build();
 
@@ -58,53 +58,50 @@ public final class StandardDeviationSampUdaf {
   }
 
   @UdafFactory(description = "Compute sample standard deviation of column with type Long.",
-      aggregateSchema = "STRUCT<SUM bigint, COUNT integer, M2 double>")
+      aggregateSchema = "STRUCT<SUM bigint, COUNT bigint, M2 double>")
   public static TableUdaf<Long, Struct, Double> stdDevLong() {
     return getStdDevImplementation(
         0L,
         STRUCT_LONG,
         (agg, newValue) -> newValue + agg.getInt64(SUM),
         (agg, newValue) ->
-            Double.valueOf(newValue * (agg.getInt32(COUNT) + 1) - (agg.getInt64(SUM) + newValue)),
-        (agg, count) -> agg.getFloat64(M2) / (count - 1),
+            Double.valueOf(newValue * (agg.getInt64(COUNT) + 1) - (agg.getInt64(SUM) + newValue)),
         (agg1, agg2) ->
             Double.valueOf(
-                agg1.getInt64(SUM) / agg1.getInt32(COUNT)
-                    - agg2.getInt64(SUM) / agg2.getInt32(COUNT)),
+                agg1.getInt64(SUM) / agg1.getInt64(COUNT)
+                    - agg2.getInt64(SUM) / agg2.getInt64(COUNT)),
         (agg1, agg2) -> agg1.getInt64(SUM) + agg2.getInt64(SUM),
         (agg, valueToRemove) -> agg.getInt64(SUM) - valueToRemove);
   }
 
   @UdafFactory(description = "Compute sample standard deviation of column with type Integer.",
-      aggregateSchema = "STRUCT<SUM integer, COUNT integer, M2 double>")
+      aggregateSchema = "STRUCT<SUM integer, COUNT bigint, M2 double>")
   public static TableUdaf<Integer, Struct, Double> stdDevInt() {
     return getStdDevImplementation(
         0,
         STRUCT_INT,
         (agg, newValue) -> newValue + agg.getInt32(SUM),
         (agg, newValue) ->
-            Double.valueOf(newValue * (agg.getInt32(COUNT) + 1) - (agg.getInt32(SUM) + newValue)),
-        (agg, count) -> agg.getFloat64(M2) / (count - 1),
+            Double.valueOf(newValue * (agg.getInt64(COUNT) + 1) - (agg.getInt32(SUM) + newValue)),
         (agg1, agg2) ->
             Double.valueOf(
-                agg1.getInt32(SUM) / agg1.getInt32(COUNT)
-                    - agg2.getInt32(SUM) / agg2.getInt32(COUNT)),
+                agg1.getInt32(SUM) / agg1.getInt64(COUNT)
+                    - agg2.getInt32(SUM) / agg2.getInt64(COUNT)),
         (agg1, agg2) -> agg1.getInt32(SUM) + agg2.getInt32(SUM),
         (agg, valueToRemove) -> agg.getInt32(SUM) - valueToRemove);
   }
 
   @UdafFactory(description = "Compute sample standard deviation of column with type Double.",
-      aggregateSchema = "STRUCT<SUM double, COUNT integer, M2 double>")
+      aggregateSchema = "STRUCT<SUM double, COUNT bigint, M2 double>")
   public static TableUdaf<Double, Struct, Double> stdDevDouble() {
     return getStdDevImplementation(
         0.0,
         STRUCT_DOUBLE,
         (agg, newValue) -> newValue + agg.getFloat64(SUM),
-        (agg, newValue) -> newValue * (agg.getInt32(COUNT) + 1) - (agg.getFloat64(SUM) + newValue),
-        (agg, count) -> agg.getFloat64(M2) / (count - 1),
+        (agg, newValue) -> newValue * (agg.getInt64(COUNT) + 1) - (agg.getFloat64(SUM) + newValue),
         (agg1, agg2) ->
-            agg1.getFloat64(SUM) / agg1.getInt32(COUNT)
-                - agg2.getFloat64(SUM) / agg2.getInt32(COUNT),
+            agg1.getFloat64(SUM) / agg1.getInt64(COUNT)
+                - agg2.getFloat64(SUM) / agg2.getInt64(COUNT),
         (agg1, agg2) -> agg1.getFloat64(SUM) + agg2.getFloat64(SUM),
         (agg, valueToRemove) -> agg.getFloat64(SUM) - valueToRemove);
   }
@@ -114,7 +111,6 @@ public final class StandardDeviationSampUdaf {
       final Schema structSchema,
       final BiFunction<Struct, I, I> add,
       final BiFunction<Struct, I, Double> createDelta,
-      final BiFunction<Struct, Double, Double> mapper,
       final BiFunction<Struct, Struct, Double> mergeInner,
       final BiFunction<Struct, Struct, I> mergeSum,
       final BiFunction<Struct, I, I> undoSum) {
@@ -122,7 +118,7 @@ public final class StandardDeviationSampUdaf {
 
       @Override
       public Struct initialize() {
-        return new Struct(structSchema).put(SUM, initialValue).put(COUNT, 0).put(M2, 0.0);
+        return new Struct(structSchema).put(SUM, initialValue).put(COUNT, 0L).put(M2, 0.0);
       }
 
       @Override
@@ -131,7 +127,7 @@ public final class StandardDeviationSampUdaf {
         if (newValue == null) {
           return aggregate;
         }
-        final int newCount = aggregate.getInt32(COUNT) + 1;
+        final long newCount = aggregate.getInt64(COUNT) + 1;
         final double newM2;
 
         if (newCount - 1 > 0) {
@@ -150,12 +146,12 @@ public final class StandardDeviationSampUdaf {
 
       @Override
       public Struct merge(final Struct aggOne, final Struct aggTwo) {
-        final int countOne = aggOne.getInt32(COUNT);
-        final int countTwo = aggTwo.getInt32(COUNT);
+        final long countOne = aggOne.getInt64(COUNT);
+        final long countTwo = aggTwo.getInt64(COUNT);
 
         final double m2One = aggOne.getFloat64(M2);
         final double m2Two = aggTwo.getFloat64(M2);
-        final int newCount = countOne + countTwo;
+        final long newCount = countOne + countTwo;
         final double newM2;
 
         if (countOne == 0 || countTwo == 0) {
@@ -173,11 +169,11 @@ public final class StandardDeviationSampUdaf {
 
       @Override
       public Double map(final Struct aggregate) {
-        final long count = aggregate.getInt32(COUNT);
+        final long count = aggregate.getInt64(COUNT);
         if (count < 2) {
           return 0.0;
         }
-        return mapper.apply(aggregate, (double) count);
+        return aggregate.getFloat64(M2) / (count - 1);
       }
 
       @Override
@@ -185,7 +181,7 @@ public final class StandardDeviationSampUdaf {
         if (valueToUndo == null) {
           return aggregate;
         }
-        final int newCount = aggregate.getInt32(COUNT) - 1;
+        final long newCount = aggregate.getInt64(COUNT) - 1;
         final double newM2;
         if (newCount > 0) {
           final double delta = createDelta.apply(aggregate, valueToUndo);

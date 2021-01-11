@@ -40,7 +40,7 @@ public class StandardDeviationSampUdafTest {
     for (final Long thisValue : values) {
       agg = udaf.aggregate(thisValue, agg);
     }
-    assertThat(agg.getInt32(COUNT), equalTo(5));
+    assertThat(agg.getInt64(COUNT), equalTo(5L));
     assertThat(agg.getInt64(SUM), equalTo(15L));
     assertThat(agg.getFloat64(M2), equalTo(10.0));
 
@@ -56,7 +56,7 @@ public class StandardDeviationSampUdafTest {
     for (final Integer thisValue : values) {
       agg = udaf.aggregate(thisValue, agg);
     }
-    assertThat(agg.getInt32(COUNT), equalTo(4));
+    assertThat(agg.getInt64(COUNT), equalTo(4L));
     assertThat(agg.getInt32(SUM), equalTo(21));
     assertThat(agg.getFloat64(M2), equalTo(8.75));
 
@@ -72,7 +72,7 @@ public class StandardDeviationSampUdafTest {
     for (final Double thisValue : values) {
       agg = udaf.aggregate(thisValue, agg);
     }
-    assertThat(agg.getInt32(COUNT), equalTo(4));
+    assertThat(agg.getInt64(COUNT), equalTo(4L));
     assertThat(agg.getFloat64(SUM), equalTo(55.900000000000006));
     assertThat(agg.getFloat64(M2), equalTo(29.48749999999999));
 
@@ -133,7 +133,7 @@ public class StandardDeviationSampUdafTest {
 
     final Struct merged = udaf.merge(left, right);
 
-    assertThat(merged.getInt32(COUNT), equalTo(8));
+    assertThat(merged.getInt64(COUNT), equalTo(8L));
     assertThat(merged.getInt64(SUM), equalTo(20L));
     assertThat(merged.getFloat64(M2), equalTo(18.166666666666664));
 
@@ -159,7 +159,7 @@ public class StandardDeviationSampUdafTest {
 
     final Struct merged = udaf.merge(left, right);
 
-    assertThat(merged.getInt32(COUNT), equalTo(6));
+    assertThat(merged.getInt64(COUNT), equalTo(6L));
     assertThat(merged.getInt32(SUM), equalTo(45));
     assertThat(merged.getFloat64(M2), equalTo(17.333333333333332));
 
@@ -185,7 +185,7 @@ public class StandardDeviationSampUdafTest {
 
     final Struct merged = udaf.merge(left, right);
 
-    assertThat(merged.getInt32(COUNT), equalTo(6));
+    assertThat(merged.getInt64(COUNT), equalTo(6L));
     assertThat(merged.getFloat64(SUM), equalTo(48.0));
     assertThat(merged.getFloat64(M2), equalTo(21.240000000000006));
 
@@ -201,7 +201,7 @@ public class StandardDeviationSampUdafTest {
     for (final Long thisValue : values) {
       agg = udaf.aggregate(thisValue, agg);
     }
-    assertThat(agg.getInt32(COUNT), equalTo(5));
+    assertThat(agg.getInt64(COUNT), equalTo(5L));
     assertThat(agg.getInt64(SUM), equalTo(15L));
     assertThat(agg.getFloat64(M2), equalTo(10.0));
 
@@ -210,7 +210,7 @@ public class StandardDeviationSampUdafTest {
 
     agg = udaf.undo(2L, agg);
 
-    assertThat(agg.getInt32(COUNT), equalTo(4));
+    assertThat(agg.getInt64(COUNT), equalTo(4L));
     assertThat(agg.getInt64(SUM), equalTo(13L));
     assertThat(agg.getFloat64(M2), equalTo(8.75));
 

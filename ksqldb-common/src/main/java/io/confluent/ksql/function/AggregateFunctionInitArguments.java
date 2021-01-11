@@ -40,9 +40,8 @@ public class AggregateFunctionInitArguments {
   /**
    * This method should only be used for legacy "built-in" UDAF
    * implementations that implement AggregateFunctionFactory directly
-   * such as TopKAggregateFuncitonFactory.
-   *
-   * Otherwise, the config will not be properly passed through
+   * such as TopKAggregateFuncitonFactory. Otherwise, the config will
+   * not be properly passed through to the aggregate function.
    */
   public AggregateFunctionInitArguments(
       final int index,

@@ -32,7 +32,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -45,11 +44,12 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
-import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
@@ -65,6 +65,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -209,7 +210,8 @@ public class StreamAggregateBuilderTest {
     when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(buildContext.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(aggregateParamsFactory.create(any(), any(), any(), any(), anyBoolean()))
+    when(buildContext.getKsqlConfig()).thenReturn(KsqlConfig.EMPTY);
+    when(aggregateParamsFactory.create(any(), any(), any(), any(), anyBoolean(), any()))
         .thenReturn(aggregateParams);
     when(aggregateParams.getAggregator()).thenReturn((KudafAggregator) aggregator);
     when(aggregateParams.getAggregateSchema()).thenReturn(AGGREGATE_SCHEMA);
@@ -429,7 +431,8 @@ public class StreamAggregateBuilderTest {
         NON_AGG_COLUMNS,
         functionRegistry,
         FUNCTIONS,
-        false
+        false,
+        KsqlConfig.EMPTY
     );
   }
 
@@ -659,7 +662,7 @@ public class StreamAggregateBuilderTest {
           aggregated,
           aggregateParamsFactory
       );
-      when(aggregateParamsFactory.create(any(), any(), any(), any(), anyBoolean()))
+      when(aggregateParamsFactory.create(any(), any(), any(), any(), anyBoolean(), any()))
           .thenReturn(aggregateParams);
       given.run();
 
@@ -668,7 +671,7 @@ public class StreamAggregateBuilderTest {
 
       // Then:
       verify(aggregateParamsFactory)
-          .create(INPUT_SCHEMA, NON_AGG_COLUMNS, functionRegistry, FUNCTIONS, true);
+          .create(INPUT_SCHEMA, NON_AGG_COLUMNS, functionRegistry, FUNCTIONS, true, KsqlConfig.EMPTY);
     }
   }
 

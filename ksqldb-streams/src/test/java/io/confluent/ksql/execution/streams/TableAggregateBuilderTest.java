@@ -57,6 +57,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
@@ -159,7 +160,8 @@ public class TableAggregateBuilderTest {
     when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(buildContext.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(aggregateParamsFactory.createUndoable(any(), any(), any(), any()))
+    when(buildContext.getKsqlConfig()).thenReturn(KsqlConfig.EMPTY);
+    when(aggregateParamsFactory.createUndoable(any(), any(), any(), any(), any()))
         .thenReturn(aggregateParams);
     when(aggregateParams.getAggregator()).thenReturn((KudafAggregator)aggregator);
     when(aggregateParams.getUndoAggregator()).thenReturn(Optional.of(undoAggregator));
@@ -267,7 +269,8 @@ public class TableAggregateBuilderTest {
         INPUT_SCHEMA,
         NON_AGG_COLUMNS,
         functionRegistry,
-        FUNCTIONS
+        FUNCTIONS,
+        KsqlConfig.EMPTY
     );
   }
 

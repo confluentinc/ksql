@@ -31,6 +31,7 @@ import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -60,9 +61,10 @@ public class AggregateParamsFactory {
       final LogicalSchema schema,
       final List<ColumnName> nonAggregateColumns,
       final FunctionRegistry functionRegistry,
-      final List<FunctionCall> functionList
+      final List<FunctionCall> functionList,
+      final KsqlConfig config
   ) {
-    return create(schema, nonAggregateColumns, functionRegistry, functionList, true, false);
+    return create(schema, nonAggregateColumns, functionRegistry, functionList, true, false, config);
   }
 
   public AggregateParams create(
@@ -70,7 +72,8 @@ public class AggregateParamsFactory {
       final List<ColumnName> nonAggregateColumns,
       final FunctionRegistry functionRegistry,
       final List<FunctionCall> functionList,
-      final boolean windowedAggregation
+      final boolean windowedAggregation,
+      final KsqlConfig config
   ) {
     return create(
         schema,
@@ -78,7 +81,8 @@ public class AggregateParamsFactory {
         functionRegistry,
         functionList,
         false,
-        windowedAggregation
+        windowedAggregation,
+        config
     );
   }
 
@@ -88,10 +92,11 @@ public class AggregateParamsFactory {
       final FunctionRegistry functionRegistry,
       final List<FunctionCall> functionList,
       final boolean table,
-      final boolean windowedAggregation
+      final boolean windowedAggregation,
+      final KsqlConfig config
   ) {
     final List<KsqlAggregateFunction<?, ?, ?>> functions =
-        resolveAggregateFunctions(schema, functionRegistry, functionList);
+        resolveAggregateFunctions(schema, functionRegistry, functionList, config);
 
     final List<Supplier<?>> initialValueSuppliers = functions.stream()
         .map(KsqlAggregateFunction::getInitialValueSupplier)
@@ -134,14 +139,17 @@ public class AggregateParamsFactory {
   private static List<KsqlAggregateFunction<?, ?, ?>> resolveAggregateFunctions(
       final LogicalSchema schema,
       final FunctionRegistry functionRegistry,
-      final List<FunctionCall> functionList
+      final List<FunctionCall> functionList,
+      final KsqlConfig config
   ) {
     return ImmutableList.copyOf(
         functionList.stream().map(
             funcCall -> UdafUtil.resolveAggregateFunction(
                 functionRegistry,
                 funcCall,
-                schema)
+                schema,
+                config
+            )
         ).collect(Collectors.toList()));
   }
 

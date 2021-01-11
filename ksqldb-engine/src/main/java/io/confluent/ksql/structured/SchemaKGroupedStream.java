@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
@@ -67,7 +67,8 @@ public class SchemaKGroupedStream {
       final List<FunctionCall> aggregations,
       final Optional<WindowExpression> windowExpression,
       final FormatInfo valueFormat,
-      final QueryContext.Stacker contextStacker
+      final Stacker contextStacker,
+      final KsqlConfig config
   ) {
     final ExecutionStep<? extends KTableHolder<?>> step;
     final KeyFormat keyFormat;

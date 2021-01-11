@@ -64,7 +64,8 @@ public final class TableAggregateBuilder {
         sourceSchema,
         nonFuncColumns,
         buildContext.getFunctionRegistry(),
-        aggregate.getAggregationFunctions()
+        aggregate.getAggregationFunctions(),
+        buildContext.getKsqlConfig()
     );
     final LogicalSchema aggregateSchema = aggregateParams.getAggregateSchema();
     final LogicalSchema resultSchema = aggregateParams.getSchema();

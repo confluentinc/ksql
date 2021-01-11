@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.Metrics;
 
 class UdafFactoryInvoker implements FunctionSignature {
@@ -78,6 +79,11 @@ class UdafFactoryInvoker implements FunctionSignature {
     final Object[] factoryArgs = initArgs.args().toArray();
     try {
       final Udaf udaf = (Udaf)method.invoke(null, factoryArgs);
+
+      if (udaf instanceof Configurable) {
+        ((Configurable) udaf).configure(initArgs.config());
+      }
+
       final KsqlAggregateFunction function;
       if (TableUdaf.class.isAssignableFrom(method.getReturnType())) {
         function = new UdafTableAggregateFunction(

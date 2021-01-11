@@ -101,8 +101,8 @@ public class SchemaKGroupedTableTest {
             ImmutableList.of(SUM, COUNT),
             Optional.of(windowExp),
             valueFormat.getFormatInfo(),
-            queryContext
-        )
+            queryContext,
+            KsqlConfig.EMPTY)
     );
 
     // Then:
@@ -122,8 +122,8 @@ public class SchemaKGroupedTableTest {
             ImmutableList.of(MIN, MAX),
             Optional.empty(),
             valueFormat.getFormatInfo(),
-            queryContext
-        )
+            queryContext,
+            KsqlConfig.EMPTY)
     );
 
     // Then:
@@ -153,8 +153,8 @@ public class SchemaKGroupedTableTest {
         ImmutableList.of(SUM, COUNT),
         Optional.empty(),
         valueFormat.getFormatInfo(),
-        queryContext
-    );
+        queryContext,
+        KsqlConfig.EMPTY);
 
     // Then:
     assertThat(
@@ -184,8 +184,8 @@ public class SchemaKGroupedTableTest {
         ImmutableList.of(SUM, COUNT),
         Optional.empty(),
         valueFormat.getFormatInfo(),
-        queryContext
-    );
+        queryContext,
+        KsqlConfig.EMPTY);
 
     // Then:
     assertThat(
@@ -213,8 +213,8 @@ public class SchemaKGroupedTableTest {
         ImmutableList.of(SUM, COUNT),
         Optional.empty(),
         valueFormat.getFormatInfo(),
-        queryContext
-    );
+        queryContext,
+        KsqlConfig.EMPTY);
 
     // Then:
     assertThat(result.getSchema(), is(OUT_SCHEMA));

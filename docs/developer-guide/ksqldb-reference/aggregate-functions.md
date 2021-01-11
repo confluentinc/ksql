@@ -221,12 +221,12 @@ Stream
 Return the minimum value for a given column and window.
 Rows that have `col1` set to null are ignored.
 
-## `STD_DEV_SAMP`
+## `STDDEV_SAMP`
 
 Since: - 0.15.0
 
 ```sql
-STD_DEV_SAMP(col1)
+STDDEV_SAMP(col1)
 ```
 
 Stream, Table

@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function.stddev;
+package io.confluent.ksql.function.udaf.stddev;
 
 import io.confluent.ksql.function.udaf.TableUdaf;
 import static io.confluent.ksql.function.udaf.stddev.StandardDeviationSampUdaf.stdDevLong;

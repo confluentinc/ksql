@@ -19,12 +19,13 @@ import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
 import io.confluent.ksql.util.KsqlConstants;
+
 import java.util.function.BiFunction;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
-@UdafDescription(name = "STD_DEV_SAMP",
+@UdafDescription(name = "STDDEV_SAMP",
     description = "Returns the sample standard deviation of the column. "
         +
         "Applicable only to numeric types.",

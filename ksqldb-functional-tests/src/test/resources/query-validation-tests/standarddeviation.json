@@ -1,13 +1,13 @@
 {
   "comments": [
-    "Test cases covering the use of the aggregate STD_DEV_SAMP function"
+    "Test cases covering the use of the aggregate STDDEV_SAMP function"
   ],
   "tests": [
     {
-      "name": "std_dev_samp int",
+      "name": "stddev_samp int",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, VALUE integer) WITH (kafka_topic='test_topic',value_format='AVRO');",
-        "CREATE TABLE OUTPUT as SELECT ID, std_dev_samp(value) AS std_dev FROM test group by id;"
+        "CREATE TABLE OUTPUT as SELECT ID, stddev_samp(value) AS stddev FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0,"value": {"value": 0}},
@@ -20,21 +20,21 @@
         {"topic": "test_topic", "key": 0,"value": {"value": 6}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0,"value": {"STD_DEV": 0.0}},
-        {"topic": "OUTPUT", "key": 0,"value": {"STD_DEV": 50.0}},
-        {"topic": "OUTPUT", "key": 100,"value": {"STD_DEV": 0.0}},
-        {"topic": "OUTPUT", "key": 100,"value": {"STD_DEV": 800.0}},
-        {"topic": "OUTPUT", "key": 0,"value": {"STD_DEV": 26.333333333333332}},
-        {"topic": "OUTPUT", "key": 100,"value": {"STD_DEV": 643.0}},
-        {"topic": "OUTPUT", "key": 100,"value": {"STD_DEV": 643.0}},
-        {"topic": "OUTPUT", "key": 0,"value": {"STD_DEV": 17.583333333333332}}
+        {"topic": "OUTPUT", "key": 0,"value": {"STDDEV": 0.0}},
+        {"topic": "OUTPUT", "key": 0,"value": {"STDDEV": 50.0}},
+        {"topic": "OUTPUT", "key": 100,"value": {"STDDEV": 0.0}},
+        {"topic": "OUTPUT", "key": 100,"value": {"STDDEV": 800.0}},
+        {"topic": "OUTPUT", "key": 0,"value": {"STDDEV": 26.333333333333332}},
+        {"topic": "OUTPUT", "key": 100,"value": {"STDDEV": 643.0}},
+        {"topic": "OUTPUT", "key": 100,"value": {"STDDEV": 643.0}},
+        {"topic": "OUTPUT", "key": 0,"value": {"STDDEV": 17.583333333333332}}
       ]
     },
     {
-      "name": "std_dev_samp long",
+      "name": "stddev_samp long",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, VALUE bigint) WITH (kafka_topic='test_topic', value_format='AVRO');",
-        "CREATE TABLE OUTPUT as SELECT ID, std_dev_samp(value) as std_dev FROM test group by id;"
+        "CREATE TABLE OUTPUT as SELECT ID, stddev_samp(value) as stddev FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0,"value": {"value": 2147483648}},
@@ -47,21 +47,21 @@
         {"topic": "test_topic", "key": 0,"value": {"value": null}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0,"value": {"STD_DEV": 0.0}},
-        {"topic": "OUTPUT", "key": 0,"value": {"STD_DEV": 2.3058427944653343e+18}},
-        {"topic": "OUTPUT", "key": 100,"value": {"STD_DEV": 0.0}},
-        {"topic": "OUTPUT", "key": 100,"value": {"STD_DEV": 80000.0}},
-        {"topic": "OUTPUT", "key": 0,"value": {"STD_DEV": 1.5372286026580004e+18}},
-        {"topic": "OUTPUT", "key": 100,"value": {"STD_DEV": 70000.0}},
-        {"topic": "OUTPUT", "key": 100,"value": {"STD_DEV": 57275.666666666664}},
-        {"topic": "OUTPUT", "key": 0,"value": {"STD_DEV": 1.5372286026580004e+18}}
+        {"topic": "OUTPUT", "key": 0,"value": {"STDDEV": 0.0}},
+        {"topic": "OUTPUT", "key": 0,"value": {"STDDEV": 2.3058427944653343e+18}},
+        {"topic": "OUTPUT", "key": 100,"value": {"STDDEV": 0.0}},
+        {"topic": "OUTPUT", "key": 100,"value": {"STDDEV": 80000.0}},
+        {"topic": "OUTPUT", "key": 0,"value": {"STDDEV": 1.5372286026580004e+18}},
+        {"topic": "OUTPUT", "key": 100,"value": {"STDDEV": 70000.0}},
+        {"topic": "OUTPUT", "key": 100,"value": {"STDDEV": 57275.666666666664}},
+        {"topic": "OUTPUT", "key": 0,"value": {"STDDEV": 1.5372286026580004e+18}}
       ]
     },
     {
-      "name": "std_dev_samp double",
+      "name": "stddev_samp double",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, VALUE double) WITH (kafka_topic='test_topic', value_format='AVRO');",
-        "CREATE TABLE OUTPUT as SELECT ID, std_dev_samp(value) as std_dev FROM test group by id;"
+        "CREATE TABLE OUTPUT as SELECT ID, stddev_samp(value) as stddev FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0,"value": {"value": -1.8}},
@@ -74,21 +74,21 @@
         {"topic": "test_topic", "key": 0,"value": {"value": null}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0,"value": {"STD_DEV": 0.0}},
-        {"topic": "OUTPUT", "key": 0,"value": {"STD_DEV": 8.405}},
-        {"topic": "OUTPUT", "key": 100,"value": {"STD_DEV": 0.0}},
-        {"topic": "OUTPUT", "key": 100,"value": {"STD_DEV": 4.253529586234292e+25}},
-        {"topic": "OUTPUT", "key": 0,"value": {"STD_DEV": 3334.2033333333347}},
-        {"topic": "OUTPUT", "key": 100,"value": {"STD_DEV": 2.835686452404674e+25}},
-        {"topic": "OUTPUT", "key": 100,"value": {"STD_DEV": 2.1267648239542927e+25}},
-        {"topic": "OUTPUT", "key": 0,"value": {"STD_DEV": 3334.2033333333347}}
+        {"topic": "OUTPUT", "key": 0,"value": {"STDDEV": 0.0}},
+        {"topic": "OUTPUT", "key": 0,"value": {"STDDEV": 8.405}},
+        {"topic": "OUTPUT", "key": 100,"value": {"STDDEV": 0.0}},
+        {"topic": "OUTPUT", "key": 100,"value": {"STDDEV": 4.253529586234292e+25}},
+        {"topic": "OUTPUT", "key": 0,"value": {"STDDEV": 3334.2033333333347}},
+        {"topic": "OUTPUT", "key": 100,"value": {"STDDEV": 2.835686452404674e+25}},
+        {"topic": "OUTPUT", "key": 100,"value": {"STDDEV": 2.1267648239542927e+25}},
+        {"topic": "OUTPUT", "key": 0,"value": {"STDDEV": 3334.2033333333347}}
       ]
     },
     {
-      "name": "std_dev_samp double map",
+      "name": "stddev_samp double map",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, NAME varchar, VALUE map<varchar, double>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE OUTPUT as SELECT ID, std_dev_samp(value['key1']) AS STD_DEV FROM test group by id;"
+        "CREATE TABLE OUTPUT as SELECT ID, stddev_samp(value['key1']) AS STDDEV FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0,"value": {"name": "zero","value":{"key1":10.0, "key2":1.0}}},
@@ -98,19 +98,19 @@
         {"topic": "test_topic", "key": 0,"value": {"name": "zero", "value": {"key1":16.0, "key2":1.0}}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0,"value": {"STD_DEV":0.0}},
-        {"topic": "OUTPUT", "key": 0,"value": {"STD_DEV":2.0}},
-        {"topic": "OUTPUT", "key": 0,"value": {"STD_DEV":2.333333333333333}},
-        {"topic": "OUTPUT", "key": 0,"value": {"STD_DEV":2.9166666666666665}},
-        {"topic": "OUTPUT", "key": 0,"value": {"STD_DEV":5.0}}
+        {"topic": "OUTPUT", "key": 0,"value": {"STDDEV":0.0}},
+        {"topic": "OUTPUT", "key": 0,"value": {"STDDEV":2.0}},
+        {"topic": "OUTPUT", "key": 0,"value": {"STDDEV":2.333333333333333}},
+        {"topic": "OUTPUT", "key": 0,"value": {"STDDEV":2.9166666666666665}},
+        {"topic": "OUTPUT", "key": 0,"value": {"STDDEV":5.0}}
       ]
     },
     {
-      "name": "std_dev_samp - DELIMITED",
-      "comment": "DELIMITED does not support STRUCT, so can't support STD_DEV_SAMP until we use a different internal format",
+      "name": "stddev_samp - DELIMITED",
+      "comment": "DELIMITED does not support STRUCT, so can't support STDDEV_SAMP until we use a different internal format",
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
-        "CREATE TABLE OUTPUT AS SELECT ID, std_dev_samp(value) AS std_dev FROM INPUT group by ID;"
+        "CREATE TABLE OUTPUT AS SELECT ID, stddev_samp(value) AS stddev FROM INPUT group by ID;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",

@@ -69,6 +69,7 @@ nav:
       - Plan:
           - Distributions: production-deployment/distributions.md
           - How it works: production-deployment/how-it-works.md
+          - Limitations: production-deployment/limitations.md
           - Client access: production-deployment/client-access.md
           - Multi-tenancy: production-deployment/multi-tenancy.md
           - Capacity planning: production-deployment/capacity-planning.md
@@ -229,6 +230,12 @@ plugins:
             developer-guide/implement-a-udf.md: how-to-guides/create-a-user-defined-function.md
             developer-guide/serialization.md: reference/serialization.md
             developer-guide/syntax-reference.md: reference/index.md
+
+            operate-and-deploy/how-it-works.md: production-deployment/how-it-works.md
+            operate-and-deploy/capacity-planning.md: production-deployment/capacity-planning.md
+            operate-and-deploy/installation/server-config/security.md: production-deployment/security.md
+            operate-and-deploy/monitoring.md: production-deployment/monitoring.md
+            operate-and-deploy/exactly-once-semantics.md: production-deployment/exactly-once-semantics.md
 
 extra:
     site:

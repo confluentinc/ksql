@@ -67,6 +67,7 @@ import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.PreJoinProjectNode;
 import io.confluent.ksql.planner.plan.PreJoinRepartitionNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.planner.plan.PullFilterNode;
 import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.planner.plan.SelectionUtil;
 import io.confluent.ksql.planner.plan.SuppressNode;
@@ -123,7 +124,13 @@ public class LogicalPlanner {
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public OutputNode buildPersistentLogicalPlan() {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
-    PlanNode currentNode = buildSourceNode();
+    final boolean isWindowed = analysis
+        .getFrom()
+        .getDataSource()
+        .getKsqlTopic()
+        .getKeyFormat().isWindowed();
+
+    PlanNode currentNode = buildSourceNode(isWindowed);
 
     if (analysis.getWhereExpression().isPresent()) {
       currentNode = buildFilterNode(currentNode, analysis.getWhereExpression().get());
@@ -172,10 +179,34 @@ public class LogicalPlanner {
   }
 
   public OutputNode buildPullLogicalPlan() {
-    PlanNode currentNode = buildSourceNode();
+    final boolean isWindowed = analysis
+        .getFrom()
+        .getDataSource()
+        .getKsqlTopic()
+        .getKeyFormat().isWindowed();
+
+    PlanNode currentNode = buildSourceNode(isWindowed);
 
     if (analysis.getWhereExpression().isPresent()) {
-      currentNode = buildFilterNode(currentNode, analysis.getWhereExpression().get());
+      final Expression whereExpression = analysis.getWhereExpression().get();
+      final FilterTypeValidator validator = new FilterTypeValidator(
+          currentNode.getSchema(),
+          metaStore,
+          FilterType.WHERE);
+
+      validator.validateFilterExpression(whereExpression);
+
+      currentNode = new PullFilterNode(
+          new PlanNodeId("WhereFilter"),
+          currentNode,
+          whereExpression,
+          metaStore,
+          ksqlConfig,
+          isWindowed);
+    } else {
+      if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED)) {
+        throw PullFilterNode.invalidWhereClauseException("Missing WHERE clause", isWindowed);
+      }
     }
 
     currentNode = new PullProjectNode(
@@ -184,7 +215,8 @@ public class LogicalPlanner {
         analysis.getSelectItems(),
         metaStore,
         ksqlConfig,
-        analysis);
+        analysis,
+        isWindowed);
 
     return buildOutputNode(currentNode);
   }
@@ -424,12 +456,14 @@ public class LogicalPlanner {
   private PlanNode buildSourceForJoin(
       final AliasedDataSource source,
       final String side,
-      final Expression joinExpression
+      final Expression joinExpression,
+      final boolean isWindowed
   ) {
     final DataSourceNode sourceNode = new DataSourceNode(
         new PlanNodeId("KafkaTopic_" + side),
         source.getDataSource(),
-        source.getAlias()
+        source.getAlias(),
+        isWindowed
     );
 
     // it is always safe to build the repartition node - this operation will be
@@ -471,9 +505,9 @@ public class LogicalPlanner {
     return buildInternalRepartitionNode(joinedSource, side, joinExpression, refRewriter::process);
   }
 
-  private PlanNode buildSourceNode() {
+  private PlanNode buildSourceNode(final boolean isWindowed) {
     if (!analysis.isJoin()) {
-      return buildNonJoinNode(analysis.getFrom());
+      return buildNonJoinNode(analysis.getFrom(), isWindowed);
     }
 
     final List<JoinInfo> joinInfo = analysis.getJoin();
@@ -483,7 +517,7 @@ public class LogicalPlanner {
           + analysis.getAllDataSources());
     }
 
-    final JoinNode joinNode = buildJoin((Join) tree, "");
+    final JoinNode joinNode = buildJoin((Join) tree, "", isWindowed);
     joinNode.resolveKeyFormats();
     return joinNode;
   }
@@ -493,33 +527,33 @@ public class LogicalPlanner {
    * @param prefix  the prefix to uniquely identify the plan node
    * @return the PlanNode representing this Join Tree
    */
-  private JoinNode buildJoin(final Join root, final String prefix) {
+  private JoinNode buildJoin(final Join root, final String prefix, final boolean isWindowed) {
     final PlanNode left;
     if (root.getLeft() instanceof JoinTree.Join) {
       left = buildSourceForJoin(
           (JoinTree.Join) root.getLeft(),
-          buildJoin((Join) root.getLeft(), prefix + "L_"),
+          buildJoin((Join) root.getLeft(), prefix + "L_", isWindowed),
           prefix + "Left",
           root.getInfo().getLeftJoinExpression()
       );
     } else {
       final JoinTree.Leaf leaf = (Leaf) root.getLeft();
       left = buildSourceForJoin(
-          leaf.getSource(), prefix + "Left", root.getInfo().getLeftJoinExpression());
+          leaf.getSource(), prefix + "Left", root.getInfo().getLeftJoinExpression(), isWindowed);
     }
 
     final PlanNode right;
     if (root.getRight() instanceof JoinTree.Join) {
       right = buildSourceForJoin(
           (JoinTree.Join) root.getRight(),
-          buildJoin((Join) root.getRight(), prefix + "R_"),
+          buildJoin((Join) root.getRight(), prefix + "R_", isWindowed),
           prefix + "Right",
           root.getInfo().getRightJoinExpression()
       );
     } else {
       final JoinTree.Leaf leaf = (Leaf) root.getRight();
       right = buildSourceForJoin(
-          leaf.getSource(), prefix + "Right", root.getInfo().getRightJoinExpression());
+          leaf.getSource(), prefix + "Right", root.getInfo().getRightJoinExpression(), isWindowed);
     }
 
     final boolean finalJoin = prefix.isEmpty();
@@ -560,11 +594,13 @@ public class LogicalPlanner {
     return JoinKey.sourceColumn(keyColumnName, viableKeyColumns);
   }
 
-  private static DataSourceNode buildNonJoinNode(final AliasedDataSource dataSource) {
+  private static DataSourceNode buildNonJoinNode(
+      final AliasedDataSource dataSource, final boolean isWindowed) {
     return new DataSourceNode(
         new PlanNodeId("KsqlTopic"),
         dataSource.getDataSource(),
-        dataSource.getAlias()
+        dataSource.getAlias(),
+        isWindowed
     );
   }
 

@@ -246,17 +246,37 @@ public final class HARouting implements AutoCloseable {
   ) {
     List<List<?>> rows = null;
     if (node.isLocal()) {
-      LOG.debug("Query {} executed locally at host {} at timestamp {}.",
-                statement.getStatementText(), node.location(), System.currentTimeMillis());
-      pullQueryMetrics
-          .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordLocalRequests(1));
-      rows = pullPhysicalPlan.execute(locations);
+      try {
+        LOG.debug("Query {} executed locally at host {} at timestamp {}.",
+                  statement.getStatementText(), node.location(), System.currentTimeMillis());
+        pullQueryMetrics
+            .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordLocalRequests(1));
+        rows = pullPhysicalPlan.execute(locations);
+      } catch (Exception e) {
+        LOG.error("Error executing query {} locally at node {} with exception {}",
+                 statement.getStatementText(), node, e.getCause());
+        throw new KsqlException(
+            String.format("Error executing query %s locally at node %s",
+                          statement.getStatementText(), node),
+            e
+        );
+      }
     } else {
-      LOG.debug("Query {} routed to host {} at timestamp {}.",
-                statement.getStatementText(), node.location(), System.currentTimeMillis());
-      pullQueryMetrics
-          .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordRemoteRequests(1));
-      rows = forwardTo(node, locations, statement, serviceContext);
+      try {
+        LOG.debug("Query {} routed to host {} at timestamp {}.",
+                  statement.getStatementText(), node.location(), System.currentTimeMillis());
+        pullQueryMetrics
+            .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordRemoteRequests(1));
+        rows = forwardTo(node, locations, statement, serviceContext);
+      } catch (Exception e) {
+        LOG.error("Error forwarding query {} to node {} with exception {}",
+                  statement.getStatementText(), node, e.getCause());
+        throw new KsqlException(
+            String.format("Error forwarding query %s to node %s",
+                          statement.getStatementText(), node),
+            e
+        );
+      }
     }
     final Optional<List<KsqlNode>> debugNodes = Optional.ofNullable(
         routingOptions.getIsDebugRequest()

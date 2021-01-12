@@ -31,6 +31,7 @@ import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedT
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.streams.materialization.ks.KsLocator;
 import io.confluent.ksql.planner.plan.DataSourceNode;
+import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -77,7 +78,7 @@ public class KeyedWindowedTableLookupOperatorTest {
   @Mock
   private Range<Instant> WINDOW_END_BOUNDS;
   @Mock
-  private WhereInfo.WindowBounds windowBounds;
+  private WindowBounds windowBounds;
 
   @Test
   public void shouldLookupRowsForSingleKey() {
@@ -93,8 +94,8 @@ public class KeyedWindowedTableLookupOperatorTest {
         Optional.of(ImmutableSet.of(KEY4)), 3, ImmutableList.of(node3)));
 
     final KeyedWindowedTableLookupOperator lookupOperator = new KeyedWindowedTableLookupOperator(materialization, logicalNode, windowBounds);
-    when(windowBounds.getStart()).thenReturn(WINDOW_START_BOUNDS);
-    when(windowBounds.getEnd()).thenReturn(WINDOW_END_BOUNDS);
+    when(windowBounds.getMergedStart()).thenReturn(WINDOW_START_BOUNDS);
+    when(windowBounds.getMergedEnd()).thenReturn(WINDOW_END_BOUNDS);
     when(materialization.windowed()).thenReturn(windowedTable);
     when(materialization.windowed().get(KEY1, 1, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
         .thenReturn(ImmutableList.of(WINDOWED_ROW1, WINDOWED_ROW2));
@@ -126,8 +127,8 @@ public class KeyedWindowedTableLookupOperatorTest {
         Optional.of(ImmutableSet.of(KEY3, KEY4)), 3, ImmutableList.of(node3)));
 
     final KeyedWindowedTableLookupOperator lookupOperator = new KeyedWindowedTableLookupOperator(materialization, logicalNode, windowBounds);
-    when(windowBounds.getStart()).thenReturn(WINDOW_START_BOUNDS);
-    when(windowBounds.getEnd()).thenReturn(WINDOW_END_BOUNDS);
+    when(windowBounds.getMergedStart()).thenReturn(WINDOW_START_BOUNDS);
+    when(windowBounds.getMergedEnd()).thenReturn(WINDOW_END_BOUNDS);
     when(materialization.windowed()).thenReturn(windowedTable);
     when(materialization.windowed().get(KEY1, 1, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
         .thenReturn(ImmutableList.of(WINDOWED_ROW1, WINDOWED_ROW2));

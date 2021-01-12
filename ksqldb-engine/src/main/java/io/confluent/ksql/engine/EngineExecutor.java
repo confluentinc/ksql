@@ -60,6 +60,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
 import io.confluent.ksql.util.TransientQueryMetadata;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
@@ -165,16 +166,17 @@ final class EngineExecutor {
           statement, analysis, ksqlConfig);
       final PullPhysicalPlan physicalPlan = buildPullPhysicalPlan(
           logicalPlan,
-          ksqlConfig,
-          analysis,
-          statement);
+          analysis
+      );
       return routing.handlePullQuery(
           physicalPlan, statement, routingOptions, physicalPlan.getOutputSchema(),
           physicalPlan.getQueryId());
     } catch (final Exception e) {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
       throw new KsqlStatementException(
-          e.getMessage() == null ? "Server Error" : e.getMessage(),
+          e.getMessage() == null
+              ? "Server Error" + Arrays.toString(e.getStackTrace())
+              : e.getMessage(),
           statement.getStatementText(),
           e
       );
@@ -325,18 +327,13 @@ final class EngineExecutor {
 
   private PullPhysicalPlan buildPullPhysicalPlan(
       final LogicalPlanNode logicalPlan,
-      final KsqlConfig config,
-      final ImmutableAnalysis analysis,
-      final ConfiguredStatement<Query> statement
+      final ImmutableAnalysis analysis
   ) {
 
     final PullPhysicalPlanBuilder builder = new PullPhysicalPlanBuilder(
-        engineContext.getMetaStore(),
         engineContext.getProcessingLogContext(),
         PullQueryExecutionUtil.findMaterializingQuery(engineContext, analysis),
-        config,
-        analysis,
-        statement
+        analysis
     );
     return builder.buildPullPhysicalPlan(logicalPlan);
   }

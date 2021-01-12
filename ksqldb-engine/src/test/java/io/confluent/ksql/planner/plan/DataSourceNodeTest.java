@@ -191,7 +191,8 @@ public class DataSourceNodeTest {
     node = new DataSourceNode(
         PLAN_NODE_ID,
         SOME_SOURCE,
-        SOME_SOURCE.getName()
+        SOME_SOURCE.getName(),
+        false
     );
   }
 
@@ -246,7 +247,8 @@ public class DataSourceNodeTest {
     node = new DataSourceNode(
         PLAN_NODE_ID,
         table,
-        table.getName()
+        table.getName(),
+        false
     );
 
     // When:
@@ -447,7 +449,8 @@ public class DataSourceNodeTest {
         PLAN_NODE_ID,
         dataSource,
         SOURCE_NAME,
-        schemaKStreamFactory
+        schemaKStreamFactory,
+        false
     );
   }
 

@@ -19,9 +19,9 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
-import io.confluent.ksql.physical.pull.operators.WhereInfo.WindowBounds;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -71,8 +71,8 @@ public class KeyedWindowedTableLookupOperator
         resultIterator = mat.windowed().get(
             nextKey,
             nextLocation.getPartition(),
-            windowBounds.getStart(),
-            windowBounds.getEnd())
+            windowBounds.getMergedStart(),
+            windowBounds.getMergedEnd())
             .iterator();
       }
     }
@@ -98,8 +98,8 @@ public class KeyedWindowedTableLookupOperator
       resultIterator = mat.windowed().get(
           nextKey,
           nextLocation.getPartition(),
-          windowBounds.getStart(),
-          windowBounds.getEnd())
+          windowBounds.getMergedStart(),
+          windowBounds.getMergedEnd())
           .iterator();
     }
     return resultIterator.next();

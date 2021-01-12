@@ -37,7 +37,8 @@ public interface Locator {
    * <p>Implementations are free to return {@link Optional#empty()} if the location is not known at
    * this time.
    *
-   * @param keys the required keys.
+   * @param keys the keys to locate. If none are provided, it's assumed that we should locate all
+   *             partitions for the given state store.
    * @return the list of nodes, that can potentially serve the key.
    */
   List<KsqlPartitionLocation> locate(

@@ -86,6 +86,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlBooleans;
 import io.confluent.ksql.schema.ksql.SqlDoubles;
+import io.confluent.ksql.schema.ksql.SqlTimestamps;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
@@ -118,6 +119,7 @@ public class SqlToJavaVisitor {
       "io.confluent.ksql.execution.codegen.helpers.ArrayAccess",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction.LazyWhenClause",
+      "java.sql.Timestamp",
       "java.util.Arrays",
       "java.util.HashMap",
       "java.util.Map",
@@ -143,7 +145,8 @@ public class SqlToJavaVisitor {
       SchemaConverters.class.getCanonicalName(),
       InListEvaluator.class.getCanonicalName(),
       SqlDoubles.class.getCanonicalName(),
-      SqlBooleans.class.getCanonicalName()
+      SqlBooleans.class.getCanonicalName(),
+      SqlTimestamps.class.getCanonicalName()
   );
 
   private static final Map<Operator, String> DECIMAL_OPERATOR_NAME = ImmutableMap
@@ -284,9 +287,9 @@ public class SqlToJavaVisitor {
 
     @Override
     public Pair<String, SqlType> visitTimestampLiteral(
-        final TimestampLiteral timestampLiteral, final Void context
+        final TimestampLiteral node, final Void context
     ) {
-      return visitUnsupported(timestampLiteral);
+      return new Pair<>(node.toString(), SqlTypes.TIMESTAMP);
     }
 
     @Override
@@ -595,6 +598,35 @@ public class SqlToJavaVisitor {
       }
     }
 
+    private String visitTimestampComparisonExpression(
+        final ComparisonExpression.Type type,
+        final SqlType left,
+        final SqlType right
+    ) {
+      final String comparator = SQL_COMPARE_TO_JAVA.get(type);
+      if (comparator == null) {
+        throw new KsqlException("Unexpected timestamp comparison: " + type.getValue());
+      }
+
+      return String.format(
+          "(%s.compareTo(%s) %s 0)",
+          toTimestamp(left, 1),
+          toTimestamp(right, 2),
+          comparator
+      );
+    }
+
+    private String toTimestamp(final SqlType schema, final int index) {
+      switch (schema.baseType()) {
+        case TIMESTAMP:
+          return "%" + index + "$s";
+        case STRING:
+          return "SqlTimestamps.parseTimestamp(%" + index + "$s)";
+        default:
+          throw new KsqlException("Unexpected comparison to TIMESTAMP: " + schema.baseType());
+      }
+    }
+
     @Override
     public Pair<String, SqlType> visitComparisonExpression(
         final ComparisonExpression node, final Void context
@@ -607,6 +639,10 @@ public class SqlToJavaVisitor {
       if (left.getRight().baseType() == SqlBaseType.DECIMAL
           || right.getRight().baseType() == SqlBaseType.DECIMAL) {
         exprFormat += visitBytesComparisonExpression(
+            node.getType(), left.getRight(), right.getRight());
+      } else if (left.getRight().baseType() == SqlBaseType.TIMESTAMP
+          || right.getRight().baseType() == SqlBaseType.TIMESTAMP) {
+        exprFormat += visitTimestampComparisonExpression(
             node.getType(), left.getRight(), right.getRight());
       } else {
         switch (left.getRight().baseType()) {

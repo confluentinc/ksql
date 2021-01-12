@@ -20,6 +20,7 @@ import com.google.common.base.Strings;
 import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.ApiJsonMapper;
+import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxException;
 import io.vertx.core.http.HttpClient;
@@ -148,19 +149,16 @@ public final class KsqlClient implements AutoCloseable {
 
       configureHostVerification(clientProps, httpClientOptions);
 
-      final String trustStoreLocation = clientProps.get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
-      if (trustStoreLocation != null) {
-        final String suppliedTruststorePassword = clientProps
-            .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
-        httpClientOptions.setTrustStoreOptions(new JksOptions().setPath(trustStoreLocation)
-            .setPassword(suppliedTruststorePassword == null ? "" : suppliedTruststorePassword));
-        final String keyStoreLocation = clientProps.get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
-        if (keyStoreLocation != null) {
-          final String suppliedKeyStorePassword = clientProps
-              .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
-          httpClientOptions.setKeyStoreOptions(new JksOptions().setPath(keyStoreLocation)
-              .setPassword(suppliedKeyStorePassword == null ? "" : suppliedKeyStorePassword));
-        }
+      final Optional<JksOptions> trustStoreOptions =
+          VertxSslOptionsFactory.getJksTrustStoreOptions(clientProps);
+
+      if (trustStoreOptions.isPresent()) {
+        httpClientOptions.setTrustStoreOptions(trustStoreOptions.get());
+
+        final Optional<JksOptions> keyStoreOptions =
+            VertxSslOptionsFactory.buildJksKeyStoreOptions(clientProps, Optional.empty());
+
+        keyStoreOptions.ifPresent(options -> httpClientOptions.setKeyStoreOptions(options));
       }
     }
     try {

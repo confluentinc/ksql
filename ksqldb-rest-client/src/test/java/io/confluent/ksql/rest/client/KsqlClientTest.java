@@ -45,6 +45,7 @@ import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import io.confluent.ksql.util.VertxCompletableFuture;
+import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -728,13 +729,13 @@ public class KsqlClientTest {
   }
 
   private void startServerWithTls() throws Exception {
+    final Optional<JksOptions> keyStoreOptions = VertxSslOptionsFactory.buildJksKeyStoreOptions(
+    SERVER_KEY_STORE.keyStoreProps(), Optional.empty());
+
     HttpServerOptions serverOptions = new HttpServerOptions().setPort(0)
         .setHost("localhost")
         .setSsl(true)
-        .setKeyStoreOptions(new JksOptions()
-            .setPath(SERVER_KEY_STORE.keyStoreProps().get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG))
-            .setPassword(
-                SERVER_KEY_STORE.keyStoreProps().get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG)));
+        .setKeyStoreOptions(keyStoreOptions.get());
 
     startServer(serverOptions);
     serverUri = URI.create("https://localhost:" + server.getPort());

@@ -22,14 +22,17 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Timestamp;
 import org.apache.kafka.connect.errors.DataException;
 import org.junit.Test;
 
@@ -314,5 +317,31 @@ public class ConnectDataTranslatorTest {
     // Then:
     assertThat(row.schema(), is(rowSchema));
     assertThat(row.get("STRUCT"), is(nullValue()));
+  }
+
+  @Test
+  public void shouldReturnTimestampType() {
+    // Given:
+    final ConnectDataTranslator connectToKsqlTranslator = new ConnectDataTranslator(Timestamp.SCHEMA);
+
+    // When:
+    final Object row = connectToKsqlTranslator.toKsqlRow(Timestamp.SCHEMA, new Date(100L));
+
+    // Then:
+    assertTrue(row instanceof java.sql.Timestamp);
+    assertThat(((java.sql.Timestamp) row).getTime(), is(100L));
+  }
+
+  @Test
+  public void shouldReturnLongType() {
+    // Given:
+    final ConnectDataTranslator connectToKsqlTranslator = new ConnectDataTranslator(SchemaBuilder.OPTIONAL_INT64_SCHEMA);
+
+    // When:
+    final Object row = connectToKsqlTranslator.toKsqlRow(Timestamp.SCHEMA, new Date(100L));
+
+    // Then:
+    assertTrue(row instanceof Long);
+    assertThat(row, is(100L));
   }
 }

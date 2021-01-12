@@ -15,28 +15,91 @@
 
 package io.confluent.ksql.physical.pull.operators;
 
-import io.confluent.ksql.planner.plan.FilterNode;
+import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.streams.SqlPredicateFactory;
+import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
+import io.confluent.ksql.execution.streams.materialization.Row;
+import io.confluent.ksql.execution.streams.materialization.TableRow;
+import io.confluent.ksql.execution.streams.materialization.WindowedRow;
+import io.confluent.ksql.execution.transform.KsqlTransformer;
+import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.planner.plan.PullFilterNode;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Function;
 
 public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhysicalOperator {
 
-  private final FilterNode logicalNode;
-  private AbstractPhysicalOperator child;
+  private final PullFilterNode logicalNode;
+  private final ProcessingLogger logger;
+  private final SqlPredicate predicate;
 
-  public SelectOperator(final FilterNode logicalNode) {
-    this.logicalNode = Objects.requireNonNull(logicalNode);
+  private AbstractPhysicalOperator child;
+  private KsqlTransformer<Object, Optional<GenericRow>> transformer;
+  private TableRow row;
+
+  public SelectOperator(final PullFilterNode logicalNode, final ProcessingLogger logger) {
+    this(logicalNode, logger, SqlPredicate::new);
   }
+
+  @VisibleForTesting
+  SelectOperator(
+      final PullFilterNode logicalNode,
+      final ProcessingLogger logger,
+      final SqlPredicateFactory predicateFactory
+  ) {
+    this.logicalNode = Objects.requireNonNull(logicalNode, "logicalNode");
+    this.logger = Objects.requireNonNull(logger, "logger");
+    this.predicate = predicateFactory.create(
+        logicalNode.getRewrittenPredicate(),
+        logicalNode.getCompiledWhereClause()
+    );
+  }
+
 
   @Override
   public void open() {
+    transformer = predicate.getTransformer(logger);
     child.open();
   }
 
   @Override
   public Object next() {
-    return child.next();
+    row = (TableRow)child.next();
+    if (row == null) {
+      return null;
+    }
+
+    final GenericRow intermediate = PullPhysicalOperatorUtil.getIntermediateRow(
+        row, logicalNode.getAddAdditionalColumnsToIntermediateSchema());
+    final Function<TableRow, Optional<TableRow>> transformRow = row -> transformer.transform(
+        row.key(),
+        intermediate,
+        new PullProcessingContext(row.rowTime()))
+        .map(r -> {
+          if (logicalNode.isWindowed()) {
+            return WindowedRow.of(
+                logicalNode.getIntermediateSchema(),
+                ((WindowedRow) row).windowedKey(),
+                r,
+                row.rowTime());
+          }
+          return Row.of(logicalNode.getIntermediateSchema(), row.key(), r, row.rowTime());
+        });
+
+    Optional<TableRow> result = transformRow.apply(row);
+    while (result.equals(Optional.empty())) {
+      row = (TableRow)child.next();
+      if (row == null) {
+        return null;
+      }
+      result = transformRow.apply(row);
+    }
+    return result.get();
   }
 
   @Override

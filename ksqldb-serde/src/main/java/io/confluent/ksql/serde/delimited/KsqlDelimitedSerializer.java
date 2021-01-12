@@ -17,10 +17,10 @@ package io.confluent.ksql.serde.delimited;
 
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
-import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -89,9 +89,19 @@ class KsqlDelimitedSerializer implements Serializer<List<?>> {
       final Object value = dataIt.next();
       final SimpleColumn column = columnIt.next();
 
-      return column.type().baseType().equals(SqlBaseType.DECIMAL)
-          ? handleDecimal((BigDecimal) value)
-          : value;
+      switch (column.type().baseType()) {
+        case DECIMAL:
+          return handleDecimal((BigDecimal) value);
+        case TIMESTAMP:
+          return handleTimestamp((Timestamp) value);
+        default:
+          return value;
+      }
+    }
+
+    private static Long handleTimestamp(final Timestamp value) {
+      // Return milliseconds
+      return value == null ? null : value.getTime();
     }
 
     private static String handleDecimal(final BigDecimal value) {

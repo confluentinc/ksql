@@ -479,9 +479,10 @@ public class ExpressionTypeManager {
 
     @Override
     public Void visitTimestampLiteral(
-        final TimestampLiteral timestampLiteral, final ExpressionTypeContext expressionTypeContext
+        final TimestampLiteral timestampLiteral, final ExpressionTypeContext context
     ) {
-      throw VisitorUtil.unsupportedOperation(this, timestampLiteral);
+      context.setSqlType(SqlTypes.TIMESTAMP);
+      return null;
     }
 
     @Override

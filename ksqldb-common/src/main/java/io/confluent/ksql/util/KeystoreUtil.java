@@ -13,9 +13,8 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.util;
+package io.confluent.ksql.util;
 
-import io.confluent.ksql.util.KsqlException;
 import io.vertx.core.buffer.Buffer;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;

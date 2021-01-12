@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.DecimalNode;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import org.junit.Test;
 
 public class ApiJsonMapperTest {
@@ -68,5 +69,14 @@ public class ApiJsonMapperTest {
 
     // Then:
     assertThat(result, is("10"));
+  }
+
+  @Test
+  public void shouldFormatTimestampsToISO8601() throws Exception {
+    // When:
+    final String result = OBJECT_MAPPER.writeValueAsString(new Timestamp(943959600000L));
+
+    // Then:
+    assertThat(result, is("\"1999-11-30T11:00:00.000\""));
   }
 }

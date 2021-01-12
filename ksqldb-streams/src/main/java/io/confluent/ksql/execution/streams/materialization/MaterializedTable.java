@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.streams.materialization;
 
 import io.confluent.ksql.GenericKey;
+import java.util.Iterator;
 import java.util.Optional;
 
 /**
@@ -31,4 +32,12 @@ public interface MaterializedTable {
    * @return the value, if one is exists.
    */
   Optional<Row> get(GenericKey key, int partition);
+
+  /**
+   * Scan the table for rows
+   *
+   * @param partition partition to limit the get to
+   * @return the rows.
+   */
+  Iterator<Row> get(int partition);
 }

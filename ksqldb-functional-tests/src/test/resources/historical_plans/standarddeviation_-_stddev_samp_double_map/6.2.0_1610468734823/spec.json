@@ -1,6 +1,6 @@
 {
   "version" : "6.2.0",
-  "timestamp" : 1610385960786,
+  "timestamp" : 1610468734823,
   "path" : "query-validation-tests/standarddeviation.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
@@ -22,7 +22,7 @@
       }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` MAP<STRING, DOUBLE>, `KSQL_AGG_VARIABLE_0` STRUCT<`SUM` DOUBLE, `COUNT` INTEGER, `M2` DOUBLE>",
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` MAP<STRING, DOUBLE>, `KSQL_AGG_VARIABLE_0` STRUCT<`SUM` DOUBLE, `COUNT` BIGINT, `M2` DOUBLE>",
       "keyFormat" : {
         "format" : "KAFKA"
       },

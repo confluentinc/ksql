@@ -1,10 +1,10 @@
 {
   "version" : "6.2.0",
-  "timestamp" : 1610385960699,
+  "timestamp" : 1610468734648,
   "path" : "query-validation-tests/standarddeviation.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` DOUBLE",
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
       "keyFormat" : {
         "format" : "KAFKA"
       },
@@ -13,7 +13,7 @@
       }
     },
     "CTAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` BIGINT KEY, `VALUE` DOUBLE",
+      "schema" : "`ID` BIGINT KEY, `VALUE` BIGINT",
       "keyFormat" : {
         "format" : "KAFKA"
       },
@@ -22,7 +22,7 @@
       }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` DOUBLE, `KSQL_AGG_VARIABLE_0` STRUCT<`SUM` DOUBLE, `COUNT` INTEGER, `M2` DOUBLE>",
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT, `KSQL_AGG_VARIABLE_0` STRUCT<`SUM` BIGINT, `COUNT` BIGINT, `M2` DOUBLE>",
       "keyFormat" : {
         "format" : "KAFKA"
       },
@@ -41,48 +41,48 @@
     }
   },
   "testCase" : {
-    "name" : "stddev_samp double",
+    "name" : "stddev_samp long",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : 0,
       "value" : {
-        "value" : -1.8
+        "value" : 2147483648
       }
     }, {
       "topic" : "test_topic",
       "key" : 0,
       "value" : {
-        "value" : 2.3
+        "value" : 100
       }
     }, {
       "topic" : "test_topic",
       "key" : 100,
       "value" : {
-        "value" : 9223372036854.775807
+        "value" : 500
       }
     }, {
       "topic" : "test_topic",
       "key" : 100,
       "value" : {
-        "value" : 300.8
+        "value" : 100
       }
     }, {
       "topic" : "test_topic",
       "key" : 0,
       "value" : {
-        "value" : 100.2
+        "value" : -2
       }
     }, {
       "topic" : "test_topic",
       "key" : 100,
       "value" : {
-        "value" : -200000.6
+        "value" : 0
       }
     }, {
       "topic" : "test_topic",
       "key" : 100,
       "value" : {
-        "value" : 0.0
+        "value" : -6
       }
     }, {
       "topic" : "test_topic",
@@ -101,7 +101,7 @@
       "topic" : "OUTPUT",
       "key" : 0,
       "value" : {
-        "STDDEV" : 8.405
+        "STDDEV" : 2305842794465334300
       }
     }, {
       "topic" : "OUTPUT",
@@ -113,31 +113,31 @@
       "topic" : "OUTPUT",
       "key" : 100,
       "value" : {
-        "STDDEV" : 42535295862342920000000000
+        "STDDEV" : 80000.0
       }
     }, {
       "topic" : "OUTPUT",
       "key" : 0,
       "value" : {
-        "STDDEV" : 3334.2033333333347
+        "STDDEV" : 1537228602658000400
       }
     }, {
       "topic" : "OUTPUT",
       "key" : 100,
       "value" : {
-        "STDDEV" : 28356864524046740000000000
+        "STDDEV" : 70000.0
       }
     }, {
       "topic" : "OUTPUT",
       "key" : 100,
       "value" : {
-        "STDDEV" : 21267648239542927000000000
+        "STDDEV" : 57275.666666666664
       }
     }, {
       "topic" : "OUTPUT",
       "key" : 0,
       "value" : {
-        "STDDEV" : 3334.2033333333347
+        "STDDEV" : 1537228602658000400
       }
     } ],
     "topics" : [ {
@@ -152,7 +152,7 @@
         "namespace" : "io.confluent.ksql.avro_schemas",
         "fields" : [ {
           "name" : "VALUE",
-          "type" : [ "null", "double" ],
+          "type" : [ "null", "long" ],
           "default" : null
         } ],
         "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
@@ -161,7 +161,7 @@
       "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, VALUE double) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE TABLE OUTPUT as SELECT ID, stddev_samp(value) as stddev FROM test group by id;" ],
+    "statements" : [ "CREATE STREAM TEST (ID BIGINT KEY, VALUE bigint) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE TABLE OUTPUT as SELECT ID, stddev_samp(value) as stddev FROM test group by id;" ],
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
@@ -176,7 +176,7 @@
       }, {
         "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ID` BIGINT KEY, `VALUE` DOUBLE",
+        "schema" : "`ID` BIGINT KEY, `VALUE` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },
@@ -200,7 +200,7 @@
             "namespace" : "io.confluent.ksql.avro_schemas",
             "fields" : [ {
               "name" : "VALUE",
-              "type" : [ "null", "double" ],
+              "type" : [ "null", "long" ],
               "default" : null
             } ],
             "connect.name" : "io.confluent.ksql.avro_schemas.KsqlDataSourceSchema"
@@ -223,7 +223,7 @@
               "default" : null
             }, {
               "name" : "VALUE",
-              "type" : [ "null", "double" ],
+              "type" : [ "null", "long" ],
               "default" : null
             }, {
               "name" : "KSQL_AGG_VARIABLE_0",
@@ -232,11 +232,11 @@
                 "name" : "KsqlDataSourceSchema_KSQL_AGG_VARIABLE_0",
                 "fields" : [ {
                   "name" : "SUM",
-                  "type" : [ "null", "double" ],
+                  "type" : [ "null", "long" ],
                   "default" : null
                 }, {
                   "name" : "COUNT",
-                  "type" : [ "null", "int" ],
+                  "type" : [ "null", "long" ],
                   "default" : null
                 }, {
                   "name" : "M2",

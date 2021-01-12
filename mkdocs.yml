@@ -236,6 +236,8 @@ plugins:
             operate-and-deploy/installation/server-config/security.md: production-deployment/security.md
             operate-and-deploy/monitoring.md: production-deployment/monitoring.md
             operate-and-deploy/exactly-once-semantics.md: production-deployment/exactly-once-semantics.md
+            operate-and-deploy/installation/install-ksqldb-with-docker.md: production-deployments/docker-deployments.md
+            operate-and-deploy/installation/check-ksqldb-server-health.md: production-deployments/healthchecks.md
 
 extra:
     site:

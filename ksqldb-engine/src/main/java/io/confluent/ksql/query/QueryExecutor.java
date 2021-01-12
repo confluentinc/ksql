@@ -160,8 +160,8 @@ public final class QueryExecutor {
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
     final Object buildResult = buildQueryImplementation(physicalPlan, runtimeBuildContext);
-    final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
     final BlockingRowQueue queue = buildTransientQueryQueue(buildResult, limit, excludeTombstones);
+    final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
 
     final TransientQueryMetadata.ResultType resultType = buildResult instanceof KTableHolder
         ? windowInfo.isPresent() ? ResultType.WINDOWED_TABLE : ResultType.TABLE

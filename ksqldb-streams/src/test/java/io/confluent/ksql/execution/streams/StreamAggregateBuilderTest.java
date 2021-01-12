@@ -210,7 +210,7 @@ public class StreamAggregateBuilderTest {
     when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(buildContext.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(buildContext.getKsqlConfig()).thenReturn(KsqlConfig.EMPTY);
+    when(buildContext.getKsqlConfig()).thenReturn(KsqlConfig.empty());
     when(aggregateParamsFactory.create(any(), any(), any(), any(), anyBoolean(), any()))
         .thenReturn(aggregateParams);
     when(aggregateParams.getAggregator()).thenReturn((KudafAggregator) aggregator);
@@ -432,7 +432,7 @@ public class StreamAggregateBuilderTest {
         functionRegistry,
         FUNCTIONS,
         false,
-        KsqlConfig.EMPTY
+        KsqlConfig.empty()
     );
   }
 
@@ -671,7 +671,7 @@ public class StreamAggregateBuilderTest {
 
       // Then:
       verify(aggregateParamsFactory)
-          .create(INPUT_SCHEMA, NON_AGG_COLUMNS, functionRegistry, FUNCTIONS, true, KsqlConfig.EMPTY);
+          .create(INPUT_SCHEMA, NON_AGG_COLUMNS, functionRegistry, FUNCTIONS, true, KsqlConfig.empty());
     }
   }
 

@@ -115,7 +115,7 @@ public class AggregateParamsFactoryTest {
         functionRegistry,
         FUNCTIONS,
         false,
-        KsqlConfig.EMPTY
+        KsqlConfig.empty()
     );
   }
 
@@ -133,7 +133,7 @@ public class AggregateParamsFactoryTest {
         NON_AGG_COLUMNS,
         functionRegistry,
         ImmutableList.of(TABLE_AGG),
-        KsqlConfig.EMPTY
+        KsqlConfig.empty()
     );
 
     // Then:
@@ -178,7 +178,7 @@ public class AggregateParamsFactoryTest {
         NON_AGG_COLUMNS,
         functionRegistry,
         ImmutableList.of(TABLE_AGG),
-        KsqlConfig.EMPTY
+        KsqlConfig.empty()
     );
 
     // When:
@@ -237,7 +237,7 @@ public class AggregateParamsFactoryTest {
         functionRegistry,
         FUNCTIONS,
         true,
-        KsqlConfig.EMPTY
+        KsqlConfig.empty()
     );
 
     // When:

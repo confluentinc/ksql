@@ -100,7 +100,7 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
         allParams.add(primitiveType);
       } catch (final Exception e) {
         throw new KsqlFunctionException("Only primitive init arguments are supported by UDAF "
-            + getName() + ", but got " + arg);
+            + getName() + ", but got " + arg, e);
       }
     }
 

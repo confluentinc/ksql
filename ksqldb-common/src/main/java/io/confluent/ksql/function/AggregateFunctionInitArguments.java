@@ -64,7 +64,7 @@ public class AggregateFunctionInitArguments {
       final List<Object> initArgs
   ) {
     this.udafIndex = index;
-    this.config = Objects.requireNonNull(config, "config");
+    this.config = ImmutableMap.copyOf(Objects.requireNonNull(config, "config"));
     this.initArgs = Objects.requireNonNull(initArgs);
 
     if (index < 0) {

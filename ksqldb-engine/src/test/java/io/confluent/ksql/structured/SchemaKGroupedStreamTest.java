@@ -131,8 +131,8 @@ public class SchemaKGroupedStreamTest {
         ImmutableList.of(AGG),
         Optional.empty(),
         valueFormat.getFormatInfo(),
-        queryContext,
-        KsqlConfig.EMPTY);
+        queryContext
+    );
 
     // Then:
     assertThat(result.getSchema(), is(OUT_SCHEMA));
@@ -146,8 +146,8 @@ public class SchemaKGroupedStreamTest {
         ImmutableList.of(AGG),
         Optional.empty(),
         valueFormat.getFormatInfo(),
-        queryContext,
-        KsqlConfig.EMPTY);
+        queryContext
+    );
 
     // Then:
     assertThat(
@@ -176,8 +176,8 @@ public class SchemaKGroupedStreamTest {
         ImmutableList.of(AGG),
         Optional.empty(),
         valueFormat.getFormatInfo(),
-        queryContext,
-        KsqlConfig.EMPTY);
+        queryContext
+    );
 
     // Then:
     assertThat(
@@ -211,8 +211,8 @@ public class SchemaKGroupedStreamTest {
         ImmutableList.of(AGG),
         Optional.empty(),
         valueFormat.getFormatInfo(),
-        queryContext,
-        KsqlConfig.EMPTY);
+        queryContext
+    );
 
     // Then:
     assertThat(
@@ -237,8 +237,8 @@ public class SchemaKGroupedStreamTest {
         ImmutableList.of(AGG),
         Optional.of(windowExp),
         valueFormat.getFormatInfo(),
-        queryContext,
-        KsqlConfig.EMPTY);
+        queryContext
+    );
 
     // Then:
     assertThat(

@@ -215,8 +215,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
         functions,
         windowExpression,
         valueFormat.getFormatInfo(),
-        aggregationContext,
-        ksqlConfig
+        aggregationContext
     );
   }
 

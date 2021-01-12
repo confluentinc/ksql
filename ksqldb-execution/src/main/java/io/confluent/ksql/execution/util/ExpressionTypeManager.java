@@ -424,7 +424,7 @@ public class ExpressionTypeManager {
         // use an empty KsqlConfig here because the expression type
         // of an aggregate function does not depend on the configuration
         final AggregateFunctionInitArguments args =
-            UdafUtil.createAggregateFunctionInitArgs(0, node, KsqlConfig.EMPTY);
+            UdafUtil.createAggregateFunctionInitArgs(0, node, KsqlConfig.empty());
 
         final KsqlAggregateFunction<?,?,?> aggFunc = functionRegistry
             .getAggregateFunction(node.getName(), schema, args);

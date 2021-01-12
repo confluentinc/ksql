@@ -509,7 +509,9 @@ public class KsqlConfig extends AbstractConfig {
   public static final Set<String> SSL_CONFIG_NAMES = sslConfigNames();
   public static final Set<String> STREAM_TOPIC_CONFIG_NAMES = streamTopicConfigNames();
 
-  public static final KsqlConfig EMPTY = new KsqlConfig(ImmutableMap.of());
+  public static KsqlConfig empty() {
+    return new KsqlConfig(ImmutableMap.of());
+  }
 
   private static ConfigDef configDef(final ConfigGeneration generation) {
     return generation == ConfigGeneration.CURRENT ? CURRENT_DEF : LEGACY_DEF;

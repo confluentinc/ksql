@@ -73,15 +73,14 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       final List<FunctionCall> aggregations,
       final Optional<WindowExpression> windowExpression,
       final FormatInfo valueFormat,
-      final Stacker contextStacker,
-      final KsqlConfig config
+      final Stacker contextStacker
   ) {
     if (windowExpression.isPresent()) {
       throw new KsqlException("Windowing not supported for table aggregations.");
     }
 
     final List<String> unsupportedFunctionNames = aggregations.stream()
-        .map(call -> UdafUtil.resolveAggregateFunction(functionRegistry, call, schema, config))
+        .map(call -> UdafUtil.resolveAggregateFunction(functionRegistry, call, schema, ksqlConfig))
         .filter(function -> !(function instanceof TableAggregationFunction))
         .map(KsqlAggregateFunction::name)
         .map(FunctionName::text)

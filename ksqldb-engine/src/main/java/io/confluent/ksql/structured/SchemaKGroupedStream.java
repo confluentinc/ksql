@@ -67,8 +67,7 @@ public class SchemaKGroupedStream {
       final List<FunctionCall> aggregations,
       final Optional<WindowExpression> windowExpression,
       final FormatInfo valueFormat,
-      final Stacker contextStacker,
-      final KsqlConfig config
+      final Stacker contextStacker
   ) {
     final ExecutionStep<? extends KTableHolder<?>> step;
     final KeyFormat keyFormat;

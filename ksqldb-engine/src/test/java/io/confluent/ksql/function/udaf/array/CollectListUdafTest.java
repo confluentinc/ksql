@@ -79,6 +79,19 @@ public class CollectListUdafTest {
   }
 
   @Test
+  public void shouldIgnoreNegativeLimit() {
+    final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
+    ((Configurable) udaf).configure(ImmutableMap.of(CollectListUdaf.LIMIT_CONFIG, -10));
+
+    List<Integer> runningList = udaf.initialize();
+    for (int i = 1; i <= 25; i++) {
+      runningList = udaf.aggregate(i, runningList);
+    }
+
+    assertThat(runningList, hasSize(25));
+  }
+
+  @Test
   public void shouldUndo() {
     final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
     final Integer[] values = new Integer[] {3, 4, 5, 3};

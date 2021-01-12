@@ -25,7 +25,6 @@ import com.google.common.collect.Streams;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
@@ -158,14 +157,14 @@ public class JoinNode extends PlanNode implements JoiningNode {
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
 
-    ensureMatchingPartitionCounts(builder.getServiceContext().getTopicClient());
+    ensureMatchingPartitionCounts(buildContext.getServiceContext().getTopicClient());
 
     final JoinerFactory joinerFactory = new JoinerFactory(
-        builder,
+        buildContext,
         this,
-        builder.buildNodeContext(getId().toString()));
+        buildContext.buildNodeContext(getId().toString()));
 
     return joinerFactory.getJoiner(left.getNodeOutputType(), right.getNodeOutputType()).join();
   }
@@ -279,17 +278,17 @@ public class JoinNode extends PlanNode implements JoiningNode {
         Supplier<Joiner<?>>> joinerMap;
 
     JoinerFactory(
-        final KsqlQueryBuilder builder,
+        final PlanBuildContext buildContext,
         final JoinNode joinNode,
         final QueryContext.Stacker contextStacker
     ) {
       this.joinerMap = ImmutableMap.of(
           new Pair<>(DataSourceType.KSTREAM, DataSourceType.KSTREAM),
-          () -> new StreamToStreamJoiner<>(builder, joinNode, contextStacker),
+          () -> new StreamToStreamJoiner<>(buildContext, joinNode, contextStacker),
           new Pair<>(DataSourceType.KSTREAM, DataSourceType.KTABLE),
-          () -> new StreamToTableJoiner<>(builder, joinNode, contextStacker),
+          () -> new StreamToTableJoiner<>(buildContext, joinNode, contextStacker),
           new Pair<>(DataSourceType.KTABLE, DataSourceType.KTABLE),
-          () -> new TableToTableJoiner<>(builder, joinNode, contextStacker)
+          () -> new TableToTableJoiner<>(buildContext, joinNode, contextStacker)
       );
     }
 
@@ -305,16 +304,16 @@ public class JoinNode extends PlanNode implements JoiningNode {
 
   private abstract static class Joiner<K> {
 
-    final KsqlQueryBuilder builder;
+    final PlanBuildContext buildContext;
     final JoinNode joinNode;
     final QueryContext.Stacker contextStacker;
 
     Joiner(
-        final KsqlQueryBuilder builder,
+        final PlanBuildContext buildContext,
         final JoinNode joinNode,
         final QueryContext.Stacker contextStacker
     ) {
-      this.builder = requireNonNull(builder, "builder");
+      this.buildContext = requireNonNull(buildContext, "buildContext");
       this.joinNode = requireNonNull(joinNode, "joinNode");
       this.contextStacker = requireNonNull(contextStacker, "contextStacker");
     }
@@ -323,13 +322,13 @@ public class JoinNode extends PlanNode implements JoiningNode {
 
     @SuppressWarnings("unchecked")
     SchemaKStream<K> buildStream(final PlanNode node) {
-      return (SchemaKStream<K>) node.buildStream(builder);
+      return (SchemaKStream<K>) node.buildStream(buildContext);
     }
 
     @SuppressWarnings("unchecked")
     SchemaKTable<K> buildTable(final PlanNode node) {
       final SchemaKStream<?> schemaKStream = node.buildStream(
-          builder.withKsqlConfig(builder.getKsqlConfig()
+          buildContext.withKsqlConfig(buildContext.getKsqlConfig()
               .cloneWithPropertyOverwrite(Collections.singletonMap(
                   ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")))
       );
@@ -344,11 +343,11 @@ public class JoinNode extends PlanNode implements JoiningNode {
 
   private static final class StreamToStreamJoiner<K> extends Joiner<K> {
     private StreamToStreamJoiner(
-        final KsqlQueryBuilder builder,
+        final PlanBuildContext buildContext,
         final JoinNode joinNode,
         final QueryContext.Stacker contextStacker
     ) {
-      super(builder, joinNode, contextStacker);
+      super(buildContext, joinNode, contextStacker);
     }
 
     @Override
@@ -401,11 +400,11 @@ public class JoinNode extends PlanNode implements JoiningNode {
   private static final class StreamToTableJoiner<K> extends Joiner<K> {
 
     private StreamToTableJoiner(
-        final KsqlQueryBuilder builder,
+        final PlanBuildContext buildContext,
         final JoinNode joinNode,
         final QueryContext.Stacker contextStacker
     ) {
-      super(builder, joinNode, contextStacker);
+      super(buildContext, joinNode, contextStacker);
     }
 
     @Override
@@ -447,11 +446,11 @@ public class JoinNode extends PlanNode implements JoiningNode {
   private static final class TableToTableJoiner<K> extends Joiner<K> {
 
     TableToTableJoiner(
-        final KsqlQueryBuilder builder,
+        final PlanBuildContext buildContext,
         final JoinNode joinNode,
         final QueryContext.Stacker contextStacker
     ) {
-      super(builder, joinNode, contextStacker);
+      super(buildContext, joinNode, contextStacker);
     }
 
     @Override

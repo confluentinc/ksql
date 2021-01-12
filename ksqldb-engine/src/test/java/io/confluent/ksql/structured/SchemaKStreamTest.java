@@ -23,7 +23,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
@@ -102,7 +102,7 @@ public class SchemaKStreamTest {
   @Mock
   private ExecutionStep sourceStep;
   @Mock
-  private KsqlQueryBuilder queryBuilder;
+  private PlanBuildContext buildContext;
   @Mock
   private KsqlTopic topic;
 
@@ -133,7 +133,7 @@ public class SchemaKStreamTest {
         ImmutableList.of(ColumnName.of("K")),
         selectExpressions,
         childContextStacker,
-        queryBuilder);
+        buildContext);
 
     // Then:
     assertThat(

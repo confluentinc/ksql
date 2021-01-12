@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.builder;
+package io.confluent.ksql.execution.runtime;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
@@ -70,7 +70,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("UnstableApiUsage")
 @RunWith(MockitoJUnitRunner.class)
-public class KsqlQueryBuilderTest {
+public class RuntimeBuildContextTest {
 
   protected static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
       .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
@@ -115,7 +115,7 @@ public class KsqlQueryBuilderTest {
   @Mock
   private ValueSerdeFactory valueSerdeFactory;
   private QueryContext queryContext;
-  private KsqlQueryBuilder ksqlQueryBuilder;
+  private RuntimeBuildContext runtimeBuildContext;
 
 
   @Before
@@ -133,12 +133,13 @@ public class KsqlQueryBuilderTest {
     when(valueSerdeFactory.create(any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(valueSerde);
 
-    ksqlQueryBuilder = new KsqlQueryBuilder(
+    runtimeBuildContext = new RuntimeBuildContext(
         streamsBuilder,
         ksqlConfig,
         serviceContext,
         processingLogContext,
         functionRegistry,
+        "foo",
         QUERY_ID,
         keySerdeFactory,
         valueSerdeFactory
@@ -154,35 +155,13 @@ public class KsqlQueryBuilderTest {
         .setDefault(ProcessingLogContext.class, processingLogContext)
         .setDefault(FunctionRegistry.class, functionRegistry)
         .setDefault(QueryId.class, QUERY_ID)
-        .testAllPublicStaticMethods(KsqlQueryBuilder.class);
-  }
-
-  @Test
-  public void shouldBuildNodeContext() {
-    // When:
-    final Stacker result = ksqlQueryBuilder.buildNodeContext("some-id");
-
-    // Then:
-    assertThat(result, is(new Stacker().push("some-id")));
-  }
-
-  @Test
-  public void shouldSwapInKsqlConfig() {
-    // Given:
-    final KsqlConfig other = mock(KsqlConfig.class);
-
-    // When:
-    final KsqlQueryBuilder result = ksqlQueryBuilder.withKsqlConfig(other);
-
-    // Then:
-    assertThat(ksqlQueryBuilder.getKsqlConfig(), is(ksqlConfig));
-    assertThat(result.getKsqlConfig(), is(other));
+        .testAllPublicStaticMethods(RuntimeBuildContext.class);
   }
 
   @Test
   public void shouldBuildNonWindowedKeySerde() {
     // Then:
-    ksqlQueryBuilder.buildKeySerde(
+    runtimeBuildContext.buildKeySerde(
         FORMAT_INFO,
         PHYSICAL_SCHEMA,
         queryContext
@@ -203,7 +182,7 @@ public class KsqlQueryBuilderTest {
   @Test
   public void shouldBuildWindowedKeySerde() {
     // Then:
-    ksqlQueryBuilder.buildKeySerde(
+    runtimeBuildContext.buildKeySerde(
         FORMAT_INFO,
         WINDOW_INFO,
         PHYSICAL_SCHEMA,
@@ -226,7 +205,7 @@ public class KsqlQueryBuilderTest {
   @Test
   public void shouldBuildValueSerde() {
     // Then:
-    ksqlQueryBuilder.buildValueSerde(
+    runtimeBuildContext.buildValueSerde(
         FORMAT_INFO,
         PHYSICAL_SCHEMA,
         queryContext
@@ -247,14 +226,14 @@ public class KsqlQueryBuilderTest {
   @Test
   public void shouldTrackKeySchemasUsed() {
     // When:
-    ksqlQueryBuilder.buildKeySerde(
+    runtimeBuildContext.buildKeySerde(
         FORMAT_INFO,
         PHYSICAL_SCHEMA,
         queryContext
     );
 
     // Then:
-    final Map<String, SchemaInfo> schemas = ksqlQueryBuilder.getSchemas().getLoggerSchemaInfo();
+    final Map<String, SchemaInfo> schemas = runtimeBuildContext.getSchemas().getLoggerSchemaInfo();
     assertThat(schemas.entrySet(), hasSize(1));
     assertThat(schemas.get("fred.context"), is(new SchemaInfo(
         LOGICAL_SCHEMA,
@@ -268,14 +247,14 @@ public class KsqlQueryBuilderTest {
   @Test
   public void shouldTrackValueSchemasUsed() {
     // When:
-    ksqlQueryBuilder.buildValueSerde(
+    runtimeBuildContext.buildValueSerde(
         FORMAT_INFO,
         PHYSICAL_SCHEMA,
         queryContext
     );
 
     // Then:
-    final Map<String, SchemaInfo> schemas = ksqlQueryBuilder.getSchemas().getLoggerSchemaInfo();
+    final Map<String, SchemaInfo> schemas = runtimeBuildContext.getSchemas().getLoggerSchemaInfo();
     assertThat(schemas.entrySet(), hasSize(1));
     assertThat(schemas.get("fred.context"), is(new SchemaInfo(
         LOGICAL_SCHEMA,
@@ -289,20 +268,20 @@ public class KsqlQueryBuilderTest {
   @Test
   public void shouldMergeKeyAndValueSchemaInfo() {
     // When:
-    ksqlQueryBuilder.buildKeySerde(
+    runtimeBuildContext.buildKeySerde(
         FORMAT_INFO,
         PHYSICAL_SCHEMA,
         queryContext
     );
 
-    ksqlQueryBuilder.buildValueSerde(
+    runtimeBuildContext.buildValueSerde(
         FORMAT_INFO,
         PHYSICAL_SCHEMA,
         queryContext
     );
 
     // Then:
-    final Map<String, SchemaInfo> schemas = ksqlQueryBuilder.getSchemas().getLoggerSchemaInfo();
+    final Map<String, SchemaInfo> schemas = runtimeBuildContext.getSchemas().getLoggerSchemaInfo();
     assertThat(schemas.entrySet(), hasSize(1));
     assertThat(schemas.get("fred.context"), is(new SchemaInfo(
         LOGICAL_SCHEMA,
@@ -318,7 +297,7 @@ public class KsqlQueryBuilderTest {
   @Test
   public void shouldFailWhenTackingSerdeOnSchemaMismatch() {
     // Given:
-    ksqlQueryBuilder.buildKeySerde(
+    runtimeBuildContext.buildKeySerde(
         FORMAT_INFO,
         PHYSICAL_SCHEMA,
         queryContext
@@ -335,7 +314,7 @@ public class KsqlQueryBuilderTest {
     // When:
     assertThrows(
         IllegalStateException.class,
-        () -> ksqlQueryBuilder.buildValueSerde(
+        () -> runtimeBuildContext.buildValueSerde(
             FORMAT_INFO,
             differentSchema,
             queryContext

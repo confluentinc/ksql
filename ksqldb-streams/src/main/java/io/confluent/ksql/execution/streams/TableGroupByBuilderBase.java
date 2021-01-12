@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -27,6 +26,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -40,16 +40,16 @@ import org.apache.kafka.streams.kstream.KeyValueMapper;
 
 class TableGroupByBuilderBase {
 
-  private final KsqlQueryBuilder queryBuilder;
+  private final RuntimeBuildContext buildContext;
   private final GroupedFactory groupedFactory;
   private final ParamsFactory paramsFactory;
 
   TableGroupByBuilderBase(
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext buildContext,
       final GroupedFactory groupedFactory,
       final ParamsFactory paramsFactory
   ) {
-    this.queryBuilder = requireNonNull(queryBuilder, "queryBuilder");
+    this.buildContext = requireNonNull(buildContext, "buildContext");
     this.groupedFactory = requireNonNull(groupedFactory, "groupedFactory");
     this.paramsFactory = requireNonNull(paramsFactory, "paramsFactory");
   }
@@ -66,11 +66,11 @@ class TableGroupByBuilderBase {
         groupByExpressions.stream(),
         "Group By",
         sourceSchema,
-        queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry()
+        buildContext.getKsqlConfig(),
+        buildContext.getFunctionRegistry()
     );
 
-    final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
+    final ProcessingLogger logger = buildContext.getProcessingLogger(queryContext);
 
     final GroupByParams params = paramsFactory
         .build(sourceSchema, groupBy, logger);
@@ -81,12 +81,12 @@ class TableGroupByBuilderBase {
         formats.getValueFeatures()
     );
 
-    final Serde<GenericKey> keySerde = queryBuilder.buildKeySerde(
+    final Serde<GenericKey> keySerde = buildContext.buildKeySerde(
         formats.getKeyFormat(),
         physicalSchema,
         queryContext
     );
-    final Serde<GenericRow> valSerde = queryBuilder.buildValueSerde(
+    final Serde<GenericRow> valSerde = buildContext.buildValueSerde(
         formats.getValueFormat(),
         physicalSchema,
         queryContext

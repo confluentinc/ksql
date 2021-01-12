@@ -17,12 +17,12 @@ package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamSelectKeyV1;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.function.Function;
@@ -38,17 +38,17 @@ public final class StreamSelectKeyBuilderV1 {
   public static KStreamHolder<GenericKey> build(
       final KStreamHolder<?> stream,
       final StreamSelectKeyV1 selectKey,
-      final KsqlQueryBuilder queryBuilder
+      final RuntimeBuildContext buildContext
   ) {
     final LogicalSchema sourceSchema = stream.getSchema();
 
     final ExpressionMetadata expression = buildExpressionEvaluator(
         selectKey,
-        queryBuilder,
+        buildContext,
         sourceSchema
     );
 
-    final ProcessingLogger processingLogger = queryBuilder
+    final ProcessingLogger processingLogger = buildContext
         .getProcessingLogger(selectKey.getProperties().getQueryContext());
 
     final String errorMsg = "Error extracting new key using expression "
@@ -57,8 +57,8 @@ public final class StreamSelectKeyBuilderV1 {
     final Function<GenericRow, Object> evaluator = val -> expression
         .evaluate(val, null, processingLogger, () -> errorMsg);
 
-    final LogicalSchema resultSchema = new StepSchemaResolver(queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry()).resolve(selectKey, sourceSchema);
+    final LogicalSchema resultSchema = new StepSchemaResolver(buildContext.getKsqlConfig(),
+        buildContext.getFunctionRegistry()).resolve(selectKey, sourceSchema);
 
     final KStream<?, GenericRow> kstream = stream.getStream();
     final KStream<GenericKey, GenericRow> rekeyed = kstream
@@ -68,19 +68,19 @@ public final class StreamSelectKeyBuilderV1 {
     return new KStreamHolder<>(
         rekeyed,
         resultSchema,
-        ExecutionKeyFactory.unwindowed(queryBuilder)
+        ExecutionKeyFactory.unwindowed(buildContext)
     );
   }
 
   private static ExpressionMetadata buildExpressionEvaluator(
       final StreamSelectKeyV1 selectKey,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext buildContext,
       final LogicalSchema sourceSchema
   ) {
     final CodeGenRunner codeGen = new CodeGenRunner(
         sourceSchema,
-        queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry()
+        buildContext.getKsqlConfig(),
+        buildContext.getFunctionRegistry()
     );
 
     return codeGen.buildCodeGenFromParseTree(selectKey.getKeyExpression(), EXP_TYPE);

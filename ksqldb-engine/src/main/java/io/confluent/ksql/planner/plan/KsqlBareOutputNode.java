@@ -17,7 +17,6 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -49,8 +48,8 @@ public class KsqlBareOutputNode extends OutputNode {
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
-    return getSource().buildStream(builder);
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
+    return getSource().buildStream(buildContext);
   }
 
   public Optional<WindowInfo> getWindowInfo() {

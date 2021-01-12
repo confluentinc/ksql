@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
@@ -89,7 +89,7 @@ public class StreamSelectBuilderTest {
   @Mock
   private KStream<Struct, GenericRow> resultKStream;
   @Mock
-  private KsqlQueryBuilder queryBuilder;
+  private RuntimeBuildContext buildContext;
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
@@ -113,9 +113,9 @@ public class StreamSelectBuilderTest {
   @Before
   public void setup() {
     when(properties.getQueryContext()).thenReturn(context);
-    when(queryBuilder.getFunctionRegistry()).thenReturn(mock(FunctionRegistry.class));
-    when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
-    when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(buildContext.getFunctionRegistry()).thenReturn(mock(FunctionRegistry.class));
+    when(buildContext.getProcessingLogger(any())).thenReturn(processingLogger);
+    when(buildContext.getKsqlConfig()).thenReturn(ksqlConfig);
     when(sourceKStream
         .transformValues(any(ValueTransformerWithKeySupplier.class), any(Named.class)))
         .thenReturn(resultKStream);
@@ -129,7 +129,7 @@ public class StreamSelectBuilderTest {
         SELECT_EXPRESSIONS
     );
     planBuilder = new KSPlanBuilder(
-        queryBuilder,
+        buildContext,
         mock(SqlPredicateFactory.class),
         mock(AggregateParamsFactory.class),
         mock(StreamsFactories.class)
@@ -206,6 +206,6 @@ public class StreamSelectBuilderTest {
     step.build(planBuilder, planInfo);
 
     // Then:
-    verify(queryBuilder).getProcessingLogger(context);
+    verify(buildContext).getProcessingLogger(context);
   }
 }

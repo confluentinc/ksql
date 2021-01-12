@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.planner.plan;
 
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
@@ -35,8 +34,8 @@ public abstract class ProjectNode extends SingleSourcePlanNode {
   public abstract List<SelectExpression> getSelectExpressions();
 
   @Override
-  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
-    final SchemaKStream<?> stream = getSource().buildStream(builder);
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
+    final SchemaKStream<?> stream = getSource().buildStream(buildContext);
 
     final List<ColumnName> keyColumnNames = getSchema().key().stream()
         .map(Column::name)
@@ -45,8 +44,8 @@ public abstract class ProjectNode extends SingleSourcePlanNode {
     return stream.select(
         keyColumnNames,
         getSelectExpressions(),
-        builder.buildNodeContext(getId().toString()),
-        builder
+        buildContext.buildNodeContext(getId().toString()),
+        buildContext
     );
   }
 }

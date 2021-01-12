@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
@@ -112,10 +111,10 @@ public class DataSourceNode extends PlanNode {
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
-    final Stacker contextStacker = builder.buildNodeContext(getId().toString());
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
+    final Stacker contextStacker = buildContext.buildNodeContext(getId().toString());
     return schemaKStreamFactory.create(
-        builder,
+        buildContext,
         dataSource,
         contextStacker.push(SOURCE_OP_NAME)
     );
@@ -201,7 +200,7 @@ public class DataSourceNode extends PlanNode {
   interface SchemaKStreamFactory {
 
     SchemaKStream<?> create(
-        KsqlQueryBuilder builder,
+        PlanBuildContext buildContext,
         DataSource dataSource,
         QueryContext.Stacker contextStacker
     );

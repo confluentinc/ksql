@@ -32,7 +32,8 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
+import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
@@ -147,7 +148,9 @@ public class SchemaKTableTest {
   private PlanBuilder planBuilder;
 
   @Mock
-  private KsqlQueryBuilder queryBuilder;
+  private PlanBuildContext buildContext;
+  @Mock
+  private RuntimeBuildContext executeContext;
   @Mock
   private ExecutionKeyFactory<Struct> executionKeyFactory;
   @Mock
@@ -182,12 +185,12 @@ public class SchemaKTableTest {
     firstSchemaKTable = buildSchemaKTableForJoin(ksqlTable, mockKTable);
     secondSchemaKTable = buildSchemaKTableForJoin(secondKsqlTable, secondKTable);
 
-    when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
-    when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
+    when(executeContext.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(executeContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(executeContext.getProcessingLogger(any())).thenReturn(processingLogger);
 
     planBuilder = new KSPlanBuilder(
-        queryBuilder,
+        executeContext,
         mock(SqlPredicateFactory.class),
         mock(AggregateParamsFactory.class),
         new StreamsFactories(
@@ -277,7 +280,7 @@ public class SchemaKTableTest {
         ImmutableList.of(ColumnName.of("K")),
         projectNode.getSelectExpressions(),
         childContextStacker,
-        queryBuilder
+        buildContext
     );
 
     // Then:
@@ -400,7 +403,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable<?> projectedSchemaKStream = initialSchemaKTable.select(ImmutableList.of(),
-        projectNode.getSelectExpressions(), childContextStacker, queryBuilder);
+        projectNode.getSelectExpressions(), childContextStacker, buildContext);
 
     // Then:
     assertThat(projectedSchemaKStream.getSchema(),
@@ -423,7 +426,7 @@ public class SchemaKTableTest {
         ImmutableList.of(),
         projectNode.getSelectExpressions(),
         childContextStacker,
-        queryBuilder
+        buildContext
     );
 
     // Then:
@@ -634,7 +637,7 @@ public class SchemaKTableTest {
     // Given:
     final Serde<GenericRow> valSerde =
         getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema());
-    when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valSerde);
+    when(executeContext.buildValueSerde(any(), any(), any())).thenReturn(valSerde);
     final Grouped<Object, GenericRow> grouped = mock(Grouped.class);
     when(
         groupedFactory.create(

@@ -17,12 +17,12 @@ package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableAggregate;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -40,12 +40,12 @@ public final class TableAggregateBuilder {
   public static KTableHolder<GenericKey> build(
       final KGroupedTableHolder groupedTable,
       final TableAggregate aggregate,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory) {
     return build(
         groupedTable,
         aggregate,
-        queryBuilder,
+        buildContext,
         materializedFactory,
         new AggregateParamsFactory()
     );
@@ -54,7 +54,7 @@ public final class TableAggregateBuilder {
   public static KTableHolder<GenericKey> build(
       final KGroupedTableHolder groupedTable,
       final TableAggregate aggregate,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext buildContext,
       final MaterializedFactory materializedFactory,
       final AggregateParamsFactory aggregateParamsFactory
   ) {
@@ -63,7 +63,7 @@ public final class TableAggregateBuilder {
     final AggregateParams aggregateParams = aggregateParamsFactory.createUndoable(
         sourceSchema,
         nonFuncColumns,
-        queryBuilder.getFunctionRegistry(),
+        buildContext.getFunctionRegistry(),
         aggregate.getAggregationFunctions()
     );
     final LogicalSchema aggregateSchema = aggregateParams.getAggregateSchema();
@@ -73,9 +73,9 @@ public final class TableAggregateBuilder {
             aggregate,
             aggregateSchema,
             aggregate.getInternalFormats(),
-            queryBuilder,
+            buildContext,
             materializedFactory,
-            ExecutionKeyFactory.unwindowed(queryBuilder)
+            ExecutionKeyFactory.unwindowed(buildContext)
         );
     final KTable<GenericKey, GenericRow> aggregated = groupedTable.getGroupedTable().aggregate(
         aggregateParams.getInitializer(),
@@ -98,7 +98,7 @@ public final class TableAggregateBuilder {
     return KTableHolder.materialized(
         aggregated,
         resultSchema,
-        ExecutionKeyFactory.unwindowed(queryBuilder),
+        ExecutionKeyFactory.unwindowed(buildContext),
         materializationBuilder
     );
   }

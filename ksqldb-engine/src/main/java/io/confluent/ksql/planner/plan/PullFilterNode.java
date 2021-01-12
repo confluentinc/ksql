@@ -23,7 +23,6 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.engine.generic.GenericExpressionResolver;
 import io.confluent.ksql.engine.rewrite.StatementRewriteForMagicPseudoTimestamp;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
@@ -136,7 +135,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildCtx) {
     throw new UnsupportedOperationException();
   }
 

@@ -51,25 +51,29 @@ public class DataSourceNode extends PlanNode {
   private final DataSource dataSource;
   private final SchemaKStreamFactory schemaKStreamFactory;
   private final LogicalSchema schema;
+  private final boolean isWindowed;
 
   public DataSourceNode(
       final PlanNodeId id,
       final DataSource dataSource,
-      final SourceName alias
+      final SourceName alias,
+      final boolean isWindowed
   ) {
-    this(id, dataSource, alias, SchemaKSourceFactory::buildSource);
+    this(id, dataSource, alias, SchemaKSourceFactory::buildSource, isWindowed);
   }
 
   DataSourceNode(
       final PlanNodeId id,
       final DataSource dataSource,
       final SourceName alias,
-      final SchemaKStreamFactory schemaKStreamFactory
+      final SchemaKStreamFactory schemaKStreamFactory,
+      final boolean isWindowed
   ) {
     super(id, dataSource.getDataSourceType(), Optional.of(alias));
     this.schema = buildSchema(dataSource);
     this.dataSource = requireNonNull(dataSource, "dataSource");
     this.schemaKStreamFactory = requireNonNull(schemaKStreamFactory, "schemaKStreamFactory");
+    this.isWindowed = isWindowed;
   }
 
   public DataSource getDataSource() {
@@ -101,6 +105,10 @@ public class DataSourceNode extends PlanNode {
   @Override
   public List<PlanNode> getSources() {
     return ImmutableList.of();
+  }
+
+  public boolean isWindowed() {
+    return isWindowed;
   }
 
   @Override

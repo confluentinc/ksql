@@ -124,7 +124,6 @@ public class PullFilterNode extends SingleSourcePlanNode {
         ksqlConfig,
         metaStore
     );
-
   }
 
   public Expression getRewrittenPredicate() {

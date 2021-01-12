@@ -43,7 +43,6 @@ import io.confluent.ksql.planner.plan.PullFilterNode;
 import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds;
 import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
@@ -66,18 +65,15 @@ public class PullPhysicalPlanBuilder {
   private final PersistentQueryMetadata persistentQueryMetadata;
   private final QueryId queryId;
   private final Materialization mat;
-  private final KsqlConfig ksqlConfig;
 
   private List<GenericKey> keys;
-  private boolean isWindowed;
   private Optional<WindowBounds> windowBounds;
   private boolean seenSelectOperator = false;
 
   public PullPhysicalPlanBuilder(
       final ProcessingLogContext processingLogContext,
       final PersistentQueryMetadata persistentQueryMetadata,
-      final ImmutableAnalysis analysis,
-      final KsqlConfig ksqlConfig
+      final ImmutableAnalysis analysis
   ) {
     this.processingLogContext = Objects.requireNonNull(
         processingLogContext, "processingLogContext");
@@ -88,7 +84,6 @@ public class PullPhysicalPlanBuilder {
     mat = this.persistentQueryMetadata
         .getMaterialization(queryId, contextStacker)
         .orElseThrow(() -> notMaterializedException(getSourceName(analysis)));
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
   }
 
   /**
@@ -170,7 +165,6 @@ public class PullPhysicalPlanBuilder {
   }
 
   private SelectOperator translateFilterNode(final PullFilterNode logicalNode) {
-    isWindowed = logicalNode.isWindowed();
     keys = logicalNode.getKeyValues();
     windowBounds = logicalNode.getWindowBounds();
 
@@ -188,13 +182,13 @@ public class PullPhysicalPlanBuilder {
   ) {
     if (!seenSelectOperator) {
       keys = Collections.emptyList();
-      if (!isWindowed) {
+      if (!logicalNode.isWindowed()) {
         return new TableScanOperator(mat, logicalNode);
       } else {
         return new WindowedTableScanOperator(mat, logicalNode);
       }
     }
-    if (!isWindowed) {
+    if (!logicalNode.isWindowed()) {
       return new KeyedTableLookupOperator(mat, logicalNode);
     } else {
       return new KeyedWindowedTableLookupOperator(mat, logicalNode, windowBounds.get());

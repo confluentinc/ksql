@@ -166,9 +166,8 @@ final class EngineExecutor {
           statement, analysis, ksqlConfig);
       final PullPhysicalPlan physicalPlan = buildPullPhysicalPlan(
           logicalPlan,
-          ksqlConfig,
-          analysis,
-          statement);
+          analysis
+      );
       return routing.handlePullQuery(
           physicalPlan, statement, routingOptions, physicalPlan.getOutputSchema(),
           physicalPlan.getQueryId());
@@ -328,16 +327,13 @@ final class EngineExecutor {
 
   private PullPhysicalPlan buildPullPhysicalPlan(
       final LogicalPlanNode logicalPlan,
-      final KsqlConfig config,
-      final ImmutableAnalysis analysis,
-      final ConfiguredStatement<Query> statement
+      final ImmutableAnalysis analysis
   ) {
 
     final PullPhysicalPlanBuilder builder = new PullPhysicalPlanBuilder(
         engineContext.getProcessingLogContext(),
         PullQueryExecutionUtil.findMaterializingQuery(engineContext, analysis),
-        analysis,
-        config
+        analysis
     );
     return builder.buildPullPhysicalPlan(logicalPlan);
   }

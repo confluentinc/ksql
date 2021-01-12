@@ -53,7 +53,7 @@ Literal values support more open coercion rules than other expression types.
   these values that starts with the first character, for example, `fal`, `y`.
   Comparison is case-insensitive.
 * A `STRING` literal containing an ISO-8601 formatted datestring can be coerced
-  to a `TIMESTAMP`. A datestring containing a timezone will be converted to UTC.
+  to a `TIMESTAMP`. A datestring containing a timezone is converted to UTC.
 
 ## Expression lists
 

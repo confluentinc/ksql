@@ -248,7 +248,7 @@ Decimals with specified precision and scale are serialized as JSON numbers. For 
 #### Timestamp Serialization
 
 Timestamps are serialized as numbers indicating the Unix epoch time in milliseconds. For example,
-a timestamp at `1970-01-01T00:00:00.001` will be serialized as
+a timestamp at `1970-01-01T00:00:00.001` is serialized as
 
 ```json
 {
@@ -256,7 +256,7 @@ a timestamp at `1970-01-01T00:00:00.001` will be serialized as
 }
 ```
 
-ksqlDb will deserialize a number as a `TIMESTAMP` if it corresponds to a `TIMESTAMP` typed field in
+ksqlDb deserializes a number as a `TIMESTAMP` if it corresponds to a `TIMESTAMP` typed field in
 the stream.
 
 #### Field Name Case Sensitivity

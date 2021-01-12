@@ -1,5 +1,6 @@
 # Client access
 
+- Kafka clients
 - Client
 - CLI
 - REST API

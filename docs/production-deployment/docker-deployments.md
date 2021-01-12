@@ -8,6 +8,10 @@ keywords: ksqldb, docker, container, install, configure, production
 
 # Docker deployments
 
+- Point to operator
+- Reference Docker configuration
+- gotchas, mounting the state store volume
+
 You can deploy ksqlDB by using Docker containers. Confluent maintains images at
 [Docker Hub](https://hub.docker.com/u/confluentinc) for
 [ksqlDB Server](https://hub.docker.com/r/confluentinc/ksqldb-server/) and the

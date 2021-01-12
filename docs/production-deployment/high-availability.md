@@ -1,5 +1,8 @@
 # High availability
 
+- stripe your deployment across zones, best practice
+
+
 Enable standby servers by setting ksql.streams.num.standby.replicas to a value greater or equal to 1.
 
 Enable forwarding of pull queries to standby servers when the active is down by setting ksql.query.pull.enable.standby.reads to true.

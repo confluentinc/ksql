@@ -8,6 +8,8 @@ keywords: ksqldb, diagnostics, troubleshooting, health, jmx
 
 # Healthchecks
 
+- other status endpoints
+
 Check a ksqlDB Server from the ksqlDB CLI
 -----------------------------------------
 

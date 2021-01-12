@@ -1,5 +1,7 @@
 # Schema Registry integration
 
+- how do you connect to SR
+
 ## Schema Inference
 
 For supported [serialization formats](/reference/serialization),

@@ -85,7 +85,7 @@ and a scale of _0_.
 
 | name      | description                                                     | backing Java type
 |-----------|-----------------------------------------------------------------|------------------
-|`timestamp`| value representing a point in time without timezone information | [`java.sql.Timestamp`](https://docs.oracle.com/en/java/javase/11/docs/api/java.sql/java/sql/Timestamp.html)
+|`timestamp`| value representing a point in time in millisecond precision without timezone information | [`java.sql.Timestamp`](https://docs.oracle.com/en/java/javase/11/docs/api/java.sql/java/sql/Timestamp.html)
 
 ## Compound types
 

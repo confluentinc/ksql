@@ -104,6 +104,7 @@ The following table shows all keywords in the language.
 | `TABLES`       | list all tables                       | `SHOW TABLES;`                                                       |
 | `TERMINATE`    | end a persistent query                | `TERMINATE query_id;`                                                |
 | `THEN`         | return expression in a CASE block     | `CASE WHEN units<2 THEN 'sm' WHEN units<4 THEN 'med' ELSE 'large' …` |
+| `TIMESTAMP`    | timestamp data type                   |                                                                      |
 | `TIMESTAMP`    | specify a timestamp column            | `CREATE STREAM pageviews WITH (TIMESTAMP='viewtime', …`              |
 | `TOPIC`        | specify {{site.ak}} topic to delete   | `DROP TABLE <table-name> DELETE TOPIC;`                              |
 | `TOPICS`       | list all streams                      | `SHOW TOPICS;`                                                       |

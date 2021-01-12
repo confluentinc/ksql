@@ -157,12 +157,11 @@ public final class QueryExecutor {
     final KsqlConfig ksqlConfig = config.getConfig(true);
     final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
     final RuntimeBuildContext runtimeBuildContext = buildContext(applicationId, queryId);
-    final Object buildResult = buildQueryImplementation(physicalPlan, runtimeBuildContext);
-
-    final BlockingRowQueue queue = buildTransientQueryQueue(buildResult, limit, excludeTombstones);
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
+    final Object buildResult = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
+    final BlockingRowQueue queue = buildTransientQueryQueue(buildResult, limit, excludeTombstones);
 
     final TransientQueryMetadata.ResultType resultType = buildResult instanceof KTableHolder
         ? windowInfo.isPresent() ? ResultType.WINDOWED_TABLE : ResultType.TABLE
@@ -205,7 +204,6 @@ public final class QueryExecutor {
 
     final String applicationId = QueryApplicationId.build(ksqlConfig, true, queryId);
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
-    final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
 
     final PhysicalSchema querySchema = PhysicalSchema.from(
         sinkDataSource.getSchema(),
@@ -215,6 +213,7 @@ public final class QueryExecutor {
 
     final RuntimeBuildContext runtimeBuildContext = buildContext(applicationId, queryId);
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
+    final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
 
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
         materializationProviderBuilder = getMaterializationInfo(result).map(info ->

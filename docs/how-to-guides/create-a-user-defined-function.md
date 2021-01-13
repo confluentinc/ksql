@@ -201,7 +201,7 @@ Some important points to notice:
   populated later in the guide.
 
 !!! warning
-    External parameters aren't yet supported for tabular or aggregation functions.
+    External parameters aren't yet supported for tabular functions.
 
 Either continue following this guide by implementing more functions or
 skip ahead to [compiling the

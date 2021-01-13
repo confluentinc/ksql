@@ -123,7 +123,7 @@ public class PullProjectNode extends ProjectNode {
     return compiledSelectExpressions;
   }
 
-  LogicalSchema getIntermediateSchema() {
+  public LogicalSchema getIntermediateSchema() {
     return intermediateSchema;
   }
 

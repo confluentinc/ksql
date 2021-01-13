@@ -47,6 +47,7 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -78,6 +79,7 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
   private final ImmutableList<SelectExpression> finalSelectExpressions;
   private final ValueFormat valueFormat;
   private final LogicalSchema schema;
+  private final KsqlConfig ksqlConfig;
 
   public AggregateNode(
       final PlanNodeId id,
@@ -88,13 +90,15 @@ public class AggregateNode extends SingleSourcePlanNode implements VerifiableNod
       final ImmutableAnalysis analysis,
       final AggregateAnalysisResult rewrittenAggregateAnalysis,
       final List<SelectExpression> projectionExpressions,
-      final boolean persistentQuery
+      final boolean persistentQuery,
+      final KsqlConfig ksqlConfig
   ) {
     super(id, DataSourceType.KTABLE, Optional.empty(), source);
 
     this.schema = requireNonNull(schema, "schema");
     this.groupBy = requireNonNull(groupBy, "groupBy");
     this.windowExpression = requireNonNull(analysis, "analysis").getWindowExpression();
+    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
 
     final AggregateExpressionRewriter aggregateExpressionRewriter =
         new AggregateExpressionRewriter(functionRegistry);

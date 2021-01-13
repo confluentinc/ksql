@@ -27,6 +27,7 @@ import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
@@ -113,7 +114,8 @@ public class AggregateParamsFactoryTest {
         NON_AGG_COLUMNS,
         functionRegistry,
         FUNCTIONS,
-        false
+        false,
+        KsqlConfig.empty()
     );
   }
 
@@ -130,7 +132,8 @@ public class AggregateParamsFactoryTest {
         INPUT_SCHEMA,
         NON_AGG_COLUMNS,
         functionRegistry,
-        ImmutableList.of(TABLE_AGG)
+        ImmutableList.of(TABLE_AGG),
+        KsqlConfig.empty()
     );
 
     // Then:
@@ -174,7 +177,8 @@ public class AggregateParamsFactoryTest {
         INPUT_SCHEMA,
         NON_AGG_COLUMNS,
         functionRegistry,
-        ImmutableList.of(TABLE_AGG)
+        ImmutableList.of(TABLE_AGG),
+        KsqlConfig.empty()
     );
 
     // When:
@@ -232,7 +236,8 @@ public class AggregateParamsFactoryTest {
         NON_AGG_COLUMNS,
         functionRegistry,
         FUNCTIONS,
-        true
+        true,
+        KsqlConfig.empty()
     );
 
     // When:

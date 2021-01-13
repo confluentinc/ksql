@@ -84,7 +84,8 @@ public final class StreamAggregateBuilder {
         nonFuncColumns,
         buildContext.getFunctionRegistry(),
         aggregate.getAggregationFunctions(),
-        false
+        false,
+        buildContext.getKsqlConfig()
     );
     final LogicalSchema aggregateSchema = aggregateParams.getAggregateSchema();
     final LogicalSchema resultSchema = aggregateParams.getSchema();
@@ -159,7 +160,8 @@ public final class StreamAggregateBuilder {
         nonFuncColumns,
         buildContext.getFunctionRegistry(),
         aggregate.getAggregationFunctions(),
-        true
+        true,
+        buildContext.getKsqlConfig()
     );
     final LogicalSchema aggregateSchema = aggregateParams.getAggregateSchema();
     final LogicalSchema resultSchema = aggregateParams.getSchema();

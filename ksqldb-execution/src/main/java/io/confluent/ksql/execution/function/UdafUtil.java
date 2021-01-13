@@ -27,9 +27,11 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public final class UdafUtil {
@@ -40,7 +42,8 @@ public final class UdafUtil {
   public static KsqlAggregateFunction<?, ?, ?> resolveAggregateFunction(
       final FunctionRegistry functionRegistry,
       final FunctionCall functionCall,
-      final LogicalSchema schema
+      final LogicalSchema schema,
+      final KsqlConfig config
   ) {
     try {
       final ExpressionTypeManager expressionTypeManager =
@@ -61,7 +64,7 @@ public final class UdafUtil {
           .orElseThrow(() -> new KsqlException("Could not find column for expression: " + arg));
 
       final AggregateFunctionInitArguments aggregateFunctionInitArguments =
-          createAggregateFunctionInitArgs(valueColumn.index(), functionCall);
+          createAggregateFunctionInitArgs(valueColumn.index(), functionCall, config);
 
       return functionRegistry.getAggregateFunction(
           functionCall.getName(),
@@ -74,7 +77,9 @@ public final class UdafUtil {
   }
 
   public static AggregateFunctionInitArguments createAggregateFunctionInitArgs(
-      final int udafIndex, final FunctionCall functionCall
+      final int udafIndex,
+      final FunctionCall functionCall,
+      final KsqlConfig config
   ) {
     final List<Expression> args = functionCall.getArguments();
 
@@ -92,6 +97,9 @@ public final class UdafUtil {
       initArgs.add(((Literal) param).getValue());
     }
 
-    return new AggregateFunctionInitArguments(udafIndex, initArgs);
+    final Map<String, Object> functionConfig = config
+        .getKsqlFunctionsConfigProps(functionCall.getName().text());
+
+    return new AggregateFunctionInitArguments(udafIndex, functionConfig, initArgs);
   }
 }

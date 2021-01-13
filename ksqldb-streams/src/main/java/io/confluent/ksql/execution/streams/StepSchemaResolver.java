@@ -377,7 +377,8 @@ public final class StepSchemaResolver {
         nonAggregateColumns,
         functionRegistry,
         aggregationFunctions,
-        windowedAggregation
+        windowedAggregation,
+        ksqlConfig
     ).getSchema();
   }
 

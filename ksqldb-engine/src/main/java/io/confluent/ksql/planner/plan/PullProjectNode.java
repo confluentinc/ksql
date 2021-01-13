@@ -33,6 +33,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -91,7 +92,9 @@ public class PullProjectNode extends ProjectNode {
           addAdditionalColumnsToIntermediateSchema,
           isWindowed
       );
-    this.compiledSelectExpressions = selectExpressions
+    this.compiledSelectExpressions = isSelectStar
+        ? Collections.emptyList()
+        : selectExpressions
         .stream()
         .map(selectExpression -> CodeGenRunner.compileExpression(
             selectExpression.getExpression(),
@@ -101,7 +104,6 @@ public class PullProjectNode extends ProjectNode {
             metaStore
         ))
         .collect(ImmutableList.toImmutableList());
-
   }
 
   @Override
@@ -115,10 +117,13 @@ public class PullProjectNode extends ProjectNode {
   }
 
   public List<ExpressionMetadata> getCompiledSelectExpressions() {
+    if (isSelectStar) {
+      throw new IllegalStateException("Select expressions aren't compiled for select star");
+    }
     return compiledSelectExpressions;
   }
 
-  LogicalSchema getIntermediateSchema() {
+  public LogicalSchema getIntermediateSchema() {
     return intermediateSchema;
   }
 

@@ -828,7 +828,7 @@ public class KsqlParserTest {
     assertThat(statement, instanceOf(ListStreams.class));
     final ListStreams listStreams = (ListStreams) statement;
     assertThat(listStreams.getShowExtended(), is(true));
-    assertThat(listStreams.getShowDescription(), is(false));
+    assertThat(listStreams.getDescribe(), is(false));
   }
 
   @Test
@@ -854,7 +854,7 @@ public class KsqlParserTest {
     assertThat(statement, instanceOf(ListTables.class));
     final ListTables listTables = (ListTables) statement;
     assertThat(listTables.getShowExtended(), is(true));
-    assertThat(listTables.getShowDescription(), is(false));
+    assertThat(listTables.getDescribe(), is(false));
   }
 
   @Test
@@ -869,24 +869,24 @@ public class KsqlParserTest {
 
   @Test
   public void shouldSetShowDescriptionsForShowStreamsDescription() {
-    final String statementString = "SHOW STREAMS DESCRIPTION;";
+    final String statementString = "DESCRIBE STREAMS;";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
     assertThat(statement, instanceOf(ListStreams.class));
     final ListStreams listStreams = (ListStreams) statement;
     assertThat(listStreams.getShowExtended(), is(false));
-    assertThat(listStreams.getShowDescription(), is(true));
+    assertThat(listStreams.getDescribe(), is(true));
   }
 
   @Test
   public void shouldSetShowDescriptionsForShowTablesDescription() {
-    final String statementString = "SHOW TABLES DESCRIPTION;";
+    final String statementString = "DESCRIBE TABLES;";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
     assertThat(statement, instanceOf(ListTables.class));
     final ListTables listTables = (ListTables) statement;
     assertThat(listTables.getShowExtended(), is(false));
-    assertThat(listTables.getShowDescription(), is(true));
+    assertThat(listTables.getDescribe(), is(true));
   }
 
   private void assertQuerySucceeds(final String sql) {

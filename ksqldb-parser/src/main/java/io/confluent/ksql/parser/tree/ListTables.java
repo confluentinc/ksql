@@ -17,7 +17,7 @@ package io.confluent.ksql.parser.tree;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static io.confluent.ksql.parser.tree.DescriptionType.BASE;
-import static io.confluent.ksql.parser.tree.DescriptionType.DESCRIPTION;
+import static io.confluent.ksql.parser.tree.DescriptionType.DESCRIBE;
 import static io.confluent.ksql.parser.tree.DescriptionType.EXTENDED;
 
 import com.google.errorprone.annotations.Immutable;
@@ -33,18 +33,18 @@ public class ListTables extends Statement {
   public ListTables(
       final Optional<NodeLocation> location,
       final boolean showExtended,
-      final boolean showDescription
+      final boolean describe
   ) {
     super(location);
-    this.descriptionType = showExtended ? EXTENDED : (showDescription ? DESCRIPTION : BASE);
+    this.descriptionType = showExtended ? EXTENDED : (describe ? DESCRIBE : BASE);
   }
 
   public boolean getShowExtended() {
     return descriptionType == EXTENDED;
   }
 
-  public boolean getShowDescription() {
-    return descriptionType == DESCRIPTION;
+  public boolean getDescribe() {
+    return descriptionType == DESCRIBE;
   }
 
   @Override

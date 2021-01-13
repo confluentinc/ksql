@@ -48,13 +48,15 @@ statement
     : query                                                                 #queryStatement
     | (LIST | SHOW) PROPERTIES                                              #listProperties
     | (LIST | SHOW) ALL? TOPICS EXTENDED?                                   #listTopics
-    | (LIST | SHOW) STREAMS (DESCRIPTION | EXTENDED)?                       #listStreams
-    | (LIST | SHOW) TABLES (DESCRIPTION | EXTENDED)?                        #listTables
+    | (LIST | SHOW) STREAMS EXTENDED?                                       #listStreams
+    | (LIST | SHOW) TABLES EXTENDED?                                        #listTables
     | (LIST | SHOW) FUNCTIONS                                               #listFunctions
     | (LIST | SHOW) (SOURCE | SINK)? CONNECTORS                             #listConnectors
     | (LIST | SHOW) TYPES                                                   #listTypes
     | (LIST | SHOW) VARIABLES                                               #listVariables
     | DESCRIBE EXTENDED? sourceName                                         #showColumns
+    | DESCRIBE EXTENDED? STREAMS                                            #listStreams
+    | DESCRIBE EXTENDED? TABLES                                             #listTables
     | DESCRIBE FUNCTION identifier                                          #describeFunction
     | DESCRIBE CONNECTOR identifier                                         #describeConnector
     | PRINT (identifier| STRING) printClause                                #printTopic
@@ -486,7 +488,6 @@ TYPES: 'TYPES';
 CAST: 'CAST';
 SHOW: 'SHOW';
 LIST: 'LIST';
-DESCRIPTION: 'DESCRIPTION';
 TABLES: 'TABLES';
 TOPICS: 'TOPICS';
 QUERY: 'QUERY';

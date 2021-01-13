@@ -420,22 +420,28 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitListStreams(final ListStreams node, final Integer context) {
-      builder.append("SHOW STREAMS");
+      if (node.getDescribe()) {
+        builder.append("DESCRIBE STREAMS");
+      } else {
+        builder.append("SHOW STREAMS");
+      }
+
       if (node.getShowExtended()) {
         visitExtended();
-      } else if (node.getShowDescription()) {
-        visitDescription();
       }
       return null;
     }
 
     @Override
     protected Void visitListTables(final ListTables node, final Integer context) {
-      builder.append("SHOW TABLES");
+      if (node.getDescribe()) {
+        builder.append("DESCRIBE TABLES");
+      } else {
+        builder.append("SHOW TABLES");
+      }
+
       if (node.getShowExtended()) {
         visitExtended();
-      } else if (node.getShowDescription()) {
-        visitDescription();
       }
       return null;
     }
@@ -488,10 +494,6 @@ public final class SqlFormatter {
 
     private void visitExtended() {
       builder.append(" EXTENDED");
-    }
-
-    private void visitDescription() {
-      builder.append(" DESCRIPTION");
     }
 
     @Override

@@ -806,7 +806,7 @@ public class SqlFormatterTest {
   }
 
   @Test
-  public void shouldFormatShowTablesDescription() {
+  public void shouldFormatDescribeTables() {
     // Given:
     final ListTables listTables = new ListTables(Optional.empty(), false, true);
 
@@ -814,7 +814,7 @@ public class SqlFormatterTest {
     final String formatted = SqlFormatter.formatSql(listTables);
 
     // Then:
-    assertThat(formatted, is("SHOW TABLES DESCRIPTION"));
+    assertThat(formatted, is("DESCRIBE TABLES"));
   }
 
   @Test
@@ -854,7 +854,7 @@ public class SqlFormatterTest {
   }
 
   @Test
-  public void shouldFormatShowStreamsDescription() {
+  public void shouldFormatDescribeStreams() {
     // Given:
     final ListStreams listStreams = new ListStreams(Optional.empty(), false, true);
 
@@ -862,7 +862,7 @@ public class SqlFormatterTest {
     final String formatted = SqlFormatter.formatSql(listStreams);
 
     // Then:
-    assertThat(formatted, is("SHOW STREAMS DESCRIPTION"));
+    assertThat(formatted, is("DESCRIBE STREAMS"));
   }
 
   @Test

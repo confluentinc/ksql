@@ -226,7 +226,7 @@ public class UdfIntTest {
 
     // Given:
     final String queryString = String.format(
-        "CREATE STREAM \"%s\" AS SELECT ID, `DESCRIPTION` FROM %s WHERE ID LIKE '%%_1';",
+        "CREATE STREAM \"%s\" AS SELECT ID, DESCRIPTION FROM %s WHERE ID LIKE '%%_1';",
         resultStreamName, DELIMITED_STREAM_NAME
     );
 
@@ -244,7 +244,7 @@ public class UdfIntTest {
     if (testData.format == DELIMITED) {
       // Delimited does not support array or map types, so use simplier schema:
       ksqlContext.sql(String.format("CREATE STREAM %s "
-              + "(ID varchar KEY, `DESCRIPTION` varchar) WITH "
+              + "(ID varchar KEY, DESCRIPTION varchar) WITH "
               + "(kafka_topic='%s', value_format='%s');",
           testData.sourceStreamName, testData.sourceTopicName, testData.format.name()));
     } else {

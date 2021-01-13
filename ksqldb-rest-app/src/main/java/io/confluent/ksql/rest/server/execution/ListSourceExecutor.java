@@ -113,7 +113,7 @@ public final class ListSourceExecutor {
     final List<KsqlStream<?>> ksqlStreams = getSpecificStreams(executionContext);
 
     final ListStreams listStreams = statement.getStatement();
-    if (listStreams.getShowExtended() || listStreams.getShowDescription()) {
+    if (listStreams.getShowExtended() || listStreams.getDescribe()) {
       return sourceDescriptionList(
           statement,
           sessionProperties,
@@ -140,7 +140,7 @@ public final class ListSourceExecutor {
     final List<KsqlTable<?>> ksqlTables = getSpecificTables(executionContext);
 
     final ListTables listTables = statement.getStatement();
-    if (listTables.getShowExtended() || listTables.getShowDescription()) {
+    if (listTables.getShowExtended() || listTables.getDescribe()) {
       return sourceDescriptionList(
           statement,
           sessionProperties,

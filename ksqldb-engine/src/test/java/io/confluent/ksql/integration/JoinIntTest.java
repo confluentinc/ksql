@@ -106,7 +106,7 @@ public class JoinIntTest {
 
     final String queryString =
             "CREATE STREAM " + testStreamName + " AS "
-                + "SELECT " + orderStreamName + ".ITEMID, ORDERID, ORDERUNITS, `DESCRIPTION` "
+                + "SELECT " + orderStreamName + ".ITEMID, ORDERID, ORDERUNITS, DESCRIPTION "
                 + "FROM " + orderStreamName + " LEFT JOIN " + itemTableName + " "
                 + "on " + orderStreamName + ".ITEMID = " + itemTableName + ".ID "
                 + "WHERE " + orderStreamName + ".ITEMID = 'ITEM_1' ;";
@@ -129,7 +129,7 @@ public class JoinIntTest {
     final String testStreamName = "OrderedWithDescription".toUpperCase();
 
     final String commonSql =
-        "SELECT " + ORDER_STREAM_NAME_JSON + ".ITEMID, ORDERID, ORDERUNITS, `DESCRIPTION` "
+        "SELECT " + ORDER_STREAM_NAME_JSON + ".ITEMID, ORDERID, ORDERUNITS, DESCRIPTION "
             + "FROM " + ORDER_STREAM_NAME_JSON + " LEFT JOIN " + ITEM_TABLE_NAME_JSON + " "
             + " on " + ORDER_STREAM_NAME_JSON + ".ITEMID = " + ITEM_TABLE_NAME_JSON + ".ID ";
 
@@ -180,13 +180,13 @@ public class JoinIntTest {
   @Test
   public void shouldUseTimeStampFieldFromStream() {
     final String queryString = "CREATE STREAM JOINED AS "
-        + "SELECT " + ORDER_STREAM_NAME_AVRO + ".ITEMID, ORDERID, ORDERUNITS, `DESCRIPTION` "
+        + "SELECT " + ORDER_STREAM_NAME_AVRO + ".ITEMID, ORDERID, ORDERUNITS, DESCRIPTION "
         + "FROM " + ORDER_STREAM_NAME_AVRO + " LEFT JOIN " + ITEM_TABLE_NAME_AVRO + " "
         + "ON " + ORDER_STREAM_NAME_AVRO + ".ITEMID = " + ITEM_TABLE_NAME_AVRO + ".ID "
         + "WHERE "  + ORDER_STREAM_NAME_AVRO + ".ITEMID = 'ITEM_1';"
         + ""
         + "CREATE STREAM OUTPUT AS "
-        + "SELECT ITEMID, ORDERID, `DESCRIPTION`, ROWTIME AS RT "
+        + "SELECT ITEMID, ORDERID, DESCRIPTION, ROWTIME AS RT "
         + "FROM JOINED;";
 
     ksqlContext.sql(queryString);
@@ -262,7 +262,7 @@ public class JoinIntTest {
         orderStreamTopicJson));
 
     ksqlContext.sql(String.format(
-        "CREATE TABLE %s (ID varchar PRIMARY KEY, `DESCRIPTION` varchar) "
+        "CREATE TABLE %s (ID varchar PRIMARY KEY, DESCRIPTION varchar) "
             + "WITH (kafka_topic='%s', key_format='KAFKA', value_format='JSON');",
         ITEM_TABLE_NAME_JSON,
         itemTableTopicJson));
@@ -276,7 +276,7 @@ public class JoinIntTest {
         orderStreamTopicAvro));
 
     ksqlContext.sql(String.format(
-        "CREATE TABLE %s (ID varchar PRIMARY KEY, `DESCRIPTION` varchar)"
+        "CREATE TABLE %s (ID varchar PRIMARY KEY, DESCRIPTION varchar)"
             + " WITH (kafka_topic='%s', key_format='DELIMITED', value_format='AVRO');",
         ITEM_TABLE_NAME_AVRO,
         itemTableTopicAvro));

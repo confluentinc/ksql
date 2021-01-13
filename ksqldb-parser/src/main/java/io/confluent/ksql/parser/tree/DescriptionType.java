@@ -16,7 +16,7 @@
 package io.confluent.ksql.parser.tree;
 
 public enum DescriptionType {
-    DESCRIPTION,
+    DESCRIBE,
     EXTENDED,
     BASE
 }

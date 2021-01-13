@@ -81,6 +81,12 @@ and a scale of _0_.
 - Upcasting a `bigint` to a `decimal` produces a `decimal` with a precision of _19_
 and a scale of _0_.
 
+## Timestamp types
+
+| name      | description                                                     | backing Java type
+|-----------|-----------------------------------------------------------------|------------------
+|`timestamp`| value representing a point in time in millisecond precision without timezone information | [`java.sql.Timestamp`](https://docs.oracle.com/en/java/javase/11/docs/api/java.sql/java/sql/Timestamp.html)
+
 ## Compound types
 
 !!! note

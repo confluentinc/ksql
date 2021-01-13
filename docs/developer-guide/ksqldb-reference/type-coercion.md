@@ -52,6 +52,8 @@ Literal values support more open coercion rules than other expression types.
   Valid boolean values are `true`, `false`, `yes`, `no`, or any substring of
   these values that starts with the first character, for example, `fal`, `y`.
   Comparison is case-insensitive.
+* A `STRING` literal containing an ISO-8601 formatted datestring can be coerced
+  to a `TIMESTAMP`. A datestring containing a timezone is converted to UTC.
 
 ## Expression lists
 
@@ -68,6 +70,7 @@ behavior depends on the type of the first non-null element.
    type is a numeric type that's wide enough to hold all numbers found in the
    list.
  * `BOOLEAN`: all other expressions must be coercible to `BOOLEAN`.
+ * `TIMESTAMP`: all other expressions must be coercible to `TIMESTAMP`.
  * `ARRAY`: all other expressions must be `ARRAY`s and have element types that
    can be coerced to a common element type.
  * `MAP`: all other expressions must be `MAP`s and have key and value types

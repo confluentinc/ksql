@@ -44,7 +44,7 @@
 
 ### BREAKING CHANGES
 
-* This change fixes a _bug_ where unnecessary tombstones where being emitted when a `HAVING` clause filtered out a row from the source that is not in the output table
+* This change fixes a _bug_ where unnecessary tombstones where being emitted when a `HAVING` clause filtered out a row from the source that is not in the output table.
     For example, given:
     ```sql
     -- source stream:

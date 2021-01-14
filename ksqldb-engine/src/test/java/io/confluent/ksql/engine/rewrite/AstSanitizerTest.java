@@ -24,6 +24,10 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionExpression;
+import io.confluent.ksql.execution.expression.tree.LambdaLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
@@ -36,6 +40,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
@@ -194,6 +199,27 @@ public class AstSanitizerTest {
         new SingleColumn(
             column(TEST1_NAME, "COL5"), Optional.of(ColumnName.of("COL5")))
     ))));
+  }
+
+  @Test
+  public void shouldAdt() {
+    // Given:
+    final Statement stmt = givenQuery(
+        "SELECT X => X + 5 FROM TEST2;");
+
+    // When:
+    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new SingleColumn(
+            new LambdaFunctionExpression(
+                ImmutableList.of("X"),
+                new ArithmeticBinaryExpression(Operator.ADD, new LambdaLiteral("X"), new IntegerLiteral(5))
+            ),
+            Optional.of(ColumnName.of("KSQL_COL_0")))
+    ))));
+
   }
 
   @Test

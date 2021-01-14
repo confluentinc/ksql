@@ -39,6 +39,8 @@ import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionExpression;
+import io.confluent.ksql.execution.expression.tree.LambdaLiteral;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
@@ -54,6 +56,8 @@ import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -466,6 +470,30 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
+    public Expression visitLambdaExpression(final LambdaFunctionExpression node, final C context) {
+      final Optional<Expression> result
+          = plugin.apply(node, new Context<>(context, this));
+      if (result.isPresent()) {
+        return result.get();
+      }
+
+      final LambdaContext lambdaContext =
+          new LambdaContext(new ArrayList<>(node.getArguments()));
+      if (context instanceof Context) {
+        final Context currentContext = (Context) context;
+        if (currentContext.getContext() instanceof LambdaContext) {
+          final LambdaContext previousContext = (LambdaContext) currentContext.getContext();
+          lambdaContext.addLambdaArguments(previousContext.getLambdaArguments());
+        }
+      } else if (context instanceof LambdaContext) {
+        lambdaContext.addLambdaArguments(((LambdaContext) context).getLambdaArguments());
+      }
+
+      final Expression expression = rewriter.apply(node.getBody(), (C) lambdaContext);
+      return new LambdaFunctionExpression(node.getLocation(), node.getArguments(), expression);
+    }
+
+    @Override
     public Expression visitBooleanLiteral(final BooleanLiteral node, final C context) {
       return plugin.apply(node, new Context<>(context, this)).orElse(node);
     }
@@ -482,6 +510,11 @@ public final class ExpressionTreeRewriter<C> {
 
     @Override
     public Expression visitLongLiteral(final LongLiteral node, final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
+    }
+
+    @Override
+    public Expression visitLambdaLiteral(final LambdaLiteral node, final C context) {
       return plugin.apply(node, new Context<>(context, this)).orElse(node);
     }
 

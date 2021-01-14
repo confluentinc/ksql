@@ -292,11 +292,13 @@ primaryExpression
     | CASE valueExpression whenClause+ (ELSE elseExpression=expression)? END              #simpleCase
     | CASE whenClause+ (ELSE elseExpression=expression)? END                              #searchedCase
     | CAST '(' expression AS type ')'                                                     #cast
+    | identifier '=>' expression                                                          #lambda
+    | '(' identifier (',' identifier)*  ')' '=>' expression                               #lambda
     | ARRAY '[' (expression (',' expression)*)? ']'                                       #arrayConstructor
     | MAP '(' (expression ASSIGN expression (',' expression ASSIGN expression)*)? ')'     #mapConstructor
     | STRUCT '(' (identifier ASSIGN expression (',' identifier ASSIGN expression)*)? ')'  #structConstructor
-    | identifier '(' ASTERISK ')'                              		                        #functionCall
-    | identifier'(' (expression (',' expression)*)? ')' 						                      #functionCall
+    | identifier '(' ASTERISK ')'                              		                      #functionCall
+    | identifier'(' (expression (',' expression)*)? ')' 						          #functionCall
     | value=primaryExpression '[' index=valueExpression ']'                               #subscript
     | identifier                                                                          #columnReference
     | identifier '.' identifier                                                           #qualifiedColumnReference
@@ -544,6 +546,8 @@ CONCAT: '||';
 
 ASSIGN: ':=';
 STRUCT_FIELD_REF: '->';
+
+LAMBDA_EXPRESSION: '=>';
 
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''

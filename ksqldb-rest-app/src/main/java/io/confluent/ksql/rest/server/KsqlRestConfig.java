@@ -419,7 +419,7 @@ public class KsqlRestConfig extends AbstractConfig {
             Type.PASSWORD,
             SSL_KEY_PASSWORD_DEFAULT,
             Importance.HIGH,
-            SslConfigs.SSL_KEY_PASSWORD_CONFIG
+            SslConfigs.SSL_KEY_PASSWORD_DOC
         ).define(
             SSL_KEYSTORE_TYPE_CONFIG,
             Type.STRING,

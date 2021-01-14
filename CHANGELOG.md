@@ -4,7 +4,7 @@
 
 
 
-###Highlights
+### Highlights
 * Add support for IN clause to pull queries ([#6409](https://github.com/confluentinc/ksql/pull/6409)) ([d5fc365](https://github.com/confluentinc/ksql/commit/d5fc3658a8d7df1fe267a416dfcd3e0721b8a9c4))
 * Add support for ALTER STREAM|TABLE ([#6400](https://github.com/confluentinc/ksql/pull/6400)) ([a58e041](https://github.com/confluentinc/ksql/commit/a58e041cba721a1ad5f28bb0be1c792cb73bec14))
 * support variable substitution in SQL statements ([#6504](https://github.com/confluentinc/ksql/pull/6504)) ([e185c1f](https://github.com/confluentinc/ksql/commit/e185c1fcf86821f5024e51736a77c6f2876fb9ab))
@@ -45,36 +45,36 @@
 ### BREAKING CHANGES
 
 * This change fixes a _bug_ where unnecessary tombstones where being emitted when a `HAVING` clause filtered out a row from the source that is not in the output table
-For example, given:
-```sql
--- source stream:
-CREATE STREAM FOO (ID INT KEY, VAL INT) WITH (...);
--- aggregate into a table:
-CREATE TABLE BAR AS
-SELECT ID, SUM(VAL) AS SUM
-FROM FOO
-GROUP BY ID
-HAVING SUM(VAL) > 0;
--- insert some values into the stream:
-INSERT INTO FOO VALUES(1, -5);
-INSERT INTO FOO VALUES(1, 6);
-INSERT INTO FOO VALUES(1, -2);
-INSERT INTO FOO VALUES(1, -1);
-```
-Where previously the contents of the sink topic `BAR` would have contained records:
-| Key | Value | Notes |
-|-----|-------|------|
-| 1.     | null.   | Spurious tombstone: the table does not contain a row with key `1`, so no tombstone is required. |
-| 1.     | {sum=1} | Row added as HAVING criteria now met |
-| 1.     | null.   | Row deleted as HAVING criteria now not met |
-| 1.     | null.   | Spurious tombstone: the table does not contain a row with key `1`, so no tombstone is required. |
-Note: the first record in the tom
-The topic will now contain:
-| Key | Value |
-|-----|-------|
-| 1.     | {sum=1} |
-| 1.     | null.   |
-Co-authored-by: Andy Coates <big-andy-coates@users.noreply.github.com>
+    For example, given:
+    ```sql
+    -- source stream:
+    CREATE STREAM FOO (ID INT KEY, VAL INT) WITH (...);
+    -- aggregate into a table:
+    CREATE TABLE BAR AS
+    SELECT ID, SUM(VAL) AS SUM
+    FROM FOO
+    GROUP BY ID
+    HAVING SUM(VAL) > 0;
+    -- insert some values into the stream:
+    INSERT INTO FOO VALUES(1, -5);
+    INSERT INTO FOO VALUES(1, 6);
+    INSERT INTO FOO VALUES(1, -2);
+    INSERT INTO FOO VALUES(1, -1);
+    ```
+    Where previously the contents of the sink topic `BAR` would have contained records:
+    | Key | Value | Notes |
+    |-----|-------|------|
+    | 1.     | null.   | Spurious tombstone: the table does not contain a row with key `1`, so no tombstone is required. |
+    | 1.     | {sum=1} | Row added as HAVING criteria now met |
+    | 1.     | null.   | Row deleted as HAVING criteria now not met |
+    | 1.     | null.   | Spurious tombstone: the table does not contain a row with key `1`, so no tombstone is required. |
+    
+    The topic will now contain:
+    | Key | Value |
+    |-----|-------|
+    | 1.     | {sum=1} |
+    | 1.     | null.   |
+
 * Adds support for using primitive types in joins. (#4132) ([d595985](https://github.com/confluentinc/ksql/commit/d595985853703f19611bac1a63957b447260b38e)), closes [#4132](https://github.com/confluentinc/ksql/issues/4132)
 
 

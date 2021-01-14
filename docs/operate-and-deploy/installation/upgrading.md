@@ -8,13 +8,13 @@ keywords: ksqldb, install, upgrade
 
 ## About backward compatibility
 
-Past releases of KSQL were backward compatible. But there was a cost to this backward compatibility:
-progress was slower and the code base incurred increased complexity. ksqlDB is a young product and
+Most releases of ksqlDB are backward compatible. But backward compatibility comes at a cost:
+progress is slower and the code base incurs increased complexity. ksqlDB is a young product and
 we want to move fast, so we have decided to choose speed of development over strong backward
-compatibility guarantees for a few releases.
+compatibility guarantees.
 
 Until version 1.0 of ksqlDB, each minor release will potentially have breaking changes in it,
-which means that you can't simply update the ksqlDB binaries and restart the server(s).
+which may mean that you can't simply update the ksqlDB binaries and restart the server(s).
 
 The data models and binary formats used within ksqlDB are in flux. This means data local to each
 ksqlDB node and stored centrally within internal {{ site.ak }} topics may not be compatible with
@@ -32,8 +32,15 @@ need, or until ksqlDB reaches version 1.0 and promises backward compatibility.
 
 ## How to upgrade
 
-Upgrading a cluster involves leaving the old cluster running on the old version, bringing up a new
+When possible, ksqlDB maintains runtime compatibility between versions, which means you can upgrade
+in-place by stopping your ksqlDB servers and restarting them with the new version, and your existing
+query pipelines will resume from where they left off. New query statements may need to be
+adjusted for syntax changes required by the new version.
+
+However, until ksqlDB 1.0, some ksqlDB versions may not support in-place upgrades. In these situations,
+upgrading a cluster involves leaving the old cluster running on the old version, bringing up a new
 cluster on the new version, porting across your database schema, and finally thinking about your data.
+Read on for details.
 
 ### Port the database schema
 
@@ -103,7 +110,18 @@ This will stop all processing and delete any internal topics in Kafka.
 
 ## Upgrade notes
 
+### Upgrading from ksqlDB 0.10.0 to 0.14.0
+
+In-place upgrades are supported from ksqlDB 0.10.0 to 0.14.0.
+See the [changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md)
+for potential breaking changes that may affect the behavior or required syntax
+for new queries.
+
 ### Upgrading from ksqlDB 0.9.0 to 0.10.0
+
+In-place upgrades are supported from ksqlDB 0.9.0 to 0.10.0. However, in-place upgrades
+from pre-0.7.0 versions to 0.10.0 are not supported, as ksqlDB 0.7.0 is not backward compatible.
+Do not upgrade in place from a pre-0.7.0 version to 0.10.0.
 
 The following changes in SQL syntax and functionality may mean SQL statements
 that ran previously no longer run.
@@ -359,10 +377,11 @@ CREATE TABLE INPUT (
   ) WITH (...);
 ```
 
-### Upgrading from ksqlDB 0.7.0+ to 0.9.0
+### Upgrading from ksqlDB 0.8.0 to 0.9.0
 
-!!! important
-    ksqlDB 0.8.0 is not backward compatible. Do not upgrade in-place.
+In-place upgrades are supported from ksqlDB 0.8.0 to 0.9.0. However, in-place upgrades
+from pre-0.7.0 versions to 0.9.0 are not supported, as ksqlDB 0.7.0 is not backward compatible.
+Do not upgrade in place from a pre-0.7.0 version to 0.9.0.
 
 The following changes in SQL syntax and functionality may mean SQL statements
 that ran previously no longer run.
@@ -371,7 +390,7 @@ that ran previously no longer run.
 
 Tables now use `PRIMARY KEY` to define their primary key column rather than `KEY`.
 Update your `CREATE TABLE` statements as required. For example, statements like
-the this:
+this:
 
 ```sql
 CREATE TABLE OUTPUT (ROWKEY INT KEY, V0 STRING, V1 DOUBLE) WITH (...);
@@ -382,6 +401,12 @@ Must be updated to:
 ```sql
 CREATE TABLE OUTPUT (ROWKEY INT PRIMARY KEY, V0 STRING, V1 DOUBLE) WITH (...);
 ```
+
+### Upgrading from ksqlDB 0.7.0 to 0.8.0
+
+In-place upgrades are supported from ksqlDB 0.7.0 to 0.8.0.
+See the [changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md)
+for bug fixes and other changes.
 
 ### Upgrading from ksqlDB 0.6.0 to 0.7.0
 

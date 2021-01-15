@@ -184,7 +184,6 @@ public class PullPhysicalPlanBuilder {
         return new WindowedTableScanOperator(mat, logicalNode);
       }
     }
-    // keys = ImmutableList.of(whereInfo.getKeyBound().get());
     if (!logicalNode.isWindowed()) {
       return new KeyedTableLookupOperator(mat, logicalNode);
     } else {

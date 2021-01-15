@@ -1033,19 +1033,6 @@
       }
     },
     {
-      "name": "fail on unsupported query feature: where multiple keys",
-      "statements": [
-        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
-        "SELECT * FROM AGGREGATE WHERE ID='10' OR ID='11';"
-      ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Only AND expressions are supported: ((ID = '10') OR (ID = '11'))",
-        "status": 400
-      }
-    },
-    {
       "name": "fail on unsupported query feature: where key range",
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",

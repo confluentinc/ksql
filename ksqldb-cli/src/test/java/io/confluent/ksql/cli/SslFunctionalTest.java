@@ -67,6 +67,10 @@ public class SslFunctionalTest {
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperties(SERVER_KEY_STORE.keyStoreProps())
+      .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG,
+          SERVER_KEY_STORE.getKeyAlias())
+      .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG,
+          SERVER_KEY_STORE.getKeyAlias())
       .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "https://localhost:0")
       .build();
 

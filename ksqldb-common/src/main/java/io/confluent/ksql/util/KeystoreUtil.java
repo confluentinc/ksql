@@ -22,11 +22,8 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class KeystoreUtil {
-  private static final Logger LOG = LoggerFactory.getLogger(KeystoreUtil.class);
   private static final String KEYSTORE_TYPE = "JKS";
 
   private KeystoreUtil() {}
@@ -64,7 +61,10 @@ public final class KeystoreUtil {
       throw new KsqlException("Alias doesn't exist in keystore: " + alias);
     }
 
-    final byte[] singleValueKeyStore = createSingleValueKeyStore(key, chain, pw, keyPw, alias);
+    // Re-encrypt the Private key and Keystore, both with the same Keystore password.
+    // There is a limitation (or bug) in Vert.x where both, the Private key and Keystore, must
+    // have the same password.
+    final byte[] singleValueKeyStore = createSingleValueKeyStore(key, chain, pw, pw, alias);
     return Buffer.buffer(singleValueKeyStore);
   }
 

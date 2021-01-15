@@ -1,3 +1,18 @@
+/*
+ * Copyright 2020 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"; you may not use
+ * this file except in compliance with the License. You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.planner.plan;
 
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
@@ -6,7 +21,6 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
@@ -17,10 +31,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class LogicRewriter {
+public final class LogicRewriter {
 
 
-  public LogicRewriter() {
+  private LogicRewriter() {
   }
 
   public static Expression rewriteNegations(final Expression expression) {
@@ -29,14 +43,14 @@ public class LogicRewriter {
   }
 
   public static Expression rewriteCNF(final Expression expression) {
-    Expression notPropagated = new ExpressionTreeRewriter<>(new NotPropagator()::process)
+    final Expression notPropagated = new ExpressionTreeRewriter<>(new NotPropagator()::process)
           .rewrite(expression, new NotPropagatorContext());
     return new ExpressionTreeRewriter<>(new DistributiveLawApplierDOC()::process)
         .rewrite(notPropagated, null);
   }
 
   public static Expression rewriteDNF(final Expression expression) {
-    Expression notPropagated = new ExpressionTreeRewriter<>(new NotPropagator()::process)
+    final Expression notPropagated = new ExpressionTreeRewriter<>(new NotPropagator()::process)
         .rewrite(expression, new NotPropagatorContext());
     return new ExpressionTreeRewriter<>(new DistributiveLawApplierCOD()::process)
         .rewrite(notPropagated, null);
@@ -46,14 +60,11 @@ public class LogicRewriter {
     final Expression dnf = rewriteDNF(expression);
     final DisjunctExtractor disjunctExtractor = new DisjunctExtractor();
     disjunctExtractor.process(dnf, null);
-    return disjunctExtractor.getConjunctions();
+    return disjunctExtractor.getDisjuncts();
   }
 
-  private final static class NotPropagator extends
+  private static final class NotPropagator extends
       VisitParentExpressionVisitor<Optional<Expression>, Context<NotPropagatorContext>> {
-
-    public NotPropagator() {
-    }
 
     @Override
     public Optional<Expression> visitExpression(
@@ -98,10 +109,10 @@ public class LogicRewriter {
         final LogicalBinaryExpression node,
         final Context<NotPropagatorContext> context
     ) {
-      boolean isNegated = context.getContext().isNegated();
-      Expression left = process(node.getLeft(), context).orElse(node.getLeft());
+      final boolean isNegated = context.getContext().isNegated();
+      final Expression left = process(node.getLeft(), context).orElse(node.getLeft());
       context.getContext().restore(isNegated);
-      Expression right = process(node.getRight(), context).orElse(node.getRight());
+      final Expression right = process(node.getRight(), context).orElse(node.getRight());
       context.getContext().restore(isNegated);
 
       LogicalBinaryExpression.Type type = node.getType();
@@ -126,7 +137,7 @@ public class LogicRewriter {
               node.getRight()));
     }
 
-    private Type negateComparisonType(Type type) {
+    private Type negateComparisonType(final Type type) {
       switch (type) {
         case EQUAL:
           return Type.NOT_EQUAL;
@@ -153,12 +164,12 @@ public class LogicRewriter {
     public Optional<Expression> visitNotExpression(
         final NotExpression node, final Context<NotPropagatorContext> context) {
       context.getContext().negate();
-      Expression value = process(node.getValue(), context).orElse(node.getValue());
+      final Expression value = process(node.getValue(), context).orElse(node.getValue());
       return Optional.of(value);
     }
   }
 
-  public static class NotPropagatorContext {
+  public static final class NotPropagatorContext {
     boolean isNegated = false;
 
     public void negate() {
@@ -174,7 +185,7 @@ public class LogicRewriter {
     }
   }
 
-  private final static class DistributiveLawApplierDOC extends
+  private static final class DistributiveLawApplierDOC extends
       VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
 
     @Override
@@ -195,12 +206,12 @@ public class LogicRewriter {
         return Optional.empty();
       }
 
-      Expression left = process(node.getLeft(), context).orElse(node.getLeft());
-      Expression right = process(node.getRight(), context).orElse(node.getRight());
+      final Expression left = process(node.getLeft(), context).orElse(node.getLeft());
+      final Expression right = process(node.getRight(), context).orElse(node.getRight());
 
       if (node.getType() == LogicalBinaryExpression.Type.OR) {
         if (left instanceof LogicalBinaryExpression) {
-          LogicalBinaryExpression leftLogical = (LogicalBinaryExpression) left;
+          final LogicalBinaryExpression leftLogical = (LogicalBinaryExpression) left;
           if (leftLogical.getType() == LogicalBinaryExpression.Type.AND) {
             Expression leftOr = new LogicalBinaryExpression(node.getLocation(),
                 LogicalBinaryExpression.Type.OR, leftLogical.getLeft(), right);
@@ -215,7 +226,7 @@ public class LogicRewriter {
         }
 
         if (right instanceof LogicalBinaryExpression) {
-          LogicalBinaryExpression rightLogical = (LogicalBinaryExpression) right;
+          final LogicalBinaryExpression rightLogical = (LogicalBinaryExpression) right;
           if (rightLogical.getType() == LogicalBinaryExpression.Type.AND) {
             Expression leftOr = new LogicalBinaryExpression(node.getLocation(),
                 LogicalBinaryExpression.Type.OR, left, rightLogical.getLeft());
@@ -234,7 +245,7 @@ public class LogicRewriter {
     }
   }
 
-  private final static class DistributiveLawApplierCOD extends
+  private static final class DistributiveLawApplierCOD extends
       VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
 
     @Override
@@ -255,12 +266,12 @@ public class LogicRewriter {
         return Optional.empty();
       }
 
-      Expression left = process(node.getLeft(), context).orElse(node.getLeft());
-      Expression right = process(node.getRight(), context).orElse(node.getRight());
+      final Expression left = process(node.getLeft(), context).orElse(node.getLeft());
+      final Expression right = process(node.getRight(), context).orElse(node.getRight());
 
       if (node.getType() == LogicalBinaryExpression.Type.AND) {
         if (left instanceof LogicalBinaryExpression) {
-          LogicalBinaryExpression leftLogical = (LogicalBinaryExpression) left;
+          final LogicalBinaryExpression leftLogical = (LogicalBinaryExpression) left;
           if (leftLogical.getType() == LogicalBinaryExpression.Type.OR) {
             Expression leftOr = new LogicalBinaryExpression(node.getLocation(),
                 LogicalBinaryExpression.Type.AND, leftLogical.getLeft(), right);
@@ -275,7 +286,7 @@ public class LogicRewriter {
         }
 
         if (right instanceof LogicalBinaryExpression) {
-          LogicalBinaryExpression rightLogical = (LogicalBinaryExpression) right;
+          final LogicalBinaryExpression rightLogical = (LogicalBinaryExpression) right;
           if (rightLogical.getType() == LogicalBinaryExpression.Type.OR) {
             Expression leftOr = new LogicalBinaryExpression(node.getLocation(),
                 LogicalBinaryExpression.Type.AND, left, rightLogical.getLeft());
@@ -295,13 +306,13 @@ public class LogicRewriter {
   }
 
   private static final class DisjunctExtractor extends VisitParentExpressionVisitor<Void, Void> {
-    private List<Expression> ands = new ArrayList<>();
+    private List<Expression> disjuncts = new ArrayList<>();
 
     @Override
     public Void visitExpression(
         final Expression node,
         final Void context) {
-      ands.add(node);
+      disjuncts.add(node);
       return null;
     }
 
@@ -311,7 +322,7 @@ public class LogicRewriter {
         final Void context
     ) {
       if (node.getType() == LogicalBinaryExpression.Type.AND) {
-        ands.add(node);
+        disjuncts.add(node);
       } else {
         process(node.getLeft(), context);
         process(node.getRight(), context);
@@ -319,38 +330,8 @@ public class LogicRewriter {
       return null;
     }
 
-    public List<Expression> getConjunctions() {
-      return ands;
-    }
-  }
-
-  private static final class ConjunctExtractor extends VisitParentExpressionVisitor<Void, Void> {
-    private List<Expression> ors = new ArrayList<>();
-
-    @Override
-    public Void visitExpression(
-        final Expression node,
-        final Void context) {
-      ors.add(node);
-      return null;
-    }
-
-    @Override
-    public Void visitLogicalBinaryExpression(
-        final LogicalBinaryExpression node,
-        final Void context
-    ) {
-      if (node.getType() == LogicalBinaryExpression.Type.OR) {
-        ors.add(node);
-      } else {
-        process(node.getLeft(), context);
-        process(node.getRight(), context);
-      }
-      return null;
-    }
-
-    public List<Expression> getConjuncts() {
-      return ors;
+    public List<Expression> getDisjuncts() {
+      return disjuncts;
     }
   }
 }

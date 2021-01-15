@@ -20,11 +20,14 @@ import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartition
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.planner.plan.DataSourceNode;
+import io.confluent.ksql.planner.plan.KeyConstraints.KeyConstraint;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,8 +40,10 @@ public class KeyedWindowedTableLookupOperator
 
   private final Materialization mat;
   private final DataSourceNode logicalNode;
-  private final WindowBounds windowBounds;
+  final List<KeyConstraint> keyConstraints;
 
+
+  private Map<GenericKey, KeyConstraint> keyConstraintsByKey;
   private List<KsqlPartitionLocation> partitionLocations;
   private Iterator<WindowedRow> resultIterator;
   private Iterator<GenericKey> keyIterator;
@@ -50,15 +55,17 @@ public class KeyedWindowedTableLookupOperator
   public KeyedWindowedTableLookupOperator(
       final Materialization mat,
       final DataSourceNode logicalNode,
-      final WindowBounds windowBounds
+      final List<KeyConstraint> keyConstraints
   ) {
     this.logicalNode = Objects.requireNonNull(logicalNode, "logicalNode");
     this.mat = Objects.requireNonNull(mat, "mat");
-    this.windowBounds = Objects.requireNonNull(windowBounds, "windowBounds");
+    this.keyConstraints = Objects.requireNonNull(keyConstraints, "keyConstraints");
   }
 
   @Override
   public void open() {
+    keyConstraintsByKey = keyConstraints.stream()
+        .collect(Collectors.toMap(KeyConstraint::getKey, Function.identity()));
     partitionLocationIterator = partitionLocations.iterator();
     if (partitionLocationIterator.hasNext()) {
       nextLocation = partitionLocationIterator.next();
@@ -68,11 +75,16 @@ public class KeyedWindowedTableLookupOperator
       keyIterator = nextLocation.getKeys().get().iterator();
       if (keyIterator.hasNext()) {
         nextKey = keyIterator.next();
+        if (!keyConstraintsByKey.containsKey(nextKey)
+            || !keyConstraintsByKey.get(nextKey).getWindowBounds().isPresent()) {
+          throw new IllegalStateException("There should only be keys in KsqlPartitionLocations for "
+              + "which we have a corresponding KeyConstraint");
+        }
         resultIterator = mat.windowed().get(
             nextKey,
             nextLocation.getPartition(),
-            windowBounds.getMergedStart(),
-            windowBounds.getMergedEnd())
+            keyConstraintsByKey.get(nextKey).getWindowBounds().get().getMergedStart(),
+            keyConstraintsByKey.get(nextKey).getWindowBounds().get().getMergedEnd())
             .iterator();
       }
     }
@@ -95,11 +107,16 @@ public class KeyedWindowedTableLookupOperator
         keyIterator = nextLocation.getKeys().get().iterator();
       }
       nextKey = keyIterator.next();
+      if (!keyConstraintsByKey.containsKey(nextKey)
+          || !keyConstraintsByKey.get(nextKey).getWindowBounds().isPresent()) {
+        throw new IllegalStateException("There should only be keys in KsqlPartitionLocations for "
+            + "which we have a corresponding KeyConstraint");
+      }
       resultIterator = mat.windowed().get(
           nextKey,
           nextLocation.getPartition(),
-          windowBounds.getMergedStart(),
-          windowBounds.getMergedEnd())
+          keyConstraintsByKey.get(nextKey).getWindowBounds().get().getMergedStart(),
+          keyConstraintsByKey.get(nextKey).getWindowBounds().get().getMergedEnd())
           .iterator();
     }
     return resultIterator.next();

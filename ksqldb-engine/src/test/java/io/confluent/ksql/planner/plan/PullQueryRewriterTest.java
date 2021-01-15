@@ -28,13 +28,13 @@ public class PullQueryRewriterTest {
   @Test
   public void shouldRewriteInPredicate() {
     assertRewrite("ORDERS", "ITEMID in ('a', 'b', 'c')",
-        "((ORDERS.ITEMID = 'c') OR ((ORDERS.ITEMID = 'b') OR (ORDERS.ITEMID = 'a')))");
+        "((ORDERS.ITEMID = 'a') OR ((ORDERS.ITEMID = 'b') OR (ORDERS.ITEMID = 'c')))");
     assertRewrite("ORDERS", "ORDERID > 2 AND ITEMID in ('a', 'b', 'c')",
-        "(((ORDERS.ORDERID > 2) AND (ORDERS.ITEMID = 'c')) OR (((ORDERS.ORDERID > 2) AND "
-            + "(ORDERS.ITEMID = 'b')) OR ((ORDERS.ORDERID > 2) AND (ORDERS.ITEMID = 'a'))))");
+        "(((ORDERS.ORDERID > 2) AND (ORDERS.ITEMID = 'a')) OR (((ORDERS.ORDERID > 2) AND "
+            + "(ORDERS.ITEMID = 'b')) OR ((ORDERS.ORDERID > 2) AND (ORDERS.ITEMID = 'c'))))");
     assertRewrite("ORDERS", "ORDERID > 2 OR ITEMID in ('a', 'b', 'c')",
-        "((ORDERS.ORDERID > 2) OR ((ORDERS.ITEMID = 'c') OR ((ORDERS.ITEMID = 'b') OR "
-            + "(ORDERS.ITEMID = 'a'))))");
+        "((ORDERS.ORDERID > 2) OR ((ORDERS.ITEMID = 'a') OR ((ORDERS.ITEMID = 'b') OR "
+            + "(ORDERS.ITEMID = 'c'))))");
   }
 
   private void assertRewrite(final String table, final String expressionStr,

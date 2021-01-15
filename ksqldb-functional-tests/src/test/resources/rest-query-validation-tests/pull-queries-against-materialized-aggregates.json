@@ -1907,7 +1907,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Primary key columns can not be NULL: (ID IN (null))",
+        "message": "Primary key columns can not be NULL: (ID = null)",
         "status": 400
       }
     },
@@ -2107,6 +2107,75 @@
         {"query": [
           {"header":{"schema":"`ID1` STRING KEY, `ID2` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
           {"row":{"columns":["11", 10, 14000, 15000, 2]}}
+        ]}
+      ]
+    },
+    {
+      "name": "non-windowed General WHERE - OR lookup",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID = '10' OR ID = '8';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 12366, "key": "9", "value": {}},
+        {"topic": "test_topic", "timestamp": 12367, "key": "8", "value": {}},
+        {"topic": "test_topic", "timestamp": 12368, "key": "12", "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 1]}},
+          {"row":{"columns":["8", 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed General WHERE - window range",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE WINDOWSTART >= 12000 AND (ID = '10' OR ID = '8' OR ID = '12');",
+        "SELECT * FROM AGGREGATE WHERE WINDOWSTART >= 12000 AND WINDOWEND <= 13000 AND (ID = '10' OR ID = '8' OR ID = '12');",
+        "SELECT * FROM AGGREGATE WHERE WINDOWSTART >= 12000 AND ID = '10' OR ID = '8' OR WINDOWEND <= 13000 AND ID = '12';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 11345, "key": "10", "value": {"val": 2}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"val": 2}},
+        {"topic": "test_topic", "timestamp": 12366, "key": "9", "value": {"val": 3}},
+        {"topic": "test_topic", "timestamp": 12367, "key": "8", "value": {"val": 4}},
+        {"topic": "test_topic", "timestamp": 14367, "key": "8", "value": {"val": 4}},
+        {"topic": "test_topic", "timestamp": 12368, "key": "12", "value": {"val": 5}},
+        {"topic": "test_topic", "timestamp": 13368, "key": "12", "value": {"val": 5}},
+        {"topic": "test_topic", "timestamp": 15369, "key": "13", "value": {"val": 6}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 1]}},
+          {"row":{"columns":["12", 12000, 13000, 1]}},
+          {"row":{"columns":["12", 13000, 14000, 1]}},
+          {"row":{"columns":["8", 12000, 13000, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 1]}},
+          {"row":{"columns":["12", 12000, 13000, 1]}},
+          {"row":{"columns":["8", 12000, 13000, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 12000, 13000, 1]}},
+          {"row":{"columns":["12", 12000, 13000, 1]}},
+          {"row":{"columns":["8", 12000, 13000, 1]}},
+          {"row":{"columns":["8", 14000, 15000, 1]}}
         ]}
       ]
     }

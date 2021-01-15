@@ -15,14 +15,18 @@
 
 package io.confluent.ksql.physical.pull;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.physical.pull.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.pull.operators.DataSourceOperator;
+import io.confluent.ksql.planner.plan.KeyConstraints.ConstraintType;
+import io.confluent.ksql.planner.plan.KeyConstraints.KeyConstraint;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -41,7 +45,7 @@ public class PullPhysicalPlan {
   private final AbstractPhysicalOperator root;
   private final LogicalSchema schema;
   private final QueryId queryId;
-  private final List<GenericKey> keys;
+  private final List<KeyConstraint> keyConstraints;
   private final Materialization mat;
   private final DataSourceOperator dataSourceOperator;
 
@@ -49,14 +53,14 @@ public class PullPhysicalPlan {
       final AbstractPhysicalOperator root,
       final LogicalSchema schema,
       final QueryId queryId,
-      final List<GenericKey> keys,
+      final List<KeyConstraint> keyConstraints,
       final Materialization mat,
       final DataSourceOperator dataSourceOperator
   ) {
     this.root = Objects.requireNonNull(root, "root");
     this.schema = Objects.requireNonNull(schema, "schema");
     this.queryId = Objects.requireNonNull(queryId, "queryId");
-    this.keys = Objects.requireNonNull(keys, "keys");
+    this.keyConstraints = Objects.requireNonNull(keyConstraints, "keys");
     this.mat = Objects.requireNonNull(mat, "mat");
     this.dataSourceOperator = Objects.requireNonNull(
         dataSourceOperator, "dataSourceOperator");
@@ -108,8 +112,23 @@ public class PullPhysicalPlan {
     return mat;
   }
 
+  public List<KeyConstraint> getKeyConstraints() {
+    return keyConstraints;
+  }
+
   public List<GenericKey> getKeys() {
-    return keys;
+    if (requiresRequestsToAllPartitions()) {
+      return Collections.emptyList();
+    }
+    return keyConstraints.stream()
+        .filter(keyConstraint -> keyConstraint.getConstraintType() == ConstraintType.EQUALITY)
+        .map(KeyConstraint::getKey)
+        .collect(ImmutableList.toImmutableList());
+  }
+
+  private boolean requiresRequestsToAllPartitions() {
+    return keyConstraints.stream()
+        .anyMatch(keyConstraint -> keyConstraint.getConstraintType() != ConstraintType.EQUALITY);
   }
 
   public LogicalSchema getOutputSchema() {

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.physical.pull;
 
-import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -36,11 +35,11 @@ import io.confluent.ksql.physical.pull.operators.TableScanOperator;
 import io.confluent.ksql.physical.pull.operators.WindowedTableScanOperator;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
+import io.confluent.ksql.planner.plan.KeyConstraints.KeyConstraint;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PullFilterNode;
-import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds;
 import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlException;
@@ -48,7 +47,6 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * Traverses the logical plan top-down and creates a physical plan for pull queries.
@@ -66,8 +64,7 @@ public class PullPhysicalPlanBuilder {
   private final QueryId queryId;
   private final Materialization mat;
 
-  private List<GenericKey> keys;
-  private Optional<WindowBounds> windowBounds;
+  private List<KeyConstraint> keyConstraints;
   private boolean seenSelectOperator = false;
 
   public PullPhysicalPlanBuilder(
@@ -145,7 +142,7 @@ public class PullPhysicalPlanBuilder {
         rootPhysicalOp,
         (rootPhysicalOp).getLogicalNode().getSchema(),
         queryId,
-        keys,
+        keyConstraints,
         mat,
         dataSourceOperator);
   }
@@ -165,8 +162,7 @@ public class PullPhysicalPlanBuilder {
   }
 
   private SelectOperator translateFilterNode(final PullFilterNode logicalNode) {
-    keys = logicalNode.getKeyValues();
-    windowBounds = logicalNode.getWindowBounds();
+    keyConstraints = logicalNode.getKeyConstraints();
 
     final ProcessingLogger logger = processingLogContext
         .getLoggerFactory()
@@ -181,7 +177,7 @@ public class PullPhysicalPlanBuilder {
       final DataSourceNode logicalNode
   ) {
     if (!seenSelectOperator) {
-      keys = Collections.emptyList();
+      keyConstraints = Collections.emptyList();
       if (!logicalNode.isWindowed()) {
         return new TableScanOperator(mat, logicalNode);
       } else {
@@ -192,7 +188,7 @@ public class PullPhysicalPlanBuilder {
     if (!logicalNode.isWindowed()) {
       return new KeyedTableLookupOperator(mat, logicalNode);
     } else {
-      return new KeyedWindowedTableLookupOperator(mat, logicalNode, windowBounds.get());
+      return new KeyedWindowedTableLookupOperator(mat, logicalNode, keyConstraints);
     }
   }
 

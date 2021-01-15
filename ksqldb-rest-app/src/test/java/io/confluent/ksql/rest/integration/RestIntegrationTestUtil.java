@@ -31,6 +31,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -69,6 +70,19 @@ import java.util.stream.Collectors;
 public final class RestIntegrationTestUtil {
 
   private RestIntegrationTestUtil() {
+  }
+
+  public static HealthCheckResponse makeHealthCheck(final TestKsqlRestApp restApp) {
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
+
+      final RestResponse<HealthCheckResponse> res = restClient.getServerHealth();
+
+      if (res.isErroneous()) {
+        throw new AssertionError("Erroneous result: " + res.getErrorMessage());
+      }
+
+      return res.getResponse();
+    }
   }
 
   public static List<KsqlEntity> makeKsqlRequest(final TestKsqlRestApp restApp, final String sql) {

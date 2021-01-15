@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.rest.healthcheck.HealthCheckAgent.COMMAND_RUNNER_CHECK_NAME;
 import static io.confluent.ksql.rest.healthcheck.HealthCheckAgent.KAFKA_CHECK_NAME;
 import static io.confluent.ksql.rest.healthcheck.HealthCheckAgent.METASTORE_CHECK_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -53,24 +54,12 @@ public class HealthCheckResourceFunctionalTest {
   @Test
   public void shouldCheckHealth() {
     // When:
-    final HealthCheckResponse response = checkServerHealth();
+    final HealthCheckResponse response = RestIntegrationTestUtil.makeHealthCheck(REST_APP);
 
     // Then:
     assertThat("server should be healthy", response.getIsHealthy());
     assertThat(response.getDetails().get(KAFKA_CHECK_NAME).getIsHealthy(), is(true));
     assertThat(response.getDetails().get(METASTORE_CHECK_NAME).getIsHealthy(), is(true));
-  }
-
-  private static HealthCheckResponse checkServerHealth() {
-    try (final KsqlRestClient restClient = REST_APP.buildKsqlClient()) {
-
-      final RestResponse<HealthCheckResponse> res = restClient.getServerHealth();
-
-      if (res.isErroneous()) {
-        throw new AssertionError("Erroneous result: " + res.getErrorMessage());
-      }
-
-      return res.getResponse();
-    }
+    assertThat(response.getDetails().get(COMMAND_RUNNER_CHECK_NAME).getIsHealthy(), is(true));
   }
 }

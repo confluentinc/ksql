@@ -24,10 +24,12 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlTypeWalker;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -63,6 +65,7 @@ public final class EntityUtil {
         : Optional.empty();
   }
 
+
   private static final class Converter implements SqlTypeWalker.Visitor<SchemaInfo, FieldInfo> {
 
     public SchemaInfo visitType(final SqlType schema) {
@@ -83,6 +86,15 @@ public final class EntityUtil {
 
     public FieldInfo visitField(final Field field, final SchemaInfo type) {
       return new FieldInfo(field.name(), type, Optional.empty());
+    }
+
+    public SchemaInfo visitDecimal(final SqlDecimal type) {
+      return new SchemaInfo(
+              SqlBaseType.DECIMAL,
+              null,
+              null,
+              type.toParametersMap()
+      );
     }
   }
 }

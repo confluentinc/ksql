@@ -139,22 +139,7 @@ public class BackupRollbackIntegrationTest {
         Optional.of(Command.VERSION + 1),
         Command.VERSION + 1);
 
-    final Map<String, Object> kafkaProducerProperties = REST_APP.getKsqlRestConfig().getCommandProducerProperties();
-    kafkaProducerProperties.put(
-        ProducerConfig.TRANSACTIONAL_ID_CONFIG,
-        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
-    );
-    kafkaProducerProperties.put(
-        ProducerConfig.ACKS_CONFIG,
-        "all"
-    );
-    final KafkaProducer<CommandId, Command> producer = new KafkaProducer<>(
-        kafkaProducerProperties,
-        InternalTopicSerdes.serializer(),
-        InternalTopicSerdes.serializer()
-    );
-
-    produceToCommandTopic(producer, commandId, command);
+    produceToCommandTopic(commandId, command);
 
     // Server should enter degraded state due to incompatible command
     assertThatEventually("Degraded State", this::isDegradedState, is(true));
@@ -187,7 +172,7 @@ public class BackupRollbackIntegrationTest {
 
     final List<KsqlWarning> warnings = response.get(0).getWarnings();
 
-    final HealthCheckResponse res = RestIntegrationTestUtil.makeHealthCheck(REST_APP);
+    final HealthCheckResponse res = RestIntegrationTestUtil.checkServerHealth(REST_APP);
     
     return !res.getDetails().get(COMMAND_RUNNER_CHECK_NAME).getIsHealthy() &&(warnings.size() > 0 &&
         warnings.get(0).getMessage().contains(
@@ -204,10 +189,24 @@ public class BackupRollbackIntegrationTest {
   }
   
   private void produceToCommandTopic(
-      final KafkaProducer<CommandId, Command> producer, 
       final CommandId commandId,
       final Command command
   ) {
+    final Map<String, Object> kafkaProducerProperties = REST_APP.getKsqlRestConfig().getCommandProducerProperties();
+    kafkaProducerProperties.put(
+        ProducerConfig.TRANSACTIONAL_ID_CONFIG,
+        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
+    );
+    kafkaProducerProperties.put(
+        ProducerConfig.ACKS_CONFIG,
+        "all"
+    );
+    final KafkaProducer<CommandId, Command> producer = new KafkaProducer<>(
+        kafkaProducerProperties,
+        InternalTopicSerdes.serializer(),
+        InternalTopicSerdes.serializer()
+    );
+
     try {
       producer.initTransactions();
     } catch (final Exception e) {

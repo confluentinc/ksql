@@ -24,8 +24,6 @@ import static org.hamcrest.Matchers.is;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
-import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import java.util.concurrent.TimeUnit;
@@ -54,7 +52,7 @@ public class HealthCheckResourceFunctionalTest {
   @Test
   public void shouldCheckHealth() {
     // When:
-    final HealthCheckResponse response = RestIntegrationTestUtil.makeHealthCheck(REST_APP);
+    final HealthCheckResponse response = RestIntegrationTestUtil.checkServerHealth(REST_APP);
 
     // Then:
     assertThat("server should be healthy", response.getIsHealthy());

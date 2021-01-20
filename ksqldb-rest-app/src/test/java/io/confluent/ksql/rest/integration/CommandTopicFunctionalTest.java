@@ -100,7 +100,7 @@ public class CommandTopicFunctionalTest {
       assertThat("Warning shouldn't be present in response", ksqlEntity.getWarnings().size() == 0);
     });
 
-    HealthCheckResponse healthCheckResponse = RestIntegrationTestUtil.makeHealthCheck(REST_APP_1);
+    HealthCheckResponse healthCheckResponse = RestIntegrationTestUtil.checkServerHealth(REST_APP_1);
     assertThat(
         "CommandRunner healthcheck is healthy for server 1",
         healthCheckResponse.getDetails().get(COMMAND_RUNNER_CHECK_NAME).getIsHealthy());
@@ -124,7 +124,7 @@ public class CommandTopicFunctionalTest {
     assertThatEventually(
         "CommandRunner healthcheck is unhealthy for server 1",
         () -> {
-          final HealthCheckResponse newHealthCheckResponse = RestIntegrationTestUtil.makeHealthCheck(REST_APP_1);
+          final HealthCheckResponse newHealthCheckResponse = RestIntegrationTestUtil.checkServerHealth(REST_APP_1);
           return newHealthCheckResponse.getDetails().get(COMMAND_RUNNER_CHECK_NAME).getIsHealthy();
         }, is(false));
 
@@ -149,7 +149,7 @@ public class CommandTopicFunctionalTest {
     assertThatEventually(
         "CommandRunner healthcheck is unhealthy for server 2",
         () -> {
-          final HealthCheckResponse newHealthCheckResponse = RestIntegrationTestUtil.makeHealthCheck(REST_APP_2);
+          final HealthCheckResponse newHealthCheckResponse = RestIntegrationTestUtil.checkServerHealth(REST_APP_2);
           return newHealthCheckResponse.getDetails().get(COMMAND_RUNNER_CHECK_NAME).getIsHealthy();
         }, is(false));
     
@@ -163,7 +163,7 @@ public class CommandTopicFunctionalTest {
               .equals(DefaultErrorMessages.COMMAND_RUNNER_DEGRADED_CORRUPTED_ERROR_MESSAGE));
     });
 
-    healthCheckResponse = RestIntegrationTestUtil.makeHealthCheck(REST_APP_1);
+    healthCheckResponse = RestIntegrationTestUtil.checkServerHealth(REST_APP_1);
     assertThat(
         "CommandRunner healthcheck is unhealthy for server 1",
         !healthCheckResponse.getDetails().get(COMMAND_RUNNER_CHECK_NAME).getIsHealthy());

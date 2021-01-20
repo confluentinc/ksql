@@ -72,7 +72,7 @@ public final class RestIntegrationTestUtil {
   private RestIntegrationTestUtil() {
   }
 
-  public static HealthCheckResponse makeHealthCheck(final TestKsqlRestApp restApp) {
+  public static HealthCheckResponse checkServerHealth(final TestKsqlRestApp restApp) {
     try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
 
       final RestResponse<HealthCheckResponse> res = restClient.getServerHealth();

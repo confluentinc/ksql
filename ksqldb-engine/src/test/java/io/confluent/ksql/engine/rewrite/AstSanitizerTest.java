@@ -25,13 +25,15 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
-import io.confluent.ksql.execution.expression.tree.LambdaFunctionExpression;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
 import io.confluent.ksql.execution.expression.tree.LambdaLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
@@ -202,10 +204,10 @@ public class AstSanitizerTest {
   }
 
   @Test
-  public void shouldAdt() {
+  public void shouldSanitizeLambdaArguments() {
     // Given:
     final Statement stmt = givenQuery(
-        "SELECT X => X + 5 FROM TEST2;");
+        "SELECT TRANSFORM_ARRAY(Col4, X => X + 5) FROM TEST1;");
 
     // When:
     final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
@@ -213,13 +215,55 @@ public class AstSanitizerTest {
     // Then:
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
         new SingleColumn(
-            new LambdaFunctionExpression(
-                ImmutableList.of("X"),
-                new ArithmeticBinaryExpression(Operator.ADD, new LambdaLiteral("X"), new IntegerLiteral(5))
+            new FunctionCall(
+                FunctionName.of("TRANSFORM_ARRAY"),
+                ImmutableList.of(
+                    column(TEST1_NAME, "COL4"),
+                    new LambdaFunctionCall(
+                        ImmutableList.of("X"),
+                        new ArithmeticBinaryExpression(
+                            Operator.ADD,
+                            new LambdaLiteral("X"),
+                            new IntegerLiteral(5))
+                    )
+                )
             ),
             Optional.of(ColumnName.of("KSQL_COL_0")))
     ))));
 
+  }
+
+  @Test
+  public void shouldThrowOnColumnNamesUsedForLambdaArguments() {
+    // Given:
+    final Statement stmt = givenQuery(
+        "SELECT TRANSFORM_ARRAY(Col4, Col0 => Col0 + 5) FROM TEST1;");
+
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> AstSanitizer.sanitize(stmt, META_STORE)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Lambda function argument can't be a column name: COL0"));
+
+  }
+
+  @Test
+  public void shouldThrowOnDuplicateLambdaArguments() {
+    // Given:
+    final Statement stmt = givenQuery(
+        "SELECT TRANSFORM_ARRAY(Col4, X => TRANSFORM_ARRAY(Col4, X => X)) FROM TEST1;");
+
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> AstSanitizer.sanitize(stmt, META_STORE)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Reusing lambda arguments in nested lambda is not allowed"));
   }
 
   @Test

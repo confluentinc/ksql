@@ -24,7 +24,7 @@ import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.LambdaFunctionExpression;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
@@ -256,7 +256,7 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitLambdaExpression(final LambdaFunctionExpression node, final Void context) {
+    public Void visitLambdaExpression(final LambdaFunctionCall node, final Void context) {
       process(node.getBody(), null);
       return null;
     }

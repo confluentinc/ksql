@@ -215,7 +215,7 @@ public abstract class VisitParentExpressionVisitor<R, C> implements ExpressionVi
   }
 
   @Override
-  public R visitLambdaExpression(final LambdaFunctionExpression node, final C context) {
+  public R visitLambdaExpression(final LambdaFunctionCall node, final C context) {
     return visitExpression(node, context);
   }
 

@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.Test;
 
-public class LambdaFunctionExpressionTest {
+public class LambdaFunctionCallTest {
 
     public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
     public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
@@ -36,37 +36,37 @@ public class LambdaFunctionExpressionTest {
         new EqualsTester()
         .addEqualityGroup(
             // Note: At the moment location does not take part in equality testing
-            new LambdaFunctionExpression(SOME_ARGUMENTS, SOME_EXPRESSION),
-            new LambdaFunctionExpression(SOME_ARGUMENTS, SOME_EXPRESSION),
-            new LambdaFunctionExpression(Optional.of(SOME_LOCATION), SOME_ARGUMENTS, SOME_EXPRESSION),
-            new LambdaFunctionExpression(Optional.of(OTHER_LOCATION), SOME_ARGUMENTS, SOME_EXPRESSION)
+            new LambdaFunctionCall(SOME_ARGUMENTS, SOME_EXPRESSION),
+            new LambdaFunctionCall(SOME_ARGUMENTS, SOME_EXPRESSION),
+            new LambdaFunctionCall(Optional.of(SOME_LOCATION), SOME_ARGUMENTS, SOME_EXPRESSION),
+            new LambdaFunctionCall(Optional.of(OTHER_LOCATION), SOME_ARGUMENTS, SOME_EXPRESSION)
         )
         .addEqualityGroup(
-            new LambdaFunctionExpression(SOME_ARGUMENTS, OTHER_EXPRESSION),
-            new LambdaFunctionExpression(SOME_ARGUMENTS, OTHER_EXPRESSION),
-            new LambdaFunctionExpression(Optional.of(SOME_LOCATION), SOME_ARGUMENTS, OTHER_EXPRESSION),
-            new LambdaFunctionExpression(Optional.of(OTHER_LOCATION), SOME_ARGUMENTS, OTHER_EXPRESSION)
+            new LambdaFunctionCall(SOME_ARGUMENTS, OTHER_EXPRESSION),
+            new LambdaFunctionCall(SOME_ARGUMENTS, OTHER_EXPRESSION),
+            new LambdaFunctionCall(Optional.of(SOME_LOCATION), SOME_ARGUMENTS, OTHER_EXPRESSION),
+            new LambdaFunctionCall(Optional.of(OTHER_LOCATION), SOME_ARGUMENTS, OTHER_EXPRESSION)
         ).addEqualityGroup(
-            new LambdaFunctionExpression(OTHER_ARGUMENTS, SOME_EXPRESSION),
-            new LambdaFunctionExpression(OTHER_ARGUMENTS, SOME_EXPRESSION),
-            new LambdaFunctionExpression(Optional.of(SOME_LOCATION), OTHER_ARGUMENTS, SOME_EXPRESSION),
-            new LambdaFunctionExpression(Optional.of(OTHER_LOCATION), OTHER_ARGUMENTS, SOME_EXPRESSION)
+            new LambdaFunctionCall(OTHER_ARGUMENTS, SOME_EXPRESSION),
+            new LambdaFunctionCall(OTHER_ARGUMENTS, SOME_EXPRESSION),
+            new LambdaFunctionCall(Optional.of(SOME_LOCATION), OTHER_ARGUMENTS, SOME_EXPRESSION),
+            new LambdaFunctionCall(Optional.of(OTHER_LOCATION), OTHER_ARGUMENTS, SOME_EXPRESSION)
         ).addEqualityGroup(
-            new LambdaFunctionExpression(OTHER_ARGUMENTS, OTHER_EXPRESSION),
-            new LambdaFunctionExpression(OTHER_ARGUMENTS, OTHER_EXPRESSION),
-            new LambdaFunctionExpression(Optional.of(SOME_LOCATION), OTHER_ARGUMENTS, OTHER_EXPRESSION),
-            new LambdaFunctionExpression(Optional.of(OTHER_LOCATION), OTHER_ARGUMENTS, OTHER_EXPRESSION)
+            new LambdaFunctionCall(OTHER_ARGUMENTS, OTHER_EXPRESSION),
+            new LambdaFunctionCall(OTHER_ARGUMENTS, OTHER_EXPRESSION),
+            new LambdaFunctionCall(Optional.of(SOME_LOCATION), OTHER_ARGUMENTS, OTHER_EXPRESSION),
+            new LambdaFunctionCall(Optional.of(OTHER_LOCATION), OTHER_ARGUMENTS, OTHER_EXPRESSION)
         )
         .testEquals();
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldThrowOnDuplicateArguments() {
-        new LambdaFunctionExpression(ImmutableList.of("X", "X", "Y"), SOME_EXPRESSION);
+        new LambdaFunctionCall(ImmutableList.of("X", "X", "Y"), SOME_EXPRESSION);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldThrowOnNoArguments() {
-        new LambdaFunctionExpression(ImmutableList.of(), SOME_EXPRESSION);
+        new LambdaFunctionCall(ImmutableList.of(), SOME_EXPRESSION);
     }
 }

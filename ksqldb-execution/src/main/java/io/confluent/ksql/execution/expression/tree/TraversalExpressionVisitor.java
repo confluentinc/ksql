@@ -99,7 +99,7 @@ public abstract class TraversalExpressionVisitor<C> implements ExpressionVisitor
   }
 
   @Override
-  public Void visitLambdaExpression(final LambdaFunctionExpression node, final C context) {
+  public Void visitLambdaExpression(final LambdaFunctionCall node, final C context) {
     process(node.getBody(), context);
     return null;
   }

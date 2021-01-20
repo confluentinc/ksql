@@ -27,16 +27,19 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
-import io.confluent.ksql.execution.expression.tree.LambdaFunctionExpression;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.Explain;
@@ -285,7 +288,7 @@ public class AstBuilderTest {
   @Test
   public void shouldBuildLambdaFunction() {
     // Given:
-    final SingleStatementContext stmt = givenQuery("SELECT X => X + 5 FROM TEST1;");
+    final SingleStatementContext stmt = givenQuery("SELECT TRANSFORM_ARRAY(Col4, X => X + 5) FROM TEST1;");
 
     // When:
     final Query result = (Query) builder.buildStatement(stmt);
@@ -293,15 +296,33 @@ public class AstBuilderTest {
     // Then:
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
         new SingleColumn(
-            new LambdaFunctionExpression(
-                ImmutableList.of("X"),
-                new ArithmeticBinaryExpression(
-                    Operator.ADD,
-                    column("X"),
-                    new IntegerLiteral(5))
+            new FunctionCall(
+                FunctionName.of("TRANSFORM_ARRAY"),
+                ImmutableList.of(
+                    column("COL4"),
+                    new LambdaFunctionCall(
+                        ImmutableList.of("X"),
+                        new ArithmeticBinaryExpression(
+                            Operator.ADD,
+                            column("X"),
+                            new IntegerLiteral(5))
+                  )
+                )
             ),
             Optional.empty())
     ))));
+  }
+
+  @Test
+  public void shouldNotBuildLambdaFunctionNotLastArgument() {
+    // Given:
+    final Exception e = assertThrows(
+        ParseFailedException.class,
+        () -> givenQuery("SELECT TRANSFORM_ARRAY(X => X + 5, Col4) FROM TEST1;")
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString("mismatched input '=>' expecting {',', ')'}"));
   }
 
   @Test

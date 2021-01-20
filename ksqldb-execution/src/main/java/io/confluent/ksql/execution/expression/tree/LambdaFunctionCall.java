@@ -27,19 +27,19 @@ import java.util.Optional;
 import java.util.Set;
 
 
-public class LambdaFunctionExpression extends Expression {
+public class LambdaFunctionCall extends Expression {
 
   private final ImmutableList<String> arguments;
   private final Expression body;
 
-  public LambdaFunctionExpression(
+  public LambdaFunctionCall(
       final List<String> name,
       final Expression body
   ) {
     this(Optional.empty(), name, body);
   }
 
-  public LambdaFunctionExpression(
+  public LambdaFunctionCall(
       final Optional<NodeLocation> location,
       final List<String> arguments,
       final Expression body
@@ -53,7 +53,7 @@ public class LambdaFunctionExpression extends Expression {
     final Set<String> set = new HashSet<>(arguments);
     if (set.size() < arguments.size()) {
       throw new IllegalArgumentException(
-          String.format("Lambda arguments are duplicates: %s", arguments.toString()));
+          String.format("Lambda arguments have duplicates: %s", arguments.toString()));
     }
     this.body = requireNonNull(body, "body is null");
   }
@@ -79,7 +79,7 @@ public class LambdaFunctionExpression extends Expression {
     if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
-    final LambdaFunctionExpression that = (LambdaFunctionExpression) obj;
+    final LambdaFunctionCall that = (LambdaFunctionCall) obj;
     return Objects.equals(arguments, that.arguments)
         && Objects.equals(body, that.body);
   }

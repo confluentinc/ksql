@@ -54,7 +54,7 @@ import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
-import io.confluent.ksql.execution.expression.tree.LambdaFunctionExpression;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
 import io.confluent.ksql.execution.expression.tree.LambdaLiteral;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
@@ -351,8 +351,8 @@ public class SqlToJavaVisitor {
 
     @Override
     public Pair<String, SqlType> visitLambdaExpression(
-        final LambdaFunctionExpression lambdaFunctionExpression, final Void context) {
-      return visitUnsupported(lambdaFunctionExpression);
+        final LambdaFunctionCall lambdaFunctionCall, final Void context) {
+      return visitUnsupported(lambdaFunctionCall);
     }
 
     @Override

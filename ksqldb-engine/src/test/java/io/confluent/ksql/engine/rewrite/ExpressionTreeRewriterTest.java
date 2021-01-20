@@ -185,7 +185,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteLambdaFunctionUsingPlugin() {
     // Given:
-    final Expression parsed = parseExpression("X => X + Col0");
+    final Expression parsed = parseExpression("TRANSFORM_ARRAY(Array[1,2], X => X + Col0)");
 
     // When/Then:
     shouldRewriteUsingPlugin(parsed);

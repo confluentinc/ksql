@@ -14,7 +14,6 @@
 
 package io.confluent.ksql.query;
 
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.util.KsqlConfig;

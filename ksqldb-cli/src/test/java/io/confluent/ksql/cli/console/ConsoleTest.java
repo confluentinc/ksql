@@ -1001,7 +1001,13 @@ public class ConsoleTest {
                 SqlBaseType.STRUCT,
                 ImmutableList.of(
                     new FieldInfo("f1", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.empty())),
-                null)
+                null),
+            "typeC", new SchemaInfo(
+                    SqlBaseType.DECIMAL,
+                    null,
+                    null,
+                    ImmutableMap.of("precision", 10, "scale", 9)
+                )
         ))
     ));
 
@@ -1035,6 +1041,15 @@ public class ConsoleTest {
           + "        }" + NEWLINE
           + "      } ]," + NEWLINE
           + "      \"memberSchema\" : null" + NEWLINE
+          + "    }," + NEWLINE
+          + "    \"typeC\" : {" + NEWLINE
+          + "      \"type\" : \"DECIMAL\"," + NEWLINE
+          + "      \"fields\" : null," + NEWLINE
+          + "      \"memberSchema\" : null," + NEWLINE
+          + "      \"parameters\" : {" + NEWLINE
+          + "        \"precision\" : 10," + NEWLINE
+          + "        \"scale\" : 9" + NEWLINE
+          + "      }" + NEWLINE
           + "    }" + NEWLINE
           + "  }," + NEWLINE
           + "  \"warnings\" : [ ]" + NEWLINE
@@ -1045,6 +1060,7 @@ public class ConsoleTest {
           + "----------------------------------------" + NEWLINE
           + " typeA     | STRUCT<f1 VARCHAR(STRING)> " + NEWLINE
           + " typeB     | ARRAY<VARCHAR(STRING)>     " + NEWLINE
+          + " typeC     | DECIMAL(10, 9)             " + NEWLINE
           + "----------------------------------------" + NEWLINE));
     }
   }

@@ -42,15 +42,6 @@ public class StringToTimestampParser {
   }
 
   /**
-   * Parse with a default time zone of {@code ZoneId#systemDefault}
-   *
-   * @see #parse(String, ZoneId)
-   */
-  public Timestamp parseToTimestamp(final String text) {
-    return parseToTimestamp(text, ZoneId.systemDefault());
-  }
-
-  /**
    * @param text    the textual representation of the timestamp
    * @param zoneId  the zoneId to use, if none present in {@code text}
    *

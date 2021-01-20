@@ -1063,7 +1063,7 @@ quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
 
 Since: -
 
-Deprecated since 0.16.0
+Deprecated since 0.16.0 (use PARSE_TIMESTAMP)
 
 ```sql
 STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
@@ -1086,7 +1086,7 @@ more information on timestamp formats, see
 
 Since: -
 
-Deprecated since 0.16.0
+Deprecated since 0.16.0 (use FORMAT_TIMESTAMP)
 
 ```sql
 TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
@@ -1099,29 +1099,29 @@ timestamp format can be escaped with two
 successive single quotes, `''`, for example:
 `'yyyy-MM-dd''T''HH:mm:ssX'`.
 TIMEZONE is an optional parameter and it is a
-java.util.TimeZone ID format, for example: "UTC",
+`java.util.TimeZone` ID format, for example: "UTC",
 "America/Los_Angeles", "PDT", "Europe/London". For
 more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).
 
-### `FORMATTIMESTAMP`
+### `FORMAT_TIMESTAMP`
 
 ```sql
-FORMATTIMESTAMP(timestamp, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
+FORMAT_TIMESTAMP(timestamp, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
 ```
 
 Converts a TIMESTAMP value into the string representation of the timestamp in the given format.
 Single quotes in the timestamp format can be escaped with two successive single quotes, `''`, for
 example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
 
-TIMEZONE is an optional parameter and it is a java.util.TimeZone ID format, for example: "UTC",
+TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, for example: "UTC",
 "America/Los_Angeles", "PDT", "Europe/London". For more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).
 
-### `PARSETIMESTAMP`
+### `PARSE_TIMESTAMP`
 
 ```sql
-PARSETIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
+PARSE_TIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
 ```
 
 Converts a string value in the given format into the TIMESTAMP value. Single quotes in the timestamp
@@ -1134,7 +1134,7 @@ TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, fo
 ### `CONVERT_TZ`
 
 ```sql
-CONVERT_TZ(col1, 'from_timezone' 'to_timezone')
+CONVERT_TZ(col1, 'from_timezone', 'to_timezone')
 ```
 
 Converts a TIMESTAMP value from `from_timezone` to `to_timezone`. `from_timezone` and

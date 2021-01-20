@@ -36,12 +36,12 @@ public class ConvertTz {
   @Udf(description = "Converts a TIMESTAMP value from one timezone to another")
   public Timestamp convertTz(
       @UdfParameter(
-          description = "the TIMESTAMP value.") final Timestamp timestamp,
+          description = "The TIMESTAMP value.") final Timestamp timestamp,
       @UdfParameter(
-          description =  " fromTimeZone is a java.util.TimeZone ID format, for example: \"UTC\","
+          description =  "The fromTimeZone in java.util.TimeZone ID format. For example: \"UTC\","
               + " \"America/Los_Angeles\", \"PST\", \"Europe/London\"") final String fromTimeZone,
       @UdfParameter(
-          description =  " toTimeZone is a java.util.TimeZone ID format, for example: \"UTC\","
+          description =  "The toTimeZone in java.util.TimeZone ID format. For example: \"UTC\","
               + " \"America/Los_Angeles\", \"PST\", \"Europe/London\"") final String toTimeZone
   ) {
     try {

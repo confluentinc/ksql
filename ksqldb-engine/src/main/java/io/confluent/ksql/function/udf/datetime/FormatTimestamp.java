@@ -30,7 +30,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.concurrent.ExecutionException;
 
 @UdfDescription(
-    name = "formattimestamp",
+    name = "format_timestamp",
     category = FunctionCategory.DATE_TIME,
     author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Converts a TIMESTAMP value into the string representation of the timestamp"
@@ -55,19 +55,10 @@ public class FormatTimestamp {
       @UdfParameter(
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern) {
-    try {
-      final DateTimeFormatter formatter = formatters.get(formatPattern);
-      return timestamp.toInstant()
-          .atZone(ZoneId.systemDefault())
-          .format(formatter);
-    } catch (final ExecutionException | RuntimeException e) {
-      throw new KsqlFunctionException("Failed to format timestamp " + timestamp
-          + " with formatter '" + formatPattern
-          + "': " + e.getMessage(), e);
-    }
+    return formatTimestamp(timestamp, formatPattern, ZoneId.systemDefault().getId());
   }
 
-  @Udf(description = "Converts a BIGINT millisecond timestamp value into the"
+  @Udf(description = "Converts a TIMESTAMP value into the"
       + " string representation of the timestamp in the given format. Single quotes in the"
       + " timestamp format can be escaped with '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'")
   public String formatTimestamp(

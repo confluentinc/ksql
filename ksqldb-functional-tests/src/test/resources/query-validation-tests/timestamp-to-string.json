@@ -1,6 +1,6 @@
 {
   "comments": [
-    "Tests covering the use of the TIMESTAMPTOSTRING and  FORMATTIMESTAMP functions."
+    "Tests covering the use of the TIMESTAMPTOSTRING and  FORMAT_TIMESTAMP functions."
   ],
   "tests": [
     {
@@ -35,7 +35,7 @@
       "name": "timestamp to string with valid zone",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY, TIME TIMESTAMP) WITH (kafka_topic='input', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT K, FORMATTIMESTAMP(TIME, 'yyyy-MM-dd HH:mm:ss zzz','America/Los_Angeles') FROM input;"
+        "CREATE STREAM OUTPUT AS SELECT K, FORMAT_TIMESTAMP(TIME, 'yyyy-MM-dd HH:mm:ss zzz','America/Los_Angeles') FROM input;"
       ],
       "inputs": [
         {"topic": "input", "value": {"time": 1526075913000}, "timestamp": 1526075913000}

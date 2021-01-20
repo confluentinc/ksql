@@ -23,6 +23,8 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.StreamsConfig;
 
@@ -87,12 +89,10 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
 
   private StreamsConfig getDummyStreamsConfig(final SessionConfig config) {
     // hack to get at default config value
-    return new StreamsConfig(
-        ImmutableMap.<String, Object>builder()
-            .put(StreamsConfig.APPLICATION_ID_CONFIG, "dummy.app.id")
-            .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dummy.bootstrap")
-            .putAll(config.getConfig(true).getKsqlStreamConfigProps())
-            .build()
-    );
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put(StreamsConfig.APPLICATION_ID_CONFIG, "dummy.app.id");
+    properties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dummy.bootstrap");
+    properties.putAll(config.getConfig(true).getKsqlStreamConfigProps());
+    return new StreamsConfig(properties);
   }
 }

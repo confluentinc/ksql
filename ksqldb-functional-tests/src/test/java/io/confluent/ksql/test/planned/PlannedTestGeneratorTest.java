@@ -35,7 +35,7 @@ public class PlannedTestGeneratorTest {
    * with your change. Otherwise, {@link PlannedTestsUpToDateTest} fill fail if there are missing
    * or changed query plans.
    */
-  @Ignore("Comment me out to regenerate the historic plans")
+  //@Ignore("Comment me out to regenerate the historic plans")
   @Test
   public void manuallyGeneratePlans() {
     PlannedTestGenerator.generatePlans(QueryTranslationTest.findTestCases()

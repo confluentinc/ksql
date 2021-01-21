@@ -37,9 +37,6 @@ import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.planner.plan.KeyConstraints.KeyConstraint;
-import io.confluent.ksql.planner.plan.KeyConstraints.KeyEqualityConstraint;
-import io.confluent.ksql.planner.plan.KeyConstraints.UnboundKeyConstraint;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
@@ -79,12 +76,12 @@ public class PullFilterNode extends SingleSourcePlanNode {
   private final LogicalSchema schema = getSource().getSchema();
 
   // The rewritten predicate in DNF, e.g. (A AND B) OR (C AND D)
-  private Expression rewrittenPredicate;
+  private final Expression rewrittenPredicate;
   // The separated disjuncts.  In the above example, [(A AND B), (C AND D)]
-  private List<Expression> disjuncts;
-  private List<KeyConstraint> keyConstraints;
-  private Set<UnqualifiedColumnReferenceExp> keyColumns;
-  private Set<UnqualifiedColumnReferenceExp> systemColumns;
+  private final List<Expression> disjuncts;
+  private final List<LookupConstraint> lookupConstraints;
+  private final Set<UnqualifiedColumnReferenceExp> keyColumns = new HashSet<>();
+  private final Set<UnqualifiedColumnReferenceExp> systemColumns = new HashSet<>();
 
   public PullFilterNode(
       final PlanNodeId id,
@@ -109,8 +106,8 @@ public class PullFilterNode extends SingleSourcePlanNode {
     // Extraction of key and system columns
     extractKeysAndSystemCols();
 
-    // Extraction of key constraints
-    keyConstraints = extractKeyConstraints();
+    // Extraction of lookup constraints
+    lookupConstraints = extractLookupConstraints();
 
     // Compiling expression into byte code
     this.addAdditionalColumnsToIntermediateSchema = shouldAddAdditionalColumnsInSchema();
@@ -147,8 +144,8 @@ public class PullFilterNode extends SingleSourcePlanNode {
     return isWindowed;
   }
 
-  public List<KeyConstraint> getKeyConstraints() {
-    return keyConstraints;
+  public List<LookupConstraint> getLookupConstraints() {
+    return lookupConstraints;
   }
 
   public boolean getAddAdditionalColumnsToIntermediateSchema() {
@@ -183,8 +180,6 @@ public class PullFilterNode extends SingleSourcePlanNode {
   }
 
   private void extractKeysAndSystemCols() {
-    keyColumns = new HashSet<>();
-    systemColumns = new HashSet<>();
     new KeyAndSystemColsExtractor().process(rewrittenPredicate, null);
   }
 
@@ -199,8 +194,8 @@ public class PullFilterNode extends SingleSourcePlanNode {
    * keyContents has the key values for each columns of a key.
    * @return the constraints on the key values used to to do keyed lookup.
    */
-  private List<KeyConstraint> extractKeyConstraints() {
-    final ImmutableList.Builder<KeyConstraint> keyPerDisjunct = ImmutableList.builder();
+  private List<LookupConstraint> extractLookupConstraints() {
+    final ImmutableList.Builder<LookupConstraint> constraintPerDisjunct = ImmutableList.builder();
     for (Expression disjunct : disjuncts) {
       final KeyValueExtractor keyValueExtractor = new KeyValueExtractor();
       keyValueExtractor.process(disjunct, null);
@@ -216,14 +211,14 @@ public class PullFilterNode extends SingleSourcePlanNode {
       }
 
       if (keyValueExtractor.seenKeys.isEmpty()) {
-        keyPerDisjunct.add(new UnboundKeyConstraint());
+        constraintPerDisjunct.add(new NonKeyConstraint());
       } else {
-        keyPerDisjunct.add(new KeyEqualityConstraint(
+        constraintPerDisjunct.add(KeyConstraint.equal(
             GenericKey.fromList(Arrays.asList(keyValueExtractor.keyContents)),
             optionalWindowBounds));
       }
     }
-    return keyPerDisjunct.build();
+    return constraintPerDisjunct.build();
   }
 
   /**
@@ -245,8 +240,8 @@ public class PullFilterNode extends SingleSourcePlanNode {
 
     @Override
     public Void process(final Expression node, final Object context) {
-      if (!(node instanceof  LogicalBinaryExpression)
-          && !(node instanceof  ComparisonExpression)) {
+      if (!(node instanceof LogicalBinaryExpression)
+          && !(node instanceof ComparisonExpression)) {
         throw invalidWhereClauseException("Unsupported expression in WHERE clause: " + node, false);
       }
       super.process(node, context);

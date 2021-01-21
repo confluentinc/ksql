@@ -35,8 +35,8 @@ import io.confluent.ksql.physical.pull.operators.TableScanOperator;
 import io.confluent.ksql.physical.pull.operators.WindowedTableScanOperator;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
-import io.confluent.ksql.planner.plan.KeyConstraints.KeyConstraint;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
+import io.confluent.ksql.planner.plan.LookupConstraint;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PullFilterNode;
@@ -64,7 +64,7 @@ public class PullPhysicalPlanBuilder {
   private final QueryId queryId;
   private final Materialization mat;
 
-  private List<KeyConstraint> keyConstraints;
+  private List<LookupConstraint> lookupConstraints;
   private boolean seenSelectOperator = false;
 
   public PullPhysicalPlanBuilder(
@@ -142,7 +142,7 @@ public class PullPhysicalPlanBuilder {
         rootPhysicalOp,
         (rootPhysicalOp).getLogicalNode().getSchema(),
         queryId,
-        keyConstraints,
+        lookupConstraints,
         mat,
         dataSourceOperator);
   }
@@ -162,7 +162,7 @@ public class PullPhysicalPlanBuilder {
   }
 
   private SelectOperator translateFilterNode(final PullFilterNode logicalNode) {
-    keyConstraints = logicalNode.getKeyConstraints();
+    lookupConstraints = logicalNode.getLookupConstraints();
 
     final ProcessingLogger logger = processingLogContext
         .getLoggerFactory()
@@ -177,7 +177,7 @@ public class PullPhysicalPlanBuilder {
       final DataSourceNode logicalNode
   ) {
     if (!seenSelectOperator) {
-      keyConstraints = Collections.emptyList();
+      lookupConstraints = Collections.emptyList();
       if (!logicalNode.isWindowed()) {
         return new TableScanOperator(mat, logicalNode);
       } else {
@@ -187,7 +187,7 @@ public class PullPhysicalPlanBuilder {
     if (!logicalNode.isWindowed()) {
       return new KeyedTableLookupOperator(mat, logicalNode);
     } else {
-      return new KeyedWindowedTableLookupOperator(mat, logicalNode, keyConstraints);
+      return new KeyedWindowedTableLookupOperator(mat, logicalNode);
     }
   }
 

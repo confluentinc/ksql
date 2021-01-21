@@ -45,14 +45,16 @@ public final class LogicRewriter {
   public static Expression rewriteCNF(final Expression expression) {
     final Expression notPropagated = new ExpressionTreeRewriter<>(new NotPropagator()::process)
           .rewrite(expression, new NotPropagatorContext());
-    return new ExpressionTreeRewriter<>(new DistributiveLawApplierDOC()::process)
+    return new ExpressionTreeRewriter<>(
+        new DistributiveLawApplierDisjunctionOverConjunction()::process)
         .rewrite(notPropagated, null);
   }
 
   public static Expression rewriteDNF(final Expression expression) {
     final Expression notPropagated = new ExpressionTreeRewriter<>(new NotPropagator()::process)
         .rewrite(expression, new NotPropagatorContext());
-    return new ExpressionTreeRewriter<>(new DistributiveLawApplierCOD()::process)
+    return new ExpressionTreeRewriter<>(
+        new DistributiveLawApplierConjunctionOverDisjunction()::process)
         .rewrite(notPropagated, null);
   }
 
@@ -185,7 +187,7 @@ public final class LogicRewriter {
     }
   }
 
-  private static final class DistributiveLawApplierDOC extends
+  private static final class DistributiveLawApplierDisjunctionOverConjunction extends
       VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
 
     @Override
@@ -245,7 +247,7 @@ public final class LogicRewriter {
     }
   }
 
-  private static final class DistributiveLawApplierCOD extends
+  private static final class DistributiveLawApplierConjunctionOverDisjunction extends
       VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
 
     @Override

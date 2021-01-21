@@ -2128,7 +2128,8 @@
         "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
         "SELECT * FROM AGGREGATE WHERE WINDOWSTART >= 12000 AND (ID = '10' OR ID = '8' OR ID = '12');",
         "SELECT * FROM AGGREGATE WHERE WINDOWSTART >= 12000 AND WINDOWEND <= 13000 AND (ID = '10' OR ID = '8' OR ID = '12');",
-        "SELECT * FROM AGGREGATE WHERE WINDOWSTART >= 12000 AND ID = '10' OR ID = '8' OR WINDOWEND <= 13000 AND ID = '12';"
+        "SELECT * FROM AGGREGATE WHERE WINDOWSTART >= 12000 AND ID = '10' OR ID = '8' OR WINDOWEND <= 13000 AND ID = '12';",
+        "SELECT * FROM AGGREGATE WHERE WINDOWSTART >= 12000 AND WINDOWEND <= 13000 AND ID = '8' OR WINDOWSTART >= 14000 AND WINDOWEND <= 15000 AND ID = '8';"
       ],
       "inputs": [
         {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"val": 1}},
@@ -2137,9 +2138,10 @@
         {"topic": "test_topic", "timestamp": 12366, "key": "9", "value": {"val": 3}},
         {"topic": "test_topic", "timestamp": 12367, "key": "8", "value": {"val": 4}},
         {"topic": "test_topic", "timestamp": 14367, "key": "8", "value": {"val": 4}},
+        {"topic": "test_topic", "timestamp": 15367, "key": "8", "value": {"val": 4}},
         {"topic": "test_topic", "timestamp": 12368, "key": "12", "value": {"val": 5}},
         {"topic": "test_topic", "timestamp": 13368, "key": "12", "value": {"val": 5}},
-        {"topic": "test_topic", "timestamp": 15369, "key": "13", "value": {"val": 6}}
+        {"topic": "test_topic", "timestamp": 16369, "key": "13", "value": {"val": 6}}
       ],
       "responses": [
         {"admin": {"@type": "currentStatus"}},
@@ -2149,7 +2151,9 @@
           {"row":{"columns":["10", 12000, 13000, 1]}},
           {"row":{"columns":["12", 12000, 13000, 1]}},
           {"row":{"columns":["12", 13000, 14000, 1]}},
-          {"row":{"columns":["8", 12000, 13000, 1]}}
+          {"row":{"columns":["8", 12000, 13000, 1]}},
+          {"row":{"columns":["8", 14000, 15000, 1]}},
+          {"row":{"columns":["8", 15000, 16000, 1]}}
         ]},
         {"query": [
           {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
@@ -2161,6 +2165,12 @@
           {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
           {"row":{"columns":["10", 12000, 13000, 1]}},
           {"row":{"columns":["12", 12000, 13000, 1]}},
+          {"row":{"columns":["8", 12000, 13000, 1]}},
+          {"row":{"columns":["8", 14000, 15000, 1]}},
+          {"row":{"columns":["8", 15000, 16000, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
           {"row":{"columns":["8", 12000, 13000, 1]}},
           {"row":{"columns":["8", 14000, 15000, 1]}}
         ]}

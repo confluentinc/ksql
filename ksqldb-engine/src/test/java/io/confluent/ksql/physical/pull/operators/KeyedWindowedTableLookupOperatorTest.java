@@ -31,7 +31,7 @@ import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedT
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.streams.materialization.ks.KsLocator;
 import io.confluent.ksql.planner.plan.DataSourceNode;
-import io.confluent.ksql.planner.plan.KeyConstraints.KeyConstraint;
+import io.confluent.ksql.planner.plan.KeyConstraint.KeyConstraintKey;
 import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -58,13 +58,21 @@ public class KeyedWindowedTableLookupOperatorTest {
   @Mock
   private DataSourceNode logicalNode;
   @Mock
-  private GenericKey KEY1;
+  private KeyConstraintKey KEY1;
   @Mock
-  private GenericKey KEY2;
+  private KeyConstraintKey KEY2;
   @Mock
-  private GenericKey KEY3;
+  private KeyConstraintKey KEY3;
   @Mock
-  private GenericKey KEY4;
+  private KeyConstraintKey KEY4;
+  @Mock
+  private GenericKey GKEY1;
+  @Mock
+  private GenericKey GKEY2;
+  @Mock
+  private GenericKey GKEY3;
+  @Mock
+  private GenericKey GKEY4;
   @Mock
   private WindowedRow WINDOWED_ROW1;
   @Mock
@@ -87,21 +95,19 @@ public class KeyedWindowedTableLookupOperatorTest {
   private WindowBounds windowBounds3;
   @Mock
   private WindowBounds windowBounds4;
-  @Mock
-  private KeyConstraint keyConstraint1;
-  @Mock
-  private KeyConstraint keyConstraint2;
-  @Mock
-  private KeyConstraint keyConstraint3;
-  @Mock
-  private KeyConstraint keyConstraint4;
 
   @Before
   public void setUp() {
-    when(keyConstraint1.getKey()).thenReturn(KEY1);
-    when(keyConstraint2.getKey()).thenReturn(KEY2);
-    when(keyConstraint3.getKey()).thenReturn(KEY3);
-    when(keyConstraint4.getKey()).thenReturn(KEY4);
+    when(KEY1.getKey()).thenReturn(GKEY1);
+    when(KEY2.getKey()).thenReturn(GKEY2);
+    when(KEY3.getKey()).thenReturn(GKEY3);
+    when(KEY4.getKey()).thenReturn(GKEY4);
+    when(KEY1.getWindowBounds()).thenReturn(Optional.of(windowBounds1));
+    when(KEY2.getWindowBounds()).thenReturn(Optional.of(windowBounds1));
+    when(KEY3.getWindowBounds()).thenReturn(Optional.of(windowBounds1));
+    when(KEY4.getWindowBounds()).thenReturn(Optional.of(windowBounds1));
+    when(windowBounds1.getMergedStart()).thenReturn(WINDOW_START_BOUNDS);
+    when(windowBounds1.getMergedEnd()).thenReturn(WINDOW_END_BOUNDS);
   }
 
   @Test
@@ -118,22 +124,15 @@ public class KeyedWindowedTableLookupOperatorTest {
         Optional.of(ImmutableSet.of(KEY4)), 3, ImmutableList.of(node3)));
 
     final KeyedWindowedTableLookupOperator lookupOperator = new KeyedWindowedTableLookupOperator(
-        materialization, logicalNode,
-        ImmutableList.of(keyConstraint1, keyConstraint2, keyConstraint3, keyConstraint4));
-    when(keyConstraint1.getWindowBounds()).thenReturn(Optional.of(windowBounds1));
-    when(keyConstraint2.getWindowBounds()).thenReturn(Optional.of(windowBounds1));
-    when(keyConstraint3.getWindowBounds()).thenReturn(Optional.of(windowBounds1));
-    when(keyConstraint4.getWindowBounds()).thenReturn(Optional.of(windowBounds1));
-    when(windowBounds1.getMergedStart()).thenReturn(WINDOW_START_BOUNDS);
-    when(windowBounds1.getMergedEnd()).thenReturn(WINDOW_END_BOUNDS);
+        materialization, logicalNode);
     when(materialization.windowed()).thenReturn(windowedTable);
-    when(materialization.windowed().get(KEY1, 1, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
+    when(materialization.windowed().get(GKEY1, 1, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
         .thenReturn(ImmutableList.of(WINDOWED_ROW1, WINDOWED_ROW2));
-    when(materialization.windowed().get(KEY2, 2, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
+    when(materialization.windowed().get(GKEY2, 2, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
         .thenReturn(Collections.emptyList());
-    when(materialization.windowed().get(KEY3, 3, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
+    when(materialization.windowed().get(GKEY3, 3, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
         .thenReturn(ImmutableList.of(WINDOWED_ROW3));
-    when(materialization.windowed().get(KEY4, 3, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
+    when(materialization.windowed().get(GKEY4, 3, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
         .thenReturn(ImmutableList.of(WINDOWED_ROW2, WINDOWED_ROW4));
     lookupOperator.setPartitionLocations(singleKeyPartitionLocations);
     lookupOperator.open();
@@ -157,22 +156,17 @@ public class KeyedWindowedTableLookupOperatorTest {
         Optional.of(ImmutableSet.of(KEY3, KEY4)), 3, ImmutableList.of(node3)));
 
     final KeyedWindowedTableLookupOperator lookupOperator = new KeyedWindowedTableLookupOperator(
-        materialization, logicalNode,
-        ImmutableList.of(keyConstraint1, keyConstraint2, keyConstraint3, keyConstraint4));
-    when(keyConstraint1.getWindowBounds()).thenReturn(Optional.of(windowBounds1));
-    when(keyConstraint2.getWindowBounds()).thenReturn(Optional.of(windowBounds1));
-    when(keyConstraint3.getWindowBounds()).thenReturn(Optional.of(windowBounds1));
-    when(keyConstraint4.getWindowBounds()).thenReturn(Optional.of(windowBounds1));
+        materialization, logicalNode);
     when(windowBounds1.getMergedStart()).thenReturn(WINDOW_START_BOUNDS);
     when(windowBounds1.getMergedEnd()).thenReturn(WINDOW_END_BOUNDS);
     when(materialization.windowed()).thenReturn(windowedTable);
-    when(materialization.windowed().get(KEY1, 1, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
+    when(materialization.windowed().get(GKEY1, 1, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
         .thenReturn(ImmutableList.of(WINDOWED_ROW1, WINDOWED_ROW2));
-    when(materialization.windowed().get(KEY2, 1, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
+    when(materialization.windowed().get(GKEY2, 1, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
         .thenReturn(Collections.emptyList());
-    when(materialization.windowed().get(KEY3, 3, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
+    when(materialization.windowed().get(GKEY3, 3, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
         .thenReturn(ImmutableList.of(WINDOWED_ROW3));
-    when(materialization.windowed().get(KEY4, 3, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
+    when(materialization.windowed().get(GKEY4, 3, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
         .thenReturn(ImmutableList.of(WINDOWED_ROW2, WINDOWED_ROW4));
     lookupOperator.setPartitionLocations(multipleKeysPartitionLocations);
     lookupOperator.open();
@@ -200,12 +194,11 @@ public class KeyedWindowedTableLookupOperatorTest {
         Optional.of(ImmutableSet.of(KEY4)), 3, ImmutableList.of(node3)));
 
     final KeyedWindowedTableLookupOperator lookupOperator = new KeyedWindowedTableLookupOperator(
-        materialization, logicalNode,
-        ImmutableList.of(keyConstraint1, keyConstraint2, keyConstraint3, keyConstraint4));
-    when(keyConstraint1.getWindowBounds()).thenReturn(Optional.of(windowBounds1));
-    when(keyConstraint2.getWindowBounds()).thenReturn(Optional.of(windowBounds2));
-    when(keyConstraint3.getWindowBounds()).thenReturn(Optional.of(windowBounds3));
-    when(keyConstraint4.getWindowBounds()).thenReturn(Optional.of(windowBounds4));
+        materialization, logicalNode);
+    when(KEY1.getWindowBounds()).thenReturn(Optional.of(windowBounds1));
+    when(KEY2.getWindowBounds()).thenReturn(Optional.of(windowBounds2));
+    when(KEY3.getWindowBounds()).thenReturn(Optional.of(windowBounds3));
+    when(KEY4.getWindowBounds()).thenReturn(Optional.of(windowBounds4));
     when(windowBounds1.getMergedStart()).thenReturn(WINDOW_START_BOUNDS);
     when(windowBounds1.getMergedEnd()).thenReturn(WINDOW_END_BOUNDS);
     when(windowBounds2.getMergedStart()).thenReturn(Range.all());
@@ -215,13 +208,13 @@ public class KeyedWindowedTableLookupOperatorTest {
     when(windowBounds4.getMergedStart()).thenReturn(Range.all());
     when(windowBounds4.getMergedEnd()).thenReturn(Range.all());
     when(materialization.windowed()).thenReturn(windowedTable);
-    when(materialization.windowed().get(KEY1, 1, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
+    when(materialization.windowed().get(GKEY1, 1, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
         .thenReturn(ImmutableList.of(WINDOWED_ROW1, WINDOWED_ROW2));
-    when(materialization.windowed().get(KEY2, 2, Range.all(), WINDOW_END_BOUNDS))
+    when(materialization.windowed().get(GKEY2, 2, Range.all(), WINDOW_END_BOUNDS))
         .thenReturn(Collections.emptyList());
-    when(materialization.windowed().get(KEY3, 3, WINDOW_START_BOUNDS, Range.all()))
+    when(materialization.windowed().get(GKEY3, 3, WINDOW_START_BOUNDS, Range.all()))
         .thenReturn(ImmutableList.of(WINDOWED_ROW3));
-    when(materialization.windowed().get(KEY4, 3, Range.all(), Range.all()))
+    when(materialization.windowed().get(GKEY4, 3, Range.all(), Range.all()))
         .thenReturn(ImmutableList.of(WINDOWED_ROW2, WINDOWED_ROW4));
     lookupOperator.setPartitionLocations(singleKeyPartitionLocations);
     lookupOperator.open();

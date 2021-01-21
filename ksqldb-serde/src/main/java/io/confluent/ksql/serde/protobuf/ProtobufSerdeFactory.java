@@ -24,7 +24,6 @@ import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
 import io.confluent.ksql.serde.tls.ThreadLocalDeserializer;
 import io.confluent.ksql.serde.tls.ThreadLocalSerializer;
-import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
@@ -132,14 +131,6 @@ final class ProtobufSerdeFactory {
   }
 
   private static class SchemaValidator implements SchemaWalker.Visitor<Void, Void> {
-
-    public Void visitBytes(final Schema schema) {
-      if (DecimalUtil.isDecimal(schema)) {
-        throw new KsqlException("The '" + ProtobufFormat.NAME + "' format does not support type "
-            + "'DECIMAL'. See https://github.com/confluentinc/ksql/issues/5762.");
-      }
-      return null;
-    }
 
     @Override
     public Void visitMap(final Schema schema, final Void key, final Void value) {

@@ -51,7 +51,6 @@ public class KsqlProtobufDeserializerTest {
 
   private SchemaRegistryClient schemaRegistryClient;
   private ProtobufConverter converter;
-  private KafkaProtobufSerializer serializer;
 
   @Before
   public void setUp() {
@@ -64,8 +63,6 @@ public class KsqlProtobufDeserializerTest {
 
     converter = new ProtobufConverter(schemaRegistryClient);
     converter.configure(configs, false);
-
-    serializer = new KafkaProtobufSerializer(schemaRegistryClient, configs);
   }
 
   @Test

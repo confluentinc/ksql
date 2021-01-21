@@ -118,7 +118,7 @@ public class BackupRollbackIntegrationTest {
   }
 
   @Test
-  public void shouldBackupAndRestoreCommandTopic() throws Exception {
+  public void shouldEnterDegradedStateWithBackupEnabled() {
     // Given
     TEST_HARNESS.ensureTopics("topic1", "topic2");
 

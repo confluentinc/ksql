@@ -23,6 +23,8 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.tree.DescribeStreams;
+import io.confluent.ksql.parser.tree.DescribeTables;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ShowColumns;
@@ -113,7 +115,7 @@ public final class ListSourceExecutor {
     final List<KsqlStream<?>> ksqlStreams = getSpecificStreams(executionContext);
 
     final ListStreams listStreams = statement.getStatement();
-    if (listStreams.getShowExtended() || listStreams.getDescribe()) {
+    if (listStreams.getShowExtended()) {
       return sourceDescriptionList(
           statement,
           sessionProperties,
@@ -140,7 +142,7 @@ public final class ListSourceExecutor {
     final List<KsqlTable<?>> ksqlTables = getSpecificTables(executionContext);
 
     final ListTables listTables = statement.getStatement();
-    if (listTables.getShowExtended() || listTables.getDescribe()) {
+    if (listTables.getShowExtended()) {
       return sourceDescriptionList(
           statement,
           sessionProperties,
@@ -155,6 +157,42 @@ public final class ListSourceExecutor {
         ksqlTables.stream()
             .map(ListSourceExecutor::sourceTable)
             .collect(Collectors.toList())));
+  }
+
+  public static Optional<KsqlEntity> describeStreams(
+      final ConfiguredStatement<DescribeStreams> statement,
+      final SessionProperties sessionProperties,
+      final KsqlExecutionContext executionContext,
+      final ServiceContext serviceContext
+  ) {
+    final List<KsqlStream<?>> ksqlStreams = getSpecificStreams(executionContext);
+
+    final DescribeStreams describeStreams = statement.getStatement();
+    return sourceDescriptionList(
+        statement,
+        sessionProperties,
+        executionContext,
+        serviceContext,
+        ksqlStreams,
+        describeStreams.getShowExtended());
+  }
+
+  public static Optional<KsqlEntity> describeTables(
+      final ConfiguredStatement<DescribeTables> statement,
+      final SessionProperties sessionProperties,
+      final KsqlExecutionContext executionContext,
+      final ServiceContext serviceContext
+  ) {
+    final List<KsqlTable<?>> ksqlTables = getSpecificTables(executionContext);
+
+    final DescribeTables describeTables = statement.getStatement();
+    return sourceDescriptionList(
+        statement,
+        sessionProperties,
+        executionContext,
+        serviceContext,
+        ksqlTables,
+        describeTables.getShowExtended());
   }
 
   public static Optional<KsqlEntity> columns(
@@ -226,19 +264,21 @@ public final class ListSourceExecutor {
     Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescription =
         Optional.empty();
     List<QueryOffsetSummary> queryOffsetSummaries = Collections.emptyList();
-    List<String> sourceConstraints = Collections.emptyList();
+    List<String> sourceConstraints = getSourceConstraints(name, ksqlEngine.getMetaStore());
 
     final List<KsqlWarning> warnings = new LinkedList<>();
+    try {
+      topicDescription = Optional.of(
+          serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName())
+      );
+    } catch (final KafkaException | KafkaResponseGetFailedException e) {
+      warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
+    }
+
+    sourceConstraints = getSourceConstraints(name, ksqlEngine.getMetaStore());
+
     if (extended) {
-      try {
-        topicDescription = Optional.of(
-            serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName())
-        );
-        queryOffsetSummaries = queryOffsetSummaries(ksqlConfig, serviceContext, writeQueries);
-        sourceConstraints = getSourceConstraints(name, ksqlEngine.getMetaStore());
-      } catch (final KafkaException | KafkaResponseGetFailedException e) {
-        warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
-      }
+      queryOffsetSummaries = queryOffsetSummaries(ksqlConfig, serviceContext, writeQueries);
     }
 
     return new SourceDescriptionWithWarnings(

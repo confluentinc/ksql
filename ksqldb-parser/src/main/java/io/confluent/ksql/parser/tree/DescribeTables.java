@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -23,12 +23,12 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
-public class ListStreams extends Statement {
+
+public class DescribeTables extends Statement {
 
   private final boolean showExtended;
 
-
-  public ListStreams(
+  public DescribeTables(
       final Optional<NodeLocation> location,
       final boolean showExtended
   ) {
@@ -42,7 +42,7 @@ public class ListStreams extends Statement {
 
   @Override
   public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
-    return visitor.visitListStreams(this, context);
+    return visitor.visitDescribeTables(this, context);
   }
 
   @Override
@@ -53,7 +53,7 @@ public class ListStreams extends Statement {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final ListStreams that = (ListStreams) o;
+    final DescribeTables that = (DescribeTables) o;
     return showExtended == that.showExtended;
   }
 
@@ -68,4 +68,5 @@ public class ListStreams extends Statement {
         .add("showExtended", showExtended)
         .toString();
   }
+
 }

@@ -165,8 +165,8 @@ public class ListSourceExecutorTest {
     ));
   }
 
-  @Test
-  public void shouldShowStreamsDescription() {
+  /*@Test
+  public void shouldDescribeStreams() {
     // Given:
     final KsqlStream<?> stream1 = engine.givenSource(DataSourceType.KSTREAM, "stream1");
     final KsqlStream<?> stream2 = engine.givenSource(DataSourceType.KSTREAM, "stream2",
@@ -175,8 +175,8 @@ public class ListSourceExecutorTest {
 
     // When:
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
-        CustomExecutors.LIST_STREAMS.execute(
-            engine.configure("SHOW STREAMS DESCRIPTION;"),
+        CustomExecutors.DESCRIBE_STREAMS.execute(
+            engine.configure("DESCRIBE STREAMS;"),
             mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
@@ -202,7 +202,7 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             ImmutableList.of())
     ));
-  }
+  }*/
 
   @Test
   public void shouldShowTables() {
@@ -239,8 +239,8 @@ public class ListSourceExecutorTest {
     ));
   }
 
-  @Test
-  public void shouldShowTablesExtended() {
+  /*@Test
+  public void shouldDescribeTables() {
     // Given:
     final KsqlTable<?> table1 = engine.givenSource(DataSourceType.KTABLE, "table1");
     final KsqlTable<?> table2 = engine.givenSource(DataSourceType.KTABLE, "table2",
@@ -249,8 +249,8 @@ public class ListSourceExecutorTest {
 
     // When:
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
-        CustomExecutors.LIST_TABLES.execute(
-            engine.configure("LIST TABLES EXTENDED;"),
+        CustomExecutors.DESCRIBE_TABLES.execute(
+            engine.configure("DESCRIBE TABLES;"),
             mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
@@ -278,7 +278,7 @@ public class ListSourceExecutorTest {
             ImmutableList.of()
         )
     ));
-  }
+  }*/
 
   @Test
   public void shouldShowColumnsSource() {

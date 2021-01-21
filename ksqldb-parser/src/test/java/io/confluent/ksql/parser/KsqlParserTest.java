@@ -60,6 +60,8 @@ import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.DescribeStreams;
+import io.confluent.ksql.parser.tree.DescribeTables;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.InsertInto;
@@ -701,7 +703,7 @@ public class KsqlParserTest {
     final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
     Assert.assertTrue(statement instanceof ListStreams);
     final ListStreams listStreams = (ListStreams) statement;
-    assertThat(listStreams.toString(), is("ListStreams{descriptionType=BASE}"));
+    assertThat(listStreams.toString(), is("ListStreams{showExtended=false}"));
     assertThat(listStreams.getShowExtended(), is(false));
   }
 
@@ -711,7 +713,7 @@ public class KsqlParserTest {
     final Statement statement = KsqlParserTestUtil.buildSingleAst(simpleQuery, metaStore).getStatement();
     Assert.assertTrue(statement instanceof ListTables);
     final ListTables listTables = (ListTables) statement;
-    assertThat(listTables.toString(), is("ListTables{descriptionType=BASE}"));
+    assertThat(listTables.toString(), is("ListTables{showExtended=false}"));
     assertThat(listTables.getShowExtended(), is(false));
   }
 
@@ -828,7 +830,6 @@ public class KsqlParserTest {
     assertThat(statement, instanceOf(ListStreams.class));
     final ListStreams listStreams = (ListStreams) statement;
     assertThat(listStreams.getShowExtended(), is(true));
-    assertThat(listStreams.getDescribe(), is(false));
   }
 
   @Test
@@ -854,7 +855,6 @@ public class KsqlParserTest {
     assertThat(statement, instanceOf(ListTables.class));
     final ListTables listTables = (ListTables) statement;
     assertThat(listTables.getShowExtended(), is(true));
-    assertThat(listTables.getDescribe(), is(false));
   }
 
   @Test
@@ -868,25 +868,43 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void shouldSetShowDescriptionsForShowStreamsDescription() {
+  public void testDescribeStreams() {
     final String statementString = "DESCRIBE STREAMS;";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
-    assertThat(statement, instanceOf(ListStreams.class));
-    final ListStreams listStreams = (ListStreams) statement;
-    assertThat(listStreams.getShowExtended(), is(false));
-    assertThat(listStreams.getDescribe(), is(true));
+    assertThat(statement, instanceOf(DescribeStreams.class));
+    final DescribeStreams describeStreams = (DescribeStreams) statement;
+    assertThat(describeStreams.getShowExtended(), is(false));
   }
 
   @Test
-  public void shouldSetShowDescriptionsForShowTablesDescription() {
+  public void testDescribeTables() {
     final String statementString = "DESCRIBE TABLES;";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
-    assertThat(statement, instanceOf(ListTables.class));
-    final ListTables listTables = (ListTables) statement;
-    assertThat(listTables.getShowExtended(), is(false));
-    assertThat(listTables.getDescribe(), is(true));
+    assertThat(statement, instanceOf(DescribeTables.class));
+    final DescribeTables describeTables = (DescribeTables) statement;
+    assertThat(describeTables.getShowExtended(), is(false));
+  }
+
+  @Test
+  public void testDescribeStreamsExtended() {
+    final String statementString = "DESCRIBE EXTENDED STREAMS;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+    assertThat(statement, instanceOf(DescribeStreams.class));
+    final DescribeStreams describeStreams = (DescribeStreams) statement;
+    assertThat(describeStreams.getShowExtended(), is(true));
+  }
+
+  @Test
+  public void testDescribeTablesExtended() {
+    final String statementString = "DESCRIBE EXTENDED TABLES;";
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+    assertThat(statement, instanceOf(DescribeTables.class));
+    final DescribeTables describeTables = (DescribeTables) statement;
+    assertThat(describeTables.getShowExtended(), is(true));
   }
 
   private void assertQuerySucceeds(final String sql) {

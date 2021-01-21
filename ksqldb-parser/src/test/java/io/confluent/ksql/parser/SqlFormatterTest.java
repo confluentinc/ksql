@@ -40,6 +40,8 @@ import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
+import io.confluent.ksql.parser.tree.DescribeStreams;
+import io.confluent.ksql.parser.tree.DescribeTables;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Join;
@@ -784,7 +786,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatShowTables() {
     // Given:
-    final ListTables listTables = new ListTables(Optional.empty(), false, false);
+    final ListTables listTables = new ListTables(Optional.empty(), false);
 
     // When:
     final String formatted = SqlFormatter.formatSql(listTables);
@@ -796,7 +798,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatShowTablesExtended() {
     // Given:
-    final ListTables listTables = new ListTables(Optional.empty(), true, false);
+    final ListTables listTables = new ListTables(Optional.empty(), true);
 
     // When:
     final String formatted = SqlFormatter.formatSql(listTables);
@@ -808,10 +810,10 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatDescribeTables() {
     // Given:
-    final ListTables listTables = new ListTables(Optional.empty(), false, true);
+    final DescribeTables describeTables = new DescribeTables(Optional.empty(), false);
 
     // When:
-    final String formatted = SqlFormatter.formatSql(listTables);
+    final String formatted = SqlFormatter.formatSql(describeTables);
 
     // Then:
     assertThat(formatted, is("DESCRIBE TABLES"));
@@ -832,7 +834,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatShowStreams() {
     // Given:
-    final ListStreams listStreams = new ListStreams(Optional.empty(), false, false);
+    final ListStreams listStreams = new ListStreams(Optional.empty(), false);
 
     // When:
     final String formatted = SqlFormatter.formatSql(listStreams);
@@ -844,7 +846,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatShowStreamsExtended() {
     // Given:
-    final ListStreams listStreams = new ListStreams(Optional.empty(), true, false);
+    final ListStreams listStreams = new ListStreams(Optional.empty(), true);
 
     // When:
     final String formatted = SqlFormatter.formatSql(listStreams);
@@ -856,10 +858,10 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatDescribeStreams() {
     // Given:
-    final ListStreams listStreams = new ListStreams(Optional.empty(), false, true);
+    final DescribeStreams describeStreams = new DescribeStreams(Optional.empty(), false);
 
     // When:
-    final String formatted = SqlFormatter.formatSql(listStreams);
+    final String formatted = SqlFormatter.formatSql(describeStreams);
 
     // Then:
     assertThat(formatted, is("DESCRIBE STREAMS"));

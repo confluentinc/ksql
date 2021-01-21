@@ -114,6 +114,8 @@ import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.parser.tree.DescribeFunction;
+import io.confluent.ksql.parser.tree.DescribeStreams;
+import io.confluent.ksql.parser.tree.DescribeTables;
 import io.confluent.ksql.parser.tree.DropConnector;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -665,13 +667,13 @@ public class AstBuilder {
     @Override
     public Node visitListStreams(final SqlBaseParser.ListStreamsContext context) {
       return new ListStreams(
-          getLocation(context), context.EXTENDED() != null, context.DESCRIBE() != null);
+          getLocation(context), context.EXTENDED() != null);
     }
 
     @Override
     public Node visitListTables(final SqlBaseParser.ListTablesContext context) {
       return new ListTables(
-          getLocation(context), context.EXTENDED() != null, context.DESCRIBE() != null);
+          getLocation(context), context.EXTENDED() != null);
     }
 
     @Override
@@ -1289,6 +1291,18 @@ public class AstBuilder {
           getLocation(ctx),
           ParserUtil.getIdentifierText(ctx.identifier())
       );
+    }
+
+    @Override
+    public Node visitDescribeStreams(final SqlBaseParser.DescribeStreamsContext context) {
+      return new DescribeStreams(
+          getLocation(context), context.EXTENDED() != null);
+    }
+
+    @Override
+    public Node visitDescribeTables(final SqlBaseParser.DescribeTablesContext context) {
+      return new DescribeTables(
+          getLocation(context), context.EXTENDED() != null);
     }
 
     @Override

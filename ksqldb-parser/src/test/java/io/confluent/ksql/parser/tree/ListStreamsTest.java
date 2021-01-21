@@ -30,11 +30,11 @@ public class ListStreamsTest {
     new EqualsTester()
         .addEqualityGroup(
             // Note: At the moment location does not take part in equality testing
-            new ListStreams(Optional.of(SOME_LOCATION), true, true),
-            new ListStreams(Optional.of(OTHER_LOCATION), true, true)
+            new ListStreams(Optional.of(SOME_LOCATION), true),
+            new ListStreams(Optional.of(OTHER_LOCATION), true)
         )
         .addEqualityGroup(
-            new ListStreams(Optional.of(SOME_LOCATION), false, true)
+            new ListStreams(Optional.of(SOME_LOCATION), false)
         )
         .testEquals();
   }

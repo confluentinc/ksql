@@ -701,7 +701,7 @@ public class KsqlRestConfig extends AbstractConfig {
     return getPropertiesWithOverrides(COMMAND_CONSUMER_PREFIX);
   }
 
-  Map<String, Object> getCommandProducerProperties() {
+  public Map<String, Object> getCommandProducerProperties() {
     return getPropertiesWithOverrides(COMMAND_PRODUCER_PREFIX);
   }
 

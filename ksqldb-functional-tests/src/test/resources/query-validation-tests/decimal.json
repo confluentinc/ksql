@@ -45,6 +45,19 @@
       ]
     },
     {
+      "name": "PROTOBUF in/out",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, dec DECIMAL(21,19)) WITH (kafka_topic='test', value_format='PROTOBUF');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"DEC": 10.1234512345123451234}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"DEC": 10.1234512345123451234}}
+      ]
+    },
+    {
       "name": "JSON scale in data less than scale in type",
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, dec DECIMAL(6,4)) WITH (kafka_topic='test', value_format='JSON');",
@@ -159,7 +172,6 @@
       }
     },
     {
-      "enabled": true,
       "name": "PROTOBUF should not trim trailing zeros",
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, dec DECIMAL(6,4)) WITH (kafka_topic='test', value_format='PROTOBUF');",

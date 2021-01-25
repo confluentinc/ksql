@@ -79,7 +79,8 @@ public final class KsMaterialization implements Materialization {
     final WindowType wndType = wndInfo.getType();
     switch (wndType) {
       case SESSION:
-        return new KsMaterializedSessionTable(stateStore, SessionStoreCacheBypass::fetch);
+        return new KsMaterializedSessionTable(stateStore,
+                SessionStoreCacheBypass::fetch, SessionStoreCacheBypass::fetchRange);
 
       case HOPPING:
       case TUMBLING:

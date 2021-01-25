@@ -35,6 +35,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.IntervalExpression;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
@@ -494,6 +495,15 @@ public class ExpressionTypeManager {
     ) {
       expressionTypeContext.setSqlType(DecimalUtil.fromValue(decimalLiteral.getValue()));
 
+      return null;
+    }
+
+    @Override
+    public Void visitIntervalExpression(
+        final IntervalExpression exp,
+        final ExpressionTypeContext context
+    ) {
+      context.setSqlType(SqlTypes.INTERVAL);
       return null;
     }
 

@@ -1151,6 +1151,28 @@ FROM_UNIXTIME(milliseconds)
 
 Converts a BIGINT millisecond timestamp value into a TIMESTAMP value.
 
+### TIMESTAMPADD
+
+Since: 0.16
+
+```sql
+TIMESTAMPADD(COL0, 5 MINUTES)
+```
+
+Adds an interval to a timestamp. Intervals are defined by an integral value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+### TIMESTAMPSUB
+
+Since: 0.16
+
+```sql
+TIMESTAMPSUB(COL0, 5 MINUTES)
+```
+
+Subtracts an interval from a timestamp. Intervals are defined by an integral value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
 ## URLs
 
 !!! note

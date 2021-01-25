@@ -39,6 +39,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.IntervalExpression;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
@@ -70,6 +71,7 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 public class ExpressionFormatterTest {
@@ -171,6 +173,11 @@ public class ExpressionFormatterTest {
   @Test
   public void shouldFormatTimestampLiteral() {
     assertThat(ExpressionFormatter.formatExpression(new TimestampLiteral(new Timestamp(500))), equalTo("1970-01-01T00:00:00.500"));
+  }
+
+  @Test
+  public void shouldFormatIntervalExpression() {
+    assertThat(ExpressionFormatter.formatExpression(new IntervalExpression(new IntegerLiteral(34), TimeUnit.DAYS)), equalTo("34 DAYS"));
   }
 
   @Test

@@ -188,6 +188,12 @@ public abstract class TraversalExpressionVisitor<C> implements ExpressionVisitor
   }
 
   @Override
+  public Void visitIntervalExpression(final IntervalExpression node, final C context) {
+    process(node.getExpression(), context);
+    return null;
+  }
+
+  @Override
   public Void visitStringLiteral(final StringLiteral node, final C context) {
     return null;
   }

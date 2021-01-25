@@ -297,11 +297,16 @@ primaryExpression
     | STRUCT '(' (identifier ASSIGN expression (',' identifier ASSIGN expression)*)? ')'  #structConstructor
     | identifier '(' ASTERISK ')'                              		                        #functionCall
     | identifier'(' (expression (',' expression)*)? ')' 						                      #functionCall
+    | identifier'(' expression ',' intervalExpression ')' 						                    #functionCall
     | value=primaryExpression '[' index=valueExpression ']'                               #subscript
     | identifier                                                                          #columnReference
     | identifier '.' identifier                                                           #qualifiedColumnReference
     | base=primaryExpression STRUCT_FIELD_REF fieldName=identifier                        #dereference
     | '(' expression ')'                                                                  #parenthesizedExpression
+    ;
+
+intervalExpression
+    : valueExpression windowUnit
     ;
 
 timeZoneSpecifier

@@ -23,6 +23,7 @@ import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Map.Entry;
 import java.util.Optional;
 
@@ -38,6 +39,7 @@ public final class ParamTypes {
   public static final LongType LONG = LongType.INSTANCE;
   public static final ParamType DECIMAL = DecimalType.INSTANCE;
   public static final TimestampType TIMESTAMP = TimestampType.INSTANCE;
+  public static final IntervalType INTERVAL = IntervalType.INSTANCE;
 
   public static boolean areCompatible(final SqlType actual, final ParamType declared) {
     return areCompatible(actual, declared, false);
@@ -64,6 +66,10 @@ public final class ParamTypes {
 
     if (actual.baseType() == SqlBaseType.STRUCT && declared instanceof StructType) {
       return isStructCompatible(actual, declared);
+    }
+
+    if (actual == SqlTypes.INTERVAL && declared instanceof IntervalType) {
+      return true;
     }
 
     return isPrimitiveMatch(actual, declared, allowCast);

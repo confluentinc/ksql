@@ -56,6 +56,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.IntervalExpression;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
@@ -79,10 +80,12 @@ import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Before;
 import org.junit.Rule;
@@ -855,6 +858,30 @@ public class SqlToJavaVisitorTest {
 
     // Then:
     assertThat(java, containsString("(SqlTimestamps.parseTimestamp(\"2020-01-01T00:00:00\").compareTo(COL10) >= 0)"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForIntervalExpression() {
+    // Given:
+    final IntervalExpression intervalExpression = new IntervalExpression(new IntegerLiteral(25), TimeUnit.DAYS);
+
+    // When:
+    final String java = sqlToJavaVisitor.process(intervalExpression);
+
+    // Then:
+    assertThat(java, containsString("DurationParser.buildDuration(25, \"DAYS\")"));
+  }
+
+  @Test
+  public void shouldThrowOnInvalidIntervalExpression() {
+    // Given:
+    final IntervalExpression intervalExpression = new IntervalExpression(new StringLiteral("33"), TimeUnit.DAYS);
+
+    // When:
+    final Exception e = assertThrows(KsqlException.class, () -> sqlToJavaVisitor.process(intervalExpression));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Intervals must be defined using an INTEGER or BIGINT typed expression; found STRING instead"));
   }
 
   @Test

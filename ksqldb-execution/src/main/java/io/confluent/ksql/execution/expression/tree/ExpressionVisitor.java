@@ -35,6 +35,8 @@ public interface ExpressionVisitor<R, C> {
 
   R visitDecimalLiteral(DecimalLiteral exp, C context);
 
+  R visitIntervalExpression(IntervalExpression exp, C context);
+
   R visitDereferenceExpression(DereferenceExpression exp, C context);
 
   R visitDoubleLiteral(DoubleLiteral exp, C context);

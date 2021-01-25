@@ -54,6 +54,9 @@ public class ParamTypesTest {
     assertThat(ParamTypes.areCompatible(SqlTypes.STRING, ParamTypes.STRING),
         is(true));
 
+    assertThat(ParamTypes.areCompatible(SqlTypes.INTERVAL, ParamTypes.INTERVAL),
+        is(true));
+
     assertThat(
         ParamTypes.areCompatible(SqlTypes.array(SqlTypes.INTEGER), ArrayType.of(ParamTypes.INTEGER)),
         is(true));
@@ -88,6 +91,8 @@ public class ParamTypesTest {
     assertThat(ParamTypes.areCompatible(SqlTypes.DOUBLE, ParamTypes.LONG, true), is(false));
 
     assertThat(ParamTypes.areCompatible(SqlTypes.DOUBLE, ParamTypes.DECIMAL, true), is(false));
+
+    assertThat(ParamTypes.areCompatible(SqlTypes.BIGINT, ParamTypes.INTERVAL, true), is(false));
   }
 }
 

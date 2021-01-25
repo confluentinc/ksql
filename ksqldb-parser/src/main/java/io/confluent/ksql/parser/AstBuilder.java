@@ -40,6 +40,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
+import io.confluent.ksql.execution.expression.tree.IntervalExpression;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
@@ -1173,10 +1174,14 @@ public class AstBuilder {
 
     @Override
     public Node visitFunctionCall(final SqlBaseParser.FunctionCallContext context) {
+      final List<Expression> expressionList = visit(context.expression(), Expression.class);
+      if (context.intervalExpression() != null) {
+        expressionList.add((Expression) visitIntervalExpression(context.intervalExpression()));
+      }
       return new FunctionCall(
           getLocation(context),
           FunctionName.of(ParserUtil.getIdentifierText(context.identifier())),
-          visit(context.expression(), Expression.class)
+          expressionList
       );
     }
 
@@ -1239,6 +1244,14 @@ public class AstBuilder {
     @Override
     public Node visitBooleanValue(final SqlBaseParser.BooleanValueContext context) {
       return new BooleanLiteral(getLocation(context), context.getText());
+    }
+
+    @Override
+    public Node visitIntervalExpression(final SqlBaseParser.IntervalExpressionContext context) {
+      return new IntervalExpression(
+          (Expression) visit(context.valueExpression()),
+          WindowExpression.getWindowUnit(context.windowUnit().getText().toUpperCase())
+      );
     }
 
     @Override

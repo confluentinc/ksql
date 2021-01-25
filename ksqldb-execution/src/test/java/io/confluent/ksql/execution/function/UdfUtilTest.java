@@ -31,6 +31,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.connect.data.Struct;
@@ -155,6 +156,14 @@ public class UdfUtilTest {
     assertThat(
         UdfUtil.getSchemaFromType(Timestamp.class),
         is(ParamTypes.TIMESTAMP)
+    );
+  }
+
+  @Test
+  public void shouldGetTIntervalSchemaForDurationClass() {
+    assertThat(
+        UdfUtil.getSchemaFromType(Duration.class),
+        is(ParamTypes.INTERVAL)
     );
   }
 

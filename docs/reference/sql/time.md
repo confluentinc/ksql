@@ -1,7 +1,7 @@
 ### Time units
 
 The following list shows valid time units for the `SIZE`, `ADVANCE BY`,
-`SESSION`, and `WITHIN` clauses.
+`SESSION`, and `WITHIN` clauses, or to pass as intervals in functions.
 
 -   `DAY`, `DAYS`
 -   `HOUR`, `HOURS`

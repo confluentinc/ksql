@@ -1,0 +1,18 @@
+{
+  "comments": ["tests for timestampadd"],
+  "tests": [
+    {
+      "name": "adds",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, time TIMESTAMP) WITH (kafka_topic='test', value_format='DELIMITED');",
+        "CREATE STREAM TEST2 AS SELECT id, timestampadd(time, 10 MILLISECONDS) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": "10"}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": "20"}
+      ]
+    }
+  ]
+}

@@ -30,6 +30,7 @@ import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -53,6 +54,7 @@ class UdafTypes {
       .add(List.class)
       .add(Map.class)
       .add(Timestamp.class)
+      .add(Duration.class)
       .build();
 
   private final Type inputType;

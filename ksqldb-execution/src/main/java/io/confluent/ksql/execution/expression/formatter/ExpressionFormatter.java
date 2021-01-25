@@ -38,6 +38,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.IntervalExpression;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
@@ -174,6 +175,11 @@ public final class ExpressionFormatter {
     @Override
     public String visitDecimalLiteral(final DecimalLiteral node, final Context context) {
       return node.getValue().toString();
+    }
+
+    @Override
+    public String visitIntervalExpression(final IntervalExpression node, final Context context) {
+      return node.getExpression().toString() + " " + node.getTimeUnit();
     }
 
     @Override

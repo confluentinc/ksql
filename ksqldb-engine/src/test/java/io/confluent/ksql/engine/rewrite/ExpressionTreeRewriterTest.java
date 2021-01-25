@@ -46,6 +46,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.IntervalExpression;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
@@ -78,6 +79,7 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import org.junit.Before;
 import org.junit.Test;
@@ -735,6 +737,19 @@ public class ExpressionTreeRewriterTest {
   public void shouldRewriteTypeUsingPlugin() {
     final Type type = new Type(SqlPrimitiveType.of("INTEGER"));
     shouldRewriteUsingPlugin(type);
+  }
+
+  @Test
+  public void shouldRewriteIntervalExpression() {
+    // Given:
+    final IntervalExpression expression = new IntervalExpression(LITERALS.get(0), TimeUnit.DAYS);
+    when(processor.apply(expression.getExpression(), context)).thenReturn(expr1);
+
+    // When:
+    final Expression rewritten = expressionRewriter.rewrite(expression, context);
+
+    // Then:
+    assertThat(rewritten, equalTo(new IntervalExpression(expression.getLocation(), expr1, expression.getTimeUnit())));
   }
 
   @SuppressWarnings("unchecked")

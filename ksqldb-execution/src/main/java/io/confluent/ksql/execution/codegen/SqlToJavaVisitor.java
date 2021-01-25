@@ -52,6 +52,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.IntervalExpression;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
@@ -80,6 +81,7 @@ import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.parser.DurationParser;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -146,7 +148,8 @@ public class SqlToJavaVisitor {
       InListEvaluator.class.getCanonicalName(),
       SqlDoubles.class.getCanonicalName(),
       SqlBooleans.class.getCanonicalName(),
-      SqlTimestamps.class.getCanonicalName()
+      SqlTimestamps.class.getCanonicalName(),
+      DurationParser.class.getCanonicalName()
   );
 
   private static final Map<Operator, String> DECIMAL_OPERATOR_NAME = ImmutableMap
@@ -298,6 +301,23 @@ public class SqlToJavaVisitor {
         final Void context
     ) {
       return visitUnsupported(timeLiteral);
+    }
+
+    @Override
+    public Pair<String, SqlType> visitIntervalExpression(
+        final IntervalExpression node,
+        final Void context
+    ) {
+      final Pair<String, SqlType> value = process(node.getExpression(), context);
+      if (!(value.getRight() == SqlTypes.BIGINT || value.getRight() == SqlTypes.INTEGER)) {
+        throw new KsqlException("Intervals must be defined using an INTEGER "
+            + "or BIGINT typed expression; found " + value.getRight() + " instead");
+      }
+      return new Pair<>(
+          "DurationParser.buildDuration("
+              + value.getLeft() + ", \"" +  node.getTimeUnit() + "\")",
+          SqlTypes.INTERVAL
+      );
     }
 
     @Override

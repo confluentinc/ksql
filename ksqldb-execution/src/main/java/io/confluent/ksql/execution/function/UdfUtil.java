@@ -31,6 +31,7 @@ import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.connect.data.Struct;
@@ -50,6 +51,7 @@ public final class UdfUtil {
       .put(double.class, ParamTypes.DOUBLE)
       .put(BigDecimal.class, ParamTypes.DECIMAL)
       .put(Timestamp.class, ParamTypes.TIMESTAMP)
+      .put(Duration.class, ParamTypes.INTERVAL)
       .build();
 
   private UdfUtil() {

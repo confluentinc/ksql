@@ -268,8 +268,7 @@ public final class WindowStoreCacheBypass {
   }
 
   @SuppressWarnings("unchecked")
-  static KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>
-      fetchAll(
+  public static KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> fetchAll(
           final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store,
           final Instant lower,
           final Instant upper
@@ -301,8 +300,8 @@ public final class WindowStoreCacheBypass {
         }
       } catch (final InvalidStateStoreException e) {
         throw new InvalidStateStoreException(
-                "State store is not available anymore "
-                + "and may have been migrated to another instance; "
+                "State store is not available anymore"
+                + " and may have been migrated to another instance; "
                 + "please re-discover its location from the state metadata.", e);
       }
     }
@@ -352,12 +351,12 @@ public final class WindowStoreCacheBypass {
     private final KeyValueIterator<Windowed<Bytes>, byte[]> fetch;
     private final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes;
 
-    private DeserializingKeyValueIterator(final KeyValueIterator<Windowed<Bytes>,
-            byte[]> fetch, final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes) {
+    private DeserializingKeyValueIterator(
+            final KeyValueIterator<Windowed<Bytes>, byte[]> fetch,
+            final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes) {
       this.fetch = fetch;
       this.serdes = serdes;
     }
-
 
     @Override
     public void close() {
@@ -366,8 +365,8 @@ public final class WindowStoreCacheBypass {
 
     @Override
     public Windowed<GenericKey> peekNextKey() {
-      final Windowed<Bytes> peekNext = fetch.peekNextKey();
-      return new Windowed(peekNext, peekNext.window());
+      final Windowed<Bytes> nextKey = fetch.peekNextKey();
+      return new Windowed<>(serdes.keyFrom(nextKey.key().get()), nextKey.window());
     }
 
     @Override
@@ -378,8 +377,9 @@ public final class WindowStoreCacheBypass {
     @Override
     public KeyValue<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> next() {
       final KeyValue<Windowed<Bytes>, byte[]> next = fetch.next();
-      return KeyValue.pair(new Windowed(next.key, next.key.window()),
-              serdes.valueFrom(next.value));
+      final Windowed<GenericKey> windowedKey = new Windowed<>(
+              serdes.keyFrom(next.key.key().get()), next.key.window());
+      return KeyValue.pair(windowedKey, serdes.valueFrom(next.value));
     }
   }
 

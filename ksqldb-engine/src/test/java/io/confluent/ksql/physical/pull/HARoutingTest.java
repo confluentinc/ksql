@@ -103,8 +103,7 @@ public class HARoutingTest {
     when(location4.getNodes()).thenReturn(ImmutableList.of(node2, node1));
     when(ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG)).thenReturn(1);
     haRouting = new HARouting(
-        routingFilterFactory, serviceContext, Optional.empty(), ksqlConfig, routeQuery);
-
+        routingFilterFactory, Optional.empty(), ksqlConfig, routeQuery);
   }
 
   @After
@@ -142,7 +141,8 @@ public class HARoutingTest {
         });
 
     // When:
-    PullQueryResult result = haRouting.handlePullQuery(pullPhysicalPlan, statement, routingOptions, logicalSchema, queryId);
+    PullQueryResult result = haRouting.handlePullQuery(serviceContext, pullPhysicalPlan, statement,
+        routingOptions, logicalSchema, queryId);
 
     // Then:
     verify(routeQuery).routeQuery(eq(node1), any(), any(), any(), any(), any(), any(), any(), any());
@@ -192,7 +192,8 @@ public class HARoutingTest {
     });
 
     // When:
-    PullQueryResult result = haRouting.handlePullQuery(pullPhysicalPlan, statement, routingOptions, logicalSchema, queryId);
+    PullQueryResult result = haRouting.handlePullQuery(serviceContext, pullPhysicalPlan, statement,
+        routingOptions, logicalSchema, queryId);
 
     // Then:
     verify(routeQuery).routeQuery(eq(node1), any(), any(), any(), any(), any(), any(), any(), any());
@@ -244,7 +245,8 @@ public class HARoutingTest {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> haRouting.handlePullQuery(pullPhysicalPlan, statement, routingOptions, logicalSchema, queryId)
+        () -> haRouting.handlePullQuery(serviceContext, pullPhysicalPlan, statement, routingOptions,
+            logicalSchema, queryId)
     );
 
     // Then:
@@ -277,7 +279,8 @@ public class HARoutingTest {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> haRouting.handlePullQuery(pullPhysicalPlan, statement, routingOptions, logicalSchema, queryId)
+        () -> haRouting.handlePullQuery(serviceContext, pullPhysicalPlan, statement, routingOptions,
+            logicalSchema, queryId)
     );
 
     // Then:

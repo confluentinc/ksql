@@ -84,7 +84,7 @@ public final class KsMaterialization implements Materialization {
       case HOPPING:
       case TUMBLING:
         return new KsMaterializedWindowTable(stateStore, wndInfo.getSize().get(),
-            WindowStoreCacheBypass::fetch);
+            WindowStoreCacheBypass::fetch, WindowStoreCacheBypass::fetchAll);
 
       default:
         throw new UnsupportedOperationException("Unknown window type: " + wndInfo);

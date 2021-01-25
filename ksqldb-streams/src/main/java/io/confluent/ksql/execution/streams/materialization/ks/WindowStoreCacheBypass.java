@@ -25,7 +25,9 @@ import java.util.Objects;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
+import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.processor.StateStore;
+import org.apache.kafka.streams.state.KeyValueIterator;
 import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.ReadOnlyWindowStore;
 import org.apache.kafka.streams.state.StateSerdes;
@@ -69,6 +71,17 @@ public final class WindowStoreCacheBypass {
         Instant lower,
         Instant upper
     );
+
+  }
+
+  interface WindowStoreCacheBypassFetcherAll {
+
+    KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> fetchAll(
+            ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store,
+            Instant lower,
+            Instant upper
+    );
+
   }
 
   @SuppressWarnings("unchecked")
@@ -152,6 +165,117 @@ public final class WindowStoreCacheBypass {
     }
   }
 
+  @SuppressWarnings("unchecked")
+  static KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> fetchAll(
+          final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store,
+          final Instant lower,
+          final Instant upper
+  ) {
+    final StateStoreProvider provider;
+    final String storeName;
+    final QueryableStoreType<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>>
+            windowStoreType;
+    try {
+      provider = (StateStoreProvider) PROVIDER_FIELD.get(store);
+      storeName = (String) STORE_NAME_FIELD.get(store);
+      windowStoreType = (QueryableStoreType<ReadOnlyWindowStore<GenericKey,
+              ValueAndTimestamp<GenericRow>>>) WINDOW_STORE_TYPE_FIELD.get(store);
+    } catch (final IllegalAccessException e) {
+      throw new RuntimeException("Stream internals changed unexpectedly!", e);
+    }
+    final List<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>> stores
+            = provider.stores(storeName, windowStoreType);
+    for (final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
+            : stores) {
+      try {
+        final KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> result
+                = fetchAllUncached(windowStore, lower, upper);
+        // returns the first non-empty iterator
+        if (!result.hasNext()) {
+          result.close();
+        } else {
+          return result;
+        }
+      } catch (final InvalidStateStoreException e) {
+        throw new InvalidStateStoreException(
+                "State store is not available anymore and may have been migrated to another instance; "
+                        + "please re-discover its location from the state metadata.", e);
+      }
+    }
+    return null;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> fetchAllUncached(
+          final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore,
+          final Instant lower,
+          final Instant upper
+  ) {
+    if (windowStore instanceof MeteredWindowStore) {
+      final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes;
+      try {
+        serdes = (StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>>) SERDES_FIELD
+                .get(windowStore);
+      } catch (final IllegalAccessException e) {
+        throw new RuntimeException("Stream internals changed unexpectedly!", e);
+      }
+
+      WindowStore<Bytes, byte[]> wrapped
+              = ((MeteredWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>) windowStore).wrapped();
+      // Unwrap state stores until we get to the last WindowStore, which is past the caching
+      // layer.
+      while (wrapped instanceof WrappedStateStore) {
+        final StateStore store = ((WrappedStateStore<?, ?, ?>) wrapped).wrapped();
+        // A RocksDBWindowStore wraps a SegmentedBytesStore, which isn't a SessionStore, so
+        // we just store there.
+        if (!(store instanceof WindowStore)) {
+          break;
+        }
+        wrapped = (WindowStore<Bytes, byte[]>) store;
+      }
+      // now we have the innermost layer of the store.
+      final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetchAll(lower, upper);
+      return new DeserializingKeyValueIterator(fetch, serdes);
+    } else {
+      throw new IllegalStateException("Expecting a MeteredWindowStore");
+    }
+  }
+
+  private static final class DeserializingKeyValueIterator
+          implements KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> {
+    private final KeyValueIterator<Windowed<Bytes>, byte[]> fetch;
+    private final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes;
+
+    private DeserializingKeyValueIterator(final KeyValueIterator<Windowed<Bytes>, byte[]> fetch,
+                                          final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes) {
+      this.fetch = fetch;
+      this.serdes = serdes;
+    }
+
+
+    @Override
+    public void close() {
+      fetch.close();
+    }
+
+    @Override
+    public Windowed<GenericKey> peekNextKey() {
+      final Windowed<Bytes> peekNext = fetch.peekNextKey();
+      return new Windowed(peekNext, peekNext.window());
+    }
+
+    @Override
+    public boolean hasNext() {
+      return fetch.hasNext();
+    }
+
+    @Override
+    public KeyValue<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> next() {
+      final KeyValue<Windowed<Bytes>, byte[]> next = fetch.next();
+      return KeyValue.pair(new Windowed(next.key, next.key.window()),
+              serdes.valueFrom(next.value));
+    }
+  }
   private static final class DeserializingIterator
       implements WindowStoreIterator<ValueAndTimestamp<GenericRow>> {
     private final WindowStoreIterator<byte[]> fetch;

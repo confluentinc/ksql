@@ -38,6 +38,7 @@ import io.confluent.ksql.execution.streams.materialization.MaterializationExcept
 import io.confluent.ksql.execution.streams.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.WindowStoreCacheBypassFetcher;
+import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.WindowStoreCacheBypassFetcherAll;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -108,12 +109,14 @@ public class KsMaterializedWindowTableTest {
   private ArgumentCaptor<QueryableStoreType<?>> storeTypeCaptor;
   @Mock
   private WindowStoreCacheBypassFetcher cacheBypassFetcher;
+  @Mock
+  private WindowStoreCacheBypassFetcherAll cacheBypassFetcherAll;
 
   private KsMaterializedWindowTable table;
 
   @Before
   public void setUp() {
-    table = new KsMaterializedWindowTable(stateStore, WINDOW_SIZE, cacheBypassFetcher);
+    table = new KsMaterializedWindowTable(stateStore, WINDOW_SIZE, cacheBypassFetcher, cacheBypassFetcherAll);
 
     when(stateStore.store(any(), anyInt())).thenReturn(tableStore);
     when(stateStore.schema()).thenReturn(SCHEMA);

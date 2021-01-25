@@ -25,6 +25,7 @@ import io.confluent.ksql.execution.streams.materialization.MaterializationExcept
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.WindowStoreCacheBypassFetcher;
+import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.WindowStoreCacheBypassFetcherAll;
 import io.confluent.ksql.util.IteratorUtil;
 import java.time.Duration;
 import java.time.Instant;
@@ -48,12 +49,16 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
   private final KsStateStore stateStore;
   private final Duration windowSize;
   private final WindowStoreCacheBypassFetcher cacheBypassFetcher;
+  private final WindowStoreCacheBypassFetcherAll cacheBypassFetcherAll;
 
   KsMaterializedWindowTable(final KsStateStore store, final Duration windowSize,
-      final WindowStoreCacheBypassFetcher cacheBypassFetcher) {
+      final WindowStoreCacheBypassFetcher cacheBypassFetcher,
+                            final WindowStoreCacheBypassFetcherAll cacheBypassFetcherAll) {
     this.stateStore = Objects.requireNonNull(store, "store");
     this.windowSize = Objects.requireNonNull(windowSize, "windowSize");
     this.cacheBypassFetcher = Objects.requireNonNull(cacheBypassFetcher, "cacheBypassFetcher");
+    this.cacheBypassFetcherAll = Objects.requireNonNull(
+            cacheBypassFetcherAll, "cacheBypassFetcherAll");
   }
 
   @Override
@@ -122,7 +127,7 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
       final Instant upper = calculateUpperBound(windowStartBounds, windowEndBounds);
 
       final KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> iterator
-          = store.fetchAll(lower, upper);
+          = cacheBypassFetcherAll.fetchAll(store, lower, upper);
       return Streams.stream(IteratorUtil.onComplete(iterator, iterator::close)).map(next -> {
         final Instant windowStart = next.key.window().startTime();
         if (!windowStartBounds.contains(windowStart)) {

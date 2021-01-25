@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License; you may not use this file
  * except in compliance with the License.  You may obtain a copy of the License at
@@ -22,24 +22,18 @@ import io.confluent.ksql.util.KsqlConstants;
 import java.sql.Timestamp;
 
 @UdfDescription(
-    name = "unix_timestamp",
+    name = "from_unixtime",
     category = FunctionCategory.DATE_TIME,
-    description = "Gets the Unix timestamp in milliseconds, represented as a BIGINT.",
+    description = "Converts a BIGINT millisecond timestamp value into a TIMESTAMP value.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
-public class UnixTimestamp {
-
-  @Udf(description = "Gets a BIGINT millisecond from the Unix timestamp at the moment the"
-      + "function is called.")
-  public long unixTimestamp() {
-    return System.currentTimeMillis();
-  }
-
-  @Udf(description = "Returns the BIGINT millisecond representation of the given timestamp.")
-  public long unixTimestamp(
+public class FromUnixTime {
+  @Udf(description = "Converts a BIGINT millisecond timestamp value into a TIMESTAMP value.")
+  public Timestamp fromUnixTime(
       @UdfParameter(
-          description = "the TIMESTAMP value.") final Timestamp timestamp
+          description = "Milliseconds since"
+              + " January 1, 1970, 00:00:00 GMT.") final long epochMilli
   ) {
-    return timestamp.getTime();
+    return new Timestamp(epochMilli);
   }
 }

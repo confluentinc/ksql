@@ -26,6 +26,7 @@ import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedT
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.WindowStoreCacheBypassFetcher;
 import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.WindowStoreCacheBypassFetcherAll;
+import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.WindowStoreCacheBypassFetcherRange;
 import io.confluent.ksql.util.IteratorUtil;
 import java.time.Duration;
 import java.time.Instant;
@@ -50,15 +51,19 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
   private final Duration windowSize;
   private final WindowStoreCacheBypassFetcher cacheBypassFetcher;
   private final WindowStoreCacheBypassFetcherAll cacheBypassFetcherAll;
+  private final WindowStoreCacheBypassFetcherRange cacheBypassFetcherRange;
 
   KsMaterializedWindowTable(final KsStateStore store, final Duration windowSize,
       final WindowStoreCacheBypassFetcher cacheBypassFetcher,
-                            final WindowStoreCacheBypassFetcherAll cacheBypassFetcherAll) {
+                            final WindowStoreCacheBypassFetcherAll cacheBypassFetcherAll,
+                            final WindowStoreCacheBypassFetcherRange cacheBypassFetcherRange) {
     this.stateStore = Objects.requireNonNull(store, "store");
     this.windowSize = Objects.requireNonNull(windowSize, "windowSize");
     this.cacheBypassFetcher = Objects.requireNonNull(cacheBypassFetcher, "cacheBypassFetcher");
     this.cacheBypassFetcherAll = Objects.requireNonNull(
             cacheBypassFetcherAll, "cacheBypassFetcherAll");
+    this.cacheBypassFetcherRange = Objects.requireNonNull(
+            cacheBypassFetcherRange, "cacheBypassFetcherRange");
   }
 
   @Override

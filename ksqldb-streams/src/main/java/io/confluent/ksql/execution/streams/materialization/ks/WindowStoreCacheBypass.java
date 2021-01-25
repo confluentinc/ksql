@@ -353,7 +353,7 @@ public final class WindowStoreCacheBypass {
     private final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes;
 
     private DeserializingKeyValueIterator(final KeyValueIterator<Windowed<Bytes>,
-                                          byte[]> fetch, final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes) {
+            byte[]> fetch, final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes) {
       this.fetch = fetch;
       this.serdes = serdes;
     }

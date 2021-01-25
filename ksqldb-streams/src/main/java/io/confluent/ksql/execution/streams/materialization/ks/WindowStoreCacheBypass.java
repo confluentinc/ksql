@@ -136,7 +136,7 @@ public final class WindowStoreCacheBypass {
                 + "please re-discover its location from the state metadata.", e);
       }
     }
-    return new EmptyKeyValueIterator();
+    return new EmptyWindowStoreIterator();
   }
 
   @SuppressWarnings("unchecked")
@@ -220,7 +220,7 @@ public final class WindowStoreCacheBypass {
                         + "please re-discover its location from the state metadata.", e);
       }
     }
-    return null;
+    return new EmptyKeyValueIterator();
   }
 
   @SuppressWarnings("unchecked")
@@ -306,7 +306,7 @@ public final class WindowStoreCacheBypass {
                 + "please re-discover its location from the state metadata.", e);
       }
     }
-    return null;
+    return new EmptyKeyValueIterator();
   }
 
   @SuppressWarnings("unchecked")
@@ -416,7 +416,7 @@ public final class WindowStoreCacheBypass {
     }
   }
 
-  private static class EmptyKeyValueIterator
+  private static class EmptyWindowStoreIterator
       implements WindowStoreIterator<ValueAndTimestamp<GenericRow>> {
 
     @Override
@@ -435,6 +435,29 @@ public final class WindowStoreCacheBypass {
 
     @Override
     public KeyValue<Long, ValueAndTimestamp<GenericRow>> next() {
+      throw new NoSuchElementException();
+    }
+  }
+
+  private static class EmptyKeyValueIterator
+          implements KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> {
+
+    @Override
+    public void close() {
+    }
+
+    @Override
+    public Windowed<GenericKey> peekNextKey() {
+      throw new NoSuchElementException();
+    }
+
+    @Override
+    public boolean hasNext() {
+      return false;
+    }
+
+    @Override
+    public KeyValue<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> next() {
       throw new NoSuchElementException();
     }
   }

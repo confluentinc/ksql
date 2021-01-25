@@ -22,7 +22,7 @@ To avoid heavy weight reflection this project treats code as data with the help 
 ## What is not in scope
 
 [ksqldb-api-client](https://docs.ksqldb.io/en/latest/developer-guide/ksqldb-clients/java-client/api/io/confluent/ksql/api/client/Client.html) is not in the scope of this project. 
-Only the executeStream part is relevant for the above mentioned LINQ provider. 
+Only the executeQuery part is relevant for the above mentioned LINQ provider. 
 
 This LINQ provider could be used for type safe push queries not covered in [KLIP 41 - ksqlDB .NET Client](https://github.com/confluentinc/ksql/blob/master/design-proposals/klip-41-ksqldb-.net-client.md) or later .NET ksqldb-api-client could be plugged into this project as the http query-stream provider. Since it is not available at the time of writing I created a custom implementation.
 
@@ -34,19 +34,24 @@ or in process [reactive extensions](http://rxwiki.wikidot.com/101samples).
 ## Public APIS
 
 ```
-Install-Package Kafka.DotNet.ksqlDB -Version 0.1.0-alpha
+Install-Package Kafka.DotNet.ksqlDB -Version 0.1.0-alpha3
 ```
 
 ```C#
 var ksqlDbUrl = @"http:\\localhost:8088";
 
-using var disposable = new KQueryStreamSet<Tweet>(new QbservableProvider(ksqlDbUrl))
+using var disposable = context.CreateStreamSet<Tweet>()
   .Where(p => p.Message != "Hello world" || p.Id == 1)
-  .Select(l => new { l.Message, l.Id })
-  .Take(2)
+  .Where(p => p.RowTime >= 1510923225000) //AND RowTime >= 1510923225000
+  .Select(l => new { l.Id, l.Message, l.RowTime })
+  .Take(2)     
+  .ToObservable() // client side processing starts here lazily after subscription
+  .Delay(TimeSpan.FromSeconds(2)) // IObservable extensions
+  .ObserveOn(TaskPoolScheduler.Default)
   .Subscribe(tweetMessage =>
   {
     Console.WriteLine($"{nameof(Tweet)}: {tweetMessage.Id} - {tweetMessage.Message}");
+    Console.WriteLine();
   }, error => { Console.WriteLine($"Exception: {error.Message}"); }, () => Console.WriteLine("Completed"));
 ```
 

@@ -354,7 +354,7 @@ confluent local services ksql-server log
 java.lang.NoClassDefFoundError when java.io.tmpdir is not writable
 ------------------------------------------------------------------
 
-KSQL leverages RocksDB which includes a C library. As part of the startup 
+ksqlDB leverages RocksDB, which includes a C library. As part of the startup 
 process of RocksDB, it has to extract the C library before it can be used. The 
 location to extract the C library is determined by the java.io.tmpdir system 
 property or `ROCKSDB_SHAREDLIB_DIR` environment variable. If this directory is 

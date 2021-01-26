@@ -56,7 +56,6 @@ statement
     | (LIST | SHOW) VARIABLES                                               #listVariables
     | DESCRIBE EXTENDED? sourceName                                         #showColumns
     | DESCRIBE EXTENDED? STREAMS                                            #describeStreams
-    | DESCRIBE EXTENDED? TABLES                                             #describeTables
     | DESCRIBE FUNCTION identifier                                          #describeFunction
     | DESCRIBE CONNECTOR identifier                                         #describeConnector
     | PRINT (identifier| STRING) printClause                                #printTopic

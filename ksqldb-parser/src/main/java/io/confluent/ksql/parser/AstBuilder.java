@@ -1304,12 +1304,6 @@ public class AstBuilder {
     }
 
     @Override
-    public Node visitDescribeTables(final SqlBaseParser.DescribeTablesContext context) {
-      return new DescribeTables(
-          getLocation(context), context.EXTENDED() != null);
-    }
-
-    @Override
     protected Node defaultResult() {
       return null;
     }

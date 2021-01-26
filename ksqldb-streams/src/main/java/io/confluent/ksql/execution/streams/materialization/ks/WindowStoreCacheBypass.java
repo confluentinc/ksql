@@ -231,6 +231,52 @@ public final class WindowStoreCacheBypass {
     return new DeserializingKeyValueIterator(fetch, serdes);
   }
 
+  private static StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> getSerdes(
+          ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
+  ) throws RuntimeException {
+    try {
+      return (StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>>) SERDES_FIELD.get(windowStore);
+    } catch (final IllegalAccessException e) {
+      throw new RuntimeException("Stream internals changed unexpectedly!", e);
+    }
+  }
+
+  private static WindowStore<Bytes, byte[]> getInnermostStore(
+          ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
+  ) {
+    WindowStore<Bytes, byte[]> wrapped
+            = ((MeteredWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>) windowStore)
+            .wrapped();
+    // Unwrap state stores until we get to the last WindowStore, which is past the caching
+    // layer.
+    while (wrapped instanceof WrappedStateStore) {
+      final StateStore store = ((WrappedStateStore<?, ?, ?>) wrapped).wrapped();
+      // A RocksDBWindowStore wraps a SegmentedBytesStore, which isn't a SessionStore, so
+      // we just store there.
+      if (!(store instanceof WindowStore)) {
+        break;
+      }
+      wrapped = (WindowStore<Bytes, byte[]>) store;
+    }
+    // now we have the innermost layer of the store.
+    return wrapped;
+  }
+
+  private static List<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>> getStores(
+          ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store
+  ) {
+    try {
+      final StateStoreProvider provider = (StateStoreProvider) PROVIDER_FIELD.get(store);
+      final String storeName = (String) STORE_NAME_FIELD.get(store);
+      final QueryableStoreType<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>>
+              windowStoreType = (QueryableStoreType<ReadOnlyWindowStore<GenericKey,
+              ValueAndTimestamp<GenericRow>>>) WINDOW_STORE_TYPE_FIELD.get(store);
+      return provider.stores(storeName, windowStoreType);
+    } catch (final IllegalAccessException e) {
+      throw new RuntimeException("Stream internals changed unexpectedly!", e);
+    }
+  }
+
   private static final class DeserializingKeyValueIterator
           implements KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> {
     private final KeyValueIterator<Windowed<Bytes>, byte[]> fetch;
@@ -269,12 +315,13 @@ public final class WindowStoreCacheBypass {
   }
 
   private static final class DeserializingIterator
-      implements WindowStoreIterator<ValueAndTimestamp<GenericRow>> {
+          implements WindowStoreIterator<ValueAndTimestamp<GenericRow>> {
     private final WindowStoreIterator<byte[]> fetch;
     private final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes;
 
-    private DeserializingIterator(final WindowStoreIterator<byte[]> fetch,
-        final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes) {
+    private DeserializingIterator(
+            final WindowStoreIterator<byte[]> fetch,
+            final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes) {
       this.fetch = fetch;
       this.serdes = serdes;
     }
@@ -302,7 +349,7 @@ public final class WindowStoreCacheBypass {
   }
 
   private static class EmptyWindowStoreIterator
-      implements WindowStoreIterator<ValueAndTimestamp<GenericRow>> {
+          implements WindowStoreIterator<ValueAndTimestamp<GenericRow>> {
 
     @Override
     public void close() {
@@ -346,52 +393,4 @@ public final class WindowStoreCacheBypass {
       throw new NoSuchElementException();
     }
   }
-
-  private static StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> getSerdes(
-          ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
-  ) throws RuntimeException {
-    try {
-      return (StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>>) SERDES_FIELD
-              .get(windowStore);
-    } catch (final IllegalAccessException e) {
-      throw new RuntimeException("Stream internals changed unexpectedly!", e);
-    }
-  }
-
-  private static WindowStore<Bytes, byte[]> getInnermostStore(
-          ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
-  ) {
-    WindowStore<Bytes, byte[]> wrapped
-            = ((MeteredWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>) windowStore)
-            .wrapped();
-    // Unwrap state stores until we get to the last WindowStore, which is past the caching
-    // layer.
-    while (wrapped instanceof WrappedStateStore) {
-      final StateStore store = ((WrappedStateStore<?, ?, ?>) wrapped).wrapped();
-      // A RocksDBWindowStore wraps a SegmentedBytesStore, which isn't a SessionStore, so
-      // we just store there.
-      if (!(store instanceof WindowStore)) {
-        break;
-      }
-      wrapped = (WindowStore<Bytes, byte[]>) store;
-    }
-    // now we have the innermost layer of the store.
-    return wrapped;
-  }
-
-  private static List<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>> getStores(
-          ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store
-  ) {
-    try {
-      final StateStoreProvider provider = (StateStoreProvider) PROVIDER_FIELD.get(store);
-      final String storeName = (String) STORE_NAME_FIELD.get(store);
-      final QueryableStoreType<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>>
-              windowStoreType = (QueryableStoreType<ReadOnlyWindowStore<GenericKey,
-              ValueAndTimestamp<GenericRow>>>) WINDOW_STORE_TYPE_FIELD.get(store);
-      return provider.stores(storeName, windowStoreType);
-    } catch (final IllegalAccessException e) {
-      throw new RuntimeException("Stream internals changed unexpectedly!", e);
-    }
-  }
 }
-

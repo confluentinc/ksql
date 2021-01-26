@@ -366,8 +366,7 @@ public final class WindowStoreCacheBypass {
     @Override
     public Windowed<GenericKey> peekNextKey() {
       final Windowed<Bytes> nextKey = fetch.peekNextKey();
-      return nextKey == null ? null : new Windowed<>(
-              serdes.keyFrom(nextKey.key().get()), nextKey.window());
+      return new Windowed<>(serdes.keyFrom(nextKey.key().get()), nextKey.window());
     }
 
     @Override

@@ -27,11 +27,7 @@ public class ListStreams extends Statement {
 
   private final boolean showExtended;
 
-
-  public ListStreams(
-      final Optional<NodeLocation> location,
-      final boolean showExtended
-  ) {
+  public ListStreams(final Optional<NodeLocation> location, final boolean showExtended) {
     super(location);
     this.showExtended = showExtended;
   }

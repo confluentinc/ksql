@@ -67,5 +67,4 @@ public class DescribeStreams extends Statement {
         .add("showExtended", showExtended)
         .toString();
   }
-
 }

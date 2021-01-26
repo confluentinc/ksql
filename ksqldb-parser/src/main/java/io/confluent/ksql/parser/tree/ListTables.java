@@ -27,10 +27,7 @@ public class ListTables extends Statement {
 
   private final boolean showExtended;
 
-  public ListTables(
-      final Optional<NodeLocation> location,
-      final boolean showExtended
-  ) {
+  public ListTables(final Optional<NodeLocation> location, final boolean showExtended) {
     super(location);
     this.showExtended = showExtended;
   }

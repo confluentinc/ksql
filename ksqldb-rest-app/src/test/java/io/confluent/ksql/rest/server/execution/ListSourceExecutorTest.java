@@ -165,7 +165,7 @@ public class ListSourceExecutorTest {
     ));
   }
 
-  /*@Test
+  @Test
   public void shouldDescribeStreams() {
     // Given:
     final KsqlStream<?> stream1 = engine.givenSource(DataSourceType.KSTREAM, "stream1");
@@ -183,26 +183,25 @@ public class ListSourceExecutorTest {
         ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    System.out.println(descriptionList.getSourceDescriptions().get(0).getTopic());
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
         SourceDescriptionFactory.create(
             stream1,
             false,
             ImmutableList.of(),
             ImmutableList.of(),
-            Optional.empty(),
+            Optional.of(topicWith1PartitionAndRfOf1),
             ImmutableList.of(),
-            ImmutableList.of()),
+            ImmutableList.of("stream2")),
         SourceDescriptionFactory.create(
             stream2,
             false,
             ImmutableList.of(),
             ImmutableList.of(),
-            Optional.empty(),
+            Optional.of(topicWith1PartitionAndRfOf1),
             ImmutableList.of(),
             ImmutableList.of())
     ));
-  }*/
+  }
 
   @Test
   public void shouldShowTables() {
@@ -239,8 +238,8 @@ public class ListSourceExecutorTest {
     ));
   }
 
-  /*@Test
-  public void shouldDescribeTables() {
+  @Test
+  public void shouldShowTablesExtended() {
     // Given:
     final KsqlTable<?> table1 = engine.givenSource(DataSourceType.KTABLE, "table1");
     final KsqlTable<?> table2 = engine.givenSource(DataSourceType.KTABLE, "table2",
@@ -249,8 +248,8 @@ public class ListSourceExecutorTest {
 
     // When:
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
-        CustomExecutors.DESCRIBE_TABLES.execute(
-            engine.configure("DESCRIBE TABLES;"),
+        CustomExecutors.LIST_TABLES.execute(
+            engine.configure("LIST TABLES EXTENDED;"),
             mock(SessionProperties.class),
             engine.getEngine(),
             engine.getServiceContext()
@@ -278,7 +277,48 @@ public class ListSourceExecutorTest {
             ImmutableList.of()
         )
     ));
-  }*/
+  }
+
+  @Test
+  public void shouldDescribeTables() {
+    // Given:
+    final KsqlTable<?> table1 = engine.givenSource(DataSourceType.KTABLE, "table1");
+    final KsqlTable<?> table2 = engine.givenSource(DataSourceType.KTABLE, "table2",
+        ImmutableSet.of(SourceName.of("table1")));
+    engine.givenSource(DataSourceType.KSTREAM, "stream");
+
+    // When:
+    final SourceDescriptionList descriptionList = (SourceDescriptionList)
+        CustomExecutors.DESCRIBE_TABLES.execute(
+            engine.configure("DESCRIBE TABLES;"),
+            mock(SessionProperties.class),
+            engine.getEngine(),
+            engine.getServiceContext()
+        ).orElseThrow(IllegalStateException::new);
+
+    // Then:
+    final KafkaTopicClient client = engine.getServiceContext().getTopicClient();
+    assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
+        SourceDescriptionFactory.create(
+            table1,
+            false,
+            ImmutableList.of(),
+            ImmutableList.of(),
+            Optional.of(topicWith1PartitionAndRfOf1),
+            ImmutableList.of(),
+            ImmutableList.of("table2")
+        ),
+        SourceDescriptionFactory.create(
+            table2,
+            false,
+            ImmutableList.of(),
+            ImmutableList.of(),
+            Optional.of(topicWith1PartitionAndRfOf1),
+            ImmutableList.of(),
+            ImmutableList.of()
+        )
+    ));
+  }
 
   @Test
   public void shouldShowColumnsSource() {

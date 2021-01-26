@@ -68,5 +68,4 @@ public class DescribeTables extends Statement {
         .add("showExtended", showExtended)
         .toString();
   }
-
 }

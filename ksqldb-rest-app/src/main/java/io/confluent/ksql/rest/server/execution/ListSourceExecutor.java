@@ -276,7 +276,6 @@ public final class ListSourceExecutor {
       warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
     }
 
-
     if (extended) {
       queryOffsetSummaries = queryOffsetSummaries(ksqlConfig, serviceContext, writeQueries);
     }

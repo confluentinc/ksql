@@ -77,6 +77,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
+import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
@@ -823,7 +824,7 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void shouldSetShowDescriptionsForShowStreamsExtended() {
+  public void shouldSetShowDescriptionsForShowStreamsDescriptions() {
     final String statementString = "SHOW STREAMS EXTENDED;";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
@@ -848,7 +849,7 @@ public class KsqlParserTest {
   }
 
   @Test
-  public void shouldSetShowDescriptionsForShowTablesExtended() {
+  public void shouldSetShowDescriptionsForShowTablesDescriptions() {
     final String statementString = "SHOW TABLES EXTENDED;";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();

@@ -749,6 +749,10 @@ public class AstBuilder {
 
     @Override
     public Node visitShowColumns(final SqlBaseParser.ShowColumnsContext context) {
+      if (context.sourceName().identifier() instanceof SqlBaseParser.UnquotedIdentifierContext
+          && context.sourceName().getText().equals("TABLES")) {
+        return new DescribeTables(getLocation(context), context.EXTENDED() != null);
+      }
       return new ShowColumns(
           getLocation(context),
           ParserUtil.getSourceName(context.sourceName()),

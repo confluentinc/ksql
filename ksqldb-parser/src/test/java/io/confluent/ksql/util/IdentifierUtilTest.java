@@ -43,7 +43,7 @@ public class IdentifierUtilTest {
     // Given:
     final String[] identifiers = new String[]{
         "FOO",      // nothing special
-        "FUNCTIONS",   // in vocabulary but non-reserved
+        "TABLES",   // in vocabulary but non-reserved
         "`SELECT`"  // already has back quotes
     };
 

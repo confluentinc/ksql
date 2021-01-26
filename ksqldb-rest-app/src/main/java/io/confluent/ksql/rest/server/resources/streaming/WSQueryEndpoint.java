@@ -81,8 +81,6 @@ public class WSQueryEndpoint {
   private final HARouting routing;
   private final Optional<LocalCommands> localCommands;
 
-  private WebSocketSubscriber<?> subscriber;
-
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public WSQueryEndpoint(
       // CHECKSTYLE_RULES.ON: ParameterNumberCheck
@@ -220,11 +218,6 @@ public class WSQueryEndpoint {
         throw new IllegalArgumentException("Unexpected statement type " + statement);
       }
 
-      webSocket.closeHandler(v -> {
-        if (subscriber != null) {
-          subscriber.close();
-        }
-      });
     } catch (final TopicAuthorizationException e) {
       log.debug("Error processing request", e);
       SessionUtil.closeSilently(
@@ -279,16 +272,29 @@ public class WSQueryEndpoint {
     }
   }
 
+  private void attachCloseHandler(final ServerWebSocket websocket,
+                                  final WebSocketSubscriber<?> subscriber) {
+    websocket.closeHandler(v -> {
+      if (subscriber != null) {
+        subscriber.close();
+        log.debug("Websocket {} closed, reason: {},  code: {}",
+                websocket.textHandlerID(),
+                websocket.closeReason(),
+                websocket.closeStatusCode());
+      }
+    });
+  }
+
   private void handleQuery(final RequestContext info, final Query query,
       final long startTimeNanos) {
     final Map<String, Object> clientLocalProperties = info.request.getConfigOverrides();
 
     final WebSocketSubscriber<StreamedRow> streamSubscriber =
         new WebSocketSubscriber<>(info.websocket);
-    this.subscriber = streamSubscriber;
 
-    final PreparedStatement<Query> statement =
-        PreparedStatement.of(info.request.getKsql(), query);
+    attachCloseHandler(info.websocket, streamSubscriber);
+
+    final PreparedStatement<Query> statement = PreparedStatement.of(info.request.getKsql(), query);
 
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, clientLocalProperties));
@@ -328,7 +334,8 @@ public class WSQueryEndpoint {
 
     final WebSocketSubscriber<String> topicSubscriber =
         new WebSocketSubscriber<>(info.websocket);
-    this.subscriber = topicSubscriber;
+
+    attachCloseHandler(info.websocket, topicSubscriber);
 
     topicPublisher.start(
         exec,
@@ -337,16 +344,6 @@ public class WSQueryEndpoint {
         printTopic,
         topicSubscriber
     );
-  }
-
-  private void handleUnsupportedStatement(
-      final RequestContext ignored,
-      final Statement statement
-  ) {
-    throw new IllegalArgumentException(String.format(
-        "Statement type `%s' not supported for this resource",
-        statement.getClass().getName()
-    ));
   }
 
   private static void startPushQueryPublisher(

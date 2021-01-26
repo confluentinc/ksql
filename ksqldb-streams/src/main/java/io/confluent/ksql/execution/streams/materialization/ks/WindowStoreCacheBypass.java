@@ -231,6 +231,7 @@ public final class WindowStoreCacheBypass {
     return new DeserializingKeyValueIterator(fetch, serdes);
   }
 
+  @SuppressWarnings("unchecked")
   private static StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> getSerdes(
           ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
   ) throws RuntimeException {
@@ -241,6 +242,7 @@ public final class WindowStoreCacheBypass {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private static WindowStore<Bytes, byte[]> getInnermostStore(
           ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
   ) {
@@ -262,6 +264,7 @@ public final class WindowStoreCacheBypass {
     return wrapped;
   }
 
+  @SuppressWarnings("unchecked")
   private static List<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>> getStores(
           ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store
   ) {

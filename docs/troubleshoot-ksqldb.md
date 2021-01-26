@@ -358,7 +358,7 @@ ksqlDB leverages RocksDB, which includes a C library. As part of the startup
 process of RocksDB, it has to extract the C library before it can be used. The 
 location to extract the C library is determined by the java.io.tmpdir system 
 property or `ROCKSDB_SHAREDLIB_DIR` environment variable. If this directory is 
-not writable, then the user will see an error like the following
+not writable, you'll see an error like the following:
 
 ```
 [2018-05-22 12:15:32,702] ERROR Exception occurred while writing to connection stream:  (io.confluent.ksql.rest.server.resources.streaming.QueryStreamWriter:105)

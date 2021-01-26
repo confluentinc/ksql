@@ -108,8 +108,7 @@ public final class WindowStoreCacheBypass {
     Objects.requireNonNull(key, "key can't be null");
     final List<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>> stores
             = getStores(store);
-    for (final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
-        : stores) {
+    for (final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore :stores) {
       try {
         final WindowStoreIterator<ValueAndTimestamp<GenericRow>> result
             = fetchUncached(windowStore, key, lower, upper);
@@ -153,8 +152,7 @@ public final class WindowStoreCacheBypass {
     Objects.requireNonNull(keyTo, "upper key can't be null");
     final List<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>> stores
             = getStores(store);
-    for (final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
-            : stores) {
+    for (final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore :stores) {
       try {
         final KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> result
                 = fetchRangeUncached(windowStore, keyFrom, keyTo, lower, upper);
@@ -198,8 +196,7 @@ public final class WindowStoreCacheBypass {
   ) {
     final List<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>> stores
             = getStores(store);
-    for (final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
-            : stores) {
+    for (final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore :stores) {
       try {
         final KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> result
                 = fetchAllUncached(windowStore, lower, upper);
@@ -233,7 +230,7 @@ public final class WindowStoreCacheBypass {
 
   @SuppressWarnings("unchecked")
   private static StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> getSerdes(
-          ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
+          final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
   ) throws RuntimeException {
     try {
       return (StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>>) SERDES_FIELD.get(windowStore);
@@ -244,7 +241,7 @@ public final class WindowStoreCacheBypass {
 
   @SuppressWarnings("unchecked")
   private static WindowStore<Bytes, byte[]> getInnermostStore(
-          ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
+          final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
   ) {
     WindowStore<Bytes, byte[]> wrapped
             = ((MeteredWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>) windowStore)
@@ -266,7 +263,7 @@ public final class WindowStoreCacheBypass {
 
   @SuppressWarnings("unchecked")
   private static List<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>> getStores(
-          ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store
+          final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store
   ) {
     try {
       final StateStoreProvider provider = (StateStoreProvider) PROVIDER_FIELD.get(store);

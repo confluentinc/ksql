@@ -44,6 +44,9 @@ public final class WindowStoreCacheBypass {
   private static final Field STORE_NAME_FIELD;
   private static final Field WINDOW_STORE_TYPE_FIELD;
   static final Field SERDES_FIELD;
+  private static final String STORE_UNAVAILABLE_MESSAGE = "State store is not available anymore "
+          + "and may have been migrated to another instance; "
+          + "please re-discover its location from the state metadata.";
 
   static {
     try {
@@ -96,7 +99,6 @@ public final class WindowStoreCacheBypass {
 
   }
 
-  @SuppressWarnings("unchecked")
   public static WindowStoreIterator<ValueAndTimestamp<GenericRow>> fetch(
       final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store,
       final GenericKey key,
@@ -104,21 +106,8 @@ public final class WindowStoreCacheBypass {
       final Instant upper
   ) {
     Objects.requireNonNull(key, "key can't be null");
-
-    final StateStoreProvider provider;
-    final String storeName;
-    final QueryableStoreType<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>>
-        windowStoreType;
-    try {
-      provider = (StateStoreProvider) PROVIDER_FIELD.get(store);
-      storeName = (String) STORE_NAME_FIELD.get(store);
-      windowStoreType = (QueryableStoreType<ReadOnlyWindowStore<GenericKey,
-          ValueAndTimestamp<GenericRow>>>) WINDOW_STORE_TYPE_FIELD.get(store);
-    } catch (final IllegalAccessException e) {
-      throw new RuntimeException("Stream internals changed unexpectedly!", e);
-    }
     final List<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>> stores
-        = provider.stores(storeName, windowStoreType);
+            = getStores(store);
     for (final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
         : stores) {
       try {
@@ -131,9 +120,7 @@ public final class WindowStoreCacheBypass {
           return result;
         }
       } catch (final InvalidStateStoreException e) {
-        throw new InvalidStateStoreException(
-            "State store is not available anymore and may have been migrated to another instance; "
-                + "please re-discover its location from the state metadata.", e);
+        throw new InvalidStateStoreException(STORE_UNAVAILABLE_MESSAGE, e);
       }
     }
     return new EmptyWindowStoreIterator();
@@ -149,13 +136,12 @@ public final class WindowStoreCacheBypass {
       throw new IllegalStateException("Expecting a MeteredWindowStore");
     }
     final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes = getSerdes(windowStore);
-    WindowStore<Bytes, byte[]> wrapped = getInnermostStore(windowStore);
+    final WindowStore<Bytes, byte[]> wrapped = getInnermostStore(windowStore);
     final Bytes rawKey = Bytes.wrap(serdes.rawKey(key));
     final WindowStoreIterator<byte[]> fetch = wrapped.fetch(rawKey, lower, upper);
     return new DeserializingIterator(fetch, serdes);
   }
 
-  @SuppressWarnings("unchecked")
   public static KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> fetchRange(
           final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store,
           final GenericKey keyFrom,
@@ -165,21 +151,8 @@ public final class WindowStoreCacheBypass {
   ) {
     Objects.requireNonNull(keyFrom, "lower key can't be null");
     Objects.requireNonNull(keyTo, "upper key can't be null");
-
-    final StateStoreProvider provider;
-    final String storeName;
-    final QueryableStoreType<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>>
-            windowStoreType;
-    try {
-      provider = (StateStoreProvider) PROVIDER_FIELD.get(store);
-      storeName = (String) STORE_NAME_FIELD.get(store);
-      windowStoreType = (QueryableStoreType<ReadOnlyWindowStore<GenericKey,
-              ValueAndTimestamp<GenericRow>>>) WINDOW_STORE_TYPE_FIELD.get(store);
-    } catch (final IllegalAccessException e) {
-      throw new RuntimeException("Stream internals changed unexpectedly!", e);
-    }
     final List<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>> stores
-            = provider.stores(storeName, windowStoreType);
+            = getStores(store);
     for (final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
             : stores) {
       try {
@@ -192,10 +165,7 @@ public final class WindowStoreCacheBypass {
           return result;
         }
       } catch (final InvalidStateStoreException e) {
-        throw new InvalidStateStoreException(
-                          "State store is not available anymore"
-                        + " and may have been migrated to another instance; "
-                        + "please re-discover its location from the state metadata.", e);
+        throw new InvalidStateStoreException(STORE_UNAVAILABLE_MESSAGE, e);
       }
     }
     return new EmptyKeyValueIterator();
@@ -213,7 +183,7 @@ public final class WindowStoreCacheBypass {
       throw new IllegalStateException("Expecting a MeteredWindowStore");
     }
     final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes = getSerdes(windowStore);
-    WindowStore<Bytes, byte[]> wrapped = getInnermostStore(windowStore);
+    final WindowStore<Bytes, byte[]> wrapped = getInnermostStore(windowStore);
     final Bytes rawKeyFrom = Bytes.wrap(serdes.rawKey(keyFrom));
     final Bytes rawKeyTo = Bytes.wrap(serdes.rawKey(keyTo));
     final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped
@@ -221,26 +191,13 @@ public final class WindowStoreCacheBypass {
     return new DeserializingKeyValueIterator(fetch, serdes);
   }
 
-  @SuppressWarnings("unchecked")
   public static KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> fetchAll(
           final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store,
           final Instant lower,
           final Instant upper
   ) {
-    final StateStoreProvider provider;
-    final String storeName;
-    final QueryableStoreType<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>>
-            windowStoreType;
-    try {
-      provider = (StateStoreProvider) PROVIDER_FIELD.get(store);
-      storeName = (String) STORE_NAME_FIELD.get(store);
-      windowStoreType = (QueryableStoreType<ReadOnlyWindowStore<GenericKey,
-              ValueAndTimestamp<GenericRow>>>) WINDOW_STORE_TYPE_FIELD.get(store);
-    } catch (final IllegalAccessException e) {
-      throw new RuntimeException("Stream internals changed unexpectedly!", e);
-    }
     final List<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>> stores
-            = provider.stores(storeName, windowStoreType);
+            = getStores(store);
     for (final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
             : stores) {
       try {
@@ -253,10 +210,7 @@ public final class WindowStoreCacheBypass {
           return result;
         }
       } catch (final InvalidStateStoreException e) {
-        throw new InvalidStateStoreException(
-                "State store is not available anymore"
-                + " and may have been migrated to another instance; "
-                + "please re-discover its location from the state metadata.", e);
+        throw new InvalidStateStoreException(STORE_UNAVAILABLE_MESSAGE, e);
       }
     }
     return new EmptyKeyValueIterator();
@@ -272,7 +226,7 @@ public final class WindowStoreCacheBypass {
       throw new IllegalStateException("Expecting a MeteredWindowStore");
     }
     final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes = getSerdes(windowStore);
-    WindowStore<Bytes, byte[]> wrapped = getInnermostStore(windowStore);
+    final WindowStore<Bytes, byte[]> wrapped = getInnermostStore(windowStore);
     final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetchAll(lower, upper);
     return new DeserializingKeyValueIterator(fetch, serdes);
   }
@@ -405,7 +359,8 @@ public final class WindowStoreCacheBypass {
   }
 
   private static WindowStore<Bytes, byte[]> getInnermostStore(
-          ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore) {
+          ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
+  ) {
     WindowStore<Bytes, byte[]> wrapped
             = ((MeteredWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>) windowStore)
             .wrapped();
@@ -422,6 +377,21 @@ public final class WindowStoreCacheBypass {
     }
     // now we have the innermost layer of the store.
     return wrapped;
+  }
+
+  private static List<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>> getStores(
+          ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store
+  ) {
+    try {
+      final StateStoreProvider provider = (StateStoreProvider) PROVIDER_FIELD.get(store);
+      final String storeName = (String) STORE_NAME_FIELD.get(store);
+      final QueryableStoreType<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>>
+              windowStoreType = (QueryableStoreType<ReadOnlyWindowStore<GenericKey,
+              ValueAndTimestamp<GenericRow>>>) WINDOW_STORE_TYPE_FIELD.get(store);
+      return provider.stores(storeName, windowStoreType);
+    } catch (final IllegalAccessException e) {
+      throw new RuntimeException("Stream internals changed unexpectedly!", e);
+    }
   }
 }
 

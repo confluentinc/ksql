@@ -139,42 +139,20 @@ public final class WindowStoreCacheBypass {
     return new EmptyWindowStoreIterator();
   }
 
-  @SuppressWarnings("unchecked")
   private static WindowStoreIterator<ValueAndTimestamp<GenericRow>> fetchUncached(
       final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore,
       final GenericKey key,
       final Instant lower,
       final Instant upper
   ) {
-    if (windowStore instanceof MeteredWindowStore) {
-      final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes;
-      try {
-        serdes = (StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>>) SERDES_FIELD
-            .get(windowStore);
-      } catch (final IllegalAccessException e) {
-        throw new RuntimeException("Stream internals changed unexpectedly!", e);
-      }
-
-      final Bytes rawKey = Bytes.wrap(serdes.rawKey(key));
-      WindowStore<Bytes, byte[]> wrapped
-          = ((MeteredWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>) windowStore).wrapped();
-      // Unwrap state stores until we get to the last WindowStore, which is past the caching
-      // layer.
-      while (wrapped instanceof WrappedStateStore) {
-        final StateStore store = ((WrappedStateStore<?, ?, ?>) wrapped).wrapped();
-        // A RocksDBWindowStore wraps a SegmentedBytesStore, which isn't a SessionStore, so
-        // we just store there.
-        if (!(store instanceof WindowStore)) {
-          break;
-        }
-        wrapped = (WindowStore<Bytes, byte[]>) store;
-      }
-      // now we have the innermost layer of the store.
-      final WindowStoreIterator<byte[]> fetch = wrapped.fetch(rawKey, lower, upper);
-      return new DeserializingIterator(fetch, serdes);
-    } else {
+    if (!(windowStore instanceof MeteredWindowStore)) {
       throw new IllegalStateException("Expecting a MeteredWindowStore");
     }
+    final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes = getSerdes(windowStore);
+    WindowStore<Bytes, byte[]> wrapped = getInnermostStore(windowStore);
+    final Bytes rawKey = Bytes.wrap(serdes.rawKey(key));
+    final WindowStoreIterator<byte[]> fetch = wrapped.fetch(rawKey, lower, upper);
+    return new DeserializingIterator(fetch, serdes);
   }
 
   @SuppressWarnings("unchecked")
@@ -223,7 +201,6 @@ public final class WindowStoreCacheBypass {
     return new EmptyKeyValueIterator();
   }
 
-  @SuppressWarnings("unchecked")
   private static KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>
       fetchRangeUncached(
           final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore,
@@ -232,39 +209,16 @@ public final class WindowStoreCacheBypass {
           final Instant lower,
           final Instant upper
   ) {
-    if (windowStore instanceof MeteredWindowStore) {
-      final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes;
-      try {
-        serdes = (StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>>) SERDES_FIELD
-                .get(windowStore);
-      } catch (final IllegalAccessException e) {
-        throw new RuntimeException("Stream internals changed unexpectedly!", e);
-      }
-
-      final Bytes rawKeyFrom = Bytes.wrap(serdes.rawKey(keyFrom));
-      final Bytes rawKeyTo = Bytes.wrap(serdes.rawKey(keyTo));
-
-      WindowStore<Bytes, byte[]> wrapped
-              = ((MeteredWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>) windowStore)
-                .wrapped();
-      // Unwrap state stores until we get to the last WindowStore, which is past the caching
-      // layer.
-      while (wrapped instanceof WrappedStateStore) {
-        final StateStore store = ((WrappedStateStore<?, ?, ?>) wrapped).wrapped();
-        // A RocksDBWindowStore wraps a SegmentedBytesStore, which isn't a SessionStore, so
-        // we just store there.
-        if (!(store instanceof WindowStore)) {
-          break;
-        }
-        wrapped = (WindowStore<Bytes, byte[]>) store;
-      }
-      // now we have the innermost layer of the store.
-      final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped
-              .fetch(rawKeyFrom, rawKeyTo, lower, upper);
-      return new DeserializingKeyValueIterator(fetch, serdes);
-    } else {
+    if (!(windowStore instanceof MeteredWindowStore)) {
       throw new IllegalStateException("Expecting a MeteredWindowStore");
     }
+    final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes = getSerdes(windowStore);
+    WindowStore<Bytes, byte[]> wrapped = getInnermostStore(windowStore);
+    final Bytes rawKeyFrom = Bytes.wrap(serdes.rawKey(keyFrom));
+    final Bytes rawKeyTo = Bytes.wrap(serdes.rawKey(keyTo));
+    final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped
+            .fetch(rawKeyFrom, rawKeyTo, lower, upper);
+    return new DeserializingKeyValueIterator(fetch, serdes);
   }
 
   @SuppressWarnings("unchecked")
@@ -308,42 +262,19 @@ public final class WindowStoreCacheBypass {
     return new EmptyKeyValueIterator();
   }
 
-  @SuppressWarnings("unchecked")
   private static KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>
       fetchAllUncached(
           final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore,
           final Instant lower,
           final Instant upper
   ) {
-    if (windowStore instanceof MeteredWindowStore) {
-      final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes;
-      try {
-        serdes = (StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>>) SERDES_FIELD
-                .get(windowStore);
-      } catch (final IllegalAccessException e) {
-        throw new RuntimeException("Stream internals changed unexpectedly!", e);
-      }
-
-      WindowStore<Bytes, byte[]> wrapped
-              = ((MeteredWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>) windowStore)
-                .wrapped();
-      // Unwrap state stores until we get to the last WindowStore, which is past the caching
-      // layer.
-      while (wrapped instanceof WrappedStateStore) {
-        final StateStore store = ((WrappedStateStore<?, ?, ?>) wrapped).wrapped();
-        // A RocksDBWindowStore wraps a SegmentedBytesStore, which isn't a SessionStore, so
-        // we just store there.
-        if (!(store instanceof WindowStore)) {
-          break;
-        }
-        wrapped = (WindowStore<Bytes, byte[]>) store;
-      }
-      // now we have the innermost layer of the store.
-      final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetchAll(lower, upper);
-      return new DeserializingKeyValueIterator(fetch, serdes);
-    } else {
+    if (!(windowStore instanceof MeteredWindowStore)) {
       throw new IllegalStateException("Expecting a MeteredWindowStore");
     }
+    final StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> serdes = getSerdes(windowStore);
+    WindowStore<Bytes, byte[]> wrapped = getInnermostStore(windowStore);
+    final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetchAll(lower, upper);
+    return new DeserializingKeyValueIterator(fetch, serdes);
   }
 
   private static final class DeserializingKeyValueIterator
@@ -461,4 +392,36 @@ public final class WindowStoreCacheBypass {
       throw new NoSuchElementException();
     }
   }
+
+  private static StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>> getSerdes(
+          ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore
+  ) throws RuntimeException {
+    try {
+      return (StateSerdes<GenericKey, ValueAndTimestamp<GenericRow>>) SERDES_FIELD
+              .get(windowStore);
+    } catch (final IllegalAccessException e) {
+      throw new RuntimeException("Stream internals changed unexpectedly!", e);
+    }
+  }
+
+  private static WindowStore<Bytes, byte[]> getInnermostStore(
+          ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore) {
+    WindowStore<Bytes, byte[]> wrapped
+            = ((MeteredWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>) windowStore)
+            .wrapped();
+    // Unwrap state stores until we get to the last WindowStore, which is past the caching
+    // layer.
+    while (wrapped instanceof WrappedStateStore) {
+      final StateStore store = ((WrappedStateStore<?, ?, ?>) wrapped).wrapped();
+      // A RocksDBWindowStore wraps a SegmentedBytesStore, which isn't a SessionStore, so
+      // we just store there.
+      if (!(store instanceof WindowStore)) {
+        break;
+      }
+      wrapped = (WindowStore<Bytes, byte[]>) store;
+    }
+    // now we have the innermost layer of the store.
+    return wrapped;
+  }
 }
+

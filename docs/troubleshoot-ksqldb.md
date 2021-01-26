@@ -351,6 +351,22 @@ by using the command:
 confluent local services ksql-server log
 ```
 
+java.lang.NoClassDefFoundError when java.io.tmpdir is not writable
+------------------------------------------------------------------
+
+KSQL leverages RocksDB which includes a C library. As part of the startup 
+process of RocksDB, it has to extract the C library before it can be used. The 
+location to extract the C library is determined by the java.io.tmpdir system 
+property or `ROCKSDB_SHAREDLIB_DIR` environment variable. If this directory is 
+not writable, then the user will see an error like the following
+
+```
+[2018-05-22 12:15:32,702] ERROR Exception occurred while writing to connection stream:  (io.confluent.ksql.rest.server.resources.streaming.QueryStreamWriter:105)
+java.lang.NoClassDefFoundError: Could not initialize class org.rocksdb.Options
+        at org.apache.kafka.streams.state.internals.RocksDBStore.openDB(RocksDBStore.java:116)
+        at org.apache.kafka.streams.state.internals.RocksDBStore.init(RocksDBStore.java:167)
+```
+
 Suggested Reading
 -----------------
 

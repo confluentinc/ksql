@@ -271,11 +271,11 @@ public final class ListSourceExecutor {
       topicDescription = Optional.of(
           serviceContext.getTopicClient().describeTopic(dataSource.getKafkaTopicName())
       );
+      sourceConstraints = getSourceConstraints(name, ksqlEngine.getMetaStore());
     } catch (final KafkaException | KafkaResponseGetFailedException e) {
       warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
     }
 
-    sourceConstraints = getSourceConstraints(name, ksqlEngine.getMetaStore());
 
     if (extended) {
       queryOffsetSummaries = queryOffsetSummaries(ksqlConfig, serviceContext, writeQueries);

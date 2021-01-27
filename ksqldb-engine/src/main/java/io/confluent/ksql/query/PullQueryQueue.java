@@ -203,8 +203,9 @@ public class PullQueryQueue implements BlockingRowQueue {
 
   /**
    * If you don't want to rely on poll timeouts, a sentinel can be directly used, rather than
-   * interrupting the sleeping thread.
-   * @param row
+   * interrupting the sleeping thread. The main difference between this and acceptRow is that
+   * this allows the addition of the sentinel even if the queue is closed.
+   * @param row The row to use as the sentinel
    */
   public void putSentinelRow(final PullQueryRow row) {
     try {

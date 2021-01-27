@@ -90,7 +90,6 @@ public class PullQueryStreamWriter implements StreamingOutput {
     try {
       final WriterState writerState = new WriterState(clock);
       final QueueWrapper queueWrapper = new QueueWrapper(pullQueryQueue, disconnectCheckInterval);
-      long startMs = System.currentTimeMillis();
 
       // First write the header with the schema
       final StreamedRow header
@@ -323,7 +322,7 @@ public class PullQueryStreamWriter implements StreamingOutput {
    * if there's something next.
    */
   static final class QueueWrapper {
-    public final static PullQueryRow END_ROW = new PullQueryRow(null, null, null);
+    public static final PullQueryRow END_ROW = new PullQueryRow(null, null, null);
     private final PullQueryQueue pullQueryQueue;
     private final long disconnectCheckInterval;
     // We always keep a reference to the head of the queue so that we know if there's another

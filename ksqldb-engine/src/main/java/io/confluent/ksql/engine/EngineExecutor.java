@@ -24,7 +24,6 @@ import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -41,6 +40,7 @@ import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan;
 import io.confluent.ksql.physical.pull.PullPhysicalPlanBuilder;
+import io.confluent.ksql.physical.pull.PullQueryQueuePopulator;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
@@ -49,6 +49,7 @@ import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryExecutor;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -137,7 +138,6 @@ final class EngineExecutor {
    * Evaluates a pull query by first analyzing it, then building the logical plan and finally
    * the physical plan. The execution is then done using the physical plan in a pipelined manner.
    * @param statement The pull query
-   * @param routingFilterFactory The filters used for HA routing
    * @param routingOptions Configuration parameters used for HA routing
    * @param pullQueryMetrics JMX metrics
    * @return the rows that are the result of evaluating the pull query
@@ -145,9 +145,9 @@ final class EngineExecutor {
   PullQueryResult executePullQuery(
       final ConfiguredStatement<Query> statement,
       final HARouting routing,
-      final RoutingFilterFactory routingFilterFactory,
       final RoutingOptions routingOptions,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final boolean startImmediately
   ) {
 
     if (!statement.getStatement().isPullQuery()) {
@@ -168,10 +168,17 @@ final class EngineExecutor {
           logicalPlan,
           analysis
       );
-      return routing.handlePullQuery(
+      final PullQueryQueue pullQueryQueue = new PullQueryQueue();
+      final PullQueryQueuePopulator populator = () -> routing.handlePullQuery(
           serviceContext,
           physicalPlan, statement, routingOptions, physicalPlan.getOutputSchema(),
-          physicalPlan.getQueryId());
+          physicalPlan.getQueryId(), pullQueryQueue);
+      final PullQueryResult result = new PullQueryResult(physicalPlan.getOutputSchema(), populator,
+          physicalPlan.getQueryId(), pullQueryQueue, pullQueryMetrics);
+      if (startImmediately) {
+        result.start();
+      }
+      return result;
     } catch (final Exception e) {
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
       throw new KsqlStatementException(

@@ -138,7 +138,14 @@ class HighAvailabilityTestUtil {
   }
 
   static void waitForStreamsMetadataToInitialize(
-      final TestKsqlRestApp restApp, List<KsqlHostInfoEntity> hosts, String queryId
+      final TestKsqlRestApp restApp, List<KsqlHostInfoEntity> hosts
+  ) {
+    waitForStreamsMetadataToInitialize(restApp, hosts, Optional.empty());
+  }
+
+  static void waitForStreamsMetadataToInitialize(
+      final TestKsqlRestApp restApp, List<KsqlHostInfoEntity> hosts,
+      final Optional<BasicCredentials> credentials
   ) {
     waitForStreamsMetadataToInitialize(restApp, hosts, queryId, Optional.empty());
   }

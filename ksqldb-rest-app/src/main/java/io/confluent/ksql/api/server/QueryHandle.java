@@ -15,19 +15,24 @@
 
 package io.confluent.ksql.api.server;
 
-import java.io.IOException;
-import java.io.OutputStream;
+import io.confluent.ksql.query.BlockingRowQueue;
+import java.util.List;
+import java.util.function.Consumer;
 
-public interface StreamingOutput extends AutoCloseable {
+/**
+ * Handle to a query running in the engine
+ */
+public interface QueryHandle {
 
-  void write(OutputStream output) throws IOException;
+  List<String> getColumnNames();
 
-  @Override
-  void close();
+  List<String> getColumnTypes();
 
-  /**
-   * The amount of time the system will spend trying to clear the Vert.x response write queue
-   * before giving up and throwing an error.
-   */
-  int getWriteTimeoutMs();
+  void start();
+
+  void stop();
+
+  BlockingRowQueue getQueue();
+
+  void onException(Consumer<Throwable> onException);
 }

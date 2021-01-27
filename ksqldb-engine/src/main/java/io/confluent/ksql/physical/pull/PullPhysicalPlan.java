@@ -20,11 +20,14 @@ import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartition
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.physical.pull.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.pull.operators.DataSourceOperator;
+import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiFunction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Represents the physical plan for pull queries. It is a tree of physical operators that gets
@@ -33,6 +36,8 @@ import java.util.Objects;
  * the data stores.
  */
 public class PullPhysicalPlan {
+  private static final Logger LOGGER = LoggerFactory.getLogger(PullPhysicalPlan.class);
+
   private final AbstractPhysicalOperator root;
   private final LogicalSchema schema;
   private final QueryId queryId;
@@ -57,22 +62,30 @@ public class PullPhysicalPlan {
         dataSourceOperator, "dataSourceOperator");
   }
 
-  public List<List<?>> execute(
-      final List<KsqlPartitionLocation> locations) {
+  public void execute(
+      final List<KsqlPartitionLocation> locations,
+      final PullQueryQueue pullQueryQueue,
+      final BiFunction<List<?>, LogicalSchema, PullQueryRow> rowFactory) {
 
     // We only know at runtime which partitions to get from which node.
     // That's why we need to set this explicitly for the dataSource operators
     dataSourceOperator.setPartitionLocations(locations);
 
     open();
-    final List<List<?>> localResult = new ArrayList<>();
-    List<?> row = null;
+    List<?> row;
     while ((row = (List<?>)next()) != null) {
-      localResult.add(row);
+      if (pullQueryQueue.isClosed()) {
+        // If the queue has been closed, we stop adding rows and cleanup. This should be triggered
+        // because the client has closed their connection with the server before the results have
+        // completed.
+        LOGGER.info("Queue closed before results completed. Stopping execution.");
+        break;
+      }
+      if (!pullQueryQueue.acceptRow(rowFactory.apply(row, schema))) {
+        LOGGER.info("Failed to queue row");
+      }
     }
     close();
-
-    return localResult;
   }
 
   private void open() {

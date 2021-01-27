@@ -13,23 +13,17 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.api.server;
+package io.confluent.ksql.physical.pull;
 
-import io.confluent.ksql.query.BlockingRowQueue;
-import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
-/**
- * Handle to a push query running in the engine
- */
-public interface PushQueryHandle {
+public interface PullQueryQueuePopulator {
 
-  List<String> getColumnNames();
-
-  List<String> getColumnTypes();
-
-  void start();
-
-  void stop();
-
-  BlockingRowQueue getQueue();
+  /**
+   * Runs the pull query asynchronously. When the returned future is complete, the pull query has
+   * run to completion and every row has been added to the PullQueryQueue. If there's an error
+   * during completion, the future will also complete with an error.
+   * @return The future
+   */
+  CompletableFuture<Void> run();
 }

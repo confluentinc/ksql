@@ -364,7 +364,7 @@ public class WSQueryEndpoint {
   private static void startPullQueryPublisher(
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,
-      final ListeningScheduledExecutorService ignored,
+      final ListeningScheduledExecutorService exec,
       final ConfiguredStatement<Query> query,
       final WebSocketSubscriber<StreamedRow> streamSubscriber,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
@@ -376,6 +376,7 @@ public class WSQueryEndpoint {
     new PullQueryPublisher(
         ksqlEngine,
         serviceContext,
+        exec,
         query,
         pullQueryMetrics,
         startTimeNanos,

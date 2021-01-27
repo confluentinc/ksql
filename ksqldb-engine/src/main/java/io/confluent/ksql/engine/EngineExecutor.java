@@ -169,6 +169,7 @@ final class EngineExecutor {
           analysis,
           statement);
       return routing.handlePullQuery(
+          serviceContext,
           physicalPlan, statement, routingOptions, physicalPlan.getOutputSchema(),
           physicalPlan.getQueryId());
     } catch (final Exception e) {

@@ -62,6 +62,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.hamcrest.Matcher;
@@ -81,7 +83,7 @@ import org.mockito.junit.MockitoRule;
  */
 @RunWith(Enclosed.class)
 public class CastEvaluatorTest {
-
+  private static final SqlBaseType[] sqlTypes = ArrayUtils.removeElement(SqlBaseType.values(), SqlBaseType.LAMBDA);
   private static final String INNER_CODE = "val0";
 
   @RunWith(Parameterized.class)
@@ -89,8 +91,8 @@ public class CastEvaluatorTest {
 
     @Parameterized.Parameters(name = "{0} -> {1}")
     public static Collection<SqlBaseType[]> testCases() {
-      return Arrays.stream(SqlBaseType.values())
-          .flatMap(from1 -> Arrays.stream(SqlBaseType.values())
+      return Arrays.stream(sqlTypes)
+          .flatMap(from1 -> Arrays.stream(sqlTypes)
               .map(targetType -> new SqlBaseType[]{from1, targetType}))
           .collect(Collectors.toList());
     }
@@ -589,7 +591,7 @@ public class CastEvaluatorTest {
 
     @Test
     public void shouldFailIfNewSqlBaseTypeAdded() {
-      final Set<SqlBaseType> allTypes = Arrays.stream(SqlBaseType.values())
+      final Set<SqlBaseType> allTypes = Arrays.stream(sqlTypes)
           .collect(Collectors.toSet());
 
       assertThat(

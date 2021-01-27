@@ -49,6 +49,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -59,6 +60,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
@@ -68,6 +71,7 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Enclosed.class)
 public class DefaultSqlValueCoercerTest {
+  private static final SqlBaseType[] sqlTypes = ArrayUtils.removeElement(SqlBaseType.values(), SqlBaseType.LAMBDA);
 
   // Tests coercion of specific values to different types.
   @SuppressWarnings("UnstableApiUsage")
@@ -496,7 +500,7 @@ public class DefaultSqlValueCoercerTest {
           .collect(Collectors.toSet());
 
       final Set<SqlBaseType> basesNotCovered = Sets
-          .difference(ImmutableSet.copyOf(SqlBaseType.values()), basesCovered);
+          .difference(ImmutableSet.copyOf(sqlTypes), basesCovered);
 
       final Stream<Object[]> implicitlyUnsupported = basesNotCovered.stream()
           .map(base -> new Object[]{
@@ -568,8 +572,8 @@ public class DefaultSqlValueCoercerTest {
     @Parameterized.Parameters(name = "{0}: {1} -> {2}")
     public static Collection<Object[]> testCases() {
       return Arrays.stream(DefaultSqlValueCoercer.values())
-          .flatMap(coercer -> Arrays.stream(SqlBaseType.values())
-              .flatMap(from -> Arrays.stream(SqlBaseType.values())
+          .flatMap(coercer -> Arrays.stream(sqlTypes)
+              .flatMap(from -> Arrays.stream(sqlTypes)
                   .map(to -> new Object[]{coercer, from, to}))
           )
           .collect(Collectors.toList());
@@ -920,8 +924,8 @@ public class DefaultSqlValueCoercerTest {
 
     @Parameterized.Parameters(name = "{0}: {1} -> {2}")
     public static Collection<Object[]> testCases() {
-      return Arrays.stream(SqlBaseType.values())
-          .flatMap(from -> Arrays.stream(SqlBaseType.values())
+      return Arrays.stream(sqlTypes)
+          .flatMap(from -> Arrays.stream(sqlTypes)
               .map(to -> new Object[]{from, to}))
           .collect(Collectors.toList());
     }
@@ -973,7 +977,7 @@ public class DefaultSqlValueCoercerTest {
 
     @Test
     public void shouldFailIfNewSqlBaseTypeAdded() {
-      final Set<SqlBaseType> allTypes = Arrays.stream(SqlBaseType.values())
+      final Set<SqlBaseType> allTypes = Arrays.stream(sqlTypes)
           .collect(Collectors.toSet());
 
       assertThat(
@@ -995,7 +999,7 @@ public class DefaultSqlValueCoercerTest {
           .collect(Collectors.toSet());
 
       final Set<SqlBaseType> notCovered = Sets
-          .difference(ImmutableSet.copyOf(SqlBaseType.values()), basesCovered);
+          .difference(ImmutableSet.copyOf(sqlTypes), basesCovered);
 
       assertThat(
           "This test will fail if a new base type is added and no corresponding test cases "

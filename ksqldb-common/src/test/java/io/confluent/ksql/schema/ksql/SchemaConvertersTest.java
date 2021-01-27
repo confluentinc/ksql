@@ -35,6 +35,7 @@ import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -44,6 +45,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -65,6 +67,7 @@ public class SchemaConvertersTest {
   private static final Schema CONNECT_STRING_SCHEMA = SchemaBuilder.string().optional().build();
   private static final Schema CONNECT_TIMESTAMP_SCHEMA =
       org.apache.kafka.connect.data.Timestamp.builder().optional().schema();
+  private static final Schema CONNECT_LAMBDA_SCHEMA = SchemaBuilder.bytes().optional().build();
 
   private static final BiMap<SqlType, Schema> SQL_TO_LOGICAL = ImmutableBiMap.<SqlType, Schema>builder()
       .put(SqlTypes.BOOLEAN, CONNECT_BOOLEAN_SCHEMA)
@@ -105,6 +108,7 @@ public class SchemaConvertersTest {
       .put(SqlBaseType.MAP, Map.class)
       .put(SqlBaseType.STRUCT, Struct.class)
       .put(SqlBaseType.TIMESTAMP, Timestamp.class)
+      .put(SqlBaseType.LAMBDA, SqlLambda.class)
       .build();
 
   private static final BiMap<SqlType, ParamType> SQL_TO_FUNCTION = ImmutableBiMap
@@ -115,6 +119,7 @@ public class SchemaConvertersTest {
       .put(SqlTypes.DOUBLE, ParamTypes.DOUBLE)
       .put(SqlTypes.STRING, ParamTypes.STRING)
       .put(SqlTypes.TIMESTAMP, ParamTypes.TIMESTAMP)
+      .put(SqlTypes.LAMBDALITERAL, ParamTypes.LAMBDALITERAL)
       .put(SqlArray.of(SqlTypes.INTEGER), ArrayType.of(ParamTypes.INTEGER))
       .put(SqlDecimal.of(2, 1), ParamTypes.DECIMAL)
       .put(
@@ -162,8 +167,9 @@ public class SchemaConvertersTest {
         .map(SqlType::baseType)
         .collect(Collectors.toSet());
 
-    final ImmutableSet<SqlBaseType> allTypes = ImmutableSet.copyOf(SqlBaseType.values());
-
+    Set<SqlBaseType> allTypes = new HashSet<>();
+    Collections.addAll(allTypes, SqlBaseType.values());
+    allTypes.remove(SqlBaseType.LAMBDA);
     assertThat("If this test fails then there has been a new SQL type added and this test "
         + "file needs updating to cover that new type", tested, is(allTypes));
   }

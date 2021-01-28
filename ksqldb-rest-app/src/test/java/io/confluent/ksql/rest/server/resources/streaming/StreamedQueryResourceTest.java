@@ -34,6 +34,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -65,6 +66,7 @@ import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.LimitHandler;
+import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
@@ -189,6 +191,8 @@ public class StreamedQueryResourceTest {
   private LogicalSchema schema;
   @Mock
   private HARouting haRouting;
+  @Mock
+  private PullQueryQueue pullQueryQueue;
 
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
@@ -311,10 +315,9 @@ public class StreamedQueryResourceTest {
         Optional.empty()
     );
     testResource.configure(VALID_CONFIG);
-    when(mockKsqlEngine.executePullQuery(any(), any(), any(), any(), any(), any())).thenReturn(pullQueryResult);
-    when(pullQueryResult.getTableRows()).thenReturn(Collections.emptyList());
-    when(pullQueryResult.getSchema()).thenReturn(schema);
-    when(pullQueryResult.getQueryId()).thenReturn(queryId);
+    when(mockKsqlEngine.executePullQuery(any(), any(), any(), any(), any(), anyBoolean()))
+        .thenReturn(pullQueryResult);
+    when(pullQueryResult.getPullQueryQueue()).thenReturn(pullQueryQueue);
 
     // When:
     testResource.streamQuery(

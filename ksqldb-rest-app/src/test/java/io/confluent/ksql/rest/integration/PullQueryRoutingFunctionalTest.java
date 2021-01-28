@@ -278,7 +278,7 @@ public class PullQueryRoutingFunctionalTest {
     waitForTableRows();
 
     waitForStreamsMetadataToInitialize(
-        REST_APP_0, ImmutableList.of(HOST0, HOST1, HOST2), queryId, USER_CREDS);
+        REST_APP_0, ImmutableList.of(HOST0, HOST1, HOST2), USER_CREDS);
   }
 
   @After

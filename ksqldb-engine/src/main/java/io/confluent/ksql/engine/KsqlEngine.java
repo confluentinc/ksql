@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.ServiceInfo;
-import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
@@ -270,9 +269,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
       final HARouting routing,
-      final RoutingFilterFactory routingFilterFactory,
       final RoutingOptions routingOptions,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final boolean startImmediately
   ) {
     return EngineExecutor
         .create(
@@ -283,9 +282,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         .executePullQuery(
             statement,
             routing,
-            routingFilterFactory,
             routingOptions,
-            pullQueryMetrics
+            pullQueryMetrics,
+            startImmediately
         );
   }
 

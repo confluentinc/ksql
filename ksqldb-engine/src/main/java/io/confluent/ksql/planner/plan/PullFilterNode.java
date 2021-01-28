@@ -96,6 +96,9 @@ public class PullFilterNode extends SingleSourcePlanNode {
     Objects.requireNonNull(predicate, "predicate");
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    // The predicate is rewritten as DNF.  Discussion for why this format is chosen and how it helps
+    // to extract keys in various scenarios can be found here:
+    // https://github.com/confluentinc/ksql/pull/6874
     this.rewrittenPredicate = PullQueryRewriter.rewrite(predicate);
     this.disjuncts = LogicRewriter.extractDisjuncts(rewrittenPredicate);
     this.isWindowed = isWindowed;

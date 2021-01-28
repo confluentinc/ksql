@@ -353,6 +353,43 @@ def job = {
         }
     }
 
+    // Kick off automated Kafka Tutorials test run
+
+    if (!config.isPrJob) {
+        stage('checkout kafka tutorials') {
+            checkout changelog: false,
+                poll: false,
+                scm: [$class: 'GitSCM',
+                    branches: [[name: 'ksql-db-release']],
+                    doGenerateSubmoduleConfigurations: false,
+                    extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'kafka-tutorials']],
+                    submoduleCfg: [],
+                    userRemoteConfigs: [[credentialsId: 'ConfluentJenkins Github SSH Key',
+                        url: 'git@github.com:confluentinc/kafka-tutorials.git']]
+                ]
+        }
+
+        stage('update kafka tutorials and kick off semaphore test') {
+            dir('kafka-tutorials') {
+                withVaultEnv([["artifactory/jenkins_access_token", "user", "ARTIFACTORY_USERNAME"],
+                    ["artifactory/jenkins_access_token", "access_token", "ARTIFACTORY_PASSWORD"],
+                    ["github/confluent_jenkins", "user", "GIT_USER"],
+                    ["github/confluent_jenkins", "access_token", "GIT_TOKEN"]]) {
+                    withEnv(["GIT_CREDENTIAL=${env.GIT_USER}:${env.GIT_TOKEN}"]) {
+                        sh "./tools/update-ksqldb-version.sh ${config.ksql_db_artifact_version} 368821881613.dkr.ecr.us-west-2.amazonaws.com"
+                        sh "git diff"
+                        sh "git add _includes/*"
+                        sh "git commit --allow-empty -m \"build: set ksql version to ${config.ksql_db_artifact_version}\""
+                        sshagent (credentials: ['ConfluentJenkins Github SSH Key']) {
+                            sh "git push origin HEAD:ksql-db-release"
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
     // Build CCloud ksqlDB image
 
     if (!config.release && !config.isPrJob) {

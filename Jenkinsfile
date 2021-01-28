@@ -377,6 +377,7 @@ def job = {
                     ["github/confluent_jenkins", "access_token", "GIT_TOKEN"]]) {
                     withEnv(["GIT_CREDENTIAL=${env.GIT_USER}:${env.GIT_TOKEN}"]) {
                         sh "./tools/update-ksqldb-version.sh ${config.ksql_db_artifact_version} ${config.dockerRegistry}"
+                        // run git diff in order to help debug if something goes wrong
                         sh "git diff"
                         sh "git add _includes/*"
                         sh "git commit --allow-empty -m \"build: set ksql version to ${config.ksql_db_artifact_version}\""

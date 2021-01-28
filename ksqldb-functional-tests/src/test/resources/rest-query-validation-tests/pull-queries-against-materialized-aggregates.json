@@ -2009,7 +2009,8 @@
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
-        "SELECT ID, COUNT, ROWTIME FROM AGGREGATE;"
+        "SELECT ID, COUNT, ROWTIME FROM AGGREGATE;",
+        "SELECT * FROM AGGREGATE;"
       ],
       "inputs": [
         {"topic": "test_topic", "timestamp": 12365, "key": "10", "value": {}},
@@ -2022,6 +2023,11 @@
           {"header":{"schema":"`ID` STRING KEY, `COUNT` BIGINT, `ROWTIME` BIGINT"}},
           {"row":{"columns":["11", 1, 12345]}},
           {"row":{"columns":["10", 1, 12365]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["11", 1]}},
+          {"row":{"columns":["10", 1]}}
         ]}
       ]
     },
@@ -2030,7 +2036,8 @@
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
-        "SELECT ID, WINDOWSTART, WINDOWEND, COUNT, ROWTIME FROM AGGREGATE;"
+        "SELECT ID, WINDOWSTART, WINDOWEND, COUNT, ROWTIME FROM AGGREGATE;",
+        "SELECT * FROM AGGREGATE;"
       ],
       "inputs": [
         {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"val": 1}},
@@ -2047,6 +2054,13 @@
           {"row":{"columns":["11", 13000, 14000, 1, 13346]}},
           {"row":{"columns":["10", 12000, 13000, 1, 12345]}},
           {"row":{"columns":["10", 13000, 14000, 1, 13345]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":["11", 12000, 13000, 1]}},
+          {"row":{"columns":["11", 13000, 14000, 1]}},
+          {"row":{"columns":["10", 12000, 13000, 1]}},
+          {"row":{"columns":["10", 13000, 14000, 1]}}
         ]}
       ]
     },

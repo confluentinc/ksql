@@ -180,7 +180,8 @@ public class PullProjectNode extends ProjectNode {
         getSource().getSchema().isKeyColumn(cn)
     );
 
-    return hasSystemColumns || hasKeyColumns;
+    // Select * also requires keys, in case it's not explicitly mentioned
+    return hasSystemColumns || hasKeyColumns || isSelectStar;
   }
 
   private boolean isSelectStar() {

@@ -286,7 +286,8 @@ public class PullProjectNodeTest {
 
     // Then:
     final LogicalSchema expectedSchema = INPUT_SCHEMA;
-    assertThat(expectedSchema, is(projectNode.getIntermediateSchema()));
+    assertThat(expectedSchema.withPseudoAndKeyColsInValue(false),
+        is(projectNode.getIntermediateSchema()));
     assertThat(expectedSchema.withoutPseudoAndKeyColsInValue(), is(projectNode.getSchema()));
     assertThrows(
         IllegalStateException.class,

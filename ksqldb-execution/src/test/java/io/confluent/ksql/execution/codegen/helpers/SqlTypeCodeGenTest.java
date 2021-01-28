@@ -17,7 +17,9 @@ public class SqlTypeCodeGenTest {
   @Test
   public void shouldGenerateWorkingCodeForAllSqlBaseTypes() {
     for (final SqlBaseType baseType : SqlBaseType.values()) {
-
+      if (baseType == SqlBaseType.LAMBDA) {
+        continue;
+      }
       // When:
       final String code = SqlTypeCodeGen.generateCode(TypeInstances.typeInstanceFor(baseType));
 
@@ -39,6 +41,7 @@ public class SqlTypeCodeGenTest {
         .put(SqlBaseType.DOUBLE, SqlTypes.DOUBLE)
         .put(SqlBaseType.STRING, SqlTypes.STRING)
         .put(SqlBaseType.TIMESTAMP, SqlTypes.TIMESTAMP)
+        .put(SqlBaseType.LAMBDA, SqlTypes.LAMBDALITERAL)
         .put(SqlBaseType.ARRAY, SqlTypes.array(SqlTypes.BIGINT))
         .put(SqlBaseType.MAP, SqlTypes.map(SqlTypes.BIGINT, SqlTypes.STRING))
         .put(SqlBaseType.STRUCT, SqlTypes.struct()

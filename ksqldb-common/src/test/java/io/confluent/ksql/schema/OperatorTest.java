@@ -43,6 +43,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.ArrayUtils;
 import org.junit.Test;
 
 public class OperatorTest {
@@ -92,14 +94,14 @@ public class OperatorTest {
     assertConversionRule(MODULUS, SqlDecimal::modulus);
   }
 
-  /*@Test
+  @Test
   public void shouldWorkUsingSameRulesAsBaseTypeUpCastRules() {
     allOperations().forEach(op -> {
-
-      for (final SqlBaseType leftBaseType : SqlBaseType.values()) {
+      SqlBaseType[] types = ArrayUtils.removeElement(SqlBaseType.values(), SqlBaseType.LAMBDA);
+      for (final SqlBaseType leftBaseType : types) {
         // Given:
         final Map<Boolean, List<SqlBaseType>> partitioned = Arrays
-            .stream(SqlBaseType.values())
+            .stream(types)
             .collect(Collectors.partitioningBy(
                 rightBaseType -> shouldBeSupported(op, leftBaseType, rightBaseType)));
 
@@ -126,7 +128,7 @@ public class OperatorTest {
         });
       }
     });
-  }*/
+  }
 
   private static void assertConversionRule(
       final Operator op,

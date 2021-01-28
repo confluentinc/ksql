@@ -53,6 +53,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -67,7 +69,6 @@ public class SchemaConvertersTest {
   private static final Schema CONNECT_STRING_SCHEMA = SchemaBuilder.string().optional().build();
   private static final Schema CONNECT_TIMESTAMP_SCHEMA =
       org.apache.kafka.connect.data.Timestamp.builder().optional().schema();
-  private static final Schema CONNECT_LAMBDA_SCHEMA = SchemaBuilder.bytes().optional().build();
 
   private static final BiMap<SqlType, Schema> SQL_TO_LOGICAL = ImmutableBiMap.<SqlType, Schema>builder()
       .put(SqlTypes.BOOLEAN, CONNECT_BOOLEAN_SCHEMA)
@@ -167,9 +168,7 @@ public class SchemaConvertersTest {
         .map(SqlType::baseType)
         .collect(Collectors.toSet());
 
-    Set<SqlBaseType> allTypes = new HashSet<>();
-    Collections.addAll(allTypes, SqlBaseType.values());
-    allTypes.remove(SqlBaseType.LAMBDA);
+    final ImmutableSet<SqlBaseType> allTypes = ImmutableSet.copyOf(ArrayUtils.removeElement(SqlBaseType.values(), SqlBaseType.LAMBDA));
     assertThat("If this test fails then there has been a new SQL type added and this test "
         + "file needs updating to cover that new type", tested, is(allTypes));
   }

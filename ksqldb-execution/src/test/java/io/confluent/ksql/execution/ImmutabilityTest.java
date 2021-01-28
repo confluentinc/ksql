@@ -57,8 +57,9 @@ public class ImmutabilityTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Class<?>> data() {
-    return ImmutableTester
+    final Collection<Class<?>> data = ImmutableTester
         .classesMarkedImmutable("io.confluent.ksql");
+    return data;
   }
 
   public ImmutabilityTest(final Class<?> modelClass) {

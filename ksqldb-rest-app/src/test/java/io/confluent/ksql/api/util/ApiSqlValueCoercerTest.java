@@ -37,6 +37,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -559,7 +561,7 @@ public class ApiSqlValueCoercerTest {
   }
 
   private static List<SqlBaseType> supportedTypes() {
-    return ImmutableList.copyOf(SqlBaseType.values());
+    return ImmutableList.copyOf(ArrayUtils.removeElement(SqlBaseType.values(), SqlBaseType.LAMBDA));
   }
 
   private static Object getInstance(final SqlBaseType baseType, final SqlBaseType toType) {

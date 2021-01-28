@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.schema;
 
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.LAMBDA;
 import static io.confluent.ksql.util.DecimalUtil.toSqlDecimal;
 import static java.util.Objects.requireNonNull;
 
@@ -61,6 +62,9 @@ public enum Operator {
    * @return the result schema.
    */
   public SqlType resultType(final SqlType left, final SqlType right) {
+    if (left == SqlTypes.LAMBDALITERAL && right == SqlTypes.LAMBDALITERAL) {
+      return SqlTypes.LAMBDALITERAL;
+    }
     if (left.baseType().isNumber() && right.baseType().isNumber()) {
       if (left.baseType().canImplicitlyCast(right.baseType())) {
         if (right.baseType() != SqlBaseType.DECIMAL) {

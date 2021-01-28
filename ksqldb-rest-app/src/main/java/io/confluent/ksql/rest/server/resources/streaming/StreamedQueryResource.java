@@ -181,16 +181,23 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Optional<Boolean> isInternalRequest,
       final KsqlMediaType mediaType
   ) {
-    throwIfNotConfigured();
-    activenessRegistrar.updateLastRequestTime();
+    EndpointResponse response = null;
+    try {
+      throwIfNotConfigured();
+      activenessRegistrar.updateLastRequestTime();
 
-    final PreparedStatement<?> statement = parseStatement(request);
+      final PreparedStatement<?> statement = parseStatement(request);
 
-    CommandStoreUtil.httpWaitForCommandSequenceNumber(
-        commandQueue, request, commandQueueCatchupTimeout);
+      CommandStoreUtil.httpWaitForCommandSequenceNumber(
+          commandQueue, request, commandQueueCatchupTimeout);
 
-    return handleStatement(securityContext, request, statement, connectionClosedFuture,
-        isInternalRequest, mediaType);
+      response = handleStatement(securityContext, request, statement, connectionClosedFuture,
+          isInternalRequest, mediaType);
+    } catch (final Exception e) {
+      e.printStackTrace();
+      throw e;
+    }
+    return response;
   }
 
   private void throwIfNotConfigured() {

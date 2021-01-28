@@ -221,12 +221,11 @@ public final class AstSanitizer {
       ctx.process(expression.getBody());
       ctx.getContext().removeLambdaArgs();
       ctx.getContext().addLambdaArgs(previousLambdaArgs);
-
       return visitExpression(expression, ctx);
     }
   }
 
-  private static class SanitizerContext {
+  public static class SanitizerContext {
     final Set<String> lambdaArgs = new HashSet<>();
 
     private void addLambdaArgs(final Set<String> newArguments) {

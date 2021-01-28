@@ -17,17 +17,15 @@ package io.confluent.ksql.engine.rewrite;
 
 import io.confluent.ksql.util.KsqlException;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 
-public class LambdaContext {
+public class ExpressionContext {
   private final List<String> lambdaArguments;
   
-  public LambdaContext(final List<String> lambdaArguments) {
-    this.lambdaArguments = new ArrayList<>(
-        Objects.requireNonNull(lambdaArguments, "lambdaArguments"));
+  public ExpressionContext(final List<String> lambdaArguments) {
+    this.lambdaArguments = Objects.requireNonNull(lambdaArguments, "lambdaArguments");
   }
   
   public void addLambdaArguments(final List<String> newArguments) {

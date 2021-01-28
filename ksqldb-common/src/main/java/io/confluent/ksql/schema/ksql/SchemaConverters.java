@@ -19,6 +19,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.LambdaType;
 import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
@@ -26,6 +27,7 @@ import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
@@ -35,6 +37,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -444,6 +447,10 @@ public final class SchemaConverters {
         return SqlBaseType.STRUCT;
       }
 
+      if (paramType instanceof LambdaType) {
+        return SqlBaseType.LAMBDA;
+      }
+
       throw new KsqlException("Cannot convert param type to sql type: " + paramType);
     }
   }
@@ -479,6 +486,18 @@ public final class SchemaConverters {
           builder.field(field.name(), toFunctionType(field.type()));
         }
         return builder.build();
+      }
+
+      if (sqlType.baseType() == SqlBaseType.LAMBDA) {
+        final SqlLambda sqlLambda = (SqlLambda) sqlType;
+        final List<ParamType> inputParamTypes = new ArrayList<>();
+        for (final SqlType type: sqlLambda.getInputType()) {
+          inputParamTypes.add(toFunctionType(type));
+        }
+        return LambdaType.of(
+            inputParamTypes,
+            toFunctionType(sqlLambda.getReturnType())
+        );
       }
 
       throw new KsqlException("Cannot convert sql type to param type: " + sqlType);

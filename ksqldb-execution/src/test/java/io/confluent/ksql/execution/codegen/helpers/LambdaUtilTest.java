@@ -20,9 +20,9 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.function.TriFunction;
 import io.confluent.ksql.execution.codegen.CodeGenTestUtil;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -45,6 +45,7 @@ public class LambdaUtilTest {
         .function(argName, argType, argName + " + 1");
 
     // Then:
+    System.out.println(javaCode);
     final Object result = CodeGenTestUtil.cookAndEval(javaCode, Function.class);
     assertThat(result, is(instanceOf(Function.class)));
     assertThat(((Function<Object, Object>) result).apply(10L), is(11L));

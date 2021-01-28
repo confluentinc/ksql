@@ -17,7 +17,6 @@ public class SqlTypeCodeGenTest {
   @Test
   public void shouldGenerateWorkingCodeForAllSqlBaseTypes() {
     for (final SqlBaseType baseType : SqlBaseType.values()) {
-
       // When:
       final String code = SqlTypeCodeGen.generateCode(TypeInstances.typeInstanceFor(baseType));
 

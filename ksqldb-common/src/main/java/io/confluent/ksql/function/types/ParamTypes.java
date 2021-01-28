@@ -19,6 +19,7 @@ import static io.confluent.ksql.schema.ksql.SchemaConverters.functionToSqlBaseCo
 
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
@@ -66,6 +67,10 @@ public final class ParamTypes {
       return isStructCompatible(actual, declared);
     }
 
+    if (actual.baseType() == SqlBaseType.LAMBDA && declared instanceof LambdaType) {
+      return isLambdaCompatible(actual, declared);
+    }
+
     return isPrimitiveMatch(actual, declared, allowCast);
   }
 
@@ -86,6 +91,26 @@ public final class ParamTypes {
       }
     }
     return actualStruct.fields().size() == ((StructType) declared).getSchema().size();
+  }
+
+  private static boolean isLambdaCompatible(final SqlType actual, final ParamType declared) {
+    final SqlLambda actualLambda = (SqlLambda) actual;
+    final LambdaType declaredLambda = (LambdaType) declared;
+    if (actualLambda.getInputType().size() != declaredLambda.inputTypes().size()) {
+      return false;
+    }
+    int i = 0;
+    for (final ParamType paramType: declaredLambda.inputTypes()) {
+      if (!areCompatible(actualLambda.getInputType().get(i), paramType)) {
+        return false;
+      }
+      i++;
+    }
+
+    if (!areCompatible(actualLambda.getReturnType(), declaredLambda.returnType())) {
+      return false;
+    }
+    return true;
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity

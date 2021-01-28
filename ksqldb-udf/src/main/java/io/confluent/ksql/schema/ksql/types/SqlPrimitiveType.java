@@ -37,6 +37,7 @@ public final class SqlPrimitiveType extends SqlType {
           .put(SqlBaseType.DOUBLE, new SqlPrimitiveType(SqlBaseType.DOUBLE))
           .put(SqlBaseType.STRING, new SqlPrimitiveType(SqlBaseType.STRING))
           .put(SqlBaseType.TIMESTAMP, new SqlPrimitiveType(SqlBaseType.TIMESTAMP))
+          .put(SqlBaseType.LAMBDA, new SqlPrimitiveType(SqlBaseType.LAMBDA))
           .build();
 
   private static final ImmutableSet<String> PRIMITIVE_TYPE_NAMES = ImmutableSet.<String>builder()

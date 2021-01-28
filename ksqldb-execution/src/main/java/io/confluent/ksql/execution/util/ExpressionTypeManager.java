@@ -60,10 +60,12 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
@@ -74,8 +76,11 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VisitorUtil;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -96,12 +101,26 @@ public class ExpressionTypeManager {
   public SqlType getExpressionSqlType(final Expression expression) {
     final ExpressionTypeContext expressionTypeContext = new ExpressionTypeContext();
     new Visitor().process(expression, expressionTypeContext);
-    return expressionTypeContext.getSqlType();
+    final SqlType newSqlType = expressionTypeContext.getSqlType();
+    return newSqlType;
+  }
+
+  public SqlType getExpressionSqlType(
+      final Expression expression, final Map<String, SqlType> inputMapping, final List<SqlType> inputTypes
+  ) {
+    final ExpressionTypeContext expressionTypeContext = new ExpressionTypeContext();
+    expressionTypeContext.setLambdaTypes(inputMapping);
+    expressionTypeContext.setInputTypes(inputTypes);
+    new Visitor().process(expression, expressionTypeContext);
+    final SqlType newSqlType = expressionTypeContext.getSqlType();
+    return newSqlType;
   }
 
   private static class ExpressionTypeContext {
 
     private SqlType sqlType;
+    private List<SqlType> inputTypes = new ArrayList<>();
+    private Map<String, SqlType> lambdaTypeMapping = new HashMap<>();
 
     SqlType getSqlType() {
       return sqlType;
@@ -109,6 +128,35 @@ public class ExpressionTypeManager {
 
     void setSqlType(final SqlType sqlType) {
       this.sqlType = sqlType;
+    }
+
+    List<SqlType> getInputTypes() {
+      if (inputTypes.size() == 0) {
+        return null;
+      }
+      return inputTypes;
+    }
+
+    void addInputType(final SqlType inputType) {
+      this.inputTypes.add(inputType);
+    }
+    void setInputTypes(final List<SqlType> inputTypes) {
+      if (inputTypes != null) {
+        this.inputTypes = inputTypes;
+      }
+    }
+    void mapInputTypes(final List<String> argumentList){
+      for (int i = 0; i < inputTypes.size(); i++) {
+        this.lambdaTypeMapping.putIfAbsent(argumentList.get(i), inputTypes.get(i));
+      }
+    }
+
+    void setLambdaTypes(Map<String, SqlType> mappings){
+      this.lambdaTypeMapping = mappings;
+    }
+
+    SqlType getLambdaType(final String name) {
+      return lambdaTypeMapping.get(name);
     }
   }
 
@@ -119,11 +167,10 @@ public class ExpressionTypeManager {
         final ArithmeticBinaryExpression node, final ExpressionTypeContext expressionTypeContext
     ) {
       process(node.getLeft(), expressionTypeContext);
-      final SqlType leftType = expressionTypeContext.getSqlType();
+      SqlType leftType = expressionTypeContext.getSqlType();
 
       process(node.getRight(), expressionTypeContext);
-      final SqlType rightType = expressionTypeContext.getSqlType();
-
+      SqlType rightType = expressionTypeContext.getSqlType();
       final SqlType resultType = node.getOperator().resultType(leftType, rightType);
 
       expressionTypeContext.setSqlType(resultType);
@@ -139,23 +186,20 @@ public class ExpressionTypeManager {
     }
 
     @Override
-    // CHECKSTYLE_RULES.OFF: TodoComment
     public Void visitLambdaExpression(
         final LambdaFunctionCall node, final ExpressionTypeContext context
     ) {
+      context.mapInputTypes(node.getArguments());
       process(node.getBody(), context);
-      // TODO: add proper type inference
-      context.setSqlType(SqlTypes.INTEGER);
+      context.setSqlType(SqlLambda.of(context.getInputTypes(), context.getSqlType()));
       return null;
     }
 
     @Override
-    // CHECKSTYLE_RULES.OFF: TodoComment
     public Void visitLambdaVariable(
         final LambdaVariable node, final ExpressionTypeContext expressionTypeContext
     ) {
-      // TODO: add proper type inference
-      expressionTypeContext.setSqlType(SqlTypes.INTEGER);
+      expressionTypeContext.setSqlType(expressionTypeContext.getLambdaType(node.getValue()));
       return null;
     }
 
@@ -178,9 +222,11 @@ public class ExpressionTypeManager {
         final ComparisonExpression node, final ExpressionTypeContext expressionTypeContext
     ) {
       process(node.getLeft(), expressionTypeContext);
-      final SqlType leftSchema = expressionTypeContext.getSqlType();
+      SqlType leftSchema = expressionTypeContext.getSqlType();
+
       process(node.getRight(), expressionTypeContext);
-      final SqlType rightSchema = expressionTypeContext.getSqlType();
+      SqlType rightSchema = expressionTypeContext.getSqlType();
+
       if (!ComparisonUtil.isValidComparison(leftSchema, node.getType(), rightSchema)) {
         throw new KsqlException("Cannot compare "
             + node.getLeft().toString() + " (" + leftSchema.toString() + ") to "
@@ -244,7 +290,7 @@ public class ExpressionTypeManager {
       expressionTypeContext.setSqlType(structField.type());
       return null;
     }
-
+  
     @Override
     public Void visitStringLiteral(
         final StringLiteral node, final ExpressionTypeContext expressionTypeContext
@@ -474,7 +520,21 @@ public class ExpressionTypeManager {
       final List<SqlType> argTypes = new ArrayList<>();
       for (final Expression expression : node.getArguments()) {
         process(expression, expressionTypeContext);
-        argTypes.add(expressionTypeContext.getSqlType());
+        final SqlType newSqlType = expressionTypeContext.getSqlType();
+        argTypes.add(newSqlType);
+
+        if (shouldSetInputType(node, expressionTypeContext)) {
+          if (newSqlType instanceof SqlArray) {
+            SqlArray inputArray = (SqlArray) newSqlType;
+            expressionTypeContext.addInputType(inputArray.getItemType());
+          } else if (newSqlType instanceof SqlMap) {
+            SqlMap inputMap = (SqlMap) newSqlType;
+            expressionTypeContext.addInputType(inputMap.getKeyType());
+            expressionTypeContext.addInputType(inputMap.getValueType());
+          } else {
+            expressionTypeContext.addInputType(newSqlType);
+          }
+        }
       }
 
       final SqlType returnSchema = udfFactory.getFunction(argTypes).getReturnType(argTypes);
@@ -589,6 +649,12 @@ public class ExpressionTypeManager {
       }
 
       return previousResult;
+    }
+
+    private Boolean shouldSetInputType(final FunctionCall node, final ExpressionTypeContext context) {
+      return (context.getInputTypes() == null)
+          || (node.getName().equals(FunctionName.of("REDUCE_MAP")) && context.getInputTypes().size() == 2)
+          || (node.getName().equals(FunctionName.of("REDUCE_ARRAY")) && context.getInputTypes().size() == 1);
     }
   }
 }

@@ -15,14 +15,19 @@
 
 package io.confluent.ksql.physical.pull;
 
-import io.confluent.ksql.GenericKey;
+import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.streams.materialization.Locator.KsqlKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.physical.pull.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.pull.operators.DataSourceOperator;
+import io.confluent.ksql.planner.plan.KeyConstraint;
+import io.confluent.ksql.planner.plan.KeyConstraint.ConstraintOperator;
+import io.confluent.ksql.planner.plan.LookupConstraint;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -41,7 +46,7 @@ public class PullPhysicalPlan {
   private final AbstractPhysicalOperator root;
   private final LogicalSchema schema;
   private final QueryId queryId;
-  private final List<GenericKey> keys;
+  private final List<LookupConstraint> lookupConstraints;
   private final Materialization mat;
   private final DataSourceOperator dataSourceOperator;
 
@@ -49,14 +54,14 @@ public class PullPhysicalPlan {
       final AbstractPhysicalOperator root,
       final LogicalSchema schema,
       final QueryId queryId,
-      final List<GenericKey> keys,
+      final List<LookupConstraint> lookupConstraints,
       final Materialization mat,
       final DataSourceOperator dataSourceOperator
   ) {
     this.root = Objects.requireNonNull(root, "root");
     this.schema = Objects.requireNonNull(schema, "schema");
     this.queryId = Objects.requireNonNull(queryId, "queryId");
-    this.keys = Objects.requireNonNull(keys, "keys");
+    this.lookupConstraints = Objects.requireNonNull(lookupConstraints, "lookupConstraints");
     this.mat = Objects.requireNonNull(mat, "mat");
     this.dataSourceOperator = Objects.requireNonNull(
         dataSourceOperator, "dataSourceOperator");
@@ -108,8 +113,27 @@ public class PullPhysicalPlan {
     return mat;
   }
 
-  public List<GenericKey> getKeys() {
-    return keys;
+  public List<KsqlKey> getKeys() {
+    if (requiresRequestsToAllPartitions()) {
+      return Collections.emptyList();
+    }
+    return lookupConstraints.stream()
+        .filter(lookupConstraint -> lookupConstraint instanceof KeyConstraint)
+        .map(KeyConstraint.class::cast)
+        .filter(keyConstraint -> keyConstraint.getConstraintOperator() == ConstraintOperator.EQUAL)
+        .map(KeyConstraint::getKsqlKey)
+        .collect(ImmutableList.toImmutableList());
+  }
+
+  private boolean requiresRequestsToAllPartitions() {
+    return lookupConstraints.stream()
+        .anyMatch(lookupConstraint -> {
+          if (lookupConstraint instanceof KeyConstraint) {
+            final KeyConstraint keyConstraint = (KeyConstraint) lookupConstraint;
+            return keyConstraint.getConstraintOperator() != ConstraintOperator.EQUAL;
+          }
+          return true;
+        });
   }
 
   public LogicalSchema getOutputSchema() {

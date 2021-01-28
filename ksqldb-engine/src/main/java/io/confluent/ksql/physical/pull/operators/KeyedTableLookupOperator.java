@@ -17,6 +17,7 @@ package io.confluent.ksql.physical.pull.operators;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
+import io.confluent.ksql.execution.streams.materialization.Locator.KsqlKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.Row;
@@ -60,7 +61,7 @@ public class KeyedTableLookupOperator
       if (!nextLocation.getKeys().isPresent()) {
         throw new IllegalStateException("Table lookup queries should be done with keys");
       }
-      keyIterator = nextLocation.getKeys().get().iterator();
+      keyIterator = nextLocation.getKeys().get().stream().map(KsqlKey::getKey).iterator();
       if (keyIterator.hasNext()) {
         nextKey = keyIterator.next();
         resultIterator = mat.nonWindowed()
@@ -85,7 +86,7 @@ public class KeyedTableLookupOperator
         if (!nextLocation.getKeys().isPresent()) {
           throw new IllegalStateException("Table lookup queries should be done with keys");
         }
-        keyIterator = nextLocation.getKeys().get().iterator();
+        keyIterator = nextLocation.getKeys().get().stream().map(KsqlKey::getKey).iterator();
       }
       nextKey = keyIterator.next();
       resultIterator = mat.nonWindowed()

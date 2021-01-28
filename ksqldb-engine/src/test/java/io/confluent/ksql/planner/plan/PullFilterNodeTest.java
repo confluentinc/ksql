@@ -108,12 +108,14 @@ public class PullFilterNodeTest {
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(false));
-    assertThat(filterNode.getWindowBounds(), is(Optional.empty()));
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.empty()));
   }
 
   @Test
@@ -160,12 +162,55 @@ public class PullFilterNodeTest {
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(-1))));
     assertThat(filterNode.isWindowed(), is(false));
-    assertThat(filterNode.getWindowBounds(), is(Optional.empty()));
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(-1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldExtractKeyValueFromExpressionEquals_multipleDisjuncts() {
+    // Given:
+    final Expression keyExp1 = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+        new IntegerLiteral(1)
+    );
+    final Expression keyExp2 = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+        new IntegerLiteral(2)
+    );
+    final Expression expression = new LogicalBinaryExpression(
+        LogicalBinaryExpression.Type.OR,
+        keyExp1,
+        keyExp2
+    );
+    PullFilterNode filterNode = new PullFilterNode(
+        NODE_ID,
+        source,
+        expression,
+        metaStore,
+        ksqlConfig,
+        false
+    );
+
+    // When:
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
+
+    // Then:
+    assertThat(filterNode.isWindowed(), is(false));
+    assertThat(keys.size(), is(2));
+    final KeyConstraint keyConstraint1 = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint1.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint1.getWindowBounds(), is(Optional.empty()));
+    final KeyConstraint keyConstraint2 = (KeyConstraint) keys.get(1);
+    assertThat(keyConstraint2.getKey(), is(GenericKey.genericKey(2)));
+    assertThat(keyConstraint2.getWindowBounds(), is(Optional.empty()));
   }
 
   @Test
@@ -187,12 +232,17 @@ public class PullFilterNodeTest {
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1),GenericKey.genericKey(2))));
     assertThat(filterNode.isWindowed(), is(false));
-    assertThat(filterNode.getWindowBounds(), is(Optional.empty()));
+    assertThat(keys.size(), is(2));
+    final KeyConstraint keyConstraint0 = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint0.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint0.getWindowBounds(), is(Optional.empty()));
+    final KeyConstraint keyConstraint1 = (KeyConstraint) keys.get(1);
+    assertThat(keyConstraint1.getKey(), is(GenericKey.genericKey(2)));
+    assertThat(keyConstraint1.getWindowBounds(), is(Optional.empty()));
   }
 
   // We should refactor the WindowBounds class to encompass the functionality around
@@ -215,14 +265,14 @@ public class PullFilterNodeTest {
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(filterNode.getWindowBounds(), is(Optional.of(
-        new WindowBounds()
-    )));
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(new WindowBounds())));
   }
 
   @Test
@@ -253,13 +303,14 @@ public class PullFilterNodeTest {
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(
                 null, null, Range.downTo(Instant.ofEpochMilli(2), BoundType.OPEN)),
@@ -296,13 +347,14 @@ public class PullFilterNodeTest {
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(
                 null, null, Range.downTo(Instant.ofEpochMilli(2), BoundType.CLOSED)),
@@ -339,13 +391,14 @@ public class PullFilterNodeTest {
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(
                 null, Range.upTo(Instant.ofEpochMilli(2), BoundType.OPEN), null),
@@ -382,13 +435,14 @@ public class PullFilterNodeTest {
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(
                 null, Range.upTo(Instant.ofEpochMilli(2), BoundType.CLOSED), null),
@@ -425,17 +479,18 @@ public class PullFilterNodeTest {
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(),
             new WindowRange(
-              null, null, Range.downTo(Instant.ofEpochMilli(2), BoundType.OPEN))
+                null, null, Range.downTo(Instant.ofEpochMilli(2), BoundType.OPEN))
         )
     )));
   }
@@ -468,13 +523,14 @@ public class PullFilterNodeTest {
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(),
             new WindowRange(
@@ -511,13 +567,14 @@ public class PullFilterNodeTest {
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(),
             new WindowRange(
@@ -554,13 +611,14 @@ public class PullFilterNodeTest {
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(),
             new WindowRange(
@@ -597,13 +655,14 @@ public class PullFilterNodeTest {
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(),
             new WindowRange(
@@ -651,13 +710,14 @@ public class PullFilterNodeTest {
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(
                 null,
@@ -699,13 +759,14 @@ public class PullFilterNodeTest {
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(
                 null, null, Range.downTo(Instant.ofEpochMilli(1577836800_000L), BoundType.OPEN)),
@@ -743,10 +804,76 @@ public class PullFilterNodeTest {
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1, 2))));
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1, 2)));
+  }
+
+  @Test
+  public void shouldThrowKeyExpressionThatDoestCoverKey() {
+    // Given:
+    when(source.getSchema()).thenReturn(INPUT_SCHEMA);
+    final Expression expression = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("WINDOWSTART")),
+        new IntegerLiteral(1234)
+    );
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> new PullFilterNode(
+            NODE_ID,
+            source,
+            expression,
+            metaStore,
+            ksqlConfig,
+            true
+        ));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("WHERE clause missing key column for disjunct: "
+        + "(WINDOWSTART = 1234)"));
+  }
+
+  @Test
+  public void shouldThrowKeyExpressionThatDoestCoverKey_multipleDisjuncts() {
+    // Given:
+    when(source.getSchema()).thenReturn(INPUT_SCHEMA);
+    final Expression keyExp1 = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("WINDOWSTART")),
+        new IntegerLiteral(1)
+    );
+    final Expression keyExp2 = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+        new IntegerLiteral(2)
+    );
+    final Expression expression = new LogicalBinaryExpression(
+        LogicalBinaryExpression.Type.OR,
+        keyExp1,
+        keyExp2
+    );
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> new PullFilterNode(
+            NODE_ID,
+            source,
+            expression,
+            metaStore,
+            ksqlConfig,
+            true
+        ));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("WHERE clause missing key column for disjunct: "
+        + "(WINDOWSTART = 1)"));
   }
 
 
@@ -884,7 +1011,8 @@ public class PullFilterNodeTest {
         ));
 
     // Then:
-    assertThat(e.getMessage(), containsString("The IN predicate cannot be combined with other comparisons"));
+    assertThat(e.getMessage(), containsString("An equality condition on the key column cannot be "
+        + "combined with other comparisons"));
   }
 
   @Test
@@ -1256,5 +1384,4 @@ public class PullFilterNodeTest {
     // Then:
     assertThat(e.getMessage(), containsString("Cannot use WINDOWSTART/WINDOWEND on non-windowed source."));
   }
-
 }

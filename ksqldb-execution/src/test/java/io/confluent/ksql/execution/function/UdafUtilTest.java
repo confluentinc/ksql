@@ -37,6 +37,7 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Before;
 import org.junit.Test;
@@ -82,7 +83,7 @@ public class UdafUtilTest {
   public void shouldResolveUDAF() {
     // When:
     final KsqlAggregateFunction returned =
-        UdafUtil.resolveAggregateFunction(functionRegistry, FUNCTION_CALL, SCHEMA);
+        UdafUtil.resolveAggregateFunction(functionRegistry, FUNCTION_CALL, SCHEMA, KsqlConfig.empty());
 
     // Then:
     assertThat(returned, is(function));
@@ -91,7 +92,7 @@ public class UdafUtilTest {
   @Test
   public void shouldGetAggregateWithCorrectName() {
     // When:
-    UdafUtil.resolveAggregateFunction(functionRegistry, FUNCTION_CALL, SCHEMA);
+    UdafUtil.resolveAggregateFunction(functionRegistry, FUNCTION_CALL, SCHEMA, KsqlConfig.empty());
 
     // Then:
     verify(functionRegistry).getAggregateFunction(eq(FUNCTION_NAME), any(), any());
@@ -100,7 +101,7 @@ public class UdafUtilTest {
   @Test
   public void shouldGetAggregateWithCorrectType() {
     // When:
-    UdafUtil.resolveAggregateFunction(functionRegistry, FUNCTION_CALL, SCHEMA);
+    UdafUtil.resolveAggregateFunction(functionRegistry, FUNCTION_CALL, SCHEMA, KsqlConfig.empty());
 
     // Then:
     verify(functionRegistry).getAggregateFunction(any(), eq(SqlTypes.BIGINT), any());
@@ -116,7 +117,7 @@ public class UdafUtilTest {
     ));
 
     // When:
-    UdafUtil.createAggregateFunctionInitArgs(0, functionCall);
+    UdafUtil.createAggregateFunctionInitArgs(0, functionCall, KsqlConfig.empty());
 
     // Then: did not throw.
   }
@@ -133,7 +134,7 @@ public class UdafUtilTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> UdafUtil.createAggregateFunctionInitArgs(0, functionCall)
+        () -> UdafUtil.createAggregateFunctionInitArgs(0, functionCall, KsqlConfig.empty())
     );
 
     // Then:
@@ -154,7 +155,7 @@ public class UdafUtilTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> UdafUtil.createAggregateFunctionInitArgs(0, functionCall)
+        () -> UdafUtil.createAggregateFunctionInitArgs(0, functionCall, KsqlConfig.empty())
     );
 
     // Then:

@@ -32,7 +32,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -45,11 +44,12 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
-import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
+import io.confluent.ksql.execution.plan.PlanInfo;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
@@ -65,6 +65,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -160,7 +161,7 @@ public class StreamAggregateBuilderTest {
   @Mock
   private KTable<Windowed<GenericKey>, GenericRow> windowedWithWindowBounds;
   @Mock
-  private KsqlQueryBuilder queryBuilder;
+  private RuntimeBuildContext buildContext;
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
@@ -206,10 +207,11 @@ public class StreamAggregateBuilderTest {
   @Before
   public void init() {
     when(sourceStep.build(any(), eq(planInfo))).thenReturn(KGroupedStreamHolder.of(groupedStream, INPUT_SCHEMA));
-    when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
-    when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(aggregateParamsFactory.create(any(), any(), any(), any(), anyBoolean()))
+    when(buildContext.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(buildContext.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
+    when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(buildContext.getKsqlConfig()).thenReturn(KsqlConfig.empty());
+    when(aggregateParamsFactory.create(any(), any(), any(), any(), anyBoolean(), any()))
         .thenReturn(aggregateParams);
     when(aggregateParams.getAggregator()).thenReturn((KudafAggregator) aggregator);
     when(aggregateParams.getAggregateSchema()).thenReturn(AGGREGATE_SCHEMA);
@@ -219,7 +221,7 @@ public class StreamAggregateBuilderTest {
     when(aggregateParams.getInitializer()).thenReturn(initializer);
 
     planBuilder = new KSPlanBuilder(
-        queryBuilder,
+        buildContext,
         mock(SqlPredicateFactory.class),
         aggregateParamsFactory,
         new StreamsFactories(
@@ -396,7 +398,7 @@ public class StreamAggregateBuilderTest {
     aggregate.build(planBuilder, planInfo);
 
     // Then:
-    verify(queryBuilder).buildKeySerde(KEY_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, MATERIALIZE_CTX);
+    verify(buildContext).buildKeySerde(KEY_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, MATERIALIZE_CTX);
   }
 
   @Test
@@ -408,7 +410,7 @@ public class StreamAggregateBuilderTest {
     aggregate.build(planBuilder, planInfo);
 
     // Then:
-    verify(queryBuilder).buildValueSerde(
+    verify(buildContext).buildValueSerde(
         VALUE_FORMAT,
         PHYSICAL_AGGREGATE_SCHEMA,
         MATERIALIZE_CTX
@@ -429,7 +431,8 @@ public class StreamAggregateBuilderTest {
         NON_AGG_COLUMNS,
         functionRegistry,
         FUNCTIONS,
-        false
+        false,
+        KsqlConfig.empty()
     );
   }
 
@@ -595,14 +598,14 @@ public class StreamAggregateBuilderTest {
   public void shouldBuildKeySerdeCorrectlyForWindowedAggregate() {
     for (final Runnable given : given()) {
       // Given:
-      clearInvocations(groupedStream, timeWindowedStream, sessionWindowedStream, aggregated, queryBuilder);
+      clearInvocations(groupedStream, timeWindowedStream, sessionWindowedStream, aggregated, buildContext);
       given.run();
 
       // When:
       windowedAggregate.build(planBuilder, planInfo);
 
       // Then:
-      verify(queryBuilder)
+      verify(buildContext)
           .buildKeySerde(KEY_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, MATERIALIZE_CTX);
     }
   }
@@ -611,7 +614,7 @@ public class StreamAggregateBuilderTest {
   public void shouldReturnCorrectSerdeForWindowedAggregate() {
     for (final Runnable given : given()) {
       // Given:
-      clearInvocations(groupedStream, timeWindowedStream, sessionWindowedStream, aggregated, queryBuilder);
+      clearInvocations(groupedStream, timeWindowedStream, sessionWindowedStream, aggregated, buildContext);
       given.run();
 
       // When:
@@ -623,7 +626,7 @@ public class StreamAggregateBuilderTest {
       final PhysicalSchema mockSchema = mock(PhysicalSchema.class);
       final QueryContext mockCtx = mock(QueryContext.class);
       serdeFactory.buildKeySerde(mockFormat, mockSchema, mockCtx);
-      verify(queryBuilder).buildKeySerde(
+      verify(buildContext).buildKeySerde(
           same(mockFormat),
           eq(windowedAggregate.getWindowExpression().getWindowInfo()),
           same(mockSchema),
@@ -636,14 +639,14 @@ public class StreamAggregateBuilderTest {
   public void shouldBuildValueSerdeCorrectlyForWindowedAggregate() {
     for (final Runnable given : given()) {
       // Given:
-      clearInvocations(groupedStream, timeWindowedStream, sessionWindowedStream, aggregated, queryBuilder);
+      clearInvocations(groupedStream, timeWindowedStream, sessionWindowedStream, aggregated, buildContext);
       given.run();
 
       // When:
       windowedAggregate.build(planBuilder, planInfo);
 
       // Then:
-      verify(queryBuilder)
+      verify(buildContext)
           .buildValueSerde(VALUE_FORMAT, PHYSICAL_AGGREGATE_SCHEMA, MATERIALIZE_CTX);
     }
   }
@@ -659,7 +662,7 @@ public class StreamAggregateBuilderTest {
           aggregated,
           aggregateParamsFactory
       );
-      when(aggregateParamsFactory.create(any(), any(), any(), any(), anyBoolean()))
+      when(aggregateParamsFactory.create(any(), any(), any(), any(), anyBoolean(), any()))
           .thenReturn(aggregateParams);
       given.run();
 
@@ -668,7 +671,7 @@ public class StreamAggregateBuilderTest {
 
       // Then:
       verify(aggregateParamsFactory)
-          .create(INPUT_SCHEMA, NON_AGG_COLUMNS, functionRegistry, FUNCTIONS, true);
+          .create(INPUT_SCHEMA, NON_AGG_COLUMNS, functionRegistry, FUNCTIONS, true, KsqlConfig.empty());
     }
   }
 

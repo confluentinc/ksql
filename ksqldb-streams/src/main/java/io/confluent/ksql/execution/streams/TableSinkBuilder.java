@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.execution.streams;
 
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableSink;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 
 public final class TableSinkBuilder {
   private TableSinkBuilder() {
@@ -26,7 +26,7 @@ public final class TableSinkBuilder {
   public static <K> void build(
       final KTableHolder<K> table,
       final TableSink<K> tableSink,
-      final KsqlQueryBuilder queryBuilder) {
+      final RuntimeBuildContext buildContext) {
     SinkBuilder.build(
         table.getSchema(),
         tableSink.getFormats(),
@@ -35,7 +35,7 @@ public final class TableSinkBuilder {
         table.getTable().toStream(),
         table.getExecutionKeyFactory(),
         tableSink.getProperties().getQueryContext(),
-        queryBuilder
+        buildContext
     );
   }
 }

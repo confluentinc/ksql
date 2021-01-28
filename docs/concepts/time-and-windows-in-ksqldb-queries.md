@@ -6,6 +6,10 @@ description: Learn how to work with time windows in ksqlDB statements
 keywords: ksqldb, timestamp, window 
 ---
 
+!!! important
+      This page refers to timestamps as a field in records. For information
+      on the TIMESTAMP data type, see [Timestamp types](../reference/sql/data-types.md).
+
 ![Diagram showing records in a ksqlDB stream](../img/ksql-stream-records.png)
 
 In ksqlDB, a record is an immutable representation of an event in time.

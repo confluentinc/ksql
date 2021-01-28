@@ -13,7 +13,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
@@ -88,7 +88,7 @@ public class TableTableJoinBuilderTest {
     when(leftKTable.join(any(KTable.class), any())).thenReturn(resultKTable);
 
     planBuilder = new KSPlanBuilder(
-        mock(KsqlQueryBuilder.class),
+        mock(RuntimeBuildContext.class),
         mock(SqlPredicateFactory.class),
         mock(AggregateParamsFactory.class),
         mock(StreamsFactories.class)

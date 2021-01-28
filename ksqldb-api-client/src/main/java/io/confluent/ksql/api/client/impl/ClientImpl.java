@@ -32,6 +32,7 @@ import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
+import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.vertx.core.Context;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -53,6 +54,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import org.reactivestreams.Publisher;
@@ -468,18 +470,22 @@ public class ClientImpl implements Client {
         .setDefaultHost(clientOptions.getHost())
         .setDefaultPort(clientOptions.getPort());
     if (clientOptions.isUseTls() && !clientOptions.getTrustStore().isEmpty()) {
-      options = options.setTrustStoreOptions(
-          new JksOptions()
-              .setPath(clientOptions.getTrustStore())
-              .setPassword(clientOptions.getTrustStorePassword())
+      final JksOptions jksOptions = VertxSslOptionsFactory.getJksTrustStoreOptions(
+          clientOptions.getTrustStore(),
+          clientOptions.getTrustStorePassword()
       );
+
+      options = options.setTrustStoreOptions(jksOptions);
     }
     if (!clientOptions.getKeyStore().isEmpty()) {
-      options = options.setKeyStoreOptions(
-          new JksOptions()
-              .setPath(clientOptions.getKeyStore())
-              .setPassword(clientOptions.getKeyStorePassword())
+      final JksOptions jksOptions = VertxSslOptionsFactory.buildJksKeyStoreOptions(
+          clientOptions.getKeyStore(),
+          clientOptions.getKeyStorePassword(),
+          Optional.of(clientOptions.getKeyPassword()),
+          Optional.of(clientOptions.getKeyAlias())
       );
+
+      options = options.setKeyStoreOptions(jksOptions);
     }
     return vertx.createHttpClient(options);
   }

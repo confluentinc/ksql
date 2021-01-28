@@ -137,7 +137,7 @@ with `ORGID KEY` of `120`, `ID KEY` of `21`, `NAME` of `bob` and `AGE` of `49`.
 
 This data format supports all SQL
 [data types](/reference/sql/data-types) except `ARRAY`, `MAP` and
-`STRUCT`.
+`STRUCT`. `TIMESTAMP` typed data is serialized as a long value indicating the Unix epoch time in milliseconds.
 
 ### JSON
 
@@ -152,9 +152,9 @@ This data format supports all SQL
 
 There are two JSON formats, `JSON` and `JSON_SR`. Both support serializing and
 deserializing JSON data. The latter offers integration with the {{ site.sr }},
-registering and retrieving JSON schemas. The former does not. Though the `JSON`
-does support reading data written by the `JSON_SR` format, (which prefixes the
-JSON data with a magic byte and schema id).
+registering and retrieving JSON schemas while the former does not. These two
+formats are _not_ byte compatible (you cannot read data produced by one by the
+other).
 
 The JSON formats supports all SQL [data types](/reference/sql/data-types).
 By itself, JSON doesn't support a map type, so ksqlDB serializes `MAP` types as
@@ -245,6 +245,20 @@ Decimals with specified precision and scale are serialized as JSON numbers. For 
 }
 ```
 
+#### Timestamp Serialization
+
+Timestamps are serialized as numbers indicating the Unix epoch time in milliseconds. For example,
+a timestamp at `1970-01-01T00:00:00.001` is serialized as
+
+```json
+{
+  "value": 1
+}
+```
+
+ksqlDb deserializes a number as a `TIMESTAMP` if it corresponds to a `TIMESTAMP` typed field in
+the stream.
+
 #### Field Name Case Sensitivity
 
 The format is case-insensitive when matching a SQL field name with a
@@ -278,7 +292,7 @@ Avro records can be deserialized into matching ksqlDB schemas.
 For example, given a SQL statement such as:
 
 ```sql
-CREATE STREAM x (ID BIGINT, NAME STRING, AGE INT) WITH (VALUE_FORMAT='AVRO', ...);
+CREATE STREAM x (ID BIGINT, NAME STRING, AGE INT, TIME TIMESTAMP) WITH (VALUE_FORMAT='AVRO', ...);
 ```
 
 And an Avro record serialized with the schema:
@@ -291,7 +305,8 @@ And an Avro record serialized with the schema:
   "fields": [
     { "name": "id", "type": "long" },
     { "name": "name", "type": "string" },
-    { "name": "age", "type": "int" }
+    { "name": "age", "type": "int" },
+    { "name": "time", "type": "long", "logicalType": "timestamp-millis"}
   ]
 }
 ```

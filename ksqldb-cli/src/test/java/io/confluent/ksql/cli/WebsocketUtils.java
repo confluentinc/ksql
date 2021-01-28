@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.cli;
 
+import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.util.VertxSslOptionsFactory;
 import io.vertx.core.MultiMap;
@@ -52,8 +53,10 @@ public class WebsocketUtils {
 
         final Optional<JksOptions> trustStoreOptions =
             VertxSslOptionsFactory.getJksTrustStoreOptions(clientProps);
+
+        final String alias = clientProps.get(KsqlClient.SSL_KEYSTORE_ALIAS_CONFIG);
         final Optional<JksOptions> keyStoreOptions =
-            VertxSslOptionsFactory.buildJksKeyStoreOptions(clientProps, Optional.empty());
+            VertxSslOptionsFactory.buildJksKeyStoreOptions(clientProps, Optional.ofNullable(alias));
 
         trustStoreOptions.ifPresent(options -> httpClientOptions.setTrustStoreOptions(options));
         keyStoreOptions.ifPresent(options -> httpClientOptions.setKeyStoreOptions(options));

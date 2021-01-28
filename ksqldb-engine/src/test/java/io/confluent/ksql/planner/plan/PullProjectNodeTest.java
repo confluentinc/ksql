@@ -17,6 +17,7 @@ package io.confluent.ksql.planner.plan;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
@@ -31,6 +32,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -53,6 +56,7 @@ public class PullProjectNodeTest {
   private static final ColumnName K = ColumnName.of("K");
   private static final ColumnName COL0 = ColumnName.of("COL0");
   private static final ColumnName ALIAS = ColumnName.of("GRACE");
+  private static final SourceName SOURCE_NAME = SourceName.of("SOURCE");
 
   private static final UnqualifiedColumnReferenceExp K_REF =
       new UnqualifiedColumnReferenceExp(K);
@@ -262,4 +266,32 @@ public class PullProjectNodeTest {
     assertThat(expected, is(projectNode.getSchema()));
   }
 
+  @Test
+  public void shouldBuildPullQueryOutputSchemaSelectStar() {
+    // Given:
+    selects = ImmutableList.of(new AllColumns(Optional.of(SOURCE_NAME)));
+    when(keyFormat.isWindowed()).thenReturn(false);
+    when(analysis.getSelectColumnNames()).thenReturn(ImmutableSet.of());
+
+    // When:
+    final PullProjectNode projectNode = new PullProjectNode(
+        NODE_ID,
+        source,
+        selects,
+        metaStore,
+        ksqlConfig,
+        analysis,
+        false
+    );
+
+    // Then:
+    final LogicalSchema expectedSchema = INPUT_SCHEMA;
+    assertThat(expectedSchema.withPseudoAndKeyColsInValue(false),
+        is(projectNode.getIntermediateSchema()));
+    assertThat(expectedSchema.withoutPseudoAndKeyColsInValue(), is(projectNode.getSchema()));
+    assertThrows(
+        IllegalStateException.class,
+        projectNode::getCompiledSelectExpressions
+    );
+  }
 }

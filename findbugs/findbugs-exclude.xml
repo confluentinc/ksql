@@ -38,6 +38,9 @@ For a detailed description of findbugs bug categories, see http://findbugs.sourc
     <Match>
         <Bug pattern="RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE"/>
     </Match>
+    <Match>
+        <Bug pattern="JUA_DONT_ASSERT_INSTANCEOF_IN_TESTS"/>
+    </Match>
 
     <!--
       DO NOT USE THIS EXCLUSION FILE FOR NON-GENERATED CODE

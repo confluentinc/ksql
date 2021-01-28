@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class QueryStreamWriter implements StreamingOutput {
+  private static final int WRITE_TIMEOUT_MS = 10 * 60000;
 
   private static final Logger log = LoggerFactory.getLogger(QueryStreamWriter.class);
 
@@ -123,6 +124,11 @@ class QueryStreamWriter implements StreamingOutput {
       queryMetadata.close();
       closed = true;
     }
+  }
+
+  @Override
+  public int getWriteTimeoutMs() {
+    return WRITE_TIMEOUT_MS;
   }
 
   private StreamedRow buildHeader() {

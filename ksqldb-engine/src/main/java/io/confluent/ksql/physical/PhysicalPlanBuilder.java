@@ -15,11 +15,11 @@
 
 package io.confluent.ksql.physical;
 
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
@@ -59,16 +59,13 @@ public class PhysicalPlanBuilder {
     final OutputNode outputNode = logicalPlanNode.getNode()
         .orElseThrow(() -> new IllegalArgumentException("Need an output node to build a plan"));
 
-    final KsqlQueryBuilder ksqlQueryBuilder = KsqlQueryBuilder.of(
-        builder,
+    final PlanBuildContext buildContext = PlanBuildContext.of(
         ksqlConfig,
         serviceContext,
-        processingLogContext,
-        functionRegistry,
-        queryId
+        functionRegistry
     );
 
-    final SchemaKStream<?> resultStream = outputNode.buildStream(ksqlQueryBuilder);
+    final SchemaKStream<?> resultStream = outputNode.buildStream(buildContext);
 
     final LogicalSchema logicalSchema = outputNode.getSchema();
     final LogicalSchema physicalSchema = resultStream.getSchema();

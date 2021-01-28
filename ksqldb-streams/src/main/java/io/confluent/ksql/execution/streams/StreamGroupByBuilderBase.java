@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -28,6 +27,7 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -38,16 +38,16 @@ import org.apache.kafka.streams.kstream.KGroupedStream;
 
 class StreamGroupByBuilderBase {
 
-  private final KsqlQueryBuilder queryBuilder;
+  private final RuntimeBuildContext buildContext;
   private final GroupedFactory groupedFactory;
   private final ParamsFactory paramsFactory;
 
   StreamGroupByBuilderBase(
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext buildContext,
       final GroupedFactory groupedFactory,
       final ParamsFactory paramsFactory
   ) {
-    this.queryBuilder = requireNonNull(queryBuilder, "queryBuilder");
+    this.buildContext = requireNonNull(buildContext, "buildContext");
     this.groupedFactory = requireNonNull(groupedFactory, "groupedFactory");
     this.paramsFactory = requireNonNull(paramsFactory, "paramsFactory");
   }
@@ -63,7 +63,7 @@ class StreamGroupByBuilderBase {
         formats,
         sourceSchema,
         queryContext,
-        queryBuilder,
+        buildContext,
         groupedFactory
     );
     return KGroupedStreamHolder.of(stream.getStream().groupByKey(grouped), stream.getSchema());
@@ -81,11 +81,11 @@ class StreamGroupByBuilderBase {
         groupByExpressions.stream(),
         "Group By",
         sourceSchema,
-        queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry()
+        buildContext.getKsqlConfig(),
+        buildContext.getFunctionRegistry()
     );
 
-    final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
+    final ProcessingLogger logger = buildContext.getProcessingLogger(queryContext);
 
     final GroupByParams params = paramsFactory
         .build(sourceSchema, groupBy, logger);
@@ -94,7 +94,7 @@ class StreamGroupByBuilderBase {
         formats,
         params.getSchema(),
         queryContext,
-        queryBuilder,
+        buildContext,
         groupedFactory
     );
 
@@ -109,7 +109,7 @@ class StreamGroupByBuilderBase {
       final Formats formats,
       final LogicalSchema schema,
       final QueryContext queryContext,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext buildContext,
       final GroupedFactory groupedFactory
   ) {
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
@@ -118,12 +118,12 @@ class StreamGroupByBuilderBase {
         formats.getValueFeatures()
     );
 
-    final Serde<GenericKey> keySerde = queryBuilder.buildKeySerde(
+    final Serde<GenericKey> keySerde = buildContext.buildKeySerde(
         formats.getKeyFormat(),
         physicalSchema,
         queryContext
     );
-    final Serde<GenericRow> valSerde = queryBuilder.buildValueSerde(
+    final Serde<GenericRow> valSerde = buildContext.buildValueSerde(
         formats.getValueFormat(),
         physicalSchema,
         queryContext

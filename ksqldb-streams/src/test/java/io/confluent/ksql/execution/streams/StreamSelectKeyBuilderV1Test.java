@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
@@ -94,7 +94,7 @@ public class StreamSelectKeyBuilderV1Test {
   @Mock
   private ExecutionStep<KStreamHolder<GenericKey>> sourceStep;
   @Mock
-  private KsqlQueryBuilder queryBuilder;
+  private RuntimeBuildContext buildContext;
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
@@ -113,14 +113,14 @@ public class StreamSelectKeyBuilderV1Test {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(queryBuilder.getKsqlConfig()).thenReturn(new KsqlConfig(ImmutableMap.of()));
+    when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(buildContext.getKsqlConfig()).thenReturn(new KsqlConfig(ImmutableMap.of()));
     when(kstream.filter(any())).thenReturn(filteredKStream);
     when(filteredKStream.selectKey(any(KeyValueMapper.class))).thenReturn(rekeyedKstream);
     when(sourceStep.build(any(), eq(planInfo))).thenReturn(
         new KStreamHolder<>(kstream, SOURCE_SCHEMA, mock(ExecutionKeyFactory.class)));
     planBuilder = new KSPlanBuilder(
-        queryBuilder,
+        buildContext,
         mock(SqlPredicateFactory.class),
         mock(AggregateParamsFactory.class),
         mock(StreamsFactories.class)
@@ -156,7 +156,7 @@ public class StreamSelectKeyBuilderV1Test {
         PhysicalSchema.from(SOURCE_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
         queryContext
     );
-    verify(queryBuilder).buildKeySerde(
+    verify(buildContext).buildKeySerde(
         FormatInfo.of(FormatFactory.JSON.name()),
         PhysicalSchema.from(SOURCE_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
         queryContext);

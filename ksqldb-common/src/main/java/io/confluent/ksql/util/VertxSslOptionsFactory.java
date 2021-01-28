@@ -1,5 +1,6 @@
 /*
  * Copyright 2021 Confluent Inc.
+ * Copyright 2020 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -16,6 +17,7 @@
 package io.confluent.ksql.util;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.PfxOptions;
@@ -45,6 +47,10 @@ public final class VertxSslOptionsFactory {
     return props.get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
   }
 
+  private static String getKeyPassword(final Map<String, String> props) {
+    return props.get(SslConfigs.SSL_KEY_PASSWORD_CONFIG);
+  }
+
   private static JksOptions buildJksOptions(final String path, final String password) {
     return new JksOptions().setPath(path).setPassword(Strings.nullToEmpty(password));
   }
@@ -70,6 +76,10 @@ public final class VertxSslOptionsFactory {
 
   private static PfxOptions buildPfxOptions(final String path, final String password) {
     return new PfxOptions().setPath(path).setPassword(Strings.nullToEmpty(password));
+  }
+
+  public static JksOptions getJksTrustStoreOptions(final String path, final String password) {
+    return buildJksOptions(path, password);
   }
 
   /**
@@ -121,11 +131,12 @@ public final class VertxSslOptionsFactory {
    * <ul>
    *  <li>Required: {@value SslConfigs#SSL_KEYSTORE_LOCATION_CONFIG}</li>
    *  <li>Optional: {@value SslConfigs#SSL_KEYSTORE_PASSWORD_CONFIG}</li>
+   *  <li>Optional: {@value SslConfigs#SSL_KEY_PASSWORD_CONFIG}</li>
    * </ul>
    *
    * <p>If an {@code alias} is used, then it builds the {@code JksOptions} with the internal
    * private key referenced with the alias. The internal private key will be decrypted using
-   * the same keystore password.
+   * the {@value SslConfigs#SSL_KEY_PASSWORD_CONFIG}.
    *
    * @param props A Map with the keystore location and password configs.
    * @return The {@code JksOptions} configured with the above SSL settings.
@@ -137,13 +148,14 @@ public final class VertxSslOptionsFactory {
   ) {
     final String location = getKeyStoreLocation(props);
     final String keyStorePassword = getKeyStorePassword(props);
+    final String keyPassword = getKeyPassword(props);
 
     if (!Strings.isNullOrEmpty(location)) {
       final JksOptions jksOptions;
 
       if (alias.isPresent() && !alias.get().isEmpty()) {
         jksOptions = buildJksOptions(
-            loadJksKeyStore(location, keyStorePassword, keyStorePassword, alias.get()),
+            loadJksKeyStore(location, keyStorePassword, keyPassword, alias.get()),
             keyStorePassword
         );
       } else {
@@ -154,6 +166,21 @@ public final class VertxSslOptionsFactory {
     }
 
     return Optional.empty();
+  }
+
+  public static JksOptions buildJksKeyStoreOptions(
+      final String path,
+      final String password,
+      final Optional<String> keyPassword,
+      final Optional<String> alias
+  ) {
+    return buildJksKeyStoreOptions(
+        ImmutableMap.of(
+            SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, path,
+            SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, password,
+            SslConfigs.SSL_KEY_PASSWORD_CONFIG, keyPassword.orElse("")
+        ), alias
+    ).get();
   }
 
   /**

@@ -55,6 +55,7 @@ Converts one type to another. The following casts are supported:
 | any  | `STRING` | Converts the type to its string representation. |
 | `VARCHAR` | `BOOLEAN` | Any string that exactly matches `true`, case-insensitive, is converted to `true`. Any other value is converted to `false`. |
 | `VARCHAR` | `INT`, `BIGINT`, `DECIMAL`, `DOUBLE` | Converts string representation of numbers to number types. Conversion will fail if text does not contain a number or the number does not fit in the indicated type. |
+| `VARCHAR` | `TIMESTAMP` | Converts datestrings to `TIMESTAMP`. Conversion fails if text is not in ISO-8601 format.     |
 | `INT`, `BIGINT`, `DECIMAL`, `DOUBLE` | `INT`, `BIGINT`, `DECIMAL`, `DOUBLE` | Convert between numeric types. Conversion can result in rounding |
 | `ARRAY` | `ARRAY` | (Since 0.14) Convert between arrays of different element types |   
 | `MAP` | `MAP` | (Since 0.14) Convert between maps of different key and value types |   
@@ -1021,11 +1022,15 @@ may differ depending on the local time of different ksqlDB Server instances.
 Since: 0.6.0
 
 ```sql
-UNIX_TIMESTAMP()
+UNIX_TIMESTAMP([timestamp])
 ```
 
-Gets the Unix timestamp in milliseconds, represented as a BIGINT. The returned
-timestamp may differ depending on the local time of different ksqlDB Server instances.
+If `UNIX_TIMESTAMP` is called with the timestamp parameter, the function returns the TIMESTAMP
+value as a BIGINT value representing the number of milliseconds since `1970-01-01T00:00:00 UTC`.
+
+If the `timestamp` parameter is not provided, it returns the current Unix timestamp in milliseconds,
+represented as a BIGINT. The returned timestamp may differ depending on the local time of different
+ksqlDB Server instances.
 
 ### `DATETOSTRING`
 
@@ -1059,6 +1064,8 @@ quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
 
 Since: -
 
+Deprecated since 0.16.0 (use PARSE_TIMESTAMP)
+
 ```sql
 STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
 ```
@@ -1080,6 +1087,8 @@ more information on timestamp formats, see
 
 Since: -
 
+Deprecated since 0.16.0 (use FORMAT_TIMESTAMP)
+
 ```sql
 TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
 ```
@@ -1091,10 +1100,56 @@ timestamp format can be escaped with two
 successive single quotes, `''`, for example:
 `'yyyy-MM-dd''T''HH:mm:ssX'`.
 TIMEZONE is an optional parameter and it is a
-java.util.TimeZone ID format, for example: "UTC",
+`java.util.TimeZone` ID format, for example: "UTC",
 "America/Los_Angeles", "PDT", "Europe/London". For
 more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `FORMAT_TIMESTAMP`
+
+```sql
+FORMAT_TIMESTAMP(timestamp, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
+```
+
+Converts a TIMESTAMP value into the string representation of the timestamp in the given format.
+Single quotes in the timestamp format can be escaped with two successive single quotes, `''`, for
+example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
+
+TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, for example: "UTC",
+"America/Los_Angeles", "PDT", "Europe/London". For more information on timestamp formats, see
+[DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `PARSE_TIMESTAMP`
+
+```sql
+PARSE_TIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
+```
+
+Converts a string value in the given format into the TIMESTAMP value. Single quotes in the timestamp
+format can be escaped with two successive single quotes, `''`, for example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
+
+TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, for example: "UTC",
+"America/Los_Angeles", "PDT", "Europe/London". For more information on timestamp formats, see
+[DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `CONVERT_TZ`
+
+```sql
+CONVERT_TZ(col1, 'from_timezone', 'to_timezone')
+```
+
+Converts a TIMESTAMP value from `from_timezone` to `to_timezone`. `from_timezone` and
+`to_timezone` are `java.util.TimeZone` ID formats, for example: "UTC", "America/Los_Angeles",
+"PDT","Europe/London". For more information on timestamp formats,
+see [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `FROM_UNIXTIME`
+
+```sql
+FROM_UNIXTIME(milliseconds)
+```
+
+Converts a BIGINT millisecond timestamp value into a TIMESTAMP value.
 
 ## URLs
 

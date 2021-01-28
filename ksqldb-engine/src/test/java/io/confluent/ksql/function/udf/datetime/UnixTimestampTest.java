@@ -14,9 +14,12 @@
 
 package io.confluent.ksql.function.udf.datetime;
 
+import java.sql.Timestamp;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class UnixTimestampTest {
@@ -39,5 +42,14 @@ public class UnixTimestampTest {
 
     // Then:
     assertTrue(before <= result && result <= after);
+  }
+
+  @Test
+  public void shouldReturnMilliseconds() {
+    // When:
+    final long result = udf.unixTimestamp(new Timestamp(100L));
+
+    // Then:
+    assertThat(result, is(100L));
   }
 }

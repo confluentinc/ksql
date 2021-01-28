@@ -110,6 +110,8 @@ Use the following settings to configure the ksqlDB server to use HTTPS:
 
 ```properties
 listeners=https://hostname:port
+ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
+ssl.truststore.password=zzzz
 ssl.keystore.location=/var/private/ssl/ksql.server.keystore.jks
 ssl.keystore.password=xxxx
 ssl.key.password=yyyy
@@ -118,12 +120,10 @@ ssl.key.password=yyyy
 Note the use of the HTTPS protocol in the `listeners` config.
 
 To enable the server to authenticate clients (2-way authentication), use
-the following additional settings:
+the following additional setting:
 
 ```properties
 ssl.client.auth=true
-ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
-ssl.truststore.password=zzzz
 ```
 
 ### Additional server configuration options for HTTPS
@@ -163,6 +163,9 @@ authentication), use the following additional settings:
 ssl.keystore.location=/var/private/ssl/ksql.client.keystore.jks
 ssl.keystore.password=xxxx
 ssl.key.password=<another-secure-password>
+
+# Used to find the key store entry with the given alias in the keystore
+ssl.keystore.alias=<key-store-entry-alias>
 ```
 
 Settings for the CLI can be stored in a suitable file and passed to the

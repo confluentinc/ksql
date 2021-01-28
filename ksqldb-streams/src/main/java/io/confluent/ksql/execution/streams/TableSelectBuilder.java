@@ -16,10 +16,10 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableSelect;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper;
@@ -37,7 +37,7 @@ public final class TableSelectBuilder {
   public static <K> KTableHolder<K> build(
       final KTableHolder<K> table,
       final TableSelect<K> step,
-      final KsqlQueryBuilder queryBuilder
+      final RuntimeBuildContext buildContext
   ) {
     final LogicalSchema sourceSchema = table.getSchema();
     final QueryContext queryContext = step.getProperties().getQueryContext();
@@ -46,13 +46,13 @@ public final class TableSelectBuilder {
         sourceSchema,
         step.getKeyColumnNames(),
         step.getSelectExpressions(),
-        queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry()
+        buildContext.getKsqlConfig(),
+        buildContext.getFunctionRegistry()
     );
 
     final SelectValueMapper<K> selectMapper = selection.getMapper();
 
-    final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
+    final ProcessingLogger logger = buildContext.getProcessingLogger(queryContext);
 
     final Named selectName = Named.as(StreamsUtil.buildOpName(queryContext));
 

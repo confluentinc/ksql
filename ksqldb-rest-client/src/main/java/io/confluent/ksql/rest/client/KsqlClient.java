@@ -39,6 +39,7 @@ import org.apache.kafka.common.config.SslConfigs;
 
 @SuppressWarnings("WeakerAccess") // Public API
 public final class KsqlClient implements AutoCloseable {
+  public static final String SSL_KEYSTORE_ALIAS_CONFIG = "ssl.keystore.alias";
 
   static {
     initialize();
@@ -155,8 +156,9 @@ public final class KsqlClient implements AutoCloseable {
       if (trustStoreOptions.isPresent()) {
         httpClientOptions.setTrustStoreOptions(trustStoreOptions.get());
 
+        final String alias = clientProps.get(SSL_KEYSTORE_ALIAS_CONFIG);
         final Optional<JksOptions> keyStoreOptions =
-            VertxSslOptionsFactory.buildJksKeyStoreOptions(clientProps, Optional.empty());
+            VertxSslOptionsFactory.buildJksKeyStoreOptions(clientProps, Optional.ofNullable(alias));
 
         keyStoreOptions.ifPresent(options -> httpClientOptions.setKeyStoreOptions(options));
       }

@@ -82,7 +82,7 @@ public final class KsLocator implements Locator {
 
   @Override
   public List<KsqlPartitionLocation> locate(
-      final List<GenericKey> keys,
+      final List<KsqlKey> keys,
       final RoutingOptions routingOptions,
       final RoutingFilterFactory routingFilterFactory
   ) {
@@ -102,7 +102,7 @@ public final class KsLocator implements Locator {
       final HostInfo activeHost = partitionMetadata.getActiveHost();
       final Set<HostInfo> standByHosts = partitionMetadata.getStandbyHosts();
       final int partition = partitionMetadata.getPartition();
-      final Optional<Set<GenericKey>> partitionKeys = partitionMetadata.getKeys();
+      final Optional<Set<KsqlKey>> partitionKeys = partitionMetadata.getKeys();
 
       // For a given partition, find the ordered, filtered list of hosts to consider
       final List<KsqlNode> filteredHosts = getFilteredHosts(routingOptions, routingFilterFactory,
@@ -122,16 +122,16 @@ public final class KsLocator implements Locator {
    * @return The metadata associated with the keys
    */
   private List<PartitionMetadata> getMetadataForKeys(
-      final List<GenericKey> keys,
+      final List<KsqlKey> keys,
       final Set<Integer> filterPartitions
   ) {
     // Maintain request order for reproducibility by using a LinkedHashMap, even though it's
     // not a guarantee of the API.
     final Map<Integer, KeyQueryMetadata> metadataByPartition = new LinkedHashMap<>();
-    final Map<Integer, Set<GenericKey>> keysByPartition = new HashMap<>();
-    for (GenericKey key : keys) {
+    final Map<Integer, Set<KsqlKey>> keysByPartition = new HashMap<>();
+    for (KsqlKey key : keys) {
       final KeyQueryMetadata metadata = kafkaStreams
-          .queryMetadataForKey(stateStoreName, key, keySerializer);
+          .queryMetadataForKey(stateStoreName, key.getKey(), keySerializer);
 
       // Fail fast if Streams not ready. Let client handle it
       if (metadata == KeyQueryMetadata.NOT_AVAILABLE) {
@@ -344,18 +344,18 @@ public final class KsLocator implements Locator {
 
   @VisibleForTesting
   public static final class PartitionLocation implements KsqlPartitionLocation {
-    private final Optional<Set<GenericKey>> keys;
+    private final Optional<Set<KsqlKey>> keys;
     private final int partition;
     private final List<KsqlNode> nodes;
 
-    public PartitionLocation(final Optional<Set<GenericKey>> keys, final int partition,
+    public PartitionLocation(final Optional<Set<KsqlKey>> keys, final int partition,
                              final List<KsqlNode> nodes) {
       this.keys = keys;
       this.partition = partition;
       this.nodes = nodes;
     }
 
-    public Optional<Set<GenericKey>> getKeys() {
+    public Optional<Set<KsqlKey>> getKeys() {
       return keys;
     }
 
@@ -383,13 +383,13 @@ public final class KsLocator implements Locator {
     private final HostInfo activeHost;
     private final Set<HostInfo> standbyHosts;
     private final int partition;
-    private final Optional<Set<GenericKey>> keys;
+    private final Optional<Set<KsqlKey>> keys;
 
     PartitionMetadata(
         final HostInfo activeHost,
         final Set<HostInfo> standbyHosts,
         final int partition,
-        final Optional<Set<GenericKey>> keys
+        final Optional<Set<KsqlKey>> keys
     ) {
       this.activeHost = activeHost;
       this.standbyHosts = standbyHosts;
@@ -421,7 +421,7 @@ public final class KsLocator implements Locator {
     /**
      * @return the set of keys associated with the partition, if they exist
      */
-    public Optional<Set<GenericKey>> getKeys() {
+    public Optional<Set<KsqlKey>> getKeys() {
       return keys;
     }
   }

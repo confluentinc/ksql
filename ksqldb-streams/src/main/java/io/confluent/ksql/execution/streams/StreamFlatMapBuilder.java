@@ -18,7 +18,6 @@ package io.confluent.ksql.execution.streams;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -29,6 +28,7 @@ import io.confluent.ksql.execution.function.udtf.KudtfFlatMapper;
 import io.confluent.ksql.execution.function.udtf.TableFunctionApplier;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -52,13 +52,13 @@ public final class StreamFlatMapBuilder {
   public static <K> KStreamHolder<K> build(
       final KStreamHolder<K> stream,
       final StreamFlatMap<K> step,
-      final KsqlQueryBuilder queryBuilder
+      final RuntimeBuildContext buildContext
   ) {
     final List<FunctionCall> tableFunctions = step.getTableFunctions();
     final LogicalSchema schema = stream.getSchema();
     final Builder<TableFunctionApplier> tableFunctionAppliersBuilder = ImmutableList.builder();
     final CodeGenRunner codeGenRunner =
-        new CodeGenRunner(schema, queryBuilder.getKsqlConfig(), queryBuilder.getFunctionRegistry());
+        new CodeGenRunner(schema, buildContext.getKsqlConfig(), buildContext.getFunctionRegistry());
 
     for (final FunctionCall functionCall: tableFunctions) {
       final List<ExpressionMetadata> expressionMetadataList = new ArrayList<>(
@@ -69,7 +69,7 @@ public final class StreamFlatMapBuilder {
         expressionMetadataList.add(expressionMetadata);
       }
       final KsqlTableFunction tableFunction = UdtfUtil.resolveTableFunction(
-          queryBuilder.getFunctionRegistry(),
+          buildContext.getFunctionRegistry(),
           functionCall,
           schema
       );
@@ -80,7 +80,7 @@ public final class StreamFlatMapBuilder {
 
     final QueryContext queryContext = step.getProperties().getQueryContext();
 
-    final ProcessingLogger processingLogger = queryBuilder.getProcessingLogger(queryContext);
+    final ProcessingLogger processingLogger = buildContext.getProcessingLogger(queryContext);
 
     final ImmutableList<TableFunctionApplier> tableFunctionAppliers = tableFunctionAppliersBuilder
         .build();
@@ -95,7 +95,7 @@ public final class StreamFlatMapBuilder {
         buildSchema(
             stream.getSchema(),
             step.getTableFunctions(),
-            queryBuilder.getFunctionRegistry()
+            buildContext.getFunctionRegistry()
         )
     );
   }

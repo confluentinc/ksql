@@ -17,12 +17,12 @@ package io.confluent.ksql.execution.streams;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.PartitionByParams.Mapper;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -40,29 +40,29 @@ public final class StreamSelectKeyBuilder {
   public static <K> KStreamHolder<K> build(
       final KStreamHolder<K> stream,
       final StreamSelectKey<K> selectKey,
-      final KsqlQueryBuilder queryBuilder
+      final RuntimeBuildContext buildContext
   ) {
-    return build(stream, selectKey, queryBuilder, PartitionByParamsFactory::build);
+    return build(stream, selectKey, buildContext, PartitionByParamsFactory::build);
   }
 
   @VisibleForTesting
   static <K> KStreamHolder<K> build(
       final KStreamHolder<K> stream,
       final StreamSelectKey<K> selectKey,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext buildContext,
       final PartitionByParamsBuilder paramsBuilder
   ) {
     final LogicalSchema sourceSchema = stream.getSchema();
     final QueryContext queryContext = selectKey.getProperties().getQueryContext();
 
-    final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
+    final ProcessingLogger logger = buildContext.getProcessingLogger(queryContext);
 
     final PartitionByParams<K> params = paramsBuilder.build(
         sourceSchema,
         stream.getExecutionKeyFactory(),
         selectKey.getKeyExpressions(),
-        queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry(),
+        buildContext.getKsqlConfig(),
+        buildContext.getFunctionRegistry(),
         logger
     );
 
@@ -76,7 +76,7 @@ public final class StreamSelectKeyBuilder {
     return new KStreamHolder<>(
         reKeyed,
         params.getSchema(),
-        stream.getExecutionKeyFactory().withQueryBuilder(queryBuilder)
+        stream.getExecutionKeyFactory().withQueryBuilder(buildContext)
     );
   }
 

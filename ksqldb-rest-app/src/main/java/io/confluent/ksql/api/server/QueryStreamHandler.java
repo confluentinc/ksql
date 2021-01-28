@@ -86,6 +86,9 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
             metadata = new QueryResponseMetadata(
                 queryPublisher.getColumnNames(),
                 queryPublisher.getColumnTypes());
+
+            // When response is complete, publisher should be closed
+            routingContext.response().endHandler(v -> queryPublisher.close());
           } else {
             final PushQueryHolder query = connectionQueryManager
                 .createApiQuery(queryPublisher, routingContext.request());
@@ -111,5 +114,4 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
         .exceptionally(t ->
             ServerUtils.handleEndpointException(t, routingContext, "Failed to execute query"));
   }
-
 }

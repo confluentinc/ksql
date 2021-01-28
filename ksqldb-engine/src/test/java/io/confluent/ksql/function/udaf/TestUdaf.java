@@ -16,6 +16,8 @@
 package io.confluent.ksql.function.udaf;
 
 import io.confluent.ksql.util.KsqlConstants;
+import java.util.Map;
+import org.apache.kafka.common.Configurable;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -62,32 +64,7 @@ public final class TestUdaf {
 
   @UdafFactory(description = "sums int")
   public static TableUdaf<Integer, Long,Long> createSumInt() {
-    return new TableUdaf<Integer, Long, Long>() {
-      @Override
-      public Long undo(final Integer valueToUndo, final Long aggregateValue) {
-        return aggregateValue - valueToUndo;
-      }
-
-      @Override
-      public Long initialize() {
-        return 0L;
-      }
-
-      @Override
-      public Long aggregate(final Integer current, final Long aggregate) {
-        return current + aggregate;
-      }
-
-      @Override
-      public Long merge(final Long aggOne, final Long aggTwo) {
-        return aggOne + aggTwo;
-      }
-
-      @Override
-      public Long map(final Long agg) {
-        return agg;
-      }
-    };
+    return new SumIntUdaf();
   }
 
   @UdafFactory(description = "sums double")
@@ -178,4 +155,40 @@ public final class TestUdaf {
     };
   }
 
+  static class SumIntUdaf implements TableUdaf<Integer, Long, Long>, Configurable {
+
+    public static final String INIT_CONFIG = "ksql.functions.test_udaf.init";
+    private long init = 0L;
+
+    @Override
+    public Long undo(final Integer valueToUndo, final Long aggregateValue) {
+      return aggregateValue - valueToUndo;
+    }
+
+    @Override
+    public Long initialize() {
+      return init;
+    }
+
+    @Override
+    public Long aggregate(final Integer current, final Long aggregate) {
+      return current + aggregate;
+    }
+
+    @Override
+    public Long merge(final Long aggOne, final Long aggTwo) {
+      return aggOne + aggTwo;
+    }
+
+    @Override
+    public Long map(final Long agg) {
+      return agg;
+    }
+
+    @Override
+    public void configure(final Map<String, ?> map) {
+      final Object init = map.get(INIT_CONFIG);
+      this.init = (init == null) ? this.init : (long) init;
+    }
+  }
 }

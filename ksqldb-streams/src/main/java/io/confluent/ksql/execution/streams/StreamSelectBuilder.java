@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.execution.streams;
 
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamSelect;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper;
 import io.confluent.ksql.execution.transform.select.Selection;
@@ -33,7 +33,7 @@ public final class StreamSelectBuilder {
   public static <K> KStreamHolder<K> build(
       final KStreamHolder<K> stream,
       final StreamSelect<K> step,
-      final KsqlQueryBuilder queryBuilder
+      final RuntimeBuildContext buildContext
   ) {
     final QueryContext queryContext = step.getProperties().getQueryContext();
 
@@ -43,13 +43,13 @@ public final class StreamSelectBuilder {
         sourceSchema,
         step.getKeyColumnNames(),
         step.getSelectExpressions(),
-        queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry()
+        buildContext.getKsqlConfig(),
+        buildContext.getFunctionRegistry()
     );
 
     final SelectValueMapper<K> selectMapper = selection.getMapper();
 
-    final ProcessingLogger logger = queryBuilder.getProcessingLogger(queryContext);
+    final ProcessingLogger logger = buildContext.getProcessingLogger(queryContext);
 
     final Named selectName =
         Named.as(StreamsUtil.buildOpName(queryContext));

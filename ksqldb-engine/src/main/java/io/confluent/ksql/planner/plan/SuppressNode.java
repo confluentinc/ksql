@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.planner.plan;
 
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -67,9 +66,9 @@ public class SuppressNode extends SingleSourcePlanNode implements VerifiableNode
   }
 
   @Override
-  public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
-    final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId().toString());
-    final SchemaKStream<?> schemaKStream = getSource().buildStream(builder);
+  public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
+    final QueryContext.Stacker contextStacker = buildContext.buildNodeContext(getId().toString());
+    final SchemaKStream<?> schemaKStream = getSource().buildStream(buildContext);
 
     if (!(schemaKStream instanceof SchemaKTable)) {
       throw new KsqlException("Failed in suppress node. Expected to find a Table, but "

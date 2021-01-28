@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.links.DocumentationLinks;
@@ -84,7 +83,7 @@ public abstract class PlanNode {
 
   protected abstract int getPartitions(KafkaTopicClient kafkaTopicClient);
 
-  public abstract SchemaKStream<?> buildStream(KsqlQueryBuilder builder);
+  public abstract SchemaKStream<?> buildStream(PlanBuildContext buildContext);
 
   Optional<SourceName> getSourceName() {
     return sourceName;

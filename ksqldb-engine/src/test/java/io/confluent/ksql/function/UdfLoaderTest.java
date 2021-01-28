@@ -774,6 +774,28 @@ public class UdfLoaderTest {
   }
 
   @Test
+  public void shouldConfigureConfigurableUdaf() throws Exception {
+    // Given:
+    final UdafFactoryInvoker creator
+        = createUdafLoader().createUdafFactoryInvoker(
+        TestUdaf.class.getMethod("createSumInt"),
+        FunctionName.of("test-udf"),
+        "desc",
+        "",
+        "",
+        "");
+    final AggregateFunctionInitArguments initArgs = new AggregateFunctionInitArguments(
+        0, ImmutableMap.of("ksql.functions.test_udaf.init", 100L));
+
+    // When:
+    final KsqlAggregateFunction function = creator.createFunction(initArgs);
+    final Object initvalue = function.getInitialValueSupplier().get();
+
+    // Then:
+    assertThat(initvalue, is(100L));
+  }
+
+  @Test
   public void shouldInvokeFunctionWithStructReturnValue() throws Exception {
     final FunctionInvoker udf = FunctionLoaderUtils
         .createFunctionInvoker(getClass().getMethod("udfStruct", String.class));

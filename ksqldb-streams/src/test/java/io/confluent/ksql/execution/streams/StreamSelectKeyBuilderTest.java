@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -92,7 +92,7 @@ public class StreamSelectKeyBuilderTest {
   @Mock
   private ExecutionStep<KStreamHolder<GenericKey>> sourceStep;
   @Mock
-  private KsqlQueryBuilder queryBuilder;
+  private RuntimeBuildContext buildContext;
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
@@ -124,9 +124,9 @@ public class StreamSelectKeyBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(queryBuilder.getProcessingLogger(any())).thenReturn(processingLogger);
-    when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(queryBuilder.getKsqlConfig()).thenReturn(CONFIG);
+    when(buildContext.getProcessingLogger(any())).thenReturn(processingLogger);
+    when(buildContext.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(buildContext.getKsqlConfig()).thenReturn(CONFIG);
 
     when(paramBuilder.build(any(), eq(keyFactory), any(), any(), any(), any())).thenReturn(params);
 
@@ -139,7 +139,7 @@ public class StreamSelectKeyBuilderTest {
     when(stream.getExecutionKeyFactory()).thenReturn(keyFactory);
     when(keyFactory.withQueryBuilder(any())).thenReturn(keyFactory);
     when(keyFactory.buildKeySerde(any(), any(), any()))
-        .thenAnswer(inv -> queryBuilder.buildKeySerde(
+        .thenAnswer(inv -> buildContext.buildKeySerde(
             inv.getArgument(0), inv.getArgument(1), inv.getArgument(2)));
 
     when(kstream.map(any(KeyValueMapper.class), any(Named.class))).thenReturn(rekeyedKstream);
@@ -155,7 +155,7 @@ public class StreamSelectKeyBuilderTest {
   public void shouldPassCorrectArgsToParamBuilder() {
     // When:
     StreamSelectKeyBuilder
-        .build(stream, selectKey, queryBuilder, paramBuilder);
+        .build(stream, selectKey, buildContext, paramBuilder);
 
     // Then:
     verify(paramBuilder).build(
@@ -172,7 +172,7 @@ public class StreamSelectKeyBuilderTest {
   public void shouldUserMapperInMapCall() {
     // When:
     StreamSelectKeyBuilder
-        .build(stream, selectKey, queryBuilder, paramBuilder);
+        .build(stream, selectKey, buildContext, paramBuilder);
 
     // Then:
     verify(kstream).map(mapperCaptor.capture(), any());
@@ -191,7 +191,7 @@ public class StreamSelectKeyBuilderTest {
   public void shouldUseCorrectNameInMapCall() {
     // When:
     StreamSelectKeyBuilder
-        .build(stream, selectKey, queryBuilder, paramBuilder);
+        .build(stream, selectKey, buildContext, paramBuilder);
 
     // Then:
     verify(kstream).map(any(), nameCaptor.capture());
@@ -203,7 +203,7 @@ public class StreamSelectKeyBuilderTest {
   public void shouldOnlyMap() {
     // When:
     StreamSelectKeyBuilder
-        .build(stream, selectKey, queryBuilder, paramBuilder);
+        .build(stream, selectKey, buildContext, paramBuilder);
 
     // Then:
     verify(kstream).map(any(), any());
@@ -214,7 +214,7 @@ public class StreamSelectKeyBuilderTest {
   public void shouldReturnRekeyedStream() {
     // When:
     final KStreamHolder<GenericKey> result = StreamSelectKeyBuilder
-        .build(stream, selectKey, queryBuilder, paramBuilder);
+        .build(stream, selectKey, buildContext, paramBuilder);
 
     // Then:
     assertThat(result.getStream(), is(rekeyedKstream));
@@ -224,7 +224,7 @@ public class StreamSelectKeyBuilderTest {
   public void shouldReturnCorrectSchema() {
     // When:
     final KStreamHolder<GenericKey> result = StreamSelectKeyBuilder
-        .build(stream, selectKey, queryBuilder, paramBuilder);
+        .build(stream, selectKey, buildContext, paramBuilder);
 
     // Then:
     assertThat(result.getSchema(), is(RESULT_SCHEMA));
@@ -234,7 +234,7 @@ public class StreamSelectKeyBuilderTest {
   public void shouldReturnCorrectSerdeFactory() {
     // When:
     final KStreamHolder<GenericKey> result = StreamSelectKeyBuilder
-        .build(stream, selectKey, queryBuilder, paramBuilder);
+        .build(stream, selectKey, buildContext, paramBuilder);
 
     // Then:
     result.getExecutionKeyFactory().buildKeySerde(
@@ -243,7 +243,7 @@ public class StreamSelectKeyBuilderTest {
         queryContext
     );
 
-    verify(queryBuilder).buildKeySerde(
+    verify(buildContext).buildKeySerde(
         FormatInfo.of(FormatFactory.JSON.name()),
         PhysicalSchema.from(SOURCE_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
         queryContext);

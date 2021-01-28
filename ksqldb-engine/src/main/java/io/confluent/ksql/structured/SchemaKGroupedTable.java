@@ -16,7 +16,7 @@
 package io.confluent.ksql.structured;
 
 import io.confluent.ksql.GenericKey;
-import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.execution.function.UdafUtil;
@@ -73,14 +73,14 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       final List<FunctionCall> aggregations,
       final Optional<WindowExpression> windowExpression,
       final FormatInfo valueFormat,
-      final QueryContext.Stacker contextStacker
+      final Stacker contextStacker
   ) {
     if (windowExpression.isPresent()) {
       throw new KsqlException("Windowing not supported for table aggregations.");
     }
 
     final List<String> unsupportedFunctionNames = aggregations.stream()
-        .map(call -> UdafUtil.resolveAggregateFunction(functionRegistry, call, schema))
+        .map(call -> UdafUtil.resolveAggregateFunction(functionRegistry, call, schema, ksqlConfig))
         .filter(function -> !(function instanceof TableAggregationFunction))
         .map(KsqlAggregateFunction::name)
         .map(FunctionName::text)

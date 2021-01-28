@@ -27,7 +27,6 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 import java.util.OptionalLong;
 import org.apache.kafka.streams.StreamsConfig;
@@ -39,6 +38,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KafkaStreamsQueryValidatorTest {
+  private static final Map<String, Object> BASE_STREAMS_PROPERTIES = ImmutableMap.of(
+      StreamsConfig.APPLICATION_ID_CONFIG, "fake-app-id",
+      StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "fake-bootstrap"
+  );
+
   @Mock
   private TransientQueryMetadata transientQueryMetadata1;
   @Mock
@@ -156,7 +160,9 @@ public class KafkaStreamsQueryValidatorTest {
       final OptionalLong globalLimit
   ) {
     final Map<String, Object> ksqlProperties = globalLimit.isPresent()
-        ? ImmutableMap.of(config, globalLimit.getAsLong()) : Collections.emptyMap();
+        ? ImmutableMap.<String, Object>builder()
+            .putAll(BASE_STREAMS_PROPERTIES).put(config, globalLimit.getAsLong()).build()
+        : BASE_STREAMS_PROPERTIES;
     return SessionConfig.of(
         new KsqlConfig(ksqlProperties),
         ImmutableMap.of(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, queryLimit)
@@ -164,10 +170,9 @@ public class KafkaStreamsQueryValidatorTest {
   }
 
   private Map<String, Object> streamPropsWithCacheLimit(long limit) {
-    return ImmutableMap.of(
-        StreamsConfig.APPLICATION_ID_CONFIG, "fake-app-id",
-        StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "fake-bootstrap",
-        StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, limit
-    );
+    return ImmutableMap.<String, Object>builder()
+        .putAll(BASE_STREAMS_PROPERTIES)
+        .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, limit)
+        .build();
   }
 }

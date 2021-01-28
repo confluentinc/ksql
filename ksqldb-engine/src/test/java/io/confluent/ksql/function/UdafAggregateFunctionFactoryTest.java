@@ -23,6 +23,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
@@ -58,7 +59,7 @@ public class UdafAggregateFunctionFactoryTest {
     // When:
     functionFactory.createAggregateFunction(
         ImmutableList.of(SqlTypes.STRING),
-        new AggregateFunctionInitArguments(0, ImmutableList.of(1))
+        new AggregateFunctionInitArguments(0, ImmutableMap.of(), ImmutableList.of(1))
     );
 
     // Then:
@@ -70,7 +71,7 @@ public class UdafAggregateFunctionFactoryTest {
     // When:
     functionFactory.createAggregateFunction(
         ImmutableList.of(SqlTypes.STRING),
-        new AggregateFunctionInitArguments(0, Arrays.asList(null, 5L))
+        new AggregateFunctionInitArguments(0, ImmutableMap.of(), Arrays.asList(null, 5L))
     );
 
     // Then:
@@ -82,7 +83,7 @@ public class UdafAggregateFunctionFactoryTest {
     // When:
     functionFactory.createAggregateFunction(
         ImmutableList.of(SqlTypes.STRING),
-        new AggregateFunctionInitArguments(0, ImmutableList.of(true, 1, 1L, 1.0d, "s"))
+        new AggregateFunctionInitArguments(0, ImmutableMap.of(), ImmutableList.of(true, 1, 1L, 1.0d, "s"))
     );
 
     // Then: did not throw.
@@ -94,7 +95,7 @@ public class UdafAggregateFunctionFactoryTest {
     final Exception e = assertThrows(KsqlFunctionException.class,
         () -> functionFactory.createAggregateFunction(
             ImmutableList.of(SqlTypes.STRING),
-            new AggregateFunctionInitArguments(0, ImmutableList.of(BigDecimal.ONE))
+            new AggregateFunctionInitArguments(0, ImmutableMap.of(), ImmutableList.of(BigDecimal.ONE))
         )
     );
 

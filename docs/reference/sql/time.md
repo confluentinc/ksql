@@ -16,6 +16,10 @@ For more information, see
 
 ## Timestamp formats
 
+!!! important
+      This section refers to timestamps as a field in records. For information
+      on the TIMESTAMP data type, see [Timestamp types](data-types.md).
+
 Time-based operations, like windowing, process records according to the
 timestamp in `ROWTIME`. By default, the implicit `ROWTIME` pseudo column is the
 timestamp of a message in a Kafka topic. Timestamps have an accuracy of

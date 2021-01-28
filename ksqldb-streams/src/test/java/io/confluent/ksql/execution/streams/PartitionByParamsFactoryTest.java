@@ -29,7 +29,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
@@ -120,7 +120,7 @@ public class PartitionByParamsFactoryTest {
   @Mock
   private UdfFactory constantUdfFactory;
   @Mock
-  private KsqlQueryBuilder queryBuilder;
+  private RuntimeBuildContext buildContext;
 
   private final GenericKey key = genericKey(OLD_KEY);
   private final GenericRow value = new GenericRow();
@@ -496,7 +496,7 @@ public class PartitionByParamsFactoryTest {
   }
 
   private PartitionByParams<GenericKey> partitionBy(final List<Expression> expression) {
-    final ExecutionKeyFactory<GenericKey> factory = ExecutionKeyFactory.unwindowed(queryBuilder);
+    final ExecutionKeyFactory<GenericKey> factory = ExecutionKeyFactory.unwindowed(buildContext);
 
     return PartitionByParamsFactory
         .build(

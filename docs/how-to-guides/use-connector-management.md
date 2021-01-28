@@ -120,7 +120,7 @@ services:
     ports:
       - "8088:8088"
     volumes:
-      - "./confluent-hub-components/debezium-debezium-connector-mysql:/usr/share/kafka/plugins/debezium-mysql"
+      - "./confluent-hub-components:/usr/share/kafka/plugins"
     environment:
       KSQL_LISTENERS: "http://0.0.0.0:8088"
       KSQL_BOOTSTRAP_SERVERS: "broker:9092"

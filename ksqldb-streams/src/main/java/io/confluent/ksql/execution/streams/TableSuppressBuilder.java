@@ -17,11 +17,11 @@ package io.confluent.ksql.execution.streams;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableSuppress;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.execution.streams.transform.KsTransformer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -46,13 +46,13 @@ public final class TableSuppressBuilder {
   public <K> KTableHolder<K> build(
       final KTableHolder<K> table,
       final TableSuppress<K> step,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext buildContext,
       final ExecutionKeyFactory<K> executionKeyFactory
   ) {
     return build(
         table,
         step,
-        queryBuilder,
+        buildContext,
         executionKeyFactory,
         PhysicalSchema::from,
         Materialized::with
@@ -64,7 +64,7 @@ public final class TableSuppressBuilder {
   <K> KTableHolder<K> build(
       final KTableHolder<K> table,
       final TableSuppress<K> step,
-      final KsqlQueryBuilder queryBuilder,
+      final RuntimeBuildContext buildContext,
       final ExecutionKeyFactory<K> executionKeyFactory,
       final PhysicalSchemaFactory physicalSchemaFactory,
       final BiFunction<Serde<K>, Serde<GenericRow>, Materialized> materializedFactory
@@ -83,7 +83,7 @@ public final class TableSuppressBuilder {
         physicalSchema,
         queryContext
     );
-    final Serde<GenericRow> valueSerde = queryBuilder.buildValueSerde(
+    final Serde<GenericRow> valueSerde = buildContext.buildValueSerde(
         step.getInternalFormats().getValueFormat(),
         physicalSchema,
         queryContext
@@ -95,7 +95,7 @@ public final class TableSuppressBuilder {
         );
 
     final Suppressed.StrictBufferConfig strictBufferConfig;
-    final long maxBytes = queryBuilder.getKsqlConfig().getLong(
+    final long maxBytes = buildContext.getKsqlConfig().getLong(
         KsqlConfig.KSQL_SUPPRESS_BUFFER_SIZE_BYTES);
 
     if (maxBytes < 0) {

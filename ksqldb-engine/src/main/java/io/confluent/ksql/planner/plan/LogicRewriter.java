@@ -130,36 +130,7 @@ public final class LogicRewriter {
         final ComparisonExpression node,
         final Context<NotPropagatorContext> context
     ) {
-      if (!context.getContext().isNegated()) {
-        return Optional.empty();
-      }
-      return Optional.of(
-          new ComparisonExpression(
-              node.getLocation(), negateComparisonType(node.getType()), node.getLeft(),
-              node.getRight()));
-    }
-
-    private Type negateComparisonType(final Type type) {
-      switch (type) {
-        case EQUAL:
-          return Type.NOT_EQUAL;
-        case NOT_EQUAL:
-          return Type.EQUAL;
-        case LESS_THAN:
-          return Type.GREATER_THAN_OR_EQUAL;
-        case GREATER_THAN_OR_EQUAL:
-          return Type.LESS_THAN;
-        case GREATER_THAN:
-          return Type.LESS_THAN_OR_EQUAL;
-        case LESS_THAN_OR_EQUAL:
-          return Type.GREATER_THAN;
-        case IS_DISTINCT_FROM:
-          return Type.IS_NOT_DISTINCT_FROM;
-        case IS_NOT_DISTINCT_FROM:
-          return Type.IS_DISTINCT_FROM;
-        default:
-          throw new KsqlException("Unknown type " + type);
-      }
+      return handlePrimitiveTerm(node, context);
     }
 
     @Override

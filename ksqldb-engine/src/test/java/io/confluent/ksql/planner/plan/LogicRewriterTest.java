@@ -29,7 +29,7 @@ public class LogicRewriterTest {
   @Test
   public void shouldPropagateNots() {
     assertNeg("ORDERS", "ORDERUNITS > 1", "(ORDERS.ORDERUNITS > 1)");
-    assertNeg("ORDERS", "NOT ORDERUNITS > 1", "(ORDERS.ORDERUNITS <= 1)");
+    assertNeg("ORDERS", "NOT ORDERUNITS > 1", "(NOT (ORDERS.ORDERUNITS > 1))");
     assertNeg("TEST3", "NOT COL4", "(NOT TEST3.COL4)");
     assertNeg("TEST3", "NOT NOT COL4", "TEST3.COL4");
     assertNeg("TEST3", "NOT NOT NOT COL4", "(NOT TEST3.COL4)");
@@ -38,13 +38,13 @@ public class LogicRewriterTest {
     assertNeg("ORDERS", "ORDERUNITS > 1 AND ITEMID = 'a'",
         "((ORDERS.ORDERUNITS > 1) AND (ORDERS.ITEMID = 'a'))");
     assertNeg("ORDERS", "NOT ORDERUNITS > 1 AND ITEMID = 'a'",
-        "((ORDERS.ORDERUNITS <= 1) AND (ORDERS.ITEMID = 'a'))");
+        "((NOT (ORDERS.ORDERUNITS > 1)) AND (ORDERS.ITEMID = 'a'))");
     assertNeg("ORDERS", "NOT (ORDERUNITS > 1 AND ITEMID = 'a')",
-        "((ORDERS.ORDERUNITS <= 1) OR (ORDERS.ITEMID <> 'a'))");
+        "((NOT (ORDERS.ORDERUNITS > 1)) OR (NOT (ORDERS.ITEMID = 'a')))");
     assertNeg("ORDERS", "NOT (ORDERUNITS + 2 > 1 AND ITEMID = 'a' + 'b')",
-        "(((ORDERS.ORDERUNITS + 2) <= 1) OR (ORDERS.ITEMID <> ('a' + 'b')))");
+        "((NOT ((ORDERS.ORDERUNITS + 2) > 1)) OR (NOT (ORDERS.ITEMID = ('a' + 'b'))))");
     assertNeg("ORDERS", "NOT (ORDERUNITS > 1 OR ITEMID = 'a')",
-        "((ORDERS.ORDERUNITS <= 1) AND (ORDERS.ITEMID <> 'a'))");
+        "((NOT (ORDERS.ORDERUNITS > 1)) AND (NOT (ORDERS.ITEMID = 'a')))");
     assertNeg("TEST5", "NOT (A AND B)", "((NOT TEST5.A) OR (NOT TEST5.B))");
     assertNeg("TEST5", "NOT (A OR B)", "((NOT TEST5.A) AND (NOT TEST5.B))");
   }
@@ -64,9 +64,6 @@ public class LogicRewriterTest {
             + "(((TEST5.A OR TEST5.D) OR TEST5.E) AND ((TEST5.A OR TEST5.D) OR TEST5.F))) AND "
             + "((((TEST5.B OR TEST5.C) OR TEST5.E) AND ((TEST5.B OR TEST5.C) OR TEST5.F)) AND "
             + "(((TEST5.B OR TEST5.D) OR TEST5.E) AND ((TEST5.B OR TEST5.D) OR TEST5.F))))");
-//    assertCNF("TEST5", "((A AND B AND C) OR (A AND B AND D))",
-//        "((TEST5.A OR TEST5.B) AND (TEST5.C OR TEST5.D))");
-
 
     assertCNF("TEST5", "(NOT A AND B) OR (C AND NOT D)",
         "((((NOT TEST5.A) OR TEST5.C) AND ((NOT TEST5.A) OR (NOT TEST5.D))) AND "
@@ -110,7 +107,7 @@ public class LogicRewriterTest {
     assertExtractDisjuncts("ORDERS", "ORDERUNITS > 1 AND ITEMID = 'a'",
         "((ORDERS.ORDERUNITS > 1) AND (ORDERS.ITEMID = 'a'))");
     assertExtractDisjuncts("ORDERS", "NOT (ORDERUNITS > 1 AND ITEMID = 'a')",
-        "(ORDERS.ORDERUNITS <= 1)", "(ORDERS.ITEMID <> 'a')");
+        "(NOT (ORDERS.ORDERUNITS > 1))", "(NOT (ORDERS.ITEMID = 'a'))");
   }
 
   private void assertNeg(final String table, final String expressionStr, final String expectedStr) {

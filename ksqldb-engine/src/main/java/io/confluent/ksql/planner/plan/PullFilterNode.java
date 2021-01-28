@@ -164,7 +164,8 @@ public class PullFilterNode extends SingleSourcePlanNode {
       final Validator validator = new Validator();
       validator.process(disjunct, null);
       if (!validator.isKeyedQuery) {
-        throw invalidWhereClauseException("WHERE clause missing key column", isWindowed);
+        throw invalidWhereClauseException("WHERE clause missing key column for disjunct: "
+                + disjunct.toString(), isWindowed);
       }
 
       if (!validator.seenKeys.isEmpty()

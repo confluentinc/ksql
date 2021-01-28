@@ -173,6 +173,47 @@ public class PullFilterNodeTest {
   }
 
   @Test
+  public void shouldExtractKeyValueFromExpressionEquals_multipleDisjuncts() {
+    // Given:
+    final Expression keyExp1 = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+        new IntegerLiteral(1)
+    );
+    final Expression keyExp2 = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+        new IntegerLiteral(2)
+    );
+    final Expression expression = new LogicalBinaryExpression(
+        LogicalBinaryExpression.Type.OR,
+        keyExp1,
+        keyExp2
+    );
+    PullFilterNode filterNode = new PullFilterNode(
+        NODE_ID,
+        source,
+        expression,
+        metaStore,
+        ksqlConfig,
+        false
+    );
+
+    // When:
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
+
+    // Then:
+    assertThat(filterNode.isWindowed(), is(false));
+    assertThat(keys.size(), is(2));
+    final KeyConstraint keyConstraint1 = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint1.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint1.getWindowBounds(), is(Optional.empty()));
+    final KeyConstraint keyConstraint2 = (KeyConstraint) keys.get(1);
+    assertThat(keyConstraint2.getKey(), is(GenericKey.genericKey(2)));
+    assertThat(keyConstraint2.getWindowBounds(), is(Optional.empty()));
+  }
+
+  @Test
   public void shouldExtractKeyValuesFromInExpression() {
     // Given:
     final Expression expression = new InPredicate(
@@ -769,6 +810,70 @@ public class PullFilterNodeTest {
     assertThat(keys.size(), is(1));
     final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
     assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1, 2)));
+  }
+
+  @Test
+  public void shouldThrowKeyExpressionThatDoestCoverKey() {
+    // Given:
+    when(source.getSchema()).thenReturn(INPUT_SCHEMA);
+    final Expression expression = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("WINDOWSTART")),
+        new IntegerLiteral(1234)
+    );
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> new PullFilterNode(
+            NODE_ID,
+            source,
+            expression,
+            metaStore,
+            ksqlConfig,
+            true
+        ));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("WHERE clause missing key column for disjunct: "
+        + "(WINDOWSTART = 1234)"));
+  }
+
+  @Test
+  public void shouldThrowKeyExpressionThatDoestCoverKey_multipleDisjuncts() {
+    // Given:
+    when(source.getSchema()).thenReturn(INPUT_SCHEMA);
+    final Expression keyExp1 = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("WINDOWSTART")),
+        new IntegerLiteral(1)
+    );
+    final Expression keyExp2 = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+        new IntegerLiteral(2)
+    );
+    final Expression expression = new LogicalBinaryExpression(
+        LogicalBinaryExpression.Type.OR,
+        keyExp1,
+        keyExp2
+    );
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> new PullFilterNode(
+            NODE_ID,
+            source,
+            expression,
+            metaStore,
+            ksqlConfig,
+            true
+        ));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("WHERE clause missing key column for disjunct: "
+        + "(WINDOWSTART = 1)"));
   }
 
 

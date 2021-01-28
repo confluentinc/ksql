@@ -19,6 +19,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.KsqlLambdaType;
 import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
@@ -26,6 +27,7 @@ import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
@@ -444,6 +446,10 @@ public final class SchemaConverters {
         return SqlBaseType.STRUCT;
       }
 
+      if (paramType instanceof KsqlLambdaType) {
+        return SqlBaseType.LAMBDA;
+      }
+
       throw new KsqlException("Cannot convert param type to sql type: " + paramType);
     }
   }
@@ -479,6 +485,14 @@ public final class SchemaConverters {
           builder.field(field.name(), toFunctionType(field.type()));
         }
         return builder.build();
+      }
+
+      if (sqlType.baseType() == SqlBaseType.LAMBDA) {
+        final SqlLambda sqlMap = (SqlLambda) sqlType;
+        return KsqlLambdaType.of(
+            toFunctionType(sqlMap.getInputType()),
+            toFunctionType(sqlMap.getReturnType())
+        );
       }
 
       throw new KsqlException("Cannot convert sql type to param type: " + sqlType);

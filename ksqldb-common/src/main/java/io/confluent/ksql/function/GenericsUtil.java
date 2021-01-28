@@ -20,11 +20,13 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.GenericType;
+import io.confluent.ksql.function.types.KsqlLambdaType;
 import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -76,6 +78,10 @@ public final class GenericsUtil {
           .collect(Collectors.toSet());
     } else if (type instanceof GenericType) {
       return ImmutableSet.of(type);
+    } else if (type instanceof KsqlLambdaType) {
+      return Sets.union(
+          constituentGenerics(((KsqlLambdaType) type).inputType()),
+          constituentGenerics(((KsqlLambdaType) type).returnType()));
     } else {
       return ImmutableSet.of();
     }
@@ -120,6 +126,13 @@ public final class GenericsUtil {
           (fieldName, type) -> struct.field(fieldName, applyResolved(type, resolved))
       );
       return struct.build();
+    }
+
+    if (schema instanceof KsqlLambdaType) {
+      final KsqlLambdaType lambdaType = (KsqlLambdaType) schema;
+      final SqlType inputType = applyResolved(lambdaType.inputType(), resolved);
+      final SqlType returnType = applyResolved(lambdaType.returnType(), resolved);
+      return SqlLambda.of(inputType, returnType);
     }
 
     if (schema instanceof GenericType) {
@@ -172,11 +185,13 @@ public final class GenericsUtil {
     return ImmutableMap.copyOf(mapping);
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private static boolean resolveGenerics(
       final List<Entry<GenericType, SqlType>> mapping,
       final ParamType schema,
       final SqlType instance
   ) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (!isGeneric(schema) && !matches(schema, instance)) {
       // cannot identify from type mismatch
       return false;
@@ -204,6 +219,13 @@ public final class GenericsUtil {
       final MapType mapType = (MapType) schema;
       return resolveGenerics(mapping, mapType.key(), sqlMap.getKeyType())
           && resolveGenerics(mapping, mapType.value(), sqlMap.getValueType());
+    }
+
+    if (schema instanceof KsqlLambdaType) {
+      final SqlLambda sqlLambda = (SqlLambda) instance;
+      final KsqlLambdaType lambdaType = (KsqlLambdaType) schema;
+      return resolveGenerics(mapping, lambdaType.inputType(), sqlLambda.getInputType())
+          && resolveGenerics(mapping, lambdaType.returnType(), sqlLambda.getReturnType());
     }
 
     if (schema instanceof StructType) {

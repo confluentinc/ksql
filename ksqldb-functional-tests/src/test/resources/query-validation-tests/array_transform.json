@@ -1,0 +1,24 @@
+{
+  "comments": [
+    "Tests covering the use of the TRANSFORM_ARRAY function."
+  ],
+  "tests": [
+    {
+      "name": "apply lambda function to array",
+      "statements": [
+        "CREATE STREAM test (ID STRING KEY, numbers ARRAY<STRING>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT TRANSFORM_ARRAY(x => x + 5) AS c FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"colors": [3, 6]}},
+        {"topic": "test_topic", "value": {"colors": [5, null]}},
+        {"topic": "test_topic", "value": {"colors": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"NEW_ARRAY":[8, 13]}},
+        {"topic": "OUTPUT", "value": {"NEW_ARRAY":[10, null]}},
+        {"topic": "OUTPUT", "value": {"NEW_ARRAY":null}}
+      ]
+    }
+  ]
+}

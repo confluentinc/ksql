@@ -22,7 +22,7 @@ import java.util.stream.Stream;
  * The SQL types supported by KSQL.
  */
 public enum SqlBaseType {
-  BOOLEAN, INTEGER, BIGINT, DECIMAL, DOUBLE, STRING, ARRAY, MAP, STRUCT, TIMESTAMP;
+  BOOLEAN, INTEGER, BIGINT, DECIMAL, DOUBLE, STRING, ARRAY, MAP, STRUCT, TIMESTAMP, LAMBDA;
 
   /**
    * @return {@code true} if numeric type.

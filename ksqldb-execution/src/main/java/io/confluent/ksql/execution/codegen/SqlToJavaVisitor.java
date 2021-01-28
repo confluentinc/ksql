@@ -29,10 +29,12 @@ import io.confluent.ksql.execution.codegen.helpers.ArrayAccess;
 import io.confluent.ksql.execution.codegen.helpers.ArrayBuilder;
 import io.confluent.ksql.execution.codegen.helpers.CastEvaluator;
 import io.confluent.ksql.execution.codegen.helpers.InListEvaluator;
+import io.confluent.ksql.execution.codegen.helpers.LambdaUtil;
 import io.confluent.ksql.execution.codegen.helpers.LikeEvaluator;
 import io.confluent.ksql.execution.codegen.helpers.MapBuilder;
 import io.confluent.ksql.execution.codegen.helpers.NullSafe;
 import io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction;
+import io.confluent.ksql.execution.codegen.helpers.TriFunction;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
@@ -95,6 +97,7 @@ import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.types.KsqlLambda;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -102,6 +105,7 @@ import io.confluent.ksql.util.Pair;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -121,7 +125,6 @@ public class SqlToJavaVisitor {
   public static final List<String> JAVA_IMPORTS = ImmutableList.of(
       "io.confluent.ksql.execution.codegen.helpers.ArrayAccess",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction",
-      "io.confluent.ksql.execution.codegen.helpers.TriFunction",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction.LazyWhenClause",
       "java.sql.Timestamp",
       "java.util.Arrays",
@@ -151,7 +154,9 @@ public class SqlToJavaVisitor {
       InListEvaluator.class.getCanonicalName(),
       SqlDoubles.class.getCanonicalName(),
       SqlBooleans.class.getCanonicalName(),
-      SqlTimestamps.class.getCanonicalName()
+      SqlTimestamps.class.getCanonicalName(),
+      KsqlLambda.class.getCanonicalName(),
+      TriFunction.class.getCanonicalName()
   );
 
   private static final Map<Operator, String> DECIMAL_OPERATOR_NAME = ImmutableMap
@@ -350,15 +355,30 @@ public class SqlToJavaVisitor {
     }
 
     @Override
+    // CHECKSTYLE_RULES.OFF: TodoComment
     public Pair<String, SqlType> visitLambdaExpression(
-        final LambdaFunctionCall lambdaFunctionCall, final Void context) {
-      return visitUnsupported(lambdaFunctionCall);
+        final LambdaFunctionCall exp, final Void context) {
+      final Pair<String, SqlType> lambdaBody = process(exp.getBody(), context);
+      final List<Pair<String, Class<?>>> argPairs = new ArrayList<>();
+      for (final String lambdaArg: exp.getArguments()) {
+        // TODO add proper type inference
+        argPairs.add(new Pair<>(lambdaArg, Integer.class));
+      }
+      final String javaReturnType =
+          SchemaConverters.sqlToJavaConverter()
+              .toJavaType(lambdaBody.getRight()).getTypeName() + ".class";
+      return new Pair<>(
+          "new KsqlLambda("
+              + "Integer.class" + ", "
+              + javaReturnType + ", "
+              + LambdaUtil.function(argPairs, lambdaBody.getLeft()) + ")",
+          expressionTypeManager.getExpressionSqlType(exp));
     }
 
     @Override
     public Pair<String, SqlType> visitLambdaVariable(
         final LambdaVariable lambdaVariable, final Void context) {
-      return visitUnsupported(lambdaVariable);
+      return new Pair<>(lambdaVariable.getValue(), SqlTypes.INTEGER);
     }
 
     @Override
@@ -443,7 +463,10 @@ public class SqlToJavaVisitor {
           paramType = function.parameters().get(i);
         }
 
-        joiner.add(process(convertArgument(arg, sqlType, paramType), context).getLeft());
+        final Expression testArg = convertArgument(arg, sqlType, paramType);
+        final Pair<String, SqlType> pair =
+            process(convertArgument(arg, sqlType, paramType), context);
+        joiner.add(pair.getLeft());
       }
 
 
@@ -691,6 +714,7 @@ public class SqlToJavaVisitor {
     public Pair<String, SqlType> visitCast(final Cast node, final Void context) {
       final Pair<String, SqlType> expr = process(node.getExpression(), context);
       final SqlType to = node.getType().getSqlType();
+      //final Pair<String, SqlType> pair = Pair.of(genCastCode(expr, to), to);
       return Pair.of(genCastCode(expr, to), to);
     }
 

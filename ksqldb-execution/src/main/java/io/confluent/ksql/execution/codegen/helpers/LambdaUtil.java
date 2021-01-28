@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.codegen.helpers;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 
@@ -28,7 +29,7 @@ public final class LambdaUtil {
 
   private LambdaUtil() {
   }
-
+  
   /**
    * Generate code to build a {@link java.util.function.Function}.
    *
@@ -42,15 +43,7 @@ public final class LambdaUtil {
       final Class<?> argType,
       final String lambdaBody
   ) {
-    final String javaType = argType.getSimpleName();
-    final String function =  "new Function() {\n"
-        + " @Override\n"
-        + " public Object apply(Object arg) {\n"
-        + "   " + javaType + " " + argName + " = (" + javaType + ") arg;\n"
-        + "   return " + lambdaBody + ";\n"
-        + " }\n"
-        + "}";
-    return function;
+    return function(ImmutableList.of(new Pair<>(argName, argType)), lambdaBody);
   }
 
   /**
@@ -72,13 +65,14 @@ public final class LambdaUtil {
       i++;
       final String javaType = argPair.right.getSimpleName();
       arguments.append(
-          "   " + javaType + " " + argPair.left + " = (" + javaType + ") arg" + i + ";\n");
+          "   " + "final" + " " + javaType + " " + argPair.left
+              + " = (" + javaType + ") arg" + i + ";\n");
     }
     String functionType;
     String functionApply;
     if (argList.size() == 1) {
       functionType = "Function()";
-      functionApply = " public Object apply(Object arg) {\n";
+      functionApply = " public Object apply(Object arg1) {\n";
     } else if (argList.size() == 2) {
       functionType = "BiFunction()";
       functionApply = " public Object apply(Object arg1, Object arg2) {\n";

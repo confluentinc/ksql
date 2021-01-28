@@ -19,11 +19,13 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.GenericType;
+import io.confluent.ksql.function.types.KsqlLambdaType;
 import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.types.KsqlLambda;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.ParameterizedType;
@@ -34,6 +36,7 @@ import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.connect.data.Struct;
+import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
 public final class UdfUtil {
 
@@ -107,7 +110,9 @@ public final class UdfUtil {
     return schema;
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private static ParamType handleParameterizedType(final Type type) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (type instanceof ParameterizedType) {
       final ParameterizedType parameterizedType = (ParameterizedType) type;
       if (parameterizedType.getRawType() == Map.class) {
@@ -128,7 +133,11 @@ public final class UdfUtil {
       // schema annotation if a struct is being used
       return StructType.ANY_STRUCT;
     }
-
+    if (type instanceof ParameterizedTypeImpl) {
+      if (KsqlLambda.class.isAssignableFrom(((ParameterizedTypeImpl) type).getRawType())) {
+        return handleLambdaType((ParameterizedTypeImpl) type);
+      }
+    }
     throw new KsqlException("Type inference is not supported for: " + type);
   }
 
@@ -153,5 +162,19 @@ public final class UdfUtil {
         : getSchemaFromType(elementType);
 
     return ArrayType.of(elementParamType);
+  }
+
+  private static ParamType handleLambdaType(final ParameterizedTypeImpl type) {
+    final Type inputType = type.getActualTypeArguments()[0];
+    final ParamType keyParamType = inputType instanceof TypeVariable
+        ? GenericType.of(((TypeVariable<?>) inputType).getName())
+        : getSchemaFromType(inputType);
+
+    final Type returnType = type.getActualTypeArguments()[1];
+    final ParamType valueParamType = returnType instanceof TypeVariable
+        ? GenericType.of(((TypeVariable<?>) returnType).getName())
+        : getSchemaFromType(returnType);
+
+    return KsqlLambdaType.of(keyParamType, valueParamType);
   }
 }

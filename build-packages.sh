@@ -115,13 +115,13 @@ if "${BUILD_JAR}"; then
 fi 
 # Build Debian Package
 git clean -fd 
-git-buildpackage -us -uc --git-debian-branch="${work_branch}" --git-upstream-tree="${work_branch}" --git-builder="debuild -d -i -I"
+git-buildpackage -us -uc --git-debian-branch="${work_branch}" --git-upstream-tree="${work_branch}" --git-builder="debuild --set-envvar=VERSION=${FULL_VERSION} -d -i -I"
 
 # Build RPM
-make PACKAGE_TYPE=rpm "RPM_VERSION=${VERSION}" "REVISION=${RELEASE}" -f debian/Makefile rpm
+make PACKAGE_TYPE=rpm "VERSION=${FULL_VERSION}" "RPM_VERSION=${VERSION}" "REVISION=${RELEASE}" -f debian/Makefile rpm
 
 # Build Archive
-make PACKAGE_TYPE=archive -f debian/Makefile archive
+make PACKAGE_TYPE=archive "VERSION=${FULL_VERSION}" -f debian/Makefile archive
 
 # Collect output
 mkdir -p "${WORKSPACE}/output"

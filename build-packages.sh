@@ -14,7 +14,7 @@ BUILD_JAR="false"
 while [[ "${#}" -gt 0 ]]; do
     arg="${1}"
     case "${arg}" in
-	    -w|--worksapce)
+	    -w|--workspace)
             WORKSPACE="${2}"
             [ -d "${WORKSPACE}" ] || error "'${WORKSPACE}' Doesn't exist or is not a directory"
             shift 2

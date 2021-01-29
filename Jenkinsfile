@@ -16,6 +16,7 @@ def baseConfig = {
     cron = '@daily'
     maven_packages_url = "https://jenkins-confluent-packages-beta-maven.s3-us-west-2.amazonaws.com"
     dockerPullDeps = ['confluentinc/cp-base-new']
+    kafka_tutorials_branch = 'ksqldb-latest'
 }
 
 def defaultParams = [
@@ -332,6 +333,44 @@ def job = {
             }
         }
     }
+
+    // Kick off automated Kafka Tutorials test run
+
+    if (!config.isPrJob) {
+        stage('checkout kafka tutorials') {
+            checkout changelog: false,
+                poll: false,
+                scm: [$class: 'GitSCM',
+                    branches: [[name: "${config.kakfa_tutorials_branch}"]],
+                    doGenerateSubmoduleConfigurations: false,
+                    extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'kafka-tutorials']],
+                    submoduleCfg: [],
+                    userRemoteConfigs: [[credentialsId: 'ConfluentJenkins Github SSH Key',
+                        url: 'git@github.com:confluentinc/kafka-tutorials.git']]
+                ]
+        }
+
+        stage('update kafka tutorials and kick off semaphore test') {
+            dir('kafka-tutorials') {
+                withVaultEnv([["artifactory/jenkins_access_token", "user", "ARTIFACTORY_USERNAME"],
+                    ["artifactory/jenkins_access_token", "access_token", "ARTIFACTORY_PASSWORD"],
+                    ["github/confluent_jenkins", "user", "GIT_USER"],
+                    ["github/confluent_jenkins", "access_token", "GIT_TOKEN"]]) {
+                    withEnv(["GIT_CREDENTIAL=${env.GIT_USER}:${env.GIT_TOKEN}"]) {
+                        sh "./tools/update-ksqldb-version.sh ${config.ksql_db_artifact_version} ${config.dockerRegistry}"
+                        // run git diff in order to help debug if something goes wrong
+                        sh "git diff"
+                        sh "git add _includes/*"
+                        sh "git commit --allow-empty -m \"build: set ksql version to ${config.ksql_db_artifact_version}\""
+                        sshagent (credentials: ['ConfluentJenkins Github SSH Key']) {
+                            sh "git push origin HEAD:${config.kakfa_tutorials_branch}"
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 
     // Build CCloud ksqlDB image
 

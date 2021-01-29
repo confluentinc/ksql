@@ -1,3 +1,11 @@
+---
+layout: page
+title: ksqlDB Server Configuration Parameter Reference
+tagline: Refer ksqlDB's server parameters
+description: Parameters for onfiguring ksqlDB Server
+keywords: ksqldb, configure, server, setup, install
+---
+
 # Server configuration
 
 These configuration parameters control the general behavior of ksqlDB server.

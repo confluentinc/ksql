@@ -42,6 +42,7 @@ import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
@@ -638,6 +639,17 @@ public class AstBuilder {
     }
 
     @Override
+    public Node visitLambda(final SqlBaseParser.LambdaContext context) {
+      final List<String> arguments = context.identifier().stream()
+          .map(ParserUtil::getIdentifierText)
+          .collect(toList());
+
+      final Expression body = (Expression) visit(context.expression());
+
+      return new LambdaFunctionCall(getLocation(context), arguments, body);
+    }
+
+    @Override
     public Node visitListTopics(final SqlBaseParser.ListTopicsContext context) {
       return new ListTopics(getLocation(context),
           context.ALL() != null, context.EXTENDED() != null);
@@ -1173,10 +1185,12 @@ public class AstBuilder {
 
     @Override
     public Node visitFunctionCall(final SqlBaseParser.FunctionCallContext context) {
+      final List<Expression> expressionList = visit(context.expression(), Expression.class);
+      expressionList.addAll(visit(context.lambdaFunction(), Expression.class));
       return new FunctionCall(
           getLocation(context),
           FunctionName.of(ParserUtil.getIdentifierText(context.identifier())),
-          visit(context.expression(), Expression.class)
+          expressionList
       );
     }
 

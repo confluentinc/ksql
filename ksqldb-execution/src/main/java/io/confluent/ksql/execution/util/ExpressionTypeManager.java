@@ -37,6 +37,8 @@ import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
+import io.confluent.ksql.execution.expression.tree.LambdaLiteral;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
@@ -133,6 +135,27 @@ public class ExpressionTypeManager {
         final ArithmeticUnaryExpression node, final ExpressionTypeContext context
     ) {
       process(node.getValue(), context);
+      return null;
+    }
+
+    @Override
+    // CHECKSTYLE_RULES.OFF: TodoComment
+    public Void visitLambdaExpression(
+        final LambdaFunctionCall node, final ExpressionTypeContext context
+    ) {
+      process(node.getBody(), context);
+      // TODO: add proper type inference
+      context.setSqlType(SqlTypes.INTEGER);
+      return null;
+    }
+
+    @Override
+    // CHECKSTYLE_RULES.OFF: TodoComment
+    public Void visitLambdaLiteral(
+        final LambdaLiteral node, final ExpressionTypeContext expressionTypeContext
+    ) {
+      // TODO: add proper type inference
+      expressionTypeContext.setSqlType(SqlTypes.INTEGER);
       return null;
     }
 

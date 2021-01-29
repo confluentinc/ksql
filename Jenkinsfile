@@ -213,6 +213,7 @@ def job = {
 
                             // Install utilities required for building. XXX: Add to base image
                             sh """
+                                sudo apt update
                                 sudo apt install -y devscripts git-buildpackage dh-systemd javahelper xmlstarlet
                             """
 

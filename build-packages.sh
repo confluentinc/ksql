@@ -114,14 +114,18 @@ if "${BUILD_JAR}"; then
         "-Dskip.docker.build=false"
 fi 
 # Build Debian Package
-git clean -fd 
-git-buildpackage -us -uc --git-debian-branch="${work_branch}" --git-upstream-tree="${work_branch}" --git-builder="debuild --set-envvar=VERSION=${FULL_VERSION} -d -i -I"
+git clean -fd
+
+# Debian packages build with "root" (or a fakeroot), which sets HOME=/root (root's home dir), but the running user through fakeroot
+# doesn't have write access to /root/.m2, nor would it be able to find ~jenkins/.m2/settings.xml, so we override 
+# the home directory through the Java system property user.home to Jenkin's user home
+MAVEN_OPTS="${MAVEN_OPTS-} -Duser.home=${HOME}" git-buildpackage -us -uc --git-debian-branch="${work_branch}" --git-upstream-tree="${work_branch}" --git-builder="debuild --preserve-envvar=MAVEN_OPTS -d -i -I"
 
 # Build RPM
-make PACKAGE_TYPE=rpm "VERSION=${FULL_VERSION}" "RPM_VERSION=${VERSION}" "REVISION=${RELEASE}" -f debian/Makefile rpm
+make PACKAGE_TYPE=rpm "RPM_VERSION=${VERSION}" "REVISION=${RELEASE}" -f debian/Makefile rpm
 
 # Build Archive
-make PACKAGE_TYPE=archive "VERSION=${FULL_VERSION}" -f debian/Makefile archive
+make PACKAGE_TYPE=archive -f debian/Makefile archive
 
 # Collect output
 mkdir -p "${WORKSPACE}/output"

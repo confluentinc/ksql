@@ -128,11 +128,11 @@ git-buildpackage -us -uc --git-debian-branch="${work_branch}" --git-upstream-tre
 
 # Build RPM
 echo "Building RPM packages"
-fakeroot make PACKAGE_TYPE=rpm "VERSION=${VERSION}" "RPM_VERSION=${VERSION}" "REVISION=${RELEASE}" -f debian/Makefile rpm
+fakeroot make PACKAGE_TYPE=rpm "VERSION=${FULL_VERSION}" "RPM_VERSION=${VERSION}" "REVISION=${RELEASE}" -f debian/Makefile rpm
 
 # Build Archive
 echo "Building Archive packages"
-fakeroot make PACKAGE_TYPE=archive "VERSION=${VERSION}" -f debian/Makefile archive
+fakeroot make PACKAGE_TYPE=archive "VERSION=${FULL_VERSION}" -f debian/Makefile archive
 
 # Collect output
 mkdir -p "${WORKSPACE}/output"

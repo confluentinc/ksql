@@ -28,7 +28,7 @@
     <artifactId>ksqldb-tools</artifactId>
 
     <properties>
-        <main-class>io.confluent.ksql.tools.printmetrics.PrintMetrics</main-class>
+        <air.main.basedir>${project.parent.basedir}</air.main.basedir>
     </properties>
 
     <dependencies>
@@ -40,6 +40,16 @@
         <dependency>
             <groupId>net.java.dev.jna</groupId>
             <artifactId>jna</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.rvesse</groupId>
+            <artifactId>airline</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-annotations</artifactId>
         </dependency>
 
         <!-- Required for running tests -->

@@ -99,6 +99,9 @@ mvn --batch-mode versions:set-property -DgenerateBackupPoms=false "-DnewVersion=
 dch --newversion "${FULL_VERSION}" "Release version ${FULL_VERSION}"
 dch --release --distribution unstable ""
 
+echo "Versioning Diff:"
+git diff | cat
+
 # Commit changes
 git commit -a -m "build: Setting project version ${FULL_VERSION} and parent version ${UPSTREAM_VERSION}."
 
@@ -113,18 +116,23 @@ if "${BUILD_JAR}"; then
         "-Ddocker.upstream-tag=${UPSTREAM_VERSION}-latest" \
         "-Dskip.docker.build=false"
 fi 
-# Build Debian Package
 
-# Debian packages build with "root" (or a fakeroot), which sets HOME=/root (root's home dir), but the running user through fakeroot
-# doesn't have write access to /root/.m2, nor would it be able to find ~jenkins/.m2/settings.xml, so we override 
-# the home directory through the Java system property user.home to Jenkin's user home
-MAVEN_OPTS="${MAVEN_OPTS-} -Duser.home=${HOME}" git-buildpackage -us -uc --git-debian-branch="${work_branch}" --git-upstream-tree="${work_branch}" --git-builder="debuild --preserve-envvar=MAVEN_OPTS -d -i -I"
+# We run things through fakeroot, which causes issues with finding an .m2/repository location to write. We set the homedir where it does
+# have write access too to get around that.
+export MAVEN_OPTS="${MAVEN_OPTS-} -Duser.home=/home/jenkins"
+
+# Build Debian Package
+git clean -fd
+echo "Building Debian Packages"
+git-buildpackage -us -uc --git-debian-branch="${work_branch}" --git-upstream-tree="${work_branch}" --git-builder="debuild --preserve-envvar=MAVEN_OPTS -d -i -I"
 
 # Build RPM
-make PACKAGE_TYPE=rpm "RPM_VERSION=${VERSION}" "REVISION=${RELEASE}" -f debian/Makefile rpm
+echo "Building RPM packages"
+fakeroot make PACKAGE_TYPE=rpm "RPM_VERSION=${VERSION}" "REVISION=${RELEASE}" -f debian/Makefile rpm
 
 # Build Archive
-make PACKAGE_TYPE=archive -f debian/Makefile archive
+echo "Building Archive packages"
+fakeroot make PACKAGE_TYPE=archive -f debian/Makefile archive
 
 # Collect output
 mkdir -p "${WORKSPACE}/output"

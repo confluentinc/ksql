@@ -105,18 +105,6 @@ git diff | cat
 # Commit changes
 git commit -a -m "build: Setting project version ${FULL_VERSION} and parent version ${UPSTREAM_VERSION}."
 
-if "${BUILD_JAR}"; then
-    # Build Jar
-    mvn --batch-mode -Pjenkins clean package dependency:analyze site validate -U \
-        "-DskipTests" \
-        "-Dspotbugs.skip" \
-        "-Dcheckstyle.skip" \
-        "-Ddocker.tag=${FULL_VERSION}" \
-        "-Ddocker.registry=368821881613.dkr.ecr.us-west-2.amazonaws.com/" \
-        "-Ddocker.upstream-tag=${UPSTREAM_VERSION}-latest" \
-        "-Dskip.docker.build=false"
-fi 
-
 # We run things through fakeroot, which causes issues with finding an .m2/repository location to write. We set the homedir where it does
 # have write access too to get around that.
 export MAVEN_OPTS="${MAVEN_OPTS-} -Duser.home=/home/jenkins"
@@ -140,3 +128,16 @@ cp ../*.{changes,debian.tar.xz,dsc,build,orig.tar.gz} "${WORKSPACE}/output/"
 cp ./*.{tar.gz,zip,rpm} "${WORKSPACE}/output/"
 echo "Output Contents:"
 ls -la "${WORKSPACE}/output/"
+
+if "${BUILD_JAR}"; then
+    # Build Jar
+    mvn --batch-mode -Pjenkins clean package dependency:analyze site validate -U \
+        "-DskipTests" \
+        "-Dspotbugs.skip" \
+        "-Dcheckstyle.skip" \
+        "-Ddocker.tag=${FULL_VERSION}" \
+        "-Ddocker.registry=368821881613.dkr.ecr.us-west-2.amazonaws.com/" \
+        "-Ddocker.upstream-tag=${UPSTREAM_VERSION}-latest" \
+        "-Dskip.docker.build=false"
+fi 
+

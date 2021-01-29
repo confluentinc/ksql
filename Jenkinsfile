@@ -15,6 +15,7 @@ def baseConfig = {
     cron = '@daily'
     maven_packages_url = "https://jenkins-confluent-packages-beta-maven.s3-us-west-2.amazonaws.com"
     dockerPullDeps = ['confluentinc/cp-base-new']
+    kafka_tutorials_branch = 'ksqldb-latest'
 }
 
 def defaultParams = [
@@ -360,7 +361,7 @@ def job = {
             checkout changelog: false,
                 poll: false,
                 scm: [$class: 'GitSCM',
-                    branches: [[name: 'ksql-db-release']],
+                    branches: [[name: "${config.kakfa_tutorials_branch}"]],
                     doGenerateSubmoduleConfigurations: false,
                     extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'kafka-tutorials']],
                     submoduleCfg: [],
@@ -382,7 +383,7 @@ def job = {
                         sh "git add _includes/*"
                         sh "git commit --allow-empty -m \"build: set ksql version to ${config.ksql_db_artifact_version}\""
                         sshagent (credentials: ['ConfluentJenkins Github SSH Key']) {
-                            sh "git push origin HEAD:ksql-db-release"
+                            sh "git push origin HEAD:${config.kakfa_tutorials_branch}"
                         }
                     }
                 }

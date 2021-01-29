@@ -114,7 +114,6 @@ if "${BUILD_JAR}"; then
         "-Dskip.docker.build=false"
 fi 
 # Build Debian Package
-git clean -fd
 
 # Debian packages build with "root" (or a fakeroot), which sets HOME=/root (root's home dir), but the running user through fakeroot
 # doesn't have write access to /root/.m2, nor would it be able to find ~jenkins/.m2/settings.xml, so we override 

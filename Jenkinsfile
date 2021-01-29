@@ -1,3 +1,4 @@
+#!/usr/bin/env groovy
 import java.util.regex.Pattern
 
 def baseConfig = {
@@ -210,43 +211,21 @@ def job = {
                                 sh "docker pull ${config.dockerRegistry}${dockerRepo}:${config.cp_version}-latest"
                             }
 
-                            // We need to replace the parent version range before we can run any maven commands
-                            def pomFile = readFile('pom.xml')
-                            def parentVersionPattern = Pattern.compile(/(.*<parent>.*<groupId>io.confluent\S*<\/groupId>.*<version>)\[\d+\.\d+\.\d+-\d+\,\s+\d+\.\d+\.\d+-\d+\)(<\/version>.*<\/parent>.*)/, Pattern.DOTALL)
-                            // Groovy regex replaces the groups we didn't match, so we print the beginning of the file, our version, and the rest of the file.
-                            def newPomFile = pomFile.replaceFirst(parentVersionPattern, "\$1${config.cp_version}\$2")
-                            writeFile(file: 'pom.xml', text: newPomFile)
-
-                            // Set the project versions in the pom files
-                            sh "set -x"
-                            sh "mvn --batch-mode versions:set -DnewVersion=${config.ksql_db_artifact_version} -DgenerateBackupPoms=false"
-
-                            // Set the repo version property
-                            sh "mvn --batch-mode versions:set-property -DgenerateBackupPoms=false -DnewVersion=${config.ksql_db_artifact_version} -Dproperty=io.confluent.ksql.version"
-
-                            // Set the version of schema-registry to use
-                            sh "mvn --batch-mode versions:set-property -DgenerateBackupPoms=false -DnewVersion=${config.cp_version} -Dproperty=io.confluent.schema-registry.version"
-
-                            cmd = "mvn --batch-mode -Pjenkins clean package dependency:analyze site validate -U "
-                            cmd += "-DskipTests "
-                            cmd += "-Dspotbugs.skip "
-                            cmd += "-Dcheckstyle.skip "
-                            cmd += "-Ddocker.tag=${config.docker_tag} "
-                            cmd += "-Ddocker.registry=${config.dockerRegistry} "
-                            cmd += "-Ddocker.upstream-tag=${config.cp_version}-latest "
-                            cmd += "-Dskip.docker.build=false "
+                            // Install utilities required for building. XXX: Add to base image
+                            sh """
+                                sudo apt install -y devscripts git-buildpackage dh-systemd javahelper xmlstarlet
+                            """
 
                             withEnv(['MAVEN_OPTS=-XX:MaxPermSize=128M']) {
-                                sh cmd
+                                sh """
+                                ${env.WORKSPACE}/build-packages.sh --workspace . --project-version ${config.ksql_db_artifact_version} --upstream-version ${config.cp_version} --jar
+                                """
                             }
                             step([$class: 'hudson.plugins.findbugs.FindBugsPublisher', pattern: '**/*bugsXml.xml'])
 
                             sh "cp ${settingsFile} ."
-
                             if (!config.isPrJob) {
                                 def git_tag = "v${config.ksql_db_artifact_version}-ksqldb"
-                                sh "git add ."
-                                sh "git commit -m \"build: Setting project version ${config.ksql_db_artifact_version} and parent version ${config.cp_version}.\""
                                 sh "git tag ${git_tag}"
                                 sshagent (credentials: ['ConfluentJenkins Github SSH Key']) {
                                     sh "git push origin ${git_tag}"

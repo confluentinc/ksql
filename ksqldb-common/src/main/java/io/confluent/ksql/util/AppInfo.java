@@ -40,13 +40,13 @@ public final class AppInfo {
 
     try {
       final Properties props = new Properties();
-      try (InputStream resourceAsStream = AppInfo.class.getResourceAsStream(
-          "/git.properties")) {
-        if (resourceAsStream != null) {
+      if (AppInfo.class.getResource("/git.properties") != null) {
+        try (InputStream resourceAsStream = AppInfo.class.getResourceAsStream(
+                "/git.properties")) {
           props.load(resourceAsStream);
         }
+        commitId = props.getProperty("git.commit.id", commitId).trim();
       }
-      commitId = props.getProperty("git.commit.id", commitId).trim();
     } catch (final Exception e) {
       log.warn("Error while loading git properties:", e);
     }

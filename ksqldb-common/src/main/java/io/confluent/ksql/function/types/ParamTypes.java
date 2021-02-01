@@ -23,8 +23,6 @@ import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-
-import java.sql.Struct;
 import java.util.Map.Entry;
 import java.util.Optional;
 
@@ -41,7 +39,6 @@ public final class ParamTypes {
   public static final ParamType DECIMAL = DecimalType.INSTANCE;
   public static final TimestampType TIMESTAMP = TimestampType.INSTANCE;
   public static final KsqlLambdaType LAMBDALITERAL = KsqlLambdaType.of(null, null);
-
 
   public static boolean areCompatible(final SqlType actual, final ParamType declared) {
     return areCompatible(actual, declared, false);

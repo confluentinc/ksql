@@ -681,6 +681,7 @@ public class CliTest {
     // When:
     final Supplier<String> runner = () -> {
       // It's possible that the state store is not warm on the first invocation, hence the retry
+      run("SELECT ITEMID, COUNT FROM " + tableName + " WHERE ITEMID='ITEM_1';", localCli);
       return terminal.getOutputString();
     };
 

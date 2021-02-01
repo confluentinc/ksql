@@ -50,6 +50,8 @@ public class SqlPrimitiveTypeTest {
             SqlPrimitiveType.of(SqlBaseType.STRING))
         .addEqualityGroup(SqlPrimitiveType.of(SqlBaseType.TIMESTAMP),
             SqlPrimitiveType.of(SqlBaseType.TIMESTAMP))
+        .addEqualityGroup(SqlPrimitiveType.of(SqlBaseType.LAMBDA),
+            SqlPrimitiveType.of(SqlBaseType.LAMBDA))
         .addEqualityGroup(SqlArray.of(SqlPrimitiveType.of(SqlBaseType.STRING)))
         .testEquals();
   }
@@ -117,6 +119,7 @@ public class SqlPrimitiveTypeTest {
         .put("DoublE", SqlBaseType.DOUBLE)
         .put("StrinG", SqlBaseType.STRING)
         .put("tImeStamP", SqlBaseType.TIMESTAMP)
+        .put("lAmBdA", SqlBaseType.LAMBDA)
         .build();
 
     primitives.forEach((string, expected) ->
@@ -149,7 +152,8 @@ public class SqlPrimitiveTypeTest {
         "BIGINT",
         "DOUBLE",
         "STRING",
-        "TIMESTAMP"
+        "TIMESTAMP",
+        "LAMBDA"
     );
 
     // When:
@@ -179,7 +183,8 @@ public class SqlPrimitiveTypeTest {
         SqlBaseType.BIGINT,
         SqlBaseType.DOUBLE,
         SqlBaseType.STRING,
-        SqlBaseType.TIMESTAMP
+        SqlBaseType.TIMESTAMP,
+        SqlBaseType.LAMBDA
     ).forEach(type -> {
       // Then:
       assertThat(SqlPrimitiveType.of(type).toString(), is(type.toString()));

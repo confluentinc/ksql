@@ -41,6 +41,19 @@
       ]
     },
     {
+      "name": "PROTOBUF in/out",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, time TIMESTAMP) WITH (kafka_topic='test', value_format='PROTOBUF');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"time": 10}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"TIME": 10}}
+      ]
+    },
+    {
       "name": "equal - timestamp timestamp",
       "statements": [
         "CREATE STREAM TEST (ID STRING KEY, a TIMESTAMP, b TIMESTAMP) WITH (kafka_topic='test', value_format='AVRO');",

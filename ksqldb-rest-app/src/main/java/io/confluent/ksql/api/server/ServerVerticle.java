@@ -39,6 +39,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+import java.nio.channels.ClosedChannelException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -326,7 +327,11 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private static void unhandledExceptionHandler(final Throwable t) {
-    log.error("Unhandled exception", t);
+    if (t instanceof ClosedChannelException) {
+      log.debug("Unhandled ClosedChannelException (connection likely closed early)", t);
+    } else {
+      log.error("Unhandled exception", t);
+    }
   }
 
   /**

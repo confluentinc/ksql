@@ -495,7 +495,7 @@ public class ListSourceExecutorTest {
 
     // When:
     final KsqlEntity entity = CustomExecutors.SHOW_COLUMNS.execute(
-        engine.configure("DESCRIBE EXTENDED STREAM1;"),
+        engine.configure("DESCRIBE STREAM1 EXTENDED;"),
         mock(SessionProperties.class),
         engine.getEngine(),
         serviceContext

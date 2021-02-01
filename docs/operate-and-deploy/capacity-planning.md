@@ -114,7 +114,7 @@ following table created from the quickstart:
 
 ```sql
 CREATE TABLE pageviews_by_page AS SELECT pageid, COUNT(*) FROM pageviews_original GROUP BY pageid EMIT CHANGES;
-DESCRIBE EXTENDED pageviews_by_page;
+DESCRIBE pageviews_by_page EXTENDED;
 ```
 
 Your output should resemble:

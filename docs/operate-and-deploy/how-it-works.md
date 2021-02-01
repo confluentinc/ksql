@@ -257,6 +257,7 @@ headless and interactive deployments.
 | DROP a stream or table                                                                | Supported                   | Not Supported       |
 | List existing streams and tables (SHOW STREAMS, SHOW TABLES)                          | Supported                   | Not Supported       |
 | List running queries (SHOW QUERIES)                                                   | Supported                   | Not Supported       |
+| Describe existing streams and tables (DESCRIBE STREAMS, DESCRIBE TABLES)              | Supported                   | Not Supported       |
 | Run a script (RUN SCRIPT)                                                             | Supported                   | Not Supported       |
 | Set query properties (SET)                                                            | Supported                   | Supported           |
 | Show contents of a Kafka topic (PRINT)                                                | Supported                   | Not Supported       |

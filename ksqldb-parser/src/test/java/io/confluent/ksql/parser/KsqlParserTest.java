@@ -890,7 +890,7 @@ public class KsqlParserTest {
 
   @Test
   public void testDescribeStreamsExtended() {
-    final String statementString = "DESCRIBE EXTENDED STREAMS;";
+    final String statementString = "DESCRIBE STREAMS EXTENDED;";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
     assertThat(statement, instanceOf(DescribeStreams.class));
@@ -900,7 +900,7 @@ public class KsqlParserTest {
 
   @Test
   public void testDescribeTablesExtended() {
-    final String statementString = "DESCRIBE EXTENDED TABLES;";
+    final String statementString = "DESCRIBE TABLES EXTENDED;";
     final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();
     assertThat(statement, instanceOf(DescribeTables.class));

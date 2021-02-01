@@ -32,7 +32,7 @@ stream on a Kafka topic named `pageviews`, enter the following statement
 in the CLI:
 
 ```sql
-DESCRIBE EXTENDED PAGEVIEWS;
+DESCRIBE PAGEVIEWS EXTENDED;
 ```
 
 Example output showing the source topic:
@@ -104,7 +104,7 @@ site.kcat }} prints for your topic. Enter the following statement in the
 CLI:
 
 ```sql
-DESCRIBE EXTENDED pageviews;
+DESCRIBE pageviews EXTENDED;
 ```
 
 Example output:
@@ -304,7 +304,7 @@ Use the DESCRIBE EXTENDED statement to see `total-messages` and
 the metrics are local to the server where the DESCRIBE statement runs.
 
 ```sql
-DESCRIBE EXTENDED GOOD_RATINGS;
+DESCRIBE GOOD_RATINGS EXTENDED;
 ```
 
 Example output:

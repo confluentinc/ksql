@@ -580,7 +580,7 @@ public class KsqlResourceTest {
 
     // When:
     final SourceDescriptionList descriptionList = makeSingleRequest(
-        "DESCRIBE EXTENDED STREAMS;", SourceDescriptionList.class);
+        "DESCRIBE STREAMS EXTENDED;", SourceDescriptionList.class);
 
     // Then:
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
@@ -686,7 +686,7 @@ public class KsqlResourceTest {
 
     // When:
     final SourceDescriptionList descriptionList = makeSingleRequest(
-        "DESCRIBE EXTENDED TABLES;", SourceDescriptionList.class);
+        "DESCRIBE TABLES EXTENDED;", SourceDescriptionList.class);
 
     // Then:
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(

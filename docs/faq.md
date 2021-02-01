@@ -307,7 +307,7 @@ the container by running `docker logs <ksql-server-container-id>`.
 
 Check runtime stats for the ksqlDB server that you're connected to.
 
-- Run SHOW STREAMS or SHOW TABLES, then run `DESCRIBE EXTENDED <stream|table>`.
+- Run SHOW STREAMS or SHOW TABLES, then run `DESCRIBE <stream|table> EXTENDED`.
 - Run SHOW QUERIES, then run `EXPLAIN <query>`.
 
 The ksqlDB REST API supports a "server info" request (for example,

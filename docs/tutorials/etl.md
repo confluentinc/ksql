@@ -123,7 +123,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   broker:
-    image: confluentinc/cp-enterprise-kafka:{{ site.cprelease }}
+    image: confluentinc/cp-kafka:{{ site.cprelease }}
     hostname: broker
     container_name: broker
     depends_on:

@@ -127,11 +127,13 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
 
       return SerdeUtils.castToTargetType(coerced, targetType);
     } catch (final Exception e) {
-      final String msg = e instanceof JsonParseException
-          ? ((JsonParseException) e).getOriginalMessage()
-          : e.getMessage();
+      // Clear location in order to avoid logging data, for security reasons
+      if (e instanceof JsonParseException) {
+        ((JsonParseException) e).clearLocation();
+      }
+
       throw new SerializationException(
-          "Failed to deserialize " + target + " from topic: " + topic + ". " + msg, e);
+          "Failed to deserialize " + target + " from topic: " + topic + ". " + e.getMessage(), e);
     }
   }
 

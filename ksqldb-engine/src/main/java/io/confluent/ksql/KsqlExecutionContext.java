@@ -17,7 +17,6 @@ package io.confluent.ksql;
 
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlPlan;
-import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -145,18 +144,19 @@ public interface KsqlExecutionContext {
    * plan. The physical plan is then traversed for every row in the state store.
    * @param serviceContext The service context to execute the query in
    * @param statement The pull query
-   * @param routingFilterFactory The filters used to route requests for HA routing
    * @param routingOptions Configuration parameters used for routing requests
    * @param pullQueryMetrics JMX metrics
+   * @param startImmediately Whether to start the pull query immediately.  If not, the caller must
+   *                         call PullQueryResult.start to start the query.
    * @return the rows that are the result of the query evaluation.
    */
   PullQueryResult executePullQuery(
       ServiceContext serviceContext,
       ConfiguredStatement<Query> statement,
       HARouting routing,
-      RoutingFilterFactory routingFilterFactory,
       RoutingOptions routingOptions,
-      Optional<PullQueryExecutorMetrics> pullQueryMetrics
+      Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      boolean startImmediately
   );
 
   /**

@@ -730,7 +730,7 @@ public class KsqlClientTest {
 
   private void startServerWithTls() throws Exception {
     final Optional<JksOptions> keyStoreOptions = VertxSslOptionsFactory.buildJksKeyStoreOptions(
-    SERVER_KEY_STORE.keyStoreProps(), Optional.empty());
+    SERVER_KEY_STORE.keyStoreProps(), Optional.ofNullable(SERVER_KEY_STORE.getKeyAlias()));
 
     HttpServerOptions serverOptions = new HttpServerOptions().setPort(0)
         .setHost("localhost")

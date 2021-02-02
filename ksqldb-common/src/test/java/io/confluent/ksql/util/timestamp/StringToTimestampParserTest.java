@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.util.KsqlException;
+import java.sql.Timestamp;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import org.hamcrest.Description;
@@ -40,6 +41,24 @@ public class StringToTimestampParserTest {
         FIFTH_OF_NOVEMBER
             .withHour(10)
             .withZoneSameInstant(ZID)));
+  }
+
+  @Test
+  public void shouldParseToTimestamp() {
+    // Given
+    final String format = "yyyy-MM-dd HH";
+    final String timestamp = "1605-11-05 10";
+
+    // When
+    final Timestamp ts = new StringToTimestampParser(format).parseToTimestamp(timestamp, ZoneId.systemDefault());
+
+    // Then
+    assertThat(ts.getTime(), is(
+        FIFTH_OF_NOVEMBER
+            .withHour(10)
+            .withZoneSameInstant(ZID)
+            .toInstant()
+            .toEpochMilli()));
   }
 
   @Test

@@ -99,6 +99,12 @@ public abstract class TraversalExpressionVisitor<C> implements ExpressionVisitor
   }
 
   @Override
+  public Void visitLambdaExpression(final LambdaFunctionCall node, final C context) {
+    process(node.getBody(), context);
+    return null;
+  }
+
+  @Override
   public Void visitDereferenceExpression(final DereferenceExpression node, final C context) {
     process(node.getBase(), context);
     return null;
@@ -194,6 +200,11 @@ public abstract class TraversalExpressionVisitor<C> implements ExpressionVisitor
 
   @Override
   public Void visitBooleanLiteral(final BooleanLiteral node, final C context) {
+    return null;
+  }
+
+  @Override
+  public Void visitLambdaLiteral(final LambdaLiteral node, final C context) {
     return null;
   }
 

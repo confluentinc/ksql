@@ -11,7 +11,6 @@ Vendor: Confluent, Inc.
 Packager: Confluent Packaging <packages@confluent.io>
 BuildArch: noarch
 
-Provides: community-ksqldb = 0.14.0
 %description
 
 Streaming SQL engine for Apache Kafka.

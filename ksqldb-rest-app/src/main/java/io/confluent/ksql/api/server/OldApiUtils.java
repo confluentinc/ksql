@@ -139,7 +139,8 @@ public final class OldApiUtils {
     final WorkerExecutor workerExecutor = server.getWorkerExecutor();
     final VertxCompletableFuture<Void> vcf = new VertxCompletableFuture<>();
     workerExecutor.executeBlocking(promise -> {
-      final OutputStream ros = new ResponseOutputStream(routingContext.response());
+      final OutputStream ros = new ResponseOutputStream(routingContext.response(),
+          streamingOutput.getWriteTimeoutMs());
       routingContext.request().connection().closeHandler(v -> {
         // Close the OutputStream on close of the HTTP connection
         try {

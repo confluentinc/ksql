@@ -276,7 +276,7 @@ def job = {
                             }*/
                             sh """
                                 set +x
-                                TMP_GPG_PASS=$(mktemp -d -t XXXgpgpass)
+                                TMP_GPG_PASS=\$(mktemp -d -t XXXgpgpass)
                                 echo "\${GPG_PASSPHRASE}" > "\${TMP_GPG_PASS}"
                                 bash confluent-process-packages.sh \
                                     --bucket staging-ksqldb-packages \

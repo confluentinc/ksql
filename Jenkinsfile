@@ -249,7 +249,7 @@ def job = {
         }
     }
 
-    if (!config.isPrJob) {
+    if (!config.isPrJob || true) {  // XXX: Remove when not in PR
         stage('Publish Artifacts') {
             writeFile file: settingsFile, text: settings
             dir('ksql-db') {
@@ -262,13 +262,14 @@ def job = {
                             sh '''
                                 bash extract-iam-credential.sh
                             '''
-                            withEnv(['MAVEN_OPTS=-XX:MaxPermSize=128M']) {
+                            // XXX: Remove when not in PR
+                            /*withEnv(['MAVEN_OPTS=-XX:MaxPermSize=128M']) {
                                 cmd = "mvn --batch-mode -Pjenkins deploy -DskipTests -Ddocker.skip-build=true -Ddocker.skip-test=true"
                                 cmd += " -DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven"
                                 cmd += " -DrepositoryId=confluent-artifactory-central"
                                 cmd += " -DnexusUrl=s3://staging-ksqldb-maven/maven"
                                 sh cmd
-                            }
+                            }*/
                             sh """
                                 source extract-iam-credential.sh
                                 bash confluent-process-packages.sh \

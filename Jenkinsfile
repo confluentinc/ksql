@@ -258,7 +258,7 @@ def job = {
                 gpg_packaging_key = setupSSHKey("gpg/packaging", "private_key", "${env.WORKSPACE}/confluent-packaging-private.key")
                 withVaultEnv([
                     ["artifactory/jenkins_access_token", "user", "ARTIFACTORY_USERNAME"],
-                    ["artifactory/jenkins_access_token", "access_token", "ARTIFACTORY_PASSWORD"]
+                    ["artifactory/jenkins_access_token", "access_token", "ARTIFACTORY_PASSWORD"],
                     ["gpg/packaging", "passphrase", "GPG_PASSPHRASE"]]) {
                     withDockerServer([uri: dockerHost()]) {
                         withMaven(globalMavenSettingsFilePath: settingsFile, options: mavenOptions) {

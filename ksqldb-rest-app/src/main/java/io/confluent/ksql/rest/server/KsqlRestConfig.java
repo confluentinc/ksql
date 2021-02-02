@@ -103,6 +103,7 @@ public class KsqlRestConfig extends AbstractConfig {
 
   protected static final String SSL_KEYSTORE_LOCATION_DEFAULT = "";
   protected static final String SSL_KEYSTORE_PASSWORD_DEFAULT = "";
+  protected static final String SSL_KEY_PASSWORD_DEFAULT = "";
 
   public static final String SSL_KEYSTORE_TYPE_CONFIG = "ssl.keystore.type";
   protected static final String SSL_KEYSTORE_TYPE_DOC =
@@ -414,6 +415,12 @@ public class KsqlRestConfig extends AbstractConfig {
             Importance.HIGH,
             SslConfigs.SSL_KEYSTORE_PASSWORD_DOC
         ).define(
+            SslConfigs.SSL_KEY_PASSWORD_CONFIG,
+            Type.PASSWORD,
+            SSL_KEY_PASSWORD_DEFAULT,
+            Importance.HIGH,
+            SslConfigs.SSL_KEY_PASSWORD_DOC
+        ).define(
             SSL_KEYSTORE_TYPE_CONFIG,
             Type.STRING,
             SSL_STORE_TYPE_JKS,
@@ -694,7 +701,7 @@ public class KsqlRestConfig extends AbstractConfig {
     return getPropertiesWithOverrides(COMMAND_CONSUMER_PREFIX);
   }
 
-  Map<String, Object> getCommandProducerProperties() {
+  public Map<String, Object> getCommandProducerProperties() {
     return getPropertiesWithOverrides(COMMAND_PRODUCER_PREFIX);
   }
 

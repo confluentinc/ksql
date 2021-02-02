@@ -25,4 +25,9 @@ public interface StreamingOutput extends AutoCloseable {
   @Override
   void close();
 
+  /**
+   * The amount of time the system will spend trying to clear the Vert.x response write queue
+   * before giving up and throwing an error.
+   */
+  int getWriteTimeoutMs();
 }

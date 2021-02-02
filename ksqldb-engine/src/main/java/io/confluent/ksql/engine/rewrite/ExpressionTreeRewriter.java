@@ -39,6 +39,8 @@ import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
+import io.confluent.ksql.execution.expression.tree.LambdaLiteral;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
@@ -72,7 +74,7 @@ import java.util.stream.Collectors;
  * @param <C> A context type to be passed through to the plugin.
  */
 public final class ExpressionTreeRewriter<C> {
-
+  
   public static final class Context<C> {
     private final C context;
     private final ExpressionVisitor<Expression, C> rewriter;
@@ -466,6 +468,18 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
+    public Expression visitLambdaExpression(final LambdaFunctionCall node, final C context) {
+      final Optional<Expression> result
+          = plugin.apply(node, new Context<>(context, this));
+      if (result.isPresent()) {
+        return result.get();
+      }
+
+      final Expression expression = rewriter.apply(node.getBody(), context);
+      return new LambdaFunctionCall(node.getLocation(), node.getArguments(), expression);
+    }
+
+    @Override
     public Expression visitBooleanLiteral(final BooleanLiteral node, final C context) {
       return plugin.apply(node, new Context<>(context, this)).orElse(node);
     }
@@ -482,6 +496,11 @@ public final class ExpressionTreeRewriter<C> {
 
     @Override
     public Expression visitLongLiteral(final LongLiteral node, final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
+    }
+
+    @Override
+    public Expression visitLambdaLiteral(final LambdaLiteral node, final C context) {
       return plugin.apply(node, new Context<>(context, this)).orElse(node);
     }
 

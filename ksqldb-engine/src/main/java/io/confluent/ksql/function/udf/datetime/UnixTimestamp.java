@@ -17,7 +17,9 @@ package io.confluent.ksql.function.udf.datetime;
 import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
+import java.sql.Timestamp;
 
 @UdfDescription(
     name = "unix_timestamp",
@@ -27,9 +29,17 @@ import io.confluent.ksql.util.KsqlConstants;
 )
 public class UnixTimestamp {
 
-  @Udf(description = "Gets a BIGINT millisecond from the Unix timestamp.")
+  @Udf(description = "Gets a BIGINT millisecond from the Unix timestamp at the moment the"
+      + "function is called.")
   public long unixTimestamp() {
     return System.currentTimeMillis();
   }
 
+  @Udf(description = "Returns the BIGINT millisecond representation of the given timestamp.")
+  public long unixTimestamp(
+      @UdfParameter(
+          description = "the TIMESTAMP value.") final Timestamp timestamp
+  ) {
+    return timestamp.getTime();
+  }
 }

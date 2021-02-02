@@ -729,6 +729,7 @@ public class CastEvaluatorTest {
           if (to.baseType() == TIMESTAMP) {
             return "2020-05-26T07:59:58.000";
           }
+          // Intentional fall through
         default:
           final Object instance = INSTANCES.get(type.baseType());
           assertThat(

@@ -40,6 +40,9 @@ public class ClientTlsTest extends ClientTest {
       .get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
   protected static final String KEY_STORE_PASSWORD = SERVER_KEY_STORE.keyStoreProps()
       .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
+  protected static final String KEY_PASSWORD = SERVER_KEY_STORE.keyStoreProps()
+      .get(SslConfigs.SSL_KEY_PASSWORD_CONFIG);
+  protected static final String KEYSTORE_ALIAS = SERVER_KEY_STORE.getKeyAlias();
 
   @Override
   protected KsqlRestConfig createServerConfig() {
@@ -48,6 +51,9 @@ public class ClientTlsTest extends ClientTest {
     origs.put(KsqlRestConfig.LISTENERS_CONFIG, "https://localhost:0");
     origs.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, KEY_STORE_PATH);
     origs.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, KEY_STORE_PASSWORD);
+    origs.put(SslConfigs.SSL_KEY_PASSWORD_CONFIG, KEY_PASSWORD);
+    origs.put(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG, KEYSTORE_ALIAS);
+    origs.put(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG, KEYSTORE_ALIAS);
     return new KsqlRestConfig(origs);
   }
 

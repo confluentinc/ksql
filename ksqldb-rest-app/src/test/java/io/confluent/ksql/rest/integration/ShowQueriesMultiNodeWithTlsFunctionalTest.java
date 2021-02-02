@@ -54,6 +54,10 @@ public class ShowQueriesMultiNodeWithTlsFunctionalTest {
           "http://localhost:8088,https://localhost:8189")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://localhost:8189")
       .withProperties(SERVER_KEY_STORE.keyStoreProps())
+      .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG,
+          SERVER_KEY_STORE.getKeyAlias())
+      .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG,
+          SERVER_KEY_STORE.getKeyAlias())
       .build();
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
@@ -61,6 +65,10 @@ public class ShowQueriesMultiNodeWithTlsFunctionalTest {
           "http://localhost:8098,https://localhost:8199")
       .withProperty(KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://localhost:8199")
       .withProperties(SERVER_KEY_STORE.keyStoreProps())
+      .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG,
+          SERVER_KEY_STORE.getKeyAlias())
+      .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG,
+          SERVER_KEY_STORE.getKeyAlias())
       .build();
 
   @ClassRule

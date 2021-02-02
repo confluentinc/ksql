@@ -54,6 +54,8 @@ import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
+import io.confluent.ksql.execution.expression.tree.LambdaLiteral;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
@@ -104,6 +106,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.StringJoiner;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -118,6 +121,7 @@ public class SqlToJavaVisitor {
   public static final List<String> JAVA_IMPORTS = ImmutableList.of(
       "io.confluent.ksql.execution.codegen.helpers.ArrayAccess",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction",
+      "io.confluent.ksql.execution.codegen.helpers.TriFunction",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction.LazyWhenClause",
       "java.sql.Timestamp",
       "java.util.Arrays",
@@ -130,6 +134,7 @@ public class SqlToJavaVisitor {
       "com.google.common.collect.ImmutableMap",
       "java.util.function.Supplier",
       Function.class.getCanonicalName(),
+      BiFunction.class.getCanonicalName(),
       DecimalUtil.class.getCanonicalName(),
       BigDecimal.class.getCanonicalName(),
       MathContext.class.getCanonicalName(),
@@ -342,6 +347,18 @@ public class SqlToJavaVisitor {
     @Override
     public Pair<String, SqlType> visitNullLiteral(final NullLiteral node, final Void context) {
       return new Pair<>("null", null);
+    }
+
+    @Override
+    public Pair<String, SqlType> visitLambdaExpression(
+        final LambdaFunctionCall lambdaFunctionCall, final Void context) {
+      return visitUnsupported(lambdaFunctionCall);
+    }
+
+    @Override
+    public Pair<String, SqlType> visitLambdaLiteral(
+        final LambdaLiteral lambdaLiteral, final Void context) {
+      return visitUnsupported(lambdaLiteral);
     }
 
     @Override

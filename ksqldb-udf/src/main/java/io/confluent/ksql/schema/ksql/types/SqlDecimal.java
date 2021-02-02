@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.schema.ksql.types;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.schema.utils.SchemaException;
@@ -25,6 +26,9 @@ public final class SqlDecimal extends SqlType {
 
   private final int precision;
   private final int scale;
+  public static final String PRECISION = "precision";
+  public static final String SCALE = "scale";
+
 
   public static SqlDecimal of(final int precision, final int scale) {
     return new SqlDecimal(precision, scale);
@@ -82,6 +86,10 @@ public final class SqlDecimal extends SqlType {
   @Override
   public String toString(final FormatOptions formatOptions) {
     return toString();
+  }
+
+  public ImmutableMap<String, Object> toParametersMap() {
+    return ImmutableMap.of(SqlDecimal.PRECISION, precision, SqlDecimal.SCALE, scale);
   }
 
   /**

@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 public class TopicStreamWriter implements StreamingOutput {
 
   private static final Logger log = LoggerFactory.getLogger(TopicStreamWriter.class);
+  private static final int WRITE_TIMEOUT_MS = 10 * 60000;
   private final long interval;
   private final Duration disconnectCheckInterval;
   private final KafkaConsumer<Bytes, Bytes> topicConsumer;
@@ -148,6 +149,11 @@ public class TopicStreamWriter implements StreamingOutput {
       topicConsumer.close();
       closed = true;
     }
+  }
+
+  @Override
+  public int getWriteTimeoutMs() {
+    return WRITE_TIMEOUT_MS;
   }
 
   private static void outputException(final OutputStream out, final Exception exception) {

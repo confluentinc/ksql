@@ -30,6 +30,8 @@ public class ClientOptionsImpl implements ClientOptions {
   private String trustStorePassword;
   private String keyStorePath;
   private String keyStorePassword;
+  private String keyPassword;
+  private String keyAlias;
   private String basicAuthUsername;
   private String basicAuthPassword;
   private int executeQueryMaxResultRows = ClientOptions.DEFAULT_EXECUTE_QUERY_MAX_RESULT_ROWS;
@@ -48,8 +50,8 @@ public class ClientOptionsImpl implements ClientOptions {
       final boolean useTls, final boolean verifyHost, final boolean useAlpn,
       final boolean useBasicAuth,
       final String trustStorePath, final String trustStorePassword,
-      final String keyStorePath, final String keyStorePassword,
-      final String basicAuthUsername, final String basicAuthPassword,
+      final String keyStorePath, final String keyStorePassword, final String keyPassword,
+      final String keyAlias, final String basicAuthUsername, final String basicAuthPassword,
       final int executeQueryMaxResultRows) {
     this.host = Objects.requireNonNull(host);
     this.port = port;
@@ -61,6 +63,8 @@ public class ClientOptionsImpl implements ClientOptions {
     this.trustStorePassword = trustStorePassword;
     this.keyStorePath = keyStorePath;
     this.keyStorePassword = keyStorePassword;
+    this.keyPassword = keyPassword;
+    this.keyAlias = keyAlias;
     this.basicAuthUsername = basicAuthUsername;
     this.basicAuthPassword = basicAuthPassword;
     this.executeQueryMaxResultRows = executeQueryMaxResultRows;
@@ -117,6 +121,18 @@ public class ClientOptionsImpl implements ClientOptions {
   @Override
   public ClientOptions setKeyStorePassword(final String keyStorePassword) {
     this.keyStorePassword = keyStorePassword;
+    return this;
+  }
+
+  @Override
+  public ClientOptions setKeyPassword(final String keyPassword) {
+    this.keyPassword = keyPassword;
+    return this;
+  }
+
+  @Override
+  public ClientOptions setKeyAlias(final String keyAlias) {
+    this.keyAlias = keyAlias;
     return this;
   }
 
@@ -185,6 +201,16 @@ public class ClientOptionsImpl implements ClientOptions {
   }
 
   @Override
+  public String getKeyPassword() {
+    return keyPassword == null ? "" : keyPassword;
+  }
+
+  @Override
+  public String getKeyAlias() {
+    return keyAlias == null ? "" : keyAlias;
+  }
+
+  @Override
   public String getBasicAuthUsername() {
     return basicAuthUsername == null ? "" : basicAuthUsername;
   }
@@ -206,7 +232,7 @@ public class ClientOptionsImpl implements ClientOptions {
         useTls, verifyHost, useAlpn,
         useBasicAuth,
         trustStorePath, trustStorePassword,
-        keyStorePath, keyStorePassword,
+        keyStorePath, keyStorePassword, keyPassword, keyAlias,
         basicAuthUsername, basicAuthPassword,
         executeQueryMaxResultRows);
   }
@@ -232,6 +258,8 @@ public class ClientOptionsImpl implements ClientOptions {
         && Objects.equals(trustStorePassword, that.trustStorePassword)
         && Objects.equals(keyStorePath, that.keyStorePath)
         && Objects.equals(keyStorePassword, that.keyStorePassword)
+        && Objects.equals(keyPassword, that.keyPassword)
+        && Objects.equals(keyAlias, that.keyAlias)
         && Objects.equals(basicAuthUsername, that.basicAuthUsername)
         && Objects.equals(basicAuthPassword, that.basicAuthPassword);
   }
@@ -239,8 +267,8 @@ public class ClientOptionsImpl implements ClientOptions {
   @Override
   public int hashCode() {
     return Objects.hash(host, port, useTls, verifyHost, useAlpn, trustStorePath,
-        trustStorePassword, keyStorePath, keyStorePassword, basicAuthUsername, basicAuthPassword,
-        executeQueryMaxResultRows);
+        trustStorePassword, keyStorePath, keyStorePassword, keyPassword, keyAlias,
+        basicAuthUsername, basicAuthPassword, executeQueryMaxResultRows);
   }
 
   @Override
@@ -255,6 +283,8 @@ public class ClientOptionsImpl implements ClientOptions {
         + ", trustStorePassword='" + trustStorePassword + '\''
         + ", keyStorePath='" + keyStorePath + '\''
         + ", keyStorePassword='" + keyStorePassword + '\''
+        + ", keyPassword='" + keyPassword + '\''
+        + ", keyAlias='" + keyAlias + '\''
         + ", basicAuthUsername='" + basicAuthUsername + '\''
         + ", basicAuthPassword='" + basicAuthPassword + '\''
         + ", executeQueryMaxResultRows=" + executeQueryMaxResultRows

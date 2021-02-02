@@ -22,6 +22,9 @@ import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_U
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.ops;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
+import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
+import static io.vertx.core.http.HttpMethod.POST;
+import static io.vertx.core.http.HttpVersion.HTTP_2;
 import static org.apache.kafka.common.acl.AclOperation.ALL;
 import static org.apache.kafka.common.acl.AclOperation.CREATE;
 import static org.apache.kafka.common.acl.AclOperation.DESCRIBE;
@@ -40,8 +43,10 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -52,6 +57,7 @@ import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.QueryStreamArgs;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
@@ -215,7 +221,9 @@ public class RestApiTest {
 
   @AfterClass
   public static void classTearDown() {
+    System.out.println("TEARING DOWN CLASS");
     REST_APP.getPersistentQueries().forEach(str -> makeKsqlRequest("TERMINATE " + str + ";"));
+    System.out.println("DONE TEARING DOWN CLASS");
   }
 
   @Test
@@ -584,7 +592,7 @@ public class RestApiTest {
   }
 
   @Test
-  public void shouldExecutePullQueryOverRestHttp2() {
+  public void shouldFailToExecutePullQueryOverRestHttp2() {
     // Given
     final KsqlRequest request = new KsqlRequest(
         "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
@@ -592,22 +600,36 @@ public class RestApiTest {
         Collections.emptyMap(),
         null
     );
-    final Supplier<List<String>> call = () -> {
-      final String response = rawRestRequest(
+    final Supplier<Integer> call = () -> {
+      return rawRestRequest(
           HttpVersion.HTTP_2, HttpMethod.POST, "/query", request
-      ).body().toString();
-      return Arrays.asList(response.split(System.lineSeparator()));
+      ).statusCode();
     };
 
     // When:
-    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
+    assertThatEventually(call, is(METHOD_NOT_ALLOWED.code()));
+  }
 
-    // Then:
-    assertThat(messages, hasSize(HEADER + 1));
-    assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\""));
-    assertThat(messages.get(0),
-        endsWith("\",\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"}},"));
-    assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}}]"));
+  @Test
+  public void shouldExecutePullQueryOverHttp2QueryStream() {
+      QueryStreamArgs queryStreamArgs = new QueryStreamArgs(
+          "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
+          Collections.emptyMap());
+
+      QueryResponse[] queryResponse = new QueryResponse[1];
+      assertThatEventually(() -> {
+        try {
+          HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
+              HTTP_2, POST,
+              "/query-stream", queryStreamArgs, "application/vnd.ksqlapi.delimited.v1",
+              Optional.empty());
+          queryResponse[0] = new QueryResponse(resp.body().toString());
+          return queryResponse[0].rows.size();
+        } catch (Throwable t) {
+          return Integer.MAX_VALUE;
+        }
+      }, is(1));
+      assertThat(queryResponse[0].rows.get(0).getList(), is(ImmutableList.of(1, "USER_1")));
   }
 
   @Test

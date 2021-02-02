@@ -15,6 +15,11 @@
 
 package io.confluent.ksql.execution.codegen.helpers;
 
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
+
+import java.util.List;
+
 /**
  * Functions to help with generating code to work around the fact that the script engine doesn't
  * support lambdas.
@@ -29,7 +34,7 @@ public final class LambdaUtil {
    *
    * @param argName the name of the single argument the  {@code lambdaBody} expects.
    * @param argType the type of the single argument the {@code lambdaBody} expects.
-   * @param lambdaBody the body of the lambda. It will find the n
+   * @param lambdaBody the body of the lambda.
    * @return code to instantiate the function.
    */
   public static String function(
@@ -38,12 +43,59 @@ public final class LambdaUtil {
       final String lambdaBody
   ) {
     final String javaType = argType.getSimpleName();
-    return "new Function() {\n"
+    final String function =  "new Function() {\n"
         + " @Override\n"
         + " public Object apply(Object arg) {\n"
         + "   " + javaType + " " + argName + " = (" + javaType + ") arg;\n"
-        + "   return  " + lambdaBody + ";\n"
+        + "   return " + lambdaBody + ";\n"
         + " }\n"
         + "}";
+    return function;
+  }
+
+  /**
+   * Generate code to build a {@link java.util.function.Function}.
+   *
+   * @param argList a list of lambda arguments that the {@code lambdaBody} expects.
+   *                The type is paired with each argument.
+   * @param lambdaBody the body of the lambda.
+   * @return code to instantiate the function.
+   */
+  // CHECKSTYLE_RULES.OFF: FinalLocalVariable
+  public static String function(
+      final List<Pair<String, Class<?>>> argList,
+      final String lambdaBody
+  ) {
+    final StringBuilder arguments = new StringBuilder();
+    int i = 0;
+    for (final Pair<String, Class<?>> argPair : argList) {
+      i++;
+      final String javaType = argPair.right.getSimpleName();
+      arguments.append(
+          "   " + javaType + " " + argPair.left + " = (" + javaType + ") arg" + i + ";\n");
+    }
+    String functionType;
+    String functionApply;
+    if (argList.size() == 1) {
+      functionType = "Function()";
+      functionApply = " public Object apply(Object arg) {\n";
+    } else if (argList.size() == 2) {
+      functionType = "BiFunction()";
+      functionApply = " public Object apply(Object arg1, Object arg2) {\n";
+    } else if (argList.size() == 3) {
+      functionType = "TriFunction()";
+      functionApply = " public Object apply(Object arg1, Object arg2, Object arg3) {\n";
+    } else {
+      throw new KsqlException("Unsupported number of lambda arguments.");
+    }
+    
+    final String function =  "new " + functionType + " {\n"
+        + " @Override\n"
+        + functionApply
+        + arguments.toString()
+        + "   return " + lambdaBody + ";\n"
+        + " }\n"
+        + "}";
+    return function;
   }
 }

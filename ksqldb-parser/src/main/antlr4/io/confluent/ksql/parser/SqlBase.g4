@@ -296,7 +296,7 @@ primaryExpression
     | MAP '(' (expression ASSIGN expression (',' expression ASSIGN expression)*)? ')'     #mapConstructor
     | STRUCT '(' (identifier ASSIGN expression (',' identifier ASSIGN expression)*)? ')'  #structConstructor
     | identifier '(' ASTERISK ')'                              		                        #functionCall
-    | identifier'(' (expression (',' expression)*)? ')' 						                      #functionCall
+    | identifier '(' (expression (',' expression)* (',' lambdaFunction)*)? ')'             #functionCall
     | value=primaryExpression '[' index=valueExpression ']'                               #subscript
     | identifier                                                                          #columnReference
     | identifier '.' identifier                                                           #qualifiedColumnReference
@@ -344,6 +344,11 @@ identifier
     | nonReserved            #unquotedIdentifier
     | BACKQUOTED_IDENTIFIER  #backQuotedIdentifier
     | DIGIT_IDENTIFIER       #digitIdentifier
+    ;
+
+lambdaFunction
+    :  identifier '=>' expression                            #lambda
+    | '(' identifier (',' identifier)*  ')' '=>' expression  #lambda
     ;
 
 variableName
@@ -544,6 +549,8 @@ CONCAT: '||';
 
 ASSIGN: ':=';
 STRUCT_FIELD_REF: '->';
+
+LAMBDA_EXPRESSION: '=>';
 
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''

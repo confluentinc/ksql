@@ -23,9 +23,8 @@ import com.github.rvesse.airline.annotations.restrictions.Required;
 
 @Command(
     name = "create",
-    description = "Create a pair of migration files with <desc> as description. "
-        + "This will created a pair of empty migration files based on the "
-        + "next schema version."
+    description = "Create a migration file with <desc> as description, which will be used to "
+        + "apply the next schema version."
 )
 @Examples(
     examples = "$ ksql-migrations create add_users",

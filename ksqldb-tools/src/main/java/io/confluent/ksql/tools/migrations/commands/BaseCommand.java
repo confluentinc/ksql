@@ -40,7 +40,7 @@ public abstract class BaseCommand implements Runnable {
   @Option(
       name = {"-n", "--dry-run"},
       title = "dry-run",
-      description = "dry run the clean, don't actually delete any ksqlDB resources",
+      description = "dry run the current command, no ksqlDB statements will be executed",
       type = OptionType.GLOBAL
   )
   protected boolean dryRun = false;

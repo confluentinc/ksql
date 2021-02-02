@@ -342,7 +342,7 @@ def job = {
             checkout changelog: false,
                 poll: false,
                 scm: [$class: 'GitSCM',
-                    branches: [[name: "${config.kakfa_tutorials_branch}"]],
+                    branches: [[name: "${config.kafka_tutorials_branch}"]],
                     doGenerateSubmoduleConfigurations: false,
                     extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'kafka-tutorials']],
                     submoduleCfg: [],
@@ -364,7 +364,7 @@ def job = {
                         sh "git add _includes/*"
                         sh "git commit --allow-empty -m \"build: set ksql version to ${config.ksql_db_artifact_version}\""
                         sshagent (credentials: ['ConfluentJenkins Github SSH Key']) {
-                            sh "git push origin HEAD:${config.kakfa_tutorials_branch}"
+                            sh "git push origin HEAD:${config.kafka_tutorials_branch}"
                         }
                     }
                 }

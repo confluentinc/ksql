@@ -264,7 +264,7 @@ public final class ListSourceExecutor {
     Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescription =
         Optional.empty();
     List<QueryOffsetSummary> queryOffsetSummaries = Collections.emptyList();
-    List<String> sourceConstraints = getSourceConstraints(name, ksqlEngine.getMetaStore());
+    List<String> sourceConstraints = Collections.emptyList();
 
     final List<KsqlWarning> warnings = new LinkedList<>();
     try {

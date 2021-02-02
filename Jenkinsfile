@@ -157,7 +157,7 @@ def job = {
             withDockerServer([uri: dockerHost()]) {
                 writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
                 sh """
-                    source extract-iam-credential.sh
+                    bash extract-iam-credential.sh
                     aws s3 sync s3://staging-ksqldb-maven/maven/ s3://ksqldb-maven/maven/
                     # XXX: Uncomment when ready...
                     echo aws s3 sync s3://staging-ksqldb-packages/rpm/${config.ksql_db_major_version} s3://ksqldb-packages/rpm/${config.ksql_db_major_version}
@@ -271,7 +271,6 @@ def job = {
                                 sh cmd
                             }*/
                             sh """
-                                source extract-iam-credential.sh
                                 bash confluent-process-packages.sh \
                                     --bucket staging-ksqldb-packages \
                                     --region us-west-2 \

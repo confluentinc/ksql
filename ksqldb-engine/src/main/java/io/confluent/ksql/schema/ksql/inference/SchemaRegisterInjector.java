@@ -215,7 +215,7 @@ public class SchemaRegisterInjector implements Injector {
           final ProtobufSchema resolved = AbstractKafkaProtobufSerializer.resolveDependencies(
               srClient,
               true,
-              true,
+              false,
               true,
               null,
               new DefaultReferenceSubjectNameStrategy(),

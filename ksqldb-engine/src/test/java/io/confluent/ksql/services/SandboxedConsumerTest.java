@@ -46,7 +46,6 @@ public final class SandboxedConsumerTest {
           .ignore("close", long.class, TimeUnit.class)
           .ignore("close", Duration.class)
           .ignore("wakeup")
-          .ignore("groupMetadata")
           .setDefault(TopicPartition.class, new TopicPartition("t", 1))
           .build();
     }

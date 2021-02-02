@@ -81,6 +81,8 @@ def job = {
         config.ksql_db_version = params.KSQLDB_VERSION
     }
 
+    config.ksql_db_major_version = config.ksql_db_version.tokenize('.')[0..1].join('.')
+
     if (config.release) {
         // For a release build check out the provided git sha instead of the master branch.
         if (config.revision == '') {
@@ -151,11 +153,17 @@ def job = {
             }
         }
 
-        stage("Promote Maven Artifacts") {
+        stage("Promote Artifacts") {
             withDockerServer([uri: dockerHost()]) {
                 writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
-                sh "bash extract-iam-credential.sh"
-                sh "aws s3 sync s3://staging-ksqldb-maven/maven/ s3://ksqldb-maven/maven/"
+                sh """
+                    source extract-iam-credential.sh
+                    aws s3 sync s3://staging-ksqldb-maven/maven/ s3://ksqldb-maven/maven/
+                    # XXX: Uncomment when ready...
+                    echo aws s3 sync s3://staging-ksqldb-packages/rpm/${config.ksql_db_major_version} s3://ksqldb-packages/rpm/${config.ksql_db_major_version}
+                    echo aws s3 sync s3://staging-ksqldb-packages/deb/${config.ksql_db_major_version} s3://ksqldb-packages/deb/${config.ksql_db_major_version}
+                    echo aws s3 sync s3://staging-ksqldb-packages/archive/${config.ksql_db_major_version} s3://ksqldb-packages/archive/${config.ksql_db_major_version}
+                """
             }
         }
 
@@ -242,7 +250,7 @@ def job = {
     }
 
     if (!config.isPrJob) {
-        stage('Publish Maven Artifacts') {
+        stage('Publish Artifacts') {
             writeFile file: settingsFile, text: settings
             dir('ksql-db') {
                 withVaultEnv([["artifactory/jenkins_access_token", "user", "ARTIFACTORY_USERNAME"],
@@ -250,6 +258,7 @@ def job = {
                     withDockerServer([uri: dockerHost()]) {
                         withMaven(globalMavenSettingsFilePath: settingsFile, options: mavenOptions) {
                             writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
+                            writeFile file:'confluent-process-packages.sh', text:libraryResource('scripts/confluent-process-packages.sh')
                             sh '''
                                 bash extract-iam-credential.sh
                             '''
@@ -260,6 +269,14 @@ def job = {
                                 cmd += " -DnexusUrl=s3://staging-ksqldb-maven/maven"
                                 sh cmd
                             }
+                            sh """
+                                source extract-iam-credential.sh
+                                bash confluent-process-packages.sh \
+                                    --bucket staging-ksqldb-packages \
+                                    --region us-west-2 \
+                                    --prefix '\$PACKAGE_TYPE/${config.ksql_db_major_version}' \
+                                    --input-dir "\${PWD}/output"
+                            """
                         }
                     }
                 }

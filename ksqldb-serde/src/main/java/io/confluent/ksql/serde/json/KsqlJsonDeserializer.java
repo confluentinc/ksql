@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.json;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -126,8 +127,11 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
 
       return SerdeUtils.castToTargetType(coerced, targetType);
     } catch (final Exception e) {
+      final String msg = e instanceof JsonParseException
+          ? ((JsonParseException) e).getOriginalMessage()
+          : e.getMessage();
       throw new SerializationException(
-          "Failed to deserialize " + target + " from topic: " + topic + ". " + e.getMessage(), e);
+          "Failed to deserialize " + target + " from topic: " + topic + ". " + msg, e);
     }
   }
 

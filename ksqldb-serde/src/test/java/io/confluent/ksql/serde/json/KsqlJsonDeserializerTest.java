@@ -866,6 +866,26 @@ public class KsqlJsonDeserializerTest {
   }
 
   @Test
+  public void shouldNotIncludeBadValueInExceptionOnJsonParseException() {
+    // Given:
+    final KsqlJsonDeserializer<Long> deserializer =
+        givenDeserializerForSchema(Schema.OPTIONAL_INT64_SCHEMA, Long.class);
+
+    final byte[] bytes = "{bad json containing personal info: do not log me".getBytes(StandardCharsets.UTF_8);
+
+    try {
+
+      // When:
+      deserializer.deserialize(SOME_TOPIC, bytes);
+
+      fail("Invalid test: should throw");
+
+    } catch (final Exception e) {
+      assertThat(ExceptionUtils.getStackTrace(e), not(containsString("personal info")));
+    }
+  }
+
+  @Test
   public void shouldIncludePathForErrorsInRootNode() {
     // Given:
     final KsqlJsonDeserializer<Double> deserializer = 

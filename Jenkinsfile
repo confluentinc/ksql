@@ -254,8 +254,11 @@ def job = {
         stage('Publish Artifacts') {
             writeFile file: settingsFile, text: settings
             dir('ksql-db') {
-                withVaultEnv([["artifactory/jenkins_access_token", "user", "ARTIFACTORY_USERNAME"],
-                    ["artifactory/jenkins_access_token", "access_token", "ARTIFACTORY_PASSWORD"]]) {
+                def gpg_packaging_key = setupSSHKey("gpg/packaging", "private_key", "${env.WORKSPACE}/confluent-packaging-private.key")
+                withVaultEnv([
+                    ["artifactory/jenkins_access_token", "user", "ARTIFACTORY_USERNAME"],
+                    ["artifactory/jenkins_access_token", "access_token", "ARTIFACTORY_PASSWORD"]
+                    ["gpg/packaging", "passphrase", "GPG_PASSPHRASE"]]) {
                     withDockerServer([uri: dockerHost()]) {
                         withMaven(globalMavenSettingsFilePath: settingsFile, options: mavenOptions) {
                             writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
@@ -272,11 +275,17 @@ def job = {
                                 sh cmd
                             }*/
                             sh """
+                                set +x
+                                TMP_GPG_PASS=$(mktemp -d -t XXXgpgpass)
+                                echo "\${GPG_PASSPHRASE}" > "\${TMP_GPG_PASS}"
                                 bash confluent-process-packages.sh \
                                     --bucket staging-ksqldb-packages \
                                     --region us-west-2 \
                                     --prefix '\$PACKAGE_TYPE/${config.ksql_db_packages_prefix}' \
-                                    --input-dir "\${PWD}/output"
+                                    --input-dir "\${PWD}/output" \
+                                    --sign-key-file "${gpg_packaging_key}" \
+                                    --passphrase-file "\${TMP_GPG_PASS}"
+                                rm -f "\${TMP_GPG_PASS}"
                             """
                         }
                     }

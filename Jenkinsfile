@@ -254,7 +254,8 @@ def job = {
         stage('Publish Artifacts') {
             writeFile file: settingsFile, text: settings
             dir('ksql-db') {
-                def gpg_packaging_key = setupSSHKey("gpg/packaging", "private_key", "${env.WORKSPACE}/confluent-packaging-private.key")
+                def gpg_packaging_key = ''
+                gpg_packaging_key = setupSSHKey("gpg/packaging", "private_key", "${env.WORKSPACE}/confluent-packaging-private.key")
                 withVaultEnv([
                     ["artifactory/jenkins_access_token", "user", "ARTIFACTORY_USERNAME"],
                     ["artifactory/jenkins_access_token", "access_token", "ARTIFACTORY_PASSWORD"]

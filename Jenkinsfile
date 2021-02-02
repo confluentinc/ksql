@@ -81,7 +81,7 @@ def job = {
         config.ksql_db_version = params.KSQLDB_VERSION
     }
 
-    config.ksql_db_major_version = config.ksql_db_version.tokenize('.')[0..1].join('.')
+    config.ksql_db_packages_prefix = config.ksql_db_version.tokenize('.')[0..1].join('.')
 
     if (config.release) {
         // For a release build check out the provided git sha instead of the master branch.
@@ -93,6 +93,7 @@ def job = {
     } else {
         // For non-release builds, we append the build number to the maven artifacts and docker image tag
         config.ksql_db_artifact_version = config.ksql_db_version + '-rc' + env.BUILD_NUMBER
+        config.ksql_db_packages_prefix = config.ksql_db_packages_prefix + '-rcs'
     }
     config.docker_tag = config.ksql_db_artifact_version
     
@@ -160,9 +161,9 @@ def job = {
                     bash extract-iam-credential.sh
                     aws s3 sync s3://staging-ksqldb-maven/maven/ s3://ksqldb-maven/maven/
                     # XXX: Uncomment when ready...
-                    echo aws s3 sync s3://staging-ksqldb-packages/rpm/${config.ksql_db_major_version} s3://ksqldb-packages/rpm/${config.ksql_db_major_version}
-                    echo aws s3 sync s3://staging-ksqldb-packages/deb/${config.ksql_db_major_version} s3://ksqldb-packages/deb/${config.ksql_db_major_version}
-                    echo aws s3 sync s3://staging-ksqldb-packages/archive/${config.ksql_db_major_version} s3://ksqldb-packages/archive/${config.ksql_db_major_version}
+                    echo aws s3 sync s3://staging-ksqldb-packages/rpm/${config.ksql_db_packages_prefix} s3://ksqldb-packages/rpm/${config.ksql_db_packages_prefix}
+                    echo aws s3 sync s3://staging-ksqldb-packages/deb/${config.ksql_db_packages_prefix} s3://ksqldb-packages/deb/${config.ksql_db_packages_prefix}
+                    echo aws s3 sync s3://staging-ksqldb-packages/archive/${config.ksql_db_packages_prefix} s3://ksqldb-packages/archive/${config.ksql_db_packages_prefix}
                 """
             }
         }
@@ -274,7 +275,7 @@ def job = {
                                 bash confluent-process-packages.sh \
                                     --bucket staging-ksqldb-packages \
                                     --region us-west-2 \
-                                    --prefix '\$PACKAGE_TYPE/${config.ksql_db_major_version}' \
+                                    --prefix '\$PACKAGE_TYPE/${config.ksql_db_packages_prefix}' \
                                     --input-dir "\${PWD}/output"
                             """
                         }

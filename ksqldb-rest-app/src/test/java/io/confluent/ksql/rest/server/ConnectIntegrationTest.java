@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.equalToIgnoringCase;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.stringContainsInOrder;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
@@ -36,8 +37,13 @@ import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.WarningEntity;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -92,6 +98,7 @@ public class ConnectIntegrationTest {
         .put("offset.storage.replication.factor", "1")
         .put("status.storage.replication.factor", "1")
         .put("config.storage.replication.factor", "1")
+        .put("value.converter.schemas.enable", "false")
         .build()
     );
     CONNECT.startAsync();
@@ -237,6 +244,61 @@ public class ConnectIntegrationTest {
     assertThat(response.getResponse().get(0), instanceOf(ErrorEntity.class));
     assertThat(((ErrorEntity) response.getResponse().get(0)).getErrorMessage(),
         containsString("Connector mock-connector already exists"));
+  }
+
+  @Test
+  public void shouldReadAndWriteTimestampsToConnect() {
+    // Given:
+    create("mock-source", ImmutableMap.<String, String> builder()
+        .put("connector.class", "org.apache.kafka.connect.tools.VerifiableSourceConnector")
+        .put("topic", "foo")
+        .put("throughput", "5")
+        .put("id", "123")
+        .put("topic.creation.default.replication.factor", "1")
+        .put("topic.creation.default.partitions", "1")
+        .build());
+    assertThatEventually(
+        () -> ((ConnectorList) ksqlRestClient.makeKsqlRequest("SHOW CONNECTORS;").getResponse()
+            .get(0)).getConnectors().get(0).getState(),
+        is("RUNNING (1/1 tasks RUNNING)"));
+
+    // When:
+    assertThatEventually(
+        () -> ksqlRestClient.makeKsqlRequest("CREATE STREAM FOO (PAYLOAD TIMESTAMP) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='DELIMITED');")
+            .isSuccessful(), is(true));
+
+    // Then:
+    final RestResponse<List<StreamedRow>> queryFoo = ksqlRestClient.makeQueryRequest("SELECT * FROM FOO EMIT CHANGES LIMIT 1;", 1L);
+    assertThat("successfully queried FOO", queryFoo.isSuccessful());
+    assertThat(queryFoo.getResponse().get(1).getRow().get().getColumns().get(0), is("1970-01-01T00:00:00.000"));
+
+    // When:
+    final RestResponse<KsqlEntityList> barQuery = ksqlRestClient
+        .makeKsqlRequest("CREATE STREAM BAR WITH (value_format='JSON') AS SELECT PAYLOAD FROM FOO;");
+
+    assertThat("successfully created stream BAR", barQuery.isSuccessful());
+
+    create("mock-sink", ImmutableMap.<String, String> builder()
+        .put("connector.class", "org.apache.kafka.connect.tools.VerifiableSinkConnector")
+        .put("topics", "BAR")
+        .put("id", "456")
+        .put("value.converter.schemas.enable", "false")
+        .build());
+
+    assertThatEventually(
+        () -> ((ConnectorList) ksqlRestClient.makeKsqlRequest("SHOW CONNECTORS;").getResponse()
+            .get(0)).getConnectors().get(1).getState(),
+        is("RUNNING (1/1 tasks RUNNING)"));
+
+    // Then:
+    Iterable<String> sinkOutputParts = Arrays.asList(
+        "{\"task\":null,\"seqno\":{\"PAYLOAD\":1},\"offset\":1,\"time_ms\":",
+        ",\"name\":\"mock-sink\",\"topic\":\"BAR\",\"sinkTask\":0}"
+    );
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    System.setOut(new PrintStream(out));
+    assertThatEventually(() -> out.toString(),
+        stringContainsInOrder(sinkOutputParts));
   }
 
   private void create(final String name, final Map<String, String> properties) {

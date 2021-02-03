@@ -17,11 +17,13 @@ package io.confluent.ksql.execution.streams.materialization.ks;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
+import java.io.Closeable;
 import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.function.Function;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
@@ -108,21 +110,10 @@ public final class WindowStoreCacheBypass {
     Objects.requireNonNull(key, "key can't be null");
     final List<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>> stores
             = getStores(store);
-    for (final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore :stores) {
-      try {
-        final WindowStoreIterator<ValueAndTimestamp<GenericRow>> result
-            = fetchUncached(windowStore, key, lower, upper);
-        // returns the first non-empty iterator
-        if (!result.hasNext()) {
-          result.close();
-        } else {
-          return result;
-        }
-      } catch (final InvalidStateStoreException e) {
-        throw new InvalidStateStoreException(STORE_UNAVAILABLE_MESSAGE, e);
-      }
-    }
-    return new EmptyWindowStoreIterator();
+    final Function<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>,
+            WindowStoreIterator<ValueAndTimestamp<GenericRow>>> fetchFunc = windowStore ->
+            fetchUncached(windowStore, key, lower, upper);
+    return findFirstNonEmptyIterator(stores, fetchFunc);
   }
 
   private static WindowStoreIterator<ValueAndTimestamp<GenericRow>> fetchUncached(
@@ -152,21 +143,10 @@ public final class WindowStoreCacheBypass {
     Objects.requireNonNull(keyTo, "upper key can't be null");
     final List<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>> stores
             = getStores(store);
-    for (final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore :stores) {
-      try {
-        final KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> result
-                = fetchRangeUncached(windowStore, keyFrom, keyTo, lower, upper);
-        // returns the first non-empty iterator
-        if (!result.hasNext()) {
-          result.close();
-        } else {
-          return result;
-        }
-      } catch (final InvalidStateStoreException e) {
-        throw new InvalidStateStoreException(STORE_UNAVAILABLE_MESSAGE, e);
-      }
-    }
-    return new EmptyKeyValueIterator();
+    final Function<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>,
+            KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>> fetchFunc
+                = windowStore -> fetchRangeUncached(windowStore, keyFrom, keyTo, lower, upper);
+    return findFirstNonEmptyIterator(stores, fetchFunc);
   }
 
   private static KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>
@@ -196,21 +176,10 @@ public final class WindowStoreCacheBypass {
   ) {
     final List<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>> stores
             = getStores(store);
-    for (final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore :stores) {
-      try {
-        final KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> result
-                = fetchAllUncached(windowStore, lower, upper);
-        // returns the first non-empty iterator
-        if (!result.hasNext()) {
-          result.close();
-        } else {
-          return result;
-        }
-      } catch (final InvalidStateStoreException e) {
-        throw new InvalidStateStoreException(STORE_UNAVAILABLE_MESSAGE, e);
-      }
-    }
-    return new EmptyKeyValueIterator();
+    final Function<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>,
+            KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>> fetchFunc =
+                windowStore -> fetchAllUncached(windowStore, lower, upper);
+    return findFirstNonEmptyIterator(stores, fetchFunc);
   }
 
   private static KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>
@@ -226,6 +195,29 @@ public final class WindowStoreCacheBypass {
     final WindowStore<Bytes, byte[]> wrapped = getInnermostStore(windowStore);
     final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetchAll(lower, upper);
     return new DeserializingKeyValueIterator(fetch, serdes);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <T extends KeyValueIterator & Closeable> T findFirstNonEmptyIterator(
+          final List<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>> stores,
+          final Function<ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>>, T> func
+  ) {
+    T result = null;
+    for (final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store : stores) {
+      try {
+        result = func.apply(store);
+        // returns the first non-empty iterator
+        if (!result.hasNext()) {
+          result.close();
+        } else {
+          return result;
+        }
+      } catch (final InvalidStateStoreException e) {
+        throw new InvalidStateStoreException(STORE_UNAVAILABLE_MESSAGE, e);
+      }
+    }
+    return (T) (result instanceof WindowStoreIterator
+            ? new EmptyWindowStoreIterator() : new EmptyKeyValueIterator());
   }
 
   @SuppressWarnings("unchecked")

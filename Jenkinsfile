@@ -4,7 +4,7 @@ import java.util.regex.Pattern
 def baseConfig = {
     owner = 'ksql'
     slackChannel = '#ksql-alerts'
-    ksql_db_version = "0.15.0"  // next version to be released
+    ksql_db_version = "0.16.0"  // next version to be released
     cp_version = "6.2.0-beta210122194818"  // must be a beta version from the packaging build
     packaging_build_number = "1"
     default_git_revision = 'refs/heads/master' 
@@ -24,7 +24,7 @@ def defaultParams = [
         description: 'Is this a release build. If so, GIT_REVISION and KSQLDB_VERSION must be specified, and the downstream CCloud job will not be triggered.',
         defaultValue: false),
     string(name: 'GIT_REVISION',
-        description: 'The git SHA to build ksqlDB from.',
+        description: 'The git ref (SHA or branch or tag) to build ksqlDB from.',
         defaultValue: ''),
     booleanParam(name: 'PROMOTE_TO_PRODUCTION',
         defaultValue: false,
@@ -34,7 +34,19 @@ def defaultParams = [
         description: 'If PROMOTE_TO_PRODUCTION, ksqlDB version to promote to production. Else, override the ksql_db_version defined in the Jenkinsfile, representing the next version to be released.'),
     booleanParam(name: 'UPDATE_LATEST_TAG',
         defaultValue: false,
-        description: 'Should the latest tag on docker hub be updated to point at this new image version. Only relevant if PROMOTE_TO_PRODUCTION is true.')
+        description: 'Should the latest tag on docker hub be updated to point at this new image version. Only relevant if PROMOTE_TO_PRODUCTION is true.'),
+    string(name: 'CP_VERSION',
+        description: 'the CP version to build ksqlDB against',
+        defaultValue: ''),
+    string(name: 'CP_BUILD_NUMBER',
+        description: 'the packaging build number that published beta artifacts',
+        defaultValue: ''),
+    string(name: 'CCLOUD_GIT_REVISION',
+        description: 'The git ref (SHA or branch or tag) to base the cc-docker-ksql build from.',
+        defaultValue: ''),
+    string(name: 'CCLOUD_KSQL_BASE_VERSION',
+        description: 'The version of the initial cc-ksql RC we're basing our cloud release off of (e.g. v0.15.0-rc123-456)',
+        defaultValue: '')
 ]
 
 def updateConfig = { c ->
@@ -82,6 +94,14 @@ def job = {
     }
 
     config.ksql_db_packages_prefix = config.ksql_db_version.tokenize('.')[0..1].join('.')
+
+    if (params.CP_VERSION != '') {
+        config.cp_version = params.CP_VERSION
+    }
+
+    if (params.CP_BUILD_NUMBER != '') {
+        config.packaging_build_number = params.CP_BUILD_NUMBER
+    }
 
     if (config.release) {
         // For a release build check out the provided git sha instead of the master branch.
@@ -417,7 +437,9 @@ def job = {
                     string(name: "NIGHTLY_BUILD_NUMBER", value: "${env.BUILD_NUMBER}"),
                     string(name: "CP_BETA_VERSION", value: "${config.cp_version}"),
                     string(name: "CP_BETA_BUILD_NUMBER", value: "${config.packaging_build_number}"),
-                    string(name: "KSQLDB_ARTIFACT_VERSION", value: "${config.ksql_db_artifact_version}")
+                    string(name: "KSQLDB_ARTIFACT_VERSION", value: "${config.ksql_db_artifact_version}"),
+                    string(name: "CCLOUD_GIT_REVISION", value: "${params.CCLOUD_GIT_REVISION}"),
+                    string(name: "CCLOUD_KSQL_BASE_VERSION", value: "${params.CCLOUD_KSQL_BASE_VERSION}")
                 ]
         }
     }

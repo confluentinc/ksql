@@ -16,8 +16,10 @@
 package io.confluent.ksql.execution.expression.tree;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
 import io.confluent.ksql.parser.NodeLocation;
 
+import io.confluent.ksql.schema.utils.FormatOptions;
 import java.util.Objects;
 import java.util.Optional;
 

@@ -13,42 +13,49 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function.udf.array;
+package io.confluent.ksql.function.udf.map;
 
 import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.types.KsqlLambda;
+import io.confluent.ksql.types.KsqlLambdaV2;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Transform an array with a Lambda function
+ * Transform a map's key and values using lambda functions
  */
 @SuppressWarnings("MethodMayBeStatic") // UDF methods can not be static.
 @UdfDescription(
-    name = "TRANSFORM_ARRAY",
-    category = FunctionCategory.ARRAY,
-    description = "Apply a lambda function to an array",
+    name = "TransformMap",
+    category = FunctionCategory.MAP,
+    description = "Apply a lambda function to both key and value of a map",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
-public class TransformArray {
+public class TransformMap {
 
   @Udf
-  public <T, R> List<R> transformArray(
-      @UdfParameter(description = "The array") final List<T> array,
-      @UdfParameter(description = "The lambda") final KsqlLambda<T, R> lambda
+  public <K,V,R,T> Map<R,T> transformMap(
+      @UdfParameter(description = "The map") final Map<K, V> map,
+      @UdfParameter(description = "The new key lambda") final KsqlLambdaV2<K, V, R> lambda1,
+      @UdfParameter(description = "The new value lambda") final KsqlLambdaV2<K, V, T> lambda2
   ) {
-    if (array == null) {
+    if (map == null) {
       return null;
     }
-    return array.stream().map(item -> {
-      if (item == null) {
-        return null;
-      }
-      return lambda.getFunction().apply(item);
-    }).collect(Collectors.toList());
+    return map.entrySet()
+        .stream()
+        .collect(Collectors.toMap(
+            entry -> lambda1.getFunction().apply(entry.getKey(), entry.getValue()),
+            entry -> {
+              if (entry.getValue() == null) {
+                return null;
+              }
+              return lambda2.getFunction().apply(entry.getKey(), entry.getValue());
+            }));
   }
 }

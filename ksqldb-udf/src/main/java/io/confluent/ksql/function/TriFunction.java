@@ -13,19 +13,19 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.codegen.helpers;
+package io.confluent.ksql.function;
 
 import java.util.Objects;
 import java.util.function.Function;
 
 @FunctionalInterface
-public interface TriFunction<A,B,C,R> {
+public interface TriFunction<T,U,V,R> {
 
-  R apply(A a, B b, C c);
+  R apply(T a, U b, V c);
 
-  default <V> TriFunction<A, B, C, V> andThen(
-      Function<? super R, ? extends V> after) {
+  default <W> TriFunction<T, U, V, W> andThen(
+      Function<? super R, ? extends W> after) {
     Objects.requireNonNull(after);
-    return (A a, B b, C c) -> after.apply(apply(a, b, c));
+    return (T t, U u, V v) -> after.apply(apply(t, u, v));
   }
 }

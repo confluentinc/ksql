@@ -23,6 +23,8 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.types.KsqlLambda;
+import io.confluent.ksql.types.KsqlLambdaV2;
+import io.confluent.ksql.types.KsqlLambdaV3;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.AnnotatedParameterizedType;
 import java.lang.reflect.Method;
@@ -55,6 +57,8 @@ class UdafTypes {
       .add(Map.class)
       .add(Timestamp.class)
       .add(KsqlLambda.class)
+      .add(KsqlLambdaV2.class)
+      .add(KsqlLambdaV3.class)
       .build();
 
   private final Type inputType;

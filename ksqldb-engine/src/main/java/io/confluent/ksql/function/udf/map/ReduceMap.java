@@ -13,42 +13,47 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function.udf.array;
+package io.confluent.ksql.function.udf.map;
 
 import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.types.KsqlLambda;
+import io.confluent.ksql.types.KsqlLambdaV2;
+import io.confluent.ksql.types.KsqlLambdaV3;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 /**
- * Transform an array with a Lambda function
+ * Transform a map's key and values using lambda functions
  */
 @SuppressWarnings("MethodMayBeStatic") // UDF methods can not be static.
 @UdfDescription(
-    name = "TRANSFORM_ARRAY",
-    category = FunctionCategory.ARRAY,
-    description = "Apply a lambda function to an array",
+    name = "TransformMap",
+    category = FunctionCategory.MAP,
+    description = "Apply a lambda function to both key and value of a map",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
-public class TransformArray {
+public class ReduceMap {
 
   @Udf
-  public <T, R> List<R> transformArray(
-      @UdfParameter(description = "The array") final List<T> array,
-      @UdfParameter(description = "The lambda") final KsqlLambda<T, R> lambda
+  public <K,V,S> S reduceMap(
+      @UdfParameter(description = "The map") final Map<K, V> map,
+      @UdfParameter(description = "The initial state") final S initialState,
+      @UdfParameter(description = "The reduce lambda") final KsqlLambdaV3<K, V, S, S> lambda
   ) {
-    if (array == null) {
+    if (map == null) {
       return null;
     }
-    return array.stream().map(item -> {
-      if (item == null) {
-        return null;
-      }
-      return lambda.getFunction().apply(item);
-    }).collect(Collectors.toList());
+    
+    S state = initialState;
+    for (Entry<K, V> entry : map.entrySet()) {
+      state = lambda.getFunction().apply(entry.getKey(), entry.getValue(), state);
+    }
+    return state;
   }
 }

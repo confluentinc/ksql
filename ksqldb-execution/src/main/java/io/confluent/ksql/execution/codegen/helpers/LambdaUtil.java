@@ -29,7 +29,7 @@ public final class LambdaUtil {
 
   private LambdaUtil() {
   }
-  
+
   /**
    * Generate code to build a {@link java.util.function.Function}.
    *

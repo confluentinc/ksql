@@ -18,6 +18,7 @@ package io.confluent.ksql.api.spi;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.api.server.OldApiUtils.EndpointMetricsCallbacks;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
@@ -83,7 +84,8 @@ public interface Endpoints {
       KsqlRequest request, WorkerExecutor workerExecutor,
       CompletableFuture<Void> connectionClosedFuture, ApiSecurityContext apiSecurityContext,
       Optional<Boolean> isInternalRequest,
-      KsqlMediaType mediaType);
+      KsqlMediaType mediaType,
+      EndpointMetricsCallbacks metricsCallbacks);
 
   CompletableFuture<EndpointResponse> executeInfo(ApiSecurityContext apiSecurityContext);
 

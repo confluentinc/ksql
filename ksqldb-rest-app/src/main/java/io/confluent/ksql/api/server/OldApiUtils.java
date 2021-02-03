@@ -21,7 +21,6 @@ import static org.apache.hc.core5.http.HttpHeaders.TRANSFER_ENCODING;
 
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
-import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -39,6 +38,7 @@ import java.io.OutputStream;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import org.apache.kafka.common.utils.Time;
 
@@ -55,7 +55,7 @@ public final class OldApiUtils {
       final Server server,
       final RoutingContext routingContext,
       final Class<T> requestClass,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final Optional<EndpointMetricsCallbacks> metricsCallbacks,
       final BiFunction<T, ApiSecurityContext, CompletableFuture<EndpointResponse>> requestor) {
     final long startTimeNanos = Time.SYSTEM.nanoseconds();
     final T requestObject;
@@ -69,20 +69,17 @@ public final class OldApiUtils {
     } else {
       requestObject = null;
     }
-    pullQueryMetrics
-        .ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics.recordRequestSize(
-            routingContext.request().bytesRead()));
     final CompletableFuture<EndpointResponse> completableFuture = requestor
         .apply(requestObject, DefaultApiSecurityContext.create(routingContext));
     completableFuture.thenAccept(endpointResponse -> {
       handleOldApiResponse(
-          server, routingContext, endpointResponse, pullQueryMetrics, startTimeNanos);
+          server, routingContext, endpointResponse, metricsCallbacks, startTimeNanos);
     }).exceptionally(t -> {
       if (t instanceof CompletionException) {
         t = t.getCause();
       }
       handleOldApiResponse(
-          server, routingContext, mapException(t), pullQueryMetrics, startTimeNanos);
+          server, routingContext, mapException(t), metricsCallbacks, startTimeNanos);
       return null;
     });
   }
@@ -90,7 +87,7 @@ public final class OldApiUtils {
   static void handleOldApiResponse(
       final Server server, final RoutingContext routingContext,
       final EndpointResponse endpointResponse,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final Optional<EndpointMetricsCallbacks> metricsCallbacks,
       final long startTimeNanos
   ) {
     final HttpServerResponse response = routingContext.response();
@@ -111,7 +108,8 @@ public final class OldApiUtils {
         return;
       }
       response.putHeader(TRANSFER_ENCODING, CHUNKED_ENCODING);
-      streamEndpointResponse(server, routingContext, streamingOutput);
+      streamEndpointResponse(server, routingContext, streamingOutput, metricsCallbacks,
+          startTimeNanos);
     } else {
       if (endpointResponse.getEntity() == null) {
         response.end();
@@ -124,18 +122,15 @@ public final class OldApiUtils {
         }
         response.end(responseBody);
       }
+      reportMetrics(routingContext, metricsCallbacks, startTimeNanos);
     }
-    pullQueryMetrics
-        .ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics.recordResponseSize(
-            routingContext.response().bytesWritten()));
-    pullQueryMetrics.ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics
-        .recordLatency(startTimeNanos));
-
   }
 
   private static void streamEndpointResponse(final Server server,
       final RoutingContext routingContext,
-      final StreamingOutput streamingOutput) {
+      final StreamingOutput streamingOutput,
+      final Optional<EndpointMetricsCallbacks> metricsCallbacks,
+      final long startTimeNanos) {
     final WorkerExecutor workerExecutor = server.getWorkerExecutor();
     final VertxCompletableFuture<Void> vcf = new VertxCompletableFuture<>();
     workerExecutor.executeBlocking(promise -> {
@@ -162,6 +157,21 @@ public final class OldApiUtils {
         }
       }
     }, vcf);
+    vcf.handle((v, throwable) -> {
+      reportMetrics(routingContext, metricsCallbacks, startTimeNanos);
+      return null;
+    });
+  }
+
+  private static void reportMetrics(
+      final RoutingContext routingContext,
+      final Optional<EndpointMetricsCallbacks> metricsCallbacks,
+      final long startTimeNanos
+  ) {
+    metricsCallbacks.ifPresent(mc -> mc.reportMetrics(
+        routingContext.request().bytesRead(),
+        routingContext.response().bytesWritten(),
+        startTimeNanos));
   }
 
   public static EndpointResponse mapException(final Throwable exception) {
@@ -174,6 +184,35 @@ public final class OldApiUtils {
         .type("application/json")
         .entity(new KsqlErrorMessage(Errors.ERROR_CODE_SERVER_ERROR, exception))
         .build();
+  }
+
+  /**
+   * Interface for reporting metrics to a resource. A resource may choose to break things down
+   * arbitrarily, e.g. /query is used for both push and pull queries so we let the resource
+   * determine how to report the metrics.
+   */
+  public interface MetricsCallback {
+
+    void reportMetricsOnCompletion(long requestBytes, long responseBytes, long startTimeNanos);
+  }
+
+  public static class EndpointMetricsCallbacks {
+
+    private AtomicReference<MetricsCallback> callbackRef = new AtomicReference<>(null);
+
+    public EndpointMetricsCallbacks() {
+    }
+
+    public void setCallback(final MetricsCallback callback) {
+      this.callbackRef.set(callback);
+    }
+
+    void reportMetrics(long requestBytes, long responseBytes, long startTimeNanos) {
+      final MetricsCallback callback = callbackRef.get();
+      if (callback != null) {
+        callback.reportMetricsOnCompletion(requestBytes, responseBytes, startTimeNanos);
+      }
+    }
   }
 
 }

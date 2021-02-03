@@ -24,6 +24,7 @@ import io.confluent.ksql.api.impl.KsqlSecurityContextProvider;
 import io.confluent.ksql.api.impl.QueryEndpoint;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.api.server.OldApiUtils.EndpointMetricsCallbacks;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -194,7 +195,8 @@ public class KsqlServerEndpoints implements Endpoints {
       final CompletableFuture<Void> connectionClosedFuture,
       final ApiSecurityContext apiSecurityContext,
       final Optional<Boolean> isInternalRequest,
-      final KsqlMediaType mediaType
+      final KsqlMediaType mediaType,
+      final EndpointMetricsCallbacks metricsCallbacks
   ) {
     return executeOldApiEndpointOnWorker(apiSecurityContext,
         ksqlSecurityContext -> streamedQueryResource.streamQuery(
@@ -202,7 +204,8 @@ public class KsqlServerEndpoints implements Endpoints {
             request,
             connectionClosedFuture,
             isInternalRequest,
-            mediaType
+            mediaType,
+            metricsCallbacks
         ), workerExecutor);
   }
 

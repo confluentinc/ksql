@@ -204,7 +204,7 @@ public abstract class TraversalExpressionVisitor<C> implements ExpressionVisitor
   }
 
   @Override
-  public Void visitLambdaLiteral(final LambdaLiteral node, final C context) {
+  public Void visitLambdaVariable(final LambdaVariable node, final C context) {
     return null;
   }
 

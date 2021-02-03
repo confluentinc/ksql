@@ -19,11 +19,9 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
-import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
-import io.confluent.ksql.execution.expression.tree.LambdaLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
@@ -180,10 +178,6 @@ public final class AstSanitizer {
         final ExpressionTreeRewriter.Context<SanitizerContext> ctx
     ) {
       final ColumnName columnName = expression.getColumnName();
-      if (ctx.getContext().getLambdaArgs().size() > 0
-          && ctx.getContext().getLambdaArgs().contains(columnName.text())) {
-        return Optional.of(new LambdaLiteral(columnName.text()));
-      }
 
       final List<SourceName> sourceNames = dataSourceExtractor.getSourcesFor(columnName);
 
@@ -222,7 +216,9 @@ public final class AstSanitizer {
         }
       });
 
-      ctx.getContext().addLambdaArg(expression.getArguments());
+      ctx.getContext().addLambdaArgs(expression.getArguments());
+      ctx.process(expression.getBody());
+      ctx.getContext().removeLambdaArgs(expression.getArguments());
       return visitExpression(expression, ctx);
     }
   }
@@ -230,14 +226,18 @@ public final class AstSanitizer {
   private static class SanitizerContext {
     final Set<String> lambdaArgs = new HashSet<>();
 
-    private void addLambdaArg(final List<String> newArguments) {
+    private void addLambdaArgs(final List<String> newArguments) {
       final int previousLambdaArgumentsLength = lambdaArgs.size();
       lambdaArgs.addAll(newArguments);
       if (new HashSet<>(lambdaArgs).size()
-          < previousLambdaArgumentsLength + 1) {
+          < previousLambdaArgumentsLength + newArguments.size()) {
         throw new KsqlException(
             "Reusing lambda arguments in nested lambda is not allowed");
       }
+    }
+
+    private void removeLambdaArgs(final List<String> removeArguments) {
+      lambdaArgs.removeAll(removeArguments);
     }
 
     private Set<String> getLambdaArgs() {

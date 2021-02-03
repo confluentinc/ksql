@@ -28,7 +28,7 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
-import io.confluent.ksql.execution.expression.tree.LambdaLiteral;
+import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
@@ -204,10 +204,10 @@ public class AstSanitizerTest {
   }
 
   @Test
-  public void shouldSanitizeLambdaArguments() {
+  public void shouldAllowDuplicateLambdaArgumentInSeparateExpression() {
     // Given:
     final Statement stmt = givenQuery(
-        "SELECT TRANSFORM_ARRAY(Col4, X => X + 5) FROM TEST1;");
+        "SELECT TRANSFORM_ARRAY(Col4, X => X + 5, (X,Y) => Y + 5) FROM TEST1;");
 
     // When:
     final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
@@ -223,7 +223,14 @@ public class AstSanitizerTest {
                         ImmutableList.of("X"),
                         new ArithmeticBinaryExpression(
                             Operator.ADD,
-                            new LambdaLiteral("X"),
+                            new LambdaVariable("X"),
+                            new IntegerLiteral(5))
+                    ),
+                    new LambdaFunctionCall(
+                        ImmutableList.of("X", "Y"),
+                        new ArithmeticBinaryExpression(
+                            Operator.ADD,
+                            new LambdaVariable("Y"),
                             new IntegerLiteral(5))
                     )
                 )
@@ -251,7 +258,7 @@ public class AstSanitizerTest {
   }
 
   @Test
-  public void shouldThrowOnDuplicateLambdaArguments() {
+  public void shouldThrowOnDuplicateLambdaArgumentsInNestedLambda() {
     // Given:
     final Statement stmt = givenQuery(
         "SELECT TRANSFORM_ARRAY(Col4, X => TRANSFORM_ARRAY(Col4, X => X)) FROM TEST1;");

@@ -22,15 +22,15 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
-public class LambdaLiteral extends Literal {
+public class LambdaVariable extends Literal {
 
   private final String lambdaCharacter;
 
-  public LambdaLiteral(final String lambdaCharacter) {
+  public LambdaVariable(final String lambdaCharacter) {
     this(Optional.empty(), lambdaCharacter);
   }
 
-  public LambdaLiteral(final Optional<NodeLocation> location, final String lambdaCharacter) {
+  public LambdaVariable(final Optional<NodeLocation> location, final String lambdaCharacter) {
     super(location);
     this.lambdaCharacter = lambdaCharacter;
   }
@@ -42,7 +42,7 @@ public class LambdaLiteral extends Literal {
 
   @Override
   public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
-    return visitor.visitLambdaLiteral(this, context);
+    return visitor.visitLambdaVariable(this, context);
   }
 
   @Override
@@ -54,7 +54,7 @@ public class LambdaLiteral extends Literal {
       return false;
     }
 
-    final LambdaLiteral that = (LambdaLiteral) o;
+    final LambdaVariable that = (LambdaVariable) o;
     return lambdaCharacter.equals(that.lambdaCharacter);
   }
 

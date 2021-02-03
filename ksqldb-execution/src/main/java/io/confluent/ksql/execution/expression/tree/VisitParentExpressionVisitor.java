@@ -220,7 +220,7 @@ public abstract class VisitParentExpressionVisitor<R, C> implements ExpressionVi
   }
 
   @Override
-  public R visitLambdaLiteral(final LambdaLiteral node, final C context) {
+  public R visitLambdaVariable(final LambdaVariable node, final C context) {
     return visitLiteral(node, context);
   }
 }

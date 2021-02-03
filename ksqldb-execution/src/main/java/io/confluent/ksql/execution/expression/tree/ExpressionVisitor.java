@@ -89,5 +89,5 @@ public interface ExpressionVisitor<R, C> {
 
   R visitLambdaExpression(LambdaFunctionCall exp, C context);
 
-  R visitLambdaLiteral(LambdaLiteral exp, C context);
+  R visitLambdaVariable(LambdaVariable exp, C context);
 }

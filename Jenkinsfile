@@ -5,7 +5,7 @@ def baseConfig = {
     owner = 'ksql'
     slackChannel = '#ksql-alerts'
     ksql_db_version = "0.15.0"  // next version to be released
-    cp_version = "6.2.0-beta210122194818"  // must be a beta version from the packaging build XXX: REMOVE AFTER TESTING
+    cp_version = "6.2.0-beta210122194818"  // must be a beta version from the packaging build
     packaging_build_number = "1"
     default_git_revision = 'refs/heads/master' 
     dockerRegistry = '368821881613.dkr.ecr.us-west-2.amazonaws.com/'
@@ -227,11 +227,16 @@ def job = {
                                 sudo apt update
                                 sudo apt install -y devscripts git-buildpackage dh-systemd javahelper xmlstarlet
                             """
-
+                            // Copy settingsFile into the Jenkin's user's maven config, because when we build debian packages
+                            // through the debian wrapper scripts, it will not honor the Jenkinsfile withMaven(globalMavenSettingsFilePath..)
+                            // settings. Version setting & build logic is contained within the build-packages.sh script.
                             withEnv(['MAVEN_OPTS=-XX:MaxPermSize=128M']) {
                                 sh """
                                 cp ${settingsFile} ~/.m2/settings.xml
-                                ${env.WORKSPACE}/build-packages.sh --workspace . --project-version ${config.ksql_db_artifact_version} --upstream-version ${config.cp_version} --jar
+                                ${env.WORKSPACE}/build-packages.sh --workspace . \
+                                    --docker-registry ${config.dockerRegistry} \
+                                    --project-version ${config.ksql_db_artifact_version} \
+                                    --upstream-version ${config.cp_version} --jar
                                 """
                             }
                             step([$class: 'hudson.plugins.findbugs.FindBugsPublisher', pattern: '**/*bugsXml.xml'])

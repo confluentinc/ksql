@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Build logic for KSQLDB & its OS packages
 
 set -o pipefail -o nounset -o errexit
 
@@ -10,6 +11,7 @@ function error {
 WORKSPACE=""
 FULL_VERSION=""
 UPSTREAM_VERSION=""
+DOCKER_REGISTRY=""
 BUILD_JAR="false"
 while [[ "${#}" -gt 0 ]]; do
     arg="${1}"
@@ -31,6 +33,10 @@ while [[ "${#}" -gt 0 ]]; do
             BUILD_JAR="true"
             shift
             ;;
+        -d|--docker-registry)
+            DOCKER_REGISTRY="${2}"
+            shift 2
+            ;;
         *)
             error "Unknown arg ${arg}"
             ;;
@@ -40,6 +46,7 @@ done
 [[ -z "${WORKSPACE}" ]] && error "-w/--workspace not specified and is required"
 [[ -z "${FULL_VERSION}" ]] && error "-p/--project-version not specified and is required"
 [[ -z "${UPSTREAM_VERSION}" ]] && error "-u/--upstream-version not specified and is required"
+[[ -z "${DOCKER_REGISTRY}" ]] && error "-d/--docker-registry not specified and is required"
  
 
 if [[ "${FULL_VERSION}" =~ ^[0-9]+.[0-9]+.[0-9]+-rc[0-9]+$ ]]; then
@@ -136,7 +143,7 @@ if "${BUILD_JAR}"; then
         "-Dspotbugs.skip" \
         "-Dcheckstyle.skip" \
         "-Ddocker.tag=${FULL_VERSION}" \
-        "-Ddocker.registry=368821881613.dkr.ecr.us-west-2.amazonaws.com/" \
+        "-Ddocker.registry=${DOCKER_REGISTRY}" \
         "-Ddocker.upstream-tag=${UPSTREAM_VERSION}-latest" \
         "-Dskip.docker.build=false"
 fi 

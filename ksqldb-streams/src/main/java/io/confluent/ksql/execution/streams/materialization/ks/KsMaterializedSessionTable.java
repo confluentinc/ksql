@@ -50,9 +50,7 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
                              final SessionStoreCacheBypassFetcherRange cacheBypassFetcherRange) {
     this.stateStore = Objects.requireNonNull(store, "store");
     this.cacheBypassFetcher = Objects.requireNonNull(cacheBypassFetcher, "cacheBypassFetcher");
-    this.cacheBypassFetcherRange = Objects.requireNonNull(
-            cacheBypassFetcherRange,
-            "cacheBypassFetcherRange");
+    this.cacheBypassFetcherRange = Objects.requireNonNull(cacheBypassFetcherRange, "cacheBypassFetcherRange");
   }
 
   @Override

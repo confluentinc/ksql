@@ -33,9 +33,9 @@ public class PullQueryConfigPlannerOptions implements PullPlannerOptions {
 
   @Override
   public boolean getTableScansEnabled() {
-    boolean configured = ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED);
+    final boolean configured = ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED);
     if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED)) {
-      boolean override
+      final boolean override
           = (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED);
       if (override && !configured) {
         throw new KsqlException("You can only disable table scans with an override, "

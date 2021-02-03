@@ -352,7 +352,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "mismatched input 'AND' expecting ';'"
+        "message": "mismatched input 'AND' expecting {';'"
       }
     },
     {

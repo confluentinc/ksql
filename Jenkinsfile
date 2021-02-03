@@ -40,7 +40,7 @@ def defaultParams = [
     string(name: 'CCLOUD_GIT_REVISION',
         description: 'The git ref (SHA or branch or tag) to base the cc-docker-ksql build from.',
         defaultValue: ''),
-    string(name: 'CCOUD_KSQL_BASE_VERSION',
+    string(name: 'CCLOUD_KSQL_BASE_VERSION',
         description: 'The version of the initial cc-ksql RC we're basing our cloud release off of (e.g. v0.15.0-rc123-456)',
         defaultValue: '')
 ]
@@ -374,7 +374,7 @@ def job = {
                     string(name: "CP_BETA_BUILD_NUMBER", value: "${config.packaging_build_number}"),
                     string(name: "KSQLDB_ARTIFACT_VERSION", value: "${config.ksql_db_artifact_version}"),
                     string(name: "CCLOUD_GIT_REVISION", value: "${params.CCLOUD_GIT_REVISION}"),
-                    string(name: "CCOUD_KSQL_BASE_VERSION", value: "${params.CCOUD_KSQL_BASE_VERSION}")
+                    string(name: "CCLOUD_KSQL_BASE_VERSION", value: "${params.CCLOUD_KSQL_BASE_VERSION}")
                 ]
         }
     }

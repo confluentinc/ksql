@@ -19,32 +19,33 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.utils.FormatOptions;
+import java.util.List;
 import java.util.Objects;
 
 @Immutable
 public final class SqlLambda extends SqlType {
 
-  private final SqlType inputType;
+  private final List<SqlType> inputTypes;
   private final SqlType returnType;
 
   public static SqlLambda of(
-      final SqlType inputType,
+      final List<SqlType> inputType,
       final SqlType returnType
   ) {
     return new SqlLambda(inputType, returnType);
   }
 
   private SqlLambda(
-      final SqlType inputType,
+      final List<SqlType> inputTypes,
       final SqlType returnType
   ) {
     super(SqlBaseType.LAMBDA);
-    this.inputType = requireNonNull(inputType, "inputType");
+    this.inputTypes = requireNonNull(inputTypes, "inputType");
     this.returnType = requireNonNull(returnType, "returnType");
   }
 
-  public SqlType getInputType() {
-    return inputType;
+  public List<SqlType> getInputType() {
+    return inputTypes;
   }
 
   public SqlType getReturnType() {
@@ -60,13 +61,13 @@ public final class SqlLambda extends SqlType {
       return false;
     }
     final SqlLambda lambda = (SqlLambda) o;
-    return Objects.equals(inputType, lambda.inputType)
+    return Objects.equals(inputTypes, lambda.inputTypes)
         && Objects.equals(returnType, lambda.returnType);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(inputType, returnType);
+    return Objects.hash(inputTypes, returnType);
   }
 
   @Override
@@ -76,6 +77,6 @@ public final class SqlLambda extends SqlType {
 
   @Override
   public String toString(final FormatOptions formatOptions) {
-    return "Lambda<" + inputType + ", " + returnType + ">";
+    return "Lambda<" + inputTypes + ", " + returnType + ">";
   }
 }

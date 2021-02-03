@@ -146,7 +146,11 @@ public class ExpressionTypeManager {
     ) {
       process(node.getBody(), context);
       // TODO: add proper type inference
-      context.setSqlType(SqlLambda.of(SqlTypes.INTEGER, SqlTypes.INTEGER));
+      final List<SqlType> inputTypes = new ArrayList<>();
+      for(final String arg: node.getArguments()) {
+        inputTypes.add(SqlTypes.INTEGER);
+      }
+      context.setSqlType(SqlLambda.of(inputTypes, SqlTypes.INTEGER));
       return null;
     }
 

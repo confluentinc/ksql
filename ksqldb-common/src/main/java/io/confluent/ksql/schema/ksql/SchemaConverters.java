@@ -19,7 +19,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.types.ArrayType;
-import io.confluent.ksql.function.types.KsqlLambdaType;
+import io.confluent.ksql.function.types.LambdaType;
 import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
@@ -37,6 +37,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -446,7 +447,7 @@ public final class SchemaConverters {
         return SqlBaseType.STRUCT;
       }
 
-      if (paramType instanceof KsqlLambdaType) {
+      if (paramType instanceof LambdaType) {
         return SqlBaseType.LAMBDA;
       }
 
@@ -488,10 +489,14 @@ public final class SchemaConverters {
       }
 
       if (sqlType.baseType() == SqlBaseType.LAMBDA) {
-        final SqlLambda sqlMap = (SqlLambda) sqlType;
-        return KsqlLambdaType.of(
-            toFunctionType(sqlMap.getInputType()),
-            toFunctionType(sqlMap.getReturnType())
+        final SqlLambda sqlLambda = (SqlLambda) sqlType;
+        final List<ParamType> inputParamTypes = new ArrayList<>();
+        for (final SqlType type: sqlLambda.getInputType()) {
+          inputParamTypes.add(toFunctionType(type));
+        }
+        return LambdaType.of(
+            inputParamTypes,
+            toFunctionType(sqlLambda.getReturnType())
         );
       }
 

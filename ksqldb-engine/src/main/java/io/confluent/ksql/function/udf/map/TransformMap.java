@@ -19,11 +19,9 @@ import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
-import io.confluent.ksql.types.KsqlLambda;
-import io.confluent.ksql.types.KsqlLambdaV2;
 import io.confluent.ksql.util.KsqlConstants;
-import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 /**
@@ -31,7 +29,7 @@ import java.util.stream.Collectors;
  */
 @SuppressWarnings("MethodMayBeStatic") // UDF methods can not be static.
 @UdfDescription(
-    name = "TransformMap",
+    name = "Transform_Map",
     category = FunctionCategory.MAP,
     description = "Apply a lambda function to both key and value of a map",
     author = KsqlConstants.CONFLUENT_AUTHOR
@@ -41,8 +39,8 @@ public class TransformMap {
   @Udf
   public <K,V,R,T> Map<R,T> transformMap(
       @UdfParameter(description = "The map") final Map<K, V> map,
-      @UdfParameter(description = "The new key lambda") final KsqlLambdaV2<K, V, R> lambda1,
-      @UdfParameter(description = "The new value lambda") final KsqlLambdaV2<K, V, T> lambda2
+      @UdfParameter(description = "The new key lambda function") final BiFunction<K, V, R> biFunction1,
+      @UdfParameter(description = "The new value lambda function") final BiFunction<K, V, T> biFunction2
   ) {
     if (map == null) {
       return null;
@@ -50,12 +48,12 @@ public class TransformMap {
     return map.entrySet()
         .stream()
         .collect(Collectors.toMap(
-            entry -> lambda1.getFunction().apply(entry.getKey(), entry.getValue()),
+            entry -> biFunction1.apply(entry.getKey(), entry.getValue()),
             entry -> {
               if (entry.getValue() == null) {
                 return null;
               }
-              return lambda2.getFunction().apply(entry.getKey(), entry.getValue());
+              return biFunction2.apply(entry.getKey(), entry.getValue());
             }));
   }
 }

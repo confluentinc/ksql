@@ -226,7 +226,7 @@ public final class AstSanitizer {
     }
   }
 
-  private static class SanitizerContext {
+  public static class SanitizerContext {
     final Set<String> lambdaArgs = new HashSet<>();
 
     private void addLambdaArgs(final Set<String> newArguments) {

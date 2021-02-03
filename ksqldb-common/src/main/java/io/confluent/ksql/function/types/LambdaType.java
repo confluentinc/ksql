@@ -15,30 +15,31 @@
 
 package io.confluent.ksql.function.types;
 
+import java.util.List;
 import java.util.Objects;
 
-public final class KsqlLambdaType extends ObjectType {
+public final class LambdaType extends ObjectType {
 
-  private final ParamType inputType;
+  private final List<ParamType> inputTypes;
   private final ParamType returnType;
 
-  private KsqlLambdaType(
-      final ParamType inputType,
+  private LambdaType(
+      final List<ParamType> inputTypes,
       final ParamType returnType
   ) {
-    this.inputType = inputType;
+    this.inputTypes = inputTypes;
     this.returnType = returnType;
   }
 
-  public static KsqlLambdaType of(
-      final ParamType inputType,
+  public static LambdaType of(
+      final List<ParamType> inputTypes,
       final ParamType returnType
   ) {
-    return new KsqlLambdaType(inputType, returnType);
+    return new LambdaType(inputTypes, returnType);
   }
 
-  public ParamType inputType() {
-    return inputType;
+  public List<ParamType> inputTypes() {
+    return inputTypes;
   }
 
   public ParamType returnType() {
@@ -53,18 +54,18 @@ public final class KsqlLambdaType extends ObjectType {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final KsqlLambdaType lambdaType = (KsqlLambdaType) o;
-    return Objects.equals(inputType, lambdaType.inputType)
+    final LambdaType lambdaType = (LambdaType) o;
+    return Objects.equals(inputTypes, lambdaType.inputTypes)
         && Objects.equals(returnType, lambdaType.returnType);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(inputType, returnType);
+    return Objects.hash(inputTypes, returnType);
   }
 
   @Override
   public String toString() {
-    return "KSQL_LAMBDA<" + inputType + ", " + returnType + ">";
+    return "KSQL_LAMBDA<" + inputTypes + ", " + returnType + ">";
   }
 }

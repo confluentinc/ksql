@@ -17,15 +17,15 @@ package io.confluent.ksql.execution.function;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.KsqlFunctionException;
+import io.confluent.ksql.function.TriFunction;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.GenericType;
-import io.confluent.ksql.function.types.KsqlLambdaType;
+import io.confluent.ksql.function.types.LambdaType;
 import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.types.KsqlLambda;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.ParameterizedType;
@@ -33,8 +33,11 @@ import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
 import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
@@ -134,7 +137,9 @@ public final class UdfUtil {
       return StructType.ANY_STRUCT;
     }
     if (type instanceof ParameterizedTypeImpl) {
-      if (KsqlLambda.class.isAssignableFrom(((ParameterizedTypeImpl) type).getRawType())) {
+      if (Function.class.isAssignableFrom(((ParameterizedTypeImpl) type).getRawType())
+          || BiFunction.class.isAssignableFrom(((ParameterizedTypeImpl) type).getRawType())
+          || TriFunction.class.isAssignableFrom(((ParameterizedTypeImpl) type).getRawType())) {
         return handleLambdaType((ParameterizedTypeImpl) type);
       }
     }
@@ -165,16 +170,21 @@ public final class UdfUtil {
   }
 
   private static ParamType handleLambdaType(final ParameterizedTypeImpl type) {
-    final Type inputType = type.getActualTypeArguments()[0];
-    final ParamType keyParamType = inputType instanceof TypeVariable
-        ? GenericType.of(((TypeVariable<?>) inputType).getName())
-        : getSchemaFromType(inputType);
+    final List<ParamType> inputParamTypes = new ArrayList<>();
+    for (int i = 0; i < type.getActualTypeArguments().length - 1; i++) {
+      final Type inputType = type.getActualTypeArguments()[i];
+      final ParamType inputParamType = inputType instanceof TypeVariable
+          ? GenericType.of(((TypeVariable<?>) inputType).getName())
+          : getSchemaFromType(inputType);
+      inputParamTypes.add(inputParamType);
+    }
 
-    final Type returnType = type.getActualTypeArguments()[1];
-    final ParamType valueParamType = returnType instanceof TypeVariable
+    final Type returnType =
+        type.getActualTypeArguments()[type.getActualTypeArguments().length - 1];
+    final ParamType returnParamType = returnType instanceof TypeVariable
         ? GenericType.of(((TypeVariable<?>) returnType).getName())
         : getSchemaFromType(returnType);
 
-    return KsqlLambdaType.of(keyParamType, valueParamType);
+    return LambdaType.of(inputParamTypes, returnParamType);
   }
 }

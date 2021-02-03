@@ -22,9 +22,6 @@ import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
-import io.confluent.ksql.types.KsqlLambda;
-import io.confluent.ksql.types.KsqlLambdaV2;
-import io.confluent.ksql.types.KsqlLambdaV3;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.AnnotatedParameterizedType;
 import java.lang.reflect.Method;
@@ -37,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
 
 class UdafTypes {
@@ -56,9 +55,9 @@ class UdafTypes {
       .add(List.class)
       .add(Map.class)
       .add(Timestamp.class)
-      .add(KsqlLambda.class)
-      .add(KsqlLambdaV2.class)
-      .add(KsqlLambdaV3.class)
+      .add(Function.class)
+      .add(BiFunction.class)
+      .add(TriFunction.class)
       .build();
 
   private final Type inputType;

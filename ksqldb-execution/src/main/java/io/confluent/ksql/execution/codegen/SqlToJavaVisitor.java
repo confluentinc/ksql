@@ -97,7 +97,6 @@ import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.types.KsqlLambda;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -138,6 +137,7 @@ public class SqlToJavaVisitor {
       "java.util.function.Supplier",
       Function.class.getCanonicalName(),
       BiFunction.class.getCanonicalName(),
+      TriFunction.class.getCanonicalName(),
       DecimalUtil.class.getCanonicalName(),
       BigDecimal.class.getCanonicalName(),
       MathContext.class.getCanonicalName(),
@@ -154,9 +154,7 @@ public class SqlToJavaVisitor {
       InListEvaluator.class.getCanonicalName(),
       SqlDoubles.class.getCanonicalName(),
       SqlBooleans.class.getCanonicalName(),
-      SqlTimestamps.class.getCanonicalName(),
-      KsqlLambda.class.getCanonicalName(),
-      TriFunction.class.getCanonicalName()
+      SqlTimestamps.class.getCanonicalName()
   );
 
   private static final Map<Operator, String> DECIMAL_OPERATOR_NAME = ImmutableMap
@@ -359,19 +357,14 @@ public class SqlToJavaVisitor {
     public Pair<String, SqlType> visitLambdaExpression(
         final LambdaFunctionCall exp, final Void context) {
       final Pair<String, SqlType> lambdaBody = process(exp.getBody(), context);
+
       final List<Pair<String, Class<?>>> argPairs = new ArrayList<>();
       for (final String lambdaArg: exp.getArguments()) {
         // TODO add proper type inference
         argPairs.add(new Pair<>(lambdaArg, Integer.class));
       }
-      final String javaReturnType =
-          SchemaConverters.sqlToJavaConverter()
-              .toJavaType(lambdaBody.getRight()).getTypeName() + ".class";
-      return new Pair<>(
-          "new KsqlLambda("
-              + "Integer.class" + ", "
-              + javaReturnType + ", "
-              + LambdaUtil.function(argPairs, lambdaBody.getLeft()) + ")",
+
+      return new Pair<>(LambdaUtil.function(argPairs, lambdaBody.getLeft()),
           expressionTypeManager.getExpressionSqlType(exp));
     }
 

@@ -324,6 +324,42 @@ public class AstSanitizerTest {
   }
 
   @Test
+  public void shouldAllowMultipleLambdsInFunctionCall() {
+    // Given:
+    final Statement stmt = givenQuery(
+        "SELECT Transform_Map(Col4, (X,Y) => X + 5, Y => Y - 5) FROM TEST1;");
+
+    // When:
+    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new SingleColumn(
+            new FunctionCall(
+                FunctionName.of("TRANSFORM_ARRAY"),
+                ImmutableList.of(
+                    column(TEST1_NAME, "COL4"),
+                    new LambdaFunctionCall(
+                        ImmutableList.of("X", "Y"),
+                        new ArithmeticBinaryExpression(
+                            Operator.ADD,
+                            new LambdaVariable("X"),
+                            new IntegerLiteral(5))
+                    ),
+                    new LambdaFunctionCall(
+                        ImmutableList.of("Y"),
+                        new ArithmeticBinaryExpression(
+                            Operator.SUBTRACT,
+                            new LambdaVariable("Y"),
+                            new IntegerLiteral(5))
+                    )
+                )
+            ),
+            Optional.of(ColumnName.of("KSQL_COL_0")))
+    ))));
+  }
+
+  @Test
   public void shouldThrowOnAmbiguousQualifierForJoinColumnReference() {
     // Given:
     final Statement stmt = givenQuery(

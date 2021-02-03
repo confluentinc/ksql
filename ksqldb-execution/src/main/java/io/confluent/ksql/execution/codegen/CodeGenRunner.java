@@ -139,9 +139,11 @@ public class CodeGenRunner {
 
       return new ExpressionMetadata(ee, spec, returnType, expression);
     } catch (KsqlException | CompileException e) {
+      e.printStackTrace();
       throw new KsqlException("Invalid " + type + ": " + e.getMessage()
           + ". expression:" + expression + ", schema:" + schema, e);
     } catch (final Exception e) {
+      e.printStackTrace();
       throw new RuntimeException("Unexpected error generating code for " + type
           + ". expression:" + expression, e);
     }

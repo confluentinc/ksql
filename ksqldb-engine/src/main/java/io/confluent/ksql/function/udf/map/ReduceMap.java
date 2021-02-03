@@ -16,24 +16,20 @@
 package io.confluent.ksql.function.udf.map;
 
 import io.confluent.ksql.function.FunctionCategory;
+import io.confluent.ksql.function.TriFunction;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
-import io.confluent.ksql.types.KsqlLambda;
-import io.confluent.ksql.types.KsqlLambdaV2;
-import io.confluent.ksql.types.KsqlLambdaV3;
 import io.confluent.ksql.util.KsqlConstants;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 /**
  * Transform a map's key and values using lambda functions
  */
 @SuppressWarnings("MethodMayBeStatic") // UDF methods can not be static.
 @UdfDescription(
-    name = "TransformMap",
+    name = "Reduce_Map",
     category = FunctionCategory.MAP,
     description = "Apply a lambda function to both key and value of a map",
     author = KsqlConstants.CONFLUENT_AUTHOR
@@ -44,7 +40,7 @@ public class ReduceMap {
   public <K,V,S> S reduceMap(
       @UdfParameter(description = "The map") final Map<K, V> map,
       @UdfParameter(description = "The initial state") final S initialState,
-      @UdfParameter(description = "The reduce lambda") final KsqlLambdaV3<K, V, S, S> lambda
+      @UdfParameter(description = "The reduce lambda function") final TriFunction<K, V, S, S> triFunction
   ) {
     if (map == null) {
       return null;
@@ -52,7 +48,7 @@ public class ReduceMap {
     
     S state = initialState;
     for (Entry<K, V> entry : map.entrySet()) {
-      state = lambda.getFunction().apply(entry.getKey(), entry.getValue(), state);
+      state = triFunction.apply(entry.getKey(), entry.getValue(), state);
     }
     return state;
   }

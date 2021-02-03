@@ -19,9 +19,9 @@ import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
-import io.confluent.ksql.types.KsqlLambda;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -39,7 +39,7 @@ public class TransformArray {
   @Udf
   public <T, R> List<R> transformArray(
       @UdfParameter(description = "The array") final List<T> array,
-      @UdfParameter(description = "The lambda") final KsqlLambda<T, R> lambda
+      @UdfParameter(description = "The lambda function") final Function<T, R> function
   ) {
     if (array == null) {
       return null;
@@ -48,7 +48,7 @@ public class TransformArray {
       if (item == null) {
         return null;
       }
-      return lambda.getFunction().apply(item);
+      return function.apply(item);
     }).collect(Collectors.toList());
   }
 }

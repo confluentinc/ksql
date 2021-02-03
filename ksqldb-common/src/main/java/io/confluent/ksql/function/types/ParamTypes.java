@@ -67,7 +67,7 @@ public final class ParamTypes {
       return isStructCompatible(actual, declared);
     }
 
-    if (actual.baseType() == SqlBaseType.LAMBDA && declared instanceof KsqlLambdaType) {
+    if (actual.baseType() == SqlBaseType.LAMBDA && declared instanceof LambdaType) {
       return isLambdaCompatible(actual, declared);
     }
 
@@ -95,9 +95,16 @@ public final class ParamTypes {
 
   private static boolean isLambdaCompatible(final SqlType actual, final ParamType declared) {
     final SqlLambda actualLambda = (SqlLambda) actual;
-    final KsqlLambdaType declaredLambda = (KsqlLambdaType) declared;
-    if (!areCompatible(actualLambda.getInputType(), declaredLambda.inputType())) {
+    final LambdaType declaredLambda = (LambdaType) declared;
+    if (actualLambda.getInputType().size() != declaredLambda.inputTypes().size()) {
       return false;
+    }
+    int i = 0;
+    for (final ParamType paramType: declaredLambda.inputTypes()) {
+      if (!areCompatible(actualLambda.getInputType().get(i), paramType)) {
+        return false;
+      }
+      i++;
     }
 
     if (!areCompatible(actualLambda.getReturnType(), declaredLambda.returnType())) {

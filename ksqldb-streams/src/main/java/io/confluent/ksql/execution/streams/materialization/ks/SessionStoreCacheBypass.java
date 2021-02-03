@@ -21,6 +21,7 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.function.Function;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
@@ -87,21 +88,10 @@ public final class SessionStoreCacheBypass {
   ) {
     Objects.requireNonNull(key, "key can't be null");
     final List<ReadOnlySessionStore<GenericKey, GenericRow>> stores = getStores(store);
-    for (final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore : stores) {
-      try {
-        final KeyValueIterator<Windowed<GenericKey>, GenericRow> result
-            = fetchUncached(sessionStore, key);
-        // returns the first non-empty iterator
-        if (!result.hasNext()) {
-          result.close();
-        } else {
-          return result;
-        }
-      } catch (final InvalidStateStoreException e) {
-        throw new InvalidStateStoreException(STORE_UNAVAILABLE_MESSAGE, e);
-      }
-    }
-    return new EmptyKeyValueIterator();
+    final Function<ReadOnlySessionStore<GenericKey, GenericRow>,
+            KeyValueIterator<Windowed<GenericKey>, GenericRow>> fetchFunc
+            = sessionStore -> fetchUncached(sessionStore, key);
+    return findFirstNonEmptyIterator(stores, fetchFunc);
   }
 
   private static KeyValueIterator<Windowed<GenericKey>, GenericRow> fetchUncached(
@@ -128,21 +118,10 @@ public final class SessionStoreCacheBypass {
     Objects.requireNonNull(keyTo, "upper key can't be null");
 
     final List<ReadOnlySessionStore<GenericKey, GenericRow>> stores = getStores(store);
-    for (final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore : stores) {
-      try {
-        final KeyValueIterator<Windowed<GenericKey>, GenericRow> result
-                = fetchRangeUncached(sessionStore, keyFrom, keyTo);
-        // returns the first non-empty iterator
-        if (!result.hasNext()) {
-          result.close();
-        } else {
-          return result;
-        }
-      } catch (final InvalidStateStoreException e) {
-        throw new InvalidStateStoreException(STORE_UNAVAILABLE_MESSAGE, e);
-      }
-    }
-    return new EmptyKeyValueIterator();
+    final Function<ReadOnlySessionStore<GenericKey, GenericRow>,
+            KeyValueIterator<Windowed<GenericKey>, GenericRow>> fetchFunc
+            = sessionStore -> fetchRangeUncached(sessionStore, keyFrom, keyTo);
+    return findFirstNonEmptyIterator(stores, fetchFunc);
   }
 
   private static KeyValueIterator<Windowed<GenericKey>, GenericRow> fetchRangeUncached(
@@ -161,6 +140,28 @@ public final class SessionStoreCacheBypass {
       final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetch(rawKeyFrom, rawKeyTo);
       return new DeserializingIterator(fetch, serdes);
     }
+  }
+
+  private static KeyValueIterator<Windowed<GenericKey>, GenericRow> findFirstNonEmptyIterator(
+          final List<ReadOnlySessionStore<GenericKey, GenericRow>> stores,
+          final Function<ReadOnlySessionStore<GenericKey, GenericRow>,
+                  KeyValueIterator<Windowed<GenericKey>, GenericRow>> fetchFunc
+  ) {
+    for (final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore : stores) {
+      try {
+        final KeyValueIterator<Windowed<GenericKey>, GenericRow> result
+                = fetchFunc.apply(sessionStore);
+        // returns the first non-empty iterator
+        if (!result.hasNext()) {
+          result.close();
+        } else {
+          return result;
+        }
+      } catch (final InvalidStateStoreException e) {
+        throw new InvalidStateStoreException(STORE_UNAVAILABLE_MESSAGE, e);
+      }
+    }
+    return new EmptyKeyValueIterator();
   }
 
   @SuppressWarnings("unchecked")

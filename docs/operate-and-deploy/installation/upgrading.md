@@ -616,3 +616,25 @@ SELECT * FROM input PARTITION BY col0 EMIT CHANGES;
 
 Any query using these identifiers will need to be changed to either use some other identifier, or
 to quote them.
+
+
+
+### Upgrading from confluentksqlDB 5.5 to confluentksqlDB 6
+
+In-place upgrades are supported from confluentksqlDB 5.5 to confluentksqlDB 6.
+
+#### Steps of "In-Place" upgrade :-
+
+1. Download the latest confluent version.
+2. Set it up with all required configs. In our case we mostly copied all configs from the current version(which is running) to the new version.
+3. Take Backup and then copy all UDF JAR to new version .(OPTIONAL STEP In case you don't have any UDF).
+4. Stop ksqlDB process of current version(5.5 in our case) and start newer version(6 in our case) with latest KsqlDB config file which you created in step2.
+5. KsqlDB will start executing queries and rebuild all states using command topic because the value of "ksql.service.id" is the same.
+6. Now KsqlDB Server with the latest version is up and running.
+
+#### Common Issues :-
+
+1. There might have been some UDFs like ARRAY_EXCEPT , ARRAY_LENGTH , ARRAY_REMOVE etc since they were not available with Confluent KsqlDB 5.5 so when you start newer version, it will give an error saying "KsqlException: UdfFactory not compatible with existing factory. function: ARRAY_EXCEPT existing". 
+This error is because Confluent KsqlDB 6 has these functions as in built so it will create conflict with your UDFs. So to solve this you can create a new udf jar by eliminating those inbuilt functions and deploy it and then try to start KsqlDB again.
+
+2. "desribe extended" command not working :- This generally happens when ksqlCli and ksqlServer version is not same. Generally people create alias for ksqlCli so make sure to change it to newer version. So all an all, version of ksqlCli and ksqlServer should be same.

@@ -124,7 +124,7 @@ fakeroot make PACKAGE_TYPE=archive "VERSION=${FULL_VERSION}" -f debian/Makefile 
 
 # Collect output
 mkdir -p "${WORKSPACE}/output"
-cp ../*.{changes,debian.tar.xz,dsc,build,orig.tar.gz} "${WORKSPACE}/output/"
+cp ../*.{changes,debian.tar.xz,dsc,build,orig.tar.gz,deb} "${WORKSPACE}/output/"
 cp ./*.{tar.gz,zip,rpm} "${WORKSPACE}/output/"
 echo "Output Contents:"
 ls -la "${WORKSPACE}/output/"

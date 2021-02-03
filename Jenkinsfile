@@ -93,6 +93,8 @@ def job = {
     } else {
         // For non-release builds, we append the build number to the maven artifacts and docker image tag
         config.ksql_db_artifact_version = config.ksql_db_version + '-rc' + env.BUILD_NUMBER
+        // For non-release builds, we upload the RC artifacts to a different prefix for testing.
+        // Actual release artifacts will go to a "prod" prefix.
         config.ksql_db_packages_prefix = config.ksql_db_packages_prefix + '-rcs'
     }
     config.docker_tag = config.ksql_db_artifact_version
@@ -160,10 +162,9 @@ def job = {
                 sh """
                     bash extract-iam-credential.sh
                     aws s3 sync s3://staging-ksqldb-maven/maven/ s3://ksqldb-maven/maven/
-                    # XXX: Uncomment when ready...
-                    echo aws s3 sync s3://staging-ksqldb-packages/rpm/${config.ksql_db_packages_prefix} s3://ksqldb-packages/rpm/${config.ksql_db_packages_prefix}
-                    echo aws s3 sync s3://staging-ksqldb-packages/deb/${config.ksql_db_packages_prefix} s3://ksqldb-packages/deb/${config.ksql_db_packages_prefix}
-                    echo aws s3 sync s3://staging-ksqldb-packages/archive/${config.ksql_db_packages_prefix} s3://ksqldb-packages/archive/${config.ksql_db_packages_prefix}
+                    aws s3 sync s3://staging-ksqldb-packages/rpm/${config.ksql_db_packages_prefix} s3://ksqldb-packages/rpm/${config.ksql_db_packages_prefix}
+                    aws s3 sync s3://staging-ksqldb-packages/deb/${config.ksql_db_packages_prefix} s3://ksqldb-packages/deb/${config.ksql_db_packages_prefix}
+                    aws s3 sync s3://staging-ksqldb-packages/archive/${config.ksql_db_packages_prefix} s3://ksqldb-packages/archive/${config.ksql_db_packages_prefix}
                 """
             }
         }
@@ -250,7 +251,7 @@ def job = {
         }
     }
 
-    if (!config.isPrJob || true) {  // XXX: Remove when not in PR
+    if (!config.isPrJob) {
         stage('Publish Artifacts') {
             writeFile file: settingsFile, text: settings
             dir('ksql-db') {
@@ -267,14 +268,13 @@ def job = {
                             sh '''
                                 bash extract-iam-credential.sh
                             '''
-                            // XXX: Remove when not in PR
-                            /*withEnv(['MAVEN_OPTS=-XX:MaxPermSize=128M']) {
+                            withEnv(['MAVEN_OPTS=-XX:MaxPermSize=128M']) {
                                 cmd = "mvn --batch-mode -Pjenkins deploy -DskipTests -Ddocker.skip-build=true -Ddocker.skip-test=true"
                                 cmd += " -DaltDeploymentRepository=confluent-artifactory-central::default::s3://staging-ksqldb-maven/maven"
                                 cmd += " -DrepositoryId=confluent-artifactory-central"
                                 cmd += " -DnexusUrl=s3://staging-ksqldb-maven/maven"
                                 sh cmd
-                            }*/
+                            }
                             sh """
                                 set +x
                                 TMP_GPG_PASS=\$(mktemp -t XXXgpgpass)

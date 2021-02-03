@@ -101,6 +101,9 @@ public final class WindowStoreCacheBypass {
 
   }
 
+  /*
+  This method is used for single key lookups. It calls the fetchUncached method.
+   */
   public static WindowStoreIterator<ValueAndTimestamp<GenericRow>> fetch(
       final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store,
       final GenericKey key,
@@ -116,6 +119,9 @@ public final class WindowStoreCacheBypass {
     return findFirstNonEmptyIterator(stores, fetchFunc);
   }
 
+  /*
+  This method is used for single key lookups. It is invoked by the fetch method
+   */
   private static WindowStoreIterator<ValueAndTimestamp<GenericRow>> fetchUncached(
       final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore,
       final GenericKey key,
@@ -132,6 +138,9 @@ public final class WindowStoreCacheBypass {
     return new DeserializingIterator(fetch, serdes);
   }
 
+  /*
+  This method is used for range queries. It calls the fetchRangeUncached method.
+   */
   public static KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> fetchRange(
           final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store,
           final GenericKey keyFrom,
@@ -149,6 +158,9 @@ public final class WindowStoreCacheBypass {
     return findFirstNonEmptyIterator(stores, fetchFunc);
   }
 
+  /*
+  This method is used for range queries. It is invoked by the fetchRange method
+   */
   private static KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>
       fetchRangeUncached(
           final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore,
@@ -169,6 +181,9 @@ public final class WindowStoreCacheBypass {
     return new DeserializingKeyValueIterator(fetch, serdes);
   }
 
+  /*
+  This method is used for table scans. It calls the fetchAllUncached method.
+   */
   public static KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> fetchAll(
           final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> store,
           final Instant lower,
@@ -182,6 +197,9 @@ public final class WindowStoreCacheBypass {
     return findFirstNonEmptyIterator(stores, fetchFunc);
   }
 
+  /*
+  This method is used for table scans. It is invoked by the fetchAll method
+   */
   private static KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>
       fetchAllUncached(
           final ReadOnlyWindowStore<GenericKey, ValueAndTimestamp<GenericRow>> windowStore,
@@ -269,6 +287,10 @@ public final class WindowStoreCacheBypass {
     }
   }
 
+  /*
+  This iterator is used for range queries/table scans in the fetchRangeUncached
+  and fetchAllUncached methods
+   */
   private static final class DeserializingKeyValueIterator
           implements KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>> {
     private final KeyValueIterator<Windowed<Bytes>, byte[]> fetch;
@@ -306,6 +328,9 @@ public final class WindowStoreCacheBypass {
     }
   }
 
+  /*
+  This iterator is used for key lookups in the fetchUncached method
+   */
   private static final class DeserializingIterator
           implements WindowStoreIterator<ValueAndTimestamp<GenericRow>> {
     private final WindowStoreIterator<byte[]> fetch;

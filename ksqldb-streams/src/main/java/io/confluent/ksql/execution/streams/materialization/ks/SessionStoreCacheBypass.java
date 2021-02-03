@@ -82,6 +82,9 @@ public final class SessionStoreCacheBypass {
     );
   }
 
+  /*
+  This method is used for single key lookups. It calls the fetchUncached method.
+   */
   public static KeyValueIterator<Windowed<GenericKey>, GenericRow> fetch(
       final ReadOnlySessionStore<GenericKey, GenericRow> store,
       final GenericKey key
@@ -94,6 +97,9 @@ public final class SessionStoreCacheBypass {
     return findFirstNonEmptyIterator(stores, fetchFunc);
   }
 
+  /*
+  This method is used for single key lookups. It is invoked by the fetch method
+   */
   private static KeyValueIterator<Windowed<GenericKey>, GenericRow> fetchUncached(
       final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore,
       final GenericKey key
@@ -109,6 +115,9 @@ public final class SessionStoreCacheBypass {
     }
   }
 
+  /*
+  This method is used for range queries. It calls the fetchRangeUncached method.
+   */
   public static KeyValueIterator<Windowed<GenericKey>, GenericRow> fetchRange(
           final ReadOnlySessionStore<GenericKey, GenericRow> store,
           final GenericKey keyFrom,
@@ -124,6 +133,9 @@ public final class SessionStoreCacheBypass {
     return findFirstNonEmptyIterator(stores, fetchFunc);
   }
 
+  /*
+  This method is used for range queries. It is invoked by the fetchRange method
+   */
   private static KeyValueIterator<Windowed<GenericKey>, GenericRow> fetchRangeUncached(
           final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore,
           final GenericKey keyFrom,

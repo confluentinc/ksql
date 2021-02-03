@@ -306,6 +306,11 @@ public class StreamedQueryResource implements KsqlConfigurable {
         requestProperties
     );
 
+    final PullQueryConfigPlannerOptions plannerOptions = new PullQueryConfigPlannerOptions(
+        sessionConfig.getConfig(false),
+        configured.getSessionConfig().getOverrides()
+    );
+
     // A request is considered forwarded if the request has the forwarded flag or if the request
     // is from an internal listener.
     final boolean isAlreadyForwarded = routingOptions.getIsSkipForwardRequest()
@@ -322,6 +327,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         configured,
         routing,
         routingOptions,
+        plannerOptions,
         pullQueryMetrics,
         true
     );

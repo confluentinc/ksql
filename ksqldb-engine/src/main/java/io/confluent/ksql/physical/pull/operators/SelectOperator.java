@@ -69,34 +69,32 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
 
   @Override
   public Object next() {
-    row = (TableRow)child.next();
-    if (row == null) {
-      return null;
-    }
-
-    final GenericRow intermediate = PullPhysicalOperatorUtil.getIntermediateRow(
-        row, logicalNode.getAddAdditionalColumnsToIntermediateSchema());
-    final Function<TableRow, Optional<TableRow>> transformRow = row -> transformer.transform(
-        row.key(),
-        intermediate,
-        new PullProcessingContext(row.rowTime()))
-        .map(r -> {
-          if (logicalNode.isWindowed()) {
-            return WindowedRow.of(
-                logicalNode.getIntermediateSchema(),
-                ((WindowedRow) row).windowedKey(),
-                r,
-                row.rowTime());
-          }
-          return Row.of(logicalNode.getIntermediateSchema(), row.key(), r, row.rowTime());
-        });
-
-    Optional<TableRow> result = transformRow.apply(row);
+    Optional<TableRow> result = Optional.empty();
     while (result.equals(Optional.empty())) {
       row = (TableRow)child.next();
       if (row == null) {
         return null;
       }
+
+      final GenericRow intermediate = PullPhysicalOperatorUtil.getIntermediateRow(
+          row, logicalNode.getAddAdditionalColumnsToIntermediateSchema());
+      final Function<TableRow, Optional<TableRow>> transformRow = row -> {
+        return transformer.transform(
+            row.key(),
+            intermediate,
+            new PullProcessingContext(row.rowTime()))
+            .map(r -> {
+              if (logicalNode.isWindowed()) {
+                return WindowedRow.of(
+                    logicalNode.getIntermediateSchema(),
+                    ((WindowedRow) row).windowedKey(),
+                    r,
+                    row.rowTime());
+              }
+              return Row.of(logicalNode.getIntermediateSchema(), row.key(), r, row.rowTime());
+            });
+      };
+
       result = transformRow.apply(row);
     }
     return result.get();

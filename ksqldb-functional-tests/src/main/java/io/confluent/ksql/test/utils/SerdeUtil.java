@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaReference;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
@@ -45,6 +46,7 @@ import io.confluent.ksql.test.serde.none.NoneSerdeSupplier;
 import io.confluent.ksql.test.serde.protobuf.ValueSpecProtobufSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
+import java.util.Arrays;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
@@ -98,9 +100,21 @@ public final class SerdeUtil {
         return Optional.of(new JsonSchema(schemaString));
       } else if (format.equalsIgnoreCase(ProtobufFormat.NAME)) {
         // since Protobuf schemas are not valid JSON, the schema JsonNode in
-        // this case is just a string
+        // this case is just a string. If the schema requires google/protobuf/timestamp.proto,
+        // we need to explicitly add it as a dependency
         final String schemaString = schema.textValue();
-        return Optional.of(new ProtobufSchema(schemaString));
+        final ProtobufSchema ps = new ProtobufSchema(schemaString);
+        if (ps.rawSchema().getImports().contains("google/protobuf/timestamp.proto")) {
+          return Optional.of(new ProtobufSchema(
+              ps.rawSchema().toSchema(),
+              Arrays.asList(
+                  new SchemaReference("google/protobuf/timestamp.proto", "google/protobuf/timestamp.proto", 0)),
+              ImmutableMap.of("google/protobuf/timestamp.proto",
+                  "syntax = \"proto3\"; package google.protobuf; message Timestamp {int64 seconds = 1; int32 nanos = 2;}"),
+              ps.version(),
+              ps.name()));
+        }
+        return Optional.of(ps);
       }
     } catch (final Exception e) {
       throw new InvalidFieldException("schema", "failed to parse", e);

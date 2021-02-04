@@ -278,7 +278,7 @@ Dedicating Resources
 Join ksqlDB engines to the same *service pool* by using the `ksql.service.id`
 property. The following diagram shows a {{ site.ak }} cluster with separate
 workloads for a `finance` pool and a `sales` pool. For more information, see
-[ksql.service.id](../operate-and-deploy/installation/server-config/config-reference.md#ksqlserviceid).
+[ksql.service.id](/reference/server-configuration#ksqlserviceid).
 
 ![Diagram showing how to join ksqlDB engines to the same service pool](../img/ksqldb-dedicating-resources.png)
 

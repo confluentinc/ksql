@@ -22,7 +22,7 @@ topics.
 - [Configure ksqlDB Server](installation/server-config/index.md)
 - [Configure ksqlDB CLI](installation/cli-config.md)
 - [Configure Security](installation/server-config/security.md)
-- [ksqlDB Configuration Parameter Reference](installation/server-config/config-reference.md)
+- [ksqlDB Configuration Parameter Reference](/reference/server-configuration)
 
 Health Checks
 -------------

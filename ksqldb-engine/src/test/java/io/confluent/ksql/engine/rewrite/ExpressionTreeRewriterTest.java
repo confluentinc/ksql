@@ -183,6 +183,15 @@ public class ExpressionTreeRewriterTest {
   }
 
   @Test
+  public void shouldRewriteLambdaFunctionUsingPlugin() {
+    // Given:
+    final Expression parsed = parseExpression("TRANSFORM_ARRAY(Array[1,2], X => X + Col0)");
+
+    // When/Then:
+    shouldRewriteUsingPlugin(parsed);
+  }
+
+  @Test
   public void shouldRewriteBetweenPredicate() {
     // Given:
     final BetweenPredicate parsed = parseExpression("1 BETWEEN 0 AND 2");

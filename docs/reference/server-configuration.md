@@ -1,3 +1,14 @@
+<<<<<<< HEAD:docs/reference/server-configuration.md
+=======
+---
+layout: page
+title: ksqlDB Server Configuration Parameter Reference
+tagline: Refer ksqlDB's server parameters
+description: Parameters for onfiguring ksqlDB Server
+keywords: ksqldb, configure, server, setup, install
+---
+
+>>>>>>> master:docs/reference/server-configuration.md
 # Server configuration
 
 These configuration parameters control the general behavior of ksqlDB server.
@@ -23,7 +34,11 @@ For more information on setting properties, see
     name by converting to uppercase, replacing periods with underscores, and
     prepending with `KSQL_`. For example, the name of the `ksql.service.id`
     environment variable is `KSQL_KSQL_SERVICE_ID`. For more information,
+<<<<<<< HEAD:docs/reference/server-configuration.md
     see [Install ksqlDB with Docker](../install-ksqldb-with-docker.md).
+=======
+    see [Install ksqlDB with Docker](/operate-and-deploy/installation/install-ksqldb-with-docker).
+>>>>>>> master:docs/reference/server-configuration.md
 
 ## `ksql.advertised.listener`
 
@@ -85,7 +100,7 @@ topic due to a {{ site.ak }} producer exception. The default value in ksqlDB is
 `true`, which means if a producer error occurs, then the {{ site.kstreams }}
 thread that encountered the error will shut down. To log the error
 message to the
-[Processing Log](../../../reference/processing-log.md)
+[Processing Log](/reference/processing-log)
 and have ksqlDB continue processing as normal, add the following setting
 to your ksqlDB Server properties file:
 
@@ -94,6 +109,7 @@ ksql.fail.on.production.error=false
 ```
 
 ## `ksql.functions.substring.legacy.args`
+<<<<<<< HEAD:docs/reference/server-configuration.md
 
 **Per query:** yes
 
@@ -103,6 +119,17 @@ guide for details.
 
 ## `ksql.internal.listener`
 
+=======
+
+**Per query:** yes
+
+Controls the semantics of the SUBSTRING UDF. Refer to the SUBSTRING
+documentation in the [function](/developer-guide/ksqldb-reference/scalar-functions)
+guide for details.
+
+## `ksql.internal.listener`
+
+>>>>>>> master:docs/reference/server-configuration.md
 The `ksql.internal.listener` setting controls the address bound for use by internal,
 intra-cluster communication.
 
@@ -118,8 +145,21 @@ traffic from internal traffic.
 The number of replicas for the internal topics created by ksqlDB Server.
 The default is 1. Replicas for the record processing log topic should be
 configured separately. For more information, see
-[Processing Log](../../../reference/processing-log.md).
+[Processing Log](/reference/processing-log).
 
+## `ksql.logging.processing.topic.auto.create`
+
+Toggles automatic processing log topic creation. If set to true, ksqlDB
+automatically tries to create a processing log topic at startup.
+The name of the topic is the value of the
+[ksql.logging.processing.topic.name](#ksqlloggingprocessingtopicname) property.
+The number of partitions is taken from the
+[ksql.logging.processing.topic.partitions](#ksqlloggingprocessingtopicpartitions)
+property , and the replication factor is taken from the
+[ksql.logging.processing.topic.replication.factor](#ksqlloggingprocessingtopicreplicationfactor)
+property. By default, this property has the value `false`.
+
+<<<<<<< HEAD:docs/reference/server-configuration.md
 ## `ksql.logging.processing.topic.auto.create`
 
 Toggles automatic processing log topic creation. If set to true, ksqlDB
@@ -155,6 +195,31 @@ default, this property has the value `1`.
 
 ## `ksql.logging.processing.stream.auto.create`
 
+=======
+## `ksql.logging.processing.topic.name`
+
+If automatic processing log topic creation is enabled, ksqlDB sets the
+name of the topic to the value of this property. If automatic processing
+log stream creation is enabled, ksqlDB uses this topic to back the stream.
+By default, this property has the value
+`<service id>ksql_processing_log`, where `<service id>` is the value of
+the [ksql.service.id](#ksqlserviceid) property.
+
+## `ksql.logging.processing.topic.partitions`
+
+If automatic processing log topic creation is enabled, ksqlDB creates the
+topic with number of partitions set to the value of this property. By
+default, this property has the value `1`.
+
+## `ksql.logging.processing.topic.replication.factor`
+
+If automatic processing log topic creation is enabled, ksqlDB creates the
+topic with number of replicas set to the value of this property. By
+default, this property has the value `1`.
+
+## `ksql.logging.processing.stream.auto.create`
+
+>>>>>>> master:docs/reference/server-configuration.md
 Toggles automatic processing log stream creation. If set to true, and
 ksqlDB is running in interactive mode on a new cluster, ksqlDB automatically
 creates a processing log stream when it starts up. The name for the
@@ -165,6 +230,7 @@ property. The stream is created over the topic set in the
 By default, this property has the value `false`.
 
 ## `ksql.logging.processing.stream.name`
+<<<<<<< HEAD:docs/reference/server-configuration.md
 
 If automatic processing log stream creation is enabled, ksqlDB sets the
 name of the stream to the value of this property. By default, this
@@ -201,6 +267,44 @@ is being hit, so an absence of this message means a complete set of logs.
 
 A list of tags to be included with emitted
 [JMX metrics](../../index.md#monitoring-and-metrics), formatted as
+=======
+
+If automatic processing log stream creation is enabled, ksqlDB sets the
+name of the stream to the value of this property. By default, this
+property has the value `KSQL_PROCESSING_LOG`.
+
+## `ksql.logging.processing.rows.include`
+
+Toggles whether or not the processing log should include rows in log
+messages. By default, this property has the value `false`.
+
+## `ksql.logging.server.rate.limited.response.codes`
+
+A list of `code:qps` pairs, to limit the rate of server request
+logging.  An example would be "400:10" which would limit 400 error
+logs to 10 per second.  This is useful for limiting certain 4XX errors that you
+might not want to blow up in the logs.
+This setting enables seeing the logs when the request rate is low 
+and dropping them when they go over the threshold.
+A message will be logged every 5 seconds indicating if the rate limit
+is being hit, so an absence of this message means a complete set of logs.
+
+## `ksql.logging.server.rate.limited.request.paths`
+
+A list of `path:qps` pairs, to limit the rate of server request
+logging.  An example would be "/query:10" which would limit pull query
+logs to 10 per second. This is useful for requests that are coming in
+at a high rate, such as for pull queries.
+This setting enables seeing the logs when the request rate is low
+and dropping them when they go over the threshold.
+A message will be logged every 5 seconds indicating if the rate limit
+is being hit, so an absence of this message means a complete set of logs.
+
+## `ksql.metrics.tags.custom`
+
+A list of tags to be included with emitted
+[JMX metrics](/operate-and-deploy/monitoring), formatted as
+>>>>>>> master:docs/reference/server-configuration.md
 a string of `key:value` pairs separated by commas. For example,
 `key1:value1,key2:value2`.
 
@@ -212,15 +316,19 @@ value of `ksql.output.topic.name.prefix` to the names of automatically
 created output topics. For example, you might use "ksql-interactive-"
 to name output topics in a ksqlDB Server cluster that's deployed in
 interactive mode. For more information, see
+<<<<<<< HEAD:docs/reference/server-configuration.md
 [Interactive ksqlDB clusters](security.md#interactive-ksqldb-clusters).
+=======
+[Interactive ksqlDB clusters](/operate-and-deploy/installation/server-config/security#interactive-ksqldb-clusters).
+>>>>>>> master:docs/reference/server-configuration.md
 
 ## `ksql.persistence.default.format.key`
 
 **Per query:** yes
 
 Sets the default value for the `KEY_FORMAT` property if one is
-not supplied explicitly in [CREATE TABLE](../../../developer-guide/ksqldb-reference/create-table.md)
-or [CREATE STREAM](../../../developer-guide/ksqldb-reference/create-stream.md)
+not supplied explicitly in [CREATE TABLE](/developer-guide/ksqldb-reference/create-table)
+or [CREATE STREAM](/developer-guide/ksqldb-reference/create-stream)
 statements.
 
 The default value for this configuration is `KAFKA`.
@@ -230,8 +338,8 @@ If not set and no explicit key format is provided in the statement, via either t
 
 For supported formats, see [Serialization Formats](/reference/serialization).
 
-[CREATE STREAM AS SELECT](../../../developer-guide/ksqldb-reference/create-stream-as-select.md) and
-[CREATE TABLE AS SELECT](../../../developer-guide/ksqldb-reference/create-table-as-select.md) 
+[CREATE STREAM AS SELECT](/developer-guide/ksqldb-reference/create-stream-as-select) and
+[CREATE TABLE AS SELECT](/developer-guide/ksqldb-reference/create-table-as-select) 
 statements that create streams or tables with key columns, where the source stream or table 
 has a [NONE](/reference/serialization#none) key format, will also use the default
 key format set in this configuration if no explicit key format is declared in the `WITH` clause.
@@ -241,8 +349,8 @@ key format set in this configuration if no explicit key format is declared in th
 **Per query:** yes
 
 Sets the default value for the `VALUE_FORMAT` property if one is
-not supplied explicitly in [CREATE TABLE](../../../developer-guide/ksqldb-reference/create-table.md)
-or [CREATE STREAM](../../../developer-guide/ksqldb-reference/create-stream.md)
+not supplied explicitly in [CREATE TABLE](/developer-guide/ksqldb-reference/create-table)
+or [CREATE STREAM](/developer-guide/ksqldb-reference/create-stream)
 statements.
 
 If not set and no explicit value format is provided in the statement, via either the `VALUE_FORMAT` or the
@@ -255,10 +363,10 @@ For supported formats, see [Serialization Formats](/reference/serialization).
 **Per query:** yes
 
 Sets the default value for the `WRAP_SINGLE_VALUE` property if one is
-not supplied explicitly in [CREATE TABLE](../../../developer-guide/ksqldb-reference/create-table.md),
-[CREATE STREAM](../../../developer-guide/ksqldb-reference/create-stream.md),
-[CREATE TABLE AS SELECT](../../../developer-guide/ksqldb-reference/create-table-as-select.md) or
-[CREATE STREAM AS SELECT](../../../developer-guide/ksqldb-reference/create-stream-as-select.md)
+not supplied explicitly in [CREATE TABLE](/developer-guide/ksqldb-reference/create-table),
+[CREATE STREAM](/developer-guide/ksqldb-reference/create-stream),
+[CREATE TABLE AS SELECT](/developer-guide/ksqldb-reference/create-table-as-select) or
+[CREATE STREAM AS SELECT](/developer-guide/ksqldb-reference/create-stream-as-select)
 statements.
 
 If not set and no explicit value is provided in the statement, the value format's default wrapping 
@@ -302,16 +410,17 @@ SET 'ksql.persistence.wrap.single.values'='false';
 ```
 
 For more information, refer to the
-[CREATE TABLE](../../../developer-guide/ksqldb-reference/create-table.md),
-[CREATE STREAM](../../../developer-guide/ksqldb-reference/create-stream.md),
-[CREATE TABLE AS SELECT](../../../developer-guide/ksqldb-reference/create-table-as-select.md) or
-[CREATE STREAM AS SELECT](../../../developer-guide/ksqldb-reference/create-stream-as-select.md)
+[CREATE TABLE](/developer-guide/ksqldb-reference/create-table),
+[CREATE STREAM](/developer-guide/ksqldb-reference/create-stream),
+[CREATE TABLE AS SELECT](/developer-guide/ksqldb-reference/create-table-as-select) or
+[CREATE STREAM AS SELECT](/developer-guide/ksqldb-reference/create-stream-as-select)
 statements.
 
 !!! note
     Not all formats support wrapping and unwrapping. If you use a format that doesn't support
     the default value you set, the format ignores the setting. For information on which formats
     support wrapping and unwrapping, see the [serialization docs](/reference/serialization).
+<<<<<<< HEAD:docs/reference/server-configuration.md
 
 ## `ksql.schema.registry.url`
 
@@ -342,13 +451,51 @@ Using the default value `ksql.service.id`, the ksqlDB internal topics will
 be prefixed as `_confluent-ksql-default_`. For example, `_command_topic`
 becomes `_confluent-ksql-default__command_topic`).
 
+=======
+
+## `ksql.schema.registry.url`
+
+**Per query:** yes
+
+The {{ site.sr }} URL path to connect ksqlDB to. To communicate with {{ site.sr }}
+over a secure connection, see
+[Configure ksqlDB for Secured {{ site.srlong }}](/operate-and-deploy/installation/server-config/security#configure-ksqldb-for-https).
+
+## `ksql.service.id`
+
+**Per query:** yes
+
+The service ID of the ksqlDB server. This is used to define the ksqlDB
+cluster membership of a ksqlDB Server instance.
+
+- If multiple ksqlDB servers connect to the same {{ site.ak }} cluster
+  (i.e. the same `bootstrap.servers` *and* the same `ksql.service.id`)
+  they form a ksqlDB cluster and share the workload.
+
+- If multiple ksqlDB servers connect to the same {{ site.ak }} cluster but
+  *don't* have the same `ksql.service.id`, they each get a different command
+  topic and form separate ksqlDB clusters, by `ksql.service.id`.  
+
+By default, the service ID of ksqlDB servers is `default_`. The service ID
+is also used as the prefix for the internal topics created by ksqlDB.
+Using the default value `ksql.service.id`, the ksqlDB internal topics will
+be prefixed as `_confluent-ksql-default_`. For example, `_command_topic`
+becomes `_confluent-ksql-default__command_topic`).
+
+>>>>>>> master:docs/reference/server-configuration.md
 !!! important
     By convention, the `ksql.service.id` property should end with a
     separator character of some form, like a dash or underscore, as
     this makes the internal topic names easier to read.
+<<<<<<< HEAD:docs/reference/server-configuration.md
 
 ## `ksql.streams.auto.offset.reset`
 
+=======
+
+## `ksql.streams.auto.offset.reset`
+
+>>>>>>> master:docs/reference/server-configuration.md
 Determines what to do when there is no initial offset in {{ site.aktm }}
 or if the current offset doesn't exist on the server. The default
 value in ksqlDB is `latest`, which means all {{ site.ak }} topics are read from
@@ -451,7 +598,11 @@ limit to prevent users from overloading the server with too many
 queries, since throughput suffers as more queries are run
 simultaneously, and also because there is some small CPU overhead
 associated with starting each new query. For more information, see
+<<<<<<< HEAD:docs/reference/server-configuration.md
 [Sizing Recommendations](../../capacity-planning.md#recommendations-and-best-practices).
+=======
+[Sizing Recommendations](/operate-and-deploy/capacity-planning).
+>>>>>>> master:docs/reference/server-configuration.md
 
 ## `ksql.query.pull.enable.standby.reads`
 
@@ -487,7 +638,11 @@ Enables variable substitution through [`DEFINE`](../../../../developer-guide/ksq
 
 The `listeners` setting controls the REST API endpoint for the ksqlDB
 Server. For more info, see
+<<<<<<< HEAD:docs/reference/server-configuration.md
 [ksqlDB REST API Reference](../../../developer-guide/api.md).
+=======
+[ksqlDB REST API Reference](/developer-guide/api).
+>>>>>>> master:docs/reference/server-configuration.md
 
 The default `listeners` is `http://0.0.0.0:8088`, which binds to all
 IPv4 interfaces. Set `listeners` to `http://[::]:8088` to bind to all
@@ -509,7 +664,11 @@ listeners=http://server1245:8088
 ```
 
 You can configure ksqlDB Server to use HTTPS. For more information, see
+<<<<<<< HEAD:docs/reference/server-configuration.md
 [Configure ksqlDB for HTTPS](security.md#configure-ksqldb-for-https).
+=======
+[Configure ksqlDB for HTTPS](/operate-and-deploy/installation/server-config/security#configure-ksqldb-for-https).
+>>>>>>> master:docs/reference/server-configuration.md
 
 ## `response.http.headers.config`
 
@@ -531,8 +690,13 @@ response.http.headers.config="add Cache-Control: no-cache, no-store, must-revali
 The default number of partitions for the topics created by ksqlDB. The
 default is four. This property has been deprecated.
 For more info see the WITH clause properties in
+<<<<<<< HEAD:docs/reference/server-configuration.md
 [CREATE STREAM AS SELECT](../../../developer-guide/ksqldb-reference/create-stream-as-select.md) and
 [CREATE TABLE AS SELECT](../../../developer-guide/ksqldb-reference/create-table-as-select.md).
+=======
+[CREATE STREAM AS SELECT](/developer-guide/ksqldb-reference/create-stream-as-select) and
+[CREATE TABLE AS SELECT](/developer-guide/ksqldb-reference/create-table-as-select).
+>>>>>>> master:docs/reference/server-configuration.md
 
 ## `ksql.sink.replicas` (Deprecated)
 
@@ -541,5 +705,10 @@ For more info see the WITH clause properties in
 The default number of replicas for the topics created by ksqlDB. The
 default is one. This property has been deprecated. For
 more info see the WITH clause properties in
+<<<<<<< HEAD:docs/reference/server-configuration.md
 [CREATE STREAM AS SELECT](../../../developer-guide/ksqldb-reference/create-stream-as-select.md) and
 [CREATE TABLE AS SELECT](../../../developer-guide/ksqldb-reference/create-table-as-select.md).
+=======
+[CREATE STREAM AS SELECT](/developer-guide/ksqldb-reference/create-stream-as-select) and
+[CREATE TABLE AS SELECT](/developer-guide/ksqldb-reference/create-table-as-select).
+>>>>>>> master:docs/reference/server-configuration.md

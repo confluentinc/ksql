@@ -86,7 +86,7 @@ nav:
           - Running persistent queries: production-deployment/running-persistent-queries.md
           - Scaling: production-deployment/scaling.md
           - Monitoring: production-deployment/monitoring.md
-          - Logging: production-deployment/logging.md
+          - Logging: operate-and-deploy/logging.md
           - Healthchecks: production-deployment/healthchecks.md
           - Disaster recovery: production-deployment/disaster-recovery.md
           - Exactly-once semantics: production-deployment/exactly-once-semantics.md
@@ -239,6 +239,7 @@ plugins:
             operate-and-deploy/exactly-once-semantics.md: production-deployment/exactly-once-semantics.md
             operate-and-deploy/installation/install-ksqldb-with-docker.md: production-deployments/docker-deployments.md
             operate-and-deploy/installation/check-ksqldb-server-health.md: production-deployments/healthchecks.md
+            operate-and-deploy/installation/server-config/config-reference.md: reference/server-configuration.md
 
 extra:
     site:
@@ -271,11 +272,11 @@ extra:
 
         # Build-related string tokens
         kafkaversion: 2.7
-        ksqldbversion: 0.15.0
-        kstreamsbetatag: 6.1.0-beta201006024150
-        release: 0.15.0
-        cprelease: 6.1.0
-        releasepostbranch: 6.1.0-post
+        ksqldbversion: 0.16.0
+        kstreamsbetatag: 6.2.0-beta210122194818
+        release: 0.16.0
+        cprelease: 6.2.0
+        releasepostbranch: 6.2.0-post
         scalaversion: 2.13
         voluble_version: 0.3.1
         jdbc_connector_version: 10.0.0

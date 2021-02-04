@@ -79,7 +79,7 @@ public final class RecordFormatter {
 
   // Use a default window size of 1ms for time windows to avoid warnings on deserialization.
   // The window size, or the end time computed from it, is not shown to the user.
-  private static final int DEFAULT_WINDOW_SIZE = 1;
+  private static final long DEFAULT_WINDOW_SIZE = 1L;
 
   private final Deserializers keyDeserializers;
   private final Deserializers valueDeserializers;

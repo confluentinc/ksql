@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper.SelectInfo;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -46,13 +47,13 @@ public final class SelectValueMapperFactory {
   public interface SelectValueMapperFactorySupplier {
     <K> SelectValueMapper<K> create(
         List<SelectExpression> selectExpressions,
-        List<ExpressionMetadata> compiledSelectExpressions
+        List<ExpressionEvaluator> compiledSelectExpressions
     );
   }
 
   public static <K> SelectValueMapper<K> create(
       final List<SelectExpression> selectExpressions,
-      final List<ExpressionMetadata> compiledSelectExpressions
+      final List<ExpressionEvaluator> compiledSelectExpressions
   ) {
     return new SelectValueMapper<>(buildSelects(selectExpressions, compiledSelectExpressions));
   }
@@ -93,7 +94,7 @@ public final class SelectValueMapperFactory {
 
   private static List<SelectInfo> buildSelects(
       final List<SelectExpression> selectExpressions,
-      final List<ExpressionMetadata> compiledSelectExpressions
+      final List<ExpressionEvaluator> compiledSelectExpressions
   ) {
     final ImmutableList.Builder<SelectInfo> result = ImmutableList.builder();
 

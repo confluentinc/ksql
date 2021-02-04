@@ -24,6 +24,7 @@ import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.engine.generic.GenericExpressionResolver;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.evaluator.Interpreter;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -35,6 +36,7 @@ import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.planner.PullPlannerOptions;
@@ -73,7 +75,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
   );
 
   private final boolean isWindowed;
-  private final ExpressionMetadata compiledWhereClause;
+  private final ExpressionEvaluator compiledWhereClause;
   private final boolean addAdditionalColumnsToIntermediateSchema;
   private final LogicalSchema intermediateSchema;
   private final MetaStore metaStore;
@@ -126,12 +128,18 @@ public class PullFilterNode extends SingleSourcePlanNode {
     this.intermediateSchema = PullLogicalPlanUtil.buildIntermediateSchema(
         source.getSchema().withoutPseudoAndKeyColsInValue(),
         addAdditionalColumnsToIntermediateSchema, isWindowed);
-    compiledWhereClause = CodeGenRunner.compileExpression(
-        rewrittenPredicate,
-        "Predicate",
+//    compiledWhereClause = CodeGenRunner.compileExpression(
+//        rewrittenPredicate,
+//        "Predicate",
+//        intermediateSchema,
+//        ksqlConfig,
+//        metaStore
+//    );
+    compiledWhereClause = Interpreter.create(
+        metaStore,
         intermediateSchema,
         ksqlConfig,
-        metaStore
+        rewrittenPredicate
     );
   }
 
@@ -149,7 +157,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
     throw new UnsupportedOperationException();
   }
 
-  public ExpressionMetadata getCompiledWhereClause() {
+  public ExpressionEvaluator getCompiledWhereClause() {
     return compiledWhereClause;
   }
 

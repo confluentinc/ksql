@@ -351,6 +351,40 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void shouldBuildNestedLambdaFunction() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT TRANSFORM_ARRAY(Col4, (X,Y) => TRANSFORM_ARRAY(Col4, X => 5)) FROM TEST1;");
+
+    // When:
+    final Query result = (Query) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new SingleColumn(
+            new FunctionCall(
+                FunctionName.of("TRANSFORM_ARRAY"),
+                ImmutableList.of(
+                    column("COL4"),
+                    new LambdaFunctionCall(
+                        ImmutableList.of("X", "Y"),
+                        new FunctionCall(
+                            FunctionName.of("TRANSFORM_ARRAY"),
+                            ImmutableList.of(
+                                column("COL4"),
+                                new LambdaFunctionCall(
+                                    ImmutableList.of("X"),
+                                    new IntegerLiteral(5)
+                                )
+                            )
+                        )
+                    )
+                )
+            ),
+            Optional.empty())
+    ))));
+  }
+
+  @Test
   public void shouldNotBuildLambdaFunctionNotLastArguments() {
     // Given:
     final Exception e = assertThrows(

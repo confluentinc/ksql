@@ -648,9 +648,11 @@ public class AstBuilder {
           .map(ParserUtil::getIdentifierText)
           .collect(toList());
 
+      final Set<String> previousLambdaArgs = new HashSet<>(lambdaArgs);
       lambdaArgs.addAll(arguments);
       final Expression body = (Expression) visit(context.expression());
-      lambdaArgs.removeAll(arguments);
+      lambdaArgs.clear();
+      lambdaArgs.addAll(previousLambdaArgs);
       return new LambdaFunctionCall(getLocation(context), arguments, body);
     }
 

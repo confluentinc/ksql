@@ -216,9 +216,12 @@ public final class AstSanitizer {
         }
       });
 
-      ctx.getContext().addLambdaArgs(expression.getArguments());
+      final Set<String> previousLambdaArgs = new HashSet<>(ctx.getContext().getLambdaArgs());
+      ctx.getContext().addLambdaArgs(new HashSet<>(expression.getArguments()));
       ctx.process(expression.getBody());
-      ctx.getContext().removeLambdaArgs(expression.getArguments());
+      ctx.getContext().removeLambdaArgs();
+      ctx.getContext().addLambdaArgs(previousLambdaArgs);
+
       return visitExpression(expression, ctx);
     }
   }
@@ -226,7 +229,7 @@ public final class AstSanitizer {
   private static class SanitizerContext {
     final Set<String> lambdaArgs = new HashSet<>();
 
-    private void addLambdaArgs(final List<String> newArguments) {
+    private void addLambdaArgs(final Set<String> newArguments) {
       final int previousLambdaArgumentsLength = lambdaArgs.size();
       lambdaArgs.addAll(newArguments);
       if (new HashSet<>(lambdaArgs).size()
@@ -236,8 +239,8 @@ public final class AstSanitizer {
       }
     }
 
-    private void removeLambdaArgs(final List<String> removeArguments) {
-      lambdaArgs.removeAll(removeArguments);
+    private void removeLambdaArgs() {
+      lambdaArgs.clear();
     }
 
     private Set<String> getLambdaArgs() {

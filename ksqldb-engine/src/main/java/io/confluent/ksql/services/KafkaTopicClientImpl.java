@@ -401,6 +401,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           () -> adminClient.get().describeConfigs(request).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE).get(resource);
       return config.entries().stream()
+          .filter(e -> e.value() != null)
           .filter(e -> includeDefaults || !e.isDefault())
           .collect(Collectors.toMap(ConfigEntry::name, ConfigEntry::value));
     } catch (final Exception e) {

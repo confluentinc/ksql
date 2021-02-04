@@ -374,6 +374,24 @@ def job = {
         }
     }
 
+    // Build CCloud ksqlDB image
+
+    if (!config.release && !config.isPrJob) {
+        stage('Trigger CCloud ksqlDB Docker image job') {
+            build job: "confluentinc/cc-docker-ksql/master",
+                wait: false,
+                parameters: [
+                    booleanParam(name: "NIGHTLY_BUILD", value: true),
+                    string(name: "NIGHTLY_BUILD_NUMBER", value: "${env.BUILD_NUMBER}"),
+                    string(name: "CP_BETA_VERSION", value: "${config.cp_version}"),
+                    string(name: "CP_BETA_BUILD_NUMBER", value: "${config.packaging_build_number}"),
+                    string(name: "KSQLDB_ARTIFACT_VERSION", value: "${config.ksql_db_artifact_version}"),
+                    string(name: "CCLOUD_GIT_REVISION", value: "${params.CCLOUD_GIT_REVISION}"),
+                    string(name: "CCLOUD_KSQL_BASE_VERSION", value: "${params.CCLOUD_KSQL_BASE_VERSION}")
+                ]
+        }
+    }
+
     // Kick off automated Kafka Tutorials test run
 
     if (!config.isPrJob) {
@@ -408,25 +426,6 @@ def job = {
                     }
                 }
             }
-        }
-    }
-
-
-    // Build CCloud ksqlDB image
-
-    if (!config.release && !config.isPrJob) {
-        stage('Trigger CCloud ksqlDB Docker image job') {
-            build job: "confluentinc/cc-docker-ksql/master",
-                wait: false,
-                parameters: [
-                    booleanParam(name: "NIGHTLY_BUILD", value: true),
-                    string(name: "NIGHTLY_BUILD_NUMBER", value: "${env.BUILD_NUMBER}"),
-                    string(name: "CP_BETA_VERSION", value: "${config.cp_version}"),
-                    string(name: "CP_BETA_BUILD_NUMBER", value: "${config.packaging_build_number}"),
-                    string(name: "KSQLDB_ARTIFACT_VERSION", value: "${config.ksql_db_artifact_version}"),
-                    string(name: "CCLOUD_GIT_REVISION", value: "${params.CCLOUD_GIT_REVISION}"),
-                    string(name: "CCLOUD_KSQL_BASE_VERSION", value: "${params.CCLOUD_KSQL_BASE_VERSION}")
-                ]
         }
     }
 }

@@ -338,7 +338,7 @@ these approaches:
   more information, see [Configuring ksqlDB Server](server-config/index.md).
  
 For a complete list of ksqlDB parameters, see the
-[Configuration Parameter Reference](server-config/config-reference.md).
+[Configuration Parameter Reference](/reference/server-configuration).
 
 You can also set any property for the {{ site.kstreams }} API, the
 {{ site.ak }} producer, or the {{ site.ak }} consumer.

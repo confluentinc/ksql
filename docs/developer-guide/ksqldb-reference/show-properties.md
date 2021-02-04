@@ -19,5 +19,5 @@ SHOW PROPERTIES;
 Description
 -----------
 
-List the [configuration settings](../../operate-and-deploy/installation/server-config/config-reference.md)
+List the [configuration settings](/reference/server-configuration)
 that are currently in effect.

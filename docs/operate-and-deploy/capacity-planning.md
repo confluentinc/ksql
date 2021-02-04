@@ -359,7 +359,7 @@ example, you can add and remove ksqlDB servers to increase or decrease
 processing capacity without disturbing running queries. When scaling
 vertically, configure servers with a larger number of stream threads. For more
 information, see
-[ksql.streams.num.stream.threads](installation/server-config/config-reference.md#ksqlstreamsnumstreamthreads).
+[ksql.streams.num.stream.threads](/reference/server-configuration#ksqlstreamsnumstreamthreads).
 If you're scaling past eight cores, we recommend scaling horizontally by adding
 servers.
 

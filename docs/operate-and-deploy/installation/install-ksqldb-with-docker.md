@@ -23,7 +23,7 @@ configuration with the `-e` or `--env` flags in the `docker run`
 command.
 
 For a complete list of ksqlDB parameters, see
-[ksqlDB Configuration Parameter Reference](server-config/config-reference.md).
+[ksqlDB Configuration Parameter Reference](/reference/server-configuration).
 
 In most cases, to assign a ksqlDB configuration parameter in a container,
 you prepend the parameter name with `KSQL_` and substitute the

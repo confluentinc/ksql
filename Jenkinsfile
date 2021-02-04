@@ -44,7 +44,7 @@ def defaultParams = [
         description: 'The git ref (SHA or branch or tag) to base the cc-docker-ksql build from.',
         defaultValue: ''),
     string(name: 'CCLOUD_KSQL_BASE_VERSION',
-        description: 'The version of the initial cc-ksql RC we're basing our cloud release off of (e.g. v0.15.0-rc123-456)',
+        description: 'The version of the initial cc-ksql RC we are basing our cloud release off of (e.g. v0.15.0-rc123-456)',
         defaultValue: '')
 ]
 

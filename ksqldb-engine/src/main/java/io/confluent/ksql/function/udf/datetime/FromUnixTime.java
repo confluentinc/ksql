@@ -24,12 +24,12 @@ import java.sql.Timestamp;
 @UdfDescription(
     name = "from_unixtime",
     category = FunctionCategory.DATE_TIME,
-    description = "Converts a number of millisecond 1970-01-01 00:00:00 UTC/GMT into "
+    description = "Converts the number of milliseconds since 1970-01-01 00:00:00 UTC/GMT into "
         + "a TIMESTAMP value.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class FromUnixTime {
-  @Udf(description = "Converts a number of millisecond 1970-01-01 00:00:00 UTC/GMT into "
+  @Udf(description = "Converts the number of milliseconds since 1970-01-01 00:00:00 UTC/GMT into "
       + "a TIMESTAMP value.")
   public Timestamp fromUnixTime(
       @UdfParameter(

@@ -33,7 +33,7 @@ import java.util.concurrent.ExecutionException;
     name = "timestamptostring",
     category = FunctionCategory.DATE_TIME,
     author = KsqlConstants.CONFLUENT_AUTHOR,
-    description = "Converts a number of milliseconds since 1970-01-01 00:00:00 UTC/GMT into the"
+    description = "Converts a number of milliseconds since 1970-01-01 00:00:00 UTC/GMT into"
         + " the string representation of the timestamp in the given format."
         + " The system default time zone is used when no time zone is explicitly provided."
 )

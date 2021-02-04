@@ -36,8 +36,8 @@ public class UnixTimestamp {
     return System.currentTimeMillis();
   }
 
-  @Udf(description = "Returns the number of milliseconds " +
-      "since 1970-01-01 00:00:00 UTC/GMT represented by the given timestamp.")
+  @Udf(description = "Returns the number of milliseconds "
+      + "since 1970-01-01 00:00:00 UTC/GMT represented by the given timestamp.")
   public long unixTimestamp(
       @UdfParameter(
           description = "the TIMESTAMP value.") final Timestamp timestamp

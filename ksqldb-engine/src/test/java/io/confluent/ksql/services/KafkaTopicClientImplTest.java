@@ -535,6 +535,23 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
+  public void shouldNotFailWhenTopicConfigValueIsNull() {
+    // Given:
+    givenTopicConfigs(
+        "fred",
+        overriddenConfigEntry(TopicConfig.RETENTION_MS_CONFIG, "12345"),
+        overriddenConfigEntry(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, null)
+    );
+
+    // When:
+    final Map<String, String> config = kafkaTopicClient.getTopicConfig("fred");
+
+    // Then:
+    assertThat(config.get(TopicConfig.RETENTION_MS_CONFIG), is("12345"));
+    assertThat(config.containsKey(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG), is(false));
+  }
+
+  @Test
   public void shouldGetTopicCleanUpPolicyDelete() {
     // Given:
     givenTopicConfigs(

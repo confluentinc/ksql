@@ -43,6 +43,7 @@ import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
+import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
@@ -54,6 +55,7 @@ import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
+import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
@@ -217,12 +219,14 @@ public class AstBuilder {
 
     private final Optional<Set<SourceName>> sources;
     private final SqlTypeParser typeParser;
+    private final Set<String> lambdaArgs;
 
     private boolean buildingPersistentQuery = false;
 
     Visitor(final Optional<Set<SourceName>> sources, final TypeRegistry typeRegistry) {
       this.sources = Objects.requireNonNull(sources, "sources").map(ImmutableSet::copyOf);
       this.typeParser = SqlTypeParser.create(typeRegistry);
+      this.lambdaArgs = new HashSet<>();
     }
 
     @Override
@@ -644,8 +648,11 @@ public class AstBuilder {
           .map(ParserUtil::getIdentifierText)
           .collect(toList());
 
+      final Set<String> previousLambdaArgs = new HashSet<>(lambdaArgs);
+      lambdaArgs.addAll(arguments);
       final Expression body = (Expression) visit(context.expression());
-
+      lambdaArgs.clear();
+      lambdaArgs.addAll(previousLambdaArgs);
       return new LambdaFunctionCall(getLocation(context), arguments, body);
     }
 
@@ -1144,7 +1151,11 @@ public class AstBuilder {
 
     @Override
     public Node visitColumnReference(final SqlBaseParser.ColumnReferenceContext context) {
-      return ColumnReferenceParser.resolve(context);
+      final UnqualifiedColumnReferenceExp column = ColumnReferenceParser.resolve(context);
+      if (lambdaArgs.contains(column.toString())) {
+        return new LambdaVariable(column.toString());
+      }
+      return column;
     }
 
     @Override

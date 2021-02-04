@@ -38,7 +38,7 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
-import io.confluent.ksql.execution.expression.tree.LambdaLiteral;
+import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
@@ -151,8 +151,8 @@ public class ExpressionTypeManager {
 
     @Override
     // CHECKSTYLE_RULES.OFF: TodoComment
-    public Void visitLambdaLiteral(
-        final LambdaLiteral node, final ExpressionTypeContext expressionTypeContext
+    public Void visitLambdaVariable(
+        final LambdaVariable node, final ExpressionTypeContext expressionTypeContext
     ) {
       // TODO: add proper type inference
       expressionTypeContext.setSqlType(SqlTypes.INTEGER);

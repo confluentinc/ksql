@@ -30,6 +30,7 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
+import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -304,7 +305,7 @@ public class AstBuilderTest {
                         ImmutableList.of("X"),
                         new ArithmeticBinaryExpression(
                             Operator.ADD,
-                            column("X"),
+                            new LambdaVariable("X"),
                             new IntegerLiteral(5))
                   )
                 )
@@ -314,7 +315,77 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void shouldNotBuildLambdaFunctionNotLastArgument() {
+  public void shouldBuildLambdaFunctionWithMultipleLambdas() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT TRANSFORM_ARRAY(Col4, X => X + 5, (X,Y) => X + Y) FROM TEST1;");
+
+    // When:
+    final Query result = (Query) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new SingleColumn(
+            new FunctionCall(
+                FunctionName.of("TRANSFORM_ARRAY"),
+                ImmutableList.of(
+                    column("COL4"),
+                    new LambdaFunctionCall(
+                        ImmutableList.of("X"),
+                        new ArithmeticBinaryExpression(
+                            Operator.ADD,
+                            new LambdaVariable("X"),
+                            new IntegerLiteral(5))
+                    ),
+                    new LambdaFunctionCall(
+                        ImmutableList.of("X", "Y"),
+                        new ArithmeticBinaryExpression(
+                            Operator.ADD,
+                            new LambdaVariable("X"),
+                            new LambdaVariable("Y")
+                        )
+                    )
+                )
+            ),
+            Optional.empty())
+    ))));
+  }
+
+  @Test
+  public void shouldBuildNestedLambdaFunction() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT TRANSFORM_ARRAY(Col4, (X,Y) => TRANSFORM_ARRAY(Col4, X => 5)) FROM TEST1;");
+
+    // When:
+    final Query result = (Query) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new SingleColumn(
+            new FunctionCall(
+                FunctionName.of("TRANSFORM_ARRAY"),
+                ImmutableList.of(
+                    column("COL4"),
+                    new LambdaFunctionCall(
+                        ImmutableList.of("X", "Y"),
+                        new FunctionCall(
+                            FunctionName.of("TRANSFORM_ARRAY"),
+                            ImmutableList.of(
+                                column("COL4"),
+                                new LambdaFunctionCall(
+                                    ImmutableList.of("X"),
+                                    new IntegerLiteral(5)
+                                )
+                            )
+                        )
+                    )
+                )
+            ),
+            Optional.empty())
+    ))));
+  }
+
+  @Test
+  public void shouldNotBuildLambdaFunctionNotLastArguments() {
     // Given:
     final Exception e = assertThrows(
         ParseFailedException.class,

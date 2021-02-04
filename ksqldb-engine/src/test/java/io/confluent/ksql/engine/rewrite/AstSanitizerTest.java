@@ -28,7 +28,7 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
-import io.confluent.ksql.execution.expression.tree.LambdaLiteral;
+import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
@@ -204,10 +204,10 @@ public class AstSanitizerTest {
   }
 
   @Test
-  public void shouldSanitizeLambdaArguments() {
+  public void shouldAllowDuplicateLambdaArgumentInSeparateExpression() {
     // Given:
     final Statement stmt = givenQuery(
-        "SELECT TRANSFORM_ARRAY(Col4, X => X + 5) FROM TEST1;");
+        "SELECT TRANSFORM_ARRAY(Col4, X => X + 5, (X,Y) => Y + 5) FROM TEST1;");
 
     // When:
     final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
@@ -223,14 +223,63 @@ public class AstSanitizerTest {
                         ImmutableList.of("X"),
                         new ArithmeticBinaryExpression(
                             Operator.ADD,
-                            new LambdaLiteral("X"),
+                            new LambdaVariable("X"),
+                            new IntegerLiteral(5))
+                    ),
+                    new LambdaFunctionCall(
+                        ImmutableList.of("X", "Y"),
+                        new ArithmeticBinaryExpression(
+                            Operator.ADD,
+                            new LambdaVariable("Y"),
                             new IntegerLiteral(5))
                     )
                 )
             ),
             Optional.of(ColumnName.of("KSQL_COL_0")))
     ))));
+  }
 
+  @Test
+  public void shouldAllowNestedLambdaFunctionsWithoutDuplicate() {
+    // Given:
+    final Statement stmt = givenQuery(
+        "SELECT TRANSFORM_ARRAY(Col4, (X,Y,Z) => TRANSFORM_MAP(Col4, Q => 4, H => 5), (X,Y,Z) => 0) FROM TEST1;");
+
+    // When:
+    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new SingleColumn(
+            new FunctionCall(
+                FunctionName.of("TRANSFORM_ARRAY"),
+                ImmutableList.of(
+                    column(TEST1_NAME, "COL4"),
+                    new LambdaFunctionCall(
+                        ImmutableList.of("X", "Y", "Z"),
+                        new FunctionCall(
+                            FunctionName.of("TRANSFORM_MAP"),
+                            ImmutableList.of(
+                                column(TEST1_NAME, "COL4"),
+                                new LambdaFunctionCall(
+                                    ImmutableList.of("Q"),
+                                    new IntegerLiteral(4)
+                                ),
+                                new LambdaFunctionCall(
+                                    ImmutableList.of("H"),
+                                    new IntegerLiteral(5)
+                                )
+                            )
+                        )
+                    ),
+                    new LambdaFunctionCall(
+                        ImmutableList.of("X", "Y", "Z"),
+                        new IntegerLiteral(0)
+                    )
+                )
+            ),
+            Optional.of(ColumnName.of("KSQL_COL_0")))
+    ))));
   }
 
   @Test
@@ -251,18 +300,26 @@ public class AstSanitizerTest {
   }
 
   @Test
-  public void shouldThrowOnDuplicateLambdaArguments() {
+  public void shouldThrowOnDuplicateLambdaArgumentsInNestedLambda() {
     // Given:
-    final Statement stmt = givenQuery(
+    final Statement stmt1 = givenQuery(
         "SELECT TRANSFORM_ARRAY(Col4, X => TRANSFORM_ARRAY(Col4, X => X)) FROM TEST1;");
+    final Statement stmt2 = givenQuery(
+        "SELECT TRANSFORM_ARRAY(Col4, (X,Y,Z) => TRANSFORM_MAP(Col4, Q => TRANSFORM_ARRAY(Col4, T => T, X => X))) FROM TEST1;");
 
-    final Exception e = assertThrows(
+    final Exception e1 = assertThrows(
         KsqlException.class,
-        () -> AstSanitizer.sanitize(stmt, META_STORE)
+        () -> AstSanitizer.sanitize(stmt1, META_STORE)
+    );
+    final Exception e2 = assertThrows(
+        KsqlException.class,
+        () -> AstSanitizer.sanitize(stmt2, META_STORE)
     );
 
     // Then:
-    assertThat(e.getMessage(),
+    assertThat(e1.getMessage(),
+        containsString("Reusing lambda arguments in nested lambda is not allowed"));
+    assertThat(e2.getMessage(),
         containsString("Reusing lambda arguments in nested lambda is not allowed"));
   }
 

@@ -40,6 +40,8 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.WarningEntity;
 import java.io.ByteArrayOutputStream;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -129,6 +131,8 @@ public class ConnectIntegrationTest {
             .get(0)).getConnectors(),
         Matchers.empty()
     );
+
+    System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out)));
   }
 
   @Test

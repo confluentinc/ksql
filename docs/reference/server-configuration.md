@@ -501,6 +501,14 @@ removes various restrictions on what types of queries are allowed.  In particula
 
 There may be significant performance implications to using these types of queries, depending on the size of the data and other workloads running, so use this config carefully.
 
+Also, note that this config can be set on the CLI, but only used to disable table scans:
+
+```sql
+SET 'ksql.query.pull.table.scan.enabled'='false';
+```
+
+The server will reject requests that attempt to enable table scans.
+
 ## `ksql.variable.substitution.enable`
 
 Enables variable substitution through [`DEFINE`](../../../../developer-guide/ksqldb-reference/define) statements.

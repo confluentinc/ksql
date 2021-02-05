@@ -604,11 +604,15 @@ public class PullFilterNode extends SingleSourcePlanNode {
             + System.lineSeparator()
             + "Pull queries require a WHERE clause that:"
             + System.lineSeparator()
-            + " - limits the query to keys only, e.g. `SELECT * FROM X WHERE <key-column>=Y;`."
+            + " - includes a key equality expression, e.g. `SELECT * FROM X WHERE <key-column>=Y;`."
             + System.lineSeparator()
-            + " - specifies an equality condition that is a conjunction of equality expressions "
-            + "that cover all keys."
+            + " - in the case of a multi-column key, is a conjunction of equality expressions "
+            + "that cover all key columns."
+            + System.lineSeparator()
             + additional
+            + System.lineSeparator()
+            + "If more flexible queries are needed, table scans can be enabled by "
+            + "setting ksql.query.pull.table.scan.enabled=true."
     );
   }
 

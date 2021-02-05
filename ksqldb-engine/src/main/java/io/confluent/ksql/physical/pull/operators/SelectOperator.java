@@ -75,29 +75,28 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
       if (row == null) {
         return null;
       }
-
-      final GenericRow intermediate = PullPhysicalOperatorUtil.getIntermediateRow(
-          row, logicalNode.getAddAdditionalColumnsToIntermediateSchema());
-      final Function<TableRow, Optional<TableRow>> transformRow = row -> {
-        return transformer.transform(
-            row.key(),
-            intermediate,
-            new PullProcessingContext(row.rowTime()))
-            .map(r -> {
-              if (logicalNode.isWindowed()) {
-                return WindowedRow.of(
-                    logicalNode.getIntermediateSchema(),
-                    ((WindowedRow) row).windowedKey(),
-                    r,
-                    row.rowTime());
-              }
-              return Row.of(logicalNode.getIntermediateSchema(), row.key(), r, row.rowTime());
-            });
-      };
-
-      result = transformRow.apply(row);
+      result = transformRow(row);
     }
     return result.get();
+  }
+
+  private Optional<TableRow> transformRow(final TableRow tableRow) {
+    final GenericRow intermediate = PullPhysicalOperatorUtil.getIntermediateRow(
+        tableRow, logicalNode.getAddAdditionalColumnsToIntermediateSchema());
+    return transformer.transform(
+        tableRow.key(),
+        intermediate,
+        new PullProcessingContext(tableRow.rowTime()))
+        .map(r -> {
+          if (logicalNode.isWindowed()) {
+            return WindowedRow.of(
+                logicalNode.getIntermediateSchema(),
+                ((WindowedRow) tableRow).windowedKey(),
+                r,
+                tableRow.rowTime());
+          }
+          return Row.of(logicalNode.getIntermediateSchema(), tableRow.key(), r, tableRow.rowTime());
+        });
   }
 
   @Override

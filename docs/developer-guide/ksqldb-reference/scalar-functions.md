@@ -520,6 +520,42 @@ SLICE(col1, from, to)
 Slices a list based on the supplied indices. The indices start at 1 and
 include both endpoints.
 
+## Invocation Functions
+
+Used to apply lambda functions to collections.
+
+### `TRANSFORM`
+
+Since: 0.17.0
+
+```sql
+TRANSFORM(array, x => ...)
+
+TRANSFORM(map, (k,v) => ..., (k,v) => ...)
+```
+
+Transform a collection with a lambda function.
+
+If the collection is an array,  the lambda function must have 1 input argument.
+
+If the collection is a map, two lambda functions must be provided and each lambda function must have 2 arguments (map entry key and then map entry value).
+
+### `Reduce`
+
+Since: 0.17.0
+
+```sql
+REDUCE(array, state, (x, s) => ...)
+
+REDUCE(map, state, (k,v, s) => ...)
+```
+
+Reduce a collection starting from an initial state.
+
+If the collection is an array, the lambda function must have 2 input arguments.
+
+If the collection is a map, the lambda function must have 3 input arguments
+
 ## Strings
 
 ### `CHR`

@@ -21,7 +21,7 @@ import java.util.Objects;
 
 public final class LambdaType extends ObjectType {
 
-  private final List<ParamType> inputTypes;
+  private final ImmutableList<ParamType> inputTypes;
   private final ParamType returnType;
 
   private LambdaType(

@@ -1,12 +1,13 @@
+#!/usr/bin/env groovy
 import java.util.regex.Pattern
 
 def baseConfig = {
     owner = 'ksql'
     slackChannel = '#ksql-alerts'
     ksql_db_version = "0.16.0"  // next version to be released
-    cp_version = "6.2.0-beta201122193350-cp5"  // must be a beta version from the packaging build
-    packaging_build_number = "3"
-    default_git_revision = 'refs/heads/master'
+    cp_version = "6.2.0-beta210122194818"  // must be a beta version from the packaging build
+    packaging_build_number = "1"
+    default_git_revision = 'refs/heads/master' 
     dockerRegistry = '368821881613.dkr.ecr.us-west-2.amazonaws.com/'
     dockerArtifacts = ['confluentinc/ksqldb-docker', 'confluentinc/ksqldb-docker']
     dockerRepos = ['confluentinc/ksqldb-cli', 'confluentinc/ksqldb-server']
@@ -92,6 +93,8 @@ def job = {
         config.ksql_db_version = params.KSQLDB_VERSION
     }
 
+    config.ksql_db_packages_prefix = config.ksql_db_version.tokenize('.')[0..1].join('.')
+
     if (params.CP_VERSION != '') {
         config.cp_version = params.CP_VERSION
     }
@@ -110,6 +113,9 @@ def job = {
     } else {
         // For non-release builds, we append the build number to the maven artifacts and docker image tag
         config.ksql_db_artifact_version = config.ksql_db_version + '-rc' + env.BUILD_NUMBER
+        // For non-release builds, we upload the RC artifacts to a different prefix for testing.
+        // Actual release artifacts will go to a "prod" prefix.
+        config.ksql_db_packages_prefix = config.ksql_db_packages_prefix + '-rcs'
     }
     config.docker_tag = config.ksql_db_artifact_version
     
@@ -170,11 +176,16 @@ def job = {
             }
         }
 
-        stage("Promote Maven Artifacts") {
+        stage("Promote Artifacts") {
             withDockerServer([uri: dockerHost()]) {
                 writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
-                sh "bash extract-iam-credential.sh"
-                sh "aws s3 sync s3://staging-ksqldb-maven/maven/ s3://ksqldb-maven/maven/"
+                sh """
+                    bash extract-iam-credential.sh
+                    aws s3 sync s3://staging-ksqldb-maven/maven/ s3://ksqldb-maven/maven/
+                    aws s3 sync s3://staging-ksqldb-packages/rpm/${config.ksql_db_packages_prefix} s3://ksqldb-packages/rpm/${config.ksql_db_packages_prefix}
+                    aws s3 sync s3://staging-ksqldb-packages/deb/${config.ksql_db_packages_prefix} s3://ksqldb-packages/deb/${config.ksql_db_packages_prefix}
+                    aws s3 sync s3://staging-ksqldb-packages/archive/${config.ksql_db_packages_prefix} s3://ksqldb-packages/archive/${config.ksql_db_packages_prefix}
+                """
             }
         }
 
@@ -231,43 +242,28 @@ def job = {
                                 sh "docker pull ${config.dockerRegistry}${dockerRepo}:${config.cp_version}-latest"
                             }
 
-                            // We need to replace the parent version range before we can run any maven commands
-                            def pomFile = readFile('pom.xml')
-                            def parentVersionPattern = Pattern.compile(/(.*<parent>.*<groupId>io.confluent\S*<\/groupId>.*<version>)\[\d+\.\d+\.\d+-\d+\,\s+\d+\.\d+\.\d+-\d+\)(<\/version>.*<\/parent>.*)/, Pattern.DOTALL)
-                            // Groovy regex replaces the groups we didn't match, so we print the beginning of the file, our version, and the rest of the file.
-                            def newPomFile = pomFile.replaceFirst(parentVersionPattern, "\$1${config.cp_version}\$2")
-                            writeFile(file: 'pom.xml', text: newPomFile)
-
-                            // Set the project versions in the pom files
-                            sh "set -x"
-                            sh "mvn --batch-mode versions:set -DnewVersion=${config.ksql_db_artifact_version} -DgenerateBackupPoms=false"
-
-                            // Set the repo version property
-                            sh "mvn --batch-mode versions:set-property -DgenerateBackupPoms=false -DnewVersion=${config.ksql_db_artifact_version} -Dproperty=io.confluent.ksql.version"
-
-                            // Set the version of schema-registry to use
-                            sh "mvn --batch-mode versions:set-property -DgenerateBackupPoms=false -DnewVersion=${config.cp_version} -Dproperty=io.confluent.schema-registry.version"
-
-                            cmd = "mvn --batch-mode -Pjenkins clean package dependency:analyze site validate -U "
-                            cmd += "-DskipTests "
-                            cmd += "-Dspotbugs.skip "
-                            cmd += "-Dcheckstyle.skip "
-                            cmd += "-Ddocker.tag=${config.docker_tag} "
-                            cmd += "-Ddocker.registry=${config.dockerRegistry} "
-                            cmd += "-Ddocker.upstream-tag=${config.cp_version}-latest "
-                            cmd += "-Dskip.docker.build=false "
-
+                            // Install utilities required for building. XXX: Add to base image
+                            sh """
+                                sudo apt update
+                                sudo apt install -y devscripts git-buildpackage dh-systemd javahelper xmlstarlet
+                            """
+                            // Copy settingsFile into the Jenkin's user's maven config, because when we build debian packages
+                            // through the debian wrapper scripts, it will not honor the Jenkinsfile withMaven(globalMavenSettingsFilePath..)
+                            // settings. Version setting & build logic is contained within the build-packages.sh script.
                             withEnv(['MAVEN_OPTS=-XX:MaxPermSize=128M']) {
-                                sh cmd
+                                sh """
+                                cp ${settingsFile} ~/.m2/settings.xml
+                                ${env.WORKSPACE}/build-packages.sh --workspace . \
+                                    --docker-registry ${config.dockerRegistry} \
+                                    --project-version ${config.ksql_db_artifact_version} \
+                                    --upstream-version ${config.cp_version} --jar
+                                """
                             }
                             step([$class: 'hudson.plugins.findbugs.FindBugsPublisher', pattern: '**/*bugsXml.xml'])
 
                             sh "cp ${settingsFile} ."
-
                             if (!config.isPrJob) {
                                 def git_tag = "v${config.ksql_db_artifact_version}-ksqldb"
-                                sh "git add ."
-                                sh "git commit -m \"build: Setting project version ${config.ksql_db_artifact_version} and parent version ${config.cp_version}.\""
                                 sh "git tag ${git_tag}"
                                 sshagent (credentials: ['ConfluentJenkins Github SSH Key']) {
                                     sh "git push origin ${git_tag}"
@@ -281,14 +277,19 @@ def job = {
     }
 
     if (!config.isPrJob) {
-        stage('Publish Maven Artifacts') {
+        stage('Publish Artifacts') {
             writeFile file: settingsFile, text: settings
             dir('ksql-db') {
-                withVaultEnv([["artifactory/jenkins_access_token", "user", "ARTIFACTORY_USERNAME"],
-                    ["artifactory/jenkins_access_token", "access_token", "ARTIFACTORY_PASSWORD"]]) {
+                def gpg_packaging_key = ''
+                gpg_packaging_key = setupSSHKey("gpg/packaging", "private_key", "${env.WORKSPACE}/confluent-packaging-private.key")
+                withVaultEnv([
+                    ["artifactory/jenkins_access_token", "user", "ARTIFACTORY_USERNAME"],
+                    ["artifactory/jenkins_access_token", "access_token", "ARTIFACTORY_PASSWORD"],
+                    ["gpg/packaging", "passphrase", "GPG_PASSPHRASE"]]) {
                     withDockerServer([uri: dockerHost()]) {
                         withMaven(globalMavenSettingsFilePath: settingsFile, options: mavenOptions) {
                             writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
+                            writeFile file:'confluent-process-packages.sh', text:libraryResource('scripts/confluent-process-packages.sh')
                             sh '''
                                 bash extract-iam-credential.sh
                             '''
@@ -299,6 +300,19 @@ def job = {
                                 cmd += " -DnexusUrl=s3://staging-ksqldb-maven/maven"
                                 sh cmd
                             }
+                            sh """
+                                set +x
+                                TMP_GPG_PASS=\$(mktemp -t XXXgpgpass)
+                                echo "\${GPG_PASSPHRASE}" > "\${TMP_GPG_PASS}"
+                                bash confluent-process-packages.sh \
+                                    --bucket staging-ksqldb-packages \
+                                    --region us-west-2 \
+                                    --prefix '\$PACKAGE_TYPE/${config.ksql_db_packages_prefix}' \
+                                    --input-dir "\${PWD}/output" \
+                                    --sign-key-file "${gpg_packaging_key}" \
+                                    --passphrase-file "\${TMP_GPG_PASS}"
+                                rm -f "\${TMP_GPG_PASS}"
+                            """
                         }
                     }
                 }

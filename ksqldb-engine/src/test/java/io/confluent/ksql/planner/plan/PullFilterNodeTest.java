@@ -1145,7 +1145,7 @@ public class PullFilterNodeTest {
   }
 
   @Test
-  public void shouldThrowOnMultiKeyExpressions() {
+  public void shouldThrowOnMultipleKeyExpressions() {
     // Given:
     final Expression expression1 = new ComparisonExpression(
         Type.EQUAL,
@@ -1182,7 +1182,7 @@ public class PullFilterNodeTest {
 
   @SuppressWarnings("unchecked")
   @Test
-  public void shouldExtractConstraintWithMultiKeyExpressions_tableScan() {
+  public void shouldExtractConstraintWithMultipleKeyExpressions_tableScan() {
     // Given:
     when(plannerOptions.getTableScansEnabled()).thenReturn(true);
     final Expression expression1 = new ComparisonExpression(

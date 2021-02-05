@@ -49,6 +49,18 @@ done
 [[ -z "${DOCKER_REGISTRY}" ]] && error "-d/--docker-registry not specified and is required"
  
 
+# This is for two conditions:
+# * When we are building a release candidate (when there is a -rcNNN in the FULL_VERSION)
+# * When we are build a real release (when there is no -rcNNN and it matches a 3-digit version)
+# * All other cases just barf (invalid input/doesn't know how to handle input)
+# 
+# First consider the real release case, we set the release to 1 (as in its ${VERSION}-1)
+# next consider the rc case, we set the release to 0.rcNNN (As in its ${VERSION}-0.rcNNN)
+# 
+# We do this so a "real" release is a higher effective "version" (to package managers) than any 
+# release candidate we generate (1 > 0.rcNNNN), this is then feed into the package builders
+# to produce higher versione-d software in the event a testing system would need to "upgrade"
+# from an ${VERSION}-0.rcNNN to ${VERSION}-1.
 if [[ "${FULL_VERSION}" =~ ^[0-9]+.[0-9]+.[0-9]+-rc[0-9]+$ ]]; then
     RELEASE="0.${FULL_VERSION##*-rc}"
     VERSION="${FULL_VERSION%%-rc*}"

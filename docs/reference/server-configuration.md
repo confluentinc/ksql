@@ -492,7 +492,7 @@ By default, any amount of lag is allowed. For using this functionality, the serv
 **Per query:** yes
 
 Config to control whether table scans are permitted when executing pull queries. Without this enabled, only key lookups are used. Enabling table scans
-removes various restrictions on what types of queries are allowed.  In particular these pull query types are now permitted:
+removes various restrictions on what types of queries are allowed. In particular, these pull query types are now permitted:
 
 - No WHERE clause
 - Range queries on keys

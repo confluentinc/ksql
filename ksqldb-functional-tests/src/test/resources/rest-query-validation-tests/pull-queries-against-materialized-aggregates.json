@@ -1076,7 +1076,7 @@
       },
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "WHERE clause on non-key column: COUNT",
+        "message": "WHERE clause missing key column for disjunct: (COUNT = 100)",
         "status": 400
       }
     },
@@ -2373,7 +2373,7 @@
       },
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "WHERE clause on non-key column: COUNT.",
+        "message": "WHERE clause missing key column for disjunct: (COUNT > 1)",
         "status": 400
       }
     },
@@ -2591,6 +2591,37 @@
           {"row":{"columns":[11, 1, 12000, 13000, 2]}},
           {"row":{"columns":[11, 1, 13000, 14000, 1]}},
           {"row":{"columns":[101, 1, 12000, 13000, 1]}}
+        ]}
+      ]
+    },
+    {
+      "name": "Generalized WHERE: key fetch plus additional filters",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID IN (10, 11, 50, 101, 75) AND COUNT > 1;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1582501512451, "key": -1, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501512452, "key": 10, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582401512453, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582401512454, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501512455, "key": 50, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501552456, "key": 101, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501552457, "key": 101, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501552458, "key": 101, "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501512459, "key": 75, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[11, 2]}},
+          {"row":{"columns":[101, 3]}}
         ]}
       ]
     }

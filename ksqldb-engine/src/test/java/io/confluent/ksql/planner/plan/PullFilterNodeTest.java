@@ -1228,7 +1228,8 @@ public class PullFilterNodeTest {
         ));
 
     // Then:
-    assertThat(e.getMessage(), containsString("WHERE clause on non-key column: COL0"));
+    assertThat(e.getMessage(), containsString("WHERE clause missing key column for disjunct: "
+        + "(COL0 = 'abc')"));
   }
 
   @SuppressWarnings("unchecked")

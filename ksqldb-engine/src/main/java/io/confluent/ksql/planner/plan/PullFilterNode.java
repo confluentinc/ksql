@@ -336,9 +336,6 @@ public class PullFilterNode extends SingleSourcePlanNode {
           isKeyedQuery = true;
           return null;
         }
-
-        setTableScanOrElseThrow(() -> invalidWhereClauseException(
-            "WHERE clause on non-key column: " + columnName.text(), false));
         return null;
       }
     }

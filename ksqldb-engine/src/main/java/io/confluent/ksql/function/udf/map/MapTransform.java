@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
         + "The two arguments for each function are in order: key, value. " 
         + "The first function provided will be applied to each key and the " 
         + "second one applied to each value. "
-        + "The transformed map is returned",
+        + "The transformed map is returned.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class MapTransform {

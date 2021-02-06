@@ -32,8 +32,9 @@ import java.util.Map.Entry;
     category = FunctionCategory.MAP,
     description = "Reduce the input map down to a single value " 
         + "using an initial state and a function. " 
-        + "The initial state (s) and is passed into the scope of the function. " 
-        + "Each invocation returns a new value for s, which the next invocation will receive."  
+        + "The initial state (s) is passed into the scope of the function. " 
+        + "Each invocation returns a new value for s, " 
+        + "which the next invocation will receive. "  
         + "The final value for s is returned."
         + "The three arguments for the function are in order: key, value, state.",
     author = KsqlConstants.CONFLUENT_AUTHOR

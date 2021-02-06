@@ -81,6 +81,7 @@ import org.mockito.junit.MockitoRule;
  */
 @RunWith(Enclosed.class)
 public class CastEvaluatorTest {
+
   private static final String INNER_CODE = "val0";
 
   @RunWith(Parameterized.class)

@@ -399,29 +399,19 @@ public class SqlToJavaVisitor {
 
       context.mapInputTypes(exp.getArguments());
       final Pair<String, SqlType> lambdaBody = process(exp.getBody(), context);
-
       final List<Pair<String, Class<?>>> argPairs = new ArrayList<>();
 
-      final StringBuilder code = new StringBuilder();
-
       for (final String lambdaArg: exp.getArguments()) {
-        final String javaType =
-            SchemaConverters.sqlToJavaConverter()
-                .toJavaType(context.getLambdaType(lambdaArg)).getTypeName() + ".class";
         argPairs.add(new Pair<>(lambdaArg, SchemaConverters.sqlToJavaConverter().toJavaType(context.getLambdaType(lambdaArg))));
-        code.append(javaType + ", ");
       }
-      code.append(SchemaConverters.sqlToJavaConverter()
-          .toJavaType(lambdaBody.getRight()).getTypeName()).append(".class, ");
-      return new Pair<>(code.toString() 
-          + LambdaUtil.function(argPairs, lambdaBody.getLeft()) + ")",
+      return new Pair<>(LambdaUtil.function(argPairs, lambdaBody.getLeft()),
           expressionTypeManager.getExpressionSqlType(exp, context.getLambdaTypeMapping(), context.getInputTypes()));
     }
 
     @Override
     public Pair<String, SqlType> visitLambdaVariable(
         final LambdaVariable lambdaVariable, final SqlToJavaTypeContext context) {
-        return new Pair<>(lambdaVariable.getValue(), context.getLambdaType(lambdaVariable.getValue()));
+      return new Pair<>(lambdaVariable.getValue(), context.getLambdaType(lambdaVariable.getValue()));
     }
 
     @Override

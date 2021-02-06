@@ -167,10 +167,10 @@ public class ExpressionTypeManager {
         final ArithmeticBinaryExpression node, final ExpressionTypeContext expressionTypeContext
     ) {
       process(node.getLeft(), expressionTypeContext);
-      SqlType leftType = expressionTypeContext.getSqlType();
+      final SqlType leftType = expressionTypeContext.getSqlType();
 
       process(node.getRight(), expressionTypeContext);
-      SqlType rightType = expressionTypeContext.getSqlType();
+      final SqlType rightType = expressionTypeContext.getSqlType();
       final SqlType resultType = node.getOperator().resultType(leftType, rightType);
 
       expressionTypeContext.setSqlType(resultType);
@@ -222,10 +222,10 @@ public class ExpressionTypeManager {
         final ComparisonExpression node, final ExpressionTypeContext expressionTypeContext
     ) {
       process(node.getLeft(), expressionTypeContext);
-      SqlType leftSchema = expressionTypeContext.getSqlType();
+      final SqlType leftSchema = expressionTypeContext.getSqlType();
 
       process(node.getRight(), expressionTypeContext);
-      SqlType rightSchema = expressionTypeContext.getSqlType();
+      final SqlType rightSchema = expressionTypeContext.getSqlType();
 
       if (!ComparisonUtil.isValidComparison(leftSchema, node.getType(), rightSchema)) {
         throw new KsqlException("Cannot compare "

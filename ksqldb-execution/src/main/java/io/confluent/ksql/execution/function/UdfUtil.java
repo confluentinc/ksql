@@ -39,7 +39,6 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
 public final class UdfUtil {
 
@@ -123,6 +122,11 @@ public final class UdfUtil {
       } else if (parameterizedType.getRawType() == List.class) {
         return handleListType((ParameterizedType) type);
       }
+      if (parameterizedType.getRawType() == Function.class
+          || parameterizedType.getRawType() == BiFunction.class
+          || parameterizedType.getRawType() == TriFunction.class) {
+        return handleLambdaType((ParameterizedType) type);
+      }
     } else if (type instanceof Class<?> && ((Class<?>) type).isArray()) {
       // handle var args
       return ArrayType.of(getSchemaFromType(((Class<?>) type).getComponentType()));
@@ -135,13 +139,6 @@ public final class UdfUtil {
       // but there are other parts of the code that enforce having a schema provider or
       // schema annotation if a struct is being used
       return StructType.ANY_STRUCT;
-    }
-    if (type instanceof ParameterizedTypeImpl) {
-      if (Function.class.isAssignableFrom(((ParameterizedTypeImpl) type).getRawType())
-          || BiFunction.class.isAssignableFrom(((ParameterizedTypeImpl) type).getRawType())
-          || TriFunction.class.isAssignableFrom(((ParameterizedTypeImpl) type).getRawType())) {
-        return handleLambdaType((ParameterizedTypeImpl) type);
-      }
     }
     throw new KsqlException("Type inference is not supported for: " + type);
   }
@@ -169,7 +166,7 @@ public final class UdfUtil {
     return ArrayType.of(elementParamType);
   }
 
-  private static ParamType handleLambdaType(final ParameterizedTypeImpl type) {
+  private static ParamType handleLambdaType(final ParameterizedType type) {
     final List<ParamType> inputParamTypes = new ArrayList<>();
     for (int i = 0; i < type.getActualTypeArguments().length - 1; i++) {
       final Type inputType = type.getActualTypeArguments()[i];

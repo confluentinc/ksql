@@ -44,7 +44,6 @@ import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -52,8 +51,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -166,6 +163,7 @@ public class SchemaConvertersTest {
         .collect(Collectors.toSet());
 
     final ImmutableSet<SqlBaseType> allTypes = ImmutableSet.copyOf(SqlBaseType.values());
+
     assertThat("If this test fails then there has been a new SQL type added and this test "
         + "file needs updating to cover that new type", tested, is(allTypes));
   }

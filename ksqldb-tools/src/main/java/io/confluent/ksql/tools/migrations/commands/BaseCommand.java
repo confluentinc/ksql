@@ -38,7 +38,7 @@ public abstract class BaseCommand implements Runnable {
   protected String configFile;
 
   @Option(
-      name = {"-n", "--dry-run"},
+      name = {"--dry-run"},
       title = "dry-run",
       description = "dry run the current command, no ksqlDB statements will be executed",
       type = OptionType.GLOBAL

@@ -719,7 +719,7 @@ public class KsqlEngineTest {
         () -> sandbox.execute(
             sandboxServiceContext,
             ConfiguredStatement.of(prepared, SessionConfig.of(KSQL_CONFIG, Collections.emptyMap()))
-        )
+        ).getQuery().ifPresent(QueryMetadata::close)
     );
 
     // Then:
@@ -780,7 +780,7 @@ public class KsqlEngineTest {
         () -> sandbox.execute(
             sandboxServiceContext,
             ConfiguredStatement.of(statement, SessionConfig.of(KSQL_CONFIG, ImmutableMap.of()))
-        )
+        ).getQuery().ifPresent(QueryMetadata::close)
     );
 
     // Then:
@@ -1454,7 +1454,7 @@ public class KsqlEngineTest {
             serviceContext,
             ConfiguredStatement
                 .of(statement, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
-        )
+        ).getQuery().ifPresent(QueryMetadata::close)
     );
 
     // Then:
@@ -1478,7 +1478,7 @@ public class KsqlEngineTest {
             serviceContext,
             ConfiguredStatement
                 .of(statement, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
-        )
+        ).getQuery().ifPresent(QueryMetadata::close)
     );
 
     // Then:
@@ -1549,7 +1549,7 @@ public class KsqlEngineTest {
             sandboxServiceContext,
             ConfiguredStatement
                 .of(sandbox.prepare(stmt), SessionConfig.of(KSQL_CONFIG, new HashMap<>())
-                )));
+                )).getQuery().ifPresent(QueryMetadata::close));
 
     // Then:
     assertThat(metaStore.getSource(SourceName.of("TEST3")), is(notNullValue()));
@@ -1576,7 +1576,7 @@ public class KsqlEngineTest {
             sandboxServiceContext,
             ConfiguredStatement
                 .of(sandbox.prepare(stmt), SessionConfig.of(KSQL_CONFIG, new HashMap<>())
-                ))
+                )).getQuery().ifPresent(QueryMetadata::close)
     );
 
     // Then:
@@ -1595,7 +1595,7 @@ public class KsqlEngineTest {
         sandboxServiceContext,
         ConfiguredStatement
             .of(statement, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
-    );
+    ).getQuery().ifPresent(QueryMetadata::close);
 
     // Then:
     final List<QueryMetadata> queries = KsqlEngineTestUtil
@@ -1620,7 +1620,7 @@ public class KsqlEngineTest {
         sandboxServiceContext,
         ConfiguredStatement
             .of(prepared, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
-    );
+    ).getQuery().ifPresent(QueryMetadata::close);
 
     // Then:
     verify(schemaRegistryClient, never()).register(any(), any(AvroSchema.class));
@@ -1667,6 +1667,7 @@ public class KsqlEngineTest {
         is(not(Optional.empty())));
     assertThat(ksqlEngine.getPersistentQuery(getQueryId(result.getQuery().get())),
         is(Optional.empty()));
+    result.getQuery().ifPresent(QueryMetadata::close);
   }
 
   @Test
@@ -1726,6 +1727,7 @@ public class KsqlEngineTest {
         ConfiguredStatement
             .of(statement, SessionConfig.of(KSQL_CONFIG, new HashMap<>()))
     );
+    result.getQuery().ifPresent(QueryMetadata::close);
 
     // Then:
     assertThat(result.getCommandResult(), is(Optional.of("Stream created")));

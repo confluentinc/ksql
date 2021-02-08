@@ -229,7 +229,7 @@ CREATE STREAM migration_events ( /* name will be configurable */
 The `version_key` column has the version of the migration applied or undone. A special value of the `version_key`, `CURRENT`, will be reserved for internal purposes.
 The `version` column has the version of the migration applied.
 The `name` column has the name of the migration.
-The `state` column has the state of the migration process. It can be any of `Pending`, `Migrated`, `Error`, `Undone`.
+The `state` column has the state of the migration process. It can be any of `Pending`, `Running`, `Migrated`, `Error`, `Undone`.
 The `checksum` column has the MD5 checksum of the migration file. It is used to validate the schema migrations with the local files.
 The `started_on` column has the date and time when the migration started.
 The `completed_on` column has the date and time when the migration finished.
@@ -268,12 +268,12 @@ The `MIGRATION_EVENTS` stream output:
 +-------------+---------+---------------+----------+------------+---------------------+---------------------+----------+
 | version_key | version | name          | state    | checksum   | started_on          | completed_on        | previous |
 +-------------+---------+---------------+----------+------------+---------------------+---------------------+----------+
-| 1           | 1       | Initial setup | Pending  | <MD5-sum>  | 12-01-2020 03:48:00 | null                | null     |
-| CURRENT     | 1       | Initial setup | Pending  | <MD5-sum>  | 12-01-2020 03:48:00 | null                | null     |
+| 1           | 1       | Initial setup | Running  | <MD5-sum>  | 12-01-2020 03:48:00 | null                | null     |
+| CURRENT     | 1       | Initial setup | Running  | <MD5-sum>  | 12-01-2020 03:48:00 | null                | null     |
 | 1           | 1       | Initial setup | Migrated | <MD5-sum>  | 12-01-2020 03:48:00 | 12-01-2020 03:48:05 | null     |
 | CURRENT     | 1       | Initial setup | Migrated | <MD5-sum>  | 12-01-2020 03:48:00 | 12-01-2020 03:48:05 | null     |
-| 2           | 2       | Add users     | Pending  | <MD5-sum>  | 12-03-2020 10:34:30 | null                | 1        |
-| CURRENT     | 2       | Add users     | Pending  | <MD5-sum>  | 12-03-2020 10:34:30 | null                | 1        |
+| 2           | 2       | Add users     | Running  | <MD5-sum>  | 12-03-2020 10:34:30 | null                | 1        |
+| CURRENT     | 2       | Add users     | Running  | <MD5-sum>  | 12-03-2020 10:34:30 | null                | 1        |
 | 2           | 2       | Add users     | Migrated | <MD5-sum>  | 12-03-2020 10:34:30 | 12-03-2020 10:34:34 | 1        |
 | CURRENT     | 2       | Add users     | Migrated | <MD5-sum>  | 12-03-2020 10:34:30 | 12-03-2020 10:34:34 | 1        |
 +-------------+---------+---------------+----------+------------+---------------------+---------------------+----------+
@@ -445,9 +445,9 @@ ksqlDB command topic uses Kafka transactions to ensure that only one migration t
 We'd set the producer's transactional ID based on the ksqlDB cluster's service ID (which the migrations
 tool can obtain via the `/info` endpoint of the ksqlDB server), and the flow for applying a migration would be:
 1. Begin transaction.
-1. Check `CURRENT` state is either `Migrated` or `Error` (i.e., not `Pending`), by creating a Kafka consumer. Return error and abort if `Pending`.
+1. Check `CURRENT` state is either `Migrated` or `Error` (i.e., not `Running`), by creating a Kafka consumer. Return error and abort if `Running`.
 1. Validate checksums for applied migrations
-1. Produce `Pending` state to migrations stream.
+1. Produce `Running` state to migrations stream.
 1. Commit transaction.
 1. Perform migration. 
 1. If successful, produce `Migrated`, else `Error`.
@@ -462,7 +462,7 @@ the topic.
 If we do this, I think we'll need to set `isolation.level=read_committed` on the consumer in the query that populates
 the migrations table from the migrations stream, to avoid uncommitted data from entering the pull query state stores.
 
-In the event that the migrations tool produces `Pending` and crashes before completing the migration, the user will
+In the event that the migrations tool produces `Running` and crashes before completing the migration, the user will
 have to use the `abort` command on the migrations tool to transition the status of the current migration to `Error`
 in order to unblock future migrations. Note that this does not actually roll back any commands that were applied as
 part of attempting the migration; any such statements will have to be cleaned up by the user outside of the migrations tool. 
@@ -474,14 +474,14 @@ of race conditions if a user attempts to perform multiple migrations at once and
 warning about this instead.
 
 The flow for applying a migration would be:
-1. Check `CURRENT` state is either `Migrated` or `Error` (i.e., not `Pending`), by issuing a pull query. Return error and abort if `Pending`.
+1. Check `CURRENT` state is either `Migrated` or `Error` (i.e., not `Running`), by issuing a pull query. Return error and abort if `Running`.
 1. Validate checksums for applied migrations, by issuing pull queries for `status='Migrated'`.
 1. Check `CURRENT` state has not changed from above, with another pull query. Return error and abort if a change is detected.
-1. Produce `Pending` state to migrations stream.
+1. Produce `Running` state to migrations stream.
 1. Perform migration. 
 1. If successful, produce `Migrated`, else `Error`.
 
-As above, in the event that the migrations tool produces `Pending` and crashes before completing the migration, the user will
+As above, in the event that the migrations tool produces `Running` and crashes before completing the migration, the user will
 have to use the `abort` command on the migrations tool to transition the status of the current migration to `Error`
 in order to unblock future migrations. Note that this does not actually roll back any commands that were applied as
 part of attempting the migration; any such statements will have to be cleaned up by the user outside of the migrations tool. 
@@ -490,7 +490,7 @@ The pull queries for checking `CURRENT` state in steps 1 and 3 are not guarantee
 (If we want, for clusters that have lag reporting enabled, we could specify zero lag tolerance on the pull query.) 
 We will accept this possibility as part of the potential race conditions.
 
-Suppose two migrations are attempted concurrently. It's possible that both pass validation and produce `Pending`, and both
+Suppose two migrations are attempted concurrently. It's possible that both pass validation and produce `Running`, and both
 attempt to perform the actual migration as a result. If the attempted migrations are the same, chances are at most one
 will succeed since most ksqlDB statements are only accepted by the server once (e.g., CREATE STREAM/TABLE commands since
 stream/table names may not be repeated). In this case, one migration will update the `CURRENT` status to `Error` and the 

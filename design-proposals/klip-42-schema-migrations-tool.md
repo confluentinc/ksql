@@ -96,6 +96,13 @@ to support for a basic schema migration process.
   ksqlDB has a few statements that support undo, and some of them are limited. The first version for migrations will not support this feature.
   Detailed information about undo is explained in the document for future reference. Also, the schema metadata (See Schema metadata) needs to
   be prepared with future undo operations.
+  
+* `baseline` command to export existing streams, tables, queries, and custom types to a migration file
+
+  This relates to the "metastore exporter" tool that we would like to add, separate from the migrations tool.
+  The tool will allow users to export the current state of their ksqlDB cluster as a series of SQL statements
+  which may be run to bring a fresh cluster to match the current cluster. A `migrations baseline` command would
+  use the same export functionality to create a migrations file.
 
 ## Value/Return
 
@@ -342,15 +349,11 @@ Usage:
   ksql-migrations [options] commands
   
 Commands
-  new  <project-path>  Creates a new migrations project, directory structure and config file.
+  new <project-path>  Creates a new migrations project, directory structure and config file.
 
-  initialize [-v <version> -d <description>]
+  initialize
    
-                 Initializes the schema metadata (stream and table). 
-                 
-                 It also initializes the current schema (of the ksqlDB cluster) to the specified <version> and <description>.
-  
-               
+                 Initializes the schema metadata (stream and table).   
   
   create [-v <version>] <desc> 
   
@@ -436,7 +439,10 @@ Note: The command line options and other configurations will also be defined dur
 
 ### Migration state transitions and potential race conditions
 
-Below we have two potential options for how to manage migration state.
+Below we have two potential options for how to manage migration state. We've decided to go with the latter
+("Do not implement a transaction mechanism and accept the possibility of race conditions") for the first
+version of migrations tool as it should be uncommon (and discouraged) to have multiple users/automated jobs
+running migrations simultaneously.
 
 #### Use Kafka transactions to avoid race conditions
 
@@ -480,6 +486,11 @@ The flow for applying a migration would be:
 1. Produce `Running` state to migrations stream.
 1. Perform migration. 
 1. If successful, produce `Migrated`, else `Error`.
+
+In the case of multiple migrations (i.e., `migrations apply all` or `migrations apply until <target>`), the last four
+steps will be repeated for each migration. (The validation in step 3 will verify the expected state, which is that the
+previous migration has status `Migrated`. This validation will be wrapped in a retry loop as pull queries are not
+guaranteed to return the latest data.)
 
 As above, in the event that the migrations tool produces `Running` and crashes before completing the migration, the user will
 have to use the `abort` command on the migrations tool to transition the status of the current migration to `Error`

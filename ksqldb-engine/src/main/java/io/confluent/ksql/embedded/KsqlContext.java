@@ -136,7 +136,8 @@ public class KsqlContext implements AutoCloseable {
           stmt,
           ksqlConfig,
           validationOverrides,
-          injectorFactory.apply(sandbox, sandbox.getServiceContext()));
+          injectorFactory.apply(sandbox, sandbox.getServiceContext())
+      ).getQuery().ifPresent(QueryMetadata::close);
     }
 
     final List<QueryMetadata> queries = new ArrayList<>();

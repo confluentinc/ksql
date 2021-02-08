@@ -653,8 +653,8 @@ public class ExpressionTypeManager {
 
     private Boolean shouldSetInputType(final FunctionCall node, final ExpressionTypeContext context) {
       return (context.getInputTypes() == null)
-          || (node.getName().equals(FunctionName.of("REDUCE_MAP")) && context.getInputTypes().size() == 2)
-          || (node.getName().equals(FunctionName.of("REDUCE_ARRAY")) && context.getInputTypes().size() == 1);
+          || (node.getName().equals(FunctionName.of("MAP_REDUCE")) && context.getInputTypes().size() == 2)
+          || (node.getName().equals(FunctionName.of("ARRAY_REDUCE")) && context.getInputTypes().size() == 1);
     }
   }
 }

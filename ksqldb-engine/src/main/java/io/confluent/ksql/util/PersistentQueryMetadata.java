@@ -106,8 +106,6 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
     this.materializationProvider = materializationProviderBuilder
         .flatMap(builder -> builder.apply(getKafkaStreams()));
-
-    setUncaughtExceptionHandler(this::uncaughtHandler);
   }
 
   protected PersistentQueryMetadata(
@@ -122,6 +120,13 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.physicalPlan = other.physicalPlan;
     this.materializationProviderBuilder = other.materializationProviderBuilder;
     this.processingLogger = other.processingLogger;
+  }
+
+  @Override
+  public void initialize() {
+    // initialize the first KafkaStreams
+    super.initialize();
+    setUncaughtExceptionHandler(this::uncaughtHandler);
   }
 
   @Override

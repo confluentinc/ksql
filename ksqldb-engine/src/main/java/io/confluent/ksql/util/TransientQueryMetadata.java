@@ -79,6 +79,7 @@ public class TransientQueryMetadata extends QueryMetadata {
         QueryErrorClassifier.DEFAULT_CLASSIFIER,
         maxQueryErrorsQueueSize
     );
+    this.initialize();
     this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
     this.resultType = Objects.requireNonNull(resultType, "resultType");
     this.onStop(ignored -> isRunning.set(false));

@@ -324,7 +324,6 @@ final class EngineContext {
   }
 
   void registerQuery(final QueryMetadata query, final boolean createAsQuery) {
-    allLiveQueries.add(query);
     if (query instanceof PersistentQueryMetadata) {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
       final QueryId queryId = persistentQuery.getQueryId();
@@ -343,6 +342,7 @@ final class EngineContext {
         unregisterQuery(oldQuery);
       }
 
+      persistentQuery.initialize();
       persistentQueries.put(queryId, persistentQuery);
       if (createAsQuery) {
         createAsQueries.put(persistentQuery.getSinkName(), queryId);
@@ -353,6 +353,7 @@ final class EngineContext {
                 x -> Collections.synchronizedSet(new HashSet<>())).add(queryId));
       }
     }
+    allLiveQueries.add(query);
   }
 
   private Iterable<SourceName> sinkAndSources(final PersistentQueryMetadata query) {

@@ -289,7 +289,9 @@ public abstract class QueryMetadata {
   }
 
   protected void closeKafkaStreams() {
-    kafkaStreams.close(closeTimeout);
+    if (initialized) {
+      kafkaStreams.close(closeTimeout);
+    }
   }
 
   protected KafkaStreams buildKafkaStreams() {

@@ -119,6 +119,8 @@ public class PersistentQueryMetadataTest {
         10,
         processingLogger
     );
+
+    query.initialize();
   }
 
   @Test

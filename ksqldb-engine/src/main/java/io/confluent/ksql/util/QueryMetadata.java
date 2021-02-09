@@ -273,7 +273,7 @@ public abstract class QueryMetadata {
     return closed;
   }
 
-  protected KafkaStreams getKafkaStreams() {
+  public KafkaStreams getKafkaStreams() {
     return kafkaStreams;
   }
 

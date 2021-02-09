@@ -170,6 +170,7 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Sandbox;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
+import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Collections;
@@ -1656,7 +1657,7 @@ public class KsqlResourceTest {
   public void shouldListDefaultKsqlProperty() {
     // Given:
     givenKsqlConfigWith(ImmutableMap.<String, Object>builder()
-        .put(StreamsConfig.STATE_DIR_CONFIG, "/tmp/kafka-streams")
+        .put(StreamsConfig.STATE_DIR_CONFIG, System.getProperty("java.io.tmpdir") + File.separator + "kafka-streams")
         .build());
 
     // When:

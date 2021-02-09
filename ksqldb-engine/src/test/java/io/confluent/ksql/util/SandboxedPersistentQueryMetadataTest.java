@@ -114,6 +114,8 @@ public class SandboxedPersistentQueryMetadataTest {
         processingLogger
     );
 
+    query.initialize();
+
     sandbox = SandboxedPersistentQueryMetadata.of(query, closeCallback);
     reset(kafkaStreams);
   }

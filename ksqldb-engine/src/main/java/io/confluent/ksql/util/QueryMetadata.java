@@ -73,6 +73,7 @@ public abstract class QueryMetadata {
   private UncaughtExceptionHandler uncaughtExceptionHandler = this::uncaughtHandler;
   private KafkaStreams kafkaStreams;
   private Consumer<Boolean> onStop = (ignored) -> { };
+  private boolean initialized = false;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
@@ -111,10 +112,6 @@ public abstract class QueryMetadata {
     this.queryId = Objects.requireNonNull(queryId, "queryId");
     this.errorClassifier = Objects.requireNonNull(errorClassifier, "errorClassifier");
     this.queryErrors = EvictingQueue.create(maxQueryErrorsQueueSize);
-
-    // initialize the first KafkaStreams
-    this.kafkaStreams = kafkaStreamsBuilder.build(topology, streamsProperties);
-    kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
   }
 
   protected QueryMetadata(final QueryMetadata other, final Consumer<QueryMetadata> closeCallback) {
@@ -136,6 +133,13 @@ public abstract class QueryMetadata {
     this.queryStateListener = other.queryStateListener;
     this.everStarted = other.everStarted;
     this.queryErrors = other.queryErrors;
+  }
+
+  public void initialize() {
+    // initialize the first KafkaStreams
+    this.kafkaStreams = kafkaStreamsBuilder.build(topology, streamsProperties);
+    kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
+    this.initialized = true;
   }
 
   public void setQueryStateListener(final QueryStateListener queryStateListener) {
@@ -189,6 +193,7 @@ public abstract class QueryMetadata {
   }
 
   public void setUncaughtExceptionHandler(final UncaughtExceptionHandler handler) {
+    
     this.uncaughtExceptionHandler = handler;
     kafkaStreams.setUncaughtExceptionHandler(handler);
   }
@@ -282,7 +287,9 @@ public abstract class QueryMetadata {
   }
 
   protected void closeKafkaStreams() {
-    kafkaStreams.close(Duration.ofMillis(closeTimeout));
+    if (initialized) {
+      kafkaStreams.close(Duration.ofMillis(closeTimeout));
+    }
   }
 
   protected KafkaStreams buildKafkaStreams() {
@@ -331,6 +338,12 @@ public abstract class QueryMetadata {
   }
 
   public void start() {
+    if (!initialized) {
+      throw new KsqlException(
+          String.format(
+              "Failed to initialize query %s before starting it",
+              queryApplicationId));
+    }
     LOG.info("Starting query with application id: {}", queryApplicationId);
     everStarted = true;
     kafkaStreams.start();

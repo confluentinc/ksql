@@ -228,7 +228,7 @@ final class EngineContext {
     return result.getMessage();
   }
 
-  void registerQuery(final QueryMetadata query) {
+  void registerQuery(final QueryMetadata query, final boolean createAsQuery) {
     allLiveQueries.add(query);
     if (query instanceof PersistentQueryMetadata) {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
@@ -248,12 +248,14 @@ final class EngineContext {
         unregisterQuery(oldQuery);
       }
 
+      persistentQuery.initialize();
       persistentQueries.put(queryId, persistentQuery);
       metaStore.updateForPersistentQuery(
           queryId.toString(),
           persistentQuery.getSourceNames(),
           ImmutableSet.of(persistentQuery.getSinkName()));
     }
+    allLiveQueries.add(query);
   }
 
   private void closeQuery(final QueryMetadata query) {

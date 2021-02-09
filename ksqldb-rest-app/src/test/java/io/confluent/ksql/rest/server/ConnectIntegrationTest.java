@@ -43,6 +43,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -251,7 +253,7 @@ public class ConnectIntegrationTest {
   }
 
   @Test
-  public void shouldReadAndWriteTimestampsToConnect() {
+  public void shouldReadAndWriteTimestampsToConnect() throws UnsupportedEncodingException {
     // Given:
     create("mock-source", ImmutableMap.<String, String> builder()
         .put("connector.class", "org.apache.kafka.connect.tools.VerifiableSourceConnector")
@@ -300,8 +302,15 @@ public class ConnectIntegrationTest {
         ",\"name\":\"mock-sink\",\"topic\":\"BAR\",\"sinkTask\":0}"
     );
     ByteArrayOutputStream out = new ByteArrayOutputStream();
-    System.setOut(new PrintStream(out));
-    assertThatEventually(() -> out.toString(),
+    System.setOut(new PrintStream(out, true, "UTF-8"));
+    assertThatEventually(() -> {
+          try {
+            return out.toString("UTF-8");
+          } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            return "";
+          }
+        },
         stringContainsInOrder(sinkOutputParts));
   }
 

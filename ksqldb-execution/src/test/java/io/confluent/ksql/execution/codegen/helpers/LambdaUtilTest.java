@@ -22,7 +22,6 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.codegen.CodeGenTestUtil;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;

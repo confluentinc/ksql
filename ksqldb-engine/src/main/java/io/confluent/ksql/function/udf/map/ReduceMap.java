@@ -39,10 +39,10 @@ import java.util.Map.Entry;
         + "The three arguments for the function are in order: key, value, state.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
-public class MapReduce {
+public class ReduceMap {
 
   @Udf
-  public <K,V,S> S mapReduce(
+  public <K,V,S> S reduceMap(
       @UdfParameter(description = "The map") final Map<K, V> map,
       @UdfParameter(description = "The initial state") final S initialState,
       @UdfParameter(description = "The reduce function") final TriFunction<K, V, S, S> triFunction

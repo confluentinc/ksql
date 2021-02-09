@@ -25,41 +25,41 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 
-public class MapReduceTest {
+public class ReduceMapTest {
 
-  private MapReduce udf;
+  private ReduceMap udf;
 
   @Before
   public void setUp() {
-    udf = new MapReduce();
+    udf = new ReduceMap();
   }
 
   @Test
   public void shouldReturnNullForNullMap() {
-    assertThat(udf.mapReduce(null, 0, triFunction1()), is(nullValue()));
+    assertThat(udf.reduceMap(null, 0, triFunction1()), is(nullValue()));
   }
 
   @Test
   public void shouldReduceMap() {
     final Map<Integer, Integer> map1 = new HashMap<>();
-    assertThat(udf.mapReduce(map1, 3, triFunction1()), is(3));
+    assertThat(udf.reduceMap(map1, 3, triFunction1()), is(3));
     map1.put(4, 3);
     map1.put(6, 2);
-    assertThat(udf.mapReduce(map1, 42, triFunction1()), is(57));
-    assertThat(udf.mapReduce(map1, -4, triFunction1()), is(11));
+    assertThat(udf.reduceMap(map1, 42, triFunction1()), is(57));
+    assertThat(udf.reduceMap(map1, -4, triFunction1()), is(11));
     map1.put(0,0);
-    assertThat(udf.mapReduce(map1, 0, triFunction1()), is(15));
+    assertThat(udf.reduceMap(map1, 0, triFunction1()), is(15));
 
     final Map<String, Integer> map2 = new HashMap<>();
-    assertThat(udf.mapReduce(map2, "", triFunction2()), is(""));
+    assertThat(udf.reduceMap(map2, "", triFunction2()), is(""));
     map2.put("a", 42);
     map2.put("b", 11);
-    assertThat(udf.mapReduce(map2, "", triFunction2()), is("ba"));
-    assertThat(udf.mapReduce(map2, "string", triFunction2()), is("bastring"));
+    assertThat(udf.reduceMap(map2, "", triFunction2()), is("ba"));
+    assertThat(udf.reduceMap(map2, "string", triFunction2()), is("bastring"));
     map2.put("c",0);
     map2.put("d",15);
     map2.put("e",-5);
-    assertThat(udf.mapReduce(map2, "q", triFunction2()), is("dbaq"));
+    assertThat(udf.reduceMap(map2, "q", triFunction2()), is("dbaq"));
   }
 
   private TriFunction<Integer, Integer, Integer, Integer> triFunction1() {

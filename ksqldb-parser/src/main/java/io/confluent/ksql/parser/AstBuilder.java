@@ -749,8 +749,8 @@ public class AstBuilder {
 
     @Override
     public Node visitShowColumns(final SqlBaseParser.ShowColumnsContext context) {
-      // Special check to allow `DESCRIBE TABLES` while still allowing users to maintain statements that
-      // used TABLES as a column name
+      // Special check to allow `DESCRIBE TABLES` while still allowing
+      // users to maintain statements that used TABLES as a column name
       if (context.sourceName().identifier() instanceof SqlBaseParser.UnquotedIdentifierContext
           && context.sourceName().getText().toUpperCase().equals("TABLES")) {
         return new DescribeTables(getLocation(context), context.EXTENDED() != null);

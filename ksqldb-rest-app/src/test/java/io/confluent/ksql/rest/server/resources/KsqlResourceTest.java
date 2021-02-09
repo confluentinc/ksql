@@ -203,6 +203,8 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
+import javax.xml.transform.Source;
+
 @SuppressWarnings({"unchecked", "SameParameterValue"})
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlResourceTest {
@@ -772,7 +774,7 @@ public class KsqlResourceTest {
         Collections.singletonList(queries.get(0)),
         Optional.empty(),
         Collections.emptyList(),
-        ImmutableList.of("DOWN_STREAM"));
+        Collections.emptyList());
 
     assertThat(description.getSourceDescription(), is(expectedDescription));
   }

@@ -297,7 +297,6 @@ public class ListSourceExecutorTest {
         ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    final KafkaTopicClient client = engine.getServiceContext().getTopicClient();
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
         SourceDescriptionFactory.create(
             table1,

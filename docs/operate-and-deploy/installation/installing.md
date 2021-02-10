@@ -374,9 +374,9 @@ You can use ksqlDB with compatible {{ site.aktm }} and {{ site.cp }}
 versions.
 
 |    ksqlDB version       | {{ site.ksqldbversion }} |
-| ----------------------- | ------------------ |
-| {{ site.aktm }} version | 0.11.0 and later   |
-| {{ site.cp }} version   | 5.5.0 and later    |
+| ----------------------- | ------------------------ |
+| {{ site.aktm }} version | 0.11.0 and later         |
+| {{ site.cp }} version   | 5.5.0 and later          |
 
 Scale your ksqlDB Server deployment
 -----------------------------------

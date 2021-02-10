@@ -256,4 +256,8 @@ public abstract class QueryMetadata {
   public List<QueryError> getQueryErrors() {
     return ImmutableList.copyOf(queryErrors);
   }
+
+  public KafkaStreams getKafkaStreams() {
+    return kafkaStreams;
+  }
 }

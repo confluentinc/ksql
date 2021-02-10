@@ -294,7 +294,7 @@ ps -aux | grep ksql
 Your output should resemble:
 
 ```
-jim       2540  5.2  2.3 8923244 387388 tty2   Sl   07:48   0:33 /usr/lib/jvm/java-8-oracle/bin/java -cp /home/jim/confluent-{{ site.release }}/share/java/monitoring-interceptors/* ...
+jim       2540  5.2  2.3 8923244 387388 tty2   Sl   07:48   0:33 /usr/lib/jvm/java-8-oracle/bin/java -cp /home/jim/confluent-{{ site.ksqldbversion }}/share/java/monitoring-interceptors/* ...
 ```
 
 If the process status of the JVM isn't `Sl` or `Ssl`, the ksqlDB Server

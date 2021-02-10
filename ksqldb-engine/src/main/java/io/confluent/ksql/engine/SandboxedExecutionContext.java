@@ -116,11 +116,13 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
       final ServiceContext serviceContext,
       final ConfiguredKsqlPlan ksqlPlan
   ) {
-    return EngineExecutor.create(
+    final ExecuteResult result = EngineExecutor.create(
         engineContext,
         serviceContext,
         ksqlPlan.getConfig()
     ).execute(ksqlPlan.getPlan());
+    result.getQuery().ifPresent(query -> query.getKafkaStreams().close());
+    return result;
   }
 
   @Override

@@ -339,4 +339,8 @@ public abstract class QueryMetadata {
   public void clearErrors() {
     queryErrors.clear();
   }
+
+  public KafkaStreams getKafkaStreams() {
+    return kafkaStreams;
+  }
 }

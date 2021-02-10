@@ -20,6 +20,7 @@ import com.github.rvesse.airline.help.Help;
 import io.confluent.ksql.tools.migrations.commands.ApplyMigrationCommand;
 import io.confluent.ksql.tools.migrations.commands.CleanMigrationsCommand;
 import io.confluent.ksql.tools.migrations.commands.CreateMigrationCommand;
+import io.confluent.ksql.tools.migrations.commands.InitializeMigrationCommand;
 import io.confluent.ksql.tools.migrations.commands.MigrationInfoCommand;
 import io.confluent.ksql.tools.migrations.commands.NewMigrationCommand;
 import io.confluent.ksql.tools.migrations.commands.ValidateMigrationsCommand;
@@ -41,7 +42,8 @@ import io.confluent.ksql.tools.migrations.commands.ValidateMigrationsCommand;
         ApplyMigrationCommand.class,
         MigrationInfoCommand.class,
         CleanMigrationsCommand.class,
-        ValidateMigrationsCommand.class
+        ValidateMigrationsCommand.class,
+        InitializeMigrationCommand.class
     },
     defaultCommand = Help.class
 )

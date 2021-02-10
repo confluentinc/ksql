@@ -18,6 +18,10 @@ package io.confluent.ksql.tools.migrations.commands;
 import com.github.rvesse.airline.annotations.Arguments;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.restrictions.Required;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 @Command(
     name = "new",
@@ -31,7 +35,11 @@ public class NewMigrationCommand extends BaseCommand {
 
   @Override
   public void run() {
-    throw new UnsupportedOperationException();
+    try {
+      Files.createDirectories(Paths.get(projectPath));
+      new File(projectPath + "/ksql-migrations.properties").createNewFile();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
-
 }

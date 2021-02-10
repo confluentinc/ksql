@@ -20,6 +20,9 @@ import static io.confluent.ksql.util.KsqlConstants.getSRSubject;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
+import io.confluent.kafka.serializers.protobuf.AbstractKafkaProtobufSerializer;
+import io.confluent.kafka.serializers.subject.DefaultReferenceSubjectNameStrategy;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.parser.properties.with.SourcePropertiesUtil;
@@ -158,7 +161,8 @@ public class SchemaRegisterInjector implements Injector {
         config,
         statementText,
         registerIfSchemaExists,
-        getSRSubject(kafkaTopic, true)
+        getSRSubject(kafkaTopic, true),
+        true
     );
 
     registerSchema(
@@ -169,7 +173,8 @@ public class SchemaRegisterInjector implements Injector {
         config,
         statementText,
         registerIfSchemaExists,
-        getSRSubject(kafkaTopic, false)
+        getSRSubject(kafkaTopic, false),
+        false
     );
   }
 
@@ -181,7 +186,8 @@ public class SchemaRegisterInjector implements Injector {
       final KsqlConfig config,
       final String statementText,
       final boolean registerIfSchemaExists,
-      final String subject
+      final String subject,
+      final boolean isKey
   ) {
     final Format format = FormatFactory.of(formatInfo);
     if (!format.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
@@ -205,8 +211,22 @@ public class SchemaRegisterInjector implements Injector {
         final ParsedSchema parsedSchema = translator.toParsedSchema(
             PersistenceSchema.from(schema, serdeFeatures)
         );
-
-        srClient.register(subject, parsedSchema);
+        if (parsedSchema instanceof ProtobufSchema) {
+          final ProtobufSchema resolved = AbstractKafkaProtobufSerializer.resolveDependencies(
+              srClient,
+              true,
+              false,
+              true,
+              null,
+              new DefaultReferenceSubjectNameStrategy(),
+              topic,
+              isKey,
+              (ProtobufSchema) parsedSchema
+          );
+          srClient.register(subject, resolved);
+        } else {
+          srClient.register(subject, parsedSchema);
+        }
       }
     } catch (IOException | RestClientException e) {
       throw new KsqlStatementException(

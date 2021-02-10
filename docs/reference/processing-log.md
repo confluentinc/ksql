@@ -22,7 +22,7 @@ writing the processing log to {{ site.ak }} and consuming it as ksqlDB stream.
     for the server logs, assign the `log4j.appender.kafka_appender.Topic`
     and `log4j.logger.io.confluent.ksql` configuration settings in the ksqlDB
     Server config file. For more information, see
-    [ksqlDB Server Log Settings](../../operate-and-deploy/installation/server-config/config-reference.md#ksqldb-server-log-settings).
+    [ksqlDB Server Log Settings](../../operate-and-deploy/installation/server-config/).
 
 Logger Names
 ------------
@@ -48,11 +48,20 @@ Execution plan
 Configuration Using Log4J
 -------------------------
 
-Internally, the log uses log4j to write entries, so you can configure it
-just like you would the normal ksqlDB log. All entries are written under
-the `processing` logger hierarchy. The following example shows how to
-configure the processing log to emit all events at ERROR level or higher
-to an appender that writes to stdout:
+Internally, the log uses Log4J to write entries, so you can configure it
+just like you configure the normal ksqlDB log.
+
+- For local deployments, edit the
+[log4j.properties](https://github.com/confluentinc/ksql/blob/master/config/log4j.properties)
+config file to assign Log4J properties.
+- For Docker deployments, set the corresponding environment variables. For more
+  information, see
+  [Configure ksqlDB with Docker](../operate-and-deploy/installation/install-ksqldb-with-docker/#enable-the-ksqldb-processing-log).
+
+All entries are written under the `processing` logger hierarchy.
+
+The following example shows how to configure the processing log to emit all
+events at ERROR level or higher to an appender that writes to `stdout`:
 
 ```properties
 log4j.appender.stdout=org.apache.log4j.ConsoleAppender
@@ -60,6 +69,18 @@ log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
 log4j.appender.stdout.layout.ConversionPattern=[%d] %p %m (%c:%L)%n
 log4j.logger.processing=ERROR, stdout
 log4j.additivity.processing=false
+```
+
+If you're using a Docker deployment, set the folowing environment variables
+in your docker-compose.yml:
+
+```properties
+environment:
+  KSQL_LOG4J_APPENDER_STDOUT: org.apache.log4j.ConsoleAppender
+  KSQL_LOG4J_APPENDER_STDOUT_LAYOUT: org.apache.log4j.PatternLayout
+  KSQL_LOG4J_APPENDER_STDOUT_LAYOUT_CONVERSIONPATTERN: "[%d] %p %m (%c:%L)%n"
+  KSQL_LOG4J_LOGGER_PROCESSING: "ERROR, stdout"
+  KSQL_LOG4J_ADDITIVITY_PROCESSING: "false"
 ```
 
 Restart the ksqlDB Server for the configuration change to take effect.
@@ -78,14 +99,24 @@ also important to set `log4j.additivity.processing=false` as shown in
 the previous example, to ensure that processing log events are not
 forwarded to appenders configured for the other ksqlDB loggers.
 
-You can disable the log completely by setting the level to OFF:
+You can disable the log completely by setting the level to OFF in the
+[log4j.properties](https://github.com/confluentinc/ksql/blob/master/config/log4j.properties)
+file:
 
 ```properties
 log4j.logger.processing=OFF
 ```
 
+If you're using a Docker deployment, set the environment variable
+in your docker-compose.yml:
+
+```
+environment:
+  KSQL_LOG4J_LOGGER_PROCESSING: "OFF"
+```
+
 !!! note
-    To enable security for the ksqlDB Processing Log, assign log4j properties
+    To enable security for the ksqlDB Processing Log, assign Log4J properties
     as shown in
     [log4j-secure.properties](https://github.com/confluentinc/cp-demo/blob/master/scripts/helper/log4j-secure.properties).
 

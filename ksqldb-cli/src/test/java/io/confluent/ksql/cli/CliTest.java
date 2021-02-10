@@ -448,7 +448,7 @@ public class CliTest {
     assertThatEventually(() -> terminal.getOutputString(),
         containsString("Failed to Describe Kafka Topic(s): [${topicName}]"));
     assertThatEventually(() -> terminal.getOutputString(),
-        containsString("Caused by: This server does not host this topic-partition."));
+        containsString("Caused by: The request attempted to perform an operation on an invalid topic."));
   }
 
   @Test

@@ -34,6 +34,7 @@ import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.rest.server.LocalCommands;
+import io.confluent.ksql.rest.server.resources.streaming.PullQueryConfigPlannerOptions;
 import io.confluent.ksql.rest.server.resources.streaming.PullQueryConfigRoutingOptions;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.utils.FormatOptions;
@@ -137,6 +138,11 @@ public class QueryEndpoint {
         ImmutableMap.of()
     );
 
+    final PullQueryConfigPlannerOptions plannerOptions = new PullQueryConfigPlannerOptions(
+        ksqlConfig,
+        statement.getSessionConfig().getOverrides()
+    );
+
     PullQueryExecutionUtil.checkRateLimit(rateLimiter);
 
     final PullQueryResult result = ksqlEngine.executePullQuery(
@@ -144,6 +150,7 @@ public class QueryEndpoint {
         statement,
         routing,
         routingOptions,
+        plannerOptions,
         pullQueryMetrics,
         false
     );

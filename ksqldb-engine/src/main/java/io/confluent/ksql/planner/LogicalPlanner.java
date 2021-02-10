@@ -178,7 +178,7 @@ public class LogicalPlanner {
     return buildOutputNode(currentNode);
   }
 
-  public OutputNode buildPullLogicalPlan() {
+  public OutputNode buildPullLogicalPlan(final PullPlannerOptions pullPlannerOptions) {
     final boolean isWindowed = analysis
         .getFrom()
         .getDataSource()
@@ -202,9 +202,10 @@ public class LogicalPlanner {
           whereExpression,
           metaStore,
           ksqlConfig,
-          isWindowed);
+          isWindowed,
+          pullPlannerOptions);
     } else {
-      if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED)) {
+      if (!pullPlannerOptions.getTableScansEnabled()) {
         throw PullFilterNode.invalidWhereClauseException("Missing WHERE clause", isWindowed);
       }
     }

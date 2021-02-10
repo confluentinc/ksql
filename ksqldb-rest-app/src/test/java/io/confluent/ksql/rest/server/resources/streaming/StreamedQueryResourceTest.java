@@ -315,7 +315,7 @@ public class StreamedQueryResourceTest {
         Optional.empty()
     );
     testResource.configure(VALID_CONFIG);
-    when(mockKsqlEngine.executePullQuery(any(), any(), any(), any(), any(), anyBoolean()))
+    when(mockKsqlEngine.executePullQuery(any(), any(), any(), any(), any(), any(), anyBoolean()))
         .thenReturn(pullQueryResult);
     when(pullQueryResult.getPullQueryQueue()).thenReturn(pullQueryQueue);
 

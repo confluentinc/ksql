@@ -274,8 +274,8 @@ public final class HARouting implements AutoCloseable {
             .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordLocalRequests(1));
         pullPhysicalPlan.execute(locations, pullQueryQueue,  rowFactory);
       } catch (Exception e) {
-        LOG.error("Error executing query {} locally at node {} with exception {}",
-                 statement.getStatementText(), node, e.getCause());
+        LOG.error("Error executing query {} locally at node {} with exception",
+            statement.getStatementText(), node, e.getCause());
         throw new KsqlException(
             String.format("Error executing query %s locally at node %s",
                           statement.getStatementText(), node),

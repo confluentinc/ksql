@@ -84,6 +84,11 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
         ImmutableMap.of()
     );
 
+    final PullQueryConfigPlannerOptions plannerOptions = new PullQueryConfigPlannerOptions(
+        query.getSessionConfig().getConfig(false),
+        query.getSessionConfig().getOverrides()
+    );
+
     PullQueryExecutionUtil.checkRateLimit(rateLimiter);
 
     final PullQueryResult result = ksqlEngine.executePullQuery(
@@ -91,6 +96,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
         query,
         routing,
         routingOptions,
+        plannerOptions,
         pullQueryMetrics,
         true
     );

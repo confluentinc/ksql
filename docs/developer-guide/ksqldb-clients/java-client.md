@@ -54,7 +54,7 @@ Start by creating a `pom.xml` for your Java application:
     <properties>
         <!-- Keep versions as properties to allow easy modification -->
         <java.version>8</java.version>
-        <ksqldb.version>{{ site.release }}</ksqldb.version>
+        <ksqldb.version>{{ site.ksqldbversion }}</ksqldb.version>
         <!-- Maven properties for compilation -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>

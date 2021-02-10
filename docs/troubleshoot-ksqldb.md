@@ -243,7 +243,7 @@ ksqlDB doesn't clean up internal topics
 
 Make sure that your Kafka cluster is configured with
 `delete.topic.enable=true`. See
-[deleteTopics](https://docs.confluent.io/{{ site.release }}/clients/javadocs/org/apache/kafka/clients/admin/AdminClient.html)
+[deleteTopics](https://docs.confluent.io/{{ site.ksqldbversion }}/clients/javadocs/org/apache/kafka/clients/admin/AdminClient.html)
 for more information.
 
 Replicated topic with Avro schema causes errors

@@ -241,7 +241,6 @@ extra:
         kafkaversion: 2.7
         ksqldbversion: 0.16.0
         kstreamsbetatag: 6.2.0-beta210122194818
-        release: 0.16.0
         cprelease: 6.2.0
         releasepostbranch: 6.2.0-post
         scalaversion: 2.13

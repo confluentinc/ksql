@@ -167,7 +167,7 @@ cd ksql
 Switch to the correct ksqlDB release branch.
 
 ```bash
-git checkout {{ site.releasepostbranch }}
+git checkout {{ site.ksqldbversionpostbranch }}
 ```
 
 ### 3. Start the stack
@@ -245,7 +245,7 @@ After the ksqlDB CLI starts, your terminal should resemble the following.
 
 Copyright 2017-2020 Confluent Inc.
 
-CLI v{{ site.release }}, Server v{{ site.release }} located at http://primary-ksql-server:8088
+CLI v{{ site.ksqldbversion }}, Server v{{ site.ksqldbversion }} located at http://primary-ksql-server:8088
 
 Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 
@@ -373,10 +373,10 @@ Supported versions and interoperability
 You can use ksqlDB with compatible {{ site.aktm }} and {{ site.cp }}
 versions.
 
-|    ksqlDB version       | {{ site.release }} |
-| ----------------------- | ------------------ |
-| {{ site.aktm }} version | 0.11.0 and later   |
-| {{ site.cp }} version   | 5.5.0 and later    |
+|    ksqlDB version       | {{ site.ksqldbversion }} |
+| ----------------------- | ------------------------ |
+| {{ site.aktm }} version | 0.11.0 and later         |
+| {{ site.cp }} version   | 5.5.0 and later          |
 
 Scale your ksqlDB Server deployment
 -----------------------------------

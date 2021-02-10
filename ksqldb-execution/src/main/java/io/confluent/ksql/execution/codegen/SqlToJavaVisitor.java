@@ -33,6 +33,7 @@ import io.confluent.ksql.execution.codegen.helpers.LikeEvaluator;
 import io.confluent.ksql.execution.codegen.helpers.MapBuilder;
 import io.confluent.ksql.execution.codegen.helpers.NullSafe;
 import io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction;
+import io.confluent.ksql.execution.codegen.helpers.TriFunction;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
@@ -121,7 +122,6 @@ public class SqlToJavaVisitor {
   public static final List<String> JAVA_IMPORTS = ImmutableList.of(
       "io.confluent.ksql.execution.codegen.helpers.ArrayAccess",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction",
-      "io.confluent.ksql.execution.codegen.helpers.TriFunction",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction.LazyWhenClause",
       "java.sql.Timestamp",
       "java.util.Arrays",
@@ -135,6 +135,7 @@ public class SqlToJavaVisitor {
       "java.util.function.Supplier",
       Function.class.getCanonicalName(),
       BiFunction.class.getCanonicalName(),
+      TriFunction.class.getCanonicalName(),
       DecimalUtil.class.getCanonicalName(),
       BigDecimal.class.getCanonicalName(),
       MathContext.class.getCanonicalName(),

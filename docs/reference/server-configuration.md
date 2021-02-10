@@ -507,7 +507,8 @@ Also, note that this config can be set on the CLI, but only used to disable tabl
 SET 'ksql.query.pull.table.scan.enabled'='false';
 ```
 
-The server will reject requests that attempt to enable table scans.
+The server will reject requests that attempt to enable table scans. Disabling table scans per 
+request can be useful when throwing an error is preferable to doing the potentially expensive scan.
 
 ## `ksql.variable.substitution.enable`
 

@@ -319,7 +319,7 @@ public class ExpressionTypeManager {
       final Optional<SqlType> whenType = validateWhenClauses(node.getWhenClauses(), context);
 
       final Optional<SqlType> defaultType = node.getDefaultValue()
-          .map(ExpressionTypeManager.this::getExpressionSqlType);
+          .map(expression -> getExpressionSqlType(expression, context));
 
       if (whenType.isPresent() && defaultType.isPresent()) {
         if (!whenType.get().equals(defaultType.get())) {

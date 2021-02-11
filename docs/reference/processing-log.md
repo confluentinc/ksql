@@ -78,7 +78,7 @@ in your docker-compose.yml:
 # -- Example from https://github.com/confluentinc/demo-scene/blob/master/multi-cluster-connect-and-ksql/docker-compose.yml
 environment:
     # --- ksqlDB Server log config ---
-    KSQL_LOG4J_ROOT_LOGLEVEL: "INFO"
+    KSQL_LOG4J_ROOT_LOGLEVEL: "ERROR"
     KSQL_LOG4J_LOGGERS: "org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR"
     # --- ksqlDB processing log config ---
     KSQL_LOG4J_PROCESSING_LOG_BROKERLIST: kafka:29092

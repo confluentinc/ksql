@@ -199,7 +199,9 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitSubscriptExpression(final SubscriptExpression node, final TypeContext context) {
+    public Void visitSubscriptExpression(
+        final SubscriptExpression node, final TypeContext context
+    ) {
       if (node.getBase() instanceof UnqualifiedColumnReferenceExp) {
         final UnqualifiedColumnReferenceExp arrayBaseName
             = (UnqualifiedColumnReferenceExp) node.getBase();
@@ -212,7 +214,9 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitCreateArrayExpression(final CreateArrayExpression exp, final TypeContext context) {
+    public Void visitCreateArrayExpression(
+        final CreateArrayExpression exp, final TypeContext context
+    ) {
       exp.getValues().forEach(val -> process(val, context));
       return null;
     }
@@ -250,7 +254,9 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitDereferenceExpression(final DereferenceExpression node, final TypeContext context) {
+    public Void visitDereferenceExpression(
+        final DereferenceExpression node, final TypeContext context
+    ) {
       process(node.getBase(), null);
       return null;
     }

@@ -259,7 +259,9 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    public Pair<String, SqlType> visitWhenClause(final WhenClause whenClause, final TypeContext context) {
+    public Pair<String, SqlType> visitWhenClause(
+        final WhenClause whenClause, final TypeContext context
+    ) {
       return visitIllegalState(whenClause);
     }
 
@@ -322,7 +324,9 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    public Pair<String, SqlType> visitStringLiteral(final StringLiteral node, final TypeContext context) {
+    public Pair<String, SqlType> visitStringLiteral(
+        final StringLiteral node, final TypeContext context
+    ) {
       return new Pair<>(
           "\"" + StringEscapeUtils.escapeJava(node.getValue()) + "\"",
           SqlTypes.STRING
@@ -330,7 +334,9 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    public Pair<String, SqlType> visitDoubleLiteral(final DoubleLiteral node, final TypeContext context) {
+    public Pair<String, SqlType> visitDoubleLiteral(
+        final DoubleLiteral node, final TypeContext context
+    ) {
       return new Pair<>(node.toString(), SqlTypes.DOUBLE);
     }
 
@@ -346,7 +352,9 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    public Pair<String, SqlType> visitNullLiteral(final NullLiteral node, final TypeContext context) {
+    public Pair<String, SqlType> visitNullLiteral(
+        final NullLiteral node, final TypeContext context
+    ) {
       return new Pair<>("null", null);
     }
 
@@ -401,7 +409,9 @@ public class SqlToJavaVisitor {
       return new Pair<>(codeString, functionReturnSchema);
     }
 
-    public Pair<String, SqlType> visitLongLiteral(final LongLiteral node, final TypeContext context) {
+    public Pair<String, SqlType> visitLongLiteral(
+        final LongLiteral node, final TypeContext context
+    ) {
       return new Pair<>(node.getValue() + "L", SqlTypes.BIGINT);
     }
 
@@ -414,7 +424,9 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    public Pair<String, SqlType> visitFunctionCall(final FunctionCall node, final TypeContext context) {
+    public Pair<String, SqlType> visitFunctionCall(
+        final FunctionCall node, final TypeContext context
+    ) {
       final FunctionName functionName = node.getName();
 
       final String instanceName = funNameToCodeName.apply(functionName);
@@ -494,7 +506,9 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    public Pair<String, SqlType> visitNotExpression(final NotExpression node, final TypeContext context) {
+    public Pair<String, SqlType> visitNotExpression(
+        final NotExpression node, final TypeContext context
+    ) {
       final String exprString = process(node.getValue(), context).getLeft();
       return new Pair<>("(!" + exprString + ")", SqlTypes.BOOLEAN);
     }
@@ -858,7 +872,9 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    public Pair<String, SqlType> visitLikePredicate(final LikePredicate node, final TypeContext context) {
+    public Pair<String, SqlType> visitLikePredicate(
+        final LikePredicate node, final TypeContext context
+    ) {
 
       final String patternString = process(node.getPattern(), context).getLeft();
       final String valueString = process(node.getValue(), context).getLeft();
@@ -1021,7 +1037,10 @@ public class SqlToJavaVisitor {
     }
 
     private String formatBinaryExpression(
-        final String operator, final Expression left, final Expression right, final TypeContext context
+        final String operator,
+        final Expression left,
+        final Expression right,
+        final TypeContext context
     ) {
       return "(" + process(left, context).getLeft() + " " + operator + " "
           + process(right, context).getLeft() + ")";

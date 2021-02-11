@@ -44,7 +44,7 @@ public class ParseTimestamp {
           .build(CacheLoader.from(StringToTimestampParser::new));
 
   @Udf(description = "Converts a string representation of a date in the given format"
-      + " into the TIMESTAMP value that represents the millisecond timestamp."
+      + " into the TIMESTAMP value."
       + " Single quotes in the timestamp format can be escaped with '',"
       + " for example: 'yyyy-MM-dd''T''HH:mm:ssX'.")
   public Timestamp parseTimestamp(
@@ -57,7 +57,7 @@ public class ParseTimestamp {
   }
 
   @Udf(description = "Converts a string representation of a date at the given time zone"
-      + " in the given format into the TIMESTAMP value that represents the millisecond timestamp."
+      + " in the given format into the TIMESTAMP value."
       + " Single quotes in the timestamp format can be escaped with '',"
       + " for example: 'yyyy-MM-dd''T''HH:mm:ssX'.")
   public Timestamp parseTimestamp(

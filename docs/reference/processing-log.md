@@ -56,9 +56,12 @@ just like you configure the normal ksqlDB log.
 config file to assign Log4J properties.
 - For Docker deployments, set the corresponding environment variables. For more
   information, see
-  [Configure ksqlDB with Docker](../operate-and-deploy/installation/install-ksqldb-with-docker/#enable-the-ksqldb-processing-log).
+  [Configure ksqlDB with Docker](../operate-and-deploy/installation/install-ksqldb-with-docker/#enable-the-ksqldb-processing-log)
+  and [Configure Docker Logging](https://docs.confluent.io/platform/current/installation/docker/operations/logging.html#log4j-log-levels).
 
 All entries are written under the `processing` logger hierarchy.
+
+Restart the ksqlDB Server for your configuration changes to take effect.
 
 The following example shows how to configure the processing log to emit all
 events at ERROR level or higher to an appender that writes to `stdout`:
@@ -75,7 +78,6 @@ If you're using a Docker deployment, set the following environment variables
 in your docker-compose.yml:
 
 ```properties
-# -- Example from https://github.com/confluentinc/demo-scene/blob/master/multi-cluster-connect-and-ksql/docker-compose.yml
 environment:
     # --- ksqlDB Server log config ---
     KSQL_LOG4J_ROOT_LOGLEVEL: "ERROR"
@@ -88,7 +90,9 @@ environment:
     KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
 ```
 
-Restart the ksqlDB Server for the configuration change to take effect.
+For the full Docker example configuration, see the
+[Multi-node ksqlDB and Kafka Connect clusters](https://github.com/confluentinc/demo-scene/blob/master/multi-cluster-connect-and-ksql/docker-compose.yml)
+demo.
 
 Processing Log Security
 -----------------------

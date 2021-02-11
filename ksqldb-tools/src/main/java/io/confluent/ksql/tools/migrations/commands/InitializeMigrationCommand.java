@@ -16,14 +16,14 @@
 package io.confluent.ksql.tools.migrations.commands;
 
 import com.github.rvesse.airline.annotations.Command;
-import io.confluent.ksql.properties.PropertiesUtil;
-import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.api.client.Client;
+import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
-import java.io.File;
-import java.util.Collections;
-import java.util.Optional;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.concurrent.ExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Command(
     name = "initialize",
@@ -31,7 +31,9 @@ import java.util.Optional;
 )
 public class InitializeMigrationCommand extends BaseCommand {
 
-  private String createEventStream(final String name, final String topic, final String replicas) {
+  private static final Logger LOGGER = LoggerFactory.getLogger(InitializeMigrationCommand.class);
+
+  private String createEventStream(final String name, final String topic, final int replicas) {
     return "CREATE STREAM " + name + " (\n"
         + "  version_key  STRING KEY,\n"
         + "  version      STRING,\n"
@@ -69,45 +71,64 @@ public class InitializeMigrationCommand extends BaseCommand {
 
   @Override
   public void run() {
-    final MigrationConfig properties = new MigrationConfig(
-        PropertiesUtil.loadProperties(new File("ksql-migrations.properties")));
+    final long startTime = System.currentTimeMillis();
+
+    final MigrationConfig properties = MigrationConfig.load();
+    final String streamName = properties.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME);
+    final String tableName = properties.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
     final String eventStreamCommand = createEventStream(
-        properties.getKsqlMigrationsStreamName(),
-        properties.getKsqlMigrationsStreamTopicName(),
-        properties.getKsqlMigrationsTopicReplicas()
+        streamName,
+        properties.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_TOPIC_NAME),
+        properties.getInt(MigrationConfig.KSQL_MIGRATIONS_TOPIC_REPLICAS)
     );
     final String versionTableCommand = createVersionTable(
-        properties.getKsqlMigrationsTableName(),
-        properties.getKsqlMigrationsTableTopicName()
+        tableName,
+        properties.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_TOPIC_NAME)
     );
-    if (dryRun) {
-      System.out.println(eventStreamCommand);
-      System.out.println(versionTableCommand);
-    } else {
-      final KsqlRestClient client = KsqlRestClient.create(
-          properties.getKsqlServerUrl(),
-          Collections.EMPTY_MAP,
-          Collections.EMPTY_MAP,
-          Optional.empty()
-      );
-      final RestResponse<KsqlEntityList> streamResponse =
-          client.makeKsqlRequest(eventStreamCommand);
-      final RestResponse<KsqlEntityList> tableResponse =
-          client.makeKsqlRequest(versionTableCommand);
+    final String ksqlServerUrl = properties.getString(MigrationConfig.KSQL_SERVER_URL);
 
-      if (streamResponse.isSuccessful()) {
-        System.out.println("Successfully created migration stream");
-      } else {
-        System.out.println("Failed to create migration stream: "
-            + streamResponse.getErrorMessage());
-      }
-
-      if (tableResponse.isSuccessful()) {
-        System.out.println("Successfully created migration table");
-      } else {
-        System.out.println("Failed to create migration table: "
-            + tableResponse.getErrorMessage());
-      }
+    final URL url;
+    try {
+      url = new URL(ksqlServerUrl);
+    } catch (MalformedURLException e) {
+      LOGGER.error("Invalid ksql server URL: " + ksqlServerUrl);
+      System.exit(1);
+      return;
     }
+
+    final ClientOptions options = ClientOptions
+        .create()
+        .setHost(url.getHost())
+        .setPort(url.getPort());
+
+    final Client ksqlClient = Client.create(options);
+
+    if (tryCreate(ksqlClient, eventStreamCommand, streamName, true) &&
+        tryCreate(ksqlClient, versionTableCommand, tableName, false)) {
+      final long endTime = System.currentTimeMillis();
+      LOGGER.info("Schema metadata initialized successfully (execution time " +
+          (endTime - startTime)/1000.0 + "s).");
+      ksqlClient.close();
+    } else {
+      ksqlClient.close();
+      System.exit(1);
+    }
+  }
+
+  private boolean tryCreate(
+      final Client client,
+      final String command,
+      final String name,
+      final boolean isStream
+  ) {
+    final String type = isStream ? "stream" : "table";
+    try {
+      LOGGER.info("Creating " + type + ": " + name);
+      client.executeStatement(command).get();
+    } catch (InterruptedException|ExecutionException e) {
+      LOGGER.error(String.format("Failed to create %s %s: %s", type, name, e.getMessage()));
+      return false;
+    }
+    return true;
   }
 }

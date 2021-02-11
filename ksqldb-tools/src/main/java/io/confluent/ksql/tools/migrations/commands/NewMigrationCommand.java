@@ -20,8 +20,11 @@ import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.restrictions.Required;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Command(
     name = "new",
@@ -29,17 +32,63 @@ import java.nio.file.Paths;
 )
 public class NewMigrationCommand extends BaseCommand {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(NewMigrationCommand.class);
+
   @Required
   @Arguments(description = "the project path to create the directory", title = "project-path")
   private String projectPath;
 
   @Override
   public void run() {
-    try {
-      Files.createDirectories(Paths.get(projectPath));
-      new File(projectPath + "/ksql-migrations.properties").createNewFile();
-    } catch (IOException e) {
-      e.printStackTrace();
+    final long startTime = System.currentTimeMillis();
+
+    if (tryCreateDirectory(projectPath) &&
+        tryCreateDirectory(projectPath + "/migrations") &&
+        tryCreatePropertiesFile(projectPath + "/ksql-migrations.properties")) {
+      final long endTime = System.currentTimeMillis();
+      LOGGER.info("Migrations project directory created successfully (execution time " +
+          (endTime - startTime)/1000.0 + "s)");
+    } else {
+      System.exit(1);
     }
+  }
+
+  private boolean tryCreateDirectory(final String path) {
+    final File directory = new File(path);
+
+    if (directory.exists() && directory.isDirectory()) {
+      LOGGER.info(path + " already exists. Skipping directory creation.");
+      return true;
+    } else if (directory.exists() && !directory.isDirectory()) {
+      LOGGER.error(path + " already exists as a file. Cannot create directory.");
+      return false;
+    }
+
+    try {
+      LOGGER.info("Creating directory: " + path);
+      Files.createDirectories(Paths.get(path));
+    } catch(FileSystemException e) {
+      LOGGER.error("Permission denied: create directory " + path);
+      return false;
+    } catch (IOException e) {
+      LOGGER.error(String.format("Failed to create directory %s: %s", path, e.getMessage()));
+      return false;
+    }
+    return true;
+  }
+
+  private boolean tryCreatePropertiesFile(final String path) {
+    final File configFile = new File(path);
+    if (configFile.exists()) {
+      LOGGER.info(path + " already exists. Skipping file creation.");
+      return true;
+    }
+    try {
+      LOGGER.info("Creating file: " + path);
+      configFile.createNewFile();
+    } catch (IOException e) {
+      LOGGER.error(String.format("Failed to create file %s: %s", path, e.getMessage()));
+    }
+    return true;
   }
 }

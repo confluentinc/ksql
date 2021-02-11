@@ -64,21 +64,15 @@
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-common</artifactId>
       </dependency>
-        <dependency>
-            <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksqldb-common</artifactId>
-        </dependency>
       <dependency>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-rest-client</artifactId>
       </dependency>
         <dependency>
             <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksqldb-rest-client</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksqldb-rest-client</artifactId>
+            <artifactId>ksqldb-api-client</artifactId>
+            <version>6.2.0-0</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 

@@ -26,14 +26,6 @@ getent group $_group 2>&1 >/dev/null || groupadd -r $_group
 getent passwd $_user 2>&1 >/dev/null || \
     useradd -r -g $_group --home-dir /tmp --no-create-home -s /sbin/nologin -c "Confluent KSQL" $_user
     
-# Set explicit kafka-streams directory if not set
-ksqldb_config=/etc/ksqldb/ksql-server.properties
-if [ -f $ksqldb_config ]; then
-  if ! grep '^state.dir=' $ksqldb_config >/dev/null 2>&1; then
-    echo "state.dir=/var/lib/kafka-streams" >> $ksqldb_config
-  fi
-fi    
-
 _permwarn=
 for dir in /var/log/confluent /var/lib/kafka-streams ; do
     # Confluent log and kafka-streams directories should be writable by group
@@ -58,6 +50,13 @@ if [ -n "$_permwarn" ]; then
 fi
 
 %post
+# Set explicit kafka-streams directory if not set
+ksqldb_config=/etc/ksqldb/ksql-server.properties
+if [ -f $ksqldb_config ]; then
+  if ! grep '^state.dir=' $ksqldb_config >/dev/null 2>&1; then
+    echo "state.dir=/var/lib/kafka-streams" >> $ksqldb_config
+  fi
+fi
 
 %preun
 

@@ -71,16 +71,21 @@ log4j.logger.processing=ERROR, stdout
 log4j.additivity.processing=false
 ```
 
-If you're using a Docker deployment, set the folowing environment variables
+If you're using a Docker deployment, set the following environment variables
 in your docker-compose.yml:
 
 ```properties
+# -- Example from https://github.com/confluentinc/demo-scene/blob/master/multi-cluster-connect-and-ksql/docker-compose.yml
 environment:
-  KSQL_LOG4J_APPENDER_STDOUT: org.apache.log4j.ConsoleAppender
-  KSQL_LOG4J_APPENDER_STDOUT_LAYOUT: org.apache.log4j.PatternLayout
-  KSQL_LOG4J_APPENDER_STDOUT_LAYOUT_CONVERSIONPATTERN: "[%d] %p %m (%c:%L)%n"
-  KSQL_LOG4J_LOGGER_PROCESSING: "ERROR, stdout"
-  KSQL_LOG4J_ADDITIVITY_PROCESSING: "false"
+    # --- ksqlDB Server log config ---
+    KSQL_LOG4J_ROOT_LOGLEVEL: "INFO"
+    KSQL_LOG4J_LOGGERS: "org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR"
+    # --- ksqlDB processing log config ---
+    KSQL_LOG4J_PROCESSING_LOG_BROKERLIST: kafka:29092
+    KSQL_LOG4J_PROCESSING_LOG_TOPIC: <ksql-processing-log-topic-name>
+    KSQL_KSQL_LOGGING_PROCESSING_TOPIC_NAME: <ksql-processing-log-topic-name>
+    KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
+    KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
 ```
 
 Restart the ksqlDB Server for the configuration change to take effect.

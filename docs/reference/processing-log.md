@@ -131,14 +131,6 @@ file:
 log4j.logger.processing=OFF
 ```
 
-If you're using a Docker deployment, set the environment variable
-in your docker-compose.yml:
-
-```
-environment:
-  KSQL_LOG4J_LOGGER_PROCESSING: "OFF"
-```
-
 !!! note
     To enable security for the ksqlDB Processing Log, assign Log4J properties
     as shown in

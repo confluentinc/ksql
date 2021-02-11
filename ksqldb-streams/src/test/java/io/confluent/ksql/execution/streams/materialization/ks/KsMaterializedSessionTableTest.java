@@ -37,6 +37,7 @@ import io.confluent.ksql.execution.streams.materialization.MaterializationExcept
 import io.confluent.ksql.execution.streams.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.streams.materialization.ks.SessionStoreCacheBypass.SessionStoreCacheBypassFetcher;
+import io.confluent.ksql.execution.streams.materialization.ks.SessionStoreCacheBypass.SessionStoreCacheBypassFetcherRange;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -88,13 +89,15 @@ public class KsMaterializedSessionTableTest {
   private KeyValueIterator<Windowed<GenericKey>, GenericRow> fetchIterator;
   @Mock
   private SessionStoreCacheBypassFetcher cacheBypassFetcher;
+  @Mock
+  private SessionStoreCacheBypassFetcherRange cacheBypassFetcherRange;
   private KsMaterializedSessionTable table;
   private final List<KeyValue<Windowed<GenericKey>, GenericRow>> sessions = new ArrayList<>();
   private int sessionIdx;
 
   @Before
   public void setUp() {
-    table = new KsMaterializedSessionTable(stateStore, cacheBypassFetcher);
+    table = new KsMaterializedSessionTable(stateStore, cacheBypassFetcher, cacheBypassFetcherRange);
 
     when(stateStore.store(any(), anyInt())).thenReturn(sessionStore);
     when(stateStore.schema()).thenReturn(SCHEMA);

@@ -25,6 +25,7 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.TimeZone;
 import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,10 +44,11 @@ public class ParseTimestampTest {
     // When:
     final Object result = udf.parseTimestamp("2021-12-01 12:10:11.123",
         "yyyy-MM-dd HH:mm:ss.SSS");
+    final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
 
     // Then:
-    final Timestamp expectedResult = Timestamp.from(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
-        .parse("2021-12-01 12:10:11.123").toInstant());
+    final Timestamp expectedResult = Timestamp.from(sdf.parse("2021-12-01 12:10:11.123").toInstant());
     assertThat(result, is(expectedResult));
   }
 
@@ -56,9 +58,11 @@ public class ParseTimestampTest {
     final Object result = udf.parseTimestamp("2021-12-01T12:10:11.123Fred",
         "yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'");
 
+    final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'");
+    sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+
     // Then:
-    final Timestamp expectedResult = Timestamp.from(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'")
-        .parse("2021-12-01T12:10:11.123Fred").toInstant());
+    final Timestamp expectedResult = Timestamp.from(sdf.parse("2021-12-01T12:10:11.123Fred").toInstant());
     assertThat(result, is(expectedResult));
   }
 
@@ -142,7 +146,9 @@ public class ParseTimestampTest {
             final String sourceDate = "2018-12-01 10:12:13.456X" + idx;
             final String pattern = "yyyy-MM-dd HH:mm:ss.SSS'X" + idx + "'";
             final Timestamp result = udf.parseTimestamp(sourceDate, pattern);
-            final Timestamp expectedResult = Timestamp.from(new SimpleDateFormat(pattern).parse(sourceDate).toInstant());
+            final SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+            sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+            final Timestamp expectedResult = Timestamp.from(sdf.parse(sourceDate).toInstant());
             assertThat(result, is(expectedResult));
           } catch (final Exception e) {
             fail(e.getMessage());
@@ -175,7 +181,9 @@ public class ParseTimestampTest {
   }
 
   private void assertLikeSimpleDateFormat(final String value, final String format) throws Exception {
-    final Timestamp expected = Timestamp.from(new SimpleDateFormat(format).parse(value).toInstant());
+    final SimpleDateFormat sdf = new SimpleDateFormat(format);
+    sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+    final Timestamp expected = Timestamp.from(sdf.parse(value).toInstant());
     final Object result = new ParseTimestamp().parseTimestamp(value, format);
     assertThat(result, is(expected));
   }

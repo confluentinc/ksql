@@ -55,7 +55,7 @@ public class FormatTimestamp {
       @UdfParameter(
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern) {
-    return formatTimestamp(timestamp, formatPattern, ZoneId.systemDefault().getId());
+    return formatTimestamp(timestamp, formatPattern, ZoneId.of("GMT").getId());
   }
 
   @Udf(description = "Converts a TIMESTAMP value into the"

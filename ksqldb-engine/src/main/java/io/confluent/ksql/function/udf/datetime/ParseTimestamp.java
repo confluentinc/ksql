@@ -53,7 +53,7 @@ public class ParseTimestamp {
       @UdfParameter(
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern) {
-    return parseTimestamp(formattedTimestamp, formatPattern, ZoneId.systemDefault().getId());
+    return parseTimestamp(formattedTimestamp, formatPattern, ZoneId.of("GMT").getId());
   }
 
   @Udf(description = "Converts a string representation of a date at the given time zone"

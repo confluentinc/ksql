@@ -46,6 +46,7 @@ public final class TestExpressions {
   public static final UnqualifiedColumnReferenceExp ARRAYCOL = columnRef("COL4");
   public static final UnqualifiedColumnReferenceExp MAPCOL = columnRef("COL5");
   public static final UnqualifiedColumnReferenceExp COL7 = columnRef("COL7");
+  public static final UnqualifiedColumnReferenceExp COL8 = columnRef("COL8");
   public static final UnqualifiedColumnReferenceExp TIMESTAMPCOL = columnRef("COL10");
   public static final UnqualifiedColumnReferenceExp COL11 = columnRef("COL11");
 

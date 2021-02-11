@@ -198,7 +198,7 @@ public final class WindowStoreCacheBypass {
   }
 
   /*
-  This method is used for table scans. It is invoked by the fetchAll method
+  This method is used for table scans. It is invoked by the fetchAll method.
    */
   private static KeyValueIterator<Windowed<GenericKey>, ValueAndTimestamp<GenericRow>>
       fetchAllUncached(

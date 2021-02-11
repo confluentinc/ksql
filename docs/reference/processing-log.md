@@ -64,6 +64,9 @@ All entries are written under the `processing` logger hierarchy.
 Internally, the log uses Log4J to write entries, so you can configure it
 just like you configure the normal ksqlDB log.
 
+Internally, the log uses Log4J to write entries, so you can configure it
+just like you configure the normal ksqlDB log.
+
 - For local deployments, edit the
 [log4j.properties](https://github.com/confluentinc/ksql/blob/master/config/log4j.properties)
 config file to assign Log4J properties.
@@ -89,23 +92,6 @@ log4j.additivity.processing=false
 
 If you're using a Docker deployment, set the following environment variables
 in your docker-compose.yml:
-
-```properties
-environment:
-    # --- ksqlDB Server log config ---
-    KSQL_LOG4J_ROOT_LOGLEVEL: "ERROR"
-    KSQL_LOG4J_LOGGERS: "org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR"
-    # --- ksqlDB processing log config ---
-    KSQL_LOG4J_PROCESSING_LOG_BROKERLIST: kafka:29092
-    KSQL_LOG4J_PROCESSING_LOG_TOPIC: <ksql-processing-log-topic-name>
-    KSQL_KSQL_LOGGING_PROCESSING_TOPIC_NAME: <ksql-processing-log-topic-name>
-    KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
-    KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
-```
-
-For the full Docker example configuration, see the
-[Multi-node ksqlDB and Kafka Connect clusters](https://github.com/confluentinc/demo-scene/blob/master/multi-cluster-connect-and-ksql/docker-compose.yml)
-demo.
 
 ```properties
 environment:

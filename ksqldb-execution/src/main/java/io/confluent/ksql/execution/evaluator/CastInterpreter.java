@@ -59,7 +59,7 @@ public class CastInterpreter {
     if (from.baseType() == SqlBaseType.STRING) {
       return Integer.parseInt(((String) object).trim());
     }
-    return Conversions.toInteger(object, from, ConversionType.CAST);
+    return NumberConversions.toInteger(object, from, ConversionType.CAST);
   }
 
   public static Double castToDouble(
@@ -72,7 +72,7 @@ public class CastInterpreter {
     if (from.baseType() == SqlBaseType.STRING) {
       return SqlDoubles.parseDouble(((String) object).trim());
     }
-    return Conversions.toDouble(object, from, ConversionType.CAST);
+    return NumberConversions.toDouble(object, from, ConversionType.CAST);
   }
 
   public static Long castToLong(
@@ -85,7 +85,7 @@ public class CastInterpreter {
     if (from.baseType() == SqlBaseType.STRING) {
       return Long.parseLong(((String) object).trim());
     }
-    return Conversions.toLong(object, from, ConversionType.CAST);
+    return NumberConversions.toLong(object, from, ConversionType.CAST);
   }
 
   public static BigDecimal castToBigDecimal(
@@ -185,7 +185,7 @@ public class CastInterpreter {
   /**
    * Conversion functions that work for converting type either during comparison or casting.
    */
-  public static class Conversions {
+  public static class NumberConversions {
     public static Double toDouble(final Object object, final SqlType from,
         final ConversionType type) {
       if (object == null) {
@@ -218,35 +218,6 @@ public class CastInterpreter {
         return ((Number) object).intValue();
       } else {
         throw new KsqlException(getErrorMessage(type, from, SqlTypes.INTEGER));
-      }
-    }
-
-    public static BigDecimal toDecimal(final Object object, final SqlType from,
-        final ConversionType type) {
-      if (object instanceof BigDecimal) {
-        return (BigDecimal) object;
-      } else if (object instanceof Double) {
-        return BigDecimal.valueOf((Double) object);
-      } else if (object instanceof Integer) {
-        return new BigDecimal((Integer) object);
-      } else if (object instanceof Long) {
-        return new BigDecimal((Long) object);
-      } else if (object instanceof String) {
-        return new BigDecimal((String) object);
-      } else {
-        throw new KsqlException(String.format("Unsupported cast from %s to %s", from,
-            SqlBaseType.DECIMAL));
-      }
-    }
-
-    public static Timestamp toTimestamp(final Object object, final SqlType from,
-        final ConversionType type) {
-      if (object instanceof Timestamp) {
-        return (Timestamp) object;
-      } else if (object instanceof String) {
-        return SqlTimestamps.parseTimestamp((String) object);
-      } else {
-        throw new KsqlException(getErrorMessage(type, from, SqlTypes.TIMESTAMP));
       }
     }
   }

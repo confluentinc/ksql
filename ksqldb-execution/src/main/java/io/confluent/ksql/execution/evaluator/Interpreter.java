@@ -11,16 +11,24 @@ import io.confluent.ksql.util.KsqlException;
 public class Interpreter {
 
 
-  public static ExpressionInterpreter create(final FunctionRegistry functionRegistry,
+  public static ExpressionInterpreter create(
+      final Expression expression,
       final LogicalSchema schema,
-      final KsqlConfig ksqlConfig,
-      final Expression expression) {
-    ExpressionTypeManager expressionTypeManager
-        = new ExpressionTypeManager(schema, functionRegistry);
-    final SqlType returnType = expressionTypeManager.getExpressionSqlType(expression);
-    if (returnType == null) {
-      throw new KsqlException("NULL expression not supported");
+      final FunctionRegistry functionRegistry,
+      final KsqlConfig ksqlConfig
+  ) {
+    try {
+      final ExpressionTypeManager expressionTypeManager
+          = new ExpressionTypeManager(schema, functionRegistry);
+      final SqlType returnType = expressionTypeManager.getExpressionSqlType(expression);
+      if (returnType == null) {
+        throw new KsqlException("NULL expression not supported");
+      }
+      return new ExpressionInterpreter(functionRegistry, schema, ksqlConfig, expression,
+          returnType);
+    } catch (KsqlException e) {
+      throw new KsqlException("Invalid expression: " + e.getMessage()
+          + ". expression:" + expression + ", schema:" + schema, e);
     }
-    return new ExpressionInterpreter(functionRegistry, schema, ksqlConfig, expression, returnType);
   }
 }

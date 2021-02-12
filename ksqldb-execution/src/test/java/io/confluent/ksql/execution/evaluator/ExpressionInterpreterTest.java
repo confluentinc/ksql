@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.execution.evaluator;
 
-import static io.confluent.ksql.execution.testutil.TestExpressions.COL0;
-import static io.confluent.ksql.execution.testutil.TestExpressions.COL1;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL11;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL3;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL7;
@@ -25,8 +23,6 @@ import static io.confluent.ksql.execution.testutil.TestExpressions.SCHEMA;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
@@ -36,6 +32,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
+import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
@@ -72,11 +70,9 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
-import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.Optional;
@@ -877,6 +873,35 @@ public class ExpressionInterpreterTest {
     assertThat(interpreter2.evaluate(ROW), is(false));
     assertThat(interpreter3.evaluate(ROW), is(true));
     assertThat(interpreter4.evaluate(ROW), is(false));
+  }
+
+  @Test
+  public void shouldEvaluateUnaryArithmetic() {
+    // Given:
+    final Expression expression1 = new ArithmeticUnaryExpression(
+        Optional.empty(), Sign.PLUS, new IntegerLiteral(1)
+    );
+    final Expression expression2 = new ArithmeticUnaryExpression(
+        Optional.empty(), Sign.MINUS, new IntegerLiteral(1)
+    );
+    final Expression expression3 = new ArithmeticUnaryExpression(
+        Optional.empty(), Sign.MINUS, new DecimalLiteral(new BigDecimal("345.5"))
+    );
+    final Expression expression4 = new ArithmeticUnaryExpression(
+        Optional.empty(), Sign.MINUS, new DoubleLiteral(45.5d)
+    );
+
+    // When:
+    ExpressionInterpreter interpreter1 = interpreter(expression1);
+    ExpressionInterpreter interpreter2 = interpreter(expression2);
+    ExpressionInterpreter interpreter3 = interpreter(expression3);
+    ExpressionInterpreter interpreter4 = interpreter(expression4);
+
+    // Then:
+    assertThat(interpreter1.evaluate(ROW), is(1));
+    assertThat(interpreter2.evaluate(ROW), is(-1));
+    assertThat(interpreter3.evaluate(ROW), is(new BigDecimal("-345.5")));
+    assertThat(interpreter4.evaluate(ROW), is(-45.5d));
   }
 
   private void givenUdf(

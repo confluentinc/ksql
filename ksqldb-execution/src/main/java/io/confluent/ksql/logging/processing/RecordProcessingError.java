@@ -85,6 +85,10 @@ public final class RecordProcessingError implements ProcessingLogger.ErrorMessag
     return errorMsg;
   }
 
+  public Optional<Throwable> getException() {
+    return exception;
+  }
+
   @Override
   public SchemaAndValue get(final ProcessingLogConfig config) {
     final Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA)

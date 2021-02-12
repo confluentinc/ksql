@@ -73,7 +73,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class RestQueryTranslationTest {
 
-  private static final Path TEST_DIR = Paths.get("rest-query-validation-tests");
+  private static final Path TEST_DIR = Paths.get("rest-query-validation-tests/alan");
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
@@ -90,6 +90,7 @@ public class RestQueryTranslationTest {
       .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "set")
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED, true)
+      .withProperty(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED, true)
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .build();
 

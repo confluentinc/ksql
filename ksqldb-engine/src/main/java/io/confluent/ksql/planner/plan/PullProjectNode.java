@@ -17,8 +17,9 @@ package io.confluent.ksql.planner.plan;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
-import io.confluent.ksql.execution.evaluator.ExpressionInterpreter;
+import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.evaluator.Interpreter;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
@@ -98,14 +99,8 @@ public class PullProjectNode extends ProjectNode {
         : selectExpressions
         .stream()
         .map(selectExpression ->
-//            CodeGenRunner.compileExpression(
-//            selectExpression.getExpression(),
-//            "Select",
-//            intermediateSchema,
-//            ksqlConfig,
-//            metaStore
-                Interpreter.create(metaStore, intermediateSchema, ksqlConfig,
-                    selectExpression.getExpression())
+            getExpressionEvaluator(
+                selectExpression.getExpression(), intermediateSchema, metaStore, ksqlConfig)
         )
         .collect(ImmutableList.toImmutableList());
   }
@@ -245,5 +240,29 @@ public class PullProjectNode extends ProjectNode {
       }
     }
     return schemaBuilder.build();
+  }
+
+  private static ExpressionEvaluator getExpressionEvaluator(
+      final Expression expression,
+      final LogicalSchema schema,
+      final MetaStore metaStore,
+      final KsqlConfig ksqlConfig) {
+
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)) {
+      return Interpreter.create(
+          expression,
+          schema,
+          metaStore,
+          ksqlConfig
+      );
+    } else {
+      return CodeGenRunner.compileExpression(
+          expression,
+          "Select",
+          schema,
+          ksqlConfig,
+          metaStore
+      );
+    }
   }
 }

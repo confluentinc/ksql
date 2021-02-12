@@ -23,7 +23,6 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.engine.generic.GenericExpressionResolver;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.evaluator.Interpreter;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
@@ -123,24 +122,13 @@ public class PullFilterNode extends SingleSourcePlanNode {
     // Extraction of lookup constraints
     lookupConstraints = extractLookupConstraints();
 
-    // Compiling expression into byte code
+    // Compiling expression into byte code/interpreting the expression
     this.addAdditionalColumnsToIntermediateSchema = shouldAddAdditionalColumnsInSchema();
     this.intermediateSchema = PullLogicalPlanUtil.buildIntermediateSchema(
         source.getSchema().withoutPseudoAndKeyColsInValue(),
         addAdditionalColumnsToIntermediateSchema, isWindowed);
-//    compiledWhereClause = CodeGenRunner.compileExpression(
-//        rewrittenPredicate,
-//        "Predicate",
-//        intermediateSchema,
-//        ksqlConfig,
-//        metaStore
-//    );
-    compiledWhereClause = Interpreter.create(
-        metaStore,
-        intermediateSchema,
-        ksqlConfig,
-        rewrittenPredicate
-    );
+    compiledWhereClause = getExpressionEvaluator(
+        rewrittenPredicate, intermediateSchema, metaStore, ksqlConfig);
   }
 
   public Expression getRewrittenPredicate() {
@@ -828,5 +816,29 @@ public class PullFilterNode extends SingleSourcePlanNode {
     final boolean hasKeyColumns = !keyColumns.isEmpty();
 
     return hasSystemColumns || hasKeyColumns;
+  }
+
+  private static ExpressionEvaluator getExpressionEvaluator(
+      final Expression expression,
+      final LogicalSchema schema,
+      final MetaStore metaStore,
+      final KsqlConfig ksqlConfig) {
+
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)) {
+      return Interpreter.create(
+          expression,
+          schema,
+          metaStore,
+          ksqlConfig
+      );
+    } else {
+      return CodeGenRunner.compileExpression(
+          expression,
+          "Predicate",
+          schema,
+          ksqlConfig,
+          metaStore
+      );
+    }
   }
 }

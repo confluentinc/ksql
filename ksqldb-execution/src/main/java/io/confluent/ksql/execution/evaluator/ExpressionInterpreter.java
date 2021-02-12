@@ -1,10 +1,8 @@
 package io.confluent.ksql.execution.evaluator;
 
-import static io.confluent.ksql.execution.evaluator.CastInterpreter.Conversions.toDecimal;
-import static io.confluent.ksql.execution.evaluator.CastInterpreter.Conversions.toDouble;
-import static io.confluent.ksql.execution.evaluator.CastInterpreter.Conversions.toInteger;
-import static io.confluent.ksql.execution.evaluator.CastInterpreter.Conversions.toLong;
-import static io.confluent.ksql.execution.evaluator.CastInterpreter.Conversions.toTimestamp;
+import static io.confluent.ksql.execution.evaluator.CastInterpreter.NumberConversions.toDouble;
+import static io.confluent.ksql.execution.evaluator.CastInterpreter.NumberConversions.toInteger;
+import static io.confluent.ksql.execution.evaluator.CastInterpreter.NumberConversions.toLong;
 import static io.confluent.ksql.schema.ksql.SchemaConverters.sqlToFunctionConverter;
 import static java.lang.String.format;
 
@@ -42,7 +40,7 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
-import io.confluent.ksql.execution.expression.tree.LambdaLiteral;
+import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
@@ -74,6 +72,7 @@ import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlTimestamps;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
@@ -87,6 +86,7 @@ import io.confluent.ksql.util.Pair;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -96,6 +96,9 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
 public class ExpressionInterpreter implements ExpressionEvaluator {
+  private static final GenericRow COMPILE_TIME_CHECK = GenericRow.genericRow();
+  private static final Object COMPILE_TIME_CHECK_OBJECT = new Object();
+
   private final ExpressionTypeManager expressionTypeManager;
   private final FunctionRegistry functionRegistry;
   private final LogicalSchema schema;
@@ -122,11 +125,21 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
     return evaluator.getLeft();
   }
 
+  public Object doCompileTimeCheck() {
+    final Pair<Object, SqlType> evaluator =
+        new Evaluator(COMPILE_TIME_CHECK).process(expression, null);
+    return evaluator.getLeft();
+  }
+
   @Override
   public Object evaluate(GenericRow row, Object defaultValue,
       ProcessingLogger logger, Supplier<String> errorMsg) {
     try {
       return evaluate(row);
+    } catch (final KsqlException e) {
+      // This is likely something that would have been caught previously at compile time, so allow
+      // it to bubble up.
+      throw e;
     } catch (final Exception e) {
       logger.error(RecordProcessingError.recordProcessingError(errorMsg.get(), e, row));
       return defaultValue;
@@ -253,8 +266,8 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
     }
 
     @Override
-    public Pair<Object, SqlType> visitLambdaLiteral(
-        final LambdaLiteral lambdaLiteral, final Void context) {
+    public Pair<Object, SqlType> visitLambdaVariable(
+        final LambdaVariable lambdaLiteral, final Void context) {
       return visitUnsupported(lambdaLiteral);
     }
 
@@ -266,6 +279,10 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
       final Column schemaColumn = schema.findValueColumn(node.getColumnName())
           .orElseThrow(() ->
               new KsqlException("Field not found: " + node.getColumnName()));
+
+      if (row == COMPILE_TIME_CHECK) {
+        return new Pair<>(COMPILE_TIME_CHECK_OBJECT, schemaColumn.type());
+      }
 
       Object value = row.get(schemaColumn.index());
 
@@ -288,8 +305,19 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
     ) {
       final SqlType functionReturnSchema = expressionTypeManager.getExpressionSqlType(node);
 
-      final Struct struct = (Struct) process(node.getBase(), context).getLeft();
-      final String field = (String) process(new StringLiteral(node.getFieldName()), context).getLeft();
+      final Pair<Object, SqlType> base = process(node.getBase(), context);
+
+      if (base.getRight().baseType() != SqlBaseType.STRUCT) {
+        throw new KsqlException("Can only dereference Struct type, instead got " + base.getRight());
+      }
+
+      if (base.getLeft() == COMPILE_TIME_CHECK_OBJECT) {
+        return new Pair<>(COMPILE_TIME_CHECK_OBJECT, functionReturnSchema);
+      }
+
+      final Struct struct = (Struct) base.getLeft();
+      final String field = (String) process(new StringLiteral(node.getFieldName()), context)
+          .getLeft();
       final Object dereference = struct.get(field);
 
       return new Pair<>(dereference, functionReturnSchema);
@@ -367,16 +395,17 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
     public Pair<Object, SqlType> visitLogicalBinaryExpression(
         final LogicalBinaryExpression node, final Void context
     ) {
-      Object left = process(node.getLeft(), context).getLeft();
-      Object right = process(node.getRight(), context).getLeft();
-      if (!(left instanceof Boolean && right instanceof Boolean)) {
-        throw new IllegalStateException(
-            format("Logical binary expects two boolean values.  Actual %s (%s) and %s (%s)",
-                left, left.getClass().getName(), right, right.getClass().getName()));
+      Pair<Object, SqlType> left = process(node.getLeft(), context);
+      Pair<Object, SqlType> right = process(node.getRight(), context);
+      if (!(left.getRight().baseType() == SqlBaseType.BOOLEAN
+          && left.getRight().baseType() == SqlBaseType.BOOLEAN)) {
+        throw new KsqlException(
+            format("Logical binary expects two boolean values.  Actual %s and %s",
+                left.getRight(), right.getRight()));
       }
 
-      Boolean leftBoolean = (Boolean) left;
-      Boolean rightBoolean = (Boolean) right;
+      Boolean leftBoolean = (Boolean) left.getLeft();
+      Boolean rightBoolean = (Boolean) right.getLeft();
       if (node.getType() == LogicalBinaryExpression.Type.OR) {
         return new Pair<>(
             leftBoolean || rightBoolean,
@@ -450,6 +479,33 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
       }
     }
 
+    public BigDecimal toDecimal(final Object object, final SqlType from) {
+      if (object instanceof BigDecimal) {
+        return (BigDecimal) object;
+      } else if (object instanceof Double) {
+        return BigDecimal.valueOf((Double) object);
+      } else if (object instanceof Integer) {
+        return new BigDecimal((Integer) object);
+      } else if (object instanceof Long) {
+        return new BigDecimal((Long) object);
+      } else if (object instanceof String) {
+        return new BigDecimal((String) object);
+      } else {
+        throw new KsqlException(String.format("Unsupported comparison between %s and %s", from,
+            SqlBaseType.DECIMAL));
+      }
+    }
+
+    public Timestamp toTimestamp(final Object object, final SqlType from) {
+      if (object instanceof Timestamp) {
+        return (Timestamp) object;
+      } else if (object instanceof String) {
+        return SqlTimestamps.parseTimestamp((String) object);
+      } else {
+        throw new KsqlException(String.format("Unsupported comparison between %s and %s", from,
+            SqlTypes.TIMESTAMP));
+      }
+    }
 
     @Override
     public Pair<Object, SqlType> visitComparisonExpression(
@@ -470,12 +526,12 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
       Integer compareTo = null;
       if (leftType == SqlBaseType.DECIMAL
           || rightType == SqlBaseType.DECIMAL) {
-        compareTo = toDecimal(leftObject, left.getRight(), ConversionType.COMPARISON).compareTo(
-            toDecimal(rightObject, right.getRight(), ConversionType.COMPARISON));
+        compareTo = toDecimal(leftObject, left.getRight()).compareTo(
+            toDecimal(rightObject, right.getRight()));
       } else if (leftType == SqlBaseType.TIMESTAMP
           || rightType == SqlBaseType.TIMESTAMP) {
-        compareTo = toTimestamp(leftObject, left.getRight(), ConversionType.COMPARISON).compareTo(
-            toTimestamp(rightObject, right.getRight(), ConversionType.COMPARISON));
+        compareTo = toTimestamp(leftObject, left.getRight()).compareTo(
+            toTimestamp(rightObject, right.getRight()));
       } else if (leftType == SqlBaseType.STRING) {
         compareTo = leftObject.toString().compareTo(rightObject.toString());
       } else if (leftType == SqlBaseType.DOUBLE || rightType == SqlBaseType.DOUBLE) {
@@ -555,45 +611,41 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
                 RoundingMode.UNNECESSARY)),
             value.getRight()
         );
+      } else if (value.getRight().baseType() == SqlBaseType.DOUBLE) {
+        double val = (Double) value.getLeft();
+        return new Pair<>(-val, value.getRight());
+      } else if (value.getRight().baseType() == SqlBaseType.INTEGER) {
+        int val = (Integer) value.getLeft();
+        return new Pair<>(-val, value.getRight());
+      } else if (value.getRight().baseType() == SqlBaseType.BIGINT) {
+        long val = (Long) value.getLeft();
+        return new Pair<>(-val, value.getRight());
       } else {
-        if (value.getLeft() instanceof Double) {
-          double val = (Double) value.getLeft();
-          return new Pair<>(-val, value.getRight());
-        } else if (value.getLeft() instanceof Integer) {
-          int val = (Integer) value.getLeft();
-          return new Pair<>(-val, value.getRight());
-        } else if (value.getLeft() instanceof Long) {
-          long val = (Long) value.getLeft();
-          return new Pair<>(-val, value.getRight());
-        } else {
-          throw new UnsupportedOperationException("Negation on unsupported type: "
-              + value.getLeft());
-        }
+        throw new UnsupportedOperationException("Negation on unsupported type: "
+            + value.getLeft());
       }
     }
 
     private Pair<Object, SqlType> visitArithmeticPlus(final Pair<Object, SqlType> value) {
-      if (value.getLeft() instanceof BigDecimal) {
+      if (value.getRight().baseType() == SqlBaseType.DECIMAL) {
         final BigDecimal bigDecimal = (BigDecimal) value.getLeft();
         return new Pair<>(
             bigDecimal.plus(new MathContext(((SqlDecimal) value.getRight()).getPrecision(),
                 RoundingMode.UNNECESSARY)),
             value.getRight()
         );
+      } else if (value.getRight().baseType() == SqlBaseType.DOUBLE) {
+        double val = (Double) value.getLeft();
+        return new Pair<>(+val, value.getRight());
+      } else if (value.getRight().baseType() == SqlBaseType.INTEGER) {
+        int val = (Integer) value.getLeft();
+        return new Pair<>(+val, value.getRight());
+      } else if (value.getRight().baseType() == SqlBaseType.BIGINT) {
+        long val = (Long) value.getLeft();
+        return new Pair<>(+val, value.getRight());
       } else {
-        if (value.getLeft() instanceof Double) {
-          double val = (Double) value.getLeft();
-          return new Pair<>(+val, value.getRight());
-        } else if (value.getLeft() instanceof Integer) {
-          int val = (Integer) value.getLeft();
-          return new Pair<>(+val, value.getRight());
-        } else if (value.getLeft() instanceof Long) {
-          long val = (Long) value.getLeft();
-          return new Pair<>(+val, value.getRight());
-        } else {
-          throw new UnsupportedOperationException("Unary plus on unsupported type: "
-              + value.getLeft());
-        }
+        throw new UnsupportedOperationException("Unary plus on unsupported type: "
+            + value.getLeft());
       }
     }
 
@@ -612,47 +664,25 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
             DecimalUtil.toSqlDecimal(left.right), ksqlConfig);
         final BigDecimal rightExpr = (BigDecimal) CastInterpreter.cast(right.left, right.right,
             DecimalUtil.toSqlDecimal(right.right), ksqlConfig);
-
-        final MathContext mc = new MathContext(decimal.getPrecision(),
-            RoundingMode.UNNECESSARY);
-        switch (node.getOperator()) {
-          case ADD:
-            return new Pair<>(
-              leftExpr.add(rightExpr, mc).setScale(decimal.getScale()),
-                schema);
-          case SUBTRACT:
-            return new Pair<>(
-                leftExpr.subtract(rightExpr, mc).setScale(decimal.getScale()),
-                schema);
-          case MULTIPLY:
-            return new Pair<>(
-                leftExpr. multiply(rightExpr, mc).setScale(decimal.getScale()),
-                schema);
-          case DIVIDE:
-            return new Pair<>(
-                leftExpr.divide(rightExpr, mc).setScale(decimal.getScale()),
-                schema);
-          case MODULUS:
-            return new Pair<>(
-                leftExpr.remainder(rightExpr, mc).setScale(decimal.getScale()),
-                schema);
-          default:
-            throw new KsqlException("DECIMAL operator not supported: " + node.getOperator());
-        }
+        return new Pair<>(
+            ArithmeticInterpreter.apply(decimal, node.getOperator(), leftExpr, rightExpr),
+            schema);
       } else {
+        final SqlBaseType leftType = left.getRight().baseType();
+        final SqlBaseType rightType = right.getRight().baseType();
         final Object leftObject =
-            left.getRight().baseType() == SqlBaseType.DECIMAL
+            leftType == SqlBaseType.DECIMAL
                 ? CastInterpreter.cast(left.left, left.right, SqlTypes.DOUBLE, ksqlConfig)
                 : left.getLeft();
         final Object rightObject =
-            right.getRight().baseType() == SqlBaseType.DECIMAL
+            rightType == SqlBaseType.DECIMAL
                 ? CastInterpreter.cast(right.left, right.right, SqlTypes.DOUBLE, ksqlConfig)
                 : right.getLeft();
 
-        final SqlBaseType leftType = left.getRight().baseType();
-        final SqlBaseType rightType = right.getRight().baseType();
         final Object result;
-        if (leftType == SqlBaseType.DOUBLE || rightType == SqlBaseType.DOUBLE) {
+        if (leftType == SqlBaseType.STRING && rightType == SqlBaseType.STRING) {
+          result = (String) leftObject + (String) rightObject;
+        } else if (leftType == SqlBaseType.DOUBLE || rightType == SqlBaseType.DOUBLE) {
           result = ArithmeticInterpreter.apply(node.getOperator(),
               toDouble(leftObject, left.getRight(), ConversionType.ARITHMETIC),
               toDouble(rightObject, right.getRight(), ConversionType.ARITHMETIC));

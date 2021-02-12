@@ -10,6 +10,8 @@
 
 ### Features
 
+* expose AVRO and JSON_SR as key formats ([#6694](https://github.com/confluentinc/ksql/pull/6694)) ([07dc0c7](https://github.com/confluentinc/ksql/commit/07dc0c7ec138914d85e46d72a2aec45f6798cc46))
+* support PROTOBUF keys ([#6692](https://github.com/confluentinc/ksql/pull/6692)) ([821faac](https://github.com/confluentinc/ksql/commit/821faacda8382fce1b74e4517dfd6ab704e93d46))
 * add partitions to PRINT TOPIC output ([#6641](https://github.com/confluentinc/ksql/pull/6641)) ([1f4eff8](https://github.com/confluentinc/ksql/commit/1f4eff89b18e847db6f4c428f2474b5bd4bad391))
 * Adds logging for every request to ksqlDB ([#6615](https://github.com/confluentinc/ksql/pull/6615)) ([57b0c91](https://github.com/confluentinc/ksql/commit/57b0c91380754e1de36527bd3254f67d42b9083e))
 * optional `KAFKA_TOPIC` ([862c59e](https://github.com/confluentinc/ksql/commit/862c59e9c7eaa3ed06a9e75055db3cebe0ba0d89))

@@ -17,7 +17,6 @@
 * optional `KAFKA_TOPIC` ([862c59e](https://github.com/confluentinc/ksql/commit/862c59e9c7eaa3ed06a9e75055db3cebe0ba0d89))
 * support table joins on key format mismatch ([#6708](https://github.com/confluentinc/ksql/pull/6708)) ([989e52b](https://github.com/confluentinc/ksql/commit/989e52b241dc906289ac1607a4049ee1704a346a))
 * cli to show tombstones in transient query output ([#6462](https://github.com/confluentinc/ksql/pull/6462)) ([ef3039a](https://github.com/confluentinc/ksql/commit/ef3039a078b7814efd5bdec932af4a42ba11ee71))
-* Implement a physical plan builder and physical plan for pull queries ([#6375](https://github.com/confluentinc/ksql/pull/6375)) ([5fb5d89](https://github.com/confluentinc/ksql/commit/5fb5d89fb9d19616155c2853f9faccfc71d6cafc))
 * new syntax to interact with session variables (define/undefine/show variables) ([#6474](https://github.com/confluentinc/ksql/pull/6474)) ([df98ef4](https://github.com/confluentinc/ksql/commit/df98ef4f26451656c051125383137a969d2292ee))
 * terminate persistent query on DROP command ([#6143](https://github.com/confluentinc/ksql/pull/6143)) ([b5ac1bd](https://github.com/confluentinc/ksql/commit/b5ac1bd6f156447f9109545bacf3d74644000e75))
 * update ksql restore command to skip incompatible commands if flag set ([#6524](https://github.com/confluentinc/ksql/pull/6524)) ([4d0c997](https://github.com/confluentinc/ksql/commit/4d0c997ad2f2889941fa6dcc8dd2e9d3e4e27d7d))

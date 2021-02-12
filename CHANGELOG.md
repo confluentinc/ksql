@@ -23,7 +23,6 @@
 
 ### Bug Fixes
 
-* allow the file watcher test to be notified more than once ([#6696](https://github.com/confluentinc/ksql/pull/6696)) ([867f859](https://github.com/confluentinc/ksql/commit/867f859130e36f3840658dfcc4b720815a867fe4))
 * catch stack overflow error when parsing/preparing statements ([#6727](https://github.com/confluentinc/ksql/pull/6727)) ([37371cc](https://github.com/confluentinc/ksql/commit/37371cc427e93a3b7518587a6c817d7b390b2003))
 * change locate() error message for a more user-friendly message ([#6709](https://github.com/confluentinc/ksql/pull/6709)) ([e6ba436](https://github.com/confluentinc/ksql/commit/e6ba436536a10678eb9cbafa150c3fd0501d31ab))
 * CREATE IF NOT EXISTS does not work at all ([#6073](https://github.com/confluentinc/ksql/pull/6073)) ([6edf7ec](https://github.com/confluentinc/ksql/commit/6edf7ec27aa346198d2548287b1f9f11b9729a3b))
@@ -33,7 +32,6 @@
 * include 'ksql.streams.topic.*' prefix properties on LIST PROPERTIES output ([#6753](https://github.com/confluentinc/ksql/pull/6753)) ([8071af2](https://github.com/confluentinc/ksql/commit/8071af2385edd6e3bc5968c51197bf4983beb8da))
 * LDAP Authentication ([#6800](https://github.com/confluentinc/ksql/pull/6800)) ([1db8b5b](https://github.com/confluentinc/ksql/commit/1db8b5b67ad0b642130023915b7c26b4fd6a9e51))
 * Makes response codes rate limited as well as prints a message when it is hit ([#6701](https://github.com/confluentinc/ksql/pull/6701)) ([bdec3dd](https://github.com/confluentinc/ksql/commit/bdec3dd647c61c69ac7fff4c5e01b085070bc5bd))
-* Refactors rate limiter within LoggingHandler to be singleton ([#6693](https://github.com/confluentinc/ksql/pull/6693)) ([72bc27e](https://github.com/confluentinc/ksql/commit/72bc27e2aca25e9f1c4766633fb5ee2f41800371))
 * Removes orphaned topics from transient queries ([#6714](https://github.com/confluentinc/ksql/pull/6714)) ([06d6e3e](https://github.com/confluentinc/ksql/commit/06d6e3e7b6aafa659de5273af1244987d3f9b3ab))
 * throw error message on create source with no value columns ([#6680](https://github.com/confluentinc/ksql/pull/6680)) ([14465a2](https://github.com/confluentinc/ksql/commit/14465a270d8249d5ea47fc1e6319eddd5eee5a48))
 * allow reserved keywords on variables names ([#6572](https://github.com/confluentinc/ksql/pull/6572)) ([2da360a](https://github.com/confluentinc/ksql/commit/2da360adfaf96832ef9ad46717b627bff4418d59))

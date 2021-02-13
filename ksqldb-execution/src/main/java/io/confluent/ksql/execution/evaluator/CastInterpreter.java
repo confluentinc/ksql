@@ -1,3 +1,18 @@
+/*
+ * Copyright 2021 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.execution.evaluator;
 
 import io.confluent.ksql.execution.codegen.helpers.CastEvaluator;
@@ -19,7 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class CastInterpreter {
+public final class CastInterpreter {
+  private CastInterpreter() { }
 
   public static Object cast(
       final Object object,
@@ -152,8 +168,8 @@ public class CastInterpreter {
     if (object == null) {
       return null;
     }
-    if (from.baseType() == SqlBaseType.ARRAY &&
-        to.baseType() == SqlBaseType.ARRAY) {
+    if (from.baseType() == SqlBaseType.ARRAY
+        && to.baseType() == SqlBaseType.ARRAY) {
       final SqlArray fromArray = (SqlArray) from;
       final SqlArray toArray = (SqlArray) to;
       return CastEvaluator.castArray((List<?>)object,
@@ -171,11 +187,11 @@ public class CastInterpreter {
     if (object == null) {
       return null;
     }
-    if (from.baseType() == SqlBaseType.MAP &&
-        to.baseType() == SqlBaseType.MAP) {
+    if (from.baseType() == SqlBaseType.MAP
+        && to.baseType() == SqlBaseType.MAP) {
       final SqlMap fromMap = (SqlMap) from;
       final SqlMap toMap = (SqlMap) to;
-      return CastEvaluator.castMap((Map<?, ?>)object,
+      return CastEvaluator.castMap((Map<?, ?>) object,
           k -> cast(k, fromMap.getKeyType(), toMap.getKeyType(), config),
           v -> cast(v, fromMap.getValueType(), toMap.getValueType(), config));
     }

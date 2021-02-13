@@ -1,8 +1,23 @@
+/*
+ * Copyright 2021 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.execution.evaluator;
 
-import static io.confluent.ksql.execution.evaluator.CastInterpreter.NumberConversions.toDouble;
-import static io.confluent.ksql.execution.evaluator.CastInterpreter.NumberConversions.toInteger;
-import static io.confluent.ksql.execution.evaluator.CastInterpreter.NumberConversions.toLong;
+import static io.confluent.ksql.execution.evaluator.ComparisonInterpreter.doComparisonCheck;
+import static io.confluent.ksql.execution.evaluator.ComparisonInterpreter.doEqualsCheck;
+import static io.confluent.ksql.execution.evaluator.ComparisonInterpreter.doNumericalCompareTo;
 import static io.confluent.ksql.schema.ksql.SchemaConverters.sqlToFunctionConverter;
 import static java.lang.String.format;
 
@@ -17,7 +32,6 @@ import io.confluent.ksql.execution.codegen.helpers.LikeEvaluator;
 import io.confluent.ksql.execution.codegen.helpers.MapBuilder;
 import io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction;
 import io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction.LazyWhenClause;
-import io.confluent.ksql.execution.evaluator.CastInterpreter.ConversionType;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
@@ -72,7 +86,6 @@ import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SqlTimestamps;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
@@ -86,7 +99,6 @@ import io.confluent.ksql.util.Pair;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -95,9 +107,8 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
+@SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 public class ExpressionInterpreter implements ExpressionEvaluator {
-  private static final GenericRow COMPILE_TIME_CHECK = GenericRow.genericRow();
-  private static final Object COMPILE_TIME_CHECK_OBJECT = new Object();
 
   private final ExpressionTypeManager expressionTypeManager;
   private final FunctionRegistry functionRegistry;
@@ -125,15 +136,13 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
     return evaluator.getLeft();
   }
 
-  public Object doCompileTimeCheck() {
-    final Pair<Object, SqlType> evaluator =
-        new Evaluator(COMPILE_TIME_CHECK).process(expression, null);
-    return evaluator.getLeft();
-  }
-
   @Override
-  public Object evaluate(GenericRow row, Object defaultValue,
-      ProcessingLogger logger, Supplier<String> errorMsg) {
+  public Object evaluate(
+      final GenericRow row,
+      final Object defaultValue,
+      final ProcessingLogger logger,
+      final Supplier<String> errorMsg
+  ) {
     try {
       return evaluate(row);
     } catch (final KsqlException e) {
@@ -280,11 +289,7 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
           .orElseThrow(() ->
               new KsqlException("Field not found: " + node.getColumnName()));
 
-      if (row == COMPILE_TIME_CHECK) {
-        return new Pair<>(COMPILE_TIME_CHECK_OBJECT, schemaColumn.type());
-      }
-
-      Object value = row.get(schemaColumn.index());
+      final Object value = row.get(schemaColumn.index());
 
       return new Pair<>(value, schemaColumn.type());
     }
@@ -309,10 +314,6 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
 
       if (base.getRight().baseType() != SqlBaseType.STRUCT) {
         throw new KsqlException("Can only dereference Struct type, instead got " + base.getRight());
-      }
-
-      if (base.getLeft() == COMPILE_TIME_CHECK_OBJECT) {
-        return new Pair<>(COMPILE_TIME_CHECK_OBJECT, functionReturnSchema);
       }
 
       final Struct struct = (Struct) base.getLeft();
@@ -351,7 +352,6 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
       final List<Expression> arguments = node.getArguments();
 
       final List<Object> args = new ArrayList<>();
-      final List<SqlType> sqlTypes = new ArrayList<>();
       for (int i = 0; i < arguments.size(); i++) {
         final Expression arg = arguments.get(i);
         final SqlType sqlType = argumentSchemas.get(i);
@@ -363,14 +363,15 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
           paramType = function.parameters().get(i);
         }
 
-        Object argJava = process(convertArgument(arg, sqlType, paramType), context).getLeft();
+        // This will attempt to cast to the expected argument type and will throw an error if
+        // it cannot be done.
+        final Object argJava = process(convertArgument(arg, sqlType, paramType), context).getLeft();
         args.add(argJava);
-        sqlTypes.add(sqlType);
       }
 
-      Kudf kudf = function.newInstance(ksqlConfig);
-      Object result = kudf.evaluate(args.toArray());
-      Object castedResult = javaClass.cast(result);
+      final Kudf kudf = function.newInstance(ksqlConfig);
+      final Object result = kudf.evaluate(args.toArray());
+      final Object castedResult = javaClass.cast(result);
       return new Pair<>(castedResult, functionReturnSchema);
     }
 
@@ -395,8 +396,8 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
     public Pair<Object, SqlType> visitLogicalBinaryExpression(
         final LogicalBinaryExpression node, final Void context
     ) {
-      Pair<Object, SqlType> left = process(node.getLeft(), context);
-      Pair<Object, SqlType> right = process(node.getRight(), context);
+      final Pair<Object, SqlType> left = process(node.getLeft(), context);
+      final Pair<Object, SqlType> right = process(node.getRight(), context);
       if (!(left.getRight().baseType() == SqlBaseType.BOOLEAN
           && left.getRight().baseType() == SqlBaseType.BOOLEAN)) {
         throw new KsqlException(
@@ -404,8 +405,9 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
                 left.getRight(), right.getRight()));
       }
 
-      Boolean leftBoolean = (Boolean) left.getLeft();
-      Boolean rightBoolean = (Boolean) right.getLeft();
+      final Boolean leftBoolean = (Boolean) left.getLeft();
+      final Boolean rightBoolean = (Boolean) right.getLeft();
+
       if (node.getType() == LogicalBinaryExpression.Type.OR) {
         return new Pair<>(
             leftBoolean || rightBoolean,
@@ -426,85 +428,23 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
 
     @Override
     public Pair<Object, SqlType> visitNotExpression(final NotExpression node, final Void context) {
-      final Object expr = process(node.getValue(), context).getLeft();
-      if (!(expr instanceof Boolean)) {
+      final Pair<Object, SqlType> pair = process(node.getValue(), context);
+      if (!(pair.getRight().baseType() == SqlBaseType.BOOLEAN)) {
         throw new IllegalStateException(
-            format("Not expression expects a boolean value.  Actual %s (%s)",
-                expr, expr.getClass().getName()));
+            format("Not expression expects a boolean value.  Actual %s", pair.getRight()));
       }
-      Boolean exprBoolean = (Boolean) expr;
+
+      final Boolean exprBoolean = (Boolean) pair.getLeft();
       return new Pair<>(!exprBoolean, SqlTypes.BOOLEAN);
     }
 
     private Boolean nullCheckQuickReturn(
-        final ComparisonExpression.Type type, Object left, Object right) {
+        final ComparisonExpression.Type type, final Object left, final Object right) {
       if (type == ComparisonExpression.Type.IS_DISTINCT_FROM) {
-        return (left == null || right == null) ?
-             ((left == null ) ^ ((right) == null )) : null;
+        return (left == null || right == null)
+            ? ((left == null) ^ ((right) == null)) : null;
       }
       return (left == null || right == null) ? false : null;
-    }
-
-    private boolean doComparisonCheck(final ComparisonExpression node, int compareTo) {
-        switch (node.getType()) {
-          case EQUAL:
-            return compareTo == 0;
-          case NOT_EQUAL:
-          case IS_DISTINCT_FROM:
-            return compareTo != 0;
-          case GREATER_THAN_OR_EQUAL:
-            return compareTo >= 0;
-          case GREATER_THAN:
-            return compareTo > 0;
-          case LESS_THAN_OR_EQUAL:
-            return compareTo <= 0;
-          case LESS_THAN:
-            return compareTo < 0;
-          default:
-            throw new KsqlException("Unexpected scalar comparison: " + node.getType().getValue());
-        }
-    }
-
-    private boolean doEqualsCheck(final Class clazz, final ComparisonExpression node,
-        boolean equals) {
-      switch (node.getType()) {
-        case EQUAL:
-          return equals;
-        case NOT_EQUAL:
-        case IS_DISTINCT_FROM:
-          return !equals;
-        default:
-          throw new KsqlException("Unexpected " + clazz.getName()  + " comparison: "
-              + node.getType().getValue());
-      }
-    }
-
-    public BigDecimal toDecimal(final Object object, final SqlType from) {
-      if (object instanceof BigDecimal) {
-        return (BigDecimal) object;
-      } else if (object instanceof Double) {
-        return BigDecimal.valueOf((Double) object);
-      } else if (object instanceof Integer) {
-        return new BigDecimal((Integer) object);
-      } else if (object instanceof Long) {
-        return new BigDecimal((Long) object);
-      } else if (object instanceof String) {
-        return new BigDecimal((String) object);
-      } else {
-        throw new KsqlException(String.format("Unsupported comparison between %s and %s", from,
-            SqlBaseType.DECIMAL));
-      }
-    }
-
-    public Timestamp toTimestamp(final Object object, final SqlType from) {
-      if (object instanceof Timestamp) {
-        return (Timestamp) object;
-      } else if (object instanceof String) {
-        return SqlTimestamps.parseTimestamp((String) object);
-      } else {
-        throw new KsqlException(String.format("Unsupported comparison between %s and %s", from,
-            SqlTypes.TIMESTAMP));
-      }
     }
 
     @Override
@@ -514,36 +454,15 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
       final Pair<Object, SqlType> left = process(node.getLeft(), context);
       final Pair<Object, SqlType> right = process(node.getRight(), context);
       final SqlBaseType leftType = left.getRight().baseType();
-      final SqlBaseType rightType = right.getRight().baseType();
       final Object leftObject = left.getLeft();
       final Object rightObject = right.getLeft();
 
-      Boolean nullCheck = nullCheckQuickReturn(node.getType(), left, right);
+      final Boolean nullCheck = nullCheckQuickReturn(node.getType(), leftObject, rightObject);
       if (nullCheck != null) {
         return new Pair<>(nullCheck, SqlTypes.BOOLEAN);
       }
 
-      Integer compareTo = null;
-      if (leftType == SqlBaseType.DECIMAL
-          || rightType == SqlBaseType.DECIMAL) {
-        compareTo = toDecimal(leftObject, left.getRight()).compareTo(
-            toDecimal(rightObject, right.getRight()));
-      } else if (leftType == SqlBaseType.TIMESTAMP
-          || rightType == SqlBaseType.TIMESTAMP) {
-        compareTo = toTimestamp(leftObject, left.getRight()).compareTo(
-            toTimestamp(rightObject, right.getRight()));
-      } else if (leftType == SqlBaseType.STRING) {
-        compareTo = leftObject.toString().compareTo(rightObject.toString());
-      } else if (leftType == SqlBaseType.DOUBLE || rightType == SqlBaseType.DOUBLE) {
-        compareTo = toDouble(leftObject, left.getRight(), ConversionType.COMPARISON).compareTo(
-            toDouble(rightObject, right.getRight(), ConversionType.COMPARISON));
-      } else if (leftType == SqlBaseType.BIGINT || rightType == SqlBaseType.BIGINT) {
-        compareTo = toLong(leftObject, left.getRight(), ConversionType.COMPARISON).compareTo(
-            toLong(rightObject, right.getRight(), ConversionType.COMPARISON));
-      } else if (leftType == SqlBaseType.INTEGER || rightType == SqlBaseType.INTEGER) {
-        compareTo = toInteger(leftObject, left.getRight(), ConversionType.COMPARISON).compareTo(
-            toInteger(rightObject, right.getRight(), ConversionType.COMPARISON));
-      }
+      final Integer compareTo = doNumericalCompareTo(left, right);
       if (compareTo != null) {
         return new Pair<>(doComparisonCheck(node, compareTo), SqlTypes.BOOLEAN);
       }
@@ -555,9 +474,9 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
         equals = left.equals(right);
       }
       if (equals != null) {
-        return new Pair<>(doEqualsCheck(leftObject.getClass(), node, equals), SqlTypes.BOOLEAN);
+        return new Pair<>(doEqualsCheck(left.getRight(), node, equals), SqlTypes.BOOLEAN);
       }
-      throw new KsqlException("Unknown types for " + left  + " and " + right);
+      throw new KsqlException("Unknown types for " + left + " and " + right);
     }
 
     @Override
@@ -612,13 +531,13 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
             value.getRight()
         );
       } else if (value.getRight().baseType() == SqlBaseType.DOUBLE) {
-        double val = (Double) value.getLeft();
+        final double val = (Double) value.getLeft();
         return new Pair<>(-val, value.getRight());
       } else if (value.getRight().baseType() == SqlBaseType.INTEGER) {
-        int val = (Integer) value.getLeft();
+        final int val = (Integer) value.getLeft();
         return new Pair<>(-val, value.getRight());
       } else if (value.getRight().baseType() == SqlBaseType.BIGINT) {
-        long val = (Long) value.getLeft();
+        final long val = (Long) value.getLeft();
         return new Pair<>(-val, value.getRight());
       } else {
         throw new UnsupportedOperationException("Negation on unsupported type: "
@@ -635,13 +554,13 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
             value.getRight()
         );
       } else if (value.getRight().baseType() == SqlBaseType.DOUBLE) {
-        double val = (Double) value.getLeft();
+        final double val = (Double) value.getLeft();
         return new Pair<>(+val, value.getRight());
       } else if (value.getRight().baseType() == SqlBaseType.INTEGER) {
-        int val = (Integer) value.getLeft();
+        final int val = (Integer) value.getLeft();
         return new Pair<>(+val, value.getRight());
       } else if (value.getRight().baseType() == SqlBaseType.BIGINT) {
-        long val = (Long) value.getLeft();
+        final long val = (Long) value.getLeft();
         return new Pair<>(+val, value.getRight());
       } else {
         throw new UnsupportedOperationException("Unary plus on unsupported type: "
@@ -668,35 +587,17 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
             ArithmeticInterpreter.apply(decimal, node.getOperator(), leftExpr, rightExpr),
             schema);
       } else {
-        final SqlBaseType leftType = left.getRight().baseType();
-        final SqlBaseType rightType = right.getRight().baseType();
         final Object leftObject =
-            leftType == SqlBaseType.DECIMAL
+            left.getRight().baseType() == SqlBaseType.DECIMAL
                 ? CastInterpreter.cast(left.left, left.right, SqlTypes.DOUBLE, ksqlConfig)
                 : left.getLeft();
         final Object rightObject =
-            rightType == SqlBaseType.DECIMAL
+            right.getRight().baseType() == SqlBaseType.DECIMAL
                 ? CastInterpreter.cast(right.left, right.right, SqlTypes.DOUBLE, ksqlConfig)
                 : right.getLeft();
 
-        final Object result;
-        if (leftType == SqlBaseType.STRING && rightType == SqlBaseType.STRING) {
-          result = (String) leftObject + (String) rightObject;
-        } else if (leftType == SqlBaseType.DOUBLE || rightType == SqlBaseType.DOUBLE) {
-          result = ArithmeticInterpreter.apply(node.getOperator(),
-              toDouble(leftObject, left.getRight(), ConversionType.ARITHMETIC),
-              toDouble(rightObject, right.getRight(), ConversionType.ARITHMETIC));
-        } else if (leftType == SqlBaseType.BIGINT || rightType == SqlBaseType.BIGINT) {
-          result = ArithmeticInterpreter.apply(node.getOperator(),
-              toLong(leftObject, left.getRight(), ConversionType.ARITHMETIC),
-              toLong(rightObject, right.getRight(), ConversionType.ARITHMETIC));
-        } else if (leftType == SqlBaseType.INTEGER || rightType == SqlBaseType.INTEGER) {
-          result = ArithmeticInterpreter.apply(node.getOperator(),
-              toInteger(leftObject, left.getRight(), ConversionType.ARITHMETIC),
-              toInteger(rightObject, right.getRight(), ConversionType.ARITHMETIC));
-        } else {
-          throw new KsqlException("Can't do arithmetic for types " + left  + " and " + right);
-        }
+        final Object result = ArithmeticInterpreter.doArithmetic(
+            node, left.getRight(), right.getRight(), leftObject, rightObject);
         return new Pair<>(result, schema);
       }
     }
@@ -712,7 +613,7 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
           .stream()
           .map(whenClause -> SearchedCaseFunction.whenClause(
               () -> (Boolean) process(whenClause.getOperand(), context).getLeft(),
-              () ->  process(whenClause.getResult(), context).getLeft()))
+              () -> process(whenClause.getResult(), context).getLeft()))
           .collect(ImmutableList.toImmutableList());
 
       final Object defaultValue = node.getDefaultValue().isPresent()
@@ -805,9 +706,9 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
           .coerceUserList(map.values(), expressionTypeManager)
           .expressions();
 
-      MapBuilder builder = new MapBuilder(map.size());
+      final MapBuilder builder = new MapBuilder(map.size());
 
-      Iterable<Pair<Expression, Expression>> pairs = () -> Streams.zip(
+      final Iterable<Pair<Expression, Expression>> pairs = () -> Streams.zip(
           keys.stream(), values.stream(), Pair::of)
           .iterator();
       for (Pair<Expression, Expression> p : pairs) {
@@ -829,7 +730,7 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
       final Schema schema = SchemaConverters
           .sqlToConnectConverter()
           .toConnectSchema(expressionTypeManager.getExpressionSqlType(node));
-      Struct struct = new Struct(schema);
+      final Struct struct = new Struct(schema);
       for (final Field field : node.getFields()) {
         struct.put(field.getName(), process(field.getValue(), context).getLeft());
       }

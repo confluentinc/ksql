@@ -3,7 +3,6 @@ package io.confluent.ksql.execution;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -12,18 +11,16 @@ import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
-import io.confluent.ksql.execution.evaluator.ExpressionInterpreter;
 import io.confluent.ksql.execution.evaluator.Interpreter;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLogger.ErrorMessage;
@@ -43,9 +40,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.Predicate;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -110,26 +108,41 @@ public class ExpressionEvaluatorParityTest {
   }
 
   @Test
-  public void shouldDoComparisons() {
+  public void shouldDoComparisons() throws Exception {
     assertOrders("ORDERID > 9 AND ORDERUNITS < 100", true);
     assertOrders("ORDERTIME <= 100 AND ITEMID + '-blah' = 'item_id_0-blah'", true);
+    assertOrders("ORDERID > 9.5 AND ORDERUNITS < 50.75", true);
+    assertOrdersError("ORDERID > ARRAY[0]",
+        compileTime("Cannot compare ORDERID (BIGINT) to ARRAY[0]"),
+        compileTime("Cannot compare ORDERID (BIGINT) to ARRAY[0]"));
+    assertOrders("ARRAY[0,1] = ARRAY[0,1]", true);
+    assertOrders("ARRAYCOL = ARRAY[3.5e0, 5.25e0]", true);
+    assertOrders("ARRAYCOL = ARRAY[3.5e0, 7.25e0]", false);
+    assertOrders("MAPCOL = MAP('abc' := 6.75e0, 'def' := 9.5e0)", true);
+    assertOrders("MAPCOL = MAP('abc' := 6.75e0, 'xyz' := 9.5e0)", false);
+    assertOrdersError("ARRAYCOL = MAPCOL",
+        compileTime("Cannot compare ARRAYCOL (ARRAY<DOUBLE>) to MAPCOL (MAP<STRING, DOUBLE>)"),
+        compileTime("Cannot compare ARRAYCOL (ARRAY<DOUBLE>) to MAPCOL (MAP<STRING, DOUBLE>)"));
   }
 
   @Test
-  public void shouldDereference() {
+  public void shouldDereference() throws Exception {
     assertOrders("ITEMINFO->NAME", ITEM_NAME);
     assertOrders("ITEMINFO->CATEGORY->NAME", CATEGORY_NAME);
     assertOrders("'a-' + ITEMINFO->CATEGORY->NAME + '-b'", "a-cat-b");
   }
 
   @Test
-  public void shouldDoUdfs() {
+  public void shouldDoUdfs() throws Exception {
     assertOrders("CONCAT('abc-', 'def')", "abc-def");
     assertOrders("SPLIT('a-b-c', '-')", ImmutableList.of("a", "b", "c"));
+    assertOrdersError("SPLIT(123, '2')",
+        compileTime("Function 'split' does not accept parameters (INTEGER, STRING)"),
+        compileTime("Function 'split' does not accept parameters (INTEGER, STRING)"));
   }
 
   @Test
-  public void shouldDoArithmetic() {
+  public void shouldDoArithmetic() throws Exception {
     assertOrders("1 + 2 + 3 + 4", 10);
     assertOrders("'foo' + 'bar' + 'baz'", "foobarbaz");
     assertOrders("ORDERUNITS % 3", 2);
@@ -138,12 +151,16 @@ public class ExpressionEvaluatorParityTest {
     assertOrders("1.23E10 * 1E-1", 1.23E9d);
     assertOrders("1.234567 * 5.678", new BigDecimal("7.009871426"));
     assertOrders("3.4 / 2.0 + 199.4", new BigDecimal("201.100000"));
-    assertOrdersError("3.456 / 2.654 + 199.4", "Rounding necessary");
-    assertOrdersTypeError("1 + 'a'", "Unsupported arithmetic types");
+    assertOrdersError("3.456 / 2.654 + 199.4",
+        evalLogger("Rounding necessary"),
+        evalLogger("Rounding necessary"));
+    assertOrdersError("1 + 'a'",
+        compileTime("Unsupported arithmetic types"),
+        compileTime("Unsupported arithmetic types"));
   }
 
   @Test
-  public void shouldDoCaseExpressions() {
+  public void shouldDoCaseExpressions() throws Exception {
     assertOrders("CASE WHEN ORDERUNITS > 15 THEN 'HIGH' WHEN ORDERUNITS > 10 THEN 'LOW' "
         + "ELSE 'foo' END", "HIGH");
     assertOrders("CASE WHEN ORDERUNITS > 25 THEN 'HIGH' WHEN ORDERUNITS > 10 THEN 'LOW' "
@@ -155,45 +172,58 @@ public class ExpressionEvaluatorParityTest {
   }
 
   @Test
-  public void shouldDoCasts() {
-//    assertOrders("CAST(1 as DOUBLE)", 1.0d);
-//    assertOrders("CAST(1 as BIGINT)", 1L);
-//    assertOrders("CAST(1 as DECIMAL(2,1))", new BigDecimal("1.0"));
-//    assertOrders("CAST(1.23E10 as DOUBLE)", 1.23E10d);
-//    assertOrders("CAST(1.23E1 as DECIMAL(5,1))", new BigDecimal("12.3"));
-//    assertOrders("CAST(1.23E1 as INTEGER)", 12);
-//    assertOrders("CAST(1.23E1 as BIGINT)", 12L);
-//    assertOrders("CAST(2.345 as DOUBLE)", 2.345E0d);
-//    assertOrders("CAST(2.345 as INTEGER)", 2);
-//    assertOrders("CAST(2.345 as BIGINT)", 2L);
-//    assertOrders("CAST('123' as INTEGER)", 123);
-//    assertOrders("CAST('123' as BIGINT)", 123L);
-//    assertOrders("CAST('123' as DOUBLE)", 1.23E2);
-//    assertOrders("CAST('123' as DECIMAL(5,1))", new BigDecimal("123.0"));
-    assertOrdersTypeError("CAST('123' as ARRAY<INTEGER>)",
-        "Cast of STRING to ARRAY<INTEGER> is not supported");
+  public void shouldDoCasts() throws Exception {
+    assertOrders("CAST(1 as DOUBLE)", 1.0d);
+    assertOrders("CAST(1 as BIGINT)", 1L);
+    assertOrders("CAST(1 as DECIMAL(2,1))", new BigDecimal("1.0"));
+    assertOrders("CAST(1.23E10 as DOUBLE)", 1.23E10d);
+    assertOrders("CAST(1.23E1 as DECIMAL(5,1))", new BigDecimal("12.3"));
+    assertOrders("CAST(1.23E1 as INTEGER)", 12);
+    assertOrders("CAST(1.23E1 as BIGINT)", 12L);
+    assertOrders("CAST(2.345 as DOUBLE)", 2.345E0d);
+    assertOrders("CAST(2.345 as INTEGER)", 2);
+    assertOrders("CAST(2.345 as BIGINT)", 2L);
+    assertOrders("CAST('123' as INTEGER)", 123);
+    assertOrders("CAST('123' as BIGINT)", 123L);
+    assertOrders("CAST('123' as DOUBLE)", 1.23E2);
+    assertOrders("CAST('123' as DECIMAL(5,1))", new BigDecimal("123.0"));
+    assertOrdersError("CAST('123' as ARRAY<INTEGER>)",
+        compileTime("Cast of STRING to ARRAY<INTEGER> is not supported"),
+        evaluation("Unsupported cast from STRING to ARRAY<INTEGER>"));
+  }
+
+  @Test
+  public void createComplexTypes() throws Exception {
+    assertOrders("Array[1,2,3]", ImmutableList.of(1, 2, 3));
+    assertOrdersError("Array[1,'a',3]",
+        EvaluatorError.compileTime("invalid input syntax for type INTEGER"),
+        EvaluatorError.compileTime("invalid input syntax for type INTEGER"));
+    assertOrders("MAP(1 := 'a', 2 := 'b')", ImmutableMap.of(1, "a", 2, "b"));
+    assertOrdersError("MAP(1 := 'a', 'key' := 'b')",
+        EvaluatorError.compileTime("invalid input syntax for type INTEGER"),
+        EvaluatorError.compileTime("invalid input syntax for type INTEGER"));
+    assertOrders("STRUCT(A := 123, B := 'abc')", new Struct(SchemaBuilder.struct().optional()
+        .field("A", SchemaBuilder.int32().optional().build())
+        .field("B", SchemaBuilder.string().optional().build())
+        .build())
+        .put("A", 123)
+        .put("B", "abc"));
   }
 
   private void assertOrders(
       final String expressionStr,
       final Object result
-  ) {
+  ) throws Exception {
     assertResult(STREAM_NAME, expressionStr, ordersRow, result, Optional.empty(), Optional.empty());
-  }
-
-  private void assertOrdersTypeError(
-      final String expressionStr,
-      final String errorMessage
-  ) {
-    assertResult(STREAM_NAME, expressionStr, ordersRow, null, Optional.empty(), Optional.of(errorMessage));
   }
 
   private void assertOrdersError(
       final String expressionStr,
-      final String errorMessage
-  ) {
-    assertResult(STREAM_NAME, expressionStr, ordersRow, null, Optional.of(errorMessage),
-        Optional.empty());
+      final EvaluatorError compilerError,
+      final EvaluatorError interpreterError
+  ) throws Exception {
+    assertResult(STREAM_NAME, expressionStr, ordersRow, null, Optional.of(compilerError),
+        Optional.of(interpreterError));
   }
 
   private void assertResult(
@@ -201,9 +231,9 @@ public class ExpressionEvaluatorParityTest {
       final String expressionStr,
       final GenericRow row,
       final Object result,
-      final Optional<String> errorEvaluating,
-      final Optional<String> typeErrorMessage
-  ) {
+      final Optional<EvaluatorError> compilerError,
+      final Optional<EvaluatorError> interpreterError
+  ) throws Exception {
     Expression expression = getWhereExpression(streamName, expressionStr);
 
     ColumnReferenceRewriter columnReferenceRewriter = new ColumnReferenceRewriter();
@@ -213,65 +243,66 @@ public class ExpressionEvaluatorParityTest {
     LogicalSchema schema = metaStore.getSource(SourceName.of(streamName)).getSchema()
         .withPseudoAndKeyColsInValue(false);
 
-    int errorCreating = 0;
-    ExpressionMetadata expressionMetadata = null;
-    try {
-      expressionMetadata = CodeGenRunner.compileExpression(
-          rewritten,
-          "Test",
-          schema,
-          ksqlConfig,
-          metaStore
-      );
-    } catch (Exception e) {
-      if (typeErrorMessage.isPresent()) {
-        assertThat(e.getMessage(), containsString(typeErrorMessage.get()));
-        errorCreating++;
-      } else {
-        throw e;
-      }
-    }
+    runEvaluator(row,
+        () -> CodeGenRunner.compileExpression(
+            rewritten,
+            "Test",
+            schema,
+            ksqlConfig,
+            metaStore
+        ),
+        result,
+        compilerError);
 
-    ExpressionInterpreter expressionInterpreter = null;
-    try {
-      expressionInterpreter =
-          Interpreter.create(rewritten,  schema, metaStore, ksqlConfig);
-    } catch (Exception e) {
-      if (typeErrorMessage.isPresent()) {
-        assertThat(e.getMessage(), containsString(typeErrorMessage.get()));
-        errorCreating++;
-      } else {
-        throw e;
-      }
-    }
+    runEvaluator(row,
+        () -> Interpreter.create(rewritten,  schema, metaStore, ksqlConfig),
+        result,
+        interpreterError);
+  }
 
-    if (typeErrorMessage.isPresent()) {
-      if (errorCreating == 2) {
+  private void runEvaluator(
+      final GenericRow row,
+      Callable<ExpressionEvaluator> compile,
+      final Object expectedResult,
+      final Optional<EvaluatorError> error) throws Exception {
+    ExpressionEvaluator expressionEvaluator = null;
+    try {
+      expressionEvaluator = compile.call();
+    } catch (Exception e) {
+      if (error.isPresent()
+          && error.get().getErrorTime() == ErrorTime.COMPILE_TIME) {
+        assertThat(e.getMessage(), containsString(error.get().getMessage()));
         return;
       } else {
-        fail("Expected failure from both evaluators");
+        throw e;
+      }
+    }
+    Object result = null;
+    try {
+      result
+          = expressionEvaluator.evaluate(row, null, processingLogger, () -> "ERROR!!!");
+    } catch (Exception e) {
+      if (error.isPresent()
+          && error.get().getErrorTime() == ErrorTime.EVALUATION_TIME) {
+        assertThat(e.getMessage(), containsString(error.get().getMessage()));
+        return;
+      } else {
+        throw e;
       }
     }
 
-    Object compiledResult
-        = expressionMetadata.evaluate(row, null, processingLogger, () -> "ERROR!!!");
-    Object interpretedResult
-        = expressionInterpreter.evaluate(row, null, processingLogger, () -> "ERROR!!!");
-
-
-    assertThat(compiledResult, is(result));
-    assertThat(interpretedResult, is(result));
-
-    if (errorEvaluating.isPresent()) {
-      verify(processingLogger, times(2)).error(errorMessageCaptor.capture());
-      errorMessageCaptor.getAllValues().stream()
-          .map(RecordProcessingError.class::cast)
-          .forEach(em -> assertThat(em.getException().get().getMessage(),
-              containsString(errorEvaluating.get())));
+    if (error.isPresent() && error.get().getErrorTime() == ErrorTime.EVALUATION_LOGGER) {
+      verify(processingLogger, times(1)).error(errorMessageCaptor.capture());
+      RecordProcessingError processingError
+          = ((RecordProcessingError) errorMessageCaptor.getValue());
+      assertThat(processingError.getException().get().getMessage(),
+          containsString(error.get().getMessage()));
     } else {
       verify(processingLogger, never()).error(any());
     }
     reset(processingLogger);
+
+    assertThat(result, is(expectedResult));
   }
 
   private Expression getWhereExpression(final String table, String expression) {
@@ -297,5 +328,54 @@ public class ExpressionEvaluatorParityTest {
     ) {
       return Optional.of(new UnqualifiedColumnReferenceExp(node.getColumnName()));
     }
+  }
+  
+  private static class EvaluatorError {
+
+    private final ErrorTime errorTime;
+    private final String message;
+
+    public EvaluatorError(final ErrorTime errorTime, final String message) {
+      this.errorTime = errorTime;
+      this.message = message;
+    }
+
+    public static EvaluatorError compileTime(final String message) {
+      return new EvaluatorError(ErrorTime.COMPILE_TIME, message);
+    }
+
+    public static EvaluatorError evaluation(final String message) {
+      return new EvaluatorError(ErrorTime.EVALUATION_TIME, message);
+    }
+
+    public static EvaluatorError evalLogger(final String message) {
+      return new EvaluatorError(ErrorTime.EVALUATION_LOGGER, message);
+    }
+
+    public ErrorTime getErrorTime() {
+      return errorTime;
+    }
+
+    public String getMessage() {
+      return message;
+    }
+  }
+
+  public enum ErrorTime {
+    COMPILE_TIME,
+    EVALUATION_TIME,
+    EVALUATION_LOGGER
+  }
+
+  private static EvaluatorError compileTime(final String message) {
+    return EvaluatorError.compileTime(message);
+  }
+
+  private static EvaluatorError evaluation(final String message) {
+    return EvaluatorError.evaluation(message);
+  }
+
+  private static EvaluatorError evalLogger(final String message) {
+    return EvaluatorError.evalLogger(message);
   }
 }

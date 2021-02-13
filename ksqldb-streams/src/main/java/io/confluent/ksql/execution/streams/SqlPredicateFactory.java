@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.execution.streams;
 
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;

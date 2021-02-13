@@ -88,14 +88,6 @@ import org.mockito.junit.MockitoRule;
 
 public class ExpressionInterpreterTest {
 
-  public final static SqlStruct ADDRESS_SCHEMA2 = SqlTypes.struct()
-      .field("NUMBER", SqlTypes.BIGINT)
-      .field("STREET", SqlTypes.STRING)
-      .field("CITY", SqlTypes.STRING)
-      .field("STATE", SqlTypes.STRING)
-      .field("ZIPCODE", SqlTypes.BIGINT)
-      .build();
-
   public final static Schema ADDRESS_SCHEMA = SchemaBuilder.struct()
       .field("NUMBER", SchemaBuilder.int64())
       .field("STREET", SchemaBuilder.string())

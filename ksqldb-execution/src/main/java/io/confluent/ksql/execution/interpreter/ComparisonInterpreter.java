@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.execution.interpreter;
 
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.interpreter.CastInterpreter.ConversionType;
 import io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConversions;
-import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.schema.ksql.SqlTimestamps;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;

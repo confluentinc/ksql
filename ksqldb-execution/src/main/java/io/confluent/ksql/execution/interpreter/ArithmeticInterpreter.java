@@ -19,8 +19,8 @@ import static io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConv
 import static io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConversions.toInteger;
 import static io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConversions.toLong;
 
-import io.confluent.ksql.execution.interpreter.CastInterpreter.ConversionType;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.execution.interpreter.CastInterpreter.ConversionType;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;

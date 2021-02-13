@@ -23,7 +23,7 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.engine.generic.GenericExpressionResolver;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.evaluator.Interpreter;
+import io.confluent.ksql.execution.interpreter.Interpreter;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;

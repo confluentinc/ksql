@@ -13,11 +13,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.evaluator;
+package io.confluent.ksql.execution.interpreter;
 
-import static io.confluent.ksql.execution.evaluator.ComparisonInterpreter.doComparisonCheck;
-import static io.confluent.ksql.execution.evaluator.ComparisonInterpreter.doEqualsCheck;
-import static io.confluent.ksql.execution.evaluator.ComparisonInterpreter.doNumericalCompareTo;
+import static io.confluent.ksql.execution.interpreter.ComparisonInterpreter.doComparisonCheck;
+import static io.confluent.ksql.execution.interpreter.ComparisonInterpreter.doEqualsCheck;
+import static io.confluent.ksql.execution.interpreter.ComparisonInterpreter.doNumericalCompareTo;
 import static io.confluent.ksql.schema.ksql.SchemaConverters.sqlToFunctionConverter;
 import static java.lang.String.format;
 

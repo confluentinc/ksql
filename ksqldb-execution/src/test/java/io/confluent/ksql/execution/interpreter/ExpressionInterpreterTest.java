@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.evaluator;
+package io.confluent.ksql.execution.interpreter;
 
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL11;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL3;
@@ -69,7 +69,6 @@ import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
-import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.math.BigDecimal;

@@ -13,10 +13,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.evaluator;
+package io.confluent.ksql.execution.interpreter;
 
-import io.confluent.ksql.execution.evaluator.CastInterpreter.ConversionType;
-import io.confluent.ksql.execution.evaluator.CastInterpreter.NumberConversions;
+import io.confluent.ksql.execution.interpreter.CastInterpreter.ConversionType;
+import io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConversions;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.schema.ksql.SqlTimestamps;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;

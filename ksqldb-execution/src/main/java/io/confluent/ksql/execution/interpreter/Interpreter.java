@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.evaluator;
+package io.confluent.ksql.execution.interpreter;
 
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;

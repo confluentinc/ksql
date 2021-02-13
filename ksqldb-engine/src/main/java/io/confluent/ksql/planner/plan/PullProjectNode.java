@@ -18,7 +18,7 @@ package io.confluent.ksql.planner.plan;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.evaluator.Interpreter;
+import io.confluent.ksql.execution.interpreter.Interpreter;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.transform.ExpressionEvaluator;

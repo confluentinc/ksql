@@ -519,6 +519,17 @@ SET 'ksql.query.pull.table.scan.enabled'='false';
 The server will reject requests that attempt to enable table scans. Disabling table scans per 
 request can be useful when throwing an error is preferable to doing the potentially expensive scan.
 
+## `ksql.query.pull.interpreter.enabled`
+
+**Per query:** no
+
+Config to control whether pull queries use the interpreter as their expression
+evaluator, or the code compiler which is the default. The code compiler is used
+for persistent and push queries, which are naturally longer lived than pull queries.  The overhead of compilation slows down pull queries significantly, so using an
+interpreter gives significant performance gains.
+
+This will likely become the default for pull queries in the future.
+
 ## `ksql.variable.substitution.enable`
 
 Enables variable substitution through [`DEFINE`](../../../../developer-guide/ksqldb-reference/define) statements.

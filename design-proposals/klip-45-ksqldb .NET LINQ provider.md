@@ -34,11 +34,12 @@ or in process [reactive extensions](http://rxwiki.wikidot.com/101samples).
 ## Public APIS
 
 ```
-Install-Package Kafka.DotNet.ksqlDB -Version 0.1.0-alpha3
+Install-Package Kafka.DotNet.ksqlDB
 ```
 
 ```C#
 var ksqlDbUrl = @"http:\\localhost:8088";
+await using var context = new KSqlDBContext(contextOptions);
 
 using var disposable = context.CreateStreamSet<Tweet>()
   .Where(p => p.Message != "Hello world" || p.Id == 1)
@@ -54,6 +55,16 @@ using var disposable = context.CreateStreamSet<Tweet>()
     Console.WriteLine();
   }, error => { Console.WriteLine($"Exception: {error.Message}"); }, () => Console.WriteLine("Completed"));
 ```
+C# code is translated into an Abstract Syntax Tree and the following KSQK is generated:
+```KSQL
+SELECT Id, Message, RowTime 
+FROM Tweets
+WHERE Message != 'Hello world' OR Id = 1 AND RowTime >= 1510923225000 
+EMIT CHANGES 
+LIMIT 2;
+```
+
+Supported are also aggregations and base type functions, windows and joins.
 
 [Projects location](https://github.com/tomasfabian/Joker/tree/master/Joker.Kafka)
 
@@ -83,6 +94,7 @@ This interface could be later inherited from IObservable to achieve parity with 
 
 [Unit tests project](https://github.com/tomasfabian/Joker/tree/master/Tests/Joker.Kafka.Tests) - work in progress 
 
+[Integration tests project](https://github.com/tomasfabian/Joker/tree/master/Tests/SqlTableDependency.Extensions.IntegrationTests) - work in progress
 
 ## Documentation Updates
 [Wiki](https://github.com/tomasfabian/Joker/wiki/Kafka.DotNet.ksqlDB---push-queries-LINQ-provider) - work in progress

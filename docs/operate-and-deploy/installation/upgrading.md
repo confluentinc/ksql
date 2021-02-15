@@ -43,8 +43,9 @@ cluster on the new version, porting across your database schema, and finally thi
 Read on for details.
 
 
+## In-Place upgrade
 
-#### Steps of "In-Place" upgrade :-
+#### Steps :-
 
 1. Download the new ksqlDB version to upgrade to.
 2. Set it up with all required configs. In our case we mostly copied all configs from the current version(which is running) to the new version.
@@ -63,7 +64,7 @@ This error is because Confluent KsqlDB 6 has these functions as in built so it w
 
 
 
-#### Steps to follow when "In-Place" upgrade is not supported :-
+## Steps to follow when "In-Place" upgrade is not supported :-
 
 ### Port the database schema
 

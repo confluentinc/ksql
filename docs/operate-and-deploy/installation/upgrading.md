@@ -47,7 +47,7 @@ Read on for details.
 
 #### Steps :-
 
-1. Download the new ksqlDB version to upgrade to.
+1. Download the [new ksqlDB version](https://docs.confluent.io/platform/current/installation/installing_cp/zip-tar.html#get-the-software) to upgrade to.
 2. Set it up with all required configs. In our case we mostly copied all configs from the current version(which is running) to the new version.
 3. Take Backup and then copy all UDF JAR to new version .(OPTIONAL STEP In case you don't have any UDF).
 4. Stop ksqlDB process of current version(5.5 in our case) and start newer version(6 in our case) with latest KsqlDB config file which you created in step2.

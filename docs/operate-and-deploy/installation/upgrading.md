@@ -43,7 +43,7 @@ cluster on the new version, porting across your database schema, and finally thi
 Read on for details.
 
 
-## In-Place upgrade
+## (1) In-Place upgrade
 
 #### Steps :-
 
@@ -64,7 +64,7 @@ This error is because Confluent KsqlDB 6 has these functions as in built so it w
 
 
 
-## Steps to follow when "In-Place" upgrade is not supported :-
+## (2) Steps to follow when "In-Place" upgrade is not supported
 
 ### Port the database schema
 

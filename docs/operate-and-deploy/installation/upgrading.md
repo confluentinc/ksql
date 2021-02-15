@@ -56,7 +56,7 @@ Read on for details.
 
 #### Troubleshooting an Upgrade :-
 
-1. There might have been some UDFs like ARRAY_EXCEPT , ARRAY_LENGTH , ARRAY_REMOVE etc since they were not available with Confluent KsqlDB 5.5 so when you start newer version, it will give an error saying "KsqlException: UdfFactory not compatible with existing factory. function: ARRAY_EXCEPT existing". 
+1. If the ksqlDB server fails to start with an error message such as "KsqlException: UdfFactory not compatible with existing factory. function: <FUNCTION_NAME> existing". 
 This error is because Confluent KsqlDB 6 has these functions as in built so it will create conflict with your UDFs. So to solve this you can create a new udf jar by eliminating those inbuilt functions and deploy it and then try to start KsqlDB again.
 
 2. "desribe extended" command not working :- This generally happens when ksqlCli and ksqlServer version is not same. Generally people create alias for ksqlCli so make sure to change it to newer version. So all an all, version of ksqlCli and ksqlServer should be same.

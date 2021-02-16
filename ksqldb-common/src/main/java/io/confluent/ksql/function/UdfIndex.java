@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.GenericType;
+import io.confluent.ksql.function.types.LambdaType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.schema.ksql.SqlArgument;
@@ -351,7 +352,7 @@ public class UdfIndex<T extends FunctionSignature> {
     // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
     boolean accepts(final SqlArgument argument, final Map<GenericType, SqlType> reservedGenerics,
         final boolean allowCasts) {
-      if (argument == null || argument.getSqlType() == null) {
+      if (argument == null || (argument.getSqlLambda() == null && argument.getSqlType() == null)) {
         return true;
       }
 
@@ -368,12 +369,12 @@ public class UdfIndex<T extends FunctionSignature> {
         final SqlArgument argument,
         final Map<GenericType, SqlType> reservedGenerics
     ) {
-      if (!GenericsUtil.instanceOf(schema, argument)) {
+      if (!(schema instanceof LambdaType)
+          && !GenericsUtil.instanceOf(schema, argument)) {
         return false;
       }
-
-      final Map<GenericType, SqlType> genericMapping = GenericsUtil
-          .resolveGenerics(schema, argument);
+      final Map<GenericType, SqlType> genericMapping =
+          GenericsUtil.resolveGenerics(schema, argument);
 
       for (final Entry<GenericType, SqlType> entry : genericMapping.entrySet()) {
         final SqlType old = reservedGenerics.putIfAbsent(entry.getKey(), entry.getValue());

@@ -18,6 +18,7 @@ package io.confluent.ksql.function;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.execution.function.UdfUtil;
 import io.confluent.ksql.function.types.GenericType;
+import io.confluent.ksql.function.types.LambdaType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udf.Udf;
@@ -178,15 +179,18 @@ public final class FunctionLoaderUtils {
       final Map<GenericType, SqlType> genericMapping = new HashMap<>();
       for (int i = 0; i < Math.min(parameters.size(), arguments.size()); i++) {
         final ParamType schema = parameters.get(i);
-
-        // we resolve any variadic as if it were an array so that the type
-        // structure matches the input type
-        final SqlType instance = isVariadic && i == parameters.size() - 1
-            ? SqlTypes.array(arguments.get(i).getSqlType())
-            : arguments.get(i).getSqlType();
-
-        genericMapping.putAll(
-            GenericsUtil.resolveGenerics(schema, SqlArgument.of(instance)));
+        if (schema instanceof LambdaType) {
+          genericMapping.putAll(GenericsUtil.resolveGenerics(schema, arguments.get(i)));
+        } else {
+          // we resolve any variadic as if it were an array so that the type
+          // structure matches the input type
+          final SqlType instance = isVariadic && i == parameters.size() - 1
+              ? SqlTypes.array(arguments.get(i).getSqlType())
+              : arguments.get(i).getSqlType();
+          genericMapping.putAll(
+              GenericsUtil.resolveGenerics(schema, SqlArgument.of(instance))
+          );
+        }
       }
 
       return GenericsUtil.applyResolved(javaReturnSchema, genericMapping);

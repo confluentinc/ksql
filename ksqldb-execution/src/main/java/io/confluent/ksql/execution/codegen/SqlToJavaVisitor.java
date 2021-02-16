@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.codegen.helpers.ArrayAccess;
 import io.confluent.ksql.execution.codegen.helpers.ArrayBuilder;
 import io.confluent.ksql.execution.codegen.helpers.CastEvaluator;
 import io.confluent.ksql.execution.codegen.helpers.InListEvaluator;
+import io.confluent.ksql.execution.codegen.helpers.LambdaUtil;
 import io.confluent.ksql.execution.codegen.helpers.LikeEvaluator;
 import io.confluent.ksql.execution.codegen.helpers.MapBuilder;
 import io.confluent.ksql.execution.codegen.helpers.NullSafe;
@@ -94,6 +95,7 @@ import io.confluent.ksql.schema.ksql.SqlTimestamps;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -104,6 +106,7 @@ import io.confluent.ksql.util.Pair;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -226,8 +229,9 @@ public class SqlToJavaVisitor {
   }
 
   private String formatExpression(final Expression expression) {
+    final TypeContext context = new TypeContext();
     final Pair<String, SqlType> expressionFormatterResult =
-        new Formatter(functionRegistry).process(expression, null);
+        new Formatter(functionRegistry).process(expression, context);
     return expressionFormatterResult.getLeft();
   }
 
@@ -360,15 +364,34 @@ public class SqlToJavaVisitor {
     }
 
     @Override
+    // CHECKSTYLE_RULES.OFF: TodoComment
     public Pair<String, SqlType> visitLambdaExpression(
         final LambdaFunctionCall lambdaFunctionCall, final TypeContext context) {
-      return visitUnsupported(lambdaFunctionCall);
+
+      context.mapLambdaInputTypes(lambdaFunctionCall.getArguments());
+
+      final Pair<String, SqlType> lambdaBody = process(lambdaFunctionCall.getBody(), context);
+
+      final List<Pair<String, Class<?>>> argPairs = new ArrayList<>();
+
+      for (final String lambdaArg: lambdaFunctionCall.getArguments()) {
+        argPairs.add(new Pair<>(
+            lambdaArg,
+            SchemaConverters.sqlToJavaConverter().toJavaType(context.getLambdaType(lambdaArg))
+            ));
+      }
+      return new Pair<>(LambdaUtil.function(argPairs, lambdaBody.getLeft()),
+          expressionTypeManager.getExpressionSqlType(lambdaFunctionCall, context));
     }
 
     @Override
     public Pair<String, SqlType> visitLambdaVariable(
-        final LambdaVariable lambdaVariable, final TypeContext context) {
-      return visitUnsupported(lambdaVariable);
+        final LambdaVariable lambdaVariable, final TypeContext context
+    ) {
+      return new Pair<>(
+          lambdaVariable.getValue(),
+          context.getLambdaType(lambdaVariable.getValue())
+      );
     }
 
     @Override
@@ -433,10 +456,30 @@ public class SqlToJavaVisitor {
       final String instanceName = funNameToCodeName.apply(functionName);
 
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
-      final List<SqlArgument> argumentSchemas = node.getArguments().stream()
-          .map(expressionTypeManager::getExpressionSqlType)
-          .map(SqlArgument::of)
-          .collect(Collectors.toList());
+      final List<SqlArgument> argumentSchemas = new ArrayList<>();
+      for (final Expression argExpr : node.getArguments()) {
+        final SqlType newSqlType = expressionTypeManager.getExpressionSqlType(argExpr, context);
+        // for lambdas: if it's the  array/map being passed in we save the type for later
+        if (context.notAllInputsSeen()) {
+          if (newSqlType instanceof SqlArray) {
+            final SqlArray inputArray = (SqlArray) newSqlType;
+            context.addLambdaInputType(inputArray.getItemType());
+          } else if (newSqlType instanceof SqlMap) {
+            final SqlMap inputMap = (SqlMap) newSqlType;
+            context.addLambdaInputType(inputMap.getKeyType());
+            context.addLambdaInputType(inputMap.getValueType());
+          } else {
+            context.addLambdaInputType(newSqlType);
+          }
+        }
+        if (argExpr instanceof LambdaFunctionCall) {
+          argumentSchemas.add(
+              SqlArgument.of(SqlLambda.of(context.getLambdaInputTypes(),
+                  newSqlType)));
+        } else {
+          argumentSchemas.add(SqlArgument.of(newSqlType));
+        }
+      }
 
       final KsqlFunction function = udfFactory.getFunction(argumentSchemas);
 
@@ -458,7 +501,9 @@ public class SqlToJavaVisitor {
           paramType = function.parameters().get(i);
         }
 
-        joiner.add(process(convertArgument(arg, sqlType, paramType), context).getLeft());
+        final Pair<String, SqlType> pair =
+            process(convertArgument(arg, sqlType, paramType), context);
+        joiner.add(pair.getLeft());
       }
 
 
@@ -783,7 +828,8 @@ public class SqlToJavaVisitor {
       final Pair<String, SqlType> left = process(node.getLeft(), context);
       final Pair<String, SqlType> right = process(node.getRight(), context);
 
-      final SqlType schema = expressionTypeManager.getExpressionSqlType(node);
+      final SqlType schema =
+          expressionTypeManager.getExpressionSqlType(node, context);
 
       if (schema.baseType() == SqlBaseType.DECIMAL) {
         final SqlDecimal decimal = (SqlDecimal) schema;
@@ -837,7 +883,8 @@ public class SqlToJavaVisitor {
           ))
           .collect(Collectors.toList());
 
-      final SqlType resultSchema = expressionTypeManager.getExpressionSqlType(node);
+      final SqlType resultSchema =
+          expressionTypeManager.getExpressionSqlType(node, context);
       final String resultSchemaString =
           SchemaConverters.sqlToJavaConverter().toJavaType(resultSchema).getCanonicalName();
 

@@ -66,6 +66,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
@@ -97,6 +98,11 @@ public class ExpressionTypeManager {
 
   public SqlType getExpressionSqlType(final Expression expression) {
     final TypeContext expressionTypeContext = new TypeContext();
+    return getExpressionSqlType(expression, expressionTypeContext);
+  }
+
+  public SqlType getExpressionSqlType(
+      final Expression expression, final TypeContext expressionTypeContext) {
     new Visitor().process(expression, expressionTypeContext);
     return expressionTypeContext.getSqlType();
   }
@@ -132,9 +138,8 @@ public class ExpressionTypeManager {
     public Void visitLambdaExpression(
         final LambdaFunctionCall node, final TypeContext context
     ) {
+      context.mapLambdaInputTypes(node.getArguments());
       process(node.getBody(), context);
-      // TODO: add proper type inference
-      context.setSqlType(SqlTypes.INTEGER);
       return null;
     }
 
@@ -143,8 +148,7 @@ public class ExpressionTypeManager {
     public Void visitLambdaVariable(
         final LambdaVariable node, final TypeContext expressionTypeContext
     ) {
-      // TODO: add proper type inference
-      expressionTypeContext.setSqlType(SqlTypes.INTEGER);
+      expressionTypeContext.setSqlType(expressionTypeContext.getLambdaType(node.getValue()));
       return null;
     }
 
@@ -168,8 +172,10 @@ public class ExpressionTypeManager {
     ) {
       process(node.getLeft(), expressionTypeContext);
       final SqlType leftSchema = expressionTypeContext.getSqlType();
+
       process(node.getRight(), expressionTypeContext);
       final SqlType rightSchema = expressionTypeContext.getSqlType();
+
       if (!ComparisonUtil.isValidComparison(leftSchema, node.getType(), rightSchema)) {
         throw new KsqlException("Cannot compare "
             + node.getLeft().toString() + " (" + leftSchema.toString() + ") to "
@@ -423,11 +429,13 @@ public class ExpressionTypeManager {
       return null;
     }
 
+    // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
     @Override
     public Void visitFunctionCall(
         final FunctionCall node,
         final TypeContext expressionTypeContext
     ) {
+      // CHECKSTYLE_RULES.ON: CyclomaticComplexity
       if (functionRegistry.isAggregate(node.getName())) {
         final SqlType schema = node.getArguments().isEmpty()
             ? FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA
@@ -467,7 +475,27 @@ public class ExpressionTypeManager {
       final List<SqlArgument> argTypes = new ArrayList<>();
       for (final Expression expression : node.getArguments()) {
         process(expression, expressionTypeContext);
-        argTypes.add(SqlArgument.of(expressionTypeContext.getSqlType()));
+        final SqlType newSqlType = expressionTypeContext.getSqlType();
+        if (expression instanceof LambdaFunctionCall) {
+          argTypes.add(
+              SqlArgument.of(SqlLambda.of(expressionTypeContext.getLambdaInputTypes(),
+                  expressionTypeContext.getSqlType()))
+          );
+        } else {
+          argTypes.add(SqlArgument.of(newSqlType));
+        }
+        if (expressionTypeContext.notAllInputsSeen()) {
+          if (newSqlType instanceof SqlArray) {
+            final SqlArray inputArray = (SqlArray) newSqlType;
+            expressionTypeContext.addLambdaInputType(inputArray.getItemType());
+          } else if (newSqlType instanceof SqlMap) {
+            final SqlMap inputMap = (SqlMap) newSqlType;
+            expressionTypeContext.addLambdaInputType(inputMap.getKeyType());
+            expressionTypeContext.addLambdaInputType(inputMap.getValueType());
+          } else {
+            expressionTypeContext.addLambdaInputType(newSqlType);
+          }
+        }
       }
 
       final SqlType returnSchema = udfFactory.getFunction(argTypes).getReturnType(argTypes);

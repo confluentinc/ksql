@@ -15,31 +15,48 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.Objects;
 
 /**
- * A wrapper class to bundle SqlTypes for UDF functions.
+ * A wrapper class to bundle SqlTypes and SqlLambdas for UDF functions that contain
+ * lambdas as an argument. This class allows us to properly find the matching UDF and
+ * resolve the return type for lambda UDFs based on the given sqlLambda.
  */
 public class SqlArgument {
 
   private final SqlType sqlType;
+  private final SqlLambda sqlLambda;
 
-  public SqlArgument(final SqlType type) {
+  public SqlArgument(final SqlType type, final SqlLambda lambda) {
     sqlType = type;
+    sqlLambda = lambda;
   }
 
   public static SqlArgument of(final SqlType type) {
-    return new SqlArgument(type);
+    return new SqlArgument(type, null);
+  }
+
+  public static SqlArgument of(final SqlLambda type) {
+    return new SqlArgument(null, type);
+  }
+
+  public static SqlArgument of(final SqlType sqlType, final SqlLambda lambdaType) {
+    return new SqlArgument(sqlType, lambdaType);
   }
 
   public SqlType getSqlType() {
     return sqlType;
   }
 
+  public SqlLambda getSqlLambda() {
+    return sqlLambda;
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hashCode(sqlType);
+    return Objects.hash(sqlType, sqlLambda);
   }
 
   @Override
@@ -51,6 +68,7 @@ public class SqlArgument {
       return false;
     }
     final SqlArgument that = (SqlArgument) o;
-    return that.sqlType == this.sqlType;
+    return that.sqlType == this.sqlType && that.sqlLambda == this.sqlLambda;
   }
+
 }

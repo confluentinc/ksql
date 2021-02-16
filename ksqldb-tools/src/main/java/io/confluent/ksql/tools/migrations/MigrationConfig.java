@@ -86,15 +86,19 @@ public class MigrationConfig extends AbstractConfig {
         ).define(
             KSQL_MIGRATIONS_STREAM_TOPIC_NAME,
             Type.STRING,
-            id + "ksql_" + configs.getOrDefault(KSQL_MIGRATIONS_STREAM_NAME, KSQL_MIGRATIONS_STREAM_NAME_DEFAULT),
+            id + "ksql_" + configs
+                .getOrDefault(KSQL_MIGRATIONS_STREAM_NAME, KSQL_MIGRATIONS_STREAM_NAME_DEFAULT),
             Importance.MEDIUM,
-            "The name of the migration stream topic. It defaults to "
+            "The name of the migration stream topic. It defaults to " + id + "ksql_" + configs
+                .getOrDefault(KSQL_MIGRATIONS_STREAM_NAME, KSQL_MIGRATIONS_STREAM_NAME_DEFAULT)
         ).define(
             KSQL_MIGRATIONS_TABLE_TOPIC_NAME,
             Type.STRING,
-            id + "ksql_" + configs.getOrDefault(KSQL_MIGRATIONS_TABLE_NAME, KSQL_MIGRATIONS_TABLE_NAME_DEFAULT),
+            id + "ksql_" + configs
+                .getOrDefault(KSQL_MIGRATIONS_TABLE_NAME, KSQL_MIGRATIONS_TABLE_NAME_DEFAULT),
             Importance.MEDIUM,
-            "The name of the migration table topic. It defaults to"
+            "The name of the migration table topic. It defaults to" + id + "ksql_" + configs
+                .getOrDefault(KSQL_MIGRATIONS_TABLE_NAME, KSQL_MIGRATIONS_TABLE_NAME_DEFAULT)
         ).define(
             KSQL_MIGRATIONS_TOPIC_REPLICAS,
             Type.INT,

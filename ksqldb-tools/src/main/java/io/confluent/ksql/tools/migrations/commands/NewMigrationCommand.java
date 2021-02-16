@@ -57,7 +57,7 @@ public class NewMigrationCommand extends BaseCommand {
     final File directory = new File(path);
 
     if (directory.exists() && directory.isDirectory()) {
-      LOGGER.info(path + " already exists. Skipping directory creation.");
+      LOGGER.warn(path + " already exists. Skipping directory creation.");
       return true;
     } else if (directory.exists() && !directory.isDirectory()) {
       LOGGER.error(path + " already exists as a file. Cannot create directory.");
@@ -80,7 +80,7 @@ public class NewMigrationCommand extends BaseCommand {
   private boolean tryCreatePropertiesFile(final String path) {
     final File configFile = new File(path);
     if (configFile.exists()) {
-      LOGGER.info(path + " already exists. Skipping file creation.");
+      LOGGER.warn(path + " already exists. Skipping file creation.");
       return true;
     }
     try {
@@ -88,6 +88,7 @@ public class NewMigrationCommand extends BaseCommand {
       configFile.createNewFile();
     } catch (IOException e) {
       LOGGER.error(String.format("Failed to create file %s: %s", path, e.getMessage()));
+      return false;
     }
     return true;
   }

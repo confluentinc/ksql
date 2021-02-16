@@ -56,7 +56,7 @@ This has a number of problems:
 
 3) It doesn’t work. The specific mechanism here (a streaming aggregation) deliberately does not implement table semantics. Tables created this way will grow monotonically and incorrectly contain records that were deleted from the view upstream.
 
-4) `LATEST_BY_OFFSET` (and all other aggregation functions) don’t work with complex types. This is specifically blocking Deutsche Bank from using KSQL, even though they want to. So, it’s practically impossible to issue pull queries on anything but primitive data.
+4) `LATEST_BY_OFFSET` (and all other aggregation functions) don’t work with complex types. So, it’s practically impossible to issue pull queries on anything but primitive data.
 
 The same problem afflicts `CREATE TABLE AS SELECT`, meaning not only can’t you query tables created from topics, but you also can’t query tables derived from other tables.
 ## What is in scope

@@ -111,7 +111,9 @@ public class SandboxedPersistentQueryMetadataTest {
         queryErrorClassifier,
         physicalPlan,
         10,
-        processingLogger
+        processingLogger,
+        0L,
+        0L
     );
 
     query.initialize();

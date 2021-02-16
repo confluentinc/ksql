@@ -99,7 +99,7 @@ public class PersistentQueryMetadataTest {
     when(materializationProviderBuilder.apply(kafkaStreams))
         .thenReturn(Optional.of(materializationProvider));
 
-    query = new PersistentQueryMetadata(
+    query =  new PersistentQueryMetadata(
         SQL,
         physicalSchema,
         Collections.emptySet(),
@@ -118,7 +118,9 @@ public class PersistentQueryMetadataTest {
         queryErrorClassifier,
         physicalPlan,
         10,
-        processingLogger
+        processingLogger,
+        0L,
+        0L
     );
 
     query.initialize();

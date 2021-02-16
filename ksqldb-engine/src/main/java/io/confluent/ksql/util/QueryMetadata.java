@@ -68,7 +68,6 @@ public abstract class QueryMetadata {
   private final Queue<QueryError> queryErrors;
   private final RetryEvent retryEvent;
 
-
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
   private boolean everStarted = false;
   protected boolean closed = false;

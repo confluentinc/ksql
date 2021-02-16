@@ -96,22 +96,22 @@ public class QueryMetadataTest {
     when(classifier.classify(any())).thenReturn(Type.UNKNOWN);
 
     query = new QueryMetadata(
-            "foo",
-            SOME_SCHEMA,
-            SOME_SOURCES,
-            "bar",
-            QUERY_APPLICATION_ID,
-            topoplogy,
-            kafkaStreamsBuilder,
-            Collections.emptyMap(),
-            Collections.emptyMap(),
-            closeCallback,
-            closeTimeout,
-            QUERY_ID,
-            classifier,
-            10,
-            0L,
-            0L
+        "foo",
+        SOME_SCHEMA,
+        SOME_SOURCES,
+        "bar",
+        QUERY_APPLICATION_ID,
+        topoplogy,
+        kafkaStreamsBuilder,
+        Collections.emptyMap(),
+        Collections.emptyMap(),
+        closeCallback,
+        closeTimeout,
+        QUERY_ID,
+        classifier,
+        10,
+        0L,
+        0L
     ){
     };
     query.initialize();

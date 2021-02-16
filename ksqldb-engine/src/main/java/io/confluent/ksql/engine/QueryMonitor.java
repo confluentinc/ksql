@@ -139,10 +139,7 @@ public class QueryMonitor implements Closeable {
         final PersistentQueryMetadata queryMetadata = query.get();
         switch (queryMetadata.getState()) {
           case ERROR:
-            if (now >= retryEvent.nextRestartTimeMs()) {
-//              retryEvent.restart(queryMetadata);
-              LOG.error("Query has encountered an unexpected error: " + queryMetadata);
-            }
+            LOG.error("Query has encountered an unexpected error: " + queryMetadata);
             break;
           case RUNNING:
           case REBALANCING:
@@ -233,7 +230,7 @@ public class QueryMonitor implements Closeable {
 
       LOG.info("Restarting query {} (attempt #{})", queryId, numRetries);
       try {
-        query.restart();
+//        query.restart();
       } catch (final Exception e) {
         LOG.warn("Failed restarting query {}. Error = {}", queryId, e.getMessage());
       }

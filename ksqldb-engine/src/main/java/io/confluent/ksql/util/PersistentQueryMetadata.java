@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Ticker;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -77,7 +78,9 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final QueryErrorClassifier errorClassifier,
       final ExecutionStep<?> physicalPlan,
       final int maxQueryErrorsQueueSize,
-      final ProcessingLogger processingLogger
+      final ProcessingLogger processingLogger,
+      final long retryBackoffInitialMs,
+      final long retryBackoffMaxMs
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -94,7 +97,9 @@ public class PersistentQueryMetadata extends QueryMetadata {
         closeTimeout,
         id,
         errorClassifier,
-        maxQueryErrorsQueueSize
+        maxQueryErrorsQueueSize,
+        retryBackoffInitialMs,
+        retryBackoffMaxMs
     );
 
     this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");

@@ -46,7 +46,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.junit.Before;
 import org.junit.Rule;

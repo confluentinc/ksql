@@ -240,7 +240,7 @@ public class QueryMetadataTest {
     when(classifier.classify(any())).thenReturn(Type.USER);
 
     // When:
-    query.uncaughtHandler(Thread.currentThread(), new RuntimeException("oops"));
+    query.uncaughtHandler(new RuntimeException("oops"));
 
     // Then:
     verify(queryStateListener).onError(argThat(q -> q.getType().equals(Type.USER)));
@@ -255,7 +255,7 @@ public class QueryMetadataTest {
 
     // When:
     try {
-      query.uncaughtHandler(Thread.currentThread(), new RuntimeException("foo"));
+      query.uncaughtHandler(new RuntimeException("foo"));
       Assert.fail("uncaught handler should have thrown");
     } catch (final RuntimeException e) {
       assertThat(e, equalTo(thrown));

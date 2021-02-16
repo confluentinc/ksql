@@ -29,7 +29,6 @@ import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
-import java.lang.Thread.UncaughtExceptionHandler;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
@@ -44,6 +43,7 @@ import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsException;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,14 +70,13 @@ public abstract class QueryMetadata {
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
   private boolean everStarted = false;
   protected boolean closed = false;
-  private UncaughtExceptionHandler uncaughtExceptionHandler = this::uncaughtHandler;
+  private StreamsUncaughtExceptionHandler uncaughtExceptionHandler = this::uncaughtHandler;
   private KafkaStreams kafkaStreams;
   private Consumer<Boolean> onStop = (ignored) -> { };
   private boolean initialized = false;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
-  @SuppressWarnings("deprecation") // https://github.com/confluentinc/ksql/issues/6639
   QueryMetadata(
       final String statementString,
       final LogicalSchema logicalSchema,
@@ -160,7 +159,7 @@ public abstract class QueryMetadata {
     this.onStop = onStop;
   }
 
-  protected void uncaughtHandler(final Thread t, final Throwable e) {
+  protected StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(final Throwable e) {
     QueryError.Type errorType = Type.UNKNOWN;
     try {
       errorType = errorClassifier.classify(e);
@@ -181,8 +180,9 @@ public abstract class QueryMetadata {
           );
       queryStateListener.ifPresent(lis -> lis.onError(queryError));
       queryErrors.add(queryError);
-      LOG.error("Unhandled exception caught in streams thread {}. ({})", t.getName(), errorType, e);
+      LOG.error("Unhandled exception caught in streams thread {}. ({})", Thread.currentThread().getName(), errorType, e);
     }
+    return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.REPLACE_THREAD;
   }
 
   public Map<String, Object> getOverriddenProperties() {
@@ -193,8 +193,7 @@ public abstract class QueryMetadata {
     return statementString;
   }
 
-  @SuppressWarnings("deprecation") // https://github.com/confluentinc/ksql/issues/6639
-  public void setUncaughtExceptionHandler(final UncaughtExceptionHandler handler) {
+  public void setUncaughtExceptionHandler(final StreamsUncaughtExceptionHandler handler) {
     
     this.uncaughtExceptionHandler = handler;
     kafkaStreams.setUncaughtExceptionHandler(handler);

@@ -140,7 +140,8 @@ public class QueryMonitor implements Closeable {
         switch (queryMetadata.getState()) {
           case ERROR:
             if (now >= retryEvent.nextRestartTimeMs()) {
-              retryEvent.restart(queryMetadata);
+//              retryEvent.restart(queryMetadata);
+              LOG.error("Query has encountered an unexpected error: " + queryMetadata);
             }
             break;
           case RUNNING:

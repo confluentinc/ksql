@@ -63,6 +63,7 @@ import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
@@ -79,7 +80,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class ExpressionTypeManager {
 
@@ -445,10 +445,13 @@ public class ExpressionTypeManager {
       }
 
       if (functionRegistry.isTableFunction(node.getName())) {
-        final List<SqlType> argumentTypes = node.getArguments().isEmpty()
-            ? ImmutableList.of(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA)
-            : node.getArguments().stream().map(ExpressionTypeManager.this::getExpressionSqlType)
-                .collect(Collectors.toList());
+        final List<SqlArgument> argumentTypes = node.getArguments().isEmpty()
+            ? ImmutableList.of(
+                SqlArgument.of(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA))
+            : new ArrayList<>();
+        for (final Expression e : node.getArguments()) {
+          argumentTypes.add(SqlArgument.of(getExpressionSqlType(e)));
+        }
 
         final KsqlTableFunction tableFunction = functionRegistry
             .getTableFunction(node.getName(), argumentTypes);
@@ -459,10 +462,10 @@ public class ExpressionTypeManager {
 
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
 
-      final List<SqlType> argTypes = new ArrayList<>();
+      final List<SqlArgument> argTypes = new ArrayList<>();
       for (final Expression expression : node.getArguments()) {
         process(expression, expressionTypeContext);
-        argTypes.add(expressionTypeContext.getSqlType());
+        argTypes.add(SqlArgument.of(expressionTypeContext.getSqlType()));
       }
 
       final SqlType returnSchema = udfFactory.getFunction(argTypes).getReturnType(argTypes);

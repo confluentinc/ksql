@@ -16,7 +16,9 @@
 package io.confluent.ksql.function.udaf.topkdistinct;
 
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+
 import java.util.Collections;
 
 public class TopKDistinctTestUtils {
@@ -25,7 +27,7 @@ public class TopKDistinctTestUtils {
       final int topk, final SqlType schema) {
     return (TopkDistinctKudaf<T>) new TopkDistinctAggFunctionFactory()
         .createAggregateFunction(
-            Collections.singletonList(schema),
+            Collections.singletonList(SqlArgument.of(schema)),
             new AggregateFunctionInitArguments(0, topk));
   }
 }

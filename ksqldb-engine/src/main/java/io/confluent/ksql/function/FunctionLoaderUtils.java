@@ -24,6 +24,7 @@ import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -142,7 +143,7 @@ public final class FunctionLoaderUtils {
       final String functionName,
       final boolean isVariadic
   ) {
-    final Function<List<SqlType>, SqlType> schemaProvider;
+    final Function<List<SqlArgument>, SqlType> schemaProvider;
     if (!Udf.NO_SCHEMA_PROVIDER.equals(schemaProviderFunctionName)) {
       schemaProvider = handleUdfSchemaProviderAnnotation(
           schemaProviderFunctionName, theClass, functionName);
@@ -181,10 +182,11 @@ public final class FunctionLoaderUtils {
         // we resolve any variadic as if it were an array so that the type
         // structure matches the input type
         final SqlType instance = isVariadic && i == parameters.size() - 1
-            ? SqlTypes.array(arguments.get(i))
-            : arguments.get(i);
+            ? SqlTypes.array(arguments.get(i).getSqlType())
+            : arguments.get(i).getSqlType();
 
-        genericMapping.putAll(GenericsUtil.resolveGenerics(schema, instance));
+        genericMapping.putAll(
+            GenericsUtil.resolveGenerics(schema, SqlArgument.of(instance)));
       }
 
       return GenericsUtil.applyResolved(javaReturnSchema, genericMapping);
@@ -201,7 +203,7 @@ public final class FunctionLoaderUtils {
     }
   }
 
-  private static Function<List<SqlType>, SqlType> handleUdfSchemaProviderAnnotation(
+  private static Function<List<SqlArgument>, SqlType> handleUdfSchemaProviderAnnotation(
       final String schemaProviderName,
       final Class theClass,
       final String functionName
@@ -238,7 +240,7 @@ public final class FunctionLoaderUtils {
   private static SqlType invokeSchemaProviderMethod(
       final Object instance,
       final Method m,
-      final List<SqlType> args,
+      final List<SqlArgument> args,
       final String functionName
   ) {
     try {

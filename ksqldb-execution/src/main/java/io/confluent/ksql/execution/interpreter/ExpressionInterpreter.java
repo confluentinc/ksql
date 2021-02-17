@@ -401,7 +401,7 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
       final Pair<Object, SqlType> left = process(node.getLeft(), context);
       final Pair<Object, SqlType> right = process(node.getRight(), context);
       if (!(left.getRight().baseType() == SqlBaseType.BOOLEAN
-          && left.getRight().baseType() == SqlBaseType.BOOLEAN)) {
+          && right.getRight().baseType() == SqlBaseType.BOOLEAN)) {
         throw new KsqlException(
             format("Logical binary expects two boolean values.  Actual %s and %s",
                 left.getRight(), right.getRight()));

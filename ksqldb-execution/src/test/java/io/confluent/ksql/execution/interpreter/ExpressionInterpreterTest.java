@@ -107,11 +107,6 @@ public class ExpressionInterpreterTest {
       new BigDecimal("3.4"), new BigDecimal("8.9"), new Timestamp(1234), true
   ));
 
-  private GenericRow ROW2 = new GenericRow().appendAll(ImmutableList.of(
-      30, "A", "b", -20.8, ImmutableList.of(2.5), ImmutableMap.of(123, 6.7), ADDRESS, 35,
-      new BigDecimal("3.4"), new BigDecimal("8.9"), new Timestamp(1234), false
-  ));
-
   @Mock
   private FunctionRegistry functionRegistry;
 

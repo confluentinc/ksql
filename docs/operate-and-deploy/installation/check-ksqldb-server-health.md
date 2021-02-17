@@ -13,7 +13,7 @@ Check the streams, tables, and queries on the ksqlDB Server that you're
 connected to by using the DESCRIBE EXTENDED and EXPLAIN statements
 in the ksqlDB CLI.
 
--   Run SHOW STREAMS or SHOW TABLES, then run `DESCRIBE EXTENDED <stream|table>`.
+-   Run SHOW STREAMS or SHOW TABLES, then run `DESCRIBE <stream|table> EXTENDED`.
 -   Run SHOW QUERIES, then run `EXPLAIN <query-name>`.
 
 Check a ksqlDB Server running in a native deployment

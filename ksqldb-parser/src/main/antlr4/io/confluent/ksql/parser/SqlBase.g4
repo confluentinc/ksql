@@ -54,7 +54,8 @@ statement
     | (LIST | SHOW) (SOURCE | SINK)? CONNECTORS                             #listConnectors
     | (LIST | SHOW) TYPES                                                   #listTypes
     | (LIST | SHOW) VARIABLES                                               #listVariables
-    | DESCRIBE EXTENDED? sourceName                                         #showColumns
+    | DESCRIBE sourceName EXTENDED?                                         #showColumns
+    | DESCRIBE STREAMS EXTENDED?                                            #describeStreams
     | DESCRIBE FUNCTION identifier                                          #describeFunction
     | DESCRIBE CONNECTOR identifier                                         #describeConnector
     | PRINT (identifier| STRING) printClause                                #printTopic

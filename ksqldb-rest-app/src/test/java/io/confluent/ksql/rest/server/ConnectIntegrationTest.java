@@ -76,7 +76,7 @@ public class ConnectIntegrationTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConnectIntegrationTest.class);
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
-  private  static final long TIMEOUT_NS = 60000000000L;
+  private  static final long TIMEOUT_NS = 120000000000L;
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
@@ -255,7 +255,7 @@ public class ConnectIntegrationTest {
   }
 
   @Test
-  public void shouldReadTimestampsFromConnect() throws UnsupportedEncodingException {
+  public void shouldReadTimestampsFromConnect() {
     // Given:
     create("mock-source", ImmutableMap.<String, String> builder()
         .put("connector.class", "org.apache.kafka.connect.tools.VerifiableSourceConnector")
@@ -296,8 +296,8 @@ public class ConnectIntegrationTest {
 
     // Then:
     Iterable<String> sinkOutputParts = Arrays.asList(
-        "{\"task\":null,\"seqno\":{\"PAYLOAD\":1},\"offset\":1,\"time_ms\":",
-        ",\"name\":\"mock-sink\",\"topic\":\"BAR\",\"sinkTask\":0}"
+        "{\"task\":null,\"seqno\":{\"PAYLOAD\":0},\"offset\":0,\"time_ms\":",
+        ",\"name\":\"mock-sink\",\"topic\":\"BAR\""
     );
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     System.setOut(new PrintStream(out, true, "UTF-8"));

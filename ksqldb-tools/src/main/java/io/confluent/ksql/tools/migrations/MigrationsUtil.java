@@ -20,7 +20,10 @@ import io.confluent.ksql.api.client.ClientOptions;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-public class MigrationsUtil {
+public final class MigrationsUtil {
+
+  private MigrationsUtil() {
+  }
 
   public static Client getKsqlClient(final String ksqlServerUrl) throws MigrationException {
     final URL url;

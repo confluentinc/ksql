@@ -16,6 +16,7 @@
 package io.confluent.ksql.tools.migrations.commands;
 
 import com.github.rvesse.airline.annotations.Command;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
@@ -70,7 +71,7 @@ public class InitializeMigrationCommand extends BaseCommand {
   }
 
   @Override
-  @SuppressWarnings("DM_EXIT")
+  @SuppressFBWarnings("DM_EXIT")
   public void run() {
     final long startTime = System.currentTimeMillis();
 

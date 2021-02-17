@@ -20,7 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
@@ -45,7 +45,7 @@ final class GroupByParamsV1Factory {
 
   public static LogicalSchema buildSchema(
       final LogicalSchema sourceSchema,
-      final List<ExpressionMetadata> groupBys
+      final List<CompiledExpression> groupBys
   ) {
     final ProcessingLogger logger = NoopProcessingLogContext.NOOP_LOGGER;
 
@@ -55,7 +55,7 @@ final class GroupByParamsV1Factory {
 
   public static GroupByParams build(
       final LogicalSchema sourceSchema,
-      final List<ExpressionMetadata> groupBys,
+      final List<CompiledExpression> groupBys,
       final ProcessingLogger logger
   ) {
     if (groupBys.isEmpty()) {
@@ -69,7 +69,7 @@ final class GroupByParamsV1Factory {
 
   private static Grouper buildGrouper(
       final LogicalSchema sourceSchema,
-      final List<ExpressionMetadata> groupBys,
+      final List<CompiledExpression> groupBys,
       final ProcessingLogger logger
   ) {
     return groupBys.size() == 1
@@ -90,7 +90,7 @@ final class GroupByParamsV1Factory {
 
   private static Object processColumn(
       final int index,
-      final ExpressionMetadata exp,
+      final CompiledExpression exp,
       final GenericRow row,
       final ProcessingLogger logger
   ) {
@@ -125,12 +125,12 @@ final class GroupByParamsV1Factory {
   private static final class SingleExpressionGrouper implements Grouper {
 
     private final LogicalSchema schema;
-    private final ExpressionMetadata groupBy;
+    private final CompiledExpression groupBy;
     private final ProcessingLogger logger;
 
     SingleExpressionGrouper(
         final LogicalSchema sourceSchema,
-        final ExpressionMetadata groupBy,
+        final CompiledExpression groupBy,
         final ProcessingLogger logger
     ) {
       this.schema = singleExpressionSchema(sourceSchema, groupBy);
@@ -155,7 +155,7 @@ final class GroupByParamsV1Factory {
 
     private static LogicalSchema singleExpressionSchema(
         final LogicalSchema sourceSchema,
-        final ExpressionMetadata groupBy
+        final CompiledExpression groupBy
     ) {
       final SqlType keyType = groupBy.getExpressionType();
       final Expression groupByExp = groupBy.getExpression();
@@ -171,12 +171,12 @@ final class GroupByParamsV1Factory {
   private static final class MultiExpressionGrouper implements Grouper {
 
     private final LogicalSchema schema;
-    private final ImmutableList<ExpressionMetadata> groupBys;
+    private final ImmutableList<CompiledExpression> groupBys;
     private final ProcessingLogger logger;
 
     MultiExpressionGrouper(
         final LogicalSchema sourceSchema,
-        final List<ExpressionMetadata> groupBys,
+        final List<CompiledExpression> groupBys,
         final ProcessingLogger logger
     ) {
       this.schema = multiExpressionSchema(sourceSchema);

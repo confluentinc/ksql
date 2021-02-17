@@ -11,7 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
@@ -33,7 +33,7 @@ public class TableFunctionApplierTest {
   @Mock
   private KsqlTableFunction tableFunction;
   @Mock
-  private ExpressionMetadata paramExtractor;
+  private CompiledExpression paramExtractor;
   @Mock
   private ProcessingLogger processingLogger;
   private TableFunctionApplier applier;

@@ -23,9 +23,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
-import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper.SelectInfo;
 import io.confluent.ksql.name.ColumnName;
@@ -43,9 +41,9 @@ public class SelectValueMapperFactoryTest {
   @Mock
   private SelectExpression select_1;
   @Mock
-  private ExpressionMetadata md_0;
+  private CompiledExpression md_0;
   @Mock
-  private ExpressionMetadata md_1;
+  private CompiledExpression md_1;
 
   @Before
   public void setUp() {

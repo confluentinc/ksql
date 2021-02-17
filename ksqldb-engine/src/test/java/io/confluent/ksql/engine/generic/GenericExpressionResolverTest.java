@@ -32,7 +32,7 @@ import org.junit.Test;
 
 /**
  * NOTE: most of the functional test coverage is in DefaultSqlValueCoercerTest
- * or ExpressionMetadataTest, this test class just covers the functionality
+ * or CompiledExpressionTest, this test class just covers the functionality
  * in the GenericExpressionResolver
  */
 public class GenericExpressionResolverTest {

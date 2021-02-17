@@ -34,7 +34,7 @@ import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
-import io.confluent.ksql.execution.interpreter.Interpreter;
+import io.confluent.ksql.execution.interpreter.InterpretedExpressionFactory;
 import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
@@ -825,7 +825,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
       final KsqlConfig ksqlConfig) {
 
     if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)) {
-      return Interpreter.create(
+      return InterpretedExpressionFactory.create(
           expression,
           schema,
           metaStore,

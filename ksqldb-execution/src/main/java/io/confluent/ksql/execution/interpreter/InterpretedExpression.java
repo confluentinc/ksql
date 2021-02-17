@@ -22,6 +22,7 @@ import static io.confluent.ksql.execution.interpreter.ComparisonInterpreter.doEq
 import static io.confluent.ksql.schema.ksql.SchemaConverters.sqlToFunctionConverter;
 import static java.lang.String.format;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -110,7 +111,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
-public class ExpressionInterpreter implements ExpressionEvaluator {
+public class InterpretedExpression implements ExpressionEvaluator {
 
   private final ExpressionTypeManager expressionTypeManager;
   private final FunctionRegistry functionRegistry;
@@ -119,20 +120,22 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
   private final Expression expression;
   private final SqlType expressionType;
 
-  public ExpressionInterpreter(final FunctionRegistry functionRegistry,
+  public InterpretedExpression(final FunctionRegistry functionRegistry,
       final LogicalSchema schema,
       final KsqlConfig ksqlConfig,
       final Expression expression,
-      final SqlType expressionType) {
+      final SqlType expressionType,
+      final ExpressionTypeManager expressionTypeManager) {
     this.ksqlConfig = ksqlConfig;
     this.expression = expression;
     this.expressionType = expressionType;
-    this.expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
+    this.expressionTypeManager = expressionTypeManager;
     this.functionRegistry = functionRegistry;
     this.schema = schema;
   }
 
-  public Object evaluate(final GenericRow row) {
+  @VisibleForTesting
+  Object evaluate(final GenericRow row) {
     final Pair<Object, SqlType> evaluator =
         new Evaluator(row).process(expression, null);
     return evaluator.getLeft();
@@ -159,7 +162,7 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
 
   @Override
   public Expression getExpression() {
-    return null;
+    return expression;
   }
 
   public SqlType getExpressionType() {
@@ -326,6 +329,7 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
       return new Pair<>(dereference, functionReturnSchema);
     }
 
+    @Override
     public Pair<Object, SqlType> visitLongLiteral(final LongLiteral node, final Void context) {
       return new Pair<>(node.getValue(), SqlTypes.BIGINT);
     }
@@ -579,29 +583,9 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
 
       final SqlType schema = expressionTypeManager.getExpressionSqlType(node);
 
-      if (schema.baseType() == SqlBaseType.DECIMAL) {
-        final SqlDecimal decimal = (SqlDecimal) schema;
-        final BigDecimal leftExpr = (BigDecimal) CastInterpreter.cast(left.left, left.right,
-            DecimalUtil.toSqlDecimal(left.right), ksqlConfig);
-        final BigDecimal rightExpr = (BigDecimal) CastInterpreter.cast(right.left, right.right,
-            DecimalUtil.toSqlDecimal(right.right), ksqlConfig);
-        return new Pair<>(
-            ArithmeticInterpreter.apply(decimal, node.getOperator(), leftExpr, rightExpr),
-            schema);
-      } else {
-        final Object leftObject =
-            left.getRight().baseType() == SqlBaseType.DECIMAL
-                ? CastInterpreter.cast(left.left, left.right, SqlTypes.DOUBLE, ksqlConfig)
-                : left.getLeft();
-        final Object rightObject =
-            right.getRight().baseType() == SqlBaseType.DECIMAL
-                ? CastInterpreter.cast(right.left, right.right, SqlTypes.DOUBLE, ksqlConfig)
-                : right.getLeft();
-
-        final Object result = ArithmeticInterpreter.doArithmetic(
-            node, left.getRight(), right.getRight(), leftObject, rightObject);
-        return new Pair<>(result, schema);
-      }
+      final Object result = ArithmeticInterpreter.doArithmetic(
+          node, left, right, schema, ksqlConfig);
+      return new Pair<>(result, schema);
     }
 
     @Override

@@ -20,7 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
@@ -44,7 +44,7 @@ final class GroupByParamsFactory {
 
   public static LogicalSchema buildSchema(
       final LogicalSchema sourceSchema,
-      final List<ExpressionMetadata> groupBys
+      final List<CompiledExpression> groupBys
   ) {
     final ProcessingLogger logger = NoopProcessingLogContext.NOOP_LOGGER;
 
@@ -54,7 +54,7 @@ final class GroupByParamsFactory {
 
   public static GroupByParams build(
       final LogicalSchema sourceSchema,
-      final List<ExpressionMetadata> groupBys,
+      final List<CompiledExpression> groupBys,
       final ProcessingLogger logger
   ) {
     if (groupBys.isEmpty()) {
@@ -68,7 +68,7 @@ final class GroupByParamsFactory {
 
   private static Grouper buildGrouper(
       final LogicalSchema sourceSchema,
-      final List<ExpressionMetadata> groupBys,
+      final List<CompiledExpression> groupBys,
       final ProcessingLogger logger
   ) {
     return new ExpressionGrouper(sourceSchema, groupBys, logger);
@@ -76,7 +76,7 @@ final class GroupByParamsFactory {
 
   private static Object processColumn(
       final int index,
-      final ExpressionMetadata exp,
+      final CompiledExpression exp,
       final GenericRow row,
       final ProcessingLogger logger
   ) {
@@ -111,12 +111,12 @@ final class GroupByParamsFactory {
   private static final class ExpressionGrouper implements Grouper {
 
     private final LogicalSchema schema;
-    private final ImmutableList<ExpressionMetadata> groupBys;
+    private final ImmutableList<CompiledExpression> groupBys;
     private final ProcessingLogger logger;
 
     ExpressionGrouper(
         final LogicalSchema sourceSchema,
-        final List<ExpressionMetadata> groupBys,
+        final List<CompiledExpression> groupBys,
         final ProcessingLogger logger
     ) {
       this.schema = expressionSchema(sourceSchema, groupBys);
@@ -152,13 +152,13 @@ final class GroupByParamsFactory {
 
   private static LogicalSchema expressionSchema(
       final LogicalSchema sourceSchema,
-      final List<ExpressionMetadata> groupBys
+      final List<CompiledExpression> groupBys
   ) {
     final ColumnAliasGenerator columnAliasGenerator =
         ColumnNames.columnAliasGenerator(Stream.of(sourceSchema));
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
 
-    for (final ExpressionMetadata groupBy : groupBys) {
+    for (final CompiledExpression groupBy : groupBys) {
       final Expression groupByExp = groupBy.getExpression();
 
       final ColumnName columnName = groupByExp instanceof ColumnReferenceExp

@@ -59,6 +59,7 @@ import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
+import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
@@ -85,7 +86,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-public class ExpressionInterpreterTest {
+public class InterpretedExpressionTest {
 
   public final static Schema ADDRESS_SCHEMA = SchemaBuilder.struct()
       .field("NUMBER", SchemaBuilder.int64())
@@ -120,13 +121,16 @@ public class ExpressionInterpreterTest {
     ksqlConfig = new KsqlConfig(Collections.emptyMap());
   }
 
-  private ExpressionInterpreter interpreter(Expression expression) {
-    return new ExpressionInterpreter(
+  private InterpretedExpression interpreter(Expression expression) {
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(SCHEMA,
+        functionRegistry);
+    return new InterpretedExpression(
         functionRegistry,
         SCHEMA,
         ksqlConfig,
         expression,
-        null
+        null,
+        expressionTypeManager
     );
   }
 
@@ -164,9 +168,9 @@ public class ExpressionInterpreterTest {
     );
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(expression1);
-    ExpressionInterpreter interpreter2 = interpreter(expression2);
-    ExpressionInterpreter interpreter3 = interpreter(expression3);
+    InterpretedExpression interpreter1 = interpreter(expression1);
+    InterpretedExpression interpreter2 = interpreter(expression2);
+    InterpretedExpression interpreter3 = interpreter(expression3);
 
     // Then:
     assertThat(interpreter1.evaluate(make(3, 5)), is(true));
@@ -197,9 +201,9 @@ public class ExpressionInterpreterTest {
     );
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(expression1);
-    ExpressionInterpreter interpreter2 = interpreter(expression2);
-    ExpressionInterpreter interpreter3 = interpreter(expression3);
+    InterpretedExpression interpreter1 = interpreter(expression1);
+    InterpretedExpression interpreter2 = interpreter(expression2);
+    InterpretedExpression interpreter3 = interpreter(expression3);
 
     // Then:
     assertThat(interpreter1.evaluate(make(7, 30)), is(true));
@@ -245,12 +249,12 @@ public class ExpressionInterpreterTest {
     );
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(expression1);
-    ExpressionInterpreter interpreter2 = interpreter(expression2);
-    ExpressionInterpreter interpreter3 = interpreter(expression3);
-    ExpressionInterpreter interpreter4 = interpreter(expression4);
-    ExpressionInterpreter interpreter5 = interpreter(expression5);
-    ExpressionInterpreter interpreter6 = interpreter(expression6);
+    InterpretedExpression interpreter1 = interpreter(expression1);
+    InterpretedExpression interpreter2 = interpreter(expression2);
+    InterpretedExpression interpreter3 = interpreter(expression3);
+    InterpretedExpression interpreter4 = interpreter(expression4);
+    InterpretedExpression interpreter5 = interpreter(expression5);
+    InterpretedExpression interpreter6 = interpreter(expression6);
 
     // Then:
     assertThat(interpreter1.evaluate(make(8, new BigDecimal("3.4"))), is(true));
@@ -282,8 +286,8 @@ public class ExpressionInterpreterTest {
     );
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(expression1);
-    ExpressionInterpreter interpreter2 = interpreter(expression2);
+    InterpretedExpression interpreter1 = interpreter(expression1);
+    InterpretedExpression interpreter2 = interpreter(expression2);
 
     // Then:
     assertThat(interpreter1.evaluate(make(11, true)), is(true));
@@ -307,8 +311,8 @@ public class ExpressionInterpreterTest {
     );
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(expression1);
-    ExpressionInterpreter interpreter2 = interpreter(expression2);
+    InterpretedExpression interpreter1 = interpreter(expression1);
+    InterpretedExpression interpreter2 = interpreter(expression2);
 
     // Then:
     assertThat(interpreter1.evaluate(make(11, true)), is(true));
@@ -327,7 +331,7 @@ public class ExpressionInterpreterTest {
     when(udf.parameters()).thenReturn(ImmutableList.of(GenericType.of("T"), GenericType.of("T")));
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(
+    InterpretedExpression interpreter1 = interpreter(
         new FunctionCall(
             FunctionName.of("FOO"),
             ImmutableList.of(
@@ -351,7 +355,7 @@ public class ExpressionInterpreterTest {
     when(udf.parameters()).thenReturn(ImmutableList.of(IntegerType.INSTANCE, IntegerType.INSTANCE));
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(
+    InterpretedExpression interpreter1 = interpreter(
         new FunctionCall(
             FunctionName.of("FOO"),
             ImmutableList.of(
@@ -377,8 +381,8 @@ public class ExpressionInterpreterTest {
     );
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(expression1);
-    ExpressionInterpreter interpreter2 = interpreter(expression2);
+    InterpretedExpression interpreter1 = interpreter(expression1);
+    InterpretedExpression interpreter2 = interpreter(expression2);
 
     // Then:
     assertThat(interpreter1.evaluate(make(11, true)), is(false));
@@ -397,8 +401,8 @@ public class ExpressionInterpreterTest {
     );
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(expression1);
-    ExpressionInterpreter interpreter2 = interpreter(expression2);
+    InterpretedExpression interpreter1 = interpreter(expression1);
+    InterpretedExpression interpreter2 = interpreter(expression2);
 
     // Then:
     assertThat(interpreter1.evaluate(make(11, true)), is(true));
@@ -427,10 +431,10 @@ public class ExpressionInterpreterTest {
     );
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(cast1);
-    ExpressionInterpreter interpreter2 = interpreter(cast2);
-    ExpressionInterpreter interpreter3 = interpreter(cast3);
-    ExpressionInterpreter interpreter4 = interpreter(cast4);
+    InterpretedExpression interpreter1 = interpreter(cast1);
+    InterpretedExpression interpreter2 = interpreter(cast2);
+    InterpretedExpression interpreter3 = interpreter(cast3);
+    InterpretedExpression interpreter4 = interpreter(cast4);
 
     // Then:
     assertThat(interpreter1.evaluate(ROW), is(10));
@@ -460,10 +464,10 @@ public class ExpressionInterpreterTest {
     );
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(cast1);
-    ExpressionInterpreter interpreter2 = interpreter(cast2);
-    ExpressionInterpreter interpreter3 = interpreter(cast3);
-    ExpressionInterpreter interpreter4 = interpreter(cast4);
+    InterpretedExpression interpreter1 = interpreter(cast1);
+    InterpretedExpression interpreter2 = interpreter(cast2);
+    InterpretedExpression interpreter3 = interpreter(cast3);
+    InterpretedExpression interpreter4 = interpreter(cast4);
 
     // Then:
     assertThat(interpreter1.evaluate(ROW), is(10L));
@@ -493,10 +497,10 @@ public class ExpressionInterpreterTest {
     );
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(cast1);
-    ExpressionInterpreter interpreter2 = interpreter(cast2);
-    ExpressionInterpreter interpreter3 = interpreter(cast3);
-    ExpressionInterpreter interpreter4 = interpreter(cast4);
+    InterpretedExpression interpreter1 = interpreter(cast1);
+    InterpretedExpression interpreter2 = interpreter(cast2);
+    InterpretedExpression interpreter3 = interpreter(cast3);
+    InterpretedExpression interpreter4 = interpreter(cast4);
 
     // Then:
     assertThat(interpreter1.evaluate(ROW), is(10d));
@@ -526,10 +530,10 @@ public class ExpressionInterpreterTest {
     );
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(cast1);
-    ExpressionInterpreter interpreter2 = interpreter(cast2);
-    ExpressionInterpreter interpreter3 = interpreter(cast3);
-    ExpressionInterpreter interpreter4 = interpreter(cast4);
+    InterpretedExpression interpreter1 = interpreter(cast1);
+    InterpretedExpression interpreter2 = interpreter(cast2);
+    InterpretedExpression interpreter3 = interpreter(cast3);
+    InterpretedExpression interpreter4 = interpreter(cast4);
 
     // Then:
     assertThat(interpreter1.evaluate(ROW), is(BigDecimal.valueOf(10L).setScale(1)));
@@ -559,10 +563,10 @@ public class ExpressionInterpreterTest {
     );
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(cast1);
-    ExpressionInterpreter interpreter2 = interpreter(cast2);
-    ExpressionInterpreter interpreter3 = interpreter(cast3);
-    ExpressionInterpreter interpreter4 = interpreter(cast4);
+    InterpretedExpression interpreter1 = interpreter(cast1);
+    InterpretedExpression interpreter2 = interpreter(cast2);
+    InterpretedExpression interpreter3 = interpreter(cast3);
+    InterpretedExpression interpreter4 = interpreter(cast4);
 
     // Then:
     assertThat(interpreter1.evaluate(ROW), is("10"));
@@ -591,9 +595,9 @@ public class ExpressionInterpreterTest {
     );
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(cast1);
-    ExpressionInterpreter interpreter2 = interpreter(cast2);
-    ExpressionInterpreter interpreter3 = interpreter(cast3);
+    InterpretedExpression interpreter1 = interpreter(cast1);
+    InterpretedExpression interpreter2 = interpreter(cast2);
+    InterpretedExpression interpreter3 = interpreter(cast3);
 
     // Then:
     assertThat(interpreter1.evaluate(ROW), is(ImmutableList.of(1, 2)));
@@ -618,8 +622,8 @@ public class ExpressionInterpreterTest {
     );
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(cast1);
-    ExpressionInterpreter interpreter2 = interpreter(cast2);
+    InterpretedExpression interpreter1 = interpreter(cast1);
+    InterpretedExpression interpreter2 = interpreter(cast2);
 
     // Then:
     assertThat(interpreter1.evaluate(ROW), is(ImmutableMap.of(1, 2, 3, 4)));
@@ -657,14 +661,14 @@ public class ExpressionInterpreterTest {
     );
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(expression1);
-    ExpressionInterpreter interpreter2 = interpreter(expression2);
-    ExpressionInterpreter interpreter3 = interpreter(expression3);
-    ExpressionInterpreter interpreter4 = interpreter(expression4);
-    ExpressionInterpreter interpreter5 = interpreter(expression5);
-    ExpressionInterpreter interpreter6 = interpreter(expression6);
-    ExpressionInterpreter interpreter7 = interpreter(expression7);
-    ExpressionInterpreter interpreter8 = interpreter(expression8);
+    InterpretedExpression interpreter1 = interpreter(expression1);
+    InterpretedExpression interpreter2 = interpreter(expression2);
+    InterpretedExpression interpreter3 = interpreter(expression3);
+    InterpretedExpression interpreter4 = interpreter(expression4);
+    InterpretedExpression interpreter5 = interpreter(expression5);
+    InterpretedExpression interpreter6 = interpreter(expression6);
+    InterpretedExpression interpreter7 = interpreter(expression7);
+    InterpretedExpression interpreter8 = interpreter(expression8);
 
 
     // Then:
@@ -725,8 +729,8 @@ public class ExpressionInterpreterTest {
     );
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(case1);
-    ExpressionInterpreter interpreter2 = interpreter(case2);
+    InterpretedExpression interpreter1 = interpreter(case1);
+    InterpretedExpression interpreter2 = interpreter(case2);
 
     // Then:
     assertThat(interpreter1.evaluate(make(7, 12)), is("Large"));
@@ -752,9 +756,9 @@ public class ExpressionInterpreterTest {
 
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(expression1);
-    ExpressionInterpreter interpreter2 = interpreter(expression2);
-    ExpressionInterpreter interpreter3 = interpreter(expression3);
+    InterpretedExpression interpreter1 = interpreter(expression1);
+    InterpretedExpression interpreter2 = interpreter(expression2);
+    InterpretedExpression interpreter3 = interpreter(expression3);
 
     // Then:
     assertThat(interpreter1.evaluate(ROW), is(true));
@@ -774,7 +778,7 @@ public class ExpressionInterpreterTest {
 
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(expression1);
+    InterpretedExpression interpreter1 = interpreter(expression1);
 
     // Then:
     assertThat(interpreter1.evaluate(ROW), is(
@@ -802,7 +806,7 @@ public class ExpressionInterpreterTest {
 
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(expression1);
+    InterpretedExpression interpreter1 = interpreter(expression1);
 
     // Then:
     assertThat(interpreter1.evaluate(ROW), is(10));
@@ -824,8 +828,8 @@ public class ExpressionInterpreterTest {
     );
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(expression1);
-    ExpressionInterpreter interpreter2 = interpreter(expression2);
+    InterpretedExpression interpreter1 = interpreter(expression1);
+    InterpretedExpression interpreter2 = interpreter(expression2);
 
     // Then:
     assertThat(interpreter1.evaluate(ROW), is("1"));
@@ -849,10 +853,10 @@ public class ExpressionInterpreterTest {
     );
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(expression1);
-    ExpressionInterpreter interpreter2 = interpreter(expression2);
-    ExpressionInterpreter interpreter3 = interpreter(expression3);
-    ExpressionInterpreter interpreter4 = interpreter(expression4);
+    InterpretedExpression interpreter1 = interpreter(expression1);
+    InterpretedExpression interpreter2 = interpreter(expression2);
+    InterpretedExpression interpreter3 = interpreter(expression3);
+    InterpretedExpression interpreter4 = interpreter(expression4);
 
     // Then:
     assertThat(interpreter1.evaluate(ROW), is(true));
@@ -878,10 +882,10 @@ public class ExpressionInterpreterTest {
     );
 
     // When:
-    ExpressionInterpreter interpreter1 = interpreter(expression1);
-    ExpressionInterpreter interpreter2 = interpreter(expression2);
-    ExpressionInterpreter interpreter3 = interpreter(expression3);
-    ExpressionInterpreter interpreter4 = interpreter(expression4);
+    InterpretedExpression interpreter1 = interpreter(expression1);
+    InterpretedExpression interpreter2 = interpreter(expression2);
+    InterpretedExpression interpreter3 = interpreter(expression3);
+    InterpretedExpression interpreter4 = interpreter(expression4);
 
     // Then:
     assertThat(interpreter1.evaluate(ROW), is(1));

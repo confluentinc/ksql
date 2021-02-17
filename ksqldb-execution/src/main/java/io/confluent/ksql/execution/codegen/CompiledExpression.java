@@ -31,7 +31,7 @@ import java.util.function.Supplier;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 @Immutable
-public class ExpressionMetadata implements ExpressionEvaluator {
+public class CompiledExpression implements ExpressionEvaluator {
 
   @EffectivelyImmutable
   private final IExpressionEvaluator expressionEvaluator;
@@ -40,7 +40,7 @@ public class ExpressionMetadata implements ExpressionEvaluator {
   private final Expression expression;
   private final CodeGenSpec spec;
 
-  public ExpressionMetadata(
+  public CompiledExpression(
       final IExpressionEvaluator expressionEvaluator,
       final CodeGenSpec spec,
       final SqlType expressionType,

@@ -20,7 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.execution.transform.select.SelectValueMapper.SelectInfo;
@@ -77,7 +77,7 @@ public final class SelectValueMapperFactory {
   }
 
   private SelectInfo buildSelect(final SelectExpression selectExpression) {
-    final ExpressionMetadata evaluator = codeGenerator
+    final CompiledExpression evaluator = codeGenerator
         .buildCodeGenFromParseTree(selectExpression.getExpression(), EXP_TYPE);
 
     return SelectInfo.of(

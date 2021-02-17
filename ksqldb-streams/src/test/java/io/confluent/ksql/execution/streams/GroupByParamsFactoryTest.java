@@ -30,7 +30,7 @@ import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -69,9 +69,9 @@ public class GroupByParamsFactoryTest {
       .build();
 
   @Mock
-  private ExpressionMetadata groupBy0;
+  private CompiledExpression groupBy0;
   @Mock
-  private ExpressionMetadata groupBy1;
+  private CompiledExpression groupBy1;
   @Mock
   private GenericRow value;
   @Mock

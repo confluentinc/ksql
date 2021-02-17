@@ -20,7 +20,7 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.Formats;
@@ -62,7 +62,7 @@ class TableGroupByBuilderBase {
   ) {
     final LogicalSchema sourceSchema = table.getSchema();
 
-    final List<ExpressionMetadata> groupBy = CodeGenRunner.compileExpressions(
+    final List<CompiledExpression> groupBy = CodeGenRunner.compileExpressions(
         groupByExpressions.stream(),
         "Group By",
         sourceSchema,
@@ -123,7 +123,7 @@ class TableGroupByBuilderBase {
 
     GroupByParams build(
         LogicalSchema sourceSchema,
-        List<ExpressionMetadata> groupBys,
+        List<CompiledExpression> groupBys,
         ProcessingLogger logger
     );
   }

@@ -19,7 +19,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.interpreter.Interpreter;
+import io.confluent.ksql.execution.interpreter.InterpretedExpressionFactory;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
@@ -249,7 +249,7 @@ public class PullProjectNode extends ProjectNode {
       final KsqlConfig ksqlConfig) {
 
     if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)) {
-      return Interpreter.create(
+      return InterpretedExpressionFactory.create(
           expression,
           schema,
           metaStore,

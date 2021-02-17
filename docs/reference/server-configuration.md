@@ -523,9 +523,9 @@ request can be useful when throwing an error is preferable to doing the potentia
 
 **Per query:** no
 
-Config to control whether pull queries use the interpreter as their expression
-evaluator, or the code compiler which is the default. The code compiler is used
-for persistent and push queries, which are naturally longer lived than pull queries.  The overhead of compilation slows down pull queries significantly, so using an
+Controls whether pull queries use the interpreter or the code compiler as their expression
+evaluator. The code compiler is the default. The code compiler is used
+for persistent and push queries, which are naturally longer-lived than pull queries. The overhead of compilation slows down pull queries significantly, so using an
 interpreter gives significant performance gains.
 
 This will likely become the default for pull queries in the future.

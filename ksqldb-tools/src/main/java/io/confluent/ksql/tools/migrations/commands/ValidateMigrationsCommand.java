@@ -32,7 +32,7 @@ import com.github.rvesse.airline.annotations.help.Discussion;
 public class ValidateMigrationsCommand extends BaseCommand {
 
   @Override
-  public void run() {
+  protected void command() {
     throw new UnsupportedOperationException();
   }
 

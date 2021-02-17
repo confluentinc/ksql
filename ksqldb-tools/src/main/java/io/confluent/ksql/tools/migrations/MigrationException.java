@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"; you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -13,19 +13,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.tools.migrations.commands;
+package io.confluent.ksql.tools.migrations;
 
-import com.github.rvesse.airline.annotations.Command;
-
-@Command(
-    name = "new",
-    description = "Cleans all resources related to migrations. WARNING: this is not reversible!"
-)
-public class CleanMigrationsCommand extends BaseCommand {
-
-  @Override
-  public void command() {
-    throw new UnsupportedOperationException();
+public class MigrationException extends RuntimeException {
+  public MigrationException(final String message) {
+    super(message);
   }
-
 }

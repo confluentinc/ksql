@@ -48,7 +48,7 @@ public class CreateMigrationCommand extends BaseCommand {
   private String description;
 
   @Override
-  public void run() {
+  public void command() {
     throw new UnsupportedOperationException();
   }
 }

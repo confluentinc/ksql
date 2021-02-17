@@ -24,8 +24,6 @@ import java.io.IOException;
 import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Command(
     name = "new",
@@ -33,23 +31,17 @@ import org.slf4j.LoggerFactory;
 )
 public class NewMigrationCommand extends BaseCommand {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(NewMigrationCommand.class);
-
   @Required
   @Arguments(description = "the project path to create the directory", title = "project-path")
   private String projectPath;
 
   @Override
   @SuppressFBWarnings("DM_EXIT")
-  public void run() {
-    final long startTime = System.currentTimeMillis();
-
+  public void command() {
     if (tryCreateDirectory(projectPath)
         && tryCreateDirectory(projectPath + "/migrations")
         && tryCreatePropertiesFile(projectPath + "/ksql-migrations.properties")) {
-      final long endTime = System.currentTimeMillis();
-      LOGGER.info("Migrations project directory created successfully (execution time "
-          + (endTime - startTime) / 1000.0 + "s)");
+      LOGGER.info("Migrations project directory created successfully");
     } else {
       System.exit(1);
     }

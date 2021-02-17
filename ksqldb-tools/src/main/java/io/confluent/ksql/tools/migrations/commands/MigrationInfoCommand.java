@@ -24,7 +24,7 @@ import com.github.rvesse.airline.annotations.Command;
 public class MigrationInfoCommand extends BaseCommand {
 
   @Override
-  public void run() {
+  public void command() {
     throw new UnsupportedOperationException();
   }
 

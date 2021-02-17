@@ -51,7 +51,7 @@ public class ApplyMigrationCommand extends BaseCommand {
   private int version;
 
   @Override
-  public void run() {
+  public void command() {
     throw new UnsupportedOperationException();
   }
 }

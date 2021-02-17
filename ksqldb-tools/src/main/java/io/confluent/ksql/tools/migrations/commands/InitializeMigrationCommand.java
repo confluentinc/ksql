@@ -103,11 +103,11 @@ public class InitializeMigrationCommand extends BaseCommand {
 
     final Client ksqlClient = Client.create(options);
 
-    if (tryCreate(ksqlClient, eventStreamCommand, streamName, true) &&
-        tryCreate(ksqlClient, versionTableCommand, tableName, false)) {
+    if (tryCreate(ksqlClient, eventStreamCommand, streamName, true)
+        && tryCreate(ksqlClient, versionTableCommand, tableName, false)) {
       final long endTime = System.currentTimeMillis();
-      LOGGER.info("Schema metadata initialized successfully (execution time " +
-          (endTime - startTime)/1000.0 + "s).");
+      LOGGER.info("Schema metadata initialized successfully (execution time "
+          + (endTime - startTime) / 1000.0 + "s).");
       ksqlClient.close();
     } else {
       ksqlClient.close();
@@ -125,7 +125,7 @@ public class InitializeMigrationCommand extends BaseCommand {
     try {
       LOGGER.info("Creating " + type + ": " + name);
       client.executeStatement(command).get();
-    } catch (InterruptedException|ExecutionException e) {
+    } catch (InterruptedException | ExecutionException e) {
       LOGGER.error(String.format("Failed to create %s %s: %s", type, name, e.getMessage()));
       return false;
     }

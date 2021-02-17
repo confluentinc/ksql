@@ -42,12 +42,12 @@ public class NewMigrationCommand extends BaseCommand {
   public void run() {
     final long startTime = System.currentTimeMillis();
 
-    if (tryCreateDirectory(projectPath) &&
-        tryCreateDirectory(projectPath + "/migrations") &&
-        tryCreatePropertiesFile(projectPath + "/ksql-migrations.properties")) {
+    if (tryCreateDirectory(projectPath)
+        && tryCreateDirectory(projectPath + "/migrations")
+        && tryCreatePropertiesFile(projectPath + "/ksql-migrations.properties")) {
       final long endTime = System.currentTimeMillis();
-      LOGGER.info("Migrations project directory created successfully (execution time " +
-          (endTime - startTime)/1000.0 + "s)");
+      LOGGER.info("Migrations project directory created successfully (execution time "
+          + (endTime - startTime) / 1000.0 + "s)");
     } else {
       System.exit(1);
     }
@@ -67,7 +67,7 @@ public class NewMigrationCommand extends BaseCommand {
     try {
       LOGGER.info("Creating directory: " + path);
       Files.createDirectories(Paths.get(path));
-    } catch(FileSystemException e) {
+    } catch (FileSystemException e) {
       LOGGER.error("Permission denied: create directory " + path);
       return false;
     } catch (IOException e) {

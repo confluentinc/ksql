@@ -104,8 +104,8 @@ public class MigrationConfig extends AbstractConfig {
             Type.INT,
             KSQL_MIGRATIONS_TOPIC_REPLICAS_DEFAULT,
             Importance.MEDIUM,
-            "The number of replicas for the migration stream topic. It defaults to " +
-                KSQL_MIGRATIONS_TOPIC_REPLICAS_DEFAULT
+            "The number of replicas for the migration stream topic. It defaults to "
+                + KSQL_MIGRATIONS_TOPIC_REPLICAS_DEFAULT
         ), configs);
   }
 

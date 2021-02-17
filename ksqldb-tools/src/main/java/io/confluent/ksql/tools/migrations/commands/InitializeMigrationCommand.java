@@ -70,6 +70,7 @@ public class InitializeMigrationCommand extends BaseCommand {
   }
 
   @Override
+  @SuppressWarnings("DM_EXIT")
   public void run() {
     final long startTime = System.currentTimeMillis();
 

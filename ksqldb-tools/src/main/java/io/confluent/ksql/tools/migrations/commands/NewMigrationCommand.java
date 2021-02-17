@@ -39,6 +39,7 @@ public class NewMigrationCommand extends BaseCommand {
   private String projectPath;
 
   @Override
+  @SuppressWarnings("DM_EXIT")
   public void run() {
     final long startTime = System.currentTimeMillis();
 
@@ -78,14 +79,11 @@ public class NewMigrationCommand extends BaseCommand {
   }
 
   private boolean tryCreatePropertiesFile(final String path) {
-    final File configFile = new File(path);
-    if (configFile.exists()) {
-      LOGGER.warn(path + " already exists. Skipping file creation.");
-      return true;
-    }
     try {
       LOGGER.info("Creating file: " + path);
-      configFile.createNewFile();
+      if (!new File(path).createNewFile()) {
+        LOGGER.warn(path + " already exists. Skipping file creation.");
+      }
     } catch (IOException e) {
       LOGGER.error(String.format("Failed to create file %s: %s", path, e.getMessage()));
       return false;

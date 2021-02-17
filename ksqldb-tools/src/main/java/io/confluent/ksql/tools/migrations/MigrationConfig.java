@@ -48,6 +48,7 @@ public final class MigrationConfig extends AbstractConfig {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MigrationConfig.class);
 
+  @SuppressWarnings("DM_EXIT")
   public static MigrationConfig load() {
     try {
       final Map<String, String> configsMap =
@@ -109,6 +110,7 @@ public final class MigrationConfig extends AbstractConfig {
         ), configs);
   }
 
+  @SuppressWarnings("DM_EXIT")
   private static String getServiceId(final Map<String, String> configs) {
     final String ksqlServerUrl = configs.get(MigrationConfig.KSQL_SERVER_URL);
     if (ksqlServerUrl == null) {

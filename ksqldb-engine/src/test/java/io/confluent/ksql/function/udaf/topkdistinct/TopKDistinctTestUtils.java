@@ -18,7 +18,6 @@ package io.confluent.ksql.function.udaf.topkdistinct;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-
 import java.util.Collections;
 
 public class TopKDistinctTestUtils {

@@ -80,6 +80,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class ExpressionTypeManager {
 
@@ -448,10 +449,11 @@ public class ExpressionTypeManager {
         final List<SqlArgument> argumentTypes = node.getArguments().isEmpty()
             ? ImmutableList.of(
                 SqlArgument.of(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA))
-            : new ArrayList<>();
-        for (final Expression e : node.getArguments()) {
-          argumentTypes.add(SqlArgument.of(getExpressionSqlType(e)));
-        }
+            : node.getArguments()
+                .stream()
+                .map(ExpressionTypeManager.this::getExpressionSqlType)
+                .map(SqlArgument::of)
+                .collect(Collectors.toList());
 
         final KsqlTableFunction tableFunction = functionRegistry
             .getTableFunction(node.getName(), argumentTypes);

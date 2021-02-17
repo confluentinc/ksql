@@ -179,9 +179,9 @@ public final class GenericsUtil {
       final ParamType schema,
       final SqlArgument instance
   ) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     final SqlType sqlType = instance.getSqlType();
 
-    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (!isGeneric(schema) && !matches(schema, instance)) {
       // cannot identify from type mismatch
       return false;

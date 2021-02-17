@@ -104,7 +104,6 @@ import io.confluent.ksql.util.Pair;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -434,11 +433,10 @@ public class SqlToJavaVisitor {
       final String instanceName = funNameToCodeName.apply(functionName);
 
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
-      final List<SqlArgument> argumentSchemas = new ArrayList<>();
-      for (final Expression argExpr : node.getArguments()) {
-        final SqlType newSqlType = expressionTypeManager.getExpressionSqlType(argExpr);
-        argumentSchemas.add(SqlArgument.of(newSqlType));
-      }
+      final List<SqlArgument> argumentSchemas = node.getArguments().stream()
+          .map(expressionTypeManager::getExpressionSqlType)
+          .map(SqlArgument::of)
+          .collect(Collectors.toList());
 
       final KsqlFunction function = udfFactory.getFunction(argumentSchemas);
 

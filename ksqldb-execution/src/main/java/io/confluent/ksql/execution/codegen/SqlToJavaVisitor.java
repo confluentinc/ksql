@@ -87,6 +87,7 @@ import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SqlBooleans;
 import io.confluent.ksql.schema.ksql.SqlDoubles;
 import io.confluent.ksql.schema.ksql.SqlTimestamps;
@@ -432,8 +433,9 @@ public class SqlToJavaVisitor {
       final String instanceName = funNameToCodeName.apply(functionName);
 
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
-      final List<SqlType> argumentSchemas = node.getArguments().stream()
+      final List<SqlArgument> argumentSchemas = node.getArguments().stream()
           .map(expressionTypeManager::getExpressionSqlType)
+          .map(SqlArgument::of)
           .collect(Collectors.toList());
 
       final KsqlFunction function = udfFactory.getFunction(argumentSchemas);
@@ -447,7 +449,7 @@ public class SqlToJavaVisitor {
       final StringJoiner joiner = new StringJoiner(", ");
       for (int i = 0; i < arguments.size(); i++) {
         final Expression arg = arguments.get(i);
-        final SqlType sqlType = argumentSchemas.get(i);
+        final SqlType sqlType = argumentSchemas.get(i).getSqlType();
 
         final ParamType paramType;
         if (i >= function.parameters().size() - 1 && function.isVariadic()) {

@@ -30,12 +30,12 @@ public class TypeContextTest {
   public void shouldThrowOnLambdaMismatch() {
     // Given
     TypeContext context = new TypeContext();
-    context.addInputType(SqlTypes.STRING);
-    context.addInputType(SqlTypes.STRING);
+    context.addLambdaInputType(SqlTypes.STRING);
+    context.addLambdaInputType(SqlTypes.STRING);
 
     // When
     final Exception e =
-        assertThrows(IllegalArgumentException.class, () -> context.mapInputTypes(ImmutableList.of("x", "y", "z")));
+        assertThrows(IllegalArgumentException.class, () -> context.mapLambdaInputTypes(ImmutableList.of("x", "y", "z")));
 
     // Then
     assertThat(e.getMessage(),
@@ -46,11 +46,11 @@ public class TypeContextTest {
   public void shouldMapLambdaTypes() {
     // Given
     TypeContext context = new TypeContext();
-    context.addInputType(SqlTypes.STRING);
-    context.addInputType(SqlTypes.BIGINT);
+    context.addLambdaInputType(SqlTypes.STRING);
+    context.addLambdaInputType(SqlTypes.BIGINT);
 
     // When
-    context.mapInputTypes(ImmutableList.of("x", "y"));
+    context.mapLambdaInputTypes(ImmutableList.of("x", "y"));
 
     // Then
     assertThat(context.getLambdaType("x"), is(SqlTypes.STRING));

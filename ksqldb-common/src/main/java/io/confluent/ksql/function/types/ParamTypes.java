@@ -17,6 +17,7 @@ package io.confluent.ksql.function.types;
 
 import static io.confluent.ksql.schema.ksql.SchemaConverters.functionToSqlBaseConverter;
 
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
@@ -40,33 +41,34 @@ public final class ParamTypes {
   public static final TimestampType TIMESTAMP = TimestampType.INSTANCE;
 
   public static boolean areCompatible(final SqlType actual, final ParamType declared) {
-    return areCompatible(actual, declared, false);
+    return areCompatible(SqlArgument.of(actual), declared, false);
   }
 
   public static boolean areCompatible(
-      final SqlType actual,
+      final SqlArgument argument,
       final ParamType declared,
       final boolean allowCast
   ) {
-    if (actual.baseType() == SqlBaseType.ARRAY && declared instanceof ArrayType) {
+    final SqlType argumentSqlType = argument.getSqlType();
+    if (argumentSqlType.baseType() == SqlBaseType.ARRAY && declared instanceof ArrayType) {
       return areCompatible(
-          ((SqlArray) actual).getItemType(),
+          SqlArgument.of(((SqlArray) argumentSqlType).getItemType()),
           ((ArrayType) declared).element(),
           allowCast);
     }
 
-    if (actual.baseType() == SqlBaseType.MAP && declared instanceof MapType) {
-      final SqlMap sqlType = (SqlMap) actual;
+    if (argumentSqlType.baseType() == SqlBaseType.MAP && declared instanceof MapType) {
+      final SqlMap sqlType = (SqlMap) argumentSqlType;
       final MapType mapType = (MapType) declared;
-      return areCompatible(sqlType.getKeyType(), mapType.key(), allowCast)
-          && areCompatible(sqlType.getValueType(), mapType.value(), allowCast);
+      return areCompatible(SqlArgument.of(sqlType.getKeyType()), mapType.key(), allowCast)
+          && areCompatible(SqlArgument.of(sqlType.getValueType()), mapType.value(), allowCast);
     }
 
-    if (actual.baseType() == SqlBaseType.STRUCT && declared instanceof StructType) {
-      return isStructCompatible(actual, declared);
+    if (argumentSqlType.baseType() == SqlBaseType.STRUCT && declared instanceof StructType) {
+      return isStructCompatible(argumentSqlType, declared);
     }
 
-    return isPrimitiveMatch(actual, declared, allowCast);
+    return isPrimitiveMatch(argumentSqlType, declared, allowCast);
   }
 
   private static boolean isStructCompatible(final SqlType actual, final ParamType declared) {

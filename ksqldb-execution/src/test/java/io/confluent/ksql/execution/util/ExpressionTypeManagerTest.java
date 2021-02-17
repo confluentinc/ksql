@@ -59,7 +59,6 @@ import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
-import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.testutil.TestExpressions;
@@ -72,12 +71,12 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import java.sql.Timestamp;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
@@ -302,8 +301,8 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(exprType, is(SqlTypes.DOUBLE));
-    verify(udfFactory).getFunction(ImmutableList.of(SqlTypes.DOUBLE));
-    verify(function).getReturnType(ImmutableList.of(SqlTypes.DOUBLE));
+    verify(udfFactory).getFunction(ImmutableList.of(SqlArgument.of(SqlTypes.DOUBLE)));
+    verify(function).getReturnType(ImmutableList.of(SqlArgument.of(SqlTypes.DOUBLE)));
   }
 
   @Test
@@ -318,8 +317,8 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(exprType, is(SqlTypes.STRING));
-    verify(udfFactory).getFunction(ImmutableList.of(SqlTypes.STRING));
-    verify(function).getReturnType(ImmutableList.of(SqlTypes.STRING));
+    verify(udfFactory).getFunction(ImmutableList.of(SqlArgument.of(SqlTypes.STRING)));
+    verify(function).getReturnType(ImmutableList.of(SqlArgument.of(SqlTypes.STRING)));
   }
 
   @Test

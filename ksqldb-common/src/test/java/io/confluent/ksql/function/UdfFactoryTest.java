@@ -28,6 +28,7 @@ import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import org.apache.kafka.common.KafkaException;
 import org.junit.Test;
 
@@ -42,7 +43,7 @@ public class UdfFactoryTest {
     // When:
     final Exception e = assertThrows(
         KafkaException.class,
-        () -> factory.getFunction(of(STRING, BIGINT))
+        () -> factory.getFunction(of(SqlArgument.of(STRING), SqlArgument.of(BIGINT)))
     );
 
     // Then:

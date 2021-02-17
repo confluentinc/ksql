@@ -39,6 +39,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -181,11 +182,13 @@ public class CodeGenRunner {
 
     @Override
     public Void visitFunctionCall(final FunctionCall node, final TypeContext context) {
-      final List<SqlType> argumentTypes = new ArrayList<>();
+      final List<SqlArgument> argumentTypes = new ArrayList<>();
       final FunctionName functionName = node.getName();
       for (final Expression argExpr : node.getArguments()) {
         process(argExpr, null);
-        argumentTypes.add(expressionTypeManager.getExpressionSqlType(argExpr));
+        argumentTypes.add(SqlArgument.of(
+            expressionTypeManager.getExpressionSqlType(argExpr)
+        ));
       }
 
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);

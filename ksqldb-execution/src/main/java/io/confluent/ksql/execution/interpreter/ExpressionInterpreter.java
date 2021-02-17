@@ -15,9 +15,10 @@
 
 package io.confluent.ksql.execution.interpreter;
 
+import static io.confluent.ksql.execution.interpreter.ComparisonInterpreter.doCompareTo;
 import static io.confluent.ksql.execution.interpreter.ComparisonInterpreter.doComparisonCheck;
+import static io.confluent.ksql.execution.interpreter.ComparisonInterpreter.doEquals;
 import static io.confluent.ksql.execution.interpreter.ComparisonInterpreter.doEqualsCheck;
-import static io.confluent.ksql.execution.interpreter.ComparisonInterpreter.doNumericalCompareTo;
 import static io.confluent.ksql.schema.ksql.SchemaConverters.sqlToFunctionConverter;
 import static java.lang.String.format;
 
@@ -102,6 +103,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
@@ -438,13 +440,13 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
       return new Pair<>(!exprBoolean, SqlTypes.BOOLEAN);
     }
 
-    private Boolean nullCheckQuickReturn(
+    private Optional<Boolean> nullCheckQuickReturn(
         final ComparisonExpression.Type type, final Object left, final Object right) {
       if (type == ComparisonExpression.Type.IS_DISTINCT_FROM) {
         return (left == null || right == null)
-            ? ((left == null) ^ ((right) == null)) : null;
+            ? Optional.of((left == null) ^ ((right) == null)) : Optional.empty();
       }
-      return (left == null || right == null) ? false : null;
+      return (left == null || right == null) ? Optional.of(false) : Optional.empty();
     }
 
     @Override
@@ -453,30 +455,30 @@ public class ExpressionInterpreter implements ExpressionEvaluator {
     ) {
       final Pair<Object, SqlType> left = process(node.getLeft(), context);
       final Pair<Object, SqlType> right = process(node.getRight(), context);
-      final SqlBaseType leftType = left.getRight().baseType();
       final Object leftObject = left.getLeft();
       final Object rightObject = right.getLeft();
 
-      final Boolean nullCheck = nullCheckQuickReturn(node.getType(), leftObject, rightObject);
-      if (nullCheck != null) {
-        return new Pair<>(nullCheck, SqlTypes.BOOLEAN);
+      if (node.getType() == ComparisonExpression.Type.IS_DISTINCT_FROM
+          && (leftObject == null || rightObject == null)) {
+        return new Pair<>((leftObject == null) ^ (rightObject == null), SqlTypes.BOOLEAN);
+      } else if (leftObject == null || rightObject == null) {
+        return new Pair<>(false, SqlTypes.BOOLEAN);
       }
 
-      final Integer compareTo = doNumericalCompareTo(left, right);
-      if (compareTo != null) {
-        return new Pair<>(doComparisonCheck(node, compareTo), SqlTypes.BOOLEAN);
+      final Optional<Integer> compareTo = doCompareTo(left, right);
+      if (compareTo.isPresent()) {
+        return new Pair<>(doComparisonCheck(
+            node.getType(), left.getRight(), right.getRight(), compareTo.get()), SqlTypes.BOOLEAN);
       }
-      Boolean equals = null;
-      if (leftType == SqlBaseType.ARRAY
-          || leftType == SqlBaseType.MAP
-          || leftType == SqlBaseType.STRUCT
-          || leftType == SqlBaseType.BOOLEAN) {
-        equals = left.equals(right);
+
+      final Optional<Boolean> equals = doEquals(left, right);
+      if (equals.isPresent()) {
+        return new Pair<>(doEqualsCheck(
+            node.getType(), left.getRight(), right.getRight(), equals.get()), SqlTypes.BOOLEAN);
       }
-      if (equals != null) {
-        return new Pair<>(doEqualsCheck(left.getRight(), node, equals), SqlTypes.BOOLEAN);
-      }
-      throw new KsqlException("Unknown types for " + left + " and " + right);
+
+      throw new KsqlException("Unsupported comparison between " + left.getRight() + " and "
+          + right.getRight());
     }
 
     @Override

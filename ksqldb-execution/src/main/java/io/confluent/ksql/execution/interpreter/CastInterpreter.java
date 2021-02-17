@@ -43,6 +43,9 @@ public final class CastInterpreter {
       final SqlType to,
       final KsqlConfig config
   ) {
+    if (object == null) {
+      return null;
+    }
     final SqlBaseType toBaseType = to.baseType();
     if (toBaseType == SqlBaseType.INTEGER) {
       return castToInteger(object, from);
@@ -69,9 +72,6 @@ public final class CastInterpreter {
       final Object object,
       final SqlType from
   ) {
-    if (object == null) {
-      return null;
-    }
     if (from.baseType() == SqlBaseType.STRING) {
       return Integer.parseInt(((String) object).trim());
     }
@@ -82,9 +82,6 @@ public final class CastInterpreter {
       final Object object,
       final SqlType from
   ) {
-    if (object == null) {
-      return null;
-    }
     if (from.baseType() == SqlBaseType.STRING) {
       return SqlDoubles.parseDouble(((String) object).trim());
     }
@@ -95,9 +92,6 @@ public final class CastInterpreter {
       final Object object,
       final SqlType from
   ) {
-    if (object == null) {
-      return null;
-    }
     if (from.baseType() == SqlBaseType.STRING) {
       return Long.parseLong(((String) object).trim());
     }
@@ -109,9 +103,6 @@ public final class CastInterpreter {
       final SqlType from,
       final SqlType to
   ) {
-    if (object == null) {
-      return null;
-    }
     final SqlDecimal sqlDecimal = (SqlDecimal) to;
     if (from.baseType() == SqlBaseType.INTEGER) {
       return DecimalUtil.cast(((Integer) object), sqlDecimal.getPrecision(), sqlDecimal.getScale());
@@ -133,9 +124,6 @@ public final class CastInterpreter {
       final SqlType from,
       final KsqlConfig config
   ) {
-    if (object == null) {
-      return null;
-    }
     if (from.baseType() == SqlBaseType.DECIMAL) {
       return ((BigDecimal) object).toPlainString();
     } else if (from.baseType() == SqlBaseType.TIMESTAMP) {
@@ -150,11 +138,10 @@ public final class CastInterpreter {
       final Object object,
       final SqlType from
   ) {
-    if (object == null) {
-      return null;
-    }
     if (from.baseType() == SqlBaseType.STRING) {
       return SqlBooleans.parseBoolean(((String) object).trim());
+    } else if (from.baseType() == SqlBaseType.BOOLEAN) {
+      return (Boolean) object;
     }
     throw new KsqlException("Unsupported cast to BOOLEAN: " + from);
   }

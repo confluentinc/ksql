@@ -26,13 +26,29 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.util.Optional;
 
+/**
+ * Contains lots of the logic for doing comparisons in the interpreter.
+ */
 public final class ComparisonInterpreter {
 
   private ComparisonInterpreter() { }
 
-  public static boolean doComparisonCheck(final ComparisonExpression node, final int compareTo) {
-    switch (node.getType()) {
+  /**
+   * After a comparison has been done between two expressions of comparable types, this
+   * evaluates the result according to the requested operation.
+   * @param type The comparison type
+   * @param compareTo The result of calling left.compareTo(right)
+   * @return The evaluated result
+   */
+  public static boolean doComparisonCheck(
+      final ComparisonExpression.Type type,
+      final SqlType leftType,
+      final SqlType rightType,
+      final int compareTo
+  ) {
+    switch (type) {
       case EQUAL:
         return compareTo == 0;
       case NOT_EQUAL:
@@ -47,20 +63,26 @@ public final class ComparisonInterpreter {
       case LESS_THAN:
         return compareTo < 0;
       default:
-        throw new KsqlException("Unexpected scalar comparison: " + node.getType().getValue());
+        throw new KsqlException(String.format("Unsupported comparison between %s and %s: %s",
+            leftType, rightType, type));
     }
   }
 
-  public static boolean doEqualsCheck(final SqlType leftType, final ComparisonExpression node,
-      final boolean equals) {
-    switch (node.getType()) {
+  public static boolean doEqualsCheck(
+      final ComparisonExpression.Type type,
+      final SqlType leftType,
+      final SqlType rightType,
+      final boolean equals
+  ) {
+    switch (type) {
       case EQUAL:
         return equals;
       case NOT_EQUAL:
       case IS_DISTINCT_FROM:
         return !equals;
       default:
-        throw new KsqlException("Unexpected " + leftType  + " comparison");
+        throw new KsqlException(String.format("Unsupported comparison between %s and %s: %s",
+            leftType, rightType, type));
     }
   }
 
@@ -94,7 +116,7 @@ public final class ComparisonInterpreter {
     }
   }
 
-  public static Integer doNumericalCompareTo(
+  public static Optional<Integer> doCompareTo(
       final Pair<Object, SqlType> left,
       final Pair<Object, SqlType> right) {
     final SqlBaseType leftType = left.getRight().baseType();
@@ -106,7 +128,7 @@ public final class ComparisonInterpreter {
     } else if (either(leftType, rightType, SqlBaseType.TIMESTAMP)) {
       return doCompareTo(ComparisonInterpreter::toTimestamp, left, right);
     } else if (leftType == SqlBaseType.STRING) {
-      return leftObject.toString().compareTo(rightObject.toString());
+      return Optional.of(leftObject.toString().compareTo(rightObject.toString()));
     } else if (either(leftType, rightType, SqlBaseType.DOUBLE)) {
       return doCompareTo(NumberConversions::toDouble, left, right);
     } else if (either(leftType, rightType, SqlBaseType.BIGINT)) {
@@ -114,7 +136,18 @@ public final class ComparisonInterpreter {
     } else if (either(leftType, rightType, SqlBaseType.INTEGER)) {
       return doCompareTo(NumberConversions::toInteger, left, right);
     }
-    return null;
+    return Optional.empty();
+  }
+
+  private static <T extends Comparable<T>> Optional<Integer> doCompareTo(
+      final Conversion<T> conversion,
+      final Pair<Object, SqlType> left,
+      final Pair<Object, SqlType> right) {
+    final Object leftObject = left.getLeft();
+    final Object rightObject = right.getLeft();
+    return Optional.of(
+        conversion.convert(leftObject, left.getRight(), ConversionType.COMPARISON).compareTo(
+            conversion.convert(rightObject, right.getRight(), ConversionType.COMPARISON)));
   }
 
   private static boolean either(
@@ -124,14 +157,23 @@ public final class ComparisonInterpreter {
     return leftType == value || rightType == value;
   }
 
-  private static <T extends Comparable<T>> Integer doCompareTo(
-      final Conversion<T> conversion,
+  public static Optional<Boolean> doEquals(
       final Pair<Object, SqlType> left,
-      final Pair<Object, SqlType> right) {
+      final Pair<Object, SqlType> right
+  ) {
+    final SqlBaseType leftType = left.getRight().baseType();
     final Object leftObject = left.getLeft();
     final Object rightObject = right.getLeft();
-    return conversion.convert(leftObject, left.getRight(), ConversionType.COMPARISON).compareTo(
-        conversion.convert(rightObject, right.getRight(), ConversionType.COMPARISON));
+
+    switch (leftType) {
+      case ARRAY:
+      case MAP:
+      case STRUCT:
+      case BOOLEAN:
+        return Optional.of(leftObject.equals(rightObject));
+      default:
+        return Optional.empty();
+    }
   }
 
   public interface Conversion<T extends Comparable> {

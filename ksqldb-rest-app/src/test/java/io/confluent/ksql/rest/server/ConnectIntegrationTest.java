@@ -76,7 +76,7 @@ public class ConnectIntegrationTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConnectIntegrationTest.class);
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
-  private  static final long TIMEOUT_NS = 120000000000L;
+  private  static final long TIMEOUT_NS = 600000000000L;
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)

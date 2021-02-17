@@ -528,8 +528,6 @@ evaluator. The code compiler is the default. The code compiler is used
 for persistent and push queries, which are naturally longer-lived than pull queries. The overhead of compilation slows down pull queries significantly, so using an
 interpreter gives significant performance gains.
 
-This will likely become the default for pull queries in the future.
-
 ## `ksql.variable.substitution.enable`
 
 Enables variable substitution through [`DEFINE`](../../../../developer-guide/ksqldb-reference/define) statements.

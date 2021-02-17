@@ -121,7 +121,12 @@ public abstract class QueryMetadata {
     this.queryId = Objects.requireNonNull(queryId, "queryId");
     this.errorClassifier = Objects.requireNonNull(errorClassifier, "errorClassifier");
     this.queryErrors = EvictingQueue.create(maxQueryErrorsQueueSize);
-    this.retryEvent = new RetryEvent(queryId, baseWaitingTimeMs, retryBackoffMaxMs, CURRENT_TIME_MILLIS_TICKER);
+    this.retryEvent = new RetryEvent(
+            queryId,
+            baseWaitingTimeMs,
+            retryBackoffMaxMs,
+            CURRENT_TIME_MILLIS_TICKER
+    );
   }
 
   protected QueryMetadata(final QueryMetadata other, final Consumer<QueryMetadata> closeCallback) {
@@ -170,7 +175,9 @@ public abstract class QueryMetadata {
     this.onStop = onStop;
   }
 
-  protected StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(final Throwable e) {
+  protected StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
+          final Throwable e
+  ) {
     QueryError.Type errorType = Type.UNKNOWN;
     try {
       errorType = errorClassifier.classify(e);
@@ -190,7 +197,12 @@ public abstract class QueryMetadata {
           );
       queryStateListener.ifPresent(lis -> lis.onError(queryError));
       queryErrors.add(queryError);
-      LOG.error("Unhandled exception caught in streams thread {}. ({})", Thread.currentThread().getName(), errorType, e);
+      LOG.error(
+          "Unhandled exception caught in streams thread {}. ({})",
+          Thread.currentThread().getName(),
+          errorType,
+          e
+      );
     }
     retryEvent.backOff();
     return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.REPLACE_THREAD;
@@ -372,20 +384,18 @@ public abstract class QueryMetadata {
     private long waitingTimeMs;
     private long expiryTimeMs;
     private long retryBackoffMaxMs;
-    private long baseWaitingTimeMs;
 
     RetryEvent(
             final QueryId queryId,
             final long baseWaitingTimeMs,
             final long retryBackoffMaxMs,
             final Ticker ticker
-              ) {
+    ) {
       this.ticker = ticker;
       this.queryId = queryId;
 
       final long now = ticker.read();
 
-      this.baseWaitingTimeMs = baseWaitingTimeMs;
       this.waitingTimeMs = baseWaitingTimeMs;
       this.retryBackoffMaxMs = retryBackoffMaxMs;
       this.expiryTimeMs = now + baseWaitingTimeMs;

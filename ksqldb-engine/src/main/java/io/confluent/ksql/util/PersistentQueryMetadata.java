@@ -18,7 +18,6 @@ package io.confluent.ksql.util;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Ticker;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -136,8 +135,11 @@ public class PersistentQueryMetadata extends QueryMetadata {
   }
 
   @Override
-  protected StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(final Throwable error) {
-    StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse response = super.uncaughtHandler(error);
+  protected StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
+          final Throwable error
+  ) {
+    final StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse response =
+            super.uncaughtHandler(error);
 
     processingLogger.error(KafkaStreamsThreadError.of(
         "Unhandled exception caught in streams thread", Thread.currentThread(), error));

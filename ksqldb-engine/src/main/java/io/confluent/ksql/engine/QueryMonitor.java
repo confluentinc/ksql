@@ -120,7 +120,6 @@ public class QueryMonitor implements Closeable {
   }
 
   private void maybeRestartQueries() {
-    final long now = ticker.read();
 
     // Restart queries that has passed the waiting timeout
     final Iterator<Map.Entry<QueryId, RetryEvent>> it = queriesRetries.entrySet().iterator();
@@ -128,7 +127,6 @@ public class QueryMonitor implements Closeable {
       final Map.Entry<QueryId, RetryEvent> mapEntry = it.next();
 
       final QueryId queryId = mapEntry.getKey();
-      final RetryEvent retryEvent = mapEntry.getValue();
       final Optional<PersistentQueryMetadata> query = ksqlEngine.getPersistentQuery(queryId);
 
       // Query was terminated manually if no present
@@ -229,11 +227,6 @@ public class QueryMonitor implements Closeable {
       numRetries++;
 
       LOG.info("Restarting query {} (attempt #{})", queryId, numRetries);
-      try {
-//        query.restart();
-      } catch (final Exception e) {
-        LOG.warn("Failed restarting query {}. Error = {}", queryId, e.getMessage());
-      }
 
       final long now = ticker.read();
 

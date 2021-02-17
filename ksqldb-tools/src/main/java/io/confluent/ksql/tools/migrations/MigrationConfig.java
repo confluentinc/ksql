@@ -32,7 +32,7 @@ import org.apache.kafka.common.config.ConfigDef.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MigrationConfig extends AbstractConfig {
+public final class MigrationConfig extends AbstractConfig {
 
   public static final String KSQL_SERVER_URL = "ksql.server.url";
 

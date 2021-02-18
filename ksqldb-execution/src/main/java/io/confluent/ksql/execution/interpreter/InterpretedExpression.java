@@ -88,6 +88,7 @@ import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
@@ -345,8 +346,9 @@ public class InterpretedExpression implements ExpressionEvaluator {
     @Override
     public Pair<Object, SqlType> visitFunctionCall(final FunctionCall node, final Void context) {
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
-      final List<SqlType> argumentSchemas = node.getArguments().stream()
+      final List<SqlArgument> argumentSchemas = node.getArguments().stream()
           .map(expressionTypeManager::getExpressionSqlType)
+          .map(SqlArgument::of)
           .collect(Collectors.toList());
 
       final KsqlScalarFunction function = udfFactory.getFunction(argumentSchemas);
@@ -360,7 +362,7 @@ public class InterpretedExpression implements ExpressionEvaluator {
       final List<Object> args = new ArrayList<>();
       for (int i = 0; i < arguments.size(); i++) {
         final Expression arg = arguments.get(i);
-        final SqlType sqlType = argumentSchemas.get(i);
+        final SqlType sqlType = argumentSchemas.get(i).getSqlType();
 
         final ParamType paramType;
         if (i >= function.parameters().size() - 1 && function.isVariadic()) {

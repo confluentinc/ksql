@@ -368,7 +368,7 @@ SET 'auto.offset.reset'='earliest';
 ```
 
 For more information, see [Kafka Consumer](https://docs.confluent.io/current/clients/consumer.html) and
-[AUTO_OFFSET_RESET_CONFIG](https://docs.confluent.io/{{ site.release }}/clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#AUTO_OFFSET_RESET_CONFIG).
+[AUTO_OFFSET_RESET_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#AUTO_OFFSET_RESET_CONFIG).
 
 ## `ksql.streams.bootstrap.servers`
 
@@ -384,7 +384,7 @@ SET 'bootstrap.servers'='localhost:9095';
 For more information, see
 [Streams parameter reference](https://docs.confluent.io/current/streams/developer-guide/config-streams.html#configuration-parameter-reference)
 and 
-[BOOTSTRAP_SERVERS_CONFIG](https://docs.confluent.io/{{ site.release }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#BOOTSTRAP_SERVERS_CONFIG).
+[BOOTSTRAP_SERVERS_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#BOOTSTRAP_SERVERS_CONFIG).
 
 ## `ksql.streams.commit.interval.ms`
 
@@ -399,7 +399,7 @@ SET 'commit.interval.ms'='5000';
 For more information, see the
 [Streams parameter reference](https://docs.confluent.io/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
 and 
-[COMMIT_INTERVAL_MS_CONFIG](https://docs.confluent.io/{{ site.release }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#COMMIT_INTERVAL_MS_CONFIG),
+[COMMIT_INTERVAL_MS_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#COMMIT_INTERVAL_MS_CONFIG),
 
 ## `ksql.streams.cache.max.bytes.buffering`
 
@@ -414,7 +414,7 @@ SET 'cache.max.bytes.buffering'='20000000';
 For more information, see the
 [Streams parameter reference](https://docs.confluent.io/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
 and
-[CACHE_MAX_BYTES_BUFFERING_CONFIG](https://docs.confluent.io/{{ site.release }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG).
+[CACHE_MAX_BYTES_BUFFERING_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG).
 
 ## `ksql.streams.num.stream.threads`
 

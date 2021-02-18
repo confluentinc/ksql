@@ -454,17 +454,25 @@ public class SqlToJavaVisitor {
 
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
       final List<SqlArgument> argumentSchemas = new ArrayList<>();
+      boolean hasLambda = false;
+      for (Expression e : node.getArguments()) {
+        if (e instanceof LambdaFunctionCall) {
+          hasLambda = true;
+          break;
+        }
+      }
       for (final Expression argExpr : node.getArguments()) {
-        final SqlType resolvedArgType = expressionTypeManager.getExpressionSqlType(argExpr, context);
-        // for lambdas - if we find an array or map passed in before encountering a lambda function
-        // we save the type information to resolve the lambda generics
-        context.visitType(resolvedArgType);
+        final TypeContext childContext = context.getCopy();
+        final SqlType resolvedArgType = expressionTypeManager.getExpressionSqlType(argExpr, childContext);
         if (argExpr instanceof LambdaFunctionCall) {
-          argumentSchemas.add(
-              SqlArgument.of(
-                  SqlLambda.of(context.getLambdaInputTypes(), resolvedArgType)));
+          argumentSchemas.add(SqlArgument.of(SqlLambda.of(context.getLambdaInputTypes(), childContext.getSqlType())));
         } else {
           argumentSchemas.add(SqlArgument.of(resolvedArgType));
+          // for lambdas - if we find an array or map passed in before encountering a lambda function
+          // we save the type information to resolve the lambda generics
+          if (hasLambda) {
+            context.visitType(resolvedArgType);
+          }
         }
       }
 

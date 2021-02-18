@@ -256,7 +256,7 @@ public class GenericsUtilTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-    "Found invalid instance of generic schema when mapping LAMBDA<[A], A> to Lambda<[DOUBLE], BOOLEAN>. "
+    "Found invalid instance of generic schema when mapping LAMBDA (A) => A to LAMBDA (DOUBLE) => BOOLEAN. "
         + "Cannot map A to both DOUBLE and BOOLEAN"));
   }
 

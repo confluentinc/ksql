@@ -81,6 +81,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ExpressionTypeManager {
@@ -474,18 +475,27 @@ public class ExpressionTypeManager {
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
 
       final List<SqlArgument> argTypes = new ArrayList<>();
+
+      boolean hasLambda = false;
+      for (Expression e : node.getArguments()) {
+        if (e instanceof LambdaFunctionCall) {
+          hasLambda = true;
+          break;
+        }
+      }
       for (final Expression expression : node.getArguments()) {
-        process(expression, expressionTypeContext);
-        final SqlType resolvedArgType = expressionTypeContext.getSqlType();
-        // for lambdas - if we find an array or map passed in before encountering a lambda function
-        // we save the type information to resolve the lambda generics
-        expressionTypeContext.visitType(resolvedArgType);
+        final TypeContext childContext = expressionTypeContext.getCopy();
+        process(expression, childContext);
+        final SqlType resolvedArgType = childContext.getSqlType();
         if (expression instanceof LambdaFunctionCall) {
-          argTypes.add(
-              SqlArgument.of(
-                  SqlLambda.of(expressionTypeContext.getLambdaInputTypes(), resolvedArgType)));
+          argTypes.add(SqlArgument.of(SqlLambda.of(expressionTypeContext.getLambdaInputTypes(), childContext.getSqlType())));
         } else {
           argTypes.add(SqlArgument.of(resolvedArgType));
+          // for lambdas - if we find an array or map passed in before encountering a lambda function
+          // we save the type information to resolve the lambda generics
+          if (hasLambda) {
+            expressionTypeContext.visitType(resolvedArgType);
+          }
         }
       }
 
@@ -602,5 +612,14 @@ public class ExpressionTypeManager {
 
       return previousResult;
     }
+  }
+
+  private boolean hasLambdaFunctionCall(FunctionCall node) {
+    for (Expression e : node.getArguments()) {
+      if (e instanceof LambdaFunctionCall) {
+        return true;
+      }
+    }
+    return false;
   }
 }

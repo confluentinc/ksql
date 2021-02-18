@@ -73,7 +73,7 @@ public final class LambdaType extends ObjectType {
         + inputTypes.stream()
         .map(Object::toString)
         .collect(Collectors.joining(", ", "(", ")"))
-        + " -> "
+        + " => "
         + returnType;
   }
 }

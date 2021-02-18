@@ -80,15 +80,16 @@ public final class SqlLambda {
         + inputTypes.stream()
         .map(Object::toString)
         .collect(Collectors.joining(", ", "(", ")"))
-        + " -> A";
+        + " => "
+        + returnType;
   }
 
   public String toString(final FormatOptions formatOptions) {
-    return "Lambda "
+    return "LAMBDA "
         + inputTypes.stream()
         .map(Object::toString)
         .collect(Collectors.joining(", ", "(", ")"))
-        + " -> "
+        + " => "
         + returnType;
   }
 }

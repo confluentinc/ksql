@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.codegen;
 
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
@@ -30,8 +31,18 @@ import java.util.Map;
 
 public class TypeContext {
   private SqlType sqlType;
-  private final List<SqlType> lambdaInputTypes = new ArrayList<>();
-  private final Map<String, SqlType> lambdaInputTypeMapping = new HashMap<>();
+  private final List<SqlType> lambdaInputTypes;
+  private final Map<String, SqlType> lambdaInputTypeMapping;
+
+  public TypeContext() {
+    lambdaInputTypes = new ArrayList<SqlType>();
+    lambdaInputTypeMapping = new HashMap<>();
+  }
+
+  TypeContext (final List<SqlType> lambdaInputTypes, final Map<String, SqlType> lambdaInputTypeMapping) {
+    this.lambdaInputTypes = lambdaInputTypes;
+    this.lambdaInputTypeMapping = lambdaInputTypeMapping;
+  }
 
   public SqlType getSqlType() {
     return sqlType;
@@ -61,28 +72,28 @@ public class TypeContext {
     for (int i = 0; i < argumentList.size(); i++) {
       this.lambdaInputTypeMapping.putIfAbsent(argumentList.get(i), lambdaInputTypes.get(i));
     }
+    lambdaInputTypes.clear();
   }
 
   public SqlType getLambdaType(final String name) {
     return lambdaInputTypeMapping.get(name);
   }
 
-  public boolean notAllInputsSeen() {
-    return lambdaInputTypeMapping.size() != lambdaInputTypes.size() || lambdaInputTypes.size() == 0;
+
+  public TypeContext getCopy() {
+    return new TypeContext(this.lambdaInputTypes, this.lambdaInputTypeMapping);
   }
 
   public void visitType(SqlType type) {
-    if (notAllInputsSeen()) {
-      if (type instanceof SqlArray) {
-        final SqlArray inputArray = (SqlArray) type;
-        addLambdaInputType(inputArray.getItemType());
-      } else if (type instanceof SqlMap) {
-        final SqlMap inputMap = (SqlMap) type;
-        addLambdaInputType(inputMap.getKeyType());
-        addLambdaInputType(inputMap.getValueType());
-      } else {
-        addLambdaInputType(type);
-      }
+    if (type instanceof SqlArray) {
+      final SqlArray inputArray = (SqlArray) type;
+      addLambdaInputType(inputArray.getItemType());
+    } else if (type instanceof SqlMap) {
+      final SqlMap inputMap = (SqlMap) type;
+      addLambdaInputType(inputMap.getKeyType());
+      addLambdaInputType(inputMap.getValueType());
+    } else {
+      addLambdaInputType(type);
     }
   }
 }

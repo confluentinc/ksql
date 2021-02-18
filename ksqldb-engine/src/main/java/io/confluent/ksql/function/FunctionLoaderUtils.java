@@ -164,7 +164,7 @@ public final class FunctionLoaderUtils {
     return (parameters, arguments) -> {
       if (schemaProvider != null) {
         final SqlType returnType = schemaProvider.apply(arguments);
-        if (!(ParamTypes.areCompatible(returnType, javaReturnSchema))) {
+        if (!(ParamTypes.areCompatible(SqlArgument.of(returnType), javaReturnSchema, false))) {
           throw new KsqlException(String.format(
               "Return type %s of UDF %s does not match the declared "
                   + "return type %s.",

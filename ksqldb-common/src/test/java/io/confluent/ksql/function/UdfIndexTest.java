@@ -333,10 +333,10 @@ public class UdfIndexTest {
     assertThat(fun1.name(), equalTo(EXPECTED));
     assertThat(fun2.name(), equalTo(EXPECTED));
     assertThat(e.getMessage(), containsString("does not accept parameters (" +
-        "MAP<STRING, STRING>, LAMBDA (BOOLEAN, INTEGER) -> A)."));
+        "MAP<STRING, STRING>, LAMBDA (BOOLEAN, INTEGER) => INTEGER)."));
     assertThat(e.getMessage(), containsString("Valid alternatives are:"
         + lineSeparator()
-        + "expected(MAP<VARCHAR, VARCHAR>, LAMBDA (VARCHAR, VARCHAR) -> A)"));
+        + "expected(MAP<VARCHAR, VARCHAR>, LAMBDA (VARCHAR, VARCHAR) => A)"));
   }
 
   @Test
@@ -372,10 +372,10 @@ public class UdfIndexTest {
 
     // Then:
     assertThat(e1.getMessage(), containsString("does not accept parameters (" +
-        "MAP<STRING, STRING>, LAMBDA (BOOLEAN, STRING) -> A)."));
+        "MAP<STRING, STRING>, LAMBDA (BOOLEAN, STRING) => INTEGER)."));
     assertThat(e1.getMessage(), containsString("Valid alternatives are:"
         + lineSeparator()
-        + "other(MAP<A, B>, LAMBDA (A, B) -> C)"));
+        + "other(MAP<A, B>, LAMBDA (A, B) => C)"));
     assertThat(e2.getMessage(), containsString("Number of lambda arguments doesn't match between schema and sql type"));
   }
 

@@ -112,8 +112,8 @@ public final class ParamTypes {
       final String k = entry.getKey();
       final Optional<Field> field = actualStruct.field(k);
       // intentionally do not allow implicit casting within structs
-      if (!field.isPresent() ||
-          !areCompatible(SqlArgument.of(field.get().type()), entry.getValue(), false)) {
+      if (!field.isPresent()
+          || !areCompatible(SqlArgument.of(field.get().type()), entry.getValue(), false)) {
         return false;
       }
     }

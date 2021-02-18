@@ -29,27 +29,41 @@ public class ParamTypesTest {
 
   @Test
   public void shouldFailINonCompatibleSchemas() {
-    assertThat(ParamTypes.areCompatible(SqlTypes.STRING, ParamTypes.INTEGER), is(false));
+    assertThat(ParamTypes.areCompatible(
+        SqlArgument.of(SqlTypes.STRING),
+        ParamTypes.INTEGER,
+        false),
+        is(false));
 
-    assertThat(ParamTypes.areCompatible(SqlTypes.STRING, GenericType.of("T")), is(false));
+    assertThat(ParamTypes.areCompatible(
+        SqlArgument.of(SqlTypes.STRING),
+        GenericType.of("T"),
+        false),
+        is(false));
 
     assertThat(
-        ParamTypes.areCompatible(SqlTypes.array(SqlTypes.INTEGER), ArrayType.of(ParamTypes.STRING)),
+        ParamTypes.areCompatible(
+            SqlArgument.of(SqlTypes.array(SqlTypes.INTEGER)),
+            ArrayType.of(ParamTypes.STRING),
+            false),
         is(false));
 
     assertThat(ParamTypes.areCompatible(
-        SqlTypes.struct().field("a", SqlTypes.decimal(1, 1)).build(),
-        StructType.builder().field("a", ParamTypes.DOUBLE).build()),
+        SqlArgument.of(SqlTypes.struct().field("a", SqlTypes.decimal(1, 1)).build()),
+        StructType.builder().field("a", ParamTypes.DOUBLE).build(),
+        false),
         is(false));
 
     assertThat(ParamTypes.areCompatible(
-        SqlTypes.map(SqlTypes.STRING, SqlTypes.decimal(1, 1)),
-        MapType.of(ParamTypes.STRING, ParamTypes.INTEGER)),
+        SqlArgument.of(SqlTypes.map(SqlTypes.STRING, SqlTypes.decimal(1, 1))),
+        MapType.of(ParamTypes.STRING, ParamTypes.INTEGER),
+        false),
         is(false));
 
     assertThat(ParamTypes.areCompatible(
-        SqlTypes.map(SqlTypes.decimal(1, 1), SqlTypes.INTEGER),
-        MapType.of(ParamTypes.INTEGER, ParamTypes.INTEGER)),
+        SqlArgument.of(SqlTypes.map(SqlTypes.decimal(1, 1), SqlTypes.INTEGER)),
+        MapType.of(ParamTypes.INTEGER, ParamTypes.INTEGER),
+        false),
         is(false));
 
 
@@ -62,21 +76,29 @@ public class ParamTypesTest {
 
   @Test
   public void shouldPassCompatibleSchemas() {
-    assertThat(ParamTypes.areCompatible(SqlTypes.STRING, ParamTypes.STRING),
+    assertThat(ParamTypes.areCompatible(
+        SqlArgument.of(SqlTypes.STRING),
+        ParamTypes.STRING,
+        false),
         is(true));
 
     assertThat(
-        ParamTypes.areCompatible(SqlTypes.array(SqlTypes.INTEGER), ArrayType.of(ParamTypes.INTEGER)),
+        ParamTypes.areCompatible(
+            SqlArgument.of(SqlTypes.array(SqlTypes.INTEGER)),
+            ArrayType.of(ParamTypes.INTEGER),
+            false),
         is(true));
 
     assertThat(ParamTypes.areCompatible(
-        SqlTypes.struct().field("a", SqlTypes.decimal(1, 1)).build(),
-        StructType.builder().field("a", ParamTypes.DECIMAL).build()),
+        SqlArgument.of(SqlTypes.struct().field("a", SqlTypes.decimal(1, 1)).build()),
+        StructType.builder().field("a", ParamTypes.DECIMAL).build(),
+        false),
         is(true));
 
     assertThat(ParamTypes.areCompatible(
-        SqlTypes.map(SqlTypes.INTEGER, SqlTypes.decimal(1, 1)),
-        MapType.of(ParamTypes.INTEGER, ParamTypes.DECIMAL)),
+        SqlArgument.of(SqlTypes.map(SqlTypes.INTEGER, SqlTypes.decimal(1, 1))),
+        MapType.of(ParamTypes.INTEGER, ParamTypes.DECIMAL),
+        false),
         is(true));
 
     assertThat(ParamTypes.areCompatible(

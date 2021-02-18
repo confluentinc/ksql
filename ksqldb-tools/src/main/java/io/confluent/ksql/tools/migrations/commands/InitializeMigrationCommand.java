@@ -22,12 +22,16 @@ import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.MigrationsUtil;
 import java.util.concurrent.ExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Command(
     name = "initialize",
     description = "Initializes the schema metadata (stream and table)."
 )
 public class InitializeMigrationCommand extends BaseCommand {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(InitializeMigrationCommand.class);
 
   private String createEventStream(final String name, final String topic, final int replicas) {
     return "CREATE STREAM " + name + " (\n"
@@ -67,7 +71,7 @@ public class InitializeMigrationCommand extends BaseCommand {
 
   @Override
   @SuppressFBWarnings("DM_EXIT")
-  public void command() {
+  protected void command() {
     final MigrationConfig properties = MigrationConfig.load();
     final String streamName = properties.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME);
     final String tableName = properties.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
@@ -116,5 +120,10 @@ public class InitializeMigrationCommand extends BaseCommand {
       return false;
     }
     return true;
+  }
+
+  @Override
+  protected Logger getLogger() {
+    return LOGGER;
   }
 }

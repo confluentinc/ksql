@@ -18,9 +18,7 @@ package io.confluent.ksql.tools.migrations.commands;
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.OptionType;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.tools.migrations.Migrations;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Defines common options across all of the migration
@@ -48,14 +46,14 @@ public abstract class BaseCommand implements Runnable {
   )
   protected boolean dryRun = false;
 
-  protected static final Logger LOGGER = LoggerFactory.getLogger(Migrations.class);
-
   @Override
   public void run() {
     final long startTime = System.nanoTime();
     command();
-    LOGGER.info("Execution time: " + (System.nanoTime() - startTime) / 1000000000);
+    getLogger().info("Execution time: " + (System.nanoTime() - startTime) / 1000000000);
   }
 
   protected abstract void command();
+
+  protected abstract Logger getLogger();
 }

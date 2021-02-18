@@ -47,7 +47,7 @@ public final class MigrationConfig extends AbstractConfig {
   public static final String KSQL_MIGRATIONS_TOPIC_REPLICAS = "ksql.migrations.topic.replicas";
   public static final int KSQL_MIGRATIONS_TOPIC_REPLICAS_DEFAULT = 1;
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(Migrations.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(MigrationConfig.class);
 
   @SuppressFBWarnings("DM_EXIT")
   public static MigrationConfig load() {

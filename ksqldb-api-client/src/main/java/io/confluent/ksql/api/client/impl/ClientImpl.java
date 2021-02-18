@@ -26,6 +26,7 @@ import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.api.client.ExecuteStatementResult;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.QueryInfo;
+import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.api.client.SourceDescription;
 import io.confluent.ksql.api.client.StreamInfo;
 import io.confluent.ksql.api.client.StreamedQueryResult;
@@ -67,6 +68,7 @@ public class ClientImpl implements Client {
   private static final String INSERTS_ENDPOINT = "/inserts-stream";
   private static final String CLOSE_QUERY_ENDPOINT = "/close-query";
   private static final String KSQL_ENDPOINT = "/ksql";
+  private static final String INFO_ENDPOINT = "/info";
 
   private final ClientOptions clientOptions;
   private final Vertx vertx;
@@ -300,6 +302,22 @@ public class ClientImpl implements Client {
   }
 
   @Override
+  public CompletableFuture<ServerInfo> serverInfo() {
+    final CompletableFuture<ServerInfo> cf = new CompletableFuture<>();
+
+    makeRequest(
+        INFO_ENDPOINT,
+        new JsonObject(),
+        cf,
+        response -> handleObjectResponse(
+            response, cf, AdminResponseHandlers::handleServerInfoResponse),
+        HttpMethod.GET
+    );
+
+    return cf;
+  }
+
+  @Override
   public void close() {
     httpClient.close();
     if (ownedVertx) {
@@ -337,6 +355,15 @@ public class ClientImpl implements Client {
       final String path,
       final JsonObject requestBody,
       final T cf,
+      final Handler<HttpClientResponse> responseHandler,
+      final HttpMethod method) {
+    makeRequest(path, requestBody.toBuffer(), cf, responseHandler, true, method);
+  }
+
+  private <T extends CompletableFuture<?>> void makeRequest(
+      final String path,
+      final JsonObject requestBody,
+      final T cf,
       final Handler<HttpClientResponse> responseHandler) {
     makeRequest(path, requestBody.toBuffer(), cf, responseHandler);
   }
@@ -355,7 +382,17 @@ public class ClientImpl implements Client {
       final T cf,
       final Handler<HttpClientResponse> responseHandler,
       final boolean endRequest) {
-    HttpClientRequest request = httpClient.request(HttpMethod.POST,
+    makeRequest(path, requestBody, cf, responseHandler, endRequest, HttpMethod.POST);
+  }
+
+  private <T extends CompletableFuture<?>> void makeRequest(
+      final String path,
+      final Buffer requestBody,
+      final T cf,
+      final Handler<HttpClientResponse> responseHandler,
+      final boolean endRequest,
+      final HttpMethod method) {
+    HttpClientRequest request = httpClient.request(method,
         serverSocketAddress, clientOptions.getPort(), clientOptions.getHost(),
         path,
         responseHandler)
@@ -438,6 +475,21 @@ public class ClientImpl implements Client {
           return;
         }
 
+        responseHandler.accept(entity, cf);
+      });
+    } else {
+      handleErrorResponse(response, cf);
+    }
+  }
+
+  private static <T> void handleObjectResponse(
+      final HttpClientResponse response,
+      final CompletableFuture<T> cf,
+      final SingleEntityResponseHandler<T> responseHandler
+  ) {
+    if (response.statusCode() == OK.code()) {
+      response.bodyHandler(buffer -> {
+        final JsonObject entity = buffer.toJsonObject();
         responseHandler.accept(entity, cf);
       });
     } else {

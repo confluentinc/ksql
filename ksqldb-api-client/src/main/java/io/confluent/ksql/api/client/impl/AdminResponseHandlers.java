@@ -17,6 +17,7 @@ package io.confluent.ksql.api.client.impl;
 
 import io.confluent.ksql.api.client.QueryInfo;
 import io.confluent.ksql.api.client.QueryInfo.QueryType;
+import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.api.client.SourceDescription;
 import io.confluent.ksql.api.client.StreamInfo;
 import io.confluent.ksql.api.client.TableInfo;
@@ -28,7 +29,9 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 final class AdminResponseHandlers {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private AdminResponseHandlers() {
   }
@@ -95,6 +98,19 @@ final class AdminResponseHandlers {
     } else {
       cf.completeExceptionally(new IllegalStateException(
           "Unexpected server response format. Response: " + sourceDescriptionEntity));
+    }
+  }
+
+  static void handleServerInfoResponse(
+      final JsonObject serverInfoEntity,
+      final CompletableFuture<ServerInfo> cf
+  ) {
+    final Optional<ServerInfo> source = getServerInfoResponse(serverInfoEntity);
+    if (source.isPresent()) {
+      cf.complete(source.get());
+    } else {
+      cf.completeExceptionally(new IllegalStateException(
+          "Unexpected server response format. Response: " + serverInfoEntity));
     }
   }
 
@@ -321,6 +337,28 @@ final class AdminResponseHandlers {
           source.getJsonArray("sourceConstraints").stream()
               .map(o -> (String)o)
               .collect(Collectors.toList())
+      ));
+    } catch (Exception e) {
+      return Optional.empty();
+    }
+  }
+
+  /**
+   * Attempts to parse the provided response entity as a {@code ServerInfo}.
+   *
+   * @param serverInfoEntity response entity
+   * @return optional containing parsed result if successful, else empty
+   */
+  private static Optional<ServerInfo> getServerInfoResponse(
+      final JsonObject serverInfoEntity
+  ) {
+    try {
+      final JsonObject source = serverInfoEntity.getJsonObject("KsqlServerInfo");
+      return Optional.of(new ServerInfoImpl(
+          source.getString("version"),
+          source.getString("kafkaClusterId"),
+          source.getString("ksqlServiceId"),
+          source.getString("serverStatus")
       ));
     } catch (Exception e) {
       return Optional.empty();

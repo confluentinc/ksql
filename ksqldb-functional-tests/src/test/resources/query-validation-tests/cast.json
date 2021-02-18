@@ -87,14 +87,14 @@
     {
       "name": "struct to struct with same schema",
       "statements": [
-        "CREATE STREAM TEST (ID STRING KEY, f0 STRUCT<F0 INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as STRUCT<F0 INTEGER>) FROM TEST;"
+        "CREATE STREAM TEST (ID STRING KEY, f0 STRUCT<F0 INT, `f1` INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, cast(f0 as STRUCT<F0 INTEGER, `f1` INTEGER>) FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test_topic", "value": {"f0": {"f0": 1}}}
+        {"topic": "test_topic", "value": {"f0": {"f0": 1, "f1": 3}}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"KSQL_COL_0": {"F0": 1}}}
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0": {"F0": 1, "f1": 3}}}
       ]
     },
     {

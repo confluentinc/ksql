@@ -17,6 +17,7 @@ package io.confluent.ksql.schema.ksql.types;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import java.util.List;
@@ -43,7 +44,7 @@ public final class SqlLambda {
       final List<SqlType> inputTypes,
       final SqlType returnType
   ) {
-    this.inputTypes = requireNonNull(inputTypes, "inputType");
+    this.inputTypes = ImmutableList.copyOf(requireNonNull(inputTypes, "inputType"));
     this.returnType = requireNonNull(returnType, "returnType");
   }
 
@@ -55,6 +56,7 @@ public final class SqlLambda {
     return returnType;
   }
 
+  @Override
   public boolean equals(final Object o) {
     if (this == o) {
       return true;
@@ -67,6 +69,7 @@ public final class SqlLambda {
         && Objects.equals(returnType, lambda.returnType);
   }
 
+  @Override
   public int hashCode() {
     return Objects.hash(inputTypes, returnType);
   }

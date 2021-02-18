@@ -187,7 +187,6 @@ public class CodeGenRunner {
     public Void visitFunctionCall(final FunctionCall node, final TypeContext context) {
       final List<SqlArgument> argumentTypes = new ArrayList<>();
       final FunctionName functionName = node.getName();
-      final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       for (final Expression argExpr : node.getArguments()) {
         process(argExpr, context);
         final SqlType newSqlType = expressionTypeManager.getExpressionSqlType(argExpr, context);
@@ -214,6 +213,7 @@ public class CodeGenRunner {
         }
       }
 
+      final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       final KsqlScalarFunction function = holder.getFunction(argumentTypes);
       spec.addFunction(
           function.name(),

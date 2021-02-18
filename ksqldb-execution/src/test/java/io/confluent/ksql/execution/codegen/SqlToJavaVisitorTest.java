@@ -958,7 +958,14 @@ public class SqlToJavaVisitorTest {
     // Then
     assertThat(
         javaExpression, equalTo(
-            "((String) REDUCE_0.evaluate(COL4, COL3, new BiFunction() {\\n @Override\\n public Object apply(Object arg1, Object arg2) {\\n   final Double X = (Double) arg1;\\n   final Double S = (Double) arg2;\\n   return (X + S);\\n }\\n}))"));
+            "((String) REDUCE_0.evaluate(COL4, COL3, new BiFunction() {\n" +
+                " @Override\n" +
+                " public Object apply(Object arg1, Object arg2) {\n" +
+                "   final Double X = (Double) arg1;\n" +
+                "   final Double S = (Double) arg2;\n" +
+                "   return (X + S);\n" +
+                " }\n" +
+                "}))"));
   }
 
   @Test
@@ -970,7 +977,6 @@ public class SqlToJavaVisitorTest {
 
     // When:
     assertThrows(IllegalArgumentException.class, () -> sqlToJavaVisitor.process(expression));
-
   }
 
   @Test

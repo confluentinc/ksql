@@ -472,8 +472,8 @@ public class SqlToJavaVisitor {
         }
         if (argExpr instanceof LambdaFunctionCall) {
           argumentSchemas.add(
-              SqlArgument.of(SqlLambda.of(context.getLambdaInputTypes(),
-                  newSqlType)));
+              SqlArgument.of(SqlLambda.of(context.getLambdaInputTypes(), newSqlType))
+          );
         } else {
           argumentSchemas.add(SqlArgument.of(newSqlType));
         }

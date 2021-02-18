@@ -102,7 +102,8 @@ public class ExpressionTypeManager {
   }
 
   public SqlType getExpressionSqlType(
-      final Expression expression, final TypeContext expressionTypeContext) {
+      final Expression expression, final TypeContext expressionTypeContext
+  ) {
     new Visitor().process(expression, expressionTypeContext);
     return expressionTypeContext.getSqlType();
   }
@@ -477,10 +478,10 @@ public class ExpressionTypeManager {
         process(expression, expressionTypeContext);
         final SqlType newSqlType = expressionTypeContext.getSqlType();
         if (expression instanceof LambdaFunctionCall) {
-          argTypes.add(
-              SqlArgument.of(SqlLambda.of(expressionTypeContext.getLambdaInputTypes(),
-                  expressionTypeContext.getSqlType()))
-          );
+          argTypes.add(SqlArgument.of(
+              SqlLambda.of(expressionTypeContext.getLambdaInputTypes(),
+                  expressionTypeContext.getSqlType())
+          ));
         } else {
           argTypes.add(SqlArgument.of(newSqlType));
         }

@@ -174,10 +174,13 @@ public final class GenericsUtil {
       final SqlType old = mapping.putIfAbsent(entry.getKey(), entry.getValue());
       if (old != null && !old.equals(entry.getValue())) {
         throw new KsqlException(String.format(
-            "Found invalid instance of generic schema. Cannot map %s to both %s and %s",
+            "Found invalid instance of generic schema when mapping %s to %s. " 
+                + "Cannot map %s to both %s and %s",
             schema,
+            instance,
+            entry.getKey(),
             old,
-            instance));
+            entry.getValue()));
       }
     }
 
@@ -213,10 +216,11 @@ public final class GenericsUtil {
     }
 
     if (schema instanceof ArrayType) {
+      final SqlArray sqlArray = (SqlArray) sqlType;
       return resolveGenerics(
           mapping,
           ((ArrayType) schema).element(),
-          SqlArgument.of(((SqlArray) sqlType).getItemType()));
+          SqlArgument.of(sqlArray.getItemType()));
     }
 
     if (schema instanceof MapType) {
@@ -236,7 +240,7 @@ public final class GenericsUtil {
       boolean resolvedInputs = true;
       if (sqlLambda.getInputType().size() != lambdaType.inputTypes().size()) {
         throw new KsqlException(
-            "Number of lambda arguments don't match between schema and sql type");
+            "Number of lambda arguments doesn't match between schema and sql type");
       }
 
       int i = 0;
@@ -258,6 +262,8 @@ public final class GenericsUtil {
   private static boolean matches(final ParamType schema, final SqlArgument instance) {
     if (schema instanceof LambdaType && instance.getSqlLambda() != null) {
       return true;
+    } else if (schema instanceof LambdaType || instance.getSqlLambda() != null) {
+      return false;
     }
     final ParamType instanceParamType = SchemaConverters
         .sqlToFunctionConverter().toFunctionType(instance.getSqlType());
@@ -272,7 +278,7 @@ public final class GenericsUtil {
   public static boolean instanceOf(final ParamType schema, final SqlArgument instance) {
     final List<Entry<GenericType, SqlType>> mappings = new ArrayList<>();
 
-    if (!resolveGenerics(mappings, schema, SqlArgument.of(instance.getSqlType()))) {
+    if (!resolveGenerics(mappings, schema, instance)) {
       return false;
     }
 

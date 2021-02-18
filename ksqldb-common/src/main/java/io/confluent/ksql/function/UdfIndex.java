@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.GenericType;
-import io.confluent.ksql.function.types.LambdaType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.schema.ksql.SqlArgument;
@@ -199,7 +198,18 @@ public class UdfIndex<T extends FunctionSignature> {
     LOG.debug("Current UdfIndex:\n{}", describe());
 
     final String requiredTypes = paramTypes.stream()
-        .map(type -> type == null ? "null" : type.getSqlType().toString(FormatOptions.noEscape()))
+        .map(argument -> {
+          if (argument == null) {
+            return "null";
+          } else {
+            final SqlType sqlType = argument.getSqlType();
+            if (sqlType != null) {
+              return sqlType.toString(FormatOptions.noEscape());
+            } else {
+              return argument.getSqlLambda().toString();
+            }
+          }
+        })
         .collect(Collectors.joining(", ", "(", ")"));
 
     final String acceptedTypes = allFunctions.values().stream()
@@ -369,8 +379,7 @@ public class UdfIndex<T extends FunctionSignature> {
         final SqlArgument argument,
         final Map<GenericType, SqlType> reservedGenerics
     ) {
-      if (!(schema instanceof LambdaType)
-          && !GenericsUtil.instanceOf(schema, argument)) {
+      if (!GenericsUtil.instanceOf(schema, argument)) {
         return false;
       }
       final Map<GenericType, SqlType> genericMapping =

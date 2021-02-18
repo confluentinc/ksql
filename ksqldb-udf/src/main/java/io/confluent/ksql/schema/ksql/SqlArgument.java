@@ -68,6 +68,16 @@ public class SqlArgument {
       return false;
     }
     final SqlArgument that = (SqlArgument) o;
-    return that.sqlType == this.sqlType && that.sqlLambda == this.sqlLambda;
+    return Objects.equals(sqlType, that.sqlType)
+        && Objects.equals(sqlLambda, that.sqlLambda);
+  }
+
+  @Override
+  public String toString() {
+    if (sqlType != null) {
+      return sqlType.toString();
+    } else {
+      return sqlLambda.toString();
+    }
   }
 }

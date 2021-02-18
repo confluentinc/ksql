@@ -18,12 +18,16 @@ package io.confluent.ksql.tools.migrations.commands;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.restrictions.MutuallyExclusiveWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Command(
     name = "apply",
     description = "Migrates a schema to new available schema versions"
 )
 public class ApplyMigrationCommand extends BaseCommand {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ApplyMigrationCommand.class);
 
   @Option(
       title = "all",
@@ -51,7 +55,12 @@ public class ApplyMigrationCommand extends BaseCommand {
   private int version;
 
   @Override
-  public void run() {
+  protected void command() {
     throw new UnsupportedOperationException();
+  }
+
+  @Override
+  protected Logger getLogger() {
+    return LOGGER;
   }
 }

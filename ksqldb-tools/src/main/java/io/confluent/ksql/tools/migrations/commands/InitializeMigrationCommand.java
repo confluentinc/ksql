@@ -18,10 +18,9 @@ package io.confluent.ksql.tools.migrations.commands;
 import com.github.rvesse.airline.annotations.Command;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.client.Client;
-import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
-import java.net.MalformedURLException;
-import java.net.URL;
+import io.confluent.ksql.tools.migrations.MigrationException;
+import io.confluent.ksql.tools.migrations.MigrationsUtil;
 import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,9 +71,7 @@ public class InitializeMigrationCommand extends BaseCommand {
 
   @Override
   @SuppressFBWarnings("DM_EXIT")
-  public void run() {
-    final long startTime = System.currentTimeMillis();
-
+  protected void command() {
     final MigrationConfig properties = MigrationConfig.load();
     final String streamName = properties.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME);
     final String tableName = properties.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
@@ -88,28 +85,19 @@ public class InitializeMigrationCommand extends BaseCommand {
         properties.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_TOPIC_NAME)
     );
     final String ksqlServerUrl = properties.getString(MigrationConfig.KSQL_SERVER_URL);
+    final Client ksqlClient;
 
-    final URL url;
     try {
-      url = new URL(ksqlServerUrl);
-    } catch (MalformedURLException e) {
-      LOGGER.error("Invalid ksql server URL: " + ksqlServerUrl);
+      ksqlClient = MigrationsUtil.getKsqlClient(ksqlServerUrl);
+    } catch (MigrationException e) {
+      LOGGER.error(e.getMessage());
       System.exit(1);
       return;
     }
 
-    final ClientOptions options = ClientOptions
-        .create()
-        .setHost(url.getHost())
-        .setPort(url.getPort());
-
-    final Client ksqlClient = Client.create(options);
-
     if (tryCreate(ksqlClient, eventStreamCommand, streamName, true)
         && tryCreate(ksqlClient, versionTableCommand, tableName, false)) {
-      final long endTime = System.currentTimeMillis();
-      LOGGER.info("Schema metadata initialized successfully (execution time "
-          + (endTime - startTime) / 1000.0 + "s).");
+      LOGGER.info("Schema metadata initialized successfully");
       ksqlClient.close();
     } else {
       ksqlClient.close();
@@ -132,5 +120,10 @@ public class InitializeMigrationCommand extends BaseCommand {
       return false;
     }
     return true;
+  }
+
+  @Override
+  protected Logger getLogger() {
+    return LOGGER;
   }
 }

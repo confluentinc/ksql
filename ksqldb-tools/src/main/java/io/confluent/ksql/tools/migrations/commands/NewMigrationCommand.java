@@ -41,18 +41,19 @@ public class NewMigrationCommand extends BaseCommand {
 
   @Override
   @SuppressFBWarnings("DM_EXIT")
-  public void run() {
-    final long startTime = System.currentTimeMillis();
-
+  protected void command() {
     if (tryCreateDirectory(projectPath)
         && tryCreateDirectory(projectPath + "/migrations")
         && tryCreatePropertiesFile(projectPath + "/ksql-migrations.properties")) {
-      final long endTime = System.currentTimeMillis();
-      LOGGER.info("Migrations project directory created successfully (execution time "
-          + (endTime - startTime) / 1000.0 + "s)");
+      LOGGER.info("Migrations project directory created successfully");
     } else {
       System.exit(1);
     }
+  }
+
+  @Override
+  protected Logger getLogger() {
+    return LOGGER;
   }
 
   private boolean tryCreateDirectory(final String path) {

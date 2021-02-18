@@ -152,9 +152,9 @@ This data format supports all SQL
 
 There are two JSON formats, `JSON` and `JSON_SR`. Both support serializing and
 deserializing JSON data. The latter offers integration with the {{ site.sr }},
-registering and retrieving JSON schemas. The former does not. Though the `JSON`
-does support reading data written by the `JSON_SR` format, (which prefixes the
-JSON data with a magic byte and schema id).
+registering and retrieving JSON schemas while the former does not. These two
+formats are _not_ byte compatible (you cannot read data produced by one by the
+other).
 
 The JSON formats supports all SQL [data types](/reference/sql/data-types).
 By itself, JSON doesn't support a map type, so ksqlDB serializes `MAP` types as
@@ -521,7 +521,7 @@ CREATE TABLE TRADES (
 If a statement doesn't set the value wrapping explicitly, ksqlDB uses the
 system default, which is defined by `ksql.persistence.wrap.single.values`.
 You can change the system default, if the format supports it. For more information, see
-[ksql.persistence.wrap.single.values](../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencewrapsinglevalues).
+[ksql.persistence.wrap.single.values](/reference/server-configuration#ksqlpersistencewrapsinglevalues).
 
 !!! important
       ksqlDB treats `null` keys and values as a special case. We recommend
@@ -589,7 +589,7 @@ CREATE STREAM y WITH(WRAP_SINGLE_VALUE=false) AS SELECT f0 FROM x EMIT CHANGES;
 If a statement doesn't set the value wrapping explicitly, ksqlDB uses the
 system default, defined by `ksql.persistence.wrap.single.values`, if the format supports it. 
 You can change the system default. For more information, see
-[ksql.persistence.wrap.single.values](../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencewrapsinglevalues).
+[ksql.persistence.wrap.single.values](/reference/server-configuration#ksqlpersistencewrapsinglevalues).
 
 !!! important
       ksqlDB treats `null` keys and values as a special case. We recommended
@@ -647,4 +647,4 @@ CREATE STREAM BAD_SINK WITH(WRAP_SINGLE_VALUE=true) AS SELECT ID, COST FROM S EM
 
 - Blog post: [I’ve Got the Key, I’ve Got the Secret. Here’s How Keys Work in ksqlDB 0.10](https://www.confluent.io/blog/ksqldb-0-10-updates-key-columns/)
 
-[1]: ../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencedefaultformatkey
+[1]: /reference/server-configuration#ksqlpersistencedefaultformatkey

@@ -21,7 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,14 +34,14 @@ public class LongTopkKudafTest {
   private final List<Long> valuesArray = ImmutableList.of(10L, 30L, 10L, 45L, 50L, 60L, 20L, 60L, 80L, 35L,
       25L);
   private TopKAggregateFunctionFactory topKFactory;
-  private List<SqlType> argumentType;
+  private List<SqlArgument> argumentType;
   private final AggregateFunctionInitArguments args =
       new AggregateFunctionInitArguments(0, 3);
       
   @Before
   public void setup() {
     topKFactory = new TopKAggregateFunctionFactory();
-    argumentType = Collections.singletonList(SqlTypes.BIGINT);
+    argumentType = Collections.singletonList(SqlArgument.of(SqlTypes.BIGINT));
   }
 
   @Test

@@ -24,6 +24,7 @@ import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
@@ -145,7 +146,7 @@ public final class GenericsUtil {
    */
   public static Map<GenericType, SqlType> resolveGenerics(
       final ParamType schema,
-      final SqlType instance
+      final SqlArgument instance
   ) {
     final List<Entry<GenericType, SqlType>> genericMapping = new ArrayList<>();
     final boolean success = resolveGenerics(genericMapping, schema, instance);
@@ -172,11 +173,15 @@ public final class GenericsUtil {
     return ImmutableMap.copyOf(mapping);
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private static boolean resolveGenerics(
       final List<Entry<GenericType, SqlType>> mapping,
       final ParamType schema,
-      final SqlType instance
+      final SqlArgument instance
   ) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
+    final SqlType sqlType = instance.getSqlType();
+
     if (!isGeneric(schema) && !matches(schema, instance)) {
       // cannot identify from type mismatch
       return false;
@@ -191,19 +196,20 @@ public final class GenericsUtil {
             + schema + " vs. " + instance);
 
     if (isGeneric(schema)) {
-      mapping.add(new HashMap.SimpleEntry<>((GenericType) schema, instance));
+      mapping.add(new HashMap.SimpleEntry<>((GenericType) schema, sqlType));
     }
 
     if (schema instanceof ArrayType) {
+      final SqlArray sqlArray = (SqlArray) sqlType;
       return resolveGenerics(
-          mapping, ((ArrayType) schema).element(), ((SqlArray) instance).getItemType());
+          mapping, ((ArrayType) schema).element(), SqlArgument.of(sqlArray.getItemType()));
     }
 
     if (schema instanceof MapType) {
-      final SqlMap sqlMap = (SqlMap) instance;
+      final SqlMap sqlMap = (SqlMap) sqlType;
       final MapType mapType = (MapType) schema;
-      return resolveGenerics(mapping, mapType.key(), sqlMap.getKeyType())
-          && resolveGenerics(mapping, mapType.value(), sqlMap.getValueType());
+      return resolveGenerics(mapping, mapType.key(), SqlArgument.of(sqlMap.getKeyType()))
+          && resolveGenerics(mapping, mapType.value(), SqlArgument.of(sqlMap.getValueType()));
     }
 
     if (schema instanceof StructType) {
@@ -213,9 +219,9 @@ public final class GenericsUtil {
     return true;
   }
 
-  private static boolean matches(final ParamType schema, final SqlType instance) {
+  private static boolean matches(final ParamType schema, final SqlArgument instance) {
     final ParamType instanceParamType = SchemaConverters
-        .sqlToFunctionConverter().toFunctionType(instance);
+        .sqlToFunctionConverter().toFunctionType(instance.getSqlType());
     return schema.getClass() == instanceParamType.getClass();
   }
 
@@ -224,7 +230,7 @@ public final class GenericsUtil {
    * @param instance  a schema without generics
    * @return whether {@code instance} conforms to the structure of {@code schema}
    */
-  public static boolean instanceOf(final ParamType schema, final SqlType instance) {
+  public static boolean instanceOf(final ParamType schema, final SqlArgument instance) {
     final List<Entry<GenericType, SqlType>> mappings = new ArrayList<>();
 
     if (!resolveGenerics(mappings, schema, instance)) {

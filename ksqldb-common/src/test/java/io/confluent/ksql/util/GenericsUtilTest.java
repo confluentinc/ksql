@@ -29,7 +29,7 @@ import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.types.StructType;
-import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Map;
@@ -142,7 +142,7 @@ public class GenericsUtilTest {
   public void shouldIdentifyGeneric() {
     // Given:
     final GenericType a = GenericType.of("A");
-    final SqlType instance = SqlTypes.STRING;
+    final SqlArgument instance = SqlArgument.of(SqlTypes.STRING);
 
     // When:
     final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance);
@@ -155,7 +155,7 @@ public class GenericsUtilTest {
   public void shouldIdentifyArrayGeneric() {
     // Given:
     final ArrayType a = ArrayType.of(GenericType.of("A"));
-    final SqlType instance = SqlTypes.array(SqlTypes.STRING);
+    final SqlArgument instance = SqlArgument.of(SqlTypes.array(SqlTypes.STRING));
 
     // When:
     final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance);
@@ -168,7 +168,7 @@ public class GenericsUtilTest {
   public void shouldIdentifyMapGeneric() {
     // Given:
     final MapType a = MapType.of(GenericType.of("A"), GenericType.of("B"));
-    final SqlType instance = SqlTypes.map(SqlTypes.DOUBLE, SqlTypes.BIGINT);
+    final SqlArgument instance = SqlArgument.of(SqlTypes.map(SqlTypes.DOUBLE, SqlTypes.BIGINT));
 
     // When:
     final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance);
@@ -182,7 +182,7 @@ public class GenericsUtilTest {
   public void shouldNotIdentifyInstanceOfTypeMismatch() {
     // Given:
     final MapType map = MapType.of(GenericType.of("A"), GenericType.of("B"));
-    final SqlType instance = SqlTypes.array(SqlTypes.STRING);
+    final SqlArgument instance = SqlArgument.of(SqlTypes.array(SqlTypes.STRING));
 
     // When:
     final boolean isInstance = GenericsUtil.instanceOf(map, instance);
@@ -205,7 +205,7 @@ public class GenericsUtilTest {
   public void shouldFailIdentifyMismatchStructureGeneric() {
     // Given:
     final MapType a = MapType.of(GenericType.of("A"), GenericType.of("B"));
-    final SqlArray instance = SqlTypes.array(SqlTypes.STRING);
+    final SqlArgument instance = SqlArgument.of(SqlTypes.array(SqlTypes.STRING));
 
     // When:
     GenericsUtil.resolveGenerics(a, instance);

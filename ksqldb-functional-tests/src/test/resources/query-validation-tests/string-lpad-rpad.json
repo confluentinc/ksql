@@ -37,7 +37,7 @@
       "name": "LPad with literal args",
       "format": ["JSON"],
       "statements": [
-        "CREATE STREAM INPUT (id STRING KEY, foo STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM INPUT (id STRING KEY) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT id, lpad('foo', 7, 'Bar') as result FROM INPUT;"
       ],
       "inputs": [
@@ -83,7 +83,7 @@
       "name": "RPad with literal args",
       "format": ["JSON"],
       "statements": [
-        "CREATE STREAM INPUT (id STRING KEY, foo STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM INPUT (id STRING KEY) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM OUTPUT AS SELECT id, rpad('foo', 7, 'Bar') as result FROM INPUT;"
       ],
       "inputs": [

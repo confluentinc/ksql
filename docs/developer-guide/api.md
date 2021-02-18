@@ -19,7 +19,7 @@ The default HTTP API endpoint is `http://0.0.0.0:8088/`.
 
 Change the server configuration that controls the HTTP API endpoint by
 setting the `listeners` parameter in the ksqlDB server config file. For
-more info, see [listeners](../operate-and-deploy/installation/server-config/config-reference.md#listeners).
+more info, see [listeners](/reference/server-configuration#listeners).
 To configure the endpoint to use HTTPS, see
 [Configure ksqlDB for HTTPS](../operate-and-deploy/installation/server-config/security.md#configure-ksqldb-for-https).
 

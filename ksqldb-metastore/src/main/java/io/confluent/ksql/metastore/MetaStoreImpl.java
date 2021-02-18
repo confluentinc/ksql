@@ -26,6 +26,7 @@ import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
@@ -233,7 +234,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
   public KsqlTableFunction getTableFunction(
       final FunctionName functionName,
-      final List<SqlType> argumentTypes
+      final List<SqlArgument> argumentTypes
   ) {
     return functionRegistry.getTableFunction(functionName, argumentTypes);
   }

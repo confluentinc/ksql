@@ -22,13 +22,11 @@ import com.google.common.collect.Range;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.engine.generic.GenericExpressionResolver;
-import io.confluent.ksql.engine.rewrite.StatementRewriteForMagicPseudoTimestamp;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
@@ -39,6 +37,7 @@ import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.planner.PullPlannerOptions;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
@@ -50,7 +49,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashSet;
@@ -58,9 +56,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PullFilterNode extends SingleSourcePlanNode {
+  private static final Logger LOG = LoggerFactory.getLogger(PullFilterNode.class);
 
   private static final Set<Type> VALID_WINDOW_BOUND_COMPARISONS = ImmutableSet.of(
       Type.EQUAL,
@@ -78,11 +80,15 @@ public class PullFilterNode extends SingleSourcePlanNode {
   private final KsqlConfig ksqlConfig;
   private final LogicalSchema schema = getSource().getSchema();
 
-  private Expression rewrittenPredicate;
-  private Optional<WindowBounds> windowBounds;
-  private List<GenericKey> keyValues;
-  private Set<UnqualifiedColumnReferenceExp> keyColumns;
-  private Set<UnqualifiedColumnReferenceExp> systemColumns;
+  // The rewritten predicate in DNF, e.g. (A AND B) OR (C AND D)
+  private final Expression rewrittenPredicate;
+  // The separated disjuncts.  In the above example, [(A AND B), (C AND D)]
+  private final List<Expression> disjuncts;
+  private final List<LookupConstraint> lookupConstraints;
+  private final Set<UnqualifiedColumnReferenceExp> keyColumns = new HashSet<>();
+  private final Set<UnqualifiedColumnReferenceExp> systemColumns = new HashSet<>();
+  private final PullPlannerOptions pullPlannerOptions;
+  private final boolean requiresTableScan;
 
   public PullFilterNode(
       final PlanNodeId id,
@@ -90,32 +96,36 @@ public class PullFilterNode extends SingleSourcePlanNode {
       final Expression predicate,
       final MetaStore metaStore,
       final KsqlConfig ksqlConfig,
-      final boolean isWindowed
+      final boolean isWindowed,
+      final PullPlannerOptions pullPlannerOptions
   ) {
     super(id, source.getNodeOutputType(), source.getSourceName(), source);
 
     Objects.requireNonNull(predicate, "predicate");
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-    this.rewrittenPredicate = new StatementRewriteForMagicPseudoTimestamp().rewrite(predicate);
+    this.pullPlannerOptions = pullPlannerOptions;
+    // The predicate is rewritten as DNF.  Discussion for why this format is chosen and how it helps
+    // to extract keys in various scenarios can be found here:
+    // https://github.com/confluentinc/ksql/pull/6874
+    this.rewrittenPredicate = PullQueryRewriter.rewrite(predicate);
+    this.disjuncts = LogicRewriter.extractDisjuncts(rewrittenPredicate);
     this.isWindowed = isWindowed;
 
     // Basic validation of WHERE clause
-    validateWhereClause();
-
-    // Validation and extractions of window bounds
-    windowBounds = isWindowed ? Optional.of(extractWindowBounds()) : Optional.empty();
+    this.requiresTableScan = validateWhereClause();
 
     // Extraction of key and system columns
     extractKeysAndSystemCols();
 
-    // Extraction of key values
-    keyValues = extractKeyValues();
+    // Extraction of lookup constraints
+    lookupConstraints = extractLookupConstraints();
 
     // Compiling expression into byte code
     this.addAdditionalColumnsToIntermediateSchema = shouldAddAdditionalColumnsInSchema();
     this.intermediateSchema = PullLogicalPlanUtil.buildIntermediateSchema(
-        source.getSchema(), addAdditionalColumnsToIntermediateSchema, isWindowed);
+        source.getSchema().withoutPseudoAndKeyColsInValue(),
+        addAdditionalColumnsToIntermediateSchema, isWindowed);
     compiledWhereClause = CodeGenRunner.compileExpression(
         rewrittenPredicate,
         "Predicate",
@@ -147,12 +157,8 @@ public class PullFilterNode extends SingleSourcePlanNode {
     return isWindowed;
   }
 
-  public List<GenericKey> getKeyValues() {
-    return keyValues;
-  }
-
-  public Optional<WindowBounds> getWindowBounds() {
-    return windowBounds;
+  public List<LookupConstraint> getLookupConstraints() {
+    return lookupConstraints;
   }
 
   public boolean getAddAdditionalColumnsToIntermediateSchema() {
@@ -163,84 +169,111 @@ public class PullFilterNode extends SingleSourcePlanNode {
     return intermediateSchema;
   }
 
-  private void validateWhereClause() {
-    final Validator validator = new Validator();
-    validator.process(rewrittenPredicate, null);
-    if (!validator.isKeyedQuery) {
-      throw invalidWhereClauseException("WHERE clause missing key column", isWindowed);
-    }
+  private boolean validateWhereClause() {
+    boolean requiresTableScan = false;
+    for (Expression disjunct : disjuncts) {
+      final Validator validator = new Validator();
+      validator.process(disjunct, null);
+      requiresTableScan = requiresTableScan || validator.requiresTableScan;
+      if (!validator.isKeyedQuery) {
+        if (pullPlannerOptions.getTableScansEnabled()) {
+          requiresTableScan = true;
+        } else {
+          throw invalidWhereClauseException("WHERE clause missing key column for disjunct: "
+              + disjunct.toString(), isWindowed);
+        }
+      }
 
-    if (!validator.seenKeys.isEmpty() && validator.seenKeys.cardinality() != schema.key().size()) {
-      final List<ColumnName> seenKeyNames = validator.seenKeys
-          .stream()
-          .boxed()
-          .map(i -> schema.key().get(i))
-          .map(Column::name)
-          .collect(Collectors.toList());
-      throw invalidWhereClauseException(
-          "Multi-column sources must specify every key in the WHERE clause. Specified: "
-              + seenKeyNames + " Expected: " + schema.key(), isWindowed);
+      if (!validator.seenKeys.isEmpty()
+          && validator.seenKeys.cardinality() != schema.key().size()) {
+        final List<ColumnName> seenKeyNames = validator.seenKeys
+            .stream()
+            .boxed()
+            .map(i -> schema.key().get(i))
+            .map(Column::name)
+            .collect(Collectors.toList());
+        if (pullPlannerOptions.getTableScansEnabled()) {
+          requiresTableScan = true;
+        } else {
+          throw invalidWhereClauseException(
+              "Multi-column sources must specify every key in the WHERE clause. Specified: "
+                  + seenKeyNames + " Expected: " + schema.key(), isWindowed);
+        }
+      }
     }
+    return requiresTableScan;
   }
 
   private void extractKeysAndSystemCols() {
-    keyColumns = new HashSet<>();
-    systemColumns = new HashSet<>();
     new KeyAndSystemColsExtractor().process(rewrittenPredicate, null);
   }
 
   /**
-   * The WHERE clause is currently limited to either having a single IN predicate
-   * or equality conditions on the keys.
-   * inKeys has the key values as specified in the IN predicate.
+   * The WHERE clause is in DNF and this method extracts key constraints from each disjunct.
+   * In order to do that successfully, a given disjunct must have equality conditions on the keys.
+   * For example, for "KEY = 1 AND WINDOWSTART > 0 OR COUNT > 5 AND WINDOWEND < 10", the disjunct
+   * "KEY = 1 AND WINDOWSTART > 0" has a key equality constraint for value 1. The second
+   * disjunct "COUNT > 5 AND WINDOWEND < 10" does not and so has an unbound key constraint.
    * seenKeys is used to make sure that all columns of a multi-column
    * key are constrained via an equality condition.
    * keyContents has the key values for each columns of a key.
-   * @return the constrains on the key values used to to do keyed lookup.
+   * @return the constraints on the key values used to to do keyed lookup.
    */
-  private List<GenericKey> extractKeyValues() {
-    final KeyValueExtractor keyValueExtractor = new KeyValueExtractor();
-    keyValueExtractor.process(rewrittenPredicate, null);
-    if (!keyValueExtractor.inKeys.isEmpty()) {
-      return keyValueExtractor.inKeys;
+  private List<LookupConstraint> extractLookupConstraints() {
+    if (requiresTableScan) {
+      LOG.debug("Skipping extracting key value extraction. Already requires table scan");
+      return ImmutableList.of(new NonKeyConstraint());
     }
+    final ImmutableList.Builder<LookupConstraint> constraintPerDisjunct = ImmutableList.builder();
+    for (Expression disjunct : disjuncts) {
+      final KeyValueExtractor keyValueExtractor = new KeyValueExtractor();
+      keyValueExtractor.process(disjunct, null);
 
-    return ImmutableList.of(GenericKey.fromList(Arrays.asList(keyValueExtractor.keyContents)));
-  }
+      // Validation and extractions of window bounds
+      final Optional<WindowBounds> optionalWindowBounds;
+      if (isWindowed) {
+        final WindowBounds windowBounds = new WindowBounds();
+        new WindowBoundsExtractor().process(disjunct, windowBounds);
+        optionalWindowBounds = Optional.of(windowBounds);
+      } else {
+        optionalWindowBounds = Optional.empty();
+      }
 
-  private WindowBounds extractWindowBounds() {
-    final WindowBounds windowBounds = new WindowBounds();
-
-    new WindowBoundsExtractor().process(rewrittenPredicate, windowBounds);
-    return windowBounds;
+      if (keyValueExtractor.seenKeys.isEmpty()) {
+        constraintPerDisjunct.add(new NonKeyConstraint());
+      } else {
+        constraintPerDisjunct.add(KeyConstraint.equal(
+            GenericKey.fromList(Arrays.asList(keyValueExtractor.keyContents)),
+            optionalWindowBounds));
+      }
+    }
+    return constraintPerDisjunct.build();
   }
 
   /**
-   * Validate the WHERE clause for pull queries.
-   * 1. There must be exactly one equality condition per key
-   * or one IN predicate that involves a key.
-   * 2. An IN predicate can refer to a single key.
-   * 3. The IN predicate cannot be combined with other conditions.
-   * 4. Only AND is allowed.
-   * 5. If there is a multi-key, conditions on all keys must be specified.
-   * 6. The IN predicate cannot use multi-keys.
+   * Validate the WHERE clause for pull queries. Each of these validation steps are taken for each
+   * disjunct of a DNF expression.
+   * 1. There must be exactly one equality condition per key.
+   * 2. An IN predicate has been transformed to equality conditions and therefore isn't handled.
+   * 3. Only AND is allowed.
+   * 4. If there is a multi-key, conditions on all keys must be specified.
    */
   private final class Validator extends TraversalExpressionVisitor<Object> {
+
     private final BitSet seenKeys;
-    private boolean containsINkeys;
     private boolean isKeyedQuery;
+    private boolean requiresTableScan;
 
     Validator() {
       isKeyedQuery = false;
       seenKeys = new BitSet(schema.key().size());
-      containsINkeys = false;
+      requiresTableScan = false;
     }
 
     @Override
     public Void process(final Expression node, final Object context) {
-      if (!(node instanceof  LogicalBinaryExpression)
-          && !(node instanceof  ComparisonExpression)
-          && !(node instanceof  InPredicate)) {
+      if (!(node instanceof LogicalBinaryExpression)
+          && !(node instanceof ComparisonExpression)) {
         throw invalidWhereClauseException("Unsupported expression in WHERE clause: " + node, false);
       }
       super.process(node, context);
@@ -253,7 +286,8 @@ public class PullFilterNode extends SingleSourcePlanNode {
         final Object context
     ) {
       if (node.getType() != LogicalBinaryExpression.Type.AND) {
-        throw invalidWhereClauseException("Only AND expressions are supported: " + node, false);
+        setTableScanOrElseThrow(() ->
+            invalidWhereClauseException("Only AND expressions are supported: " + node, false));
       }
       process(node.getLeft(), context);
       process(node.getRight(), context);
@@ -284,61 +318,34 @@ public class PullFilterNode extends SingleSourcePlanNode {
       } else {
         final Column col = schema.findColumn(columnName)
             .orElseThrow(() -> invalidWhereClauseException(
-                "Bound on non-key column " + columnName, isWindowed));
+                "Bound on non-existent column " + columnName, isWindowed));
 
         if (col.namespace() == Namespace.KEY) {
           if (node.getType() != Type.EQUAL) {
-            throw invalidWhereClauseException(
-                "Bound on key columns '" + getSource().getSchema().key()
-                    + "' must currently be '='",
-                isWindowed);
+            setTableScanOrElseThrow(() ->
+                invalidWhereClauseException("Bound on key columns '"
+                        + getSource().getSchema().key() + "' must currently be '='", isWindowed));
           }
-          if (containsINkeys || seenKeys.get(col.index())) {
-            throw invalidWhereClauseException(
+          if (seenKeys.get(col.index())) {
+            setTableScanOrElseThrow(() -> invalidWhereClauseException(
                 "An equality condition on the key column cannot be combined with other comparisons"
                     + " such as an IN predicate",
-                isWindowed);
+                isWindowed));
           }
           seenKeys.set(col.index());
           isKeyedQuery = true;
           return null;
         }
-
-        throw invalidWhereClauseException(
-            "WHERE clause on non-key column: " + columnName.text(),
-            false
-        );
+        return null;
       }
     }
 
-    @Override
-    public Void visitInPredicate(
-        final InPredicate node,
-        final Object context
-    ) {
-      if (schema.key().size() > 1) {
-        throw invalidWhereClauseException(
-            "Schemas with multiple KEY columns are not supported for IN predicates", false);
-      }
-
-      final UnqualifiedColumnReferenceExp column
-          = (UnqualifiedColumnReferenceExp) node.getValue();
-      final Optional<Column> col = schema.findColumn(column.getColumnName());
-      if (col.isPresent() && col.get().namespace() == Namespace.KEY) {
-        if (!seenKeys.isEmpty()) {
-          throw invalidWhereClauseException(
-              "The IN predicate cannot be combined with other comparisons on the key column",
-              isWindowed);
-        }
-        containsINkeys = true;
-        isKeyedQuery = true;
+    private void setTableScanOrElseThrow(final Supplier<KsqlException> exceptionSupplier) {
+      if (pullPlannerOptions.getTableScansEnabled()) {
+        requiresTableScan = true;
       } else {
-        throw invalidWhereClauseException(
-            "WHERE clause on unsupported column: " + column.getColumnName().text(),
-            false
-        );
+        throw exceptionSupplier.get();
       }
-      return null;
     }
   }
 
@@ -377,12 +384,10 @@ public class PullFilterNode extends SingleSourcePlanNode {
    * Necessary so that we can do key lookups when scanning the data stores.
    */
   private final class KeyValueExtractor extends TraversalExpressionVisitor<Object> {
-    private final List<GenericKey> inKeys;
     private final BitSet seenKeys;
     private final Object[] keyContents;
 
     KeyValueExtractor() {
-      inKeys = new ArrayList<>();
       keyContents = new Object[schema.key().size()];
       seenKeys = new BitSet(schema.key().size());
     }
@@ -399,23 +404,6 @@ public class PullFilterNode extends SingleSourcePlanNode {
         final Object key = resolveKey(other, col.get(), metaStore, ksqlConfig, node);
         keyContents[col.get().index()] = key;
         seenKeys.set(col.get().index());
-      }
-      return null;
-    }
-
-    @Override
-    public Void visitInPredicate(
-        final InPredicate node, final Object context) {
-      final UnqualifiedColumnReferenceExp column
-          = (UnqualifiedColumnReferenceExp) node.getValue();
-      final Optional<Column> col = schema.findColumn(column.getColumnName());
-      if (col.isPresent() && col.get().namespace() == Namespace.KEY) {
-        inKeys.addAll(node.getValueList()
-            .getValues()
-            .stream()
-            .map(expression -> resolveKey(expression, col.get(), metaStore, ksqlConfig, node))
-            .map(GenericKey::genericKey)
-            .collect(Collectors.toList()));
       }
       return null;
     }
@@ -616,11 +604,15 @@ public class PullFilterNode extends SingleSourcePlanNode {
             + System.lineSeparator()
             + "Pull queries require a WHERE clause that:"
             + System.lineSeparator()
-            + " - limits the query to keys only, e.g. `SELECT * FROM X WHERE <key-column>=Y;`."
+            + " - includes a key equality expression, e.g. `SELECT * FROM X WHERE <key-column>=Y;`."
             + System.lineSeparator()
-            + " - specifies an equality condition that is a conjunction of equality expressions "
-            + "that cover all keys."
+            + " - in the case of a multi-column key, is a conjunction of equality expressions "
+            + "that cover all key columns."
+            + System.lineSeparator()
             + additional
+            + System.lineSeparator()
+            + "If more flexible queries are needed, table scans can be enabled by "
+            + "setting ksql.query.pull.table.scan.enabled=true."
     );
   }
 

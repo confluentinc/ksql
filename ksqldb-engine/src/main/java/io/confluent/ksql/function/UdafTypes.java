@@ -17,6 +17,7 @@ package io.confluent.ksql.function;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.execution.codegen.helpers.TriFunction;
 import io.confluent.ksql.execution.function.UdfUtil;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.name.FunctionName;
@@ -35,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
 
 class UdafTypes {
@@ -55,6 +58,9 @@ class UdafTypes {
       .add(Map.class)
       .add(Timestamp.class)
       .add(Duration.class)
+      .add(Function.class)
+      .add(BiFunction.class)
+      .add(TriFunction.class)
       .build();
 
   private final Type inputType;

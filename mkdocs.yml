@@ -75,9 +75,9 @@ nav:
           - Server Configuration:
               - Configure ksqlDB Server: operate-and-deploy/installation/server-config/index.md
               - Configure ksqlDB for Avro, Protobuf, and JSON schemas: operate-and-deploy/installation/server-config/avro-schema.md
-              - Configuration Parameter Reference: operate-and-deploy/installation/server-config/config-reference.md
               - Configure Security for ksqlDB: operate-and-deploy/installation/server-config/security.md
           - Upgrade ksqlDB: operate-and-deploy/installation/upgrading.md
+      - Logging: operate-and-deploy/logging.md
       - Monitoring: operate-and-deploy/monitoring.md
       - Exactly once semantics: operate-and-deploy/exactly-once-semantics.md
       - Schema Registry integration: operate-and-deploy/schema-registry-integration.md
@@ -136,6 +136,7 @@ nav:
       - Scalar functions: developer-guide/ksqldb-reference/scalar-functions.md
       - Aggregation functions: developer-guide/ksqldb-reference/aggregate-functions.md
       - Table Functions: developer-guide/ksqldb-reference/table-functions.md
+    - Server configuration: reference/server-configuration.md
     - Metrics: reference/metrics.md
     - REST API:
       - REST API Index: developer-guide/api.md # old reference topic, rename file to index.md
@@ -205,6 +206,8 @@ plugins:
             developer-guide/serialization.md: reference/serialization.md
             developer-guide/syntax-reference.md: reference/index.md
 
+            operate-and-deploy/installation/server-config/config-reference.md: reference/server-configuration.md
+
 extra:
     site:
         # Product-related string tokens
@@ -236,11 +239,11 @@ extra:
 
         # Build-related string tokens
         kafkaversion: 2.7
-        ksqldbversion: 0.15.0
-        kstreamsbetatag: 6.1.0-beta201006024150
-        release: 0.15.0
-        cprelease: 6.1.0
-        releasepostbranch: 6.1.0-post
+        ksqldbversion: 0.16.0
+        kstreamsbetatag: 6.2.0-beta210210003100
+        kstreamsbetabuild: 1
+        cprelease: 6.2.0
+        releasepostbranch: 6.2.0-post
         scalaversion: 2.13
         voluble_version: 0.3.1
         jdbc_connector_version: 10.0.0

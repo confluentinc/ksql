@@ -32,10 +32,11 @@ import java.util.concurrent.ExecutionException;
     name = "datetostring",
     category = FunctionCategory.DATE_TIME,
     author = KsqlConstants.CONFLUENT_AUTHOR,
-    description = "Converts an integer representing days since epoch to a date string"
+    description = "Converts the number of days since 1970-01-01 00:00:00 UTC/GMT to a date string"
         + " using the given format pattern. Note this is the format Kafka Connect uses"
         + " to represent dates with no time component.  The format pattern should be"
-        + " in the format expected by java.time.format.DateTimeFormatter"
+        + " in the format expected by java.time.format.DateTimeFormatter."
+        + " The system default time zone is used when no time zone is explicitly provided."
 )
 public class DateToString {
 
@@ -44,8 +45,8 @@ public class DateToString {
           .maximumSize(1000)
           .build(CacheLoader.from(DateTimeFormatter::ofPattern));
 
-  @Udf(description = "Converts an integer representing days since epoch to a string"
-      + " using the given format pattern. The format pattern should be in the format"
+  @Udf(description = "Converts the number of days since 1970-01-01 00:00:00 UTC/GMT to a date "
+      + "string using the given format pattern. The format pattern should be in the format"
       + " expected by java.time.format.DateTimeFormatter")
   public String dateToString(
       @UdfParameter(

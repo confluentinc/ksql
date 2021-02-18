@@ -252,3 +252,9 @@ Once enabled, commitlint will reject commits with improperly formatted commit me
    git push origin --force feature-xxx
    ```
 
+### Backporting Commits
+
+There might be times when a certain commit needs to be backported to a previous ksqlDB release (either community
+edition or confluent edition). In these situations, cherry-pick individual commits to the previous
+branches (do _not_ squash multiple commits and move them as one because our changelog generation tool
+does not handle squashed commits properly).

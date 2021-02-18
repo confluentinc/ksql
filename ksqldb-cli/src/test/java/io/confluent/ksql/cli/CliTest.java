@@ -448,7 +448,7 @@ public class CliTest {
     assertThatEventually(() -> terminal.getOutputString(),
         containsString("Failed to Describe Kafka Topic(s): [${topicName}]"));
     assertThatEventually(() -> terminal.getOutputString(),
-        containsString("Caused by: This server does not host this topic-partition."));
+        containsString("Caused by: The request attempted to perform an operation on an invalid topic."));
   }
 
   @Test
@@ -920,9 +920,11 @@ public class CliTest {
     final String expectedOutput =
         "Name        : TIMESTAMPTOSTRING\n"
             + "Author      : Confluent\n"
-            + "Overview    : Converts a BIGINT millisecond timestamp value into the string"
-            + " representation of the \n"
-            + "              timestamp in the given format.\n"
+            + "Overview    : Converts a number of milliseconds since 1970-01-01 00:00:00 UTC/GMT "
+            + "into the string \n"
+            + "              representation of the timestamp in the given format. The system "
+            + "default time zone is \n"
+            + "              used when no time zone is explicitly provided.\n"
             + "Type        : SCALAR\n"
             + "Jar         : internal\n"
             + "Variations  :";
@@ -935,16 +937,17 @@ public class CliTest {
     final String expectedVariation =
         "\tVariation   : TIMESTAMPTOSTRING(epochMilli BIGINT, formatPattern VARCHAR)\n" +
                 "\tReturns     : VARCHAR\n" +
-                "\tDescription : Converts a BIGINT millisecond timestamp value into the string" +
-                " representation of the \n" +
-                "                timestamp in the given format. Single quotes in the timestamp" +
-                " format can be escaped \n" +
-                "                with '', for example: 'yyyy-MM-dd''T''HH:mm:ssX' The system" +
-                " default time zone is \n" +
-                "                used when no time zone is explicitly provided. The format" +
-                " pattern should be in the \n" +
-                "                format expected by java.time.format.DateTimeFormatter\n" +
-                "\tepochMilli  : Milliseconds since January 1, 1970, 00:00:00 GMT.\n" +
+                "\tDescription : Converts a number of milliseconds since 1970-01-01 00:00:00 "
+              + "UTC/GMT into the string \n" +
+                "                representation of the timestamp in the given format. Single "
+              + "quotes in the timestamp \n" +
+                "                format can be escaped with '', for example: "
+              + "'yyyy-MM-dd''T''HH:mm:ssX'. The system \n" +
+                "                default time zone is used when no time zone is explicitly "
+              + "provided. The format \n" +
+                "                pattern should be in the format expected by "
+              + "java.time.format.DateTimeFormatter\n" +
+                "\tepochMilli  : Milliseconds since January 1, 1970, 00:00:00 UTC/GMT.\n" +
                 "\tformatPattern: The format pattern should be in the format expected by \n" +
                 "                 java.time.format.DateTimeFormatter.";
 

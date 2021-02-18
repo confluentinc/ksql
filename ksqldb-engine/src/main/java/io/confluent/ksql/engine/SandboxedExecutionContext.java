@@ -17,7 +17,6 @@ package io.confluent.ksql.engine;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
@@ -29,6 +28,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
+import io.confluent.ksql.planner.PullPlannerOptions;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
@@ -128,11 +128,13 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
       final ServiceContext serviceContext,
       final ConfiguredKsqlPlan ksqlPlan
   ) {
-    return EngineExecutor.create(
+    final ExecuteResult result = EngineExecutor.create(
         engineContext,
         serviceContext,
         ksqlPlan.getConfig()
     ).execute(ksqlPlan.getPlan());
+    result.getQuery().ifPresent(query -> query.getKafkaStreams().close());
+    return result;
   }
 
   @Override
@@ -164,9 +166,10 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
       final HARouting routing,
-      final RoutingFilterFactory routingFilterFactory,
       final RoutingOptions routingOptions,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+      final PullPlannerOptions pullPlannerOptions,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final boolean startImmediately
   ) {
     return EngineExecutor.create(
         engineContext,
@@ -175,9 +178,10 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
     ).executePullQuery(
         statement,
         routing,
-        routingFilterFactory,
         routingOptions,
-        pullQueryMetrics
+        pullPlannerOptions,
+        pullQueryMetrics,
+        startImmediately
     );
   }
 }

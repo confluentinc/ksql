@@ -21,6 +21,7 @@ import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConstants;
@@ -59,7 +60,7 @@ public abstract class AggregateFunctionFactory {
   }
 
   public abstract KsqlAggregateFunction<?, ?, ?> createAggregateFunction(
-      List<SqlType> argTypeList, AggregateFunctionInitArguments initArgs);
+      List<SqlArgument> argTypeList, AggregateFunctionInitArguments initArgs);
 
   protected abstract List<List<ParamType>> supportedArgs();
 
@@ -77,6 +78,7 @@ public abstract class AggregateFunctionFactory {
         .map(args -> args
             .stream()
             .map(AggregateFunctionFactory::getSampleSqlType)
+            .map(arg -> SqlArgument.of(arg))
             .collect(Collectors.toList()))
         .forEach(args -> consumer.accept(createAggregateFunction(args, getDefaultArguments())));
   }

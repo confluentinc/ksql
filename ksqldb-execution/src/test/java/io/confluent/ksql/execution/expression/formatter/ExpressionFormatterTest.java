@@ -42,6 +42,8 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.IntervalExpression;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
+import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
@@ -205,6 +207,24 @@ public class ExpressionFormatterTest {
 
     // Then:
     assertThat(text, equalTo("'foo'->name"));
+  }
+
+  @Test
+  public void shouldFormatLambdaExpression() {
+    // Given:
+    final LambdaFunctionCall expression = new LambdaFunctionCall(
+        Optional.of(LOCATION),
+        ImmutableList.of("X", "Y"),
+        new LogicalBinaryExpression(LogicalBinaryExpression.Type.OR,
+            new LambdaVariable("X"),
+            new LambdaVariable("Y"))
+    );
+
+    // When:
+    final String text = ExpressionFormatter.formatExpression(expression);
+
+    // Then:
+    assertThat(text, equalTo("(X, Y) => (X OR Y)"));
   }
 
   @Test

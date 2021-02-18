@@ -18,6 +18,7 @@ package io.confluent.ksql.function.types;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.junit.Test;
 
@@ -74,25 +75,24 @@ public class ParamTypesTest {
 
   @Test
   public void shouldPassCompatibleSchemasWithImplicitCasting() {
-    assertThat(ParamTypes.areCompatible(SqlTypes.INTEGER, ParamTypes.LONG, true), is(true));
-    assertThat(ParamTypes.areCompatible(SqlTypes.INTEGER, ParamTypes.DOUBLE, true), is(true));
-    assertThat(ParamTypes.areCompatible(SqlTypes.INTEGER, ParamTypes.DECIMAL, true), is(true));
+    assertThat(ParamTypes.areCompatible(SqlArgument.of(SqlTypes.INTEGER), ParamTypes.LONG, true), is(true));
+    assertThat(ParamTypes.areCompatible(SqlArgument.of(SqlTypes.INTEGER), ParamTypes.DOUBLE, true), is(true));
+    assertThat(ParamTypes.areCompatible(SqlArgument.of(SqlTypes.INTEGER), ParamTypes.DECIMAL, true), is(true));
 
-    assertThat(ParamTypes.areCompatible(SqlTypes.BIGINT, ParamTypes.DOUBLE, true), is(true));
-    assertThat(ParamTypes.areCompatible(SqlTypes.BIGINT, ParamTypes.DECIMAL, true), is(true));
+    assertThat(ParamTypes.areCompatible(SqlArgument.of(SqlTypes.BIGINT), ParamTypes.DOUBLE, true), is(true));
+    assertThat(ParamTypes.areCompatible(SqlArgument.of(SqlTypes.BIGINT), ParamTypes.DECIMAL, true), is(true));
 
-    assertThat(ParamTypes.areCompatible(SqlTypes.decimal(2, 1), ParamTypes.DOUBLE, true), is(true));
+    assertThat(ParamTypes.areCompatible(SqlArgument.of(SqlTypes.decimal(2, 1)), ParamTypes.DOUBLE, true), is(true));
   }
 
   @Test
   public void shouldNotPassInCompatibleSchemasWithImplicitCasting() {
-    assertThat(ParamTypes.areCompatible(SqlTypes.BIGINT, ParamTypes.INTEGER, true), is(false));
+    assertThat(ParamTypes.areCompatible(SqlArgument.of(SqlTypes.BIGINT), ParamTypes.INTEGER, true), is(false));
 
-    assertThat(ParamTypes.areCompatible(SqlTypes.DOUBLE, ParamTypes.LONG, true), is(false));
+    assertThat(ParamTypes.areCompatible(SqlArgument.of(SqlTypes.DOUBLE), ParamTypes.LONG, true), is(false));
 
-    assertThat(ParamTypes.areCompatible(SqlTypes.DOUBLE, ParamTypes.DECIMAL, true), is(false));
-
-    assertThat(ParamTypes.areCompatible(SqlTypes.BIGINT, ParamTypes.INTERVAL, true), is(false));
+    assertThat(ParamTypes.areCompatible(SqlArgument.of(SqlTypes.DOUBLE), ParamTypes.DECIMAL, true), is(false));
+    assertThat(ParamTypes.areCompatible(SqlArgument.of(SqlTypes.BIGINT), ParamTypes.INTERVAL, true), is(false));
   }
 }
 

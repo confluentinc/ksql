@@ -54,7 +54,8 @@ statement
     | (LIST | SHOW) (SOURCE | SINK)? CONNECTORS                             #listConnectors
     | (LIST | SHOW) TYPES                                                   #listTypes
     | (LIST | SHOW) VARIABLES                                               #listVariables
-    | DESCRIBE EXTENDED? sourceName                                         #showColumns
+    | DESCRIBE sourceName EXTENDED?                                         #showColumns
+    | DESCRIBE STREAMS EXTENDED?                                            #describeStreams
     | DESCRIBE FUNCTION identifier                                          #describeFunction
     | DESCRIBE CONNECTOR identifier                                         #describeConnector
     | PRINT (identifier| STRING) printClause                                #printTopic
@@ -296,8 +297,8 @@ primaryExpression
     | MAP '(' (expression ASSIGN expression (',' expression ASSIGN expression)*)? ')'     #mapConstructor
     | STRUCT '(' (identifier ASSIGN expression (',' identifier ASSIGN expression)*)? ')'  #structConstructor
     | identifier '(' ASTERISK ')'                              		                        #functionCall
-    | identifier'(' (expression (',' expression)*)? ')' 						                      #functionCall
     | identifier'(' expression ',' intervalExpression ')' 						                    #functionCall
+    | identifier '(' (expression (',' expression)* (',' lambdaFunction)*)? ')'            #functionCall
     | value=primaryExpression '[' index=valueExpression ']'                               #subscript
     | identifier                                                                          #columnReference
     | identifier '.' identifier                                                           #qualifiedColumnReference
@@ -349,6 +350,11 @@ identifier
     | nonReserved            #unquotedIdentifier
     | BACKQUOTED_IDENTIFIER  #backQuotedIdentifier
     | DIGIT_IDENTIFIER       #digitIdentifier
+    ;
+
+lambdaFunction
+    :  identifier '=>' expression                            #lambda
+    | '(' identifier (',' identifier)*  ')' '=>' expression  #lambda
     ;
 
 variableName
@@ -549,6 +555,8 @@ CONCAT: '||';
 
 ASSIGN: ':=';
 STRUCT_FIELD_REF: '->';
+
+LAMBDA_EXPRESSION: '=>';
 
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''

@@ -72,6 +72,7 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -302,8 +303,8 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(exprType, is(SqlTypes.DOUBLE));
-    verify(udfFactory).getFunction(ImmutableList.of(SqlTypes.DOUBLE));
-    verify(function).getReturnType(ImmutableList.of(SqlTypes.DOUBLE));
+    verify(udfFactory).getFunction(ImmutableList.of(SqlArgument.of(SqlTypes.DOUBLE)));
+    verify(function).getReturnType(ImmutableList.of(SqlArgument.of(SqlTypes.DOUBLE)));
   }
 
   @Test
@@ -318,8 +319,8 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(exprType, is(SqlTypes.STRING));
-    verify(udfFactory).getFunction(ImmutableList.of(SqlTypes.STRING));
-    verify(function).getReturnType(ImmutableList.of(SqlTypes.STRING));
+    verify(udfFactory).getFunction(ImmutableList.of(SqlArgument.of(SqlTypes.STRING)));
+    verify(function).getReturnType(ImmutableList.of(SqlArgument.of(SqlTypes.STRING)));
   }
 
   @Test

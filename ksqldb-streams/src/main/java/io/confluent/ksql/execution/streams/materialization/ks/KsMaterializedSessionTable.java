@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.streams.materialization.MaterializationExcept
 import io.confluent.ksql.execution.streams.materialization.MaterializedWindowedTable;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.streams.materialization.ks.SessionStoreCacheBypass.SessionStoreCacheBypassFetcher;
+import io.confluent.ksql.execution.streams.materialization.ks.SessionStoreCacheBypass.SessionStoreCacheBypassFetcherRange;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
@@ -42,11 +43,15 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
 
   private final KsStateStore stateStore;
   private final SessionStoreCacheBypassFetcher cacheBypassFetcher;
+  private final SessionStoreCacheBypassFetcherRange cacheBypassFetcherRange;
 
   KsMaterializedSessionTable(final KsStateStore store,
-      final SessionStoreCacheBypassFetcher cacheBypassFetcher) {
+                             final SessionStoreCacheBypassFetcher cacheBypassFetcher,
+                             final SessionStoreCacheBypassFetcherRange cacheBypassFetcherRange) {
     this.stateStore = Objects.requireNonNull(store, "store");
     this.cacheBypassFetcher = Objects.requireNonNull(cacheBypassFetcher, "cacheBypassFetcher");
+    this.cacheBypassFetcherRange = Objects.requireNonNull(cacheBypassFetcherRange,
+            "cacheBypassFetcherRange");
   }
 
   @Override

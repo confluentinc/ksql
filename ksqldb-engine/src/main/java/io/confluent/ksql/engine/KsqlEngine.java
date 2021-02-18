@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.ServiceInfo;
-import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
@@ -37,6 +36,7 @@ import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
+import io.confluent.ksql.planner.PullPlannerOptions;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
@@ -270,9 +270,10 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
       final HARouting routing,
-      final RoutingFilterFactory routingFilterFactory,
       final RoutingOptions routingOptions,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+      final PullPlannerOptions plannerOptions,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final boolean startImmediately
   ) {
     return EngineExecutor
         .create(
@@ -283,9 +284,10 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         .executePullQuery(
             statement,
             routing,
-            routingFilterFactory,
             routingOptions,
-            pullQueryMetrics
+            plannerOptions,
+            pullQueryMetrics,
+            startImmediately
         );
   }
 

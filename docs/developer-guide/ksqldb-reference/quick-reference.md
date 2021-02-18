@@ -523,7 +523,7 @@ SHOW | LIST FUNCTIONS;
 ```
 
 ## SHOW PROPERTIES
-List the [configuration settings](../../operate-and-deploy/installation/server-config/config-reference.md)
+List the [configuration settings](/reference/server-configuration)
 that are currently in effect. For more information, see [SHOW PROPERTIES](../../ksqldb-reference/show-properties).
 
 ```sql

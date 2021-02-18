@@ -20,7 +20,7 @@ the response is streamed until the client closes the connection.
 
 - **ksql** (string): The SELECT statement to run.
 - **streamsProperties** (map): Property overrides to run the statements with.
-  Refer to the [Config Reference](../../operate-and-deploy/installation/server-config/config-reference.md)
+  Refer to the [Config Reference](/reference/server-configuration)
   for details on properties that you can set.
 - **streamsProperties**[``property-name``] (string): The value of the property named by ``property-name``. Both the value and ``property-name`` should be strings.
 
@@ -55,7 +55,7 @@ Response JSON Object:
 curl -X "POST" "http://<ksqldb-host-name>:8088/query" \
      -H "Accept: application/vnd.ksql.v1+json" \
      -d $'{
-  "ksql": "SELECT * FROM USERS;",
+  "ksql": "SELECT * FROM USERS EMIT CHANGES;",
   "streamsProperties": {}
 }'
 
@@ -69,7 +69,7 @@ Accept: application/vnd.ksql.v1+json
 Content-Type: application/vnd.ksql.v1+json
 
 {
-  "sql": "SELECT * FROM pageviews;",
+  "ksql": "SELECT * FROM pageviews EMIT CHANGES;",
   "streamsProperties": {
     "ksql.streams.auto.offset.reset": "earliest"
   }

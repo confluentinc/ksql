@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
@@ -38,6 +39,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -163,7 +165,7 @@ public class CodeGenRunner {
     return ee;
   }
 
-  private final class Visitor extends TraversalExpressionVisitor<Void> {
+  private final class Visitor extends TraversalExpressionVisitor<TypeContext> {
 
     private final CodeGenSpec.Builder spec;
 
@@ -172,19 +174,21 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitLikePredicate(final LikePredicate node, final Void context) {
+    public Void visitLikePredicate(final LikePredicate node, final TypeContext context) {
       process(node.getValue(), null);
       process(node.getPattern(), null);
       return null;
     }
 
     @Override
-    public Void visitFunctionCall(final FunctionCall node, final Void context) {
-      final List<SqlType> argumentTypes = new ArrayList<>();
+    public Void visitFunctionCall(final FunctionCall node, final TypeContext context) {
+      final List<SqlArgument> argumentTypes = new ArrayList<>();
       final FunctionName functionName = node.getName();
       for (final Expression argExpr : node.getArguments()) {
         process(argExpr, null);
-        argumentTypes.add(expressionTypeManager.getExpressionSqlType(argExpr));
+        argumentTypes.add(SqlArgument.of(
+            expressionTypeManager.getExpressionSqlType(argExpr)
+        ));
       }
 
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
@@ -198,7 +202,9 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitSubscriptExpression(final SubscriptExpression node, final Void context) {
+    public Void visitSubscriptExpression(
+        final SubscriptExpression node, final TypeContext context
+    ) {
       if (node.getBase() instanceof UnqualifiedColumnReferenceExp) {
         final UnqualifiedColumnReferenceExp arrayBaseName
             = (UnqualifiedColumnReferenceExp) node.getBase();
@@ -211,13 +217,15 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitCreateArrayExpression(final CreateArrayExpression exp, final Void context) {
+    public Void visitCreateArrayExpression(
+        final CreateArrayExpression exp, final TypeContext context
+    ) {
       exp.getValues().forEach(val -> process(val, context));
       return null;
     }
 
     @Override
-    public Void visitCreateMapExpression(final CreateMapExpression exp, final Void context) {
+    public Void visitCreateMapExpression(final CreateMapExpression exp, final TypeContext context) {
       for (Entry<Expression, Expression> entry : exp.getMap().entrySet()) {
         process(entry.getKey(), context);
         process(entry.getValue(), context);
@@ -228,7 +236,7 @@ public class CodeGenRunner {
     @Override
     public Void visitStructExpression(
         final CreateStructExpression exp,
-        final Void context
+        final TypeContext context
     ) {
       exp.getFields().forEach(val -> process(val.getValue(), context));
       final Schema schema = SchemaConverters
@@ -242,15 +250,23 @@ public class CodeGenRunner {
     @Override
     public Void visitUnqualifiedColumnReference(
         final UnqualifiedColumnReferenceExp node,
-        final Void context
+        final TypeContext context
     ) {
       addRequiredColumn(node.getColumnName());
       return null;
     }
 
     @Override
-    public Void visitDereferenceExpression(final DereferenceExpression node, final Void context) {
+    public Void visitDereferenceExpression(
+        final DereferenceExpression node, final TypeContext context
+    ) {
       process(node.getBase(), null);
+      return null;
+    }
+
+    @Override
+    public Void visitLambdaExpression(final LambdaFunctionCall node, final TypeContext context) {
+      process(node.getBody(), null);
       return null;
     }
 

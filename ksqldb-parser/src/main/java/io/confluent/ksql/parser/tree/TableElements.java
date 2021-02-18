@@ -95,13 +95,7 @@ public final class TableElements implements Iterable<TableElement> {
       }
     }
 
-    final LogicalSchema schema = builder.build();
-    if (schema.value().isEmpty()) {
-      throw new KsqlException("ksqlDB does not support sources with no value columns: "
-          + "https://github.com/confluentinc/ksql/issues/5564");
-    }
-
-    return schema;
+    return builder.build();
   }
 
   private TableElements(final ImmutableList<TableElement> elements) {

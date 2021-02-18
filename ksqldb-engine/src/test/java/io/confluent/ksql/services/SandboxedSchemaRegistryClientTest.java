@@ -63,6 +63,7 @@ public final class SandboxedSchemaRegistryClientTest {
           .ignore("testCompatibility", String.class, ParsedSchema.class)
           .ignore("deleteSubject", String.class)
           .ignore("getAllSubjects")
+          .ignore("getVersion", String.class, ParsedSchema.class)
           .build();
     }
 
@@ -158,6 +159,18 @@ public final class SandboxedSchemaRegistryClientTest {
 
       // Then:
       verifyZeroInteractions(delegate);
+    }
+
+    @Test
+    public void shouldGetVersion() throws Exception {
+      // Given:
+      when(delegate.getVersion("some subject", schema)).thenReturn(6);
+
+      // When:
+      final int version = sandboxedClient.getVersion("some subject", schema);
+
+      // Then:
+      assertThat(version, is(6));
     }
   }
 }

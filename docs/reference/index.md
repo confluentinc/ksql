@@ -1,8 +1,8 @@
 ---
 layout: page
-title: ksqlDB Syntax Reference
-tagline:  Syntax for ksqlDB queries and statements
-description: Syntax Reference for statements and queries in ksqlDB
+title: ksqlDB Reference
+tagline:  Reference material for all aspects of using ksqlDB
+description: Reference material for all aspects of using ksqlDB.
 keywords: ksqldb, sql, syntax, query, api
 ---
 
@@ -30,15 +30,23 @@ Look up critical information quickly as you use the project.
 
 <div class="cards">
   <div class="card reference">
-    <strong>User-defined functions</strong>
-    <p class="card-body"><small>Extend ksqlDB to invoke custom code written in Java.</small></p>
-    <a href="/reference/user-defined-functions">Read →</a>
+    <strong>Server configuration</strong>
+    <p class="card-body"><small>Control how ksqlDB server behaves.</small></p>
+    <a href="/reference/server-configuration">Read →</a>
   </div>
 
   <div class="card reference">
     <strong>Metrics</strong>
     <p class="card-body"><small>Observe how your cluster is behaving over time.</small></p>
     <a href="/reference/metrics">Read →</a>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card reference">
+    <strong>User-defined functions</strong>
+    <p class="card-body"><small>Extend ksqlDB to invoke custom code written in Java.</small></p>
+    <a href="/reference/user-defined-functions">Read →</a>
   </div>
 
   <div class="card reference">

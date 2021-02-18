@@ -104,6 +104,7 @@ public class QueryMetadataTest {
         classifier,
         10){
     };
+    query.initialize();
   }
 
   @Test

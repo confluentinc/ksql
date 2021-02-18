@@ -257,6 +257,7 @@ headless and interactive deployments.
 | DROP a stream or table                                                                | Supported                   | Not Supported       |
 | List existing streams and tables (SHOW STREAMS, SHOW TABLES)                          | Supported                   | Not Supported       |
 | List running queries (SHOW QUERIES)                                                   | Supported                   | Not Supported       |
+| Describe existing streams and tables (DESCRIBE STREAMS, DESCRIBE TABLES)              | Supported                   | Not Supported       |
 | Run a script (RUN SCRIPT)                                                             | Supported                   | Not Supported       |
 | Set query properties (SET)                                                            | Supported                   | Supported           |
 | Show contents of a Kafka topic (PRINT)                                                | Supported                   | Not Supported       |
@@ -278,7 +279,7 @@ Dedicating Resources
 Join ksqlDB engines to the same *service pool* by using the `ksql.service.id`
 property. The following diagram shows a {{ site.ak }} cluster with separate
 workloads for a `finance` pool and a `sales` pool. For more information, see
-[ksql.service.id](../operate-and-deploy/installation/server-config/config-reference.md#ksqlserviceid).
+[ksql.service.id](/reference/server-configuration#ksqlserviceid).
 
 ![Diagram showing how to join ksqlDB engines to the same service pool](../img/ksqldb-dedicating-resources.png)
 

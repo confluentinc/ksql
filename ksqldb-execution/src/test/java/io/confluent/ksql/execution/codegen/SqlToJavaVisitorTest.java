@@ -473,7 +473,7 @@ public class SqlToJavaVisitorTest {
                                                        "six", "seven", "eight", "nine", "ten",
                                                        "eleven", "twelve");
 
-    final ImmutableList arg = numbers
+    final ImmutableList<WhenClause> arg = numbers
             .stream()
             .map(n -> new WhenClause(
             new ComparisonExpression(

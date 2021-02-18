@@ -17,7 +17,7 @@ package io.confluent.ksql.api.impl;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
-import io.confluent.ksql.api.server.PushQueryHandle;
+import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -33,8 +33,8 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.query.BlockingRowQueue;
-import io.confluent.ksql.rest.entity.TableRows;
 import io.confluent.ksql.rest.server.LocalCommands;
+import io.confluent.ksql.rest.server.resources.streaming.PullQueryConfigPlannerOptions;
 import io.confluent.ksql.rest.server.resources.streaming.PullQueryConfigRoutingOptions;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.utils.FormatOptions;
@@ -51,6 +51,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.utils.Time;
 
@@ -96,8 +98,8 @@ public class QueryEndpoint {
 
     if (statement.getStatement().isPullQuery()) {
       return createPullQueryPublisher(
-          context, serviceContext, routingFilterFactory, statement, pullQueryMetrics,
-          startTimeNanos);
+          context, serviceContext, statement, pullQueryMetrics,
+          startTimeNanos, workerExecutor);
     } else {
       return createPushQueryPublisher(context, serviceContext, statement, workerExecutor);
     }
@@ -116,7 +118,7 @@ public class QueryEndpoint {
 
     localCommands.ifPresent(lc -> lc.write(queryMetadata));
 
-    publisher.setQueryHandle(new KsqlQueryHandle(queryMetadata));
+    publisher.setQueryHandle(new KsqlQueryHandle(queryMetadata), false);
 
     return publisher;
   }
@@ -124,10 +126,10 @@ public class QueryEndpoint {
   private QueryPublisher createPullQueryPublisher(
       final Context context,
       final ServiceContext serviceContext,
-      final RoutingFilterFactory routingFilterFactory,
       final ConfiguredStatement<Query> statement,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final long startTimeNanos
+      final long startTimeNanos,
+      final WorkerExecutor workerExecutor
   ) {
 
     final RoutingOptions routingOptions = new PullQueryConfigRoutingOptions(
@@ -136,31 +138,32 @@ public class QueryEndpoint {
         ImmutableMap.of()
     );
 
+    final PullQueryConfigPlannerOptions plannerOptions = new PullQueryConfigPlannerOptions(
+        ksqlConfig,
+        statement.getSessionConfig().getOverrides()
+    );
+
     PullQueryExecutionUtil.checkRateLimit(rateLimiter);
 
     final PullQueryResult result = ksqlEngine.executePullQuery(
         serviceContext,
         statement,
         routing,
-        routingFilterFactory,
         routingOptions,
-        pullQueryMetrics
+        plannerOptions,
+        pullQueryMetrics,
+        false
     );
 
-    pullQueryMetrics.ifPresent(p -> p.recordLatency(startTimeNanos));
+    result.onCompletion(v -> {
+      pullQueryMetrics.ifPresent(p -> p.recordLatency(startTimeNanos));
+    });
 
-    final TableRows tableRows = new TableRows(
-        statement.getStatementText(),
-        result.getQueryId(),
-        result.getSchema(),
-        result.getTableRows());
+    final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
 
-    return new PullQueryPublisher(
-        context,
-        tableRows,
-        colNamesFromSchema(tableRows.getSchema().columns()),
-        colTypesFromSchema(tableRows.getSchema().columns())
-    );
+    publisher.setQueryHandle(new KsqlPullQueryHandle(result, pullQueryMetrics), true);
+
+    return publisher;
   }
 
   private ConfiguredStatement<Query> createStatement(final String queryString,
@@ -196,7 +199,7 @@ public class QueryEndpoint {
         .collect(Collectors.toList());
   }
 
-  private static class KsqlQueryHandle implements PushQueryHandle {
+  private static class KsqlQueryHandle implements QueryHandle {
 
     private final TransientQueryMetadata queryMetadata;
 
@@ -227,6 +230,64 @@ public class QueryEndpoint {
     @Override
     public BlockingRowQueue getQueue() {
       return queryMetadata.getRowQueue();
+    }
+
+    @Override
+    public void onException(final Consumer<Throwable> onException) {
+      // We don't try to do anything on exception for push queries, but rely on the
+      // existing exception handling
+    }
+  }
+
+  private static class KsqlPullQueryHandle implements QueryHandle {
+
+    private final PullQueryResult result;
+    private final Optional<PullQueryExecutorMetrics>  pullQueryMetrics;
+    private final CompletableFuture<Void> future = new CompletableFuture<>();
+
+    KsqlPullQueryHandle(final PullQueryResult result,
+        final Optional<PullQueryExecutorMetrics> pullQueryMetrics) {
+      this.result = Objects.requireNonNull(result);
+      this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
+    }
+
+    @Override
+    public List<String> getColumnNames() {
+      return colNamesFromSchema(result.getSchema().columns());
+    }
+
+    @Override
+    public List<String> getColumnTypes() {
+      return colTypesFromSchema(result.getSchema().columns());
+    }
+
+    @Override
+    public void start() {
+      try {
+        result.start();
+        result.onException(future::completeExceptionally);
+        result.onCompletion(future::complete);
+      } catch (Exception e) {
+        pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
+      }
+    }
+
+    @Override
+    public void stop() {
+      result.stop();
+    }
+
+    @Override
+    public BlockingRowQueue getQueue() {
+      return result.getPullQueryQueue();
+    }
+
+    @Override
+    public void onException(final Consumer<Throwable> onException) {
+      future.exceptionally(t -> {
+        onException.accept(t);
+        return null;
+      });
     }
   }
 }

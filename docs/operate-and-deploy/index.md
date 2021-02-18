@@ -22,7 +22,7 @@ topics.
 - [Configure ksqlDB Server](installation/server-config/index.md)
 - [Configure ksqlDB CLI](installation/cli-config.md)
 - [Configure Security](installation/server-config/security.md)
-- [ksqlDB Configuration Parameter Reference](installation/server-config/config-reference.md)
+- [ksqlDB Configuration Parameter Reference](/reference/server-configuration)
 
 Health Checks
 -------------
@@ -31,7 +31,7 @@ Health Checks
   `http://<server>:8088/info` and a basic server health check endpoint at
   `http://<server>:8088/healthcheck`.
 - Check runtime stats for the ksqlDB server that you are connected to
-  via `DESCRIBE EXTENDED <stream or table>` and
+  via `DESCRIBE <stream or table> EXTENDED` and
   `EXPLAIN <name of query>`.
 
 For more information, see

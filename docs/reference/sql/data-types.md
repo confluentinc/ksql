@@ -95,7 +95,7 @@ and a scale of _0_.
 | name     | description                              | backing Java type
 |----------|------------------------------------------|------------------
 | `array`  | sequence of values of a single type      | [Java native array](https://docs.oracle.com/javase/specs/jls/se11/html/jls-10.html)
-| `struct` | map of string keys to values of any type | [`org.apache.kafka.connect.data.Struct`](https://downloads.apache.org/kafka/2.5.0/javadoc/index.html?org/apache/kafka/connect/data/Struct.html)
+| `struct` | map of string keys to values of any type | [`org.apache.kafka.connect.data.Struct`](https://kafka.apache.org/27/javadoc/index.html?org/apache/kafka/connect/data/Struct.html)
 | `map`    | map of varying typed keys and values     | [`java.util.map`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Map.html)
 
 

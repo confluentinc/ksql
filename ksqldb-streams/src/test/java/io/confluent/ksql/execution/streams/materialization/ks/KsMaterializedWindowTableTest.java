@@ -38,6 +38,8 @@ import io.confluent.ksql.execution.streams.materialization.MaterializationExcept
 import io.confluent.ksql.execution.streams.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.WindowStoreCacheBypassFetcher;
+import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.WindowStoreCacheBypassFetcherAll;
+import io.confluent.ksql.execution.streams.materialization.ks.WindowStoreCacheBypass.WindowStoreCacheBypassFetcherRange;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -108,17 +110,22 @@ public class KsMaterializedWindowTableTest {
   private ArgumentCaptor<QueryableStoreType<?>> storeTypeCaptor;
   @Mock
   private WindowStoreCacheBypassFetcher cacheBypassFetcher;
+  @Mock
+  private WindowStoreCacheBypassFetcherAll cacheBypassFetcherAll;
+  @Mock
+  private WindowStoreCacheBypassFetcherRange cacheBypassFetcherRange;
 
   private KsMaterializedWindowTable table;
 
   @Before
   public void setUp() {
-    table = new KsMaterializedWindowTable(stateStore, WINDOW_SIZE, cacheBypassFetcher);
+    table = new KsMaterializedWindowTable(stateStore, WINDOW_SIZE,
+            cacheBypassFetcher, cacheBypassFetcherAll, cacheBypassFetcherRange);
 
     when(stateStore.store(any(), anyInt())).thenReturn(tableStore);
     when(stateStore.schema()).thenReturn(SCHEMA);
     when(cacheBypassFetcher.fetch(any(), any(), any(), any())).thenReturn(fetchIterator);
-    when(tableStore.fetchAll(any(), any())).thenReturn(keyValueIterator);
+    when(cacheBypassFetcherAll.fetchAll(any(), any(), any())).thenReturn(keyValueIterator);
   }
 
   @SuppressWarnings("UnstableApiUsage")
@@ -184,7 +191,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldThrowIfStoreFetchFails_fetchAll() {
     // Given:
-    when(tableStore.fetchAll(any(), any()))
+    when(cacheBypassFetcherAll.fetchAll(any(), any(), any()))
         .thenThrow(new MaterializationTimeOutException("Boom"));
 
     // When:
@@ -251,7 +258,8 @@ public class KsMaterializedWindowTableTest {
     table.get(PARTITION, Range.all(), Range.all());
 
     // Then:
-    verify(tableStore).fetchAll(
+    verify(cacheBypassFetcherAll).fetchAll(
+        eq(tableStore),
         eq(Instant.ofEpochMilli(0)),
         eq(Instant.ofEpochMilli(Long.MAX_VALUE))
     );
@@ -277,7 +285,8 @@ public class KsMaterializedWindowTableTest {
     table.get(PARTITION, WINDOW_START_BOUNDS, Range.all());
 
     // Then:
-    verify(tableStore).fetchAll(
+    verify(cacheBypassFetcherAll).fetchAll(
+        eq(tableStore),
         eq(WINDOW_START_BOUNDS.lowerEndpoint()),
         eq(WINDOW_START_BOUNDS.upperEndpoint())
     );
@@ -303,7 +312,8 @@ public class KsMaterializedWindowTableTest {
     table.get(PARTITION, Range.all(), WINDOW_END_BOUNDS);
 
     // Then:
-    verify(tableStore).fetchAll(
+    verify(cacheBypassFetcherAll).fetchAll(
+        eq(tableStore),
         eq(WINDOW_END_BOUNDS.lowerEndpoint().minus(WINDOW_SIZE)),
         eq(WINDOW_END_BOUNDS.upperEndpoint().minus(WINDOW_SIZE))
     );
@@ -480,7 +490,6 @@ public class KsMaterializedWindowTableTest {
                 start.upperEndpoint().toEpochMilli() + WINDOW_SIZE.toMillis())), VALUE_2))
         .thenThrow(new AssertionError());
 
-    when(tableStore.fetchAll(any(), any())).thenReturn(keyValueIterator);
 
     // When:
     final Iterator<WindowedRow> result = table.get(PARTITION, start, Range.all());
@@ -573,7 +582,6 @@ public class KsMaterializedWindowTableTest {
                 startEqiv.upperEndpoint().toEpochMilli() + WINDOW_SIZE.toMillis())), VALUE_2))
         .thenThrow(new AssertionError());
 
-    when(tableStore.fetchAll(any(), any())).thenReturn(keyValueIterator);
 
     // When:
     final Iterator<WindowedRow> result = table.get(PARTITION, Range.all(), end);
@@ -654,8 +662,6 @@ public class KsMaterializedWindowTableTest {
             new TimeWindow(start.upperEndpoint().toEpochMilli(),
                 start.upperEndpoint().toEpochMilli() + WINDOW_SIZE.toMillis())), VALUE_3))
         .thenThrow(new AssertionError());
-
-    when(tableStore.fetchAll(any(), any())).thenReturn(keyValueIterator);
 
 
     // When:
@@ -742,7 +748,6 @@ public class KsMaterializedWindowTableTest {
                 startEquiv.upperEndpoint().toEpochMilli() + WINDOW_SIZE.toMillis())), VALUE_3))
         .thenThrow(new AssertionError());
 
-    when(tableStore.fetchAll(any(), any())).thenReturn(keyValueIterator);
 
     // When:
     final Iterator<WindowedRow> result = table.get(PARTITION, Range.all(), end);
@@ -823,7 +828,8 @@ public class KsMaterializedWindowTableTest {
     table.get(PARTITION, Range.all(), Range.all());
 
     // Then:
-    verify(tableStore).fetchAll(
+    verify(cacheBypassFetcherAll).fetchAll(
+        tableStore,
         Instant.ofEpochMilli(0L),
         Instant.ofEpochMilli(Long.MAX_VALUE)
     );

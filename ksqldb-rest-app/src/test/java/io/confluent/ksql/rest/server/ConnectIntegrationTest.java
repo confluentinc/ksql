@@ -44,7 +44,6 @@ import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -65,6 +64,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -76,7 +76,7 @@ public class ConnectIntegrationTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConnectIntegrationTest.class);
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
-  private  static final long TIMEOUT_NS = 600000000000L;
+  private  static final long TIMEOUT_NS = 120000000000L;
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
@@ -281,6 +281,7 @@ public class ConnectIntegrationTest {
   }
 
   @Test
+  @Ignore
   public void shouldWriteTimestampsToConnect() throws UnsupportedEncodingException {
     // Given:
     ksqlRestClient.makeKsqlRequest("CREATE STREAM BAR (PAYLOAD TIMESTAMP) WITH (KAFKA_TOPIC='bar', value_format='JSON', PARTITIONS=1);");

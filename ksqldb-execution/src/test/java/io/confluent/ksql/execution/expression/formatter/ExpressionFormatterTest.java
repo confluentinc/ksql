@@ -297,6 +297,22 @@ public class ExpressionFormatterTest {
   }
 
   @Test
+  public void shouldFormatCastToStruct() {
+    // Given:
+    final Cast cast = new Cast(
+        new StringLiteral("foo"),
+        new Type(SqlStruct.builder()
+            .field("field", SqlTypes.STRING).build())
+    );
+
+    // When:
+    final String result = ExpressionFormatter.formatExpression(cast, FormatOptions.none());
+
+    // Then:
+    assertThat(result, equalTo("CAST('foo' AS STRUCT<`field` STRING>)"));
+  }
+
+  @Test
   public void shouldFormatSearchedCaseExpression() {
     final SearchedCaseExpression expression = new SearchedCaseExpression(
         Collections.singletonList(

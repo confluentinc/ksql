@@ -51,7 +51,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
@@ -144,11 +143,9 @@ public class CodeGenRunner {
 
       return new ExpressionMetadata(ee, spec, returnType, expression);
     } catch (KsqlException | CompileException e) {
-      e.printStackTrace();
       throw new KsqlException("Invalid " + type + ": " + e.getMessage()
           + ". expression:" + expression + ", schema:" + schema, e);
     } catch (final Exception e) {
-      e.printStackTrace();
       throw new RuntimeException("Unexpected error generating code for " + type
           + ". expression:" + expression, e);
     }
@@ -211,10 +208,7 @@ public class CodeGenRunner {
         if (argExpr instanceof LambdaFunctionCall) {
           argumentTypes.add(
               SqlArgument.of(
-                  SqlLambda.of(context.getLambdaInputTypes(),
-                      newSqlType))
-          );
-
+                  SqlLambda.of(context.getLambdaInputTypes(), newSqlType)));
         } else {
           argumentTypes.add(SqlArgument.of(newSqlType));
         }

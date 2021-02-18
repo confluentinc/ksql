@@ -369,11 +369,9 @@ public class SqlToJavaVisitor {
         final LambdaFunctionCall lambdaFunctionCall, final TypeContext context) {
 
       context.mapLambdaInputTypes(lambdaFunctionCall.getArguments());
-
       final Pair<String, SqlType> lambdaBody = process(lambdaFunctionCall.getBody(), context);
 
       final List<Pair<String, Class<?>>> argPairs = new ArrayList<>();
-
       for (final String lambdaArg: lambdaFunctionCall.getArguments()) {
         argPairs.add(new Pair<>(
             lambdaArg,

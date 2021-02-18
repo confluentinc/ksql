@@ -70,5 +70,4 @@ public class SqlArgument {
     final SqlArgument that = (SqlArgument) o;
     return that.sqlType == this.sqlType && that.sqlLambda == this.sqlLambda;
   }
-
 }

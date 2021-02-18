@@ -56,6 +56,22 @@ public final class ParamTypes {
     // CHECKSTYLE_RULES.ON: NPathComplexity
     final SqlType argumentSqlType = argument.getSqlType();
     final SqlLambda sqlLambda = argument.getSqlLambda();
+
+    if (sqlLambda != null && declared instanceof LambdaType) {
+      final LambdaType declaredLambda = (LambdaType) declared;
+      if (sqlLambda.getInputType().size() != declaredLambda.inputTypes().size()) {
+        return false;
+      }
+      int i = 0;
+      for (final ParamType paramType: declaredLambda.inputTypes()) {
+        if (!areCompatible(sqlLambda.getInputType().get(i), paramType)) {
+          return false;
+        }
+        i++;
+      }
+      return areCompatible(sqlLambda.getReturnType(), declaredLambda.returnType());
+    }
+
     if (argumentSqlType.baseType() == SqlBaseType.ARRAY && declared instanceof ArrayType) {
       return areCompatible(
           SqlArgument.of(((SqlArray) argumentSqlType).getItemType()),
@@ -76,21 +92,6 @@ public final class ParamTypes {
 
     if (argumentSqlType.baseType() == SqlBaseType.STRUCT && declared instanceof StructType) {
       return isStructCompatible(argumentSqlType, declared);
-    }
-
-    if (sqlLambda != null && declared instanceof LambdaType) {
-      final LambdaType declaredLambda = (LambdaType) declared;
-      if (sqlLambda.getInputType().size() != declaredLambda.inputTypes().size()) {
-        return false;
-      }
-      int i = 0;
-      for (final ParamType paramType: declaredLambda.inputTypes()) {
-        if (!areCompatible(sqlLambda.getInputType().get(i), paramType)) {
-          return false;
-        }
-        i++;
-      }
-      return areCompatible(sqlLambda.getReturnType(), declaredLambda.returnType());
     }
 
     return isPrimitiveMatch(argumentSqlType, declared, allowCast);

@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.util;
 
 import static io.confluent.ksql.execution.testutil.TestExpressions.ADDRESS;
+import static io.confluent.ksql.execution.testutil.TestExpressions.ARRAYCOL;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL1;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL2;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL3;
@@ -50,6 +51,8 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
+import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
@@ -73,6 +76,7 @@ import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -337,6 +341,36 @@ public class ExpressionTypeManagerTest {
 
     // When/Then:
     assertThat(expressionTypeManager.getExpressionSqlType(expression), equalTo(SqlTypes.STRING));
+  }
+
+  @Test
+  public void shouldEvaluateTypeForLambdaUDF() {
+    // Given:
+
+    givenUdfWithNameAndReturnType("transform_array", SqlArray.of(SqlTypes.STRING));
+    final Expression expression =
+        new FunctionCall(
+            FunctionName.of("TRANSFORM_ARRAY"),
+            ImmutableList.of(
+                ARRAYCOL,
+                new LambdaFunctionCall(
+                    ImmutableList.of("X"),
+                    new ArithmeticBinaryExpression(
+                        Operator.ADD,
+                        new LambdaVariable("X"),
+                        literal(5)
+                        )
+                    )
+                )
+            );
+
+    // When:
+    final SqlType exprType = expressionTypeManager.getExpressionSqlType(expression);
+
+    // Then:
+    assertThat(exprType, is(SqlArray.of(SqlTypes.STRING)));
+    verify(udfFactory).getFunction(ImmutableList.of(SqlArgument.of(SqlArray.of(SqlTypes.STRING), null)));
+    verify(function).getReturnType(ImmutableList.of(SqlArgument.of(SqlArray.of(SqlTypes.STRING), null)));
   }
 
   @Test

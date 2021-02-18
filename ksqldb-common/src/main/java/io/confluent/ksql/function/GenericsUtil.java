@@ -213,7 +213,6 @@ public final class GenericsUtil {
     }
 
     if (schema instanceof ArrayType) {
-      final SqlArray sqlArray = (SqlArray) sqlType;
       return resolveGenerics(
           mapping,
           ((ArrayType) schema).element(),

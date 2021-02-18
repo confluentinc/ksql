@@ -53,7 +53,10 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
+import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -185,6 +188,45 @@ public class UdfLoaderTest {
 
     // Then:
     assertThat(fun.name().text(), equalToIgnoringCase("floor"));
+  }
+
+  @Test
+  public void shouldLoadLambdaReduceUdfs() {
+    // Given:
+    final SqlLambda schema =
+        SqlLambda.of(
+            ImmutableList.of(SqlTypes.INTEGER, SqlTypes.INTEGER, SqlTypes.INTEGER),
+            SqlTypes.INTEGER);
+
+    // When:
+    final KsqlScalarFunction fun = FUNC_REG.getUdfFactory(FunctionName.of("reduce_map"))
+        .getFunction(
+            ImmutableList.of(
+                SqlArgument.of(SqlMap.of(SqlTypes.INTEGER, SqlTypes.INTEGER)),
+                SqlArgument.of(SqlTypes.INTEGER),
+                SqlArgument.of(schema)));
+
+    // Then:
+    assertThat(fun.name().text(), equalToIgnoringCase("reduce_map"));
+  }
+
+  @Test
+  public void shouldLoadLambdaTransformUdfs() {
+    // Given:
+    final SqlLambda schema =
+        SqlLambda.of(
+            ImmutableList.of(SqlTypes.INTEGER),
+            SqlTypes.INTEGER);
+
+    // When:
+    final KsqlScalarFunction fun = FUNC_REG.getUdfFactory(FunctionName.of("array_transform"))
+        .getFunction(
+            ImmutableList.of(
+                SqlArgument.of(SqlArray.of(SqlTypes.INTEGER)),
+                SqlArgument.of(schema)));
+
+    // Then:
+    assertThat(fun.name().text(), equalToIgnoringCase("array_transform"));
   }
 
   @Test

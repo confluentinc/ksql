@@ -18,7 +18,10 @@ package io.confluent.ksql.function.types;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.junit.Test;
 
@@ -48,6 +51,13 @@ public class ParamTypesTest {
         SqlTypes.map(SqlTypes.decimal(1, 1), SqlTypes.INTEGER),
         MapType.of(ParamTypes.INTEGER, ParamTypes.INTEGER)),
         is(false));
+
+
+    assertThat(ParamTypes.areCompatible(
+        SqlArgument.of(new SqlLambda(ImmutableList.of(SqlTypes.INTEGER), SqlTypes.INTEGER)),
+        LambdaType.of(ImmutableList.of(ParamTypes.STRING), ParamTypes.STRING),
+        false),
+        is(false));
   }
 
   @Test
@@ -67,6 +77,12 @@ public class ParamTypesTest {
     assertThat(ParamTypes.areCompatible(
         SqlTypes.map(SqlTypes.INTEGER, SqlTypes.decimal(1, 1)),
         MapType.of(ParamTypes.INTEGER, ParamTypes.DECIMAL)),
+        is(true));
+
+    assertThat(ParamTypes.areCompatible(
+        SqlArgument.of(new SqlLambda(ImmutableList.of(SqlTypes.STRING), SqlTypes.STRING)),
+        LambdaType.of(ImmutableList.of(ParamTypes.STRING), ParamTypes.STRING),
+        false),
         is(true));
   }
 

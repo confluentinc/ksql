@@ -101,7 +101,7 @@ docker run -d \
   -e KSQL_KSQL_STREAMS_PROCESSING_GUARANTEE=exactly_once \
   -e KSQL_BOOTSTRAP_SERVERS=localhost:9092 \
   … 
-  confluentinc/ksqldb-server:{{ site.release }}
+  confluentinc/ksqldb-server:{{ site.ksqldbversion }}
 ```
 
 For more information, see

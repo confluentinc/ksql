@@ -74,7 +74,7 @@ public class InitializeMigrationCommand extends BaseCommand {
     final MigrationConfig properties;
     try {
       properties = MigrationConfig.load();
-    } catch(KsqlException | MigrationException e) {
+    } catch (KsqlException | MigrationException e) {
       LOGGER.error(e.getMessage());
       return 1;
     }

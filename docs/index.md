@@ -100,7 +100,7 @@ stream processing applications on top of {{ site.aktm }}.
 </div>
 
 <div class="cards">
-  <div class="card getting-started">
+  <div class="card getting-started how-to-videos">
     <strong>How to</strong>
     <ul class="card-items">
       <li><a href="https://www.youtube.com/watch?v=scpbbl71CD8&list=PL5T99fPsK7pqrn7Ff-k4wdoZFlCH0EGC1&index=1&ab_channel=RobinMoffatt">Handle time</a></li>

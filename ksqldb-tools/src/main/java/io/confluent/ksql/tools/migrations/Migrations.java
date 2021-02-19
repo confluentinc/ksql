@@ -54,7 +54,7 @@ public final class Migrations {
 
   public static void main(final String[] args) {
     // all Migrations commands must implement BaseCommand, so we
-    // are safe to assume that the type returned is Cli<Runnable>
+    // are safe to assume that the type returned is Cli<BaseCommand>
     final Cli<BaseCommand> cli = new Cli<>(Migrations.class);
     System.exit(cli.parse(args).run());
   }

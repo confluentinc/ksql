@@ -49,11 +49,12 @@ public abstract class BaseCommand implements Runnable {
   @Override
   public void run() {
     final long startTime = System.nanoTime();
-    command();
+    final int status = command();
     getLogger().info("Execution time: " + (System.nanoTime() - startTime) / 1000000000);
+    System.exit(status);
   }
 
-  protected abstract void command();
+  protected abstract int command();
 
   protected abstract Logger getLogger();
 }

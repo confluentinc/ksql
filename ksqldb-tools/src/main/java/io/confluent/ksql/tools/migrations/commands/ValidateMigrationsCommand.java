@@ -36,7 +36,7 @@ public class ValidateMigrationsCommand extends BaseCommand {
   private static final Logger LOGGER = LoggerFactory.getLogger(ValidateMigrationsCommand.class);
 
   @Override
-  protected void command() {
+  protected int command() {
     throw new UnsupportedOperationException();
   }
 

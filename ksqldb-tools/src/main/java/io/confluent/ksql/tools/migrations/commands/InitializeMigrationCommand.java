@@ -16,7 +16,6 @@
 package io.confluent.ksql.tools.migrations.commands;
 
 import com.github.rvesse.airline.annotations.Command;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
@@ -70,8 +69,7 @@ public class InitializeMigrationCommand extends BaseCommand {
   }
 
   @Override
-  @SuppressFBWarnings("DM_EXIT")
-  protected void command() {
+  protected int command() {
     final MigrationConfig properties = MigrationConfig.load();
     final String streamName = properties.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME);
     final String tableName = properties.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
@@ -91,8 +89,7 @@ public class InitializeMigrationCommand extends BaseCommand {
       ksqlClient = MigrationsUtil.getKsqlClient(ksqlServerUrl);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
-      System.exit(1);
-      return;
+      return 1;
     }
 
     if (tryCreate(ksqlClient, eventStreamCommand, streamName, true)
@@ -101,8 +98,10 @@ public class InitializeMigrationCommand extends BaseCommand {
       ksqlClient.close();
     } else {
       ksqlClient.close();
-      System.exit(1);
+      return 1;
     }
+
+    return 0;
   }
 
   private boolean tryCreate(

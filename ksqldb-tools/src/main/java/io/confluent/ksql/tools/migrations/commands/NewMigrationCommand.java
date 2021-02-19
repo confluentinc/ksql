@@ -18,7 +18,6 @@ package io.confluent.ksql.tools.migrations.commands;
 import com.github.rvesse.airline.annotations.Arguments;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.restrictions.Required;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystemException;
@@ -40,14 +39,14 @@ public class NewMigrationCommand extends BaseCommand {
   private String projectPath;
 
   @Override
-  @SuppressFBWarnings("DM_EXIT")
-  protected void command() {
+  protected int command() {
     if (tryCreateDirectory(projectPath)
         && tryCreateDirectory(projectPath + "/migrations")
         && tryCreatePropertiesFile(projectPath + "/ksql-migrations.properties")) {
       LOGGER.info("Migrations project directory created successfully");
+      return 0;
     } else {
-      System.exit(1);
+      return 1;
     }
   }
 

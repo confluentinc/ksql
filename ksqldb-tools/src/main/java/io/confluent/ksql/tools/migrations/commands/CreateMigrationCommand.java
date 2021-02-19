@@ -52,7 +52,7 @@ public class CreateMigrationCommand extends BaseCommand {
   private String description;
 
   @Override
-  protected void command() {
+  protected int command() {
     throw new UnsupportedOperationException();
   }
 

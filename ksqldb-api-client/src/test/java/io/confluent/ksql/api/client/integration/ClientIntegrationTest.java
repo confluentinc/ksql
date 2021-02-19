@@ -965,7 +965,6 @@ public class ClientIntegrationTest {
 
     // When:
     final ServerInfo serverInfo = client.serverInfo().get();
-    Object o = REST_APP.getServiceContext().getAdminClient().describeCluster().clusterId().get();
 
     //Then:
     assertThat(serverInfo.getServerVersion(), is(AppInfo.getVersion()));

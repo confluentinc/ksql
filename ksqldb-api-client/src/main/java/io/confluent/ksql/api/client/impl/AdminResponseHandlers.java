@@ -106,11 +106,18 @@ final class AdminResponseHandlers {
       final CompletableFuture<ServerInfo> cf
   ) {
     final JsonObject source = serverInfoEntity.getJsonObject("KsqlServerInfo");
-    cf.complete(new ServerInfoImpl(
-        source.getString("version"),
-        source.getString("kafkaClusterId"),
-        source.getString("ksqlServiceId")
-    ));
+
+    try {
+      final ServerInfoImpl serverInfo = new ServerInfoImpl(
+          source.getString("version"),
+          source.getString("kafkaClusterId"),
+          source.getString("ksqlServiceId")
+      );
+      cf.complete(serverInfo);
+    } catch (Exception e) {
+      cf.completeExceptionally(new IllegalStateException(
+          "Unexpected server response format. Response: " + serverInfoEntity));
+    }
   }
 
   static boolean isListStreamsResponse(final JsonObject ksqlEntity) {

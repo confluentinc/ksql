@@ -28,9 +28,9 @@ public class ServerInfoImpl implements ServerInfo {
       final String kafkaClusterId,
       final String ksqlServiceId
   ) {
-    this.serverVersion = Objects.requireNonNull(serverVersion);
-    this.kafkaClusterId = Objects.requireNonNull(kafkaClusterId);
-    this.ksqlServiceId = Objects.requireNonNull(ksqlServiceId);
+    this.serverVersion = Objects.requireNonNull(serverVersion, "serverVersion");
+    this.kafkaClusterId = Objects.requireNonNull(kafkaClusterId, "kafkaClusterId");
+    this.ksqlServiceId = Objects.requireNonNull(ksqlServiceId, "ksqlServiceId");
   }
 
   @Override
@@ -70,7 +70,7 @@ public class ServerInfoImpl implements ServerInfo {
   @Override
   public String toString() {
     return "ServerInfo{"
-        + "version='" + serverVersion + '\''
+        + "serverVersion='" + serverVersion + '\''
         + ", kafkaClusterId='" + kafkaClusterId + '\''
         + ", ksqlServiceId='" + ksqlServiceId + '\''
         + '}';

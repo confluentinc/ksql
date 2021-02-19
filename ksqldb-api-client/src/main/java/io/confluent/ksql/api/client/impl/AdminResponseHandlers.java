@@ -105,13 +105,12 @@ final class AdminResponseHandlers {
       final JsonObject serverInfoEntity,
       final CompletableFuture<ServerInfo> cf
   ) {
-    final Optional<ServerInfo> source = getServerInfoResponse(serverInfoEntity);
-    if (source.isPresent()) {
-      cf.complete(source.get());
-    } else {
-      cf.completeExceptionally(new IllegalStateException(
-          "Unexpected server response format. Response: " + serverInfoEntity));
-    }
+    final JsonObject source = serverInfoEntity.getJsonObject("KsqlServerInfo");
+    cf.complete(new ServerInfoImpl(
+        source.getString("version"),
+        source.getString("kafkaClusterId"),
+        source.getString("ksqlServiceId")
+    ));
   }
 
   static boolean isListStreamsResponse(final JsonObject ksqlEntity) {
@@ -337,28 +336,6 @@ final class AdminResponseHandlers {
           source.getJsonArray("sourceConstraints").stream()
               .map(o -> (String)o)
               .collect(Collectors.toList())
-      ));
-    } catch (Exception e) {
-      return Optional.empty();
-    }
-  }
-
-  /**
-   * Attempts to parse the provided response entity as a {@code ServerInfo}.
-   *
-   * @param serverInfoEntity response entity
-   * @return optional containing parsed result if successful, else empty
-   */
-  private static Optional<ServerInfo> getServerInfoResponse(
-      final JsonObject serverInfoEntity
-  ) {
-    try {
-      final JsonObject source = serverInfoEntity.getJsonObject("KsqlServerInfo");
-      return Optional.of(new ServerInfoImpl(
-          source.getString("version"),
-          source.getString("kafkaClusterId"),
-          source.getString("ksqlServiceId"),
-          source.getString("serverStatus")
       ));
     } catch (Exception e) {
       return Optional.empty();

@@ -19,26 +19,23 @@ import io.confluent.ksql.api.client.ServerInfo;
 import java.util.Objects;
 
 public class ServerInfoImpl implements ServerInfo {
-  private final String version;
+  private final String serverVersion;
   private final String kafkaClusterId;
   private final String ksqlServiceId;
-  private final String serverStatus;
 
   public ServerInfoImpl(
-      final String version,
+      final String serverVersion,
       final String kafkaClusterId,
-      final String ksqlServiceId,
-      final String serverStatus
+      final String ksqlServiceId
   ) {
-    this.version = version;
-    this.kafkaClusterId = kafkaClusterId;
-    this.ksqlServiceId = ksqlServiceId;
-    this.serverStatus = serverStatus;
+    this.serverVersion = Objects.requireNonNull(serverVersion);
+    this.kafkaClusterId = Objects.requireNonNull(kafkaClusterId);
+    this.ksqlServiceId = Objects.requireNonNull(ksqlServiceId);
   }
 
   @Override
-  public String getVersion() {
-    return version;
+  public String getServerVersion() {
+    return serverVersion;
   }
 
   @Override
@@ -52,11 +49,6 @@ public class ServerInfoImpl implements ServerInfo {
   }
 
   @Override
-  public String getServerStatus() {
-    return serverStatus;
-  }
-
-  @Override
   public boolean equals(final Object o) {
     if (this == o) {
       return true;
@@ -65,24 +57,22 @@ public class ServerInfoImpl implements ServerInfo {
       return false;
     }
     final ServerInfoImpl that = (ServerInfoImpl) o;
-    return version == that.version
+    return serverVersion.equals(that.serverVersion)
         && kafkaClusterId.equals(that.kafkaClusterId)
-        && ksqlServiceId.equals(that.ksqlServiceId)
-        && serverStatus.equals(that.serverStatus);
+        && ksqlServiceId.equals(that.ksqlServiceId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(version, kafkaClusterId, ksqlServiceId, serverStatus);
+    return Objects.hash(serverVersion, kafkaClusterId, ksqlServiceId);
   }
 
   @Override
   public String toString() {
     return "ServerInfo{"
-        + "version='" + version + '\''
+        + "version='" + serverVersion + '\''
         + ", kafkaClusterId='" + kafkaClusterId + '\''
         + ", ksqlServiceId='" + ksqlServiceId + '\''
-        + ", serverStatus='" + serverStatus + '\''
         + '}';
   }
 }

@@ -15,13 +15,23 @@
 
 package io.confluent.ksql.api.client;
 
+/**
+ * Metadata for a ksqlDB server.
+ */
 public interface ServerInfo {
 
-  String getVersion();
+  /**
+   * @return the ksqlDB version the server is running
+   */
+  String getServerVersion();
 
+  /**
+   * @return the Kafka cluster id
+   */
   String getKafkaClusterId();
 
+  /**
+   * @return the ksqlDB service id
+   */
   String getKsqlServiceId();
-
-  String getServerStatus();
 }

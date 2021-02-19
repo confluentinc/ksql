@@ -150,7 +150,7 @@ public class ClientImpl implements Client {
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");
     requestBody.appendString(row.toJsonString()).appendString("\n");
 
-    makeRequest(
+    makePostRequest(
         INSERTS_ENDPOINT,
         requestBody,
         cf,
@@ -171,7 +171,7 @@ public class ClientImpl implements Client {
     final JsonObject params = new JsonObject().put("target", streamName);
     requestBody.appendBuffer(params.toBuffer()).appendString("\n");
 
-    makeRequest(
+    makePostRequest(
         "/inserts-stream",
         requestBody,
         cf,
@@ -188,7 +188,7 @@ public class ClientImpl implements Client {
   public CompletableFuture<Void> terminatePushQuery(final String queryId) {
     final CompletableFuture<Void> cf = new CompletableFuture<>();
 
-    makeRequest(
+    makePostRequest(
         CLOSE_QUERY_ENDPOINT,
         new JsonObject().put("queryId", queryId),
         cf,
@@ -212,7 +212,7 @@ public class ClientImpl implements Client {
       return cf;
     }
 
-    makeRequest(
+    makePostRequest(
         KSQL_ENDPOINT,
         new JsonObject().put("ksql", sql).put("streamsProperties", properties),
         cf,
@@ -230,7 +230,7 @@ public class ClientImpl implements Client {
   public CompletableFuture<List<StreamInfo>> listStreams() {
     final CompletableFuture<List<StreamInfo>> cf = new CompletableFuture<>();
 
-    makeRequest(
+    makePostRequest(
         KSQL_ENDPOINT,
         new JsonObject().put("ksql", "list streams;"),
         cf,
@@ -245,7 +245,7 @@ public class ClientImpl implements Client {
   public CompletableFuture<List<TableInfo>> listTables() {
     final CompletableFuture<List<TableInfo>> cf = new CompletableFuture<>();
 
-    makeRequest(
+    makePostRequest(
         KSQL_ENDPOINT,
         new JsonObject().put("ksql", "list tables;"),
         cf,
@@ -260,7 +260,7 @@ public class ClientImpl implements Client {
   public CompletableFuture<List<TopicInfo>> listTopics() {
     final CompletableFuture<List<TopicInfo>> cf = new CompletableFuture<>();
 
-    makeRequest(
+    makePostRequest(
         KSQL_ENDPOINT,
         new JsonObject().put("ksql", "list topics;"),
         cf,
@@ -275,7 +275,7 @@ public class ClientImpl implements Client {
   public CompletableFuture<List<QueryInfo>> listQueries() {
     final CompletableFuture<List<QueryInfo>> cf = new CompletableFuture<>();
 
-    makeRequest(
+    makePostRequest(
         KSQL_ENDPOINT,
         new JsonObject().put("ksql", "list queries;"),
         cf,
@@ -290,7 +290,7 @@ public class ClientImpl implements Client {
   public CompletableFuture<SourceDescription> describeSource(final String sourceName) {
     final CompletableFuture<SourceDescription> cf = new CompletableFuture<>();
 
-    makeRequest(
+    makePostRequest(
         KSQL_ENDPOINT,
         new JsonObject().put("ksql", "describe " + sourceName + ";"),
         cf,
@@ -305,13 +305,12 @@ public class ClientImpl implements Client {
   public CompletableFuture<ServerInfo> serverInfo() {
     final CompletableFuture<ServerInfo> cf = new CompletableFuture<>();
 
-    makeRequest(
+    makeGetRequest(
         INFO_ENDPOINT,
         new JsonObject(),
         cf,
         response -> handleObjectResponse(
-            response, cf, AdminResponseHandlers::handleServerInfoResponse),
-        HttpMethod.GET
+            response, cf, AdminResponseHandlers::handleServerInfoResponse)
     );
 
     return cf;
@@ -343,7 +342,7 @@ public class ClientImpl implements Client {
   ) {
     final JsonObject requestBody = new JsonObject().put("sql", sql).put("properties", properties);
 
-    makeRequest(
+    makePostRequest(
         QUERY_STREAM_ENDPOINT,
         requestBody,
         cf,
@@ -351,32 +350,31 @@ public class ClientImpl implements Client {
     );
   }
 
-  private <T extends CompletableFuture<?>> void makeRequest(
-      final String path,
-      final JsonObject requestBody,
-      final T cf,
-      final Handler<HttpClientResponse> responseHandler,
-      final HttpMethod method) {
-    makeRequest(path, requestBody.toBuffer(), cf, responseHandler, true, method);
-  }
-
-  private <T extends CompletableFuture<?>> void makeRequest(
+  private <T extends CompletableFuture<?>> void makeGetRequest(
       final String path,
       final JsonObject requestBody,
       final T cf,
       final Handler<HttpClientResponse> responseHandler) {
-    makeRequest(path, requestBody.toBuffer(), cf, responseHandler);
+    makeRequest(path, requestBody.toBuffer(), cf, responseHandler, true, HttpMethod.GET);
   }
 
-  private <T extends CompletableFuture<?>> void makeRequest(
+  private <T extends CompletableFuture<?>> void makePostRequest(
+      final String path,
+      final JsonObject requestBody,
+      final T cf,
+      final Handler<HttpClientResponse> responseHandler) {
+    makePostRequest(path, requestBody.toBuffer(), cf, responseHandler);
+  }
+
+  private <T extends CompletableFuture<?>> void makePostRequest(
       final String path,
       final Buffer requestBody,
       final T cf,
       final Handler<HttpClientResponse> responseHandler) {
-    makeRequest(path, requestBody, cf, responseHandler, true);
+    makePostRequest(path, requestBody, cf, responseHandler, true);
   }
 
-  private <T extends CompletableFuture<?>> void makeRequest(
+  private <T extends CompletableFuture<?>> void makePostRequest(
       final String path,
       final Buffer requestBody,
       final T cf,

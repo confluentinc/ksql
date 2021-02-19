@@ -1394,10 +1394,9 @@ public class ClientTest extends BaseApiTest {
   @Test
   public void shouldGetServerInfo() throws Exception {
     final ServerInfo serverInfo = javaClient.serverInfo().get();
-    assertThat(serverInfo.getVersion(), is(AppInfo.getVersion()));
+    assertThat(serverInfo.getServerVersion(), is(AppInfo.getVersion()));
     assertThat(serverInfo.getKsqlServiceId(), is("ksql-service-id"));
     assertThat(serverInfo.getKafkaClusterId(), is("kafka-cluster-id"));
-    assertThat(serverInfo.getServerStatus(), is("server-status"));
   }
 
   protected Client createJavaClient() {

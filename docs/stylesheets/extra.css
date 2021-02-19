@@ -138,6 +138,12 @@ ul.card-items li {
     border-top: 3.5px solid #ef5762;
 }
 
+.card.how-to-videos > ul {
+    columns: 2;
+    -webkit-columns: 2;
+    -moz-columns: 2;
+}
+
 .card.concepts {
     border-top: 3.5px solid #252839;
 }

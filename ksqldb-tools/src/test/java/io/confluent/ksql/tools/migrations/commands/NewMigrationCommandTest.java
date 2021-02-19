@@ -31,7 +31,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class NewMigrationCommandTest {
 
-  private static final SingleCommand<NewMigrationCommand> parser =
+  private static final SingleCommand<NewMigrationCommand> PARSER =
       SingleCommand.singleCommand(NewMigrationCommand.class);
 
   @Rule
@@ -43,7 +43,7 @@ public class NewMigrationCommandTest {
   @Before
   public void setUp() {
     testDir = Paths.get(folder.getRoot().getPath(), "test_dir").toString();
-    command = parser.parse(testDir);
+    command = PARSER.parse(testDir);
   }
 
   @Test
@@ -89,7 +89,7 @@ public class NewMigrationCommandTest {
   public void shouldHandleArgWithTrailingSlash() {
     // Given:
     testDir = Paths.get(folder.getRoot().getPath(), "test_dir").toString();
-    command = parser.parse(testDir + "/");
+    command = PARSER.parse(testDir + "/");
 
     // When:
     final int status = command.run();
@@ -106,7 +106,7 @@ public class NewMigrationCommandTest {
   public void shouldHandleArgWithSubDir() {
     // Given:
     testDir = Paths.get(folder.getRoot().getPath(), "test_dir/sub_test_dir").toString();
-    command = parser.parse(testDir);
+    command = PARSER.parse(testDir);
 
     // When:
     final int status = command.run();

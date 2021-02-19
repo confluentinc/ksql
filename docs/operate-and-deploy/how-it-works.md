@@ -124,7 +124,6 @@ The following table summarizes some of the differences between ksqlDB and
 | Data formats      | Avro, Protobuf, JSON, JSON_SR, CSV          | Any data format, including Avro, JSON, CSV, Protobuf, XML |
 | REST API included | Yes                                         | No, but you can implement your own                        |
 | Runtime included  | Yes, the ksqlDB server                      | Applications run as standard JVM processes                |
-| Queryable state   | No                                          | Yes                                                       |
 
 ksqlDB Language Elements
 ----------------------

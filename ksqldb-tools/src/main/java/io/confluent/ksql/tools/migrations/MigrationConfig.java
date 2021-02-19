@@ -15,23 +15,17 @@
 
 package io.confluent.ksql.tools.migrations;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.api.client.Client;
+import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.properties.PropertiesUtil;
-import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.KsqlRestClientException;
-import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.entity.ServerInfo;
-import io.confluent.ksql.util.KsqlException;
 import java.io.File;
-import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class MigrationConfig extends AbstractConfig {
 
@@ -47,19 +41,10 @@ public final class MigrationConfig extends AbstractConfig {
   public static final String KSQL_MIGRATIONS_TOPIC_REPLICAS = "ksql.migrations.topic.replicas";
   public static final int KSQL_MIGRATIONS_TOPIC_REPLICAS_DEFAULT = 1;
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(MigrationConfig.class);
-
-  @SuppressFBWarnings("DM_EXIT")
   public static MigrationConfig load() {
-    try {
-      final Map<String, String> configsMap =
-          PropertiesUtil.loadProperties(new File("ksql-migrations.properties"));
-      return new MigrationConfig(configsMap, getServiceId(configsMap));
-    } catch (KsqlException e) {
-      LOGGER.error(e.getMessage());
-      System.exit(1);
-    }
-    return null;
+    final Map<String, String> configsMap =
+        PropertiesUtil.loadProperties(new File("ksql-migrations.properties"));
+    return new MigrationConfig(configsMap, getServiceId(configsMap));
   }
 
   private MigrationConfig(final Map<String, String> configs, final String id) {
@@ -111,36 +96,29 @@ public final class MigrationConfig extends AbstractConfig {
         ), configs);
   }
 
-  @SuppressFBWarnings("DM_EXIT")
-  private static String getServiceId(final Map<String, String> configs) {
+  private static String getServiceId(final Map<String, String> configs) throws MigrationException {
     final String ksqlServerUrl = configs.get(MigrationConfig.KSQL_SERVER_URL);
     if (ksqlServerUrl == null) {
-      LOGGER.error("Missing required property: " + MigrationConfig.KSQL_SERVER_URL);
-      System.exit(1);
+      throw new MigrationException("Missing required property: " + MigrationConfig.KSQL_SERVER_URL);
     }
 
-    final KsqlRestClient client;
+    final Client client = MigrationsUtil.getKsqlClient(ksqlServerUrl);
+    CompletableFuture<ServerInfo> response = client.serverInfo();
+
     try {
-      client = KsqlRestClient.create(
-          ksqlServerUrl,
-          Collections.EMPTY_MAP,
-          Collections.EMPTY_MAP,
-          Optional.empty()
-      );
-    } catch (KsqlRestClientException e) {
-      LOGGER.error("Invalid ksql server URL: " + ksqlServerUrl);
-      System.exit(1);
-      return null;
+      final String serviceId = response.get().getKsqlServiceId();
+      return serviceId;
+    } catch (InterruptedException e) {
+      throw new MigrationException("Interrupted while attempting to connect to "
+          + ksqlServerUrl + "/info");
+    } catch (ExecutionException e) {
+      if (e.getCause() instanceof IllegalStateException) {
+        throw new MigrationException(e.getCause().getMessage()
+            + "\nPlease ensure that " + ksqlServerUrl + " is an active KSQL server.");
+      }
+      throw new MigrationException("Failed to query " + ksqlServerUrl + "/info: " + e.getMessage());
+    } finally {
+      client.close();
     }
-
-    final RestResponse<ServerInfo> response = client.getServerInfo();
-    client.close();
-
-    if (!response.isSuccessful()) {
-      LOGGER.error("Failed to query " + MigrationConfig.KSQL_SERVER_URL + "/info");
-      System.exit(1);
-    }
-
-    return response.getResponse().getKsqlServiceId();
   }
 }

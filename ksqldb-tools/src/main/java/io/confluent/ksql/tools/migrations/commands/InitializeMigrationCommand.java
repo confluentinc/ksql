@@ -20,6 +20,7 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.MigrationsUtil;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,19 +71,24 @@ public class InitializeMigrationCommand extends BaseCommand {
 
   @Override
   protected int command() {
-    final MigrationConfig properties = MigrationConfig.load();
-    final String streamName = properties.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME);
-    final String tableName = properties.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
+    final Optional<MigrationConfig> maybeConfig = MigrationConfig.load();
+    if (!maybeConfig.isPresent()) {
+      return 1;
+    }
+
+    final MigrationConfig config = maybeConfig.get();
+    final String streamName = config.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME);
+    final String tableName = config.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
     final String eventStreamCommand = createEventStream(
         streamName,
-        properties.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_TOPIC_NAME),
-        properties.getInt(MigrationConfig.KSQL_MIGRATIONS_TOPIC_REPLICAS)
+        config.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_TOPIC_NAME),
+        config.getInt(MigrationConfig.KSQL_MIGRATIONS_TOPIC_REPLICAS)
     );
     final String versionTableCommand = createVersionTable(
         tableName,
-        properties.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_TOPIC_NAME)
+        config.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_TOPIC_NAME)
     );
-    final String ksqlServerUrl = properties.getString(MigrationConfig.KSQL_SERVER_URL);
+    final String ksqlServerUrl = config.getString(MigrationConfig.KSQL_SERVER_URL);
     final Client ksqlClient;
 
     try {

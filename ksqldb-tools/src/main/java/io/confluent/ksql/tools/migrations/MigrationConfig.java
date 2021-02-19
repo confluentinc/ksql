@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.tools.migrations;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
@@ -49,17 +48,16 @@ public final class MigrationConfig extends AbstractConfig {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MigrationConfig.class);
 
-  @SuppressFBWarnings("DM_EXIT")
-  public static MigrationConfig load() {
+  public static Optional<MigrationConfig> load() {
     try {
       final Map<String, String> configsMap =
-          PropertiesUtil.loadProperties(new File("ksql-migrations.properties"));
-      return new MigrationConfig(configsMap, getServiceId(configsMap));
+          PropertiesUtil.loadProperties(new File(MigrationsUtil.MIGRATIONS_CONFIG_FILE));
+      return getServiceId(configsMap)
+          .map(serviceId -> new MigrationConfig(configsMap, serviceId));
     } catch (KsqlException e) {
       LOGGER.error(e.getMessage());
-      System.exit(1);
+      return Optional.empty();
     }
-    return null;
   }
 
   private MigrationConfig(final Map<String, String> configs, final String id) {
@@ -111,12 +109,11 @@ public final class MigrationConfig extends AbstractConfig {
         ), configs);
   }
 
-  @SuppressFBWarnings("DM_EXIT")
-  private static String getServiceId(final Map<String, String> configs) {
+  private static Optional<String> getServiceId(final Map<String, String> configs) {
     final String ksqlServerUrl = configs.get(MigrationConfig.KSQL_SERVER_URL);
     if (ksqlServerUrl == null) {
       LOGGER.error("Missing required property: " + MigrationConfig.KSQL_SERVER_URL);
-      System.exit(1);
+      return Optional.empty();
     }
 
     final KsqlRestClient client;
@@ -129,8 +126,7 @@ public final class MigrationConfig extends AbstractConfig {
       );
     } catch (KsqlRestClientException e) {
       LOGGER.error("Invalid ksql server URL: " + ksqlServerUrl);
-      System.exit(1);
-      return null;
+      return Optional.empty();
     }
 
     final RestResponse<ServerInfo> response = client.getServerInfo();
@@ -138,9 +134,9 @@ public final class MigrationConfig extends AbstractConfig {
 
     if (!response.isSuccessful()) {
       LOGGER.error("Failed to query " + MigrationConfig.KSQL_SERVER_URL + "/info");
-      System.exit(1);
+      return Optional.empty();
     }
 
-    return response.getResponse().getKsqlServiceId();
+    return Optional.of(response.getResponse().getKsqlServiceId());
   }
 }

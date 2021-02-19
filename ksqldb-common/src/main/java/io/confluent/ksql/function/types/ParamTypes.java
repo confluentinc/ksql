@@ -41,10 +41,6 @@ public final class ParamTypes {
   public static final ParamType DECIMAL = DecimalType.INSTANCE;
   public static final TimestampType TIMESTAMP = TimestampType.INSTANCE;
 
-  public static boolean areCompatible(final SqlType actual, final ParamType declared) {
-    return areCompatible(SqlArgument.of(actual), declared, false);
-  }
-
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   // CHECKSTYLE_RULES.OFF: NPathComplexity
   public static boolean areCompatible(
@@ -64,12 +60,19 @@ public final class ParamTypes {
       }
       int i = 0;
       for (final ParamType paramType: declaredLambda.inputTypes()) {
-        if (!areCompatible(sqlLambda.getInputType().get(i), paramType)) {
+        if (!areCompatible(
+            SqlArgument.of(sqlLambda.getInputType().get(i)),
+            paramType,
+            allowCast)
+        ) {
           return false;
         }
         i++;
       }
-      return areCompatible(sqlLambda.getReturnType(), declaredLambda.returnType());
+      return areCompatible(
+          SqlArgument.of(sqlLambda.getReturnType()),
+          declaredLambda.returnType(),
+          allowCast);
     }
 
     if (argumentSqlType.baseType() == SqlBaseType.ARRAY && declared instanceof ArrayType) {
@@ -109,7 +112,8 @@ public final class ParamTypes {
       final String k = entry.getKey();
       final Optional<Field> field = actualStruct.field(k);
       // intentionally do not allow implicit casting within structs
-      if (!field.isPresent() || !areCompatible(field.get().type(), entry.getValue())) {
+      if (!field.isPresent() ||
+          !areCompatible(SqlArgument.of(field.get().type()), entry.getValue(), false)) {
         return false;
       }
     }

@@ -189,27 +189,16 @@ public class CodeGenRunner {
       final FunctionName functionName = node.getName();
       for (final Expression argExpr : node.getArguments()) {
         process(argExpr, context);
-        final SqlType newSqlType = expressionTypeManager.getExpressionSqlType(argExpr, context);
-        // for lambdas - if we see this it's the  array/map being passed in we save the type
-        if (context.notAllInputsSeen()) {
-          if (newSqlType instanceof SqlArray) {
-            final SqlArray inputArray = (SqlArray) newSqlType;
-            context.addLambdaInputType(inputArray.getItemType());
-          } else if (newSqlType instanceof SqlMap) {
-            final SqlMap inputMap = (SqlMap) newSqlType;
-            context.addLambdaInputType(inputMap.getKeyType());
-            context.addLambdaInputType(inputMap.getValueType());
-          } else {
-            context.addLambdaInputType(newSqlType);
-          }
-        }
-
+        final SqlType resolvedArgType = expressionTypeManager.getExpressionSqlType(argExpr, context);
+        // for lambdas - if we find an array or map passed in before encountering a lambda function
+        // we save the type information to resolve the lambda generics
+        context.visitType(resolvedArgType);
         if (argExpr instanceof LambdaFunctionCall) {
           argumentTypes.add(
               SqlArgument.of(
-                  SqlLambda.of(context.getLambdaInputTypes(), newSqlType)));
+                  SqlLambda.of(context.getLambdaInputTypes(), resolvedArgType)));
         } else {
-          argumentTypes.add(SqlArgument.of(newSqlType));
+          argumentTypes.add(SqlArgument.of(resolvedArgType));
         }
       }
 

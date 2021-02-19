@@ -476,26 +476,16 @@ public class ExpressionTypeManager {
       final List<SqlArgument> argTypes = new ArrayList<>();
       for (final Expression expression : node.getArguments()) {
         process(expression, expressionTypeContext);
-        final SqlType newSqlType = expressionTypeContext.getSqlType();
+        final SqlType resolvedArgType = expressionTypeContext.getSqlType();
+        // for lambdas - if we find an array or map passed in before encountering a lambda function
+        // we save the type information to resolve the lambda generics
+        expressionTypeContext.visitType(resolvedArgType);
         if (expression instanceof LambdaFunctionCall) {
-          argTypes.add(SqlArgument.of(
-              SqlLambda.of(expressionTypeContext.getLambdaInputTypes(),
-                  expressionTypeContext.getSqlType())
-          ));
+          argTypes.add(
+              SqlArgument.of(
+                  SqlLambda.of(expressionTypeContext.getLambdaInputTypes(), resolvedArgType)));
         } else {
-          argTypes.add(SqlArgument.of(newSqlType));
-        }
-        if (expressionTypeContext.notAllInputsSeen()) {
-          if (newSqlType instanceof SqlArray) {
-            final SqlArray inputArray = (SqlArray) newSqlType;
-            expressionTypeContext.addLambdaInputType(inputArray.getItemType());
-          } else if (newSqlType instanceof SqlMap) {
-            final SqlMap inputMap = (SqlMap) newSqlType;
-            expressionTypeContext.addLambdaInputType(inputMap.getKeyType());
-            expressionTypeContext.addLambdaInputType(inputMap.getValueType());
-          } else {
-            expressionTypeContext.addLambdaInputType(newSqlType);
-          }
+          argTypes.add(SqlArgument.of(resolvedArgType));
         }
       }
 

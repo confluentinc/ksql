@@ -364,7 +364,6 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    // CHECKSTYLE_RULES.OFF: TodoComment
     public Pair<String, SqlType> visitLambdaExpression(
         final LambdaFunctionCall lambdaFunctionCall, final TypeContext context) {
 
@@ -378,7 +377,7 @@ public class SqlToJavaVisitor {
             SchemaConverters.sqlToJavaConverter().toJavaType(context.getLambdaType(lambdaArg))
             ));
       }
-      return new Pair<>(LambdaUtil.function(argPairs, lambdaBody.getLeft()),
+      return new Pair<>(LambdaUtil.toJavaCode(argPairs, lambdaBody.getLeft()),
           expressionTypeManager.getExpressionSqlType(lambdaFunctionCall, context));
     }
 
@@ -456,26 +455,16 @@ public class SqlToJavaVisitor {
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
       final List<SqlArgument> argumentSchemas = new ArrayList<>();
       for (final Expression argExpr : node.getArguments()) {
-        final SqlType newSqlType = expressionTypeManager.getExpressionSqlType(argExpr, context);
-        // for lambdas: if it's the  array/map being passed in we save the type for later
-        if (context.notAllInputsSeen()) {
-          if (newSqlType instanceof SqlArray) {
-            final SqlArray inputArray = (SqlArray) newSqlType;
-            context.addLambdaInputType(inputArray.getItemType());
-          } else if (newSqlType instanceof SqlMap) {
-            final SqlMap inputMap = (SqlMap) newSqlType;
-            context.addLambdaInputType(inputMap.getKeyType());
-            context.addLambdaInputType(inputMap.getValueType());
-          } else {
-            context.addLambdaInputType(newSqlType);
-          }
-        }
+        final SqlType resolvedArgType = expressionTypeManager.getExpressionSqlType(argExpr, context);
+        // for lambdas - if we find an array or map passed in before encountering a lambda function
+        // we save the type information to resolve the lambda generics
+        context.visitType(resolvedArgType);
         if (argExpr instanceof LambdaFunctionCall) {
           argumentSchemas.add(
-              SqlArgument.of(SqlLambda.of(context.getLambdaInputTypes(), newSqlType))
-          );
+              SqlArgument.of(
+                  SqlLambda.of(context.getLambdaInputTypes(), resolvedArgType)));
         } else {
-          argumentSchemas.add(SqlArgument.of(newSqlType));
+          argumentSchemas.add(SqlArgument.of(resolvedArgType));
         }
       }
 
@@ -499,9 +488,7 @@ public class SqlToJavaVisitor {
           paramType = function.parameters().get(i);
         }
 
-        final Pair<String, SqlType> pair =
-            process(convertArgument(arg, sqlType, paramType), context);
-        joiner.add(pair.getLeft());
+        joiner.add(process(convertArgument(arg, sqlType, paramType), context).getLeft());
       }
 
 

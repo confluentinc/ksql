@@ -237,7 +237,6 @@ public final class GenericsUtil {
     if (schema instanceof LambdaType) {
       final LambdaType lambdaType = (LambdaType) schema;
       final SqlLambda sqlLambda = instance.getSqlLambda();
-      boolean resolvedInputs = true;
       if (sqlLambda.getInputType().size() != lambdaType.inputTypes().size()) {
         throw new KsqlException(
             "Number of lambda arguments doesn't match between schema and sql type");
@@ -245,13 +244,14 @@ public final class GenericsUtil {
 
       int i = 0;
       for (final ParamType paramType : lambdaType.inputTypes()) {
-        resolvedInputs =
-            resolvedInputs && resolveGenerics(
-                mapping, paramType, SqlArgument.of(sqlLambda.getInputType().get(i))
-            );
+        if (!resolveGenerics(
+            mapping, paramType, SqlArgument.of(sqlLambda.getInputType().get(i))
+        )) {
+          return false;
+        }
         i++;
       }
-      return resolvedInputs && resolveGenerics(
+      return resolveGenerics(
           mapping, lambdaType.returnType(), SqlArgument.of(sqlLambda.getReturnType())
       );
     }
@@ -260,10 +260,8 @@ public final class GenericsUtil {
   }
 
   private static boolean matches(final ParamType schema, final SqlArgument instance) {
-    if (schema instanceof LambdaType && instance.getSqlLambda() != null) {
-      return true;
-    } else if (schema instanceof LambdaType || instance.getSqlLambda() != null) {
-      return false;
+    if (instance.getSqlLambda() != null) {
+      return schema instanceof LambdaType;
     }
     final ParamType instanceParamType = SchemaConverters
         .sqlToFunctionConverter().toFunctionType(instance.getSqlType());

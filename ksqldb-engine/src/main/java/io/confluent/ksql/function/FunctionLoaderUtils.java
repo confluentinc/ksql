@@ -180,6 +180,9 @@ public final class FunctionLoaderUtils {
       for (int i = 0; i < Math.min(parameters.size(), arguments.size()); i++) {
         final ParamType schema = parameters.get(i);
         if (schema instanceof LambdaType) {
+          if (isVariadic) {
+            throw new KsqlException(String.format("Lambda function %s cannot be variadic.", arguments.get(i).toString()));
+          }
           genericMapping.putAll(GenericsUtil.resolveGenerics(schema, arguments.get(i)));
         } else {
           // we resolve any variadic as if it were an array so that the type

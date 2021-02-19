@@ -22,6 +22,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * An internal object to track the input types and return types for a lambda
@@ -75,10 +76,19 @@ public final class SqlLambda {
   }
 
   public String toString() {
-    return toString(FormatOptions.none());
+    return "LAMBDA "
+        + inputTypes.stream()
+        .map(Object::toString)
+        .collect(Collectors.joining(", ", "(", ")"))
+        + " -> A";
   }
 
   public String toString(final FormatOptions formatOptions) {
-    return "Lambda<" + inputTypes + ", " + returnType + ">";
+    return "Lambda "
+        + inputTypes.stream()
+        .map(Object::toString)
+        .collect(Collectors.joining(", ", "(", ")"))
+        + " -> "
+        + returnType;
   }
 }

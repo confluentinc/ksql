@@ -393,8 +393,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final String reverseSuggestion = possibleAlternatives.isEmpty()
           ? ""
           : possibleAlternatives.stream()
-            .map(name -> "\tprint " + name + ";")
-            .collect(Collectors.joining(
+              .map(name -> "\tprint " + name + ";")
+              .collect(Collectors.joining(
               System.lineSeparator(),
               System.lineSeparator() + "Did you mean:" + System.lineSeparator(),
               ""

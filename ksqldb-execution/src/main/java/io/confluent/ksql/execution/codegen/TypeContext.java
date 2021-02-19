@@ -15,6 +15,12 @@
 
 package io.confluent.ksql.execution.codegen;
 
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
+import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
+import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 
 import java.util.ArrayList;
@@ -63,5 +69,20 @@ public class TypeContext {
 
   public boolean notAllInputsSeen() {
     return lambdaInputTypeMapping.size() != lambdaInputTypes.size() || lambdaInputTypes.size() == 0;
+  }
+
+  public void visitType(SqlType type) {
+    if (notAllInputsSeen()) {
+      if (type instanceof SqlArray) {
+        final SqlArray inputArray = (SqlArray) type;
+        addLambdaInputType(inputArray.getItemType());
+      } else if (type instanceof SqlMap) {
+        final SqlMap inputMap = (SqlMap) type;
+        addLambdaInputType(inputMap.getKeyType());
+        addLambdaInputType(inputMap.getValueType());
+      } else {
+        addLambdaInputType(type);
+      }
+    }
   }
 }

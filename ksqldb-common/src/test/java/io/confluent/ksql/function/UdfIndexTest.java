@@ -47,7 +47,8 @@ public class UdfIndexTest {
   private static final ParamType STRUCT2 = StructType.builder().field("b", INT).build();
   private static final ParamType MAP1 = MapType.of(STRING, STRING);
   private static final ParamType MAP2 = MapType.of(INT, INT);
-  private static final ParamType LAMBDA_FUNCTION = LambdaType.of(ImmutableList.of(GenericType.of("A")), GenericType.of("B"));
+  private static final ParamType LAMBDA_KEY_FUNCTION = LambdaType.of(ImmutableList.of(GenericType.of("A")), GenericType.of("C"));
+  private static final ParamType LAMBDA_VALUE_FUNCTION = LambdaType.of(ImmutableList.of(GenericType.of("B")), GenericType.of("D"));
   private static final ParamType LAMBDA_BI_FUNCTION = LambdaType.of(ImmutableList.of(GenericType.of("A"), GenericType.of("B")), GenericType.of("C"));
   private static final ParamType LAMBDA_BI_FUNCTION_STRING = LambdaType.of(ImmutableList.of(STRING, STRING), GenericType.of("A"));
 
@@ -56,6 +57,7 @@ public class UdfIndexTest {
 
   private static final SqlType ARRAY_ARG = SqlTypes.array(INTEGER);
   private static final SqlType MAP1_ARG = SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING);
+  private static final SqlType MAP2_ARG = SqlTypes.map(SqlTypes.STRING, INTEGER);
   private static final SqlType DECIMAL1_ARG = SqlTypes.decimal(4, 2);
 
   private static final SqlType STRUCT1_ARG = SqlTypes.struct().field("a", SqlTypes.STRING).build();
@@ -63,6 +65,8 @@ public class UdfIndexTest {
 
   private static final FunctionName EXPECTED = FunctionName.of("expected");
   private static final FunctionName OTHER = FunctionName.of("other");
+  private static final FunctionName FIRST_FUNC = FunctionName.of("first_func");
+  private static final FunctionName SECOND_FUNC = FunctionName.of("second_func");
 
   private UdfIndex<KsqlScalarFunction> udfIndex;
 
@@ -242,20 +246,32 @@ public class UdfIndexTest {
   public void shouldChooseCorrectLambdaFunction() {
     // Given:
     givenFunctions(
-        function(EXPECTED, false, GENERIC_LIST, LAMBDA_FUNCTION)
+        function(FIRST_FUNC, false, GENERIC_MAP, LAMBDA_KEY_FUNCTION)
+    );
+    givenFunctions(
+        function(SECOND_FUNC, false, GENERIC_MAP, LAMBDA_VALUE_FUNCTION)
     );
 
     // When:
-    final KsqlScalarFunction fun = udfIndex.getFunction(
+    final KsqlScalarFunction first_fun = udfIndex.getFunction(
         ImmutableList.of(
-            SqlArgument.of(ARRAY_ARG),
+            SqlArgument.of(MAP2_ARG),
             SqlArgument.of(
                 SqlLambda.of(
                     ImmutableList.of(SqlTypes.STRING),
+                    SqlTypes.STRING))));
+
+    final KsqlScalarFunction second_fun = udfIndex.getFunction(
+        ImmutableList.of(
+            SqlArgument.of(MAP2_ARG),
+            SqlArgument.of(
+                SqlLambda.of(
+                    ImmutableList.of(INTEGER),
                     INTEGER))));
 
     // Then:
-    assertThat(fun.name(), equalTo(EXPECTED));
+    assertThat(first_fun.name(), equalTo(FIRST_FUNC));
+    assertThat(second_fun.name(), equalTo(SECOND_FUNC));
   }
 
   @Test
@@ -316,9 +332,11 @@ public class UdfIndexTest {
     // Then:
     assertThat(fun1.name(), equalTo(EXPECTED));
     assertThat(fun2.name(), equalTo(EXPECTED));
+    assertThat(e.getMessage(), containsString("does not accept parameters (" +
+        "MAP<STRING, STRING>, LAMBDA (BOOLEAN, INTEGER) -> A)."));
     assertThat(e.getMessage(), containsString("Valid alternatives are:"
         + lineSeparator()
-        + "expected(MAP<VARCHAR, VARCHAR>, LAMBDA<[VARCHAR, VARCHAR], A>)"));
+        + "expected(MAP<VARCHAR, VARCHAR>, LAMBDA (VARCHAR, VARCHAR) -> A)"));
   }
 
   @Test
@@ -353,9 +371,11 @@ public class UdfIndexTest {
     );
 
     // Then:
+    assertThat(e1.getMessage(), containsString("does not accept parameters (" +
+        "MAP<STRING, STRING>, LAMBDA (BOOLEAN, STRING) -> A)."));
     assertThat(e1.getMessage(), containsString("Valid alternatives are:"
         + lineSeparator()
-        + "other(MAP<A, B>, LAMBDA<[A, B], C>)"));
+        + "other(MAP<A, B>, LAMBDA (A, B) -> C)"));
     assertThat(e2.getMessage(), containsString("Number of lambda arguments doesn't match between schema and sql type"));
   }
 

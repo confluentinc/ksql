@@ -47,6 +47,7 @@ public abstract class BaseCommand implements Runnable {
   protected boolean dryRun = false;
 
   @Override
+  @SuppressFBWarnings("DM_EXIT")
   public void run() {
     final long startTime = System.nanoTime();
     final int status = command();

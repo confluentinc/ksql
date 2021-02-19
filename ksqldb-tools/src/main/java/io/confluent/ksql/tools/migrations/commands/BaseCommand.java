@@ -28,7 +28,7 @@ import org.slf4j.Logger;
     value = "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD",
     justification = "code is skeleton only at the moment, used to generate HELP message"
 )
-public abstract class BaseCommand implements Runnable {
+public abstract class BaseCommand {
 
   @Option(
       name = {"-c", "--config-file"},
@@ -46,14 +46,20 @@ public abstract class BaseCommand implements Runnable {
   )
   protected boolean dryRun = false;
 
-  @Override
-  public void run() {
+  /**
+   * @return exit status of the command
+   */
+  public int run() {
     final long startTime = System.nanoTime();
-    command();
+    final int status = command();
     getLogger().info("Execution time: " + (System.nanoTime() - startTime) / 1000000000);
+    return status;
   }
 
-  protected abstract void command();
+  /**
+   * @return exit status of the command
+   */
+  protected abstract int command();
 
   protected abstract Logger getLogger();
 }

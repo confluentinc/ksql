@@ -28,7 +28,7 @@ public class CleanMigrationsCommand extends BaseCommand {
   private static final Logger LOGGER = LoggerFactory.getLogger(CleanMigrationsCommand.class);
 
   @Override
-  protected void command() {
+  protected int command() {
     throw new UnsupportedOperationException();
   }
 

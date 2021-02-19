@@ -28,7 +28,7 @@ public class MigrationInfoCommand extends BaseCommand {
   private static final Logger LOGGER = LoggerFactory.getLogger(MigrationInfoCommand.class);
 
   @Override
-  protected void command() {
+  protected int command() {
     throw new UnsupportedOperationException();
   }
 

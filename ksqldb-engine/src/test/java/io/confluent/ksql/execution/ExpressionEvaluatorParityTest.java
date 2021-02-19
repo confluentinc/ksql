@@ -189,7 +189,7 @@ public class ExpressionEvaluatorParityTest {
     assertOrders("CAST('123' as DECIMAL(5,1))", new BigDecimal("123.0"));
     assertOrdersError("CAST('123' as ARRAY<INTEGER>)",
         compileTime("Cast of STRING to ARRAY<INTEGER> is not supported"),
-        evaluation("Unsupported cast from STRING to ARRAY<INTEGER>"));
+        compileTime("Unsupported cast from STRING to ARRAY<INTEGER>"));
   }
 
   @Test

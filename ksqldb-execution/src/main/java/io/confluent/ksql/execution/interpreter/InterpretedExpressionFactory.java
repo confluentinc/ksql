@@ -16,12 +16,14 @@
 package io.confluent.ksql.execution.interpreter;
 
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.interpreter.terms.Term;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 
 public final class InterpretedExpressionFactory {
 
@@ -40,8 +42,10 @@ public final class InterpretedExpressionFactory {
       if (returnType == null) {
         throw new KsqlException("NULL expression not supported");
       }
-      return new InterpretedExpression(functionRegistry, schema, ksqlConfig, expression,
-          returnType, expressionTypeManager);
+      final Pair<Term, SqlType> pair = new TermCompiler(
+          functionRegistry, schema, ksqlConfig, expressionTypeManager)
+          .process(expression, null);
+      return new InterpretedExpression(expression, returnType, pair.getLeft());
     } catch (KsqlException e) {
       throw new KsqlException("Invalid expression: " + e.getMessage()
           + ". expression:" + expression + ", schema:" + schema, e);

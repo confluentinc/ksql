@@ -59,7 +59,6 @@ import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
-import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
@@ -122,15 +121,11 @@ public class InterpretedExpressionTest {
   }
 
   private InterpretedExpression interpreter(Expression expression) {
-    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(SCHEMA,
-        functionRegistry);
-    return new InterpretedExpression(
-        functionRegistry,
-        SCHEMA,
-        ksqlConfig,
+    return InterpretedExpressionFactory.create(
         expression,
-        null,
-        expressionTypeManager
+        SCHEMA,
+        functionRegistry,
+        ksqlConfig
     );
   }
 

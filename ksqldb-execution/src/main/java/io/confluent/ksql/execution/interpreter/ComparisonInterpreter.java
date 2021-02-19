@@ -18,6 +18,14 @@ package io.confluent.ksql.execution.interpreter;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.interpreter.CastInterpreter.ConversionType;
 import io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConversions;
+import io.confluent.ksql.execution.interpreter.terms.BasicTerms.BooleanTerm;
+import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm;
+import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.CompareToTerm;
+import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.ComparisonFunction;
+import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.ComparisonNullCheckFunction;
+import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.EqualsFunction;
+import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.EqualsTerm;
+import io.confluent.ksql.execution.interpreter.terms.Term;
 import io.confluent.ksql.schema.ksql.SqlTimestamps;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -39,50 +47,57 @@ public final class ComparisonInterpreter {
    * After a comparison has been done between two expressions of comparable types, this
    * evaluates the result according to the requested operation.
    * @param type The comparison type
-   * @param compareTo The result of calling left.compareTo(right)
    * @return The evaluated result
    */
-  public static boolean doComparisonCheck(
+  public static BooleanTerm doComparisonCheck(
       final ComparisonExpression.Type type,
-      final SqlType leftType,
-      final SqlType rightType,
-      final int compareTo
+      final Term left,
+      final Term right,
+      final ComparisonNullCheckFunction nullCheckFunction,
+      final ComparisonFunction comparisonFunction
   ) {
     switch (type) {
       case EQUAL:
-        return compareTo == 0;
+        return new CompareToTerm(left, right, nullCheckFunction, comparisonFunction,
+            compareTo -> compareTo == 0);
       case NOT_EQUAL:
       case IS_DISTINCT_FROM:
-        return compareTo != 0;
+        return new CompareToTerm(left, right, nullCheckFunction, comparisonFunction,
+            compareTo -> compareTo != 0);
       case GREATER_THAN_OR_EQUAL:
-        return compareTo >= 0;
+        return new CompareToTerm(left, right, nullCheckFunction, comparisonFunction,
+            compareTo -> compareTo >= 0);
       case GREATER_THAN:
-        return compareTo > 0;
+        return new CompareToTerm(left, right, nullCheckFunction, comparisonFunction,
+            compareTo -> compareTo > 0);
       case LESS_THAN_OR_EQUAL:
-        return compareTo <= 0;
+        return new CompareToTerm(left, right, nullCheckFunction, comparisonFunction,
+            compareTo -> compareTo <= 0);
       case LESS_THAN:
-        return compareTo < 0;
+        return new CompareToTerm(left, right, nullCheckFunction, comparisonFunction,
+            compareTo -> compareTo < 0);
       default:
         throw new KsqlException(String.format("Unsupported comparison between %s and %s: %s",
-            leftType, rightType, type));
+            left.getSqlType(), right.getSqlType(), type));
     }
   }
 
-  public static boolean doEqualsCheck(
+  public static BooleanTerm doEqualsCheck(
       final ComparisonExpression.Type type,
-      final SqlType leftType,
-      final SqlType rightType,
-      final boolean equals
+      final Term left,
+      final Term right,
+      final ComparisonNullCheckFunction nullCheckFunction,
+      final EqualsFunction equalsFunction
   ) {
     switch (type) {
       case EQUAL:
-        return equals;
+        return new EqualsTerm(left, right, nullCheckFunction, equalsFunction, equals -> equals);
       case NOT_EQUAL:
       case IS_DISTINCT_FROM:
-        return !equals;
+        return new EqualsTerm(left, right, nullCheckFunction, equalsFunction, equals -> !equals);
       default:
         throw new KsqlException(String.format("Unsupported comparison between %s and %s: %s",
-            leftType, rightType, type));
+            left.getSqlType(), left.getSqlType(), type));
     }
   }
 
@@ -116,38 +131,55 @@ public final class ComparisonInterpreter {
     }
   }
 
-  public static Optional<Integer> doCompareTo(
-      final Pair<Object, SqlType> left,
-      final Pair<Object, SqlType> right) {
+  public static ComparisonNullCheckFunction doNullCheck(final ComparisonExpression.Type type) {
+    if (type == ComparisonExpression.Type.IS_DISTINCT_FROM) {
+      return (c, l, r) -> {
+        final Object leftObject = l.getValue(c);
+        final Object rightObject = r.getValue(c);
+        if (leftObject == null || rightObject == null) {
+          return Optional.of((leftObject == null) ^ (rightObject == null));
+        }
+        return Optional.empty();
+      };
+    }
+    return (c, l, r) -> {
+      if (l.getValue(c) == null || r.getValue(c) == null) {
+        return Optional.of(false);
+      }
+      return Optional.empty();
+    };
+  }
+
+  public static Optional<ComparisonFunction> doCompareTo(
+      final Pair<Term, SqlType> left,
+      final Pair<Term, SqlType> right) {
     final SqlBaseType leftType = left.getRight().baseType();
     final SqlBaseType rightType = right.getRight().baseType();
-    final Object leftObject = left.getLeft();
-    final Object rightObject = right.getLeft();
     if (either(leftType, rightType, SqlBaseType.DECIMAL)) {
-      return doCompareTo(ComparisonInterpreter::toDecimal, left, right);
+      return Optional.of((c, l, r) -> doCompareTo(c, ComparisonInterpreter::toDecimal, l, r));
     } else if (either(leftType, rightType, SqlBaseType.TIMESTAMP)) {
-      return doCompareTo(ComparisonInterpreter::toTimestamp, left, right);
+      return Optional.of((c, l, r) -> doCompareTo(c, ComparisonInterpreter::toTimestamp, l, r));
     } else if (leftType == SqlBaseType.STRING) {
-      return Optional.of(leftObject.toString().compareTo(rightObject.toString()));
+      return Optional.of((c, l, r) -> l.getValue(c).toString().compareTo(r.getValue(c).toString()));
     } else if (either(leftType, rightType, SqlBaseType.DOUBLE)) {
-      return doCompareTo(NumberConversions::toDouble, left, right);
+      return Optional.of((c, l, r) -> doCompareTo(c, NumberConversions::toDouble, l, r));
     } else if (either(leftType, rightType, SqlBaseType.BIGINT)) {
-      return doCompareTo(NumberConversions::toLong, left, right);
+      return Optional.of((c, l, r) -> doCompareTo(c, NumberConversions::toLong, l, r));
     } else if (either(leftType, rightType, SqlBaseType.INTEGER)) {
-      return doCompareTo(NumberConversions::toInteger, left, right);
+      return Optional.of((c, l, r) -> doCompareTo(c, NumberConversions::toInteger, l, r));
     }
     return Optional.empty();
   }
 
-  private static <T extends Comparable<T>> Optional<Integer> doCompareTo(
+  public static <T extends Comparable<T>> int doCompareTo(
+      final TermEvaluationContext context,
       final Conversion<T> conversion,
-      final Pair<Object, SqlType> left,
-      final Pair<Object, SqlType> right) {
-    final Object leftObject = left.getLeft();
-    final Object rightObject = right.getLeft();
-    return Optional.of(
-        conversion.convert(leftObject, left.getRight(), ConversionType.COMPARISON).compareTo(
-            conversion.convert(rightObject, right.getRight(), ConversionType.COMPARISON)));
+      final Term left,
+      final Term right) {
+    final Object leftObject = left.getValue(context);
+    final Object rightObject = right.getValue(context);
+    return conversion.convert(leftObject, left.getSqlType(), ConversionType.COMPARISON).compareTo(
+        conversion.convert(rightObject, right.getSqlType(), ConversionType.COMPARISON));
   }
 
   private static boolean either(
@@ -157,20 +189,18 @@ public final class ComparisonInterpreter {
     return leftType == value || rightType == value;
   }
 
-  public static Optional<Boolean> doEquals(
-      final Pair<Object, SqlType> left,
-      final Pair<Object, SqlType> right
+  public static Optional<EqualsFunction> doEquals(
+      final Pair<Term, SqlType> left,
+      final Pair<Term, SqlType> right
   ) {
     final SqlBaseType leftType = left.getRight().baseType();
-    final Object leftObject = left.getLeft();
-    final Object rightObject = right.getLeft();
 
     switch (leftType) {
       case ARRAY:
       case MAP:
       case STRUCT:
       case BOOLEAN:
-        return Optional.of(leftObject.equals(rightObject));
+        return Optional.of((c, l, r) -> l.getValue(c).equals(r.getValue(c)));
       default:
         return Optional.empty();
     }

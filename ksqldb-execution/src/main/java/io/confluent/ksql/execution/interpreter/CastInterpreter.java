@@ -16,6 +16,9 @@
 package io.confluent.ksql.execution.interpreter;
 
 import io.confluent.ksql.execution.codegen.helpers.CastEvaluator;
+import io.confluent.ksql.execution.interpreter.terms.CastTerm;
+import io.confluent.ksql.execution.interpreter.terms.CastTerm.CastFunction;
+import io.confluent.ksql.execution.interpreter.terms.Term;
 import io.confluent.ksql.schema.ksql.SqlBooleans;
 import io.confluent.ksql.schema.ksql.SqlDoubles;
 import io.confluent.ksql.schema.ksql.SqlTimestamps;
@@ -37,32 +40,37 @@ import java.util.Objects;
 public final class CastInterpreter {
   private CastInterpreter() { }
 
-  public static Object cast(
-      final Object object,
+  public static <T> CastTerm cast(
+      final Term term,
       final SqlType from,
       final SqlType to,
       final KsqlConfig config
   ) {
-    if (object == null) {
-      return null;
-    }
+    return new CastTerm(term, to, castFunction(from, to, config));
+  }
+
+  private static CastFunction castFunction(
+      final SqlType from,
+      final SqlType to,
+      final KsqlConfig config
+  ) {
     final SqlBaseType toBaseType = to.baseType();
     if (toBaseType == SqlBaseType.INTEGER) {
-      return castToInteger(object, from);
+      return o -> castToInteger(o, from);
     } else if (toBaseType == SqlBaseType.BIGINT) {
-      return castToLong(object, from);
+      return o -> castToLong(o, from);
     } else if (toBaseType == SqlBaseType.DOUBLE) {
-      return castToDouble(object, from);
+      return o -> castToDouble(o, from);
     } else if (toBaseType == SqlBaseType.DECIMAL) {
-      return castToBigDecimal(object, from, to);
+      return o -> castToBigDecimal(o, from, to);
     } else if (toBaseType == SqlBaseType.STRING) {
-      return castToString(object, from, config);
+      return o -> castToString(o, from, config);
     } else if (toBaseType == SqlBaseType.BOOLEAN) {
-      return castToBoolean(object, from);
+      return o -> castToBoolean(o, from);
     } else if (toBaseType == SqlBaseType.ARRAY) {
-      return castToArray(object, from, to, config);
+      return castToArrayFunction(from, to, config);
     } else if (toBaseType == SqlBaseType.MAP) {
-      return castToMap(object, from, to, config);
+      return castToMapFunction(from, to, config);
     } else {
       throw new KsqlException("Unsupported cast from " + from + " to " + to);
     }
@@ -146,41 +154,38 @@ public final class CastInterpreter {
     throw new KsqlException("Unsupported cast to BOOLEAN: " + from);
   }
 
-  public static List<Object> castToArray(
-      final Object object,
+  public static CastFunction castToArrayFunction(
       final SqlType from,
       final SqlType to,
       final KsqlConfig config
   ) {
-    if (object == null) {
-      return null;
-    }
     if (from.baseType() == SqlBaseType.ARRAY
         && to.baseType() == SqlBaseType.ARRAY) {
       final SqlArray fromArray = (SqlArray) from;
       final SqlArray toArray = (SqlArray) to;
-      return CastEvaluator.castArray((List<?>)object,
-          o -> cast(o, fromArray.getItemType(), toArray.getItemType(), config));
+      final CastFunction itemCastFunction = castFunction(
+          fromArray.getItemType(), toArray.getItemType(), config);
+      return o ->
+          CastEvaluator.castArray((List<?>) o, itemCastFunction::cast);
     }
     throw new KsqlException(getErrorMessage(ConversionType.CAST, from, to));
   }
 
-  public static Map<Object, Object> castToMap(
-      final Object object,
+  public static CastFunction castToMapFunction(
       final SqlType from,
       final SqlType to,
       final KsqlConfig config
   ) {
-    if (object == null) {
-      return null;
-    }
     if (from.baseType() == SqlBaseType.MAP
         && to.baseType() == SqlBaseType.MAP) {
       final SqlMap fromMap = (SqlMap) from;
       final SqlMap toMap = (SqlMap) to;
-      return CastEvaluator.castMap((Map<?, ?>) object,
-          k -> cast(k, fromMap.getKeyType(), toMap.getKeyType(), config),
-          v -> cast(v, fromMap.getValueType(), toMap.getValueType(), config));
+      final CastFunction keyCastFunction = castFunction(
+          fromMap.getKeyType(), toMap.getKeyType(), config);
+      final CastFunction valueCastFunction = castFunction(
+          fromMap.getValueType(), toMap.getValueType(), config);
+      return o ->
+          CastEvaluator.castMap((Map<?, ?>) o, keyCastFunction::cast, valueCastFunction::cast);
     }
     throw new KsqlException("Unsupported cast to " + to + ": " + from);
   }
@@ -242,7 +247,7 @@ public final class CastInterpreter {
     }
   }
 
-  enum ConversionType {
+  public enum ConversionType {
     CAST,
     COMPARISON,
     ARITHMETIC

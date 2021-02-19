@@ -21,6 +21,10 @@ import static io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConv
 
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.interpreter.CastInterpreter.ConversionType;
+import io.confluent.ksql.execution.interpreter.terms.ArithmeticBinaryTerm;
+import io.confluent.ksql.execution.interpreter.terms.ArithmeticBinaryTerm.ArithmeticBinaryFunction;
+import io.confluent.ksql.execution.interpreter.terms.CastTerm;
+import io.confluent.ksql.execution.interpreter.terms.Term;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
@@ -37,55 +41,58 @@ import java.math.RoundingMode;
 public final class ArithmeticInterpreter {
   private ArithmeticInterpreter() { }
 
-  public static Object doArithmetic(
+  public static Term doArithmetic(
       final ArithmeticBinaryExpression node,
-      final Pair<Object, SqlType> left,
-      final Pair<Object, SqlType> right,
+      final Pair<Term, SqlType> left,
+      final Pair<Term, SqlType> right,
       final SqlType resultType,
       final KsqlConfig ksqlConfig) {
     if (resultType.baseType() == SqlBaseType.DECIMAL) {
       final SqlDecimal decimal = (SqlDecimal) resultType;
-      final BigDecimal leftExpr = (BigDecimal) CastInterpreter.cast(left.left, left.right,
+      final CastTerm leftTerm = CastInterpreter.cast(left.left, left.right,
           DecimalUtil.toSqlDecimal(left.right), ksqlConfig);
-      final BigDecimal rightExpr = (BigDecimal) CastInterpreter.cast(right.left, right.right,
+      final CastTerm rightTerm = CastInterpreter.cast(right.left, right.right,
           DecimalUtil.toSqlDecimal(right.right), ksqlConfig);
-      return ArithmeticInterpreter.apply(decimal, node.getOperator(), leftExpr, rightExpr);
+      return new ArithmeticBinaryTerm(leftTerm, rightTerm,
+          (o1, o2) -> ArithmeticInterpreter.apply(
+              decimal, node.getOperator(), (BigDecimal) o1, (BigDecimal) o2),
+          resultType);
     } else {
-      final Object leftObject =
+      final Term leftTerm =
           left.getRight().baseType() == SqlBaseType.DECIMAL
               ? CastInterpreter.cast(left.left, left.right, SqlTypes.DOUBLE, ksqlConfig)
               : left.getLeft();
-      final Object rightObject =
+      final Term rightTerm =
           right.getRight().baseType() == SqlBaseType.DECIMAL
               ? CastInterpreter.cast(right.left, right.right, SqlTypes.DOUBLE, ksqlConfig)
               : right.getLeft();
-      return ArithmeticInterpreter.doArithmeticNonDecimal(
-          node, left.getRight(), right.getRight(), leftObject, rightObject);
+      return new ArithmeticBinaryTerm(leftTerm, rightTerm,
+          ArithmeticInterpreter.doArithmeticNonDecimal(
+              node, left.getRight(), right.getRight()),
+          resultType);
     }
   }
 
-  private static Object doArithmeticNonDecimal(
+  private static ArithmeticBinaryFunction doArithmeticNonDecimal(
       final ArithmeticBinaryExpression node,
       final SqlType leftType,
-      final SqlType rightType,
-      final Object leftObject,
-      final Object rightObject) {
+      final SqlType rightType) {
     final SqlBaseType leftBaseType = leftType.baseType();
     final SqlBaseType rightBaseType = rightType.baseType();
     if (leftBaseType == SqlBaseType.STRING && rightBaseType == SqlBaseType.STRING) {
-      return (String) leftObject + (String) rightObject;
+      return (o1, o2) -> (String) o1 + (String) o2;
     } else if (leftBaseType == SqlBaseType.DOUBLE || rightBaseType == SqlBaseType.DOUBLE) {
-      return ArithmeticInterpreter.apply(node.getOperator(),
-          toDouble(leftObject, leftType, ConversionType.ARITHMETIC),
-          toDouble(rightObject, rightType, ConversionType.ARITHMETIC));
+      return (o1, o2) -> ArithmeticInterpreter.apply(node.getOperator(),
+          toDouble(o1, leftType, ConversionType.ARITHMETIC),
+          toDouble(o2, rightType, ConversionType.ARITHMETIC));
     } else if (leftBaseType == SqlBaseType.BIGINT || rightBaseType == SqlBaseType.BIGINT) {
-      return ArithmeticInterpreter.apply(node.getOperator(),
-          toLong(leftObject, leftType, ConversionType.ARITHMETIC),
-          toLong(rightObject, rightType, ConversionType.ARITHMETIC));
+      return (o1, o2) -> ArithmeticInterpreter.apply(node.getOperator(),
+          toLong(o1, leftType, ConversionType.ARITHMETIC),
+          toLong(o2, rightType, ConversionType.ARITHMETIC));
     } else if (leftBaseType == SqlBaseType.INTEGER || rightBaseType == SqlBaseType.INTEGER) {
-      return ArithmeticInterpreter.apply(node.getOperator(),
-          toInteger(leftObject, leftType, ConversionType.ARITHMETIC),
-          toInteger(rightObject, rightType, ConversionType.ARITHMETIC));
+      return (o1, o2) -> ArithmeticInterpreter.apply(node.getOperator(),
+          toInteger(o1, leftType, ConversionType.ARITHMETIC),
+          toInteger(o2, rightType, ConversionType.ARITHMETIC));
     } else {
       throw new KsqlException("Can't do arithmetic for types " + leftType + " and " + rightType);
     }

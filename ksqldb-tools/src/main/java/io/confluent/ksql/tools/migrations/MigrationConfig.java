@@ -114,7 +114,8 @@ public final class MigrationConfig extends AbstractConfig {
     } catch (ExecutionException e) {
       if (e.getCause() instanceof IllegalStateException) {
         throw new MigrationException(e.getCause().getMessage()
-            + "\nPlease ensure that " + ksqlServerUrl + " is an active KSQL server.");
+            + "\nPlease ensure that " + ksqlServerUrl + " is an active ksqlDB server and that the "
+            + "version of the migration tool is compatible with the version of the ksqlDB server.");
       }
       throw new MigrationException("Failed to query " + ksqlServerUrl + "/info: " + e.getMessage());
     } finally {

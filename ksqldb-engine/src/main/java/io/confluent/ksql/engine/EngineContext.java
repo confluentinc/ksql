@@ -228,8 +228,7 @@ final class EngineContext {
     return result.getMessage();
   }
 
-  void registerQuery(final QueryMetadata query, final boolean createAsQuery) {
-    allLiveQueries.add(query);
+  void registerQuery(final QueryMetadata query) {
     if (query instanceof PersistentQueryMetadata) {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
       final QueryId queryId = persistentQuery.getQueryId();

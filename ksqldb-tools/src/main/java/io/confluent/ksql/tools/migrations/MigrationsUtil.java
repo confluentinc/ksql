@@ -30,7 +30,10 @@ public final class MigrationsUtil {
 
   public static Client getKsqlClient(final MigrationConfig config) throws MigrationException {
     final String ksqlServerUrl = config.getString(MigrationConfig.KSQL_SERVER_URL);
+    return getKsqlClient(ksqlServerUrl);
+  }
 
+  public static Client getKsqlClient(final String ksqlServerUrl) throws MigrationException {
     final URL url;
     try {
       url = new URL(ksqlServerUrl);

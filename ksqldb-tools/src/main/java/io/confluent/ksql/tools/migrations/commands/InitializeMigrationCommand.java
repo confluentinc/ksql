@@ -21,7 +21,7 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.MigrationsUtil;
-import java.util.Optional;
+import io.confluent.ksql.util.KsqlException;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import org.slf4j.Logger;
@@ -73,12 +73,15 @@ public class InitializeMigrationCommand extends BaseCommand {
 
   @Override
   protected int command() {
-    final Optional<MigrationConfig> maybeConfig = MigrationConfig.load();
-    if (!maybeConfig.isPresent()) {
+    final MigrationConfig config;
+    try {
+      config = MigrationConfig.load();
+    } catch (KsqlException | MigrationException e) {
+      LOGGER.error(e.getMessage());
       return 1;
     }
 
-    return command(maybeConfig.get(), MigrationsUtil::getKsqlClient);
+    return command(config, MigrationsUtil::getKsqlClient);
   }
 
   @VisibleForTesting

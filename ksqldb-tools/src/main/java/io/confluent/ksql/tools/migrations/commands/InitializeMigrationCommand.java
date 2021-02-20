@@ -20,6 +20,7 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.MigrationsUtil;
+import io.confluent.ksql.util.KsqlException;
 import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,7 +71,14 @@ public class InitializeMigrationCommand extends BaseCommand {
 
   @Override
   protected int command() {
-    final MigrationConfig properties = MigrationConfig.load();
+    final MigrationConfig properties;
+    try {
+      properties = MigrationConfig.load();
+    } catch (KsqlException | MigrationException e) {
+      LOGGER.error(e.getMessage());
+      return 1;
+    }
+
     final String streamName = properties.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME);
     final String tableName = properties.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
     final String eventStreamCommand = createEventStream(

@@ -609,7 +609,7 @@ public class KsqlEngineTest {
   public void shouldNotFailIfAvroSchemaEvolvable() {
     // Given:
     final Schema evolvableSchema = SchemaBuilder
-        .record("Test").fields()
+        .record("KsqlDataSourceSchema").fields()
         .nullableInt("f1", 1)
         .endRecord();
 

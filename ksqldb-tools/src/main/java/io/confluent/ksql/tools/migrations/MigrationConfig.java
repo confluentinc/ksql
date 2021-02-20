@@ -103,7 +103,7 @@ public final class MigrationConfig extends AbstractConfig {
     }
 
     final Client client = MigrationsUtil.getKsqlClient(ksqlServerUrl);
-    CompletableFuture<ServerInfo> response = client.serverInfo();
+    final CompletableFuture<ServerInfo> response = client.serverInfo();
 
     try {
       final String serviceId = response.get().getKsqlServiceId();

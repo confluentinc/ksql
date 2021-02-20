@@ -34,7 +34,7 @@ public final class MigrationConfig extends AbstractConfig {
   public static final String KSQL_MIGRATIONS_STREAM_NAME = "ksql.migrations.stream.name";
   public static final String KSQL_MIGRATIONS_STREAM_NAME_DEFAULT = "migration_events";
   public static final String KSQL_MIGRATIONS_TABLE_NAME = "ksql.migrations.table.name";
-  public static final String KSQL_MIGRATIONS_TABLE_NAME_DEFAULT = "schema_version";
+  public static final String KSQL_MIGRATIONS_TABLE_NAME_DEFAULT = "migration_schema_versions";
   public static final String KSQL_MIGRATIONS_STREAM_TOPIC_NAME =
       "ksql.migrations.stream.topic.name";
   public static final String KSQL_MIGRATIONS_TABLE_TOPIC_NAME = "ksql.migrations.table.topic.name";

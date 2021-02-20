@@ -1243,7 +1243,7 @@ public class ClientIntegrationTest {
       @Override
       public void describeTo(final Description description) {
         description.appendText(String.format(
-            "tableName: %s. topicName: %s. keyFormat: %s. valueFormat: %s. isWindowed: %s",
+            "streamName: %s. topicName: %s. keyFormat: %s. valueFormat: %s. isWindowed: %s",
             streamName, topicName, keyFormat, valueFormat, isWindowed));
       }
     };

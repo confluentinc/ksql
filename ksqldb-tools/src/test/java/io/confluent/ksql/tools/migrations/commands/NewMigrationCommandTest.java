@@ -21,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.github.rvesse.airline.SingleCommand;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -134,6 +135,7 @@ public class NewMigrationCommandTest {
     assertThat(new File(Paths.get(testDir, MIGRATIONS_CONFIG_FILE).toString()).exists(), is(true));
   }
 
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
   @Test
   public void shouldNotFailIfConfigFileAlreadyExist() throws Exception {
     // Given:
@@ -149,6 +151,7 @@ public class NewMigrationCommandTest {
     assertThat(new File(Paths.get(testDir, MIGRATIONS_DIR).toString()).exists(), is(true));
   }
 
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
   @Test
   public void shouldFailIfRootDirExistsAsFile() throws Exception {
     // Given:

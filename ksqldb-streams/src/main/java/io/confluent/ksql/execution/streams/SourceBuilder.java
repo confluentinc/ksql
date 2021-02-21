@@ -256,10 +256,11 @@ public final class SourceBuilder {
         planInfo
     );
 
-    return KTableHolder.unmaterialized(
+    return KTableHolder.materialized(
         ktable,
         buildSchema(source, true),
-        ExecutionKeyFactory.windowed(buildContext, windowInfo)
+        ExecutionKeyFactory.windowed(buildContext, windowInfo),
+        MaterializationInfo.builder(stateStoreName, buildSchema(source, true))
     );
   }
 

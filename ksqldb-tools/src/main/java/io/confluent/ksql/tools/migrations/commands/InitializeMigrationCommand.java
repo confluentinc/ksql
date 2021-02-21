@@ -73,9 +73,13 @@ public class InitializeMigrationCommand extends BaseCommand {
 
   @Override
   protected int command() {
+    if (!validateConfigFilePresent()) {
+      return 1;
+    }
+
     final MigrationConfig config;
     try {
-      config = MigrationConfig.load();
+      config = MigrationConfig.load(configFile);
     } catch (KsqlException | MigrationException e) {
       LOGGER.error(e.getMessage());
       return 1;

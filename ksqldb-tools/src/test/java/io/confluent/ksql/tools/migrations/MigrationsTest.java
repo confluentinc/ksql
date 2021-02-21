@@ -68,12 +68,15 @@ public class MigrationsTest {
 
   private static final Cli<BaseCommand> MIGRATIONS_CLI = new Cli<>(Migrations.class);
 
+  private static String configFilePath;
+
   @BeforeClass
   public static void setUpClass() {
     final String testDir = Paths.get(TestUtils.tempDirectory().getAbsolutePath(), "migrations_integ_test").toString();
     createAndVerifyDirectoryStructure(testDir);
 
-    initializeAndVerifyMetadataStreamAndTable();
+    configFilePath = Paths.get(testDir, MigrationsUtil.MIGRATIONS_CONFIG_FILE).toString();
+    initializeAndVerifyMetadataStreamAndTable(configFilePath);
   }
 
   @AfterClass
@@ -107,9 +110,9 @@ public class MigrationsTest {
     assertThat(configFile.isDirectory(), is(false));
   }
 
-  private static void initializeAndVerifyMetadataStreamAndTable() {
+  private static void initializeAndVerifyMetadataStreamAndTable(final String configFile) {
     // use `initialize` to create metadata stream and table
-    final int status = MIGRATIONS_CLI.parse("initialize").run();
+    final int status = MIGRATIONS_CLI.parse("--config-file", configFile, "initialize").run();
     assertThat(status, is(0));
 
     // verify metadata stream

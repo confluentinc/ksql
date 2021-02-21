@@ -226,9 +226,12 @@ public final class QueryExecutor {
             ));
 
     final QueryErrorClassifier topicClassifier = new MissingTopicClassifier(applicationId);
+    final QueryErrorClassifier authorizationClassifier =
+        new TopicAuthorizationClassifier(applicationId);
     final QueryErrorClassifier classifier = buildConfiguredClassifiers(ksqlConfig, applicationId)
         .map(topicClassifier::and)
-        .orElse(topicClassifier);
+        .orElse(topicClassifier)
+        .and(authorizationClassifier);
 
     return new PersistentQueryMetadata(
         statementText,

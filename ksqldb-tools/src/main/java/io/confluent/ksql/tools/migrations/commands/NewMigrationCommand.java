@@ -27,6 +27,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -119,9 +121,9 @@ public class NewMigrationCommand extends BaseCommand {
 
     final String initialConfig = MigrationConfig.KSQL_SERVER_URL + "=" + ksqlServerUrl;
     LOGGER.info("Writing to config file: " + initialConfig);
-    try (PrintWriter out = new PrintWriter(path)) {
+    try (PrintWriter out = new PrintWriter(path, Charset.defaultCharset().name())) {
       out.println(initialConfig);
-    } catch (FileNotFoundException e) {
+    } catch (FileNotFoundException | UnsupportedEncodingException e) {
       LOGGER.error(String.format("Failed to write to config file %s: %s", path, e.getMessage()));
       return false;
     }

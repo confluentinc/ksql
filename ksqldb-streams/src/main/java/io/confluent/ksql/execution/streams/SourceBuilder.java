@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static java.util.Objects.requireNonNull;
+
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -48,7 +50,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import static java.util.Objects.requireNonNull;
 import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.clients.consumer.ConsumerConfig;

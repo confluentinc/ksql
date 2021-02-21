@@ -79,9 +79,9 @@ public class TableTableJoinBuilderTest {
   @Before
   public void init() {
     when(left.build(any(), eq(planInfo))).thenReturn(
-        KTableHolder.unmaterialized(leftKTable, LEFT_SCHEMA, executionKeyFactory));
+        KTableHolder.materialized(leftKTable, LEFT_SCHEMA, executionKeyFactory, null));
     when(right.build(any(), eq(planInfo))).thenReturn(
-        KTableHolder.unmaterialized(rightKTable, RIGHT_SCHEMA, executionKeyFactory));
+        KTableHolder.materialized(rightKTable, RIGHT_SCHEMA, executionKeyFactory, null));
 
     when(leftKTable.leftJoin(any(KTable.class), any())).thenReturn(resultKTable);
     when(leftKTable.outerJoin(any(KTable.class), any())).thenReturn(resultKTable);

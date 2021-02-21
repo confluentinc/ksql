@@ -207,7 +207,7 @@ public class SchemaKTableTest {
   private ExecutionStep buildSourceStep(final LogicalSchema schema, final KTable kTable) {
     final ExecutionStep sourceStep = mock(ExecutionStep.class);
     when(sourceStep.build(any(), eq(planInfo))).thenReturn(
-        KTableHolder.unmaterialized(kTable, schema, executionKeyFactory));
+        KTableHolder.materialized(kTable, schema, executionKeyFactory, null));
     return sourceStep;
   }
 

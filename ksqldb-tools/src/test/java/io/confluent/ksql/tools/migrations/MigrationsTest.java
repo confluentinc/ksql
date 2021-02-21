@@ -86,7 +86,7 @@ public class MigrationsTest {
 
   @Test
   public void dummy() {
-    // TODO
+    // placeholder until additional functionality (beyond initialization) is added
   }
 
   private static void createAndVerifyDirectoryStructure(final String testDir) {
@@ -124,14 +124,14 @@ public class MigrationsTest {
     assertThat(streamDesc.getPartitions(), is(1));
     assertThat(streamDesc.getReplication(), is(1));
     assertThat(streamDesc.getFields(), containsInAnyOrder(
-        fieldInfo("version_key", "STRING", true),
-        fieldInfo("version", "STRING", false),
-        fieldInfo("name", "STRING", false),
-        fieldInfo("state", "STRING", false),
-        fieldInfo("checksum", "STRING", false),
-        fieldInfo("started_on", "STRING", false),
-        fieldInfo("completed_on", "STRING", false),
-        fieldInfo("previous", "STRING", false)
+        fieldInfo("VERSION_KEY", "STRING", true),
+        fieldInfo("VERSION", "STRING", false),
+        fieldInfo("NAME", "STRING", false),
+        fieldInfo("STATE", "STRING", false),
+        fieldInfo("CHECKSUM", "STRING", false),
+        fieldInfo("STARTED_ON", "STRING", false),
+        fieldInfo("COMPLETED_ON", "STRING", false),
+        fieldInfo("PREVIOUS", "STRING", false)
     ));
 
     // verify metadata table
@@ -143,14 +143,14 @@ public class MigrationsTest {
     assertThat(tableDesc.getPartitions(), is(1));
     assertThat(tableDesc.getReplication(), is(1));
     assertThat(tableDesc.getFields(), containsInAnyOrder(
-        fieldInfo("version_key", "STRING", true),
-        fieldInfo("version", "STRING", false),
-        fieldInfo("name", "STRING", false),
-        fieldInfo("state", "STRING", false),
-        fieldInfo("checksum", "STRING", false),
-        fieldInfo("started_on", "STRING", false),
-        fieldInfo("completed_on", "STRING", false),
-        fieldInfo("previous", "STRING", false)
+        fieldInfo("VERSION_KEY", "STRING", true),
+        fieldInfo("VERSION", "STRING", false),
+        fieldInfo("NAME", "STRING", false),
+        fieldInfo("STATE", "STRING", false),
+        fieldInfo("CHECKSUM", "STRING", false),
+        fieldInfo("STARTED_ON", "STRING", false),
+        fieldInfo("COMPLETED_ON", "STRING", false),
+        fieldInfo("PREVIOUS", "STRING", false)
     ));
   }
 

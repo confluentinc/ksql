@@ -33,7 +33,7 @@ import io.confluent.ksql.tools.migrations.commands.ValidateMigrationsCommand;
  * to the "help" message.
  */
 @com.github.rvesse.airline.annotations.Cli(
-    name = "ksql-migrations",
+    name = MigrationsUtil.MIGRATIONS_COMMAND,
     description = "This tool provides easy and automated schema migrations for "
         + "ksqlDB environments. This allows control over ksqlDB schemas, recreate schemas "
         + "from scratch and migrations for current schemas to newer versions.",

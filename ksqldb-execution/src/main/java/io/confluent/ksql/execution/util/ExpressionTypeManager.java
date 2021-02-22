@@ -517,7 +517,7 @@ public class ExpressionTypeManager {
     @Override
     public Void visitIntervalExpression(
         final IntervalExpression exp,
-        final ExpressionTypeContext context
+        final TypeContext context
     ) {
       context.setSqlType(SqlTypes.INTERVAL);
       return null;

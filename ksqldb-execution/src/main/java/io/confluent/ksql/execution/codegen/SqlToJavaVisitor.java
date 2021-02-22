@@ -315,7 +315,7 @@ public class SqlToJavaVisitor {
     @Override
     public Pair<String, SqlType> visitIntervalExpression(
         final IntervalExpression node,
-        final Void context
+        final TypeContext context
     ) {
       final Pair<String, SqlType> value = process(node.getExpression(), context);
       if (!(value.getRight() == SqlTypes.BIGINT || value.getRight() == SqlTypes.INTEGER)) {

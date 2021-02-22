@@ -70,7 +70,7 @@ public final class ParamTypes {
       return isStructCompatible(argumentSqlType, declared);
     }
 
-    if (actual == SqlTypes.INTERVAL && declared instanceof IntervalType) {
+    if (argumentSqlType == SqlTypes.INTERVAL && declared instanceof IntervalType) {
       return true;
     }
 

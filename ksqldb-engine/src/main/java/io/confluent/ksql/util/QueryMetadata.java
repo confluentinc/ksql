@@ -371,8 +371,8 @@ public abstract class QueryMetadata {
       this.duration = duration;
     }
 
-    public boolean add(QueryError e) {
-      boolean result = queue.add(e);
+    public boolean add(final QueryError e) {
+      final boolean result = queue.add(e);
       while (queue.peek() != null) {
         if (queue.peek().getTimestamp() > System.currentTimeMillis() - duration.toMillis()) {
           break;

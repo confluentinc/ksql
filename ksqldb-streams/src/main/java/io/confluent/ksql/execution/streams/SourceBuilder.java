@@ -206,7 +206,7 @@ public final class SourceBuilder {
         ktable,
         buildSchema(source, false),
         ExecutionKeyFactory.unwindowed(buildContext),
-        MaterializationInfo.builder(stateStoreName, buildSchema(source, false))
+        MaterializationInfo.builder(stateStoreName, physicalSchema.logicalSchema())
     );
   }
 
@@ -261,7 +261,7 @@ public final class SourceBuilder {
         ktable,
         buildSchema(source, true),
         ExecutionKeyFactory.windowed(buildContext, windowInfo),
-        MaterializationInfo.builder(stateStoreName, buildSchema(source, true))
+        MaterializationInfo.builder(stateStoreName, physicalSchema.logicalSchema())
     );
   }
 

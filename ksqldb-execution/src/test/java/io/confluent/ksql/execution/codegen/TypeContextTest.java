@@ -29,7 +29,7 @@ public class TypeContextTest {
   @Test
   public void shouldThrowOnLambdaMismatch() {
     // Given
-    TypeContext context = new TypeContext();
+    final TypeContext context = new TypeContext();
     context.addLambdaInputType(SqlTypes.STRING);
     context.addLambdaInputType(SqlTypes.STRING);
 
@@ -43,9 +43,9 @@ public class TypeContextTest {
   }
 
   @Test
-  public void shouldMapLambdaTypes() {
+  public void shouldMapLambdaTypesAndClearInputList() {
     // Given
-    TypeContext context = new TypeContext();
+    final TypeContext context = new TypeContext();
     context.addLambdaInputType(SqlTypes.STRING);
     context.addLambdaInputType(SqlTypes.BIGINT);
 
@@ -55,5 +55,6 @@ public class TypeContextTest {
     // Then
     assertThat(context.getLambdaType("x"), is(SqlTypes.STRING));
     assertThat(context.getLambdaType("y"), is(SqlTypes.BIGINT));
+    assertThat(context.getLambdaInputTypes().size(), is(0));
   }
 }

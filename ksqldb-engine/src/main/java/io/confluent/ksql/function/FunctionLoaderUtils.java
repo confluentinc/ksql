@@ -135,6 +135,7 @@ public final class FunctionLoaderUtils {
     }
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   static SchemaProvider handleUdfReturnSchema(
       final Class theClass,
       final ParamType javaReturnSchema,
@@ -144,6 +145,7 @@ public final class FunctionLoaderUtils {
       final String functionName,
       final boolean isVariadic
   ) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     final Function<List<SqlArgument>, SqlType> schemaProvider;
     if (!Udf.NO_SCHEMA_PROVIDER.equals(schemaProviderFunctionName)) {
       schemaProvider = handleUdfSchemaProviderAnnotation(
@@ -180,16 +182,19 @@ public final class FunctionLoaderUtils {
       for (int i = 0; i < Math.min(parameters.size(), arguments.size()); i++) {
         final ParamType schema = parameters.get(i);
         if (schema instanceof LambdaType) {
-          if (isVariadic) {
-            throw new KsqlException(String.format("Lambda function %s cannot be variadic.", arguments.get(i).toString()));
+          if (isVariadic && i == parameters.size() - 1) {
+            throw new KsqlException(
+                String.format(
+                    "Lambda function %s cannot be variadic.",
+                    arguments.get(i).toString()));
           }
           genericMapping.putAll(GenericsUtil.resolveGenerics(schema, arguments.get(i)));
         } else {
           // we resolve any variadic as if it were an array so that the type
           // structure matches the input type
           final SqlType instance = isVariadic && i == parameters.size() - 1
-              ? SqlTypes.array(arguments.get(i).getSqlType())
-              : arguments.get(i).getSqlType();
+              ? SqlTypes.array(arguments.get(i).getSqlTypeOrThrow())
+              : arguments.get(i).getSqlTypeOrThrow();
           genericMapping.putAll(
               GenericsUtil.resolveGenerics(schema, SqlArgument.of(instance))
           );

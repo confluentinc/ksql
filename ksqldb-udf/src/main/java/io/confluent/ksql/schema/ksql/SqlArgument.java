@@ -18,6 +18,7 @@ package io.confluent.ksql.schema.ksql;
 import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * A wrapper class to bundle SqlTypes and SqlLambdas for UDF functions that contain
@@ -26,12 +27,16 @@ import java.util.Objects;
  */
 public class SqlArgument {
 
-  private final SqlType sqlType;
-  private final SqlLambda sqlLambda;
+  private final Optional<SqlType> sqlType;
+  private final Optional<SqlLambda> sqlLambda;
 
   public SqlArgument(final SqlType type, final SqlLambda lambda) {
-    sqlType = type;
-    sqlLambda = lambda;
+    if (type != null && lambda != null) {
+      throw new RuntimeException(
+          "A function argument was assigned to be both a type and a lambda");
+    }
+    sqlType = Optional.ofNullable(type);
+    sqlLambda = Optional.ofNullable(lambda);
   }
 
   public static SqlArgument of(final SqlType type) {
@@ -46,12 +51,30 @@ public class SqlArgument {
     return new SqlArgument(sqlType, lambdaType);
   }
 
-  public SqlType getSqlType() {
+  public Optional<SqlType> getSqlType() {
     return sqlType;
   }
 
-  public SqlLambda getSqlLambda() {
+  public SqlType getSqlTypeOrThrow() {
+    if (sqlLambda.isPresent()) {
+      throw new RuntimeException("Was expecting type as a function argument");
+    }
+    // we represent the null type with a null SqlType
+    return sqlType.orElse(null);
+  }
+
+  public Optional<SqlLambda> getSqlLambda() {
     return sqlLambda;
+  }
+
+  public SqlLambda getSqlLambdaOrThrow() {
+    if (sqlType.isPresent()) {
+      throw new RuntimeException("Was expecting lambda as a function argument");
+    }
+    if (sqlLambda.isPresent()) {
+      return sqlLambda.get();
+    }
+    throw new RuntimeException("Was expecting lambda as a function argument");
   }
 
   @Override
@@ -74,10 +97,9 @@ public class SqlArgument {
 
   @Override
   public String toString() {
-    if (sqlType != null) {
-      return sqlType.toString();
-    } else {
-      return sqlLambda.toString();
+    if (sqlType.isPresent()) {
+      return sqlType.get().toString();
     }
+    return sqlLambda.map(SqlLambda::toString).orElse("null");
   }
 }

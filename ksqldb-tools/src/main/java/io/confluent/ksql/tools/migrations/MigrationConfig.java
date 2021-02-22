@@ -34,16 +34,16 @@ public final class MigrationConfig extends AbstractConfig {
   public static final String KSQL_MIGRATIONS_STREAM_NAME = "ksql.migrations.stream.name";
   public static final String KSQL_MIGRATIONS_STREAM_NAME_DEFAULT = "migration_events";
   public static final String KSQL_MIGRATIONS_TABLE_NAME = "ksql.migrations.table.name";
-  public static final String KSQL_MIGRATIONS_TABLE_NAME_DEFAULT = "schema_version";
+  public static final String KSQL_MIGRATIONS_TABLE_NAME_DEFAULT = "migration_schema_versions";
   public static final String KSQL_MIGRATIONS_STREAM_TOPIC_NAME =
       "ksql.migrations.stream.topic.name";
   public static final String KSQL_MIGRATIONS_TABLE_TOPIC_NAME = "ksql.migrations.table.topic.name";
   public static final String KSQL_MIGRATIONS_TOPIC_REPLICAS = "ksql.migrations.topic.replicas";
   public static final int KSQL_MIGRATIONS_TOPIC_REPLICAS_DEFAULT = 1;
 
-  public static MigrationConfig load() {
+  public static MigrationConfig load(final String configFile) {
     final Map<String, String> configsMap =
-        PropertiesUtil.loadProperties(new File(MigrationsUtil.MIGRATIONS_CONFIG_FILE));
+        PropertiesUtil.loadProperties(new File(configFile));
     return new MigrationConfig(configsMap, getServiceId(configsMap));
   }
 

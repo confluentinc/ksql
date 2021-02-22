@@ -262,6 +262,12 @@
                 <artifactId>ksqldb-api-reactive-streams-tck</artifactId>
                 <version>${io.confluent.ksql.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>io.confluent.ksql</groupId>
+                <artifactId>ksqldb-api-client</artifactId>
+                <version>${io.confluent.ksql.version}</version>
+            </dependency>
             <!-- End cross-submodule dependencies -->
 
             <!-- Confluent dependencies -->

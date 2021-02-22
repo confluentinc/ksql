@@ -30,8 +30,11 @@ import org.slf4j.Logger;
 )
 public abstract class BaseCommand {
 
+  private static final String CONFIG_FILE_OPTION = "--config-file";
+  private static final String CONFIG_FILE_OPTION_SHORT = "-c";
+
   @Option(
-      name = {"-c", "--config-file"},
+      name = {CONFIG_FILE_OPTION_SHORT, CONFIG_FILE_OPTION},
       title = "config-file",
       description = "Specifies a configuration file",
       type = OptionType.GLOBAL
@@ -62,4 +65,14 @@ public abstract class BaseCommand {
   protected abstract int command();
 
   protected abstract Logger getLogger();
+
+  protected boolean validateConfigFilePresent() {
+    if (configFile == null || configFile.equals("")) {
+      getLogger().error("Migrations config file required but not specified. "
+          + "Specify with {} (or, equivalently, {}).",
+          CONFIG_FILE_OPTION, CONFIG_FILE_OPTION_SHORT);
+      return false;
+    }
+    return true;
+  }
 }

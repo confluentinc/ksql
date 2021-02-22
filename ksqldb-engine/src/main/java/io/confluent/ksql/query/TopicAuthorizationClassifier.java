@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"; you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -41,7 +41,7 @@ public class TopicAuthorizationClassifier implements QueryErrorClassifier {
 
     if (type == Type.USER) {
       LOG.info(
-          "Classified error as USER error based on missing topic. Query ID: {} Exception: {}",
+          "Classified error as USER error based on missing access rights. Query ID: {} Exception: {}",
           queryId,
           e);
     }

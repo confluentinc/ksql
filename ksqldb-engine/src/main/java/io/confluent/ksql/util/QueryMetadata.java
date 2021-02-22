@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import com.google.common.base.Ticker;
 import com.google.common.collect.EvictingQueue;
@@ -65,7 +66,7 @@ public abstract class QueryMetadata {
   private final Duration closeTimeout;
   private final QueryId queryId;
   private final QueryErrorClassifier errorClassifier;
-  private final Queue<QueryError> queryErrors;
+  private final TimeBoundedQueue queryErrors;
   private final RetryEvent retryEvent;
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
@@ -84,6 +85,7 @@ public abstract class QueryMetadata {
   };
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  @VisibleForTesting
   QueryMetadata(
       final String statementString,
       final LogicalSchema logicalSchema,
@@ -120,7 +122,7 @@ public abstract class QueryMetadata {
     this.closeTimeout = Duration.ofMillis(closeTimeout);
     this.queryId = Objects.requireNonNull(queryId, "queryId");
     this.errorClassifier = Objects.requireNonNull(errorClassifier, "errorClassifier");
-    this.queryErrors = EvictingQueue.create(maxQueryErrorsQueueSize);
+    this.queryErrors = new TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
     this.retryEvent = new RetryEvent(
             queryId,
             baseWaitingTimeMs,
@@ -288,7 +290,7 @@ public abstract class QueryMetadata {
   }
 
   public List<QueryError> getQueryErrors() {
-    return ImmutableList.copyOf(queryErrors);
+    return queryErrors.toImmutableList();
   }
 
   public long uptime() {
@@ -360,6 +362,38 @@ public abstract class QueryMetadata {
     onStop.accept(cleanUp);
   }
 
+  public static class TimeBoundedQueue {
+    private final Duration duration;
+    private final Queue<QueryError> queue;
+
+    TimeBoundedQueue(final Duration duration, final int capacity) {
+      queue = EvictingQueue.create(capacity);
+      this.duration = duration;
+    }
+
+    public boolean add(QueryError e) {
+      boolean result = queue.add(e);
+      while (queue.peek() != null) {
+        if (queue.peek().getTimestamp() > System.currentTimeMillis() - duration.toMillis()) {
+          break;
+        }
+        queue.poll();
+      }
+      return result;
+    }
+
+    public List<QueryError> toImmutableList() {
+      while (queue.peek() != null) {
+        if (queue.peek().getTimestamp() > System.currentTimeMillis() - duration.toMillis()) {
+          break;
+        }
+        queue.poll();
+      }
+      return ImmutableList.copyOf(queue);
+    }
+
+  }
+
   public void start() {
     if (!initialized) {
       throw new KsqlException(
@@ -370,10 +404,6 @@ public abstract class QueryMetadata {
     LOG.info("Starting query with application id: {}", queryApplicationId);
     everStarted = true;
     kafkaStreams.start();
-  }
-
-  public void clearErrors() {
-    queryErrors.clear();
   }
 
   public static class RetryEvent {

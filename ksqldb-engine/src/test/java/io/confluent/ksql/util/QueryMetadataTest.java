@@ -34,6 +34,7 @@ import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
+import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
@@ -336,4 +337,15 @@ public class QueryMetadataTest {
     assertThat(retryEvent.getNumRetries(), is(2));
     assertThat(retryEvent.nextRestartTimeMs(), lessThan(now + RETRY_BACKOFF_MAX_MS));
   }
+
+  @Test
+  public void shouldEvictBasedOnTime() {
+    // Given:
+    final QueryMetadata.TimeBoundedQueue queue = new QueryMetadata.TimeBoundedQueue(Duration.ZERO, 1);
+    queue.add(new QueryError(System.currentTimeMillis(), "test", Type.SYSTEM));
+
+    //Then:
+    assertThat(queue.toImmutableList().size(), is(0));
+  }
+
 }

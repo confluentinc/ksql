@@ -196,7 +196,6 @@ public final class GenericsUtil {
   ) {
     // CHECKSTYLE_RULES.ON: NPathComplexity
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
-    final SqlType sqlType = instance.getSqlType();
 
     if (!isGeneric(schema) && !matches(schema, instance)) {
       // cannot identify from type mismatch
@@ -210,6 +209,30 @@ public final class GenericsUtil {
         isGeneric(schema) || (matches(schema, instance)),
         "Cannot resolve generics if the schema and instance have differing types: "
             + schema + " vs. " + instance);
+
+    if (schema instanceof LambdaType) {
+      final LambdaType lambdaType = (LambdaType) schema;
+      final SqlLambda sqlLambda = instance.getSqlLambdaOrThrow();
+      if (sqlLambda.getInputType().size() != lambdaType.inputTypes().size()) {
+        throw new KsqlException(
+            "Number of lambda arguments doesn't match between schema and sql type");
+      }
+
+      int i = 0;
+      for (final ParamType paramType : lambdaType.inputTypes()) {
+        if (!resolveGenerics(
+            mapping, paramType, SqlArgument.of(sqlLambda.getInputType().get(i))
+        )) {
+          return false;
+        }
+        i++;
+      }
+      return resolveGenerics(
+          mapping, lambdaType.returnType(), SqlArgument.of(sqlLambda.getReturnType())
+      );
+    }
+
+    final SqlType sqlType = instance.getSqlTypeOrThrow();
 
     if (isGeneric(schema)) {
       mapping.add(new HashMap.SimpleEntry<>((GenericType) schema, sqlType));
@@ -234,37 +257,15 @@ public final class GenericsUtil {
       throw new KsqlException("Generic STRUCT is not yet supported");
     }
 
-    if (schema instanceof LambdaType) {
-      final LambdaType lambdaType = (LambdaType) schema;
-      final SqlLambda sqlLambda = instance.getSqlLambda();
-      if (sqlLambda.getInputType().size() != lambdaType.inputTypes().size()) {
-        throw new KsqlException(
-            "Number of lambda arguments doesn't match between schema and sql type");
-      }
-
-      int i = 0;
-      for (final ParamType paramType : lambdaType.inputTypes()) {
-        if (!resolveGenerics(
-            mapping, paramType, SqlArgument.of(sqlLambda.getInputType().get(i))
-        )) {
-          return false;
-        }
-        i++;
-      }
-      return resolveGenerics(
-          mapping, lambdaType.returnType(), SqlArgument.of(sqlLambda.getReturnType())
-      );
-    }
-
     return true;
   }
 
   private static boolean matches(final ParamType schema, final SqlArgument instance) {
-    if (instance.getSqlLambda() != null) {
+    if (instance.getSqlLambda().isPresent()) {
       return schema instanceof LambdaType;
     }
     final ParamType instanceParamType = SchemaConverters
-        .sqlToFunctionConverter().toFunctionType(instance.getSqlType());
+        .sqlToFunctionConverter().toFunctionType(instance.getSqlTypeOrThrow());
     return schema.getClass() == instanceParamType.getClass();
   }
 

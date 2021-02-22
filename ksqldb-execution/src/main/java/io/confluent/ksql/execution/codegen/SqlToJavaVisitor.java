@@ -377,8 +377,7 @@ public class SqlToJavaVisitor {
             SchemaConverters.sqlToJavaConverter().toJavaType(context.getLambdaType(lambdaArg))
             ));
       }
-      return new Pair<>(LambdaUtil.toJavaCode(argPairs, lambdaBody.getLeft()),
-          expressionTypeManager.getExpressionSqlType(lambdaFunctionCall, context));
+      return new Pair<>(LambdaUtil.toJavaCode(argPairs, lambdaBody.getLeft()), null);
     }
 
     @Override
@@ -454,22 +453,18 @@ public class SqlToJavaVisitor {
 
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
       final List<SqlArgument> argumentSchemas = new ArrayList<>();
-      boolean hasLambda = false;
-      for (Expression e : node.getArguments()) {
-        if (e instanceof LambdaFunctionCall) {
-          hasLambda = true;
-          break;
-        }
-      }
+      final boolean hasLambda = node.hasLambdaFunctionCallArguments();
       for (final Expression argExpr : node.getArguments()) {
         final TypeContext childContext = context.getCopy();
-        final SqlType resolvedArgType = expressionTypeManager.getExpressionSqlType(argExpr, childContext);
+        final SqlType resolvedArgType =
+            expressionTypeManager.getExpressionSqlType(argExpr, childContext);
         if (argExpr instanceof LambdaFunctionCall) {
-          argumentSchemas.add(SqlArgument.of(SqlLambda.of(context.getLambdaInputTypes(), childContext.getSqlType())));
+          argumentSchemas.add(
+              SqlArgument.of(
+                  SqlLambda.of(context.getLambdaInputTypes(), childContext.getSqlType())));
         } else {
           argumentSchemas.add(SqlArgument.of(resolvedArgType));
-          // for lambdas - if we find an array or map passed in before encountering a lambda function
-          // we save the type information to resolve the lambda generics
+          // for lambdas - we save the type information to resolve the lambda generics
           if (hasLambda) {
             context.visitType(resolvedArgType);
           }
@@ -487,7 +482,9 @@ public class SqlToJavaVisitor {
       final StringJoiner joiner = new StringJoiner(", ");
       for (int i = 0; i < arguments.size(); i++) {
         final Expression arg = arguments.get(i);
-        final SqlType sqlType = argumentSchemas.get(i).getSqlType();
+
+        // lambda arguments and null values are considered to have null type
+        final SqlType sqlType = argumentSchemas.get(i).getSqlType().orElse(null);
 
         final ParamType paramType;
         if (i >= function.parameters().size() - 1 && function.isVariadic()) {
@@ -496,7 +493,9 @@ public class SqlToJavaVisitor {
           paramType = function.parameters().get(i);
         }
 
-        joiner.add(process(convertArgument(arg, sqlType, paramType), context).getLeft());
+        joiner.add(
+            process(convertArgument(arg, sqlType, paramType), context.getCopy())
+            .getLeft());
       }
 
 

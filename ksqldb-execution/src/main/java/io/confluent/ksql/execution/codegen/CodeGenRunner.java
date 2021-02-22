@@ -40,9 +40,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
 import io.confluent.ksql.schema.ksql.SqlArgument;
-import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlLambda;
-import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -187,24 +185,20 @@ public class CodeGenRunner {
     public Void visitFunctionCall(final FunctionCall node, final TypeContext context) {
       final List<SqlArgument> argumentTypes = new ArrayList<>();
       final FunctionName functionName = node.getName();
-      boolean hasLambda = false;
-      for (Expression e : node.getArguments()) {
-        if (e instanceof LambdaFunctionCall) {
-          hasLambda = true;
-          break;
-        }
-      }
+      final boolean hasLambda = node.hasLambdaFunctionCallArguments();
       for (final Expression argExpr : node.getArguments()) {
-        process(argExpr, context);
         final TypeContext childContext = context.getCopy();
-        final SqlType resolvedArgType = expressionTypeManager.getExpressionSqlType(argExpr, childContext);
+        final SqlType resolvedArgType =
+            expressionTypeManager.getExpressionSqlType(argExpr, childContext);
+        process(argExpr, context.getCopy());
 
         if (argExpr instanceof LambdaFunctionCall) {
-          argumentTypes.add(SqlArgument.of(SqlLambda.of(context.getLambdaInputTypes(), childContext.getSqlType())));
+          argumentTypes.add(
+              SqlArgument.of(
+                  SqlLambda.of(context.getLambdaInputTypes(), childContext.getSqlType())));
         } else {
           argumentTypes.add(SqlArgument.of(resolvedArgType));
-          // for lambdas - if we find an array or map passed in before encountering a lambda function
-          // we save the type information to resolve the lambda generics
+          // for lambdas - we save the type information to resolve the lambda generics
           if (hasLambda) {
             context.visitType(resolvedArgType);
           }
@@ -303,15 +297,6 @@ public class CodeGenRunner {
           SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(column.type()),
           column.index()
       );
-    }
-
-    private boolean hasLambdaFunctionCall(FunctionCall node) {
-      for (Expression e : node.getArguments()) {
-        if (e instanceof LambdaFunctionCall) {
-          return true;
-        }
-      }
-      return false;
     }
   }
 }

@@ -61,7 +61,7 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
       throw new KsqlException("There is no aggregate function with name='" + getName()
           + "' that has arguments of type="
           + allParams.stream()
-          .map(SqlArgument::getSqlType)
+          .map(SqlArgument::getSqlTypeOrThrow)
           .map(SqlType::baseType)
           .map(Objects::toString)
           .collect(Collectors.joining(",")));

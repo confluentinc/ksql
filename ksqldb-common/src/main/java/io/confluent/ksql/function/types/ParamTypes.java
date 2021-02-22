@@ -41,6 +41,10 @@ public final class ParamTypes {
   public static final ParamType DECIMAL = DecimalType.INSTANCE;
   public static final TimestampType TIMESTAMP = TimestampType.INSTANCE;
 
+  public static boolean areCompatible(final SqlArgument actual, final ParamType declared) {
+    return areCompatible(actual, declared, false);
+  }
+
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   // CHECKSTYLE_RULES.OFF: NPathComplexity
   public static boolean areCompatible(
@@ -50,10 +54,10 @@ public final class ParamTypes {
   ) {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     // CHECKSTYLE_RULES.ON: NPathComplexity
-    final SqlType argumentSqlType = argument.getSqlType();
-    final SqlLambda sqlLambda = argument.getSqlLambda();
+    final Optional<SqlLambda> sqlLambdaOptional = argument.getSqlLambda();
 
-    if (sqlLambda != null && declared instanceof LambdaType) {
+    if (sqlLambdaOptional.isPresent() && declared instanceof LambdaType) {
+      final SqlLambda sqlLambda = sqlLambdaOptional.get();
       final LambdaType declaredLambda = (LambdaType) declared;
       if (sqlLambda.getInputType().size() != declaredLambda.inputTypes().size()) {
         return false;
@@ -75,6 +79,7 @@ public final class ParamTypes {
           allowCast);
     }
 
+    final SqlType argumentSqlType = argument.getSqlTypeOrThrow();
     if (argumentSqlType.baseType() == SqlBaseType.ARRAY && declared instanceof ArrayType) {
       return areCompatible(
           SqlArgument.of(((SqlArray) argumentSqlType).getItemType()),

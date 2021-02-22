@@ -75,13 +75,9 @@ public final class SqlLambda {
     return Objects.hash(inputTypes, returnType);
   }
 
+  @Override
   public String toString() {
-    return "LAMBDA "
-        + inputTypes.stream()
-        .map(Object::toString)
-        .collect(Collectors.joining(", ", "(", ")"))
-        + " => "
-        + returnType;
+    return toString(FormatOptions.none());
   }
 
   public String toString(final FormatOptions formatOptions) {
@@ -90,6 +86,6 @@ public final class SqlLambda {
         .map(Object::toString)
         .collect(Collectors.joining(", ", "(", ")"))
         + " => "
-        + returnType;
+        + returnType.toString(formatOptions);
   }
 }

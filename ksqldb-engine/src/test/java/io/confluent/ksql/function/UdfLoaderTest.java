@@ -197,7 +197,7 @@ public class UdfLoaderTest {
   @Test
   public void shouldLoadLambdaReduceUdfs() {
     // Given:
-    final SqlLambda schema =
+    final SqlLambda lambda =
         SqlLambda.of(
             ImmutableList.of(SqlTypes.INTEGER, SqlTypes.INTEGER, SqlTypes.INTEGER),
             SqlTypes.INTEGER);
@@ -208,7 +208,7 @@ public class UdfLoaderTest {
             ImmutableList.of(
                 SqlArgument.of(SqlMap.of(SqlTypes.INTEGER, SqlTypes.INTEGER)),
                 SqlArgument.of(SqlTypes.INTEGER),
-                SqlArgument.of(schema)));
+                SqlArgument.of(lambda)));
 
     // Then:
     assertThat(fun.name().text(), equalToIgnoringCase("reduce_map"));
@@ -217,7 +217,7 @@ public class UdfLoaderTest {
   @Test
   public void shouldLoadLambdaTransformUdfs() {
     // Given:
-    final SqlLambda schema =
+    final SqlLambda lambda =
         SqlLambda.of(
             ImmutableList.of(SqlTypes.INTEGER),
             SqlTypes.INTEGER);
@@ -227,7 +227,7 @@ public class UdfLoaderTest {
         .getFunction(
             ImmutableList.of(
                 SqlArgument.of(SqlArray.of(SqlTypes.INTEGER)),
-                SqlArgument.of(schema)));
+                SqlArgument.of(lambda)));
 
     // Then:
     assertThat(fun.name().text(), equalToIgnoringCase("array_transform"));

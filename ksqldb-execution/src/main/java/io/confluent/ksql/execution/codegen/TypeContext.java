@@ -15,12 +15,7 @@
 
 package io.confluent.ksql.execution.codegen;
 
-import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
-import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
-import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 
@@ -35,11 +30,12 @@ public class TypeContext {
   private final Map<String, SqlType> lambdaInputTypeMapping;
 
   public TypeContext() {
-    lambdaInputTypes = new ArrayList<SqlType>();
-    lambdaInputTypeMapping = new HashMap<>();
+    this(new ArrayList<>(), new HashMap<>());
   }
 
-  TypeContext (final List<SqlType> lambdaInputTypes, final Map<String, SqlType> lambdaInputTypeMapping) {
+  public TypeContext(
+      final List<SqlType> lambdaInputTypes,
+      final Map<String, SqlType> lambdaInputTypeMapping) {
     this.lambdaInputTypes = lambdaInputTypes;
     this.lambdaInputTypeMapping = lambdaInputTypeMapping;
   }
@@ -81,10 +77,13 @@ public class TypeContext {
 
 
   public TypeContext getCopy() {
-    return new TypeContext(this.lambdaInputTypes, this.lambdaInputTypeMapping);
+    return new TypeContext(
+        new ArrayList<>(this.lambdaInputTypes),
+        new HashMap<>(this.lambdaInputTypeMapping)
+    );
   }
 
-  public void visitType(SqlType type) {
+  public void visitType(final SqlType type) {
     if (type instanceof SqlArray) {
       final SqlArray inputArray = (SqlArray) type;
       addLambdaInputType(inputArray.getItemType());

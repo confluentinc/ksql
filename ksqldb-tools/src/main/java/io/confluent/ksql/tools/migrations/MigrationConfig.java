@@ -43,7 +43,7 @@ public final class MigrationConfig extends AbstractConfig {
 
   public static MigrationConfig load() {
     final Map<String, String> configsMap =
-        PropertiesUtil.loadProperties(new File("ksql-migrations.properties"));
+        PropertiesUtil.loadProperties(new File(MigrationsUtil.MIGRATIONS_CONFIG_FILE));
     return new MigrationConfig(configsMap, getServiceId(configsMap));
   }
 

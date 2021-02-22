@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.tools.migrations.commands;
 
+import static io.confluent.ksql.tools.migrations.MigrationsUtil.MIGRATIONS_CONFIG_FILE;
+import static io.confluent.ksql.tools.migrations.MigrationsUtil.MIGRATIONS_DIR;
+
 import com.github.rvesse.airline.annotations.Arguments;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.restrictions.Required;
@@ -41,8 +44,8 @@ public class NewMigrationCommand extends BaseCommand {
   @Override
   protected int command() {
     if (tryCreateDirectory(projectPath)
-        && tryCreateDirectory(projectPath + "/migrations")
-        && tryCreatePropertiesFile(projectPath + "/ksql-migrations.properties")) {
+        && tryCreateDirectory(Paths.get(projectPath, MIGRATIONS_DIR).toString())
+        && tryCreatePropertiesFile(Paths.get(projectPath, MIGRATIONS_CONFIG_FILE).toString())) {
       LOGGER.info("Migrations project directory created successfully");
       return 0;
     } else {

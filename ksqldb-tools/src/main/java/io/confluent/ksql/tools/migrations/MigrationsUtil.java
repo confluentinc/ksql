@@ -25,6 +25,14 @@ public final class MigrationsUtil {
   private MigrationsUtil() {
   }
 
+  public static final String MIGRATIONS_DIR = "migrations";
+  public static final String MIGRATIONS_CONFIG_FILE = "ksql-migrations.properties";
+
+  public static Client getKsqlClient(final MigrationConfig config) throws MigrationException {
+    final String ksqlServerUrl = config.getString(MigrationConfig.KSQL_SERVER_URL);
+    return getKsqlClient(ksqlServerUrl);
+  }
+
   public static Client getKsqlClient(final String ksqlServerUrl) throws MigrationException {
     final URL url;
     try {

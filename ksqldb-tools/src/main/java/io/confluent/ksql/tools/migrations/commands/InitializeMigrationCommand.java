@@ -16,12 +16,14 @@
 package io.confluent.ksql.tools.migrations.commands;
 
 import com.github.rvesse.airline.annotations.Command;
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.MigrationsUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,30 +73,37 @@ public class InitializeMigrationCommand extends BaseCommand {
 
   @Override
   protected int command() {
-    final MigrationConfig properties;
+    final MigrationConfig config;
     try {
-      properties = MigrationConfig.load();
+      config = MigrationConfig.load();
     } catch (KsqlException | MigrationException e) {
       LOGGER.error(e.getMessage());
       return 1;
     }
 
-    final String streamName = properties.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME);
-    final String tableName = properties.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
+    return command(config, MigrationsUtil::getKsqlClient);
+  }
+
+  @VisibleForTesting
+  int command(
+      final MigrationConfig config,
+      final Function<MigrationConfig, Client> clientSupplier
+  ) {
+    final String streamName = config.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME);
+    final String tableName = config.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
     final String eventStreamCommand = createEventStream(
         streamName,
-        properties.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_TOPIC_NAME),
-        properties.getInt(MigrationConfig.KSQL_MIGRATIONS_TOPIC_REPLICAS)
+        config.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_TOPIC_NAME),
+        config.getInt(MigrationConfig.KSQL_MIGRATIONS_TOPIC_REPLICAS)
     );
     final String versionTableCommand = createVersionTable(
         tableName,
-        properties.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_TOPIC_NAME)
+        config.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_TOPIC_NAME)
     );
-    final String ksqlServerUrl = properties.getString(MigrationConfig.KSQL_SERVER_URL);
-    final Client ksqlClient;
 
+    final Client ksqlClient;
     try {
-      ksqlClient = MigrationsUtil.getKsqlClient(ksqlServerUrl);
+      ksqlClient = clientSupplier.apply(config);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
       return 1;

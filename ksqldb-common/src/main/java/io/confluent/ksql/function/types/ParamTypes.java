@@ -20,6 +20,7 @@ import static io.confluent.ksql.schema.ksql.SchemaConverters.functionToSqlBaseCo
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
@@ -40,16 +41,45 @@ public final class ParamTypes {
   public static final ParamType DECIMAL = DecimalType.INSTANCE;
   public static final TimestampType TIMESTAMP = TimestampType.INSTANCE;
 
-  public static boolean areCompatible(final SqlType actual, final ParamType declared) {
-    return areCompatible(SqlArgument.of(actual), declared, false);
+  public static boolean areCompatible(final SqlArgument actual, final ParamType declared) {
+    return areCompatible(actual, declared, false);
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
+  // CHECKSTYLE_RULES.OFF: NPathComplexity
   public static boolean areCompatible(
       final SqlArgument argument,
       final ParamType declared,
       final boolean allowCast
   ) {
-    final SqlType argumentSqlType = argument.getSqlType();
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
+    // CHECKSTYLE_RULES.ON: NPathComplexity
+    final Optional<SqlLambda> sqlLambdaOptional = argument.getSqlLambda();
+
+    if (sqlLambdaOptional.isPresent() && declared instanceof LambdaType) {
+      final SqlLambda sqlLambda = sqlLambdaOptional.get();
+      final LambdaType declaredLambda = (LambdaType) declared;
+      if (sqlLambda.getInputType().size() != declaredLambda.inputTypes().size()) {
+        return false;
+      }
+      int i = 0;
+      for (final ParamType paramType: declaredLambda.inputTypes()) {
+        if (!areCompatible(
+            SqlArgument.of(sqlLambda.getInputType().get(i)),
+            paramType,
+            allowCast)
+        ) {
+          return false;
+        }
+        i++;
+      }
+      return areCompatible(
+          SqlArgument.of(sqlLambda.getReturnType()),
+          declaredLambda.returnType(),
+          allowCast);
+    }
+
+    final SqlType argumentSqlType = argument.getSqlTypeOrThrow();
     if (argumentSqlType.baseType() == SqlBaseType.ARRAY && declared instanceof ArrayType) {
       return areCompatible(
           SqlArgument.of(((SqlArray) argumentSqlType).getItemType()),
@@ -61,7 +91,11 @@ public final class ParamTypes {
       final SqlMap sqlType = (SqlMap) argumentSqlType;
       final MapType mapType = (MapType) declared;
       return areCompatible(SqlArgument.of(sqlType.getKeyType()), mapType.key(), allowCast)
-          && areCompatible(SqlArgument.of(sqlType.getValueType()), mapType.value(), allowCast);
+          && areCompatible(
+          SqlArgument.of(sqlType.getValueType()),
+          mapType.value(),
+          allowCast
+      );
     }
 
     if (argumentSqlType.baseType() == SqlBaseType.STRUCT && declared instanceof StructType) {
@@ -83,7 +117,8 @@ public final class ParamTypes {
       final String k = entry.getKey();
       final Optional<Field> field = actualStruct.field(k);
       // intentionally do not allow implicit casting within structs
-      if (!field.isPresent() || !areCompatible(field.get().type(), entry.getValue())) {
+      if (!field.isPresent()
+          || !areCompatible(SqlArgument.of(field.get().type()), entry.getValue(), false)) {
         return false;
       }
     }

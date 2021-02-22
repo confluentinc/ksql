@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.codegen;
 
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 
 import java.util.ArrayList;
@@ -24,8 +26,19 @@ import java.util.Map;
 
 public class TypeContext {
   private SqlType sqlType;
-  private final List<SqlType> lambdaInputTypes = new ArrayList<>();
-  private final Map<String, SqlType> lambdaInputTypeMapping = new HashMap<>();
+  private final List<SqlType> lambdaInputTypes;
+  private final Map<String, SqlType> lambdaInputTypeMapping;
+
+  public TypeContext() {
+    this(new ArrayList<>(), new HashMap<>());
+  }
+
+  public TypeContext(
+      final List<SqlType> lambdaInputTypes,
+      final Map<String, SqlType> lambdaInputTypeMapping) {
+    this.lambdaInputTypes = lambdaInputTypes;
+    this.lambdaInputTypeMapping = lambdaInputTypeMapping;
+  }
 
   public SqlType getSqlType() {
     return sqlType;
@@ -55,13 +68,31 @@ public class TypeContext {
     for (int i = 0; i < argumentList.size(); i++) {
       this.lambdaInputTypeMapping.putIfAbsent(argumentList.get(i), lambdaInputTypes.get(i));
     }
+    lambdaInputTypes.clear();
   }
 
   public SqlType getLambdaType(final String name) {
     return lambdaInputTypeMapping.get(name);
   }
 
-  public boolean notAllInputsSeen() {
-    return lambdaInputTypeMapping.size() != lambdaInputTypes.size() || lambdaInputTypes.size() == 0;
+
+  public TypeContext getCopy() {
+    return new TypeContext(
+        new ArrayList<>(this.lambdaInputTypes),
+        new HashMap<>(this.lambdaInputTypeMapping)
+    );
+  }
+
+  public void visitType(final SqlType type) {
+    if (type instanceof SqlArray) {
+      final SqlArray inputArray = (SqlArray) type;
+      addLambdaInputType(inputArray.getItemType());
+    } else if (type instanceof SqlMap) {
+      final SqlMap inputMap = (SqlMap) type;
+      addLambdaInputType(inputMap.getKeyType());
+      addLambdaInputType(inputMap.getValueType());
+    } else {
+      addLambdaInputType(type);
+    }
   }
 }

@@ -18,6 +18,7 @@ package io.confluent.ksql.function.types;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public final class LambdaType extends ObjectType {
 
@@ -68,6 +69,11 @@ public final class LambdaType extends ObjectType {
 
   @Override
   public String toString() {
-    return "LAMBDA<" + inputTypes + ", " + returnType + ">";
+    return "LAMBDA "
+        + inputTypes.stream()
+        .map(Object::toString)
+        .collect(Collectors.joining(", ", "(", ")"))
+        + " => "
+        + returnType;
   }
 }

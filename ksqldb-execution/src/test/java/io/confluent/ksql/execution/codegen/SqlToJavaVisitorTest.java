@@ -56,6 +56,8 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
+import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
@@ -71,6 +73,9 @@ import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.GenericType;
+import io.confluent.ksql.function.types.LambdaType;
+import io.confluent.ksql.function.types.MapType;
+import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.ColumnName;
@@ -885,6 +890,93 @@ public class SqlToJavaVisitorTest {
 
     // Then:
     assertThat(java, is("InListEvaluator.matches(COL0,1L,2L)"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForTransformLambdaExpression() {
+    // Given:
+    final UdfFactory udfFactory = mock(UdfFactory.class);
+    final KsqlScalarFunction udf = mock(KsqlScalarFunction.class);
+    givenUdf("ABS", udfFactory, udf);
+    givenUdf("TRANSFORM", udfFactory, udf);
+    when(udf.parameters()).
+        thenReturn(ImmutableList.of(
+            ArrayType.of(ParamTypes.DOUBLE),
+            LambdaType.of(ImmutableList.of(
+                ParamTypes.DOUBLE),
+                ParamTypes.DOUBLE))
+        );
+
+    final Expression expression = new FunctionCall (
+        FunctionName.of("TRANSFORM"),
+        ImmutableList.of(
+            ARRAYCOL,
+            new LambdaFunctionCall(
+                ImmutableList.of("x"),
+                (new FunctionCall(FunctionName.of("ABS"), ImmutableList.of(new LambdaVariable("X")))))));
+
+    // When:
+    final String javaExpression = sqlToJavaVisitor.process(expression);
+
+    // Then
+    assertThat(
+        javaExpression, equalTo(
+            "((String) TRANSFORM_0.evaluate(COL4, new Function() {\n @Override\n public Object apply(Object arg1) {\n   final Double x = (Double) arg1;\n   return ((String) ABS_1.evaluate(X));\n }\n}))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForReduceLambdaExpression() {
+    // Given:
+    final UdfFactory udfFactory = mock(UdfFactory.class);
+    final KsqlScalarFunction udf = mock(KsqlScalarFunction.class);
+    givenUdf("REDUCE", udfFactory, udf);
+    when(udf.parameters()).
+        thenReturn(ImmutableList.of(
+            ArrayType.of(ParamTypes.DOUBLE),
+            ParamTypes.DOUBLE,
+            LambdaType.of(
+                ImmutableList.of(ParamTypes.DOUBLE, ParamTypes.DOUBLE),
+                ParamTypes.DOUBLE))
+        );
+
+    final Expression expression = new FunctionCall (
+        FunctionName.of("REDUCE"),
+        ImmutableList.of(
+            ARRAYCOL,
+            COL3,
+            new LambdaFunctionCall(
+                ImmutableList.of("X", "S"),
+                (new ArithmeticBinaryExpression(
+                    Operator.ADD,
+                    new LambdaVariable("X"),
+                    new LambdaVariable("S")))
+            )));
+
+    // When:
+    final String javaExpression = sqlToJavaVisitor.process(expression);
+
+    // Then
+    assertThat(
+        javaExpression, equalTo(
+            "((String) REDUCE_0.evaluate(COL4, COL3, new BiFunction() {\n" +
+                " @Override\n" +
+                " public Object apply(Object arg1, Object arg2) {\n" +
+                "   final Double X = (Double) arg1;\n" +
+                "   final Double S = (Double) arg2;\n" +
+                "   return (X + S);\n" +
+                " }\n" +
+                "}))"));
+  }
+
+  @Test
+  public void shouldThrowErrorOnEmptyLambdaInput() {
+    // Given:
+    final Expression expression = new LambdaFunctionCall(
+        ImmutableList.of("x"),
+        (new FunctionCall(FunctionName.of("ABS"), ImmutableList.of(new LambdaVariable("X")))));
+
+    // When:
+    assertThrows(IllegalArgumentException.class, () -> sqlToJavaVisitor.process(expression));
   }
 
   @Test

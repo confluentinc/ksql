@@ -38,12 +38,12 @@ public final class LambdaUtil {
    * @param lambdaBody the body of the lambda.
    * @return code to instantiate the function.
    */
-  public static String function(
+  public static String toJavaCode(
       final String argName,
       final Class<?> argType,
       final String lambdaBody
   ) {
-    return function(ImmutableList.of(new Pair<>(argName, argType)), lambdaBody);
+    return toJavaCode(ImmutableList.of(new Pair<>(argName, argType)), lambdaBody);
   }
 
   /**
@@ -55,7 +55,7 @@ public final class LambdaUtil {
    * @return code to instantiate the function.
    */
   // CHECKSTYLE_RULES.OFF: FinalLocalVariable
-  public static String function(
+  public static String toJavaCode(
       final List<Pair<String, Class<?>>> argList,
       final String lambdaBody
   ) {

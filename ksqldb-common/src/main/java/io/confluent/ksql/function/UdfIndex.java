@@ -22,6 +22,7 @@ import io.confluent.ksql.function.types.GenericType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlException;
@@ -198,7 +199,15 @@ public class UdfIndex<T extends FunctionSignature> {
     LOG.debug("Current UdfIndex:\n{}", describe());
 
     final String requiredTypes = paramTypes.stream()
-        .map(type -> type == null ? "null" : type.getSqlType().toString(FormatOptions.noEscape()))
+        .map(argument -> {
+          if (argument == null) {
+            return "null";
+          } else {
+            final Optional<SqlLambda> sqlLambda = argument.getSqlLambda();
+            return sqlLambda.map(lambda -> lambda.toString(FormatOptions.noEscape()))
+                .orElseGet(() -> argument.getSqlTypeOrThrow().toString(FormatOptions.noEscape()));
+          }
+        })
         .collect(Collectors.joining(", ", "(", ")"));
 
     final String acceptedTypes = allFunctions.values().stream()
@@ -351,7 +360,8 @@ public class UdfIndex<T extends FunctionSignature> {
     // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
     boolean accepts(final SqlArgument argument, final Map<GenericType, SqlType> reservedGenerics,
         final boolean allowCasts) {
-      if (argument == null || argument.getSqlType() == null) {
+      if (argument == null
+          || (!argument.getSqlLambda().isPresent() && !argument.getSqlType().isPresent())) {
         return true;
       }
 
@@ -371,9 +381,8 @@ public class UdfIndex<T extends FunctionSignature> {
       if (!GenericsUtil.instanceOf(schema, argument)) {
         return false;
       }
-
-      final Map<GenericType, SqlType> genericMapping = GenericsUtil
-          .resolveGenerics(schema, argument);
+      final Map<GenericType, SqlType> genericMapping =
+          GenericsUtil.resolveGenerics(schema, argument);
 
       for (final Entry<GenericType, SqlType> entry : genericMapping.entrySet()) {
         final SqlType old = reservedGenerics.putIfAbsent(entry.getKey(), entry.getValue());

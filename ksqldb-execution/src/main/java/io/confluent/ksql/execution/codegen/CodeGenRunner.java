@@ -40,6 +40,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
 import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -109,8 +110,8 @@ public class CodeGenRunner {
 
   public CodeGenSpec getCodeGenSpec(final Expression expression) {
     final Visitor visitor = new Visitor();
-
-    visitor.process(expression, null);
+    final TypeContext context = new TypeContext();
+    visitor.process(expression, context);
     return visitor.spec.build();
   }
 
@@ -175,8 +176,8 @@ public class CodeGenRunner {
 
     @Override
     public Void visitLikePredicate(final LikePredicate node, final TypeContext context) {
-      process(node.getValue(), null);
-      process(node.getPattern(), null);
+      process(node.getValue(), context);
+      process(node.getPattern(), context);
       return null;
     }
 
@@ -184,11 +185,24 @@ public class CodeGenRunner {
     public Void visitFunctionCall(final FunctionCall node, final TypeContext context) {
       final List<SqlArgument> argumentTypes = new ArrayList<>();
       final FunctionName functionName = node.getName();
+      final boolean hasLambda = node.hasLambdaFunctionCallArguments();
       for (final Expression argExpr : node.getArguments()) {
-        process(argExpr, null);
-        argumentTypes.add(SqlArgument.of(
-            expressionTypeManager.getExpressionSqlType(argExpr)
-        ));
+        final TypeContext childContext = context.getCopy();
+        final SqlType resolvedArgType =
+            expressionTypeManager.getExpressionSqlType(argExpr, childContext);
+        process(argExpr, context.getCopy());
+
+        if (argExpr instanceof LambdaFunctionCall) {
+          argumentTypes.add(
+              SqlArgument.of(
+                  SqlLambda.of(context.getLambdaInputTypes(), childContext.getSqlType())));
+        } else {
+          argumentTypes.add(SqlArgument.of(resolvedArgType));
+          // for lambdas - we save the type information to resolve the lambda generics
+          if (hasLambda) {
+            context.visitType(resolvedArgType);
+          }
+        }
       }
 
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
@@ -260,13 +274,14 @@ public class CodeGenRunner {
     public Void visitDereferenceExpression(
         final DereferenceExpression node, final TypeContext context
     ) {
-      process(node.getBase(), null);
+      process(node.getBase(), context);
       return null;
     }
 
     @Override
     public Void visitLambdaExpression(final LambdaFunctionCall node, final TypeContext context) {
-      process(node.getBody(), null);
+      context.mapLambdaInputTypes(node.getArguments());
+      process(node.getBody(), context);
       return null;
     }
 

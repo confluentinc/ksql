@@ -20,12 +20,14 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.GenericType;
+import io.confluent.ksql.function.types.LambdaType;
 import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -35,6 +37,7 @@ import io.confluent.ksql.util.KsqlPreconditions;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -77,6 +80,14 @@ public final class GenericsUtil {
           .collect(Collectors.toSet());
     } else if (type instanceof GenericType) {
       return ImmutableSet.of(type);
+    } else if (type instanceof LambdaType) {
+      final Set<ParamType> inputSet = new HashSet<>();
+      for (final ParamType paramType: ((LambdaType) type).inputTypes()) {
+        inputSet.addAll(constituentGenerics(paramType));
+      }
+      return Sets.union(
+          inputSet,
+          constituentGenerics(((LambdaType) type).returnType()));
     } else {
       return ImmutableSet.of();
     }
@@ -163,24 +174,28 @@ public final class GenericsUtil {
       final SqlType old = mapping.putIfAbsent(entry.getKey(), entry.getValue());
       if (old != null && !old.equals(entry.getValue())) {
         throw new KsqlException(String.format(
-            "Found invalid instance of generic schema. Cannot map %s to both %s and %s",
+            "Found invalid instance of generic schema when mapping %s to %s. " 
+                + "Cannot map %s to both %s and %s",
             schema,
+            instance,
+            entry.getKey(),
             old,
-            instance));
+            entry.getValue()));
       }
     }
 
     return ImmutableMap.copyOf(mapping);
   }
 
+  // CHECKSTYLE_RULES.OFF: NPathComplexity
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private static boolean resolveGenerics(
       final List<Entry<GenericType, SqlType>> mapping,
       final ParamType schema,
       final SqlArgument instance
   ) {
+    // CHECKSTYLE_RULES.ON: NPathComplexity
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
-    final SqlType sqlType = instance.getSqlType();
 
     if (!isGeneric(schema) && !matches(schema, instance)) {
       // cannot identify from type mismatch
@@ -195,6 +210,30 @@ public final class GenericsUtil {
         "Cannot resolve generics if the schema and instance have differing types: "
             + schema + " vs. " + instance);
 
+    if (schema instanceof LambdaType) {
+      final LambdaType lambdaType = (LambdaType) schema;
+      final SqlLambda sqlLambda = instance.getSqlLambdaOrThrow();
+      if (sqlLambda.getInputType().size() != lambdaType.inputTypes().size()) {
+        throw new KsqlException(
+            "Number of lambda arguments doesn't match between schema and sql type");
+      }
+
+      int i = 0;
+      for (final ParamType paramType : lambdaType.inputTypes()) {
+        if (!resolveGenerics(
+            mapping, paramType, SqlArgument.of(sqlLambda.getInputType().get(i))
+        )) {
+          return false;
+        }
+        i++;
+      }
+      return resolveGenerics(
+          mapping, lambdaType.returnType(), SqlArgument.of(sqlLambda.getReturnType())
+      );
+    }
+
+    final SqlType sqlType = instance.getSqlTypeOrThrow();
+
     if (isGeneric(schema)) {
       mapping.add(new HashMap.SimpleEntry<>((GenericType) schema, sqlType));
     }
@@ -202,7 +241,9 @@ public final class GenericsUtil {
     if (schema instanceof ArrayType) {
       final SqlArray sqlArray = (SqlArray) sqlType;
       return resolveGenerics(
-          mapping, ((ArrayType) schema).element(), SqlArgument.of(sqlArray.getItemType()));
+          mapping,
+          ((ArrayType) schema).element(),
+          SqlArgument.of(sqlArray.getItemType()));
     }
 
     if (schema instanceof MapType) {
@@ -220,8 +261,11 @@ public final class GenericsUtil {
   }
 
   private static boolean matches(final ParamType schema, final SqlArgument instance) {
+    if (instance.getSqlLambda().isPresent()) {
+      return schema instanceof LambdaType;
+    }
     final ParamType instanceParamType = SchemaConverters
-        .sqlToFunctionConverter().toFunctionType(instance.getSqlType());
+        .sqlToFunctionConverter().toFunctionType(instance.getSqlTypeOrThrow());
     return schema.getClass() == instanceParamType.getClass();
   }
 

@@ -53,7 +53,7 @@ public class Explode {
 
   @UdfSchemaProvider
   public SqlType provideSchema(final List<SqlArgument> params) {
-    final SqlType argType = params.get(0).getSqlType();
+    final SqlType argType = params.get(0).getSqlTypeOrThrow();
     if (!(argType instanceof SqlArray)) {
       throw new KsqlException("explode should be provided with an ARRAY");
     }

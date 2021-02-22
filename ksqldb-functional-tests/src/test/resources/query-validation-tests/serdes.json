@@ -81,7 +81,7 @@
       "topics": [
         {
           "name": "input_topic",
-          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": "int"}]}
+          "schema": {"name": "KsqlDataSourceSchema", "type": "record", "fields": [{"name": "FOO", "type": "int"}]}
         }
       ],
       "inputs": [
@@ -165,7 +165,7 @@
       "topics": [
         {
           "name": "input_topic",
-          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null", {"type":  "array", "items": ["null", "string"]}]}]}
+          "schema": {"name": "KsqlDataSourceSchema", "type": "record", "fields": [{"name": "FOO", "type": ["null", {"type":  "array", "items": ["null", "string"]}]}]}
         }
       ],
       "inputs": [
@@ -232,7 +232,7 @@
         },
         {
           "name": "OUTPUT",
-          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","int"],"default":null}]}}]}]}
+          "schema": {"type": "record", "name": "KsqlDataSourceSchema", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","int"],"default":null}]}}]}]}
         }
       ],
       "inputs": [
@@ -269,7 +269,7 @@
         },
         {
           "name": "OUTPUT",
-          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","string"],"default":null}]}}]}]},
+          "schema": {"type": "record", "name": "KsqlDataSourceSchema", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","string"],"default":null}]}}]}]},
           "format": "AVRO"
         }
       ],
@@ -299,11 +299,11 @@
       "topics": [
         {
           "name": "input_topic",
-          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type": "map", "values": ["null", "int"]}]}]}
+          "schema": {"name": "KsqlDataSourceSchema", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type": "map", "values": ["null", "int"]}]}]}
         },
         {
           "name": "OUTPUT",
-          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","int"],"default":null}]}}]}]}
+          "schema": {"type": "record", "name": "KsqlDataSourceSchema", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","int"],"default":null}]}}]}]}
         }
       ],
       "inputs": [
@@ -468,7 +468,7 @@
       "topics": [
         {
           "name": "OUTPUT",
-          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null","boolean"]}]}
+          "schema": {"name": "KsqlDataSourceSchema", "type": "record", "fields": [{"name": "FOO", "type": ["null","boolean"]}]}
         }
       ],
       "inputs": [
@@ -535,7 +535,7 @@
       "topics": [
         {
           "name": "OUTPUT",
-          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type": "array", "items": ["null", "long"]}]}]}
+          "schema": {"name": "KsqlDataSourceSchema", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type": "array", "items": ["null", "long"]}]}]}
         }
       ],
       "inputs": [
@@ -604,7 +604,7 @@
       "topics": [
         {
           "name": "OUTPUT",
-          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","double"],"default":null}]}}]}]}
+          "schema": {"name": "KsqlDataSourceSchema", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","double"],"default":null}]}}]}]}
         }
       ],
       "inputs": [
@@ -647,7 +647,7 @@
       "topics": [
         {
           "name": "OUTPUT",
-          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "F0", "type": ["null", "int"]}]}
+          "schema": {"type": "record", "name": "KsqlDataSourceSchema", "fields": [{"name": "F0", "type": ["null", "int"]}]}
         }
       ],
       "inputs": [
@@ -673,8 +673,8 @@
       "topics": [
         {
           "name": "OUTPUT",
-          "schema": {"name": "ignored", "type": "record", "fields": [
-            {"name": "FOO", "type": ["null", {"name": "ignored2", "type": "record", "fields": [{"name": "F0", "type": ["null", "int"]}]}]}
+          "schema": {"name": "KsqlDataSourceSchema", "type": "record", "fields": [
+            {"name": "FOO", "type": ["null", {"name": "KsqlDataSourceSchema", "type": "record", "fields": [{"name": "F0", "type": ["null", "int"]}]}]}
           ]}
         }
       ],

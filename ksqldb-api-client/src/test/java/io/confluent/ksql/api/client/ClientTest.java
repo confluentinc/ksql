@@ -79,6 +79,7 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TypeList;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
+import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.vertx.core.json.JsonArray;
@@ -1388,6 +1389,14 @@ public class ClientTest extends BaseApiTest {
     assertThat(description.windowType(), is(Optional.of("TUMBLING")));
     assertThat(description.sqlStatement(), is("sql"));
     assertThat(description.getSourceConstraints(), hasItems("s1", "s2"));
+  }
+
+  @Test
+  public void shouldGetServerInfo() throws Exception {
+    final ServerInfo serverInfo = javaClient.serverInfo().get();
+    assertThat(serverInfo.getServerVersion(), is(AppInfo.getVersion()));
+    assertThat(serverInfo.getKsqlServiceId(), is("ksql-service-id"));
+    assertThat(serverInfo.getKafkaClusterId(), is("kafka-cluster-id"));
   }
 
   protected Client createJavaClient() {

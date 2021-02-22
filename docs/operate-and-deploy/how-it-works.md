@@ -1,9 +1,9 @@
-----
+---
 layout: page
 title: ksqlDB Architecture
 tagline: Internals of ksqlDB
 description: Quick tour under the hood of the ksqlDB engine.
-----
+---
 
 You can use ksqlDB to build event streaming applications from {{ site.aktm }}
 topics by using only SQL statements and queries. ksqlDB is built on
@@ -124,7 +124,6 @@ The following table summarizes some of the differences between ksqlDB and
 | Data formats      | Avro, Protobuf, JSON, JSON_SR, CSV          | Any data format, including Avro, JSON, CSV, Protobuf, XML |
 | REST API included | Yes                                         | No, but you can implement your own                        |
 | Runtime included  | Yes, the ksqlDB server                      | Applications run as standard JVM processes                |
-| Queryable state   | No                                          | Yes                                                       |
 
 ksqlDB Language Elements
 ----------------------

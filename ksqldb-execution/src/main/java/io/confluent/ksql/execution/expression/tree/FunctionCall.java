@@ -53,6 +53,11 @@ public class FunctionCall extends Expression {
     return arguments;
   }
 
+  public boolean hasLambdaFunctionCallArguments() {
+    return arguments.stream().anyMatch(
+        argument -> argument instanceof LambdaFunctionCall);
+  }
+
   @Override
   public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
     return visitor.visitFunctionCall(this, context);

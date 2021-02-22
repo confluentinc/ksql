@@ -18,6 +18,7 @@ package io.confluent.ksql.tools.migrations;
 import com.github.rvesse.airline.Cli;
 import com.github.rvesse.airline.help.Help;
 import io.confluent.ksql.tools.migrations.commands.ApplyMigrationCommand;
+import io.confluent.ksql.tools.migrations.commands.BaseCommand;
 import io.confluent.ksql.tools.migrations.commands.CleanMigrationsCommand;
 import io.confluent.ksql.tools.migrations.commands.CreateMigrationCommand;
 import io.confluent.ksql.tools.migrations.commands.InitializeMigrationCommand;
@@ -32,7 +33,7 @@ import io.confluent.ksql.tools.migrations.commands.ValidateMigrationsCommand;
  * to the "help" message.
  */
 @com.github.rvesse.airline.annotations.Cli(
-    name = "ksql-migrations",
+    name = MigrationsUtil.MIGRATIONS_COMMAND,
     description = "This tool provides easy and automated schema migrations for "
         + "ksqlDB environments. This allows control over ksqlDB schemas, recreate schemas "
         + "from scratch and migrations for current schemas to newer versions.",
@@ -52,10 +53,10 @@ public final class Migrations {
   private Migrations() {}
 
   public static void main(final String[] args) {
-    // all Migrations commands must implement Runnable, so we
-    // are safe to assume that the type returned is Cli<Runnable>
-    final Cli<Runnable> cli = new Cli<>(Migrations.class);
-    cli.parse(args).run();
+    // all Migrations commands must implement BaseCommand, so we
+    // are safe to assume that the type returned is Cli<BaseCommand>
+    final Cli<BaseCommand> cli = new Cli<>(Migrations.class);
+    System.exit(cli.parse(args).run());
   }
 
 }

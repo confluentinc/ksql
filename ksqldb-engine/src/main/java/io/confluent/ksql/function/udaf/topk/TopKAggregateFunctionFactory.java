@@ -56,7 +56,7 @@ public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
       throw new KsqlException("TOPK function should have two arguments.");
     }
     final int tkValFromArg = (Integer)(initArgs.arg(0));
-    final SqlType argSchema = argumentType.get(0).getSqlType();
+    final SqlType argSchema = argumentType.get(0).getSqlTypeOrThrow();
     switch (argSchema.baseType()) {
       case INTEGER:
         return new TopkKudaf<>(

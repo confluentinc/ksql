@@ -41,7 +41,7 @@ public class LambdaUtilTest {
 
     // When:
     final String javaCode = LambdaUtil
-        .function(argName, argType, argName + " + 1");
+        .toJavaCode(argName, argType, argName + " + 1");
 
     // Then:
     final Object result = CodeGenTestUtil.cookAndEval(javaCode, Function.class);
@@ -58,7 +58,7 @@ public class LambdaUtilTest {
     final List<Pair<String, Class<?>>> argList = ImmutableList.of(argName1, argName2);
 
     // When:
-    final String javaCode = LambdaUtil.function(argList, "fred + bob + 2");
+    final String javaCode = LambdaUtil.toJavaCode(argList, "fred + bob + 2");
 
     // Then:
     final Object result = CodeGenTestUtil.cookAndEval(javaCode, BiFunction.class);
@@ -76,7 +76,7 @@ public class LambdaUtilTest {
     final List<Pair<String, Class<?>>> argList = ImmutableList.of(argName1, argName2, argName3);
 
     // When:
-    final String javaCode = LambdaUtil.function(argList, "fred + bob + tim + 1");
+    final String javaCode = LambdaUtil.toJavaCode(argList, "fred + bob + tim + 1");
 
     // Then:
     final Object result = CodeGenTestUtil.cookAndEval(javaCode, TriFunction.class);
@@ -95,6 +95,6 @@ public class LambdaUtilTest {
     final List<Pair<String, Class<?>>> argList = ImmutableList.of(argName1, argName2, argName3, argName4);
 
     // When:
-    LambdaUtil.function(argList, "fred + bob + tim + hello + 1");
+    LambdaUtil.toJavaCode(argList, "fred + bob + tim + hello + 1");
   }
 }

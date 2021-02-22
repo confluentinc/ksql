@@ -64,7 +64,7 @@ public class Ceil {
 
   @UdfSchemaProvider
   public SqlType ceilDecimalProvider(final List<SqlArgument> params) {
-    final SqlType s = params.get(0).getSqlType();
+    final SqlType s = params.get(0).getSqlTypeOrThrow();
     if (s.baseType() != SqlBaseType.DECIMAL) {
       throw new KsqlException("The schema provider method for Ceil expects a BigDecimal parameter"
           + "type");

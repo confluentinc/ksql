@@ -73,8 +73,8 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
  */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
-@Warmup(iterations = 6, time = 30)
-@Measurement(iterations = 3, time = 60)
+@Warmup(iterations = 3, time = 10)
+@Measurement(iterations = 3, time = 10)
 @Threads(4)
 @Fork(3)
 public class SerdeBenchmark {

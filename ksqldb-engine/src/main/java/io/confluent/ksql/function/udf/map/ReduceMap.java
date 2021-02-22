@@ -28,7 +28,7 @@ import java.util.Map.Entry;
  * Reduce a map using an initial state and function
  */
 @UdfDescription(
-    name = "map_reduce",
+    name = "reduce_map",
     category = FunctionCategory.MAP,
     description = "Reduce the input map down to a single value " 
         + "using an initial state and a function. " 

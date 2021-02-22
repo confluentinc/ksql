@@ -43,7 +43,7 @@ public class SumAggFunctionFactory extends AggregateFunctionFactory {
         argTypeList.size() == 1,
         "expected exactly one argument to aggregate MAX function");
 
-    final SqlType argSchema = argTypeList.get(0).getSqlType();
+    final SqlType argSchema = argTypeList.get(0).getSqlTypeOrThrow();
     switch (argSchema.baseType()) {
       case INTEGER:
         return new IntegerSumKudaf(FUNCTION_NAME, initArgs.udafIndex());

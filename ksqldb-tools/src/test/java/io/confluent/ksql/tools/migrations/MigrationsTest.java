@@ -34,6 +34,7 @@ import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.tools.migrations.commands.BaseCommand;
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -71,7 +72,7 @@ public class MigrationsTest {
   private static String configFilePath;
 
   @BeforeClass
-  public static void setUpClass() {
+  public static void setUpClass() throws Exception {
     final String testDir = Paths.get(TestUtils.tempDirectory().getAbsolutePath(), "migrations_integ_test").toString();
     createAndVerifyDirectoryStructure(testDir);
 
@@ -89,7 +90,7 @@ public class MigrationsTest {
     // placeholder until additional functionality (beyond initialization) is added
   }
 
-  private static void createAndVerifyDirectoryStructure(final String testDir) {
+  private static void createAndVerifyDirectoryStructure(final String testDir) throws Exception {
     // use `new` to create directory structure
     final int status = MIGRATIONS_CLI.parse("new", testDir, REST_APP.getHttpListener().toString()).run();
     assertThat(status, is(0));
@@ -108,6 +109,11 @@ public class MigrationsTest {
     final File configFile = new File(Paths.get(testDir, MigrationsUtil.MIGRATIONS_CONFIG_FILE).toString());
     assertThat(configFile.exists(), is(true));
     assertThat(configFile.isDirectory(), is(false));
+
+    // verify config file contents
+    final List<String> lines = Files.readAllLines(configFile.toPath());
+    assertThat(lines, hasSize(1));
+    assertThat(lines.get(0), is(MigrationConfig.KSQL_SERVER_URL + "=" + REST_APP.getHttpListener().toString()));
   }
 
   private static void initializeAndVerifyMetadataStreamAndTable(final String configFile) {

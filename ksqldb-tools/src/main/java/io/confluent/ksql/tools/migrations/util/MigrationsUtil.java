@@ -13,10 +13,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.tools.migrations;
+package io.confluent.ksql.tools.migrations.util;
 
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
+import io.confluent.ksql.tools.migrations.MigrationConfig;
+import io.confluent.ksql.tools.migrations.MigrationException;
 import java.net.MalformedURLException;
 import java.net.URL;
 

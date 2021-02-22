@@ -33,6 +33,7 @@ import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.tools.migrations.commands.BaseCommand;
+import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;

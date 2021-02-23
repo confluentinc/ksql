@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.tools.migrations.commands;
 
-import static io.confluent.ksql.tools.migrations.util.MigrationsUtil.MIGRATIONS_CONFIG_FILE;
-import static io.confluent.ksql.tools.migrations.util.MigrationsUtil.MIGRATIONS_DIR;
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.MIGRATIONS_CONFIG_FILE;
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.MIGRATIONS_DIR;
 
 import com.github.rvesse.airline.annotations.Arguments;
 import com.github.rvesse.airline.annotations.Command;

@@ -15,6 +15,10 @@
 
 package io.confluent.ksql.tools.migrations.commands;
 
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.computeHashForFile;
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getFileNameForVersion;
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
+
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.help.Discussion;
 import com.google.common.annotations.VisibleForTesting;
@@ -23,13 +27,13 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
-import io.confluent.ksql.tools.migrations.MigrationsUtil;
+import io.confluent.ksql.tools.migrations.util.MetadataUtil;
+import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
+import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import io.confluent.ksql.util.KsqlException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import org.slf4j.Logger;
@@ -82,7 +86,7 @@ public class ValidateMigrationsCommand extends BaseCommand {
 
     final boolean success;
     try {
-      success = validate(config, ksqlClient);
+      success = validate(config, getMigrationsDirFromConfigFile(configFile), ksqlClient);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
       return 1;
@@ -107,40 +111,26 @@ public class ValidateMigrationsCommand extends BaseCommand {
   /**
    * @return true if validation passes, else false.
    */
-  static boolean validate(final MigrationConfig config, final Client ksqlClient) {
-    String version = MetadataUtil.getCurrentVersion(config);
-    while (!version.equals(NONE_VERSION)) {
-      // TODO: combine with util helper to de-dup code?
-      final String migrationTableName = config
-          .getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
-      final BatchedQueryResult result = ksqlClient.executeQuery(
-          "SELECT checksum, previous FROM " + migrationTableName
-              + " WHERE version_key = 'CURRENT';");
-      final String expectedHash;
-      final String prevVersion;
-      try {
-        final List<Row> resultRows = result.get();
-        if (resultRows.size() == 0) {
-          throw new MigrationException(
-              "Failed to query state for migration with version " + version
-                  + ": no such migration is present in the migrations metadata table");
-        }
-        expectedHash = resultRows.get(0).getString(0);
-        prevVersion = resultRows.get(0).getString(1);
-      } catch (InterruptedException | ExecutionException e) {
-        throw new MigrationException(String.format(
-            "Failed to query state for migration with version %s: %s", version, e.getMessage()));
-      }
+  static boolean validate(
+      final MigrationConfig config,
+      final String migrationsDir,
+      final Client ksqlClient
+  ) {
+    String version = MetadataUtil.getCurrentVersion(config, ksqlClient);
+    while (!version.equals(MetadataUtil.NONE_VERSION)) {
+      final VersionInfo versionInfo = getInfoForVersion(version, config, ksqlClient);
+      final String expectedHash = versionInfo.expectedHash;
 
       final String filename;
       try {
-        filename = getFileNameForVersion(version);
-      } catch (MigrationException e) {
-        LOGGER.error("No migrations file found for version with status {}. Version: {}", MIGRATED,
-            version);
+        filename = getFileNameForVersion(version, migrationsDir).get();
+      } catch (MigrationException | NoSuchElementException e) {
+        LOGGER.error("No migrations file found for version with status {}. Version: {}",
+            MigrationState.MIGRATED, version);
         return false;
       }
-      final String hash = computeHash(filename);
+      
+      final String hash = computeHashForFile(filename);
       if (!expectedHash.equals(hash)) {
         LOGGER.error("Migrations file found for version {} does not match the checksum saved "
                 + "for this version. Expected checksum: {}. Actual checksum: {}. File name: {}",
@@ -148,21 +138,49 @@ public class ValidateMigrationsCommand extends BaseCommand {
         return false;
       }
 
-      version = prevVersion;
+      version = versionInfo.prevVersion;
     }
 
     return true;
   }
 
-  // TODO: move to util
-  public static String computeHash(final String filename) {
+  private static VersionInfo getInfoForVersion(
+      final String version,
+      final MigrationConfig config,
+      final Client ksqlClient
+  ) {
+    final String migrationTableName = config
+        .getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
+    final BatchedQueryResult result = ksqlClient.executeQuery(
+        "SELECT checksum, previous FROM " + migrationTableName
+            + " WHERE version_key = 'CURRENT';");
+
+    final String expectedHash;
+    final String prevVersion;
     try {
-      final byte[] bytes = Files.readAllBytes( // TODO: replace with helper method
-          Paths.get(filename));
-      return new String(MessageDigest.getInstance("MD5").digest(bytes));
-    } catch (NoSuchAlgorithmException e) {
+      final List<Row> resultRows = result.get();
+      if (resultRows.size() == 0) {
+        throw new MigrationException(
+            "Failed to query state for migration with version " + version
+                + ": no such migration is present in the migrations metadata table");
+      }
+      expectedHash = resultRows.get(0).getString(0);
+      prevVersion = resultRows.get(0).getString(1);
+    } catch (InterruptedException | ExecutionException e) {
       throw new MigrationException(String.format(
-          "Could not compute hash for file '%s': %s", filename, e.getMessage()));
+          "Failed to query state for migration with version %s: %s", version, e.getMessage()));
+    }
+
+    return new VersionInfo(expectedHash, prevVersion);
+  }
+
+  private static class VersionInfo {
+    final String expectedHash;
+    final String prevVersion;
+
+    VersionInfo(final String expectedHash, final String prevVersion) {
+      this.expectedHash = Objects.requireNonNull(expectedHash, "expectedHash");
+      this.prevVersion = Objects.requireNonNull(prevVersion, "prevVersion");
     }
   }
 }

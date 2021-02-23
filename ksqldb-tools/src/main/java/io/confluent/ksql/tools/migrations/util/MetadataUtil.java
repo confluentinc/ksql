@@ -28,6 +28,13 @@ public final class MetadataUtil {
   public static final String NONE_VERSION = "<none>";
   public static final String CURRENT_VERSION_KEY = "CURRENT";
 
+  public enum MigrationState {
+    PENDING,
+    RUNNING,
+    MIGRATED,
+    ERROR
+  }
+
   private MetadataUtil() {
   }
 

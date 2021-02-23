@@ -20,12 +20,23 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 
 public final class MigrationsDirectoryUtil {
+
+  public static final String MIGRATIONS_DIR = "migrations";
+  public static final String MIGRATIONS_CONFIG_FILE = "ksql-migrations.properties";
+
   private MigrationsDirectoryUtil() {
+  }
+
+  public static String getMigrationsDirFromConfigFile(final String configFilePath) {
+    return Paths.get(configFilePath).getParent().resolve(MIGRATIONS_DIR).toString();
   }
 
   public static Optional<String> getFileNameForVersion(
@@ -61,6 +72,16 @@ public final class MigrationsDirectoryUtil {
     } catch (IOException e) {
       throw new MigrationException(
           String.format("Failed to read %s: %s", filepath, e.getMessage()));
+    }
+  }
+
+  public static String computeHashForFile(final String filename) {
+    try {
+      final byte[] bytes = Files.readAllBytes(Paths.get(filename));
+      return new String(MessageDigest.getInstance("MD5").digest(bytes));
+    } catch (NoSuchAlgorithmException | IOException e) {
+      throw new MigrationException(String.format(
+          "Could not compute hash for file '%s': %s", filename, e.getMessage()));
     }
   }
 }

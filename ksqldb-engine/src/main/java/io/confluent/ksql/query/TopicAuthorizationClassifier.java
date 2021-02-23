@@ -40,7 +40,8 @@ public class TopicAuthorizationClassifier implements QueryErrorClassifier {
 
     if (type == Type.USER) {
       LOG.info(
-          "Classified error as USER error based on missing topic access rights. Query ID: {} Exception: {}",
+          "Classified error as USER error based on missing topic access rights."
+              + " Query ID: {} Exception: {}",
           queryId,
           e);
     }

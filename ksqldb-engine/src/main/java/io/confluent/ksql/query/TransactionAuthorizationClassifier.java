@@ -17,7 +17,6 @@ package io.confluent.ksql.query;
 
 import io.confluent.ksql.query.QueryError.Type;
 import java.util.Objects;
-import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.TransactionalIdAuthorizationException;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.slf4j.Logger;
@@ -28,7 +27,8 @@ import org.slf4j.LoggerFactory;
  */
 public class TransactionAuthorizationClassifier implements QueryErrorClassifier {
 
-  private static final Logger LOG = LoggerFactory.getLogger(TransactionAuthorizationClassifier.class);
+  private static final Logger LOG =
+      LoggerFactory.getLogger(TransactionAuthorizationClassifier.class);
 
   private final String queryId;
 
@@ -46,7 +46,8 @@ public class TransactionAuthorizationClassifier implements QueryErrorClassifier 
 
     if (type == Type.USER) {
       LOG.info(
-          "Classified error as USER error based on missing transactional ID access rights. Query ID: {} Exception: {}",
+          "Classified error as USER error based on missing transactional ID access rights."
+              + " Query ID: {} Exception: {}",
           queryId,
           e);
     }

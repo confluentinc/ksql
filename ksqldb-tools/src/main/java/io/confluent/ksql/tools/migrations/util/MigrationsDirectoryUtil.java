@@ -21,30 +21,31 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 
-public class MigrationsDirectoryUtil {
+public final class MigrationsDirectoryUtil {
   private MigrationsDirectoryUtil() {
   }
 
-  public static String getFileNameForVersion(final String version, final String path) {
+  public static Optional<String> getFileNameForVersion(final String version, final String migrationsDir) {
     final String prefix = "V" + StringUtils.leftPad(version, 6, "0");
-    final File directory = new File(path);
+    final File directory = new File(migrationsDir);
     for (String name : directory.list()) {
       if (name.startsWith(prefix)) {
-        return name;
+        return Optional.of(name);
       }
     }
-    return null;
+    return Optional.empty();
   }
 
-  public static String getFileForVersion(final String version, final String path) {
-    final String filename = getFileNameForVersion(version, path);
-    if (filename == null) {
+  public static String getFileContentsForVersion(final String version, final String migrationsDir) {
+    final Optional<String> filename = getFileNameForVersion(version, migrationsDir);
+    if (!filename.isPresent()) {
       throw new MigrationException("Cannot find migration file with version "
-          + version + " in " + path);
+          + version + " in " + migrationsDir);
     }
-    final String filepath = path + "/" + filename;
+    final String filepath = migrationsDir + "/" + filename.get();
     try {
       return new String(Files.readAllBytes(Paths.get(filepath)), StandardCharsets.UTF_8);
     } catch (IOException e) {

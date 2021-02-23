@@ -23,19 +23,23 @@ import io.confluent.ksql.tools.migrations.MigrationException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-public class MetadataUtil {
+public final class MetadataUtil {
+
+  public static final String NONE_VERSION = "<none>";
+  public static final String CURRENT_VERSION = "CURRENT";
+
   private MetadataUtil() {
   }
 
-  public static String getCurrentVersion(final MigrationConfig config) {
-    final Client client = MigrationsUtil.getKsqlClient(config);
+  public static String getCurrentVersion(final MigrationConfig config, final Client client) {
     final String migrationTableName = config.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
-    BatchedQueryResult result = client.executeQuery(
-        "SELECT VERSION FROM " + migrationTableName + " WHERE version_key = 'CURRENT';");
+    final BatchedQueryResult result = client.executeQuery(
+        "SELECT VERSION FROM " + migrationTableName + " WHERE version_key = '"
+            + CURRENT_VERSION + "';");
     try {
-      List<Row> resultRows = result.get();
+      final List<Row> resultRows = result.get();
       if (resultRows.size() == 0) {
-        return "0";
+        return NONE_VERSION;
       }
       return resultRows.get(0).getString("VERSION");
     } catch (InterruptedException | ExecutionException e) {

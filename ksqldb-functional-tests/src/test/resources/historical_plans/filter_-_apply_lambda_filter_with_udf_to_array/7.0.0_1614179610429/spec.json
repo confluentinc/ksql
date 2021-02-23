@@ -1,6 +1,6 @@
 {
   "version" : "7.0.0",
-  "timestamp" : 1614032210503,
+  "timestamp" : 1614179610429,
   "path" : "query-validation-tests/filter.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
@@ -38,7 +38,7 @@
       }
     }, {
       "topic" : "test_topic",
-      "key" : 0,
+      "key" : 2,
       "value" : {
         "VALUE" : null
       }
@@ -57,7 +57,7 @@
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : 0,
+      "key" : 2,
       "value" : {
         "LAMBDA" : null
       }

@@ -1,6 +1,6 @@
 {
   "version" : "7.0.0",
-  "timestamp" : 1614088997381,
+  "timestamp" : 1614179610511,
   "path" : "query-validation-tests/filter.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
@@ -26,7 +26,7 @@
     "name" : "apply filter lambda function to int map",
     "inputs" : [ {
       "topic" : "test_topic",
-      "key" : "one",
+      "key" : "four",
       "value" : {
         "map" : {
           "a" : 15,
@@ -35,7 +35,7 @@
       }
     }, {
       "topic" : "test_topic",
-      "key" : "one",
+      "key" : "five",
       "value" : {
         "map" : {
           "ab" : 6,
@@ -44,7 +44,7 @@
       }
     }, {
       "topic" : "test_topic",
-      "key" : "one",
+      "key" : "six",
       "value" : {
         "map" : {
           "abcd" : null,
@@ -53,7 +53,7 @@
       }
     }, {
       "topic" : "test_topic",
-      "key" : "one",
+      "key" : "seven",
       "value" : {
         "map" : {
           "null" : 15,
@@ -62,20 +62,20 @@
       }
     }, {
       "topic" : "test_topic",
-      "key" : "two",
+      "key" : "eight",
       "value" : {
         "map" : null
       }
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
-      "key" : "one",
+      "key" : "four",
       "value" : {
         "LAMBDA" : { }
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "one",
+      "key" : "five",
       "value" : {
         "LAMBDA" : {
           "abcd" : 15
@@ -83,13 +83,13 @@
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "one",
+      "key" : "six",
       "value" : {
         "LAMBDA" : null
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "one",
+      "key" : "seven",
       "value" : {
         "LAMBDA" : {
           "null" : 15,
@@ -98,7 +98,7 @@
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "two",
+      "key" : "eight",
       "value" : {
         "LAMBDA" : null
       }
@@ -141,7 +141,7 @@
       "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM test (ID STRING KEY, map MAP<STRING, INTEGER>) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE STREAM OUTPUT AS SELECT ID, filter(map, (x,y) => (len(x) * 5 > 15) AND y % 5 = 0) AS lambda FROM test;" ],
+    "statements" : [ "CREATE STREAM test (ID STRING KEY, map MAP<STRING, INTEGER>) WITH (kafka_topic='test_topic', value_format='AVRO');", "CREATE STREAM OUTPUT AS SELECT ID, filter(map, (x,y) => len(x) * 5 > 15 AND y % 5 = 0) AS lambda FROM test;" ],
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",

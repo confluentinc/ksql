@@ -1,6 +1,6 @@
 {
   "version" : "7.0.0",
-  "timestamp" : 1614032493496,
+  "timestamp" : 1614179610455,
   "path" : "query-validation-tests/filter.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
@@ -26,38 +26,38 @@
     "name" : "apply lambda filter to string array",
     "inputs" : [ {
       "topic" : "test_topic",
-      "key" : 5,
+      "key" : 4,
       "value" : {
         "value" : [ "suuure", "ya i see it", null ]
       }
     }, {
       "topic" : "test_topic",
-      "key" : 100,
+      "key" : 5,
       "value" : {
         "value" : [ "whatever ya want", "nothing here" ]
       }
     }, {
       "topic" : "test_topic",
-      "key" : 100,
+      "key" : 6,
       "value" : {
         "value" : null
       }
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
-      "key" : 5,
+      "key" : 4,
       "value" : {
         "LAMBDA" : [ "ya i see it" ]
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : 100,
+      "key" : 5,
       "value" : {
         "LAMBDA" : [ "whatever ya want" ]
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : 100,
+      "key" : 6,
       "value" : {
         "LAMBDA" : null
       }

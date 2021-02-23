@@ -57,7 +57,7 @@ public class Filter {
   @Udf(description = "When filtering a map, "
       + "the function provided must have a boolean result. "
       + "For each map entry, the function will be applied to the "
-      + "key and value. The filtered map is returned."
+      + "key and value arguments in that order. The filtered map is returned."
   )
   public <K, V> Map<K, V> filterMap(
       @UdfParameter(description = "The map") final Map<K, V> map,

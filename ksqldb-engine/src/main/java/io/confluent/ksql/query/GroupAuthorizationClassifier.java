@@ -17,31 +17,31 @@ package io.confluent.ksql.query;
 
 import io.confluent.ksql.query.QueryError.Type;
 import java.util.Objects;
-import org.apache.kafka.common.errors.TopicAuthorizationException;
+import org.apache.kafka.common.errors.GroupAuthorizationException;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@code TopicAuthorizationClassifier} classifies topic ACL exceptions as user error
+ * {@code GroupAuthorizationClassifier} classifies missing consumer group ACLs as user error
  */
-public class TopicAuthorizationClassifier implements QueryErrorClassifier {
+public class GroupAuthorizationClassifier implements QueryErrorClassifier {
 
-  private static final Logger LOG = LoggerFactory.getLogger(TopicAuthorizationClassifier.class);
+  private static final Logger LOG = LoggerFactory.getLogger(GroupAuthorizationClassifier.class);
 
   private final String queryId;
 
-  public TopicAuthorizationClassifier(final String queryId) {
+  public GroupAuthorizationClassifier(final String queryId) {
     this.queryId = Objects.requireNonNull(queryId, "queryId");
   }
 
   @Override
   public Type classify(final Throwable e) {
-    final Type type = e instanceof TopicAuthorizationException ? Type.USER : Type.UNKNOWN;
+    final Type type = e instanceof GroupAuthorizationException ? Type.USER : Type.UNKNOWN;
 
     if (type == Type.USER) {
       LOG.info(
-          "Classified error as USER error based on missing topic access rights. Query ID: {} Exception: {}",
+          "Classified error as USER error based on missing consumer groups access rights. Query ID: {} Exception: {}",
           queryId,
           e);
     }

@@ -34,6 +34,8 @@ import static org.apache.kafka.common.acl.AclOperation.WRITE;
 import static org.apache.kafka.common.resource.ResourceType.CLUSTER;
 import static org.apache.kafka.common.resource.ResourceType.GROUP;
 import static org.apache.kafka.common.resource.ResourceType.TOPIC;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
@@ -44,6 +46,8 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.query.QueryError;
+import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.services.DisabledKsqlClient;
@@ -60,6 +64,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -74,8 +80,11 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
+import org.apache.kafka.common.errors.GroupAuthorizationException;
+import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.resource.ResourcePattern;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
+import org.apache.kafka.streams.errors.MissingSourceTopicException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -243,6 +252,148 @@ public class SecureIntegrationTest {
     assertCanAccessClusterConfig(prefix);
   }
 
+  @Test
+  public void shouldClassifyMissingSourceTopicExceptionAsUserError() {
+    // Given:
+    final String serviceId = "my-service-id_";  // Defaults to "default_"
+    final String prefix = "_confluent-ksql-" + serviceId;
+
+    final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
+    ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, serviceId);
+
+    givenAllowAcl(NORMAL_USER,
+        resource(CLUSTER, "kafka-cluster"),
+        ops(DESCRIBE_CONFIGS));
+
+    givenAllowAcl(NORMAL_USER,
+        resource(TOPIC, INPUT_TOPIC),
+        ops(READ));
+
+    givenAllowAcl(NORMAL_USER,
+        resource(TOPIC, outputTopic),
+        ops(CREATE /* as the topic doesn't exist yet*/, WRITE));
+
+    givenAllowAcl(NORMAL_USER,
+        prefixedResource(TOPIC, prefix),
+        ops(ALL));
+
+    givenAllowAcl(NORMAL_USER,
+        prefixedResource(GROUP, prefix),
+        ops(ALL));
+
+    givenTestSetupWithConfig(ksqlConfig);
+
+    topicClient.deleteTopics(Collections.singleton(INPUT_TOPIC));
+
+    // Then:
+    assertQueryFailsWithUserError(
+        String.format(
+            "CREATE STREAM %s WITH (VALUE_FORMAT='AVRO') AS SELECT * FROM %s;",
+            outputTopic,
+            INPUT_STREAM
+        ),
+        String.format(
+            "%s: One or more source topics were missing during rebalance",
+            MissingSourceTopicException.class.getName()
+        )
+    );
+  }
+
+  @Test
+  public void shouldClassifyTopicAuthorizationExceptionAsUserError() {
+    // Given:
+    final String serviceId = "my-service-id_";  // Defaults to "default_"
+    final String prefix = "_confluent-ksql-" + serviceId;
+
+    final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
+    ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, serviceId);
+
+    givenAllowAcl(NORMAL_USER,
+        resource(CLUSTER, "kafka-cluster"),
+        ops(DESCRIBE_CONFIGS));
+
+    givenAllowAcl(NORMAL_USER,
+        resource(TOPIC, INPUT_TOPIC),
+        ops(READ));
+
+    givenAllowAcl(NORMAL_USER,
+        prefixedResource(TOPIC, prefix),
+        ops(ALL));
+
+    givenAllowAcl(NORMAL_USER,
+        resource(TOPIC, outputTopic),
+        ops(CREATE /* as the topic doesn't exist yet*/, WRITE));
+
+    givenAllowAcl(NORMAL_USER,
+        prefixedResource(GROUP, prefix),
+        ops(ALL));
+
+    givenTestSetupWithConfig(ksqlConfig);
+
+    TEST_HARNESS.getKafkaCluster().addUserAcl(
+        NORMAL_USER.username,
+        AclPermissionType.DENY,
+        resource(TOPIC, INPUT_TOPIC),
+        ops(READ)
+    );
+
+    // Then:
+    assertQueryFailsWithUserError(
+        String.format(
+            "CREATE STREAM %s WITH (VALUE_FORMAT='AVRO') AS SELECT * FROM %s;",
+            outputTopic,
+            INPUT_STREAM
+        ),
+        String.format(
+            "%s: Not authorized to access topics: [%s]",
+            TopicAuthorizationException.class.getName(),
+            INPUT_TOPIC
+        )
+    );
+  }
+
+  @Test
+  public void shouldClassifyGroupAuthorizationExceptionAsUserError() {
+    // Given:
+    final String serviceId = "my-service-id_";  // Defaults to "default_"
+    final String prefix = "_confluent-ksql-" + serviceId;
+
+    final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
+    ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, serviceId);
+
+    givenAllowAcl(NORMAL_USER,
+        resource(CLUSTER, "kafka-cluster"),
+        ops(DESCRIBE_CONFIGS));
+
+    givenAllowAcl(NORMAL_USER,
+        resource(TOPIC, INPUT_TOPIC),
+        ops(READ));
+
+    givenAllowAcl(NORMAL_USER,
+        resource(TOPIC, outputTopic),
+        ops(CREATE /* as the topic doesn't exist yet*/, WRITE));
+
+    givenAllowAcl(NORMAL_USER,
+        prefixedResource(TOPIC, prefix),
+        ops(ALL));
+
+    givenTestSetupWithConfig(ksqlConfig);
+
+    // Then:
+    assertQueryFailsWithUserError(
+        String.format(
+            "CREATE STREAM %s WITH (VALUE_FORMAT='AVRO') AS SELECT * FROM %s;",
+            outputTopic,
+            INPUT_STREAM
+        ),
+        String.format(
+            "%s: Not authorized to access group: %squery_",
+            GroupAuthorizationException.class.getName(),
+            prefix
+        ) + "%s"
+    );
+  }
+
   // Requires correctly configured schema-registry running
   //@Test
   @SuppressWarnings("unused")
@@ -321,6 +472,29 @@ public class SecureIntegrationTest {
     TEST_HARNESS.verifyAvailableRecords(outputTopic, greaterThan(0));
   }
 
+  private void assertQueryFailsWithUserError(
+      final String query,
+      final String errorMsg
+  ) {
+    final QueryMetadata queryMetadata = KsqlEngineTestUtil
+        .execute(serviceContext, ksqlEngine, query, ksqlConfig, Collections.emptyMap()).get(0);
+
+    queryMetadata.start();
+    assertThatEventually(
+        "",
+        () -> queryMetadata.getQueryErrors().size() > 0,
+        is(true)
+    );
+
+    for (final QueryError error : queryMetadata.getQueryErrors()) {
+        assertThat(error.getType(), is(Type.USER));
+        assertThat(
+            error.getErrorMessage().split("\n")[0],
+            is(String.format(errorMsg, queryMetadata.getQueryId()))
+        );
+    }
+  }
+
   private static Map<String, Object> getBaseKsqlConfig() {
     final Map<String, Object> configs = new HashMap<>(KsqlConfigTestUtil.baseTestConfig());
     configs.put(
@@ -382,6 +556,6 @@ public class SecureIntegrationTest {
         .execute(serviceContext, ksqlEngine, query, ksqlConfig, Collections.emptyMap()).get(0);
 
     queryMetadata.start();
-    queryId = ((PersistentQueryMetadata) queryMetadata).getQueryId();
+    queryId = queryMetadata.getQueryId();
   }
 }

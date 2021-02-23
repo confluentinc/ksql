@@ -19,35 +19,34 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.query.QueryError.Type;
-import org.apache.kafka.common.errors.TopicAuthorizationException;
-import org.apache.kafka.streams.errors.MissingSourceTopicException;
+import org.apache.kafka.common.errors.GroupAuthorizationException;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class TopicAuthorizationClassifierTest {
+public class GroupAuthorizationClassifierTest {
 
   @Test
   public void shouldClassifyTopicAuthorizationExceptionAsUserError() {
     // Given:
-    final Exception e = new StreamsException(new TopicAuthorizationException("foo"));
+    final Exception e = new StreamsException(new GroupAuthorizationException("foo"));
 
     // When:
-    final Type type = new TopicAuthorizationClassifier("").classify(e);
+    final Type type = new GroupAuthorizationClassifier("").classify(e);
 
     // Then:
     assertThat(type, is(Type.USER));
   }
 
   @Test
-  public void shouldClassifyNoTopicAuthorizationExceptionAsUnknownError() {
+  public void shouldClassifyNoGroupAuthorizationExceptionAsUnknownError() {
     // Given:
     final Exception e = new Exception("foo");
 
     // When:
-    final Type type = new TopicAuthorizationClassifier("").classify(e);
+    final Type type = new GroupAuthorizationClassifier("").classify(e);
 
     // Then:
     assertThat(type, is(Type.UNKNOWN));

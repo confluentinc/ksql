@@ -227,7 +227,8 @@ public final class QueryExecutor {
 
     final QueryErrorClassifier userErrorClassifiers = new MissingTopicClassifier(applicationId)
         .and(new TopicAuthorizationClassifier(applicationId))
-        .and(new GroupAuthorizationClassifier(applicationId));
+        .and(new GroupAuthorizationClassifier(applicationId))
+        .and(new TransactionAuthorizationClassifier(applicationId));
     final QueryErrorClassifier classifier = buildConfiguredClassifiers(ksqlConfig, applicationId)
         .map(userErrorClassifiers::and)
         .orElse(userErrorClassifiers);

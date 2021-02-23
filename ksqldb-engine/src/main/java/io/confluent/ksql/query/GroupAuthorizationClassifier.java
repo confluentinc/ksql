@@ -18,7 +18,6 @@ package io.confluent.ksql.query;
 import io.confluent.ksql.query.QueryError.Type;
 import java.util.Objects;
 import org.apache.kafka.common.errors.GroupAuthorizationException;
-import org.apache.kafka.streams.errors.StreamsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

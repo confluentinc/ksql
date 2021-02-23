@@ -32,7 +32,7 @@ public class TopicAuthorizationClassifierTest {
   @Test
   public void shouldClassifyTopicAuthorizationExceptionAsUserError() {
     // Given:
-    final Exception e = new StreamsException(new TopicAuthorizationException("foo"));
+    final Exception e = new TopicAuthorizationException("foo");
 
     // When:
     final Type type = new TopicAuthorizationClassifier("").classify(e);

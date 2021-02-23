@@ -84,7 +84,9 @@ import org.apache.kafka.common.errors.GroupAuthorizationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.resource.ResourcePattern;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
+import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.MissingSourceTopicException;
+import org.apache.kafka.streams.errors.StreamsException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -288,7 +290,7 @@ public class SecureIntegrationTest {
     // Then:
     assertQueryFailsWithUserError(
         String.format(
-            "CREATE STREAM %s WITH (VALUE_FORMAT='AVRO') AS SELECT * FROM %s;",
+            "CREATE STREAM %s AS SELECT * FROM %s;",
             outputTopic,
             INPUT_STREAM
         ),
@@ -340,7 +342,7 @@ public class SecureIntegrationTest {
     // Then:
     assertQueryFailsWithUserError(
         String.format(
-            "CREATE STREAM %s WITH (VALUE_FORMAT='AVRO') AS SELECT * FROM %s;",
+            "CREATE STREAM %s AS SELECT * FROM %s;",
             outputTopic,
             INPUT_STREAM
         ),
@@ -384,7 +386,7 @@ public class SecureIntegrationTest {
     // Then:
     assertQueryFailsWithUserError(
         String.format(
-            "CREATE STREAM %s WITH (VALUE_FORMAT='AVRO') AS SELECT * FROM %s;",
+            "CREATE STREAM %s AS SELECT * FROM %s;",
             outputTopic,
             INPUT_STREAM
         ),
@@ -393,6 +395,52 @@ public class SecureIntegrationTest {
             GroupAuthorizationException.class.getName(),
             prefix
         ) + "%s"
+    );
+  }
+
+  @Test
+  public void shouldClassifyTransactionIdAuthorizationExceptionAsUserError() {
+    // Given:
+    final String serviceId = "my-service-id_";  // Defaults to "default_"
+    final String prefix = "_confluent-ksql-" + serviceId;
+
+    final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
+    ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, serviceId);
+    ksqlConfig.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.EXACTLY_ONCE_BETA);
+
+    givenAllowAcl(NORMAL_USER,
+        resource(CLUSTER, "kafka-cluster"),
+        ops(DESCRIBE_CONFIGS));
+
+    givenAllowAcl(NORMAL_USER,
+        resource(TOPIC, INPUT_TOPIC),
+        ops(READ));
+
+    givenAllowAcl(NORMAL_USER,
+        resource(TOPIC, outputTopic),
+        ops(CREATE /* as the topic doesn't exist yet*/, WRITE));
+
+    givenAllowAcl(NORMAL_USER,
+        prefixedResource(TOPIC, prefix),
+        ops(ALL));
+
+    givenAllowAcl(NORMAL_USER,
+        prefixedResource(GROUP, prefix),
+        ops(ALL));
+
+    givenTestSetupWithConfig(ksqlConfig);
+
+    // Then:
+    assertQueryFailsWithUserError(
+        String.format(
+            "CREATE STREAM %s AS SELECT * FROM %s;",
+            outputTopic,
+            INPUT_STREAM
+        ),
+        String.format(
+            "%s: Error encountered trying to initialize transactions [stream-thread [Time-limited test]]",
+            StreamsException.class.getName()
+        )
     );
   }
 
@@ -442,14 +490,19 @@ public class SecureIntegrationTest {
   }
 
   private void assertCanRunSimpleKsqlQuery() {
-    assertCanRunKsqlQuery("CREATE STREAM %s AS SELECT * FROM %s;",
-        outputTopic, INPUT_STREAM);
+    assertCanRunKsqlQuery(
+        "CREATE STREAM %s AS SELECT * FROM %s;",
+        outputTopic,
+        INPUT_STREAM
+    );
   }
 
   private void assertCanRunRepartitioningKsqlQuery() {
-    assertCanRunKsqlQuery("CREATE TABLE %s AS SELECT itemid, count(*) "
-            + "FROM %s WINDOW TUMBLING (size 5 second) GROUP BY itemid;",
-        outputTopic, INPUT_STREAM);
+    assertCanRunKsqlQuery(
+        "CREATE TABLE %s AS SELECT itemid, count(*) FROM %s GROUP BY itemid;",
+        outputTopic,
+        INPUT_STREAM
+    );
   }
 
   private void assertCanAccessClusterConfig(final String resourcePrefix) {

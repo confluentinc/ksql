@@ -26,7 +26,7 @@ import java.util.concurrent.ExecutionException;
 public final class MetadataUtil {
 
   public static final String NONE_VERSION = "<none>";
-  public static final String CURRENT_VERSION = "CURRENT";
+  public static final String CURRENT_VERSION_KEY = "CURRENT";
 
   private MetadataUtil() {
   }
@@ -35,7 +35,7 @@ public final class MetadataUtil {
     final String migrationTableName = config.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
     final BatchedQueryResult result = client.executeQuery(
         "SELECT VERSION FROM " + migrationTableName + " WHERE version_key = '"
-            + CURRENT_VERSION + "';");
+            + CURRENT_VERSION_KEY + "';");
     try {
       final List<Row> resultRows = result.get();
       if (resultRows.size() == 0) {
@@ -45,8 +45,6 @@ public final class MetadataUtil {
     } catch (InterruptedException | ExecutionException e) {
       throw new MigrationException(
           String.format("Could not query %s: %s", migrationTableName, e.getMessage()));
-    } finally {
-      client.close();
     }
   }
 }

@@ -28,7 +28,10 @@ public final class MigrationsDirectoryUtil {
   private MigrationsDirectoryUtil() {
   }
 
-  public static Optional<String> getFileNameForVersion(final String version, final String migrationsDir) {
+  public static Optional<String> getFileNameForVersion(
+      final String version,
+      final String migrationsDir
+  ) {
     final String prefix = "V" + StringUtils.leftPad(version, 6, "0");
     final File directory = new File(migrationsDir);
     for (String name : directory.list()) {

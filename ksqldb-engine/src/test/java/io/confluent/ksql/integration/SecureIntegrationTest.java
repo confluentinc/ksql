@@ -377,6 +377,8 @@ public class SecureIntegrationTest {
         prefixedResource(TOPIC, prefix),
         ops(ALL));
 
+    // Skip setting consumer group permissions
+
     givenTestSetupWithConfig(ksqlConfig);
 
     // Then:

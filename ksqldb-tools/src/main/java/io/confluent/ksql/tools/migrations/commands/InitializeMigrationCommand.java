@@ -20,7 +20,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
-import io.confluent.ksql.tools.migrations.MigrationsUtil;
+import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;

@@ -18,6 +18,7 @@ package io.confluent.ksql.tools.migrations;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.properties.PropertiesUtil;
+import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import java.io.File;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;

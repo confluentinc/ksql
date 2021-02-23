@@ -1,0 +1,148 @@
+  {
+  "comments": [
+    "Tests covering Pull queries of materialized using CTAS tables"
+  ],
+  "tests": [
+    {
+      "name": "select * against mat table",
+      "statements": [
+        "CREATE TABLE users (id BIGINT PRIMARY KEY,usertimestamp BIGINT,gender VARCHAR,region_id VARCHAR) WITH (KAFKA_TOPIC = 'users_topic',VALUE_FORMAT = 'JSON',PARTITIONS=1);",
+        "CREATE TABLE queriable_users AS SELECT * from users;",
+        "SELECT * FROM queriable_users;"
+      ],
+      "inputs": [
+        {"topic": "users_topic", "timestamp": 12345, "key": 1, "value": {"usertimestamp": 1000, "gender":  "m", "region_id": "w"}},
+        {"topic": "users_topic", "timestamp": 13345, "key": 2, "value": {"usertimestamp": 2000, "gender":  "f", "region_id": "e"}},
+        {"topic": "users_topic", "timestamp": 14345, "key": 3, "value": {"usertimestamp": 3000, "gender":  "f", "region_id": "n"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` BIGINT KEY, `USERTIMESTAMP` BIGINT, `GENDER` STRING, `REGION_ID` STRING"}},
+          {"row":{"columns":[1,1000,"m","w"]}},
+          {"row":{"columns":[2,2000,"f","e"]}},
+          {"row":{"columns":[3,3000,"f","n"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "select * against mat table key lookup",
+      "statements": [
+        "CREATE TABLE users (id BIGINT PRIMARY KEY,usertimestamp BIGINT,gender VARCHAR,region_id VARCHAR) WITH (KAFKA_TOPIC = 'users_topic',VALUE_FORMAT = 'JSON',PARTITIONS=1);",
+        "CREATE TABLE queriable_users AS SELECT * from users;",
+        "SELECT * FROM queriable_users where id=2;"
+      ],
+      "inputs": [
+        {"topic": "users_topic", "timestamp": 12345, "key": 1, "value": {"usertimestamp": 1000, "gender":  "m", "region_id": "w"}},
+        {"topic": "users_topic", "timestamp": 13345, "key": 2, "value": {"usertimestamp": 2000, "gender":  "f", "region_id": "e"}},
+        {"topic": "users_topic", "timestamp": 14345, "key": 3, "value": {"usertimestamp": 3000, "gender":  "f", "region_id": "n"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` BIGINT KEY, `USERTIMESTAMP` BIGINT, `GENDER` STRING, `REGION_ID` STRING"}},
+          {"row":{"columns":[2,2000,"f","e"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "select * against mat table windowed table scan",
+      "statements": [
+        "CREATE TABLE users (ID BIGINT PRIMARY KEY, USERTIMESTAMP BIGINT,gender VARCHAR,region_id VARCHAR) WITH (KAFKA_TOPIC = 'users_topic',VALUE_FORMAT = 'JSON',PARTITIONS=1);",
+        "CREATE TABLE queriable_users AS SELECT ID, COUNT(*) AS COUNT from users GROUP BY ID;",
+        "SELECT * FROM queriable_users WHERE ID=2;",
+        "SELECT * FROM queriable_users WHERE ID=1234567;"
+      ],
+      "inputs": [
+        {"topic": "users_topic", "timestamp": 12345, "key": 1, "value": {"usertimestamp": 1000, "gender":  "m", "region_id": "w"}},
+        {"topic": "users_topic", "timestamp": 13345, "key": 2, "value": {"usertimestamp": 2000, "gender":  "f", "region_id": "e"}},
+        {"topic": "users_topic", "timestamp": 14345, "key": 3, "value": {"usertimestamp": 3000, "gender":  "f", "region_id": "n"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[2,1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` BIGINT KEY, `COUNT` BIGINT"}}
+        ]}
+      ]
+    },
+    {
+      "name": "select star with projection",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE NEW_INPUT AS SELECT ID, CONCAT(GRADE, '+'), RANK * 2 FROM INPUT;",
+        "SELECT * FROM NEW_INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"GRADE": "A", "RANK": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"GRADE": "B", "RANK": 2}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `KSQL_COL_0` STRING, `KSQL_COL_1` INTEGER"}},
+          {"row":{"columns":["11", "A+", 2]}},
+          {"row":{"columns":["10", "B+", 4]}}
+        ]}
+
+      ]
+    },
+    {
+      "name": "select star with projection and filter",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE NEW_INPUT AS SELECT ID, CONCAT(GRADE, '+'), RANK * 2 FROM INPUT;",
+        "SELECT * FROM NEW_INPUT WHERE ID='11';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"GRADE": "A", "RANK": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"GRADE": "B", "RANK": 2}},
+        {"topic": "test_topic", "timestamp": 12389, "key": "12", "value": {"GRADE": "C", "RANK": 3}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `KSQL_COL_0` STRING, `KSQL_COL_1` INTEGER"}},
+          {"row":{"columns":["11", "A+", 2]}}
+        ]}
+
+      ]
+    },
+    {
+      "name": "select with projection table scan and key lookup",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE NEW_INPUT AS SELECT ID, CONCAT(GRADE, '+'), RANK * 2 AS DOUBLE_RANK FROM INPUT;",
+        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT;",
+        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT WHERE ID='11';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"GRADE": "A", "RANK": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"GRADE": "B", "RANK": 2}},
+        {"topic": "test_topic", "timestamp": 12389, "key": "12", "value": {"GRADE": "C", "RANK": 3}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":["11", 2]}},
+          {"row":{"columns":["10", 4]}},
+          {"row":{"columns":["12", 6]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":["11", 2]}}
+        ]}
+      ]
+    }
+  ]
+}

@@ -1206,9 +1206,7 @@ public class AstBuilder {
     @Override
     public Node visitFunctionCall(final SqlBaseParser.FunctionCallContext context) {
       final List<Expression> expressionList = visit(context.expression(), Expression.class);
-      if (context.intervalExpression() != null) {
-        expressionList.add((Expression) visitIntervalExpression(context.intervalExpression()));
-      }
+      expressionList.addAll(visit(context.intervalExpression(), Expression.class));
       expressionList.addAll(visit(context.lambdaFunction(), Expression.class));
       return new FunctionCall(
           getLocation(context),

@@ -298,7 +298,8 @@ primaryExpression
     | STRUCT '(' (identifier ASSIGN expression (',' identifier ASSIGN expression)*)? ')'  #structConstructor
     | identifier '(' ASTERISK ')'                              		                        #functionCall
     | identifier'(' expression ',' intervalExpression ')' 						                    #functionCall
-    | identifier '(' (expression (',' expression)* (',' lambdaFunction)*)? ')'            #functionCall
+    | identifier '(' (expression (',' expression)*
+                     ((',' lambdaFunction)* | (',' intervalExpression)*))? ')'            #functionCall
     | value=primaryExpression '[' index=valueExpression ']'                               #subscript
     | identifier                                                                          #columnReference
     | identifier '.' identifier                                                           #qualifiedColumnReference

@@ -82,7 +82,7 @@ public class ParamTypesTest {
         false),
         is(true));
 
-    assertThat(ParamTypes.areCompatible(SqlTypes.INTERVAL, ParamTypes.INTERVAL),
+    assertThat(ParamTypes.areCompatible(SqlArgument.of(SqlTypes.INTERVAL), ParamTypes.INTERVAL),
         is(true));
 
     assertThat(

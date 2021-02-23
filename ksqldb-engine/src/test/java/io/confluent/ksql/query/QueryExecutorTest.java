@@ -269,6 +269,7 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
+    queryMetadata.initialize();
 
     // Then:
     assertThat(queryMetadata.getStatementString(), equalTo(STATEMENT_TEXT));
@@ -296,6 +297,7 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
+    queryMetadata.initialize();
     queryMetadata.start();
 
     // Then:
@@ -313,6 +315,7 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
+    queryMetadata.initialize();
     queryMetadata.start();
 
     // When:
@@ -332,7 +335,7 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY
-    );
+    ).initialize();
 
     // Then:
     final Map<String, Object> properties = capturedStreamsProperties();
@@ -359,6 +362,7 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
+    queryMetadata.initialize();
     queryMetadata.start();
 
     // When:
@@ -386,6 +390,7 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
+    queryMetadata.initialize();
 
     // When:
     final Optional<Materialization> result = queryMetadata.getMaterialization(QUERY_ID, stacker);
@@ -404,7 +409,7 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY
-    );
+    ).initialize();
 
     // Then:
     assertThat(
@@ -424,7 +429,7 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY
-    );
+    ).initialize();
 
     // Then:
     final Map<String, Object> streamsProperties = capturedStreamsProperties();
@@ -454,6 +459,7 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
+    queryMetadata.initialize();
     queryMetadata.start();
 
     // Then:
@@ -512,7 +518,7 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY
-    );
+    ).initialize();
 
     // Then:
     assertPropertiesContainDummyInterceptors();
@@ -536,7 +542,7 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY
-    );
+    ).initialize();
 
     // Then:
     assertPropertiesContainDummyInterceptors();
@@ -561,7 +567,7 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY
-    );
+    ).initialize();
 
     // Then:
     final Map<String, Object> streamsProperties = capturedStreamsProperties();
@@ -590,7 +596,7 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY
-    );
+    ).initialize();
 
     // Then:
     final Map<String, Object> streamsProps = capturedStreamsProperties();

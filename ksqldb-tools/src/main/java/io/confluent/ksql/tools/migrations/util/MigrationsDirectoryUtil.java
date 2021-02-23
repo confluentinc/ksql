@@ -34,7 +34,14 @@ public final class MigrationsDirectoryUtil {
   ) {
     final String prefix = "V" + StringUtils.leftPad(version, 6, "0");
     final File directory = new File(migrationsDir);
-    for (String name : directory.list()) {
+    if (!directory.isDirectory()) {
+      throw new MigrationException(migrationsDir + " is not a directory.");
+    }
+    final String[] names = directory.list();
+    if (names == null) {
+      throw new MigrationException("Failed to retrieve files from " + migrationsDir);
+    }
+    for (String name : names) {
       if (name.startsWith(prefix)) {
         return Optional.of(name);
       }

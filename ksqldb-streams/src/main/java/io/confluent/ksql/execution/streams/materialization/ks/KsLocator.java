@@ -47,6 +47,11 @@ import java.util.stream.Stream;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyQueryMetadata;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.TopologyDescription;
+import org.apache.kafka.streams.TopologyDescription.Processor;
+import org.apache.kafka.streams.TopologyDescription.Source;
+import org.apache.kafka.streams.TopologyDescription.Subtopology;
 import org.apache.kafka.streams.state.HostInfo;
 import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
@@ -62,6 +67,7 @@ public final class KsLocator implements Locator {
   private static final Logger LOG = LoggerFactory.getLogger(KsLocator.class);
   private final String stateStoreName;
   private final KafkaStreams kafkaStreams;
+  private final Topology topology;
   private final Serializer<GenericKey> keySerializer;
   private final URL localHost;
   private final String applicationId;
@@ -69,11 +75,13 @@ public final class KsLocator implements Locator {
   KsLocator(
       final String stateStoreName,
       final KafkaStreams kafkaStreams,
+      final Topology topology,
       final Serializer<GenericKey> keySerializer,
       final URL localHost,
       final String applicationId
   ) {
     this.kafkaStreams = requireNonNull(kafkaStreams, "kafkaStreams");
+    this.topology = topology;
     this.keySerializer = requireNonNull(keySerializer, "keySerializer");
     this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
     this.localHost = requireNonNull(localHost, "localHost");
@@ -174,16 +182,27 @@ public final class KsLocator implements Locator {
    */
   private List<PartitionMetadata>  getMetadataForAllPartitions(
       final Set<Integer> filterPartitions) {
+    final Set<String> sourceTopics = findSubtopologySourceTopics();
     final Map<Integer, HostInfo> activeHostByPartition = new HashMap<>();
     final Map<Integer, Set<HostInfo>> standbyHostsByPartition = new HashMap<>();
     for (final StreamsMetadata streamsMetadata : kafkaStreams.allMetadataForStore(stateStoreName)) {
       streamsMetadata.topicPartitions().forEach(
-          tp -> activeHostByPartition.put(tp.partition(), streamsMetadata.hostInfo()));
+          tp -> {
+            if (sourceTopics.contains(tp.topic())) {
+              LOG.info("Active: store: " + stateStoreName + " topic partition: " + tp + " host: "
+                  + streamsMetadata.hostInfo());
+              activeHostByPartition.put(tp.partition(), streamsMetadata.hostInfo());
+            }
+          });
 
       streamsMetadata.standbyTopicPartitions().forEach(
           tp -> {
-            standbyHostsByPartition.computeIfAbsent(tp.partition(), p -> new HashSet<>());
-            standbyHostsByPartition.get(tp.partition()).add(streamsMetadata.hostInfo());
+            if (sourceTopics.contains(tp.topic())) {
+              LOG.info("Standby: store: " + stateStoreName + " topic partition: " + tp + " host: "
+                  + streamsMetadata.hostInfo());
+              standbyHostsByPartition.computeIfAbsent(tp.partition(), p -> new HashSet<>());
+              standbyHostsByPartition.get(tp.partition()).add(streamsMetadata.hostInfo());
+            }
           });
     }
 
@@ -204,7 +223,43 @@ public final class KsLocator implements Locator {
       metadataList.add(
           new PartitionMetadata(activeHost, standbyHosts, partition, Optional.empty()));
     }
+
+    for (PartitionMetadata pm : metadataList) {
+      LOG.info("Got metadata partition: " + pm.getPartition() + " active: " + pm.getActiveHost() + " standbys: " + pm.getStandbyHosts());
+    }
     return metadataList;
+  }
+
+  private Set<String> findSubtopologySourceTopics() {
+    for (final Subtopology subtopology : topology.describe().subtopologies()) {
+      boolean containsStateStore = false;
+      for (final TopologyDescription.Node node : subtopology.nodes()) {
+        if (node instanceof Processor) {
+          final Processor processor = (Processor) node;
+          if (processor.stores().contains(stateStoreName)) {
+            containsStateStore = true;
+          }
+        }
+      }
+
+      if (!containsStateStore) {
+        continue;
+      }
+
+      for (final TopologyDescription.Node node : subtopology.nodes()) {
+        if (node instanceof Source) {
+          final Source source = (Source) node;
+          if (source.topicSet() != null) {
+            return source.topicSet()
+                .stream()
+                .map(name -> applicationId + "-" + name)
+                .collect(Collectors.toSet());
+          }
+        }
+      }
+      throw new IllegalStateException("Failed to find source with topics");
+    }
+    throw new IllegalStateException("Failed to find state store " + stateStoreName);
   }
 
   /**

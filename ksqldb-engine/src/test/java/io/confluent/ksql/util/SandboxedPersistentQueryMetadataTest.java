@@ -89,7 +89,7 @@ public class SandboxedPersistentQueryMetadataTest {
   public void setUp() {
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
     when(physicalSchema.logicalSchema()).thenReturn(mock(LogicalSchema.class));
-    when(materializationProviderBuilder.apply(kafkaStreams))
+    when(materializationProviderBuilder.apply(kafkaStreams, topology))
         .thenReturn(Optional.of(materializationProvider));
 
     query = new PersistentQueryMetadata(

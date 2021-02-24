@@ -53,6 +53,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyQueryMetadata;
+import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.state.HostInfo;
 import org.apache.kafka.streams.state.StreamsMetadata;
 import org.junit.Before;
@@ -98,6 +99,8 @@ public class KsLocatorTest {
   @Mock
   private KafkaStreams kafkaStreams;
   @Mock
+  private Topology topology;
+  @Mock
   private KeyQueryMetadata keyQueryMetadata;
   @Mock
   private Serializer<GenericKey> keySerializer;
@@ -121,7 +124,7 @@ public class KsLocatorTest {
 
   @Before
   public void setUp() {
-    locator = new KsLocator(STORE_NAME, kafkaStreams, keySerializer, LOCAL_HOST_URL,
+    locator = new KsLocator(STORE_NAME, kafkaStreams, topology, keySerializer, LOCAL_HOST_URL,
         APPLICATION_ID);
 
     activeNode = locator.asNode(ACTIVE_HOST);

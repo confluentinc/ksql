@@ -121,10 +121,13 @@ public class ValidateMigrationsCommand extends BaseCommand {
       final String migrationsDir,
       final Client ksqlClient
   ) {
-    String version = MetadataUtil.getCurrentVersion(config, ksqlClient);
+    String version = getLatestMigratedVersion(config, ksqlClient);
+    String nextVersion = null;
     while (!version.equals(MetadataUtil.NONE_VERSION)) {
       final VersionInfo versionInfo = getInfoForVersion(version, config, ksqlClient);
-      final String expectedHash = versionInfo.expectedHash;
+      if (nextVersion != null) {
+        validateVersionIsMigrated(version, versionInfo, nextVersion);
+      }
 
       final String filename;
       try {
@@ -136,6 +139,7 @@ public class ValidateMigrationsCommand extends BaseCommand {
       }
 
       final String hash = computeHashForFile(filename);
+      final String expectedHash = versionInfo.expectedHash;
       if (!expectedHash.equals(hash)) {
         LOGGER.error("Migrations file found for version {} does not match the checksum saved "
                 + "for this version. Expected checksum: {}. Actual checksum: {}. File name: {}",
@@ -143,10 +147,56 @@ public class ValidateMigrationsCommand extends BaseCommand {
         return false;
       }
 
+      nextVersion = version;
       version = versionInfo.prevVersion;
     }
 
     return true;
+  }
+
+  private static String getLatestMigratedVersion(
+      final MigrationConfig config,
+      final Client ksqlClient
+  ) {
+    final String currentVersion = MetadataUtil.getCurrentVersion(config, ksqlClient);
+    if (currentVersion.equals(MetadataUtil.NONE_VERSION)) {
+      return currentVersion;
+    }
+
+    final VersionInfo currentVersionInfo = getInfoForVersion(currentVersion, config, ksqlClient);
+    if (currentVersionInfo.state == MigrationState.MIGRATED) {
+      return currentVersion;
+    }
+
+    if (currentVersionInfo.prevVersion.equals(MetadataUtil.NONE_VERSION)) {
+      return MetadataUtil.NONE_VERSION;
+    }
+
+    final VersionInfo prevVersionInfo = getInfoForVersion(
+        currentVersionInfo.prevVersion,
+        config,
+        ksqlClient
+    );
+    validateVersionIsMigrated(currentVersionInfo.prevVersion, prevVersionInfo, currentVersion);
+
+    return currentVersionInfo.prevVersion;
+  }
+
+  private static void validateVersionIsMigrated(
+      final String version,
+      final VersionInfo versionInfo,
+      final String nextVersion
+  ) {
+    if (versionInfo.state != MigrationState.MIGRATED) {
+      throw new MigrationException(String.format(
+          "Discovered version with previous version that does not have status {}. "
+              + "Version: {}. Previous version: {}. Previous version status: {}",
+          MigrationState.MIGRATED,
+          nextVersion,
+          version,
+          versionInfo.state
+      ));
+    }
   }
 
   private static VersionInfo getInfoForVersion(
@@ -157,11 +207,12 @@ public class ValidateMigrationsCommand extends BaseCommand {
     final String migrationTableName = config
         .getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
     final BatchedQueryResult result = ksqlClient.executeQuery(
-        "SELECT checksum, previous FROM " + migrationTableName
+        "SELECT checksum, previous, state FROM " + migrationTableName
             + " WHERE version_key = '" + version + "';");
 
     final String expectedHash;
     final String prevVersion;
+    final String state;
     try {
       final List<Row> resultRows = result.get();
       if (resultRows.size() == 0) {
@@ -171,21 +222,24 @@ public class ValidateMigrationsCommand extends BaseCommand {
       }
       expectedHash = resultRows.get(0).getString(0);
       prevVersion = resultRows.get(0).getString(1);
+      state = resultRows.get(0).getString(2);
     } catch (InterruptedException | ExecutionException e) {
       throw new MigrationException(String.format(
           "Failed to query state for migration with version %s: %s", version, e.getMessage()));
     }
 
-    return new VersionInfo(expectedHash, prevVersion);
+    return new VersionInfo(expectedHash, prevVersion, state);
   }
 
   private static class VersionInfo {
     final String expectedHash;
     final String prevVersion;
+    final MigrationState state;
 
-    VersionInfo(final String expectedHash, final String prevVersion) {
+    VersionInfo(final String expectedHash, final String prevVersion, final String state) {
       this.expectedHash = Objects.requireNonNull(expectedHash, "expectedHash");
       this.prevVersion = Objects.requireNonNull(prevVersion, "prevVersion");
+      this.state = MigrationState.valueOf(Objects.requireNonNull(state, "state"));
     }
   }
 }

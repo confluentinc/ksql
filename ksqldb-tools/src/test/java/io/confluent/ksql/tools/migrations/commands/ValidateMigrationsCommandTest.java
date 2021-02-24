@@ -18,7 +18,10 @@ package io.confluent.ksql.tools.migrations.commands;
 import static io.confluent.ksql.tools.migrations.util.MetadataUtil.CURRENT_VERSION_KEY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.github.rvesse.airline.SingleCommand;
@@ -28,12 +31,14 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil;
+import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
 import io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil;
 import java.io.File;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
@@ -42,7 +47,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -92,7 +99,27 @@ public class ValidateMigrationsCommandTest {
    * @param versions versions, in the order they were applied
    * @param checksums corresponding checksums (ordered according to {@code versions})
    */
-  private void givenAppliedMigrations(final List<String> versions, final List<String> checksums) throws Exception {
+  private void givenAppliedMigrations(
+      final List<String> versions,
+      final List<String> checksums
+  ) throws Exception {
+    givenAppliedMigrations(
+        versions,
+        checksums,
+        Collections.nCopies(versions.size(), MigrationState.MIGRATED)
+    );
+  }
+
+  /**
+   * @param versions versions, in the order they were applied
+   * @param checksums corresponding checksums (ordered according to {@code versions})
+   * @parma states corresponding migration states (ordered according to {@code versions})
+   */
+  private void givenAppliedMigrations(
+      final List<String> versions,
+      final List<String> checksums,
+      final List<MigrationState> states
+  ) throws Exception {
     String version = versions.get(versions.size() - 1);
 
     Row row = mock(Row.class);
@@ -109,12 +136,13 @@ public class ValidateMigrationsCommandTest {
 
       row = mock(Row.class);
       queryResult = mock(BatchedQueryResult.class);
-      when(ksqlClient.executeQuery("SELECT checksum, previous FROM " + MIGRATIONS_TABLE
+      when(ksqlClient.executeQuery("SELECT checksum, previous, state FROM " + MIGRATIONS_TABLE
           + " WHERE version_key = '" + version + "';"))
           .thenReturn(queryResult);
       when(queryResult.get()).thenReturn(ImmutableList.of(row));
       when(row.getString(0)).thenReturn(checksums.get(i));
       when(row.getString(1)).thenReturn(prevVersion);
+      when(row.getString(2)).thenReturn(states.get(i).toString());
     }
   }
 
@@ -122,7 +150,26 @@ public class ValidateMigrationsCommandTest {
    * @param versions versions, in the order they were applied
    */
   private void verifyClientCallsForVersions(final List<String> versions) {
-    // TODO
+    final InOrder inOrder = inOrder(ksqlClient);
+
+    // call to get latest version
+    inOrder.verify(ksqlClient).executeQuery("SELECT VERSION FROM " + MIGRATIONS_TABLE
+        + " WHERE version_key = '" + CURRENT_VERSION_KEY + "';");
+
+    // call to get info for latest version
+    inOrder.verify(ksqlClient, times(2)).executeQuery("SELECT checksum, previous, state FROM " + MIGRATIONS_TABLE
+        + " WHERE version_key = '" + versions.get(versions.size() - 1) + "';");
+
+    // calls to get all migrated versions
+    for (int i = versions.size() - 2; i >= 0; i--) {
+      inOrder.verify(ksqlClient).executeQuery("SELECT checksum, previous, state FROM " + MIGRATIONS_TABLE
+          + " WHERE version_key = '" + versions.get(i) + "';");
+    }
+
+    // close the client
+    inOrder.verify(ksqlClient).close();
+
+    inOrder.verifyNoMoreInteractions();
   }
 
   @Test
@@ -147,6 +194,11 @@ public class ValidateMigrationsCommandTest {
 
   @Test
   public void shouldFailOnChecksumMismatch() throws Exception {
+
+  }
+
+  @Test
+  public void shouldNotValidateCurrentIfNotMigrated() throws Exception {
 
   }
 

@@ -88,6 +88,13 @@ public final class KTableHolder<K> {
     return new KTableHolder<>(table, schema, executionKeyFactory, materializationBuilder);
   }
 
+  public KTableHolder<K> withTable(
+          final KTable<K, GenericRow> table,
+          final LogicalSchema schema,
+          final Optional<MaterializationInfo.Builder> builder) {
+    return new KTableHolder<>(table, schema, executionKeyFactory, builder);
+  }
+
   public KTableHolder<K> withMaterialization(final Optional<MaterializationInfo.Builder> builder) {
     return new KTableHolder<>(
         stream,

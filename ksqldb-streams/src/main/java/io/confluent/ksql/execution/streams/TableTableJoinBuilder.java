@@ -19,6 +19,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import java.util.Optional;
 import org.apache.kafka.streams.kstream.KTable;
 
 public final class TableTableJoinBuilder {
@@ -52,6 +53,6 @@ public final class TableTableJoinBuilder {
         throw new IllegalStateException("invalid join type");
     }
 
-    return left.withTable(result, joinParams.getSchema());
+    return left.withTable(result, joinParams.getSchema(), Optional.empty());
   }
 }

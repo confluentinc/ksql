@@ -539,7 +539,7 @@ Configure ksqlDB for Confluent Control Center
 
 You can use ksqlDB with a Kafka cluster in {{ site.c3 }}. For more
 information, see
-[Integrate ksqlDB with {{ site.c3 }}](integrate-ksql-with-confluent-control-center.md).
+[Integrate ksqlDB with {{ site.c3 }}](https://docs.confluent.io/platform/current/ksqldb/integrate-ksql-with-confluent-control-center.html).
 
 Configure ksqlDB for Secured Confluent Schema Registry
 ------------------------------------------------------

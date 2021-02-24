@@ -33,7 +33,9 @@ import io.confluent.ksql.tools.migrations.util.MetadataUtil;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
 import io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -209,7 +211,7 @@ public class ValidateMigrationsCommandTest {
 
       try (PrintWriter out = new PrintWriter(filename, Charset.defaultCharset().name())) {
         out.println(fileContents);
-      } catch (Exception e) {
+      } catch (FileNotFoundException | UnsupportedEncodingException e) {
         Assert.fail("Failed to write test file: " + filename);
       }
 

@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -38,7 +39,12 @@ public final class MigrationsDirectoryUtil {
   }
 
   public static String getMigrationsDirFromConfigFile(final String configFilePath) {
-    return Paths.get(configFilePath).getParent().resolve(MIGRATIONS_DIR).toString();
+    final Path parentDir = Paths.get(configFilePath).getParent();
+    if (parentDir == null) {
+      throw new MigrationException("Could not find parent directory for config file '"
+          + configFilePath + "': no parent dir exists.");
+    }
+    return parentDir.resolve(MIGRATIONS_DIR).toString();
   }
 
   public static Optional<String> getFilePathForVersion(
@@ -87,7 +93,7 @@ public final class MigrationsDirectoryUtil {
   public static String computeHashForFile(final String filename) {
     try {
       final byte[] bytes = Files.readAllBytes(Paths.get(filename));
-      return new String(MessageDigest.getInstance("MD5").digest(bytes));
+      return new String(MessageDigest.getInstance("MD5").digest(bytes), StandardCharsets.UTF_8);
     } catch (NoSuchAlgorithmException | IOException e) {
       throw new MigrationException(String.format(
           "Could not compute hash for file '%s': %s", filename, e.getMessage()));

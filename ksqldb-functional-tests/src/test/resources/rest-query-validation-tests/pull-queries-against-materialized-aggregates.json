@@ -1088,7 +1088,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "The `X` table isn't queriable. To derive a queriable table, you can do 'CREATE TABLE QUERIABLE_X AS SELECT * FROM X. See https://cnfl.io/queries for more info.'t pull from `X` as it's not a materialized table.",
+        "message": "The `X` table isn't queriable. To derive a queriable table, you can do 'CREATE TABLE QUERIABLE_X AS SELECT * FROM X. See https://cnfl.io/queries for more info.",
         "status": 400
       }
     },

@@ -189,8 +189,6 @@ public final class KsLocator implements Locator {
       streamsMetadata.topicPartitions().forEach(
           tp -> {
             if (sourceTopics.contains(tp.topic())) {
-              LOG.info("Active: store: " + stateStoreName + " topic partition: " + tp + " host: "
-                  + streamsMetadata.hostInfo());
               activeHostByPartition.put(tp.partition(), streamsMetadata.hostInfo());
             }
           });
@@ -198,8 +196,6 @@ public final class KsLocator implements Locator {
       streamsMetadata.standbyTopicPartitions().forEach(
           tp -> {
             if (sourceTopics.contains(tp.topic())) {
-              LOG.info("Standby: store: " + stateStoreName + " topic partition: " + tp + " host: "
-                  + streamsMetadata.hostInfo());
               standbyHostsByPartition.computeIfAbsent(tp.partition(), p -> new HashSet<>());
               standbyHostsByPartition.get(tp.partition()).add(streamsMetadata.hostInfo());
             }
@@ -222,10 +218,6 @@ public final class KsLocator implements Locator {
           Collections.emptySet());
       metadataList.add(
           new PartitionMetadata(activeHost, standbyHosts, partition, Optional.empty()));
-    }
-
-    for (PartitionMetadata pm : metadataList) {
-      LOG.info("Got metadata partition: " + pm.getPartition() + " active: " + pm.getActiveHost() + " standbys: " + pm.getStandbyHosts());
     }
     return metadataList;
   }

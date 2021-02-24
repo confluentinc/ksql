@@ -198,7 +198,7 @@
       ]
     },
     {
-      "name": "pull query on `CREATE TABLE` table should fail",
+      "name": "pull query on `CREATE TABLE` table should fail ",
       "statements": [
         "CREATE TABLE USERS (id BIGINT PRIMARY KEY, USER_TIMESTAMP BIGINT, GENDER VARCHAR, REGION_ID VARCHAR) WITH (KAFKA_TOPIC = 'my-users-topic', VALUE_FORMAT = 'JSON', PARTITIONS=1);",
         "SELECT * FROM USERS;"

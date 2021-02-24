@@ -538,23 +538,41 @@ Transform a collection with a lambda function.
 
 If the collection is an array,  the lambda function must have 1 input argument.
 
-If the collection is a map, two lambda functions must be provided and each lambda function must have 2 arguments (map entry key and then map entry value).
+If the collection is a map, two lambda functions must be provided and each lambda function must have 2 arguments (map entry key and map entry value).
 
 ### `Reduce`
 
 Since: 0.17.0
 
 ```sql
-REDUCE(array, state, (x, s) => ...)
+REDUCE(state, array, (s, x) => ...)
 
-REDUCE(map, state, (k,v, s) => ...)
+REDUCE(state, map, (x, k, v) => ...)
 ```
 
 Reduce a collection starting from an initial state.
 
 If the collection is an array, the lambda function must have 2 input arguments.
 
-If the collection is a map, the lambda function must have 3 input arguments
+If the collection is a map, the lambda function must have 3 input arguments.
+
+If the state is `null` the result will be `null`.
+
+### `Filter`
+
+Since: 0.17.0
+
+```sql
+FILTER(array, x => ...)
+
+FILTER(map, (k,v) => ...)
+```
+
+Filter a collection with a lambda function.
+
+If the collection is an array, the lambda function must have 1 input argument.
+
+If the collection is a map, the lambda function must have 2 input arguments.
 
 ## Strings
 

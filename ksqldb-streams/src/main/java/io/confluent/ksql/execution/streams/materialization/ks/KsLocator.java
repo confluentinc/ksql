@@ -81,7 +81,7 @@ public final class KsLocator implements Locator {
       final String applicationId
   ) {
     this.kafkaStreams = requireNonNull(kafkaStreams, "kafkaStreams");
-    this.topology = topology;
+    this.topology = requireNonNull(topology, "topology");
     this.keySerializer = requireNonNull(keySerializer, "keySerializer");
     this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
     this.localHost = requireNonNull(localHost, "localHost");

@@ -43,6 +43,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -117,7 +118,9 @@ public class PersistentQueryMetadataTest {
         queryErrorClassifier,
         physicalPlan,
         10,
-        processingLogger
+        processingLogger,
+        0L,
+        0L
     );
 
     query.initialize();
@@ -135,7 +138,6 @@ public class PersistentQueryMetadataTest {
   }
 
   @Test
-  @SuppressWarnings("deprecation") // https://github.com/confluentinc/ksql/issues/6639
   public void shouldRestartKafkaStreams() {
     final KafkaStreams newKafkaStreams = mock(KafkaStreams.class);
     final MaterializationProvider newMaterializationProvider = mock(MaterializationProvider.class);
@@ -152,7 +154,7 @@ public class PersistentQueryMetadataTest {
     final InOrder inOrder = inOrder(kafkaStreams, newKafkaStreams);
     inOrder.verify(kafkaStreams).close(any());
     inOrder.verify(newKafkaStreams).setUncaughtExceptionHandler(
-        any(Thread.UncaughtExceptionHandler.class));
+        any(StreamsUncaughtExceptionHandler.class));
     inOrder.verify(newKafkaStreams).start();
 
     assertThat(query.getKafkaStreams(), is(newKafkaStreams));
@@ -181,7 +183,7 @@ public class PersistentQueryMetadataTest {
     when(queryErrorClassifier.classify(error)).thenReturn(QueryError.Type.SYSTEM);
 
     // When:
-    query.uncaughtHandler(thread, error);
+    query.uncaughtHandler(error);
 
     // Then:
     verify(processingLogger).error(errorMessageCaptor.capture());

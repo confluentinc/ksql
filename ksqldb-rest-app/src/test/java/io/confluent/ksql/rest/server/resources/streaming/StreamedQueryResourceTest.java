@@ -121,6 +121,7 @@ import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.codehaus.plexus.util.StringUtils;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
@@ -614,7 +615,9 @@ public class StreamedQueryResourceTest {
             queryCloseCallback,
             closeTimeout,
             10,
-            ResultType.STREAM
+            ResultType.STREAM,
+            0L,
+            0L
         );
 
     when(mockKsqlEngine.executeQuery(serviceContext,
@@ -692,7 +695,7 @@ public class StreamedQueryResourceTest {
     // Definitely want to make sure that the Kafka Streams instance has been closed and cleaned up
     verify(mockKafkaStreams).start();
     // called on init and when setting uncaught exception handler manually
-    verify(mockKafkaStreams, times(2)).setUncaughtExceptionHandler(any(Thread.UncaughtExceptionHandler.class));
+    verify(mockKafkaStreams, times(2)).setUncaughtExceptionHandler(any(StreamsUncaughtExceptionHandler.class));
     verify(mockKafkaStreams).cleanUp();
     verify(mockKafkaStreams).close(Duration.ofMillis(closeTimeout));
 

@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 
 /**
  * Metadata of a persistent query, e.g. {@code CREATE STREAM FOO AS SELECT * FROM BAR;}.
@@ -76,7 +77,9 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final QueryErrorClassifier errorClassifier,
       final ExecutionStep<?> physicalPlan,
       final int maxQueryErrorsQueueSize,
-      final ProcessingLogger processingLogger
+      final ProcessingLogger processingLogger,
+      final long retryBackoffInitialMs,
+      final long retryBackoffMaxMs
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -93,7 +96,9 @@ public class PersistentQueryMetadata extends QueryMetadata {
         closeTimeout,
         id,
         errorClassifier,
-        maxQueryErrorsQueueSize
+        maxQueryErrorsQueueSize,
+        retryBackoffInitialMs,
+        retryBackoffMaxMs
     );
 
     this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");
@@ -130,11 +135,15 @@ public class PersistentQueryMetadata extends QueryMetadata {
   }
 
   @Override
-  protected void uncaughtHandler(final Thread thread, final Throwable error) {
-    super.uncaughtHandler(thread, error);
+  protected StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
+          final Throwable error
+  ) {
+    final StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse response =
+            super.uncaughtHandler(error);
 
     processingLogger.error(KafkaStreamsThreadError.of(
-        "Unhandled exception caught in streams thread", thread, error));
+        "Unhandled exception caught in streams thread", Thread.currentThread(), error));
+    return response;
   }
 
   public DataSourceType getDataSourceType() {

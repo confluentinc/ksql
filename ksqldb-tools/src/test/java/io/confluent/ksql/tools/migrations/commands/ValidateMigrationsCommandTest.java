@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.github.rvesse.airline.SingleCommand;
@@ -49,7 +48,6 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -95,6 +93,132 @@ public class ValidateMigrationsCommandTest {
     verifyClientCallsForVersions(versions);
   }
 
+  @Test
+  public void shouldValidateMultipleMigrations() throws Exception {
+    // Given:
+    final List<String> versions = ImmutableList.of("1", "2", "3");
+    final List<String> checksums = givenExistingMigrationFiles(versions);
+    givenAppliedMigrations(versions, checksums);
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir);
+
+    // Then:
+    assertThat(result, is(0));
+
+    verifyClientCallsForVersions(versions);
+  }
+
+  @Test
+  public void shouldValidateNoMigrations() throws Exception {
+    // Given:
+    final List<String> versions = ImmutableList.of();
+    final List<String> checksums = givenExistingMigrationFiles(versions);
+    givenAppliedMigrations(versions, checksums);
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir);
+
+    // Then:
+    assertThat(result, is(0));
+
+    verifyClientCallsForVersions(versions);
+  }
+
+  @Test
+  public void shouldValidateWithExtraMigrationFiles() throws Exception {
+    // Given:
+    final List<String> migratedVersions = ImmutableList.of("1", "2", "4");
+    final List<String> migrationFiles = ImmutableList.of("1", "2", "3", "4", "5");
+    final List<String> allChecksums = givenExistingMigrationFiles(migrationFiles);
+    givenAppliedMigrations(migratedVersions, ImmutableList.of(allChecksums.get(0), allChecksums.get(1), allChecksums.get(3)));
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir);
+
+    // Then:
+    assertThat(result, is(0));
+
+    verifyClientCallsForVersions(migratedVersions);
+  }
+
+  @Test
+  public void shouldFailOnMissingMigrationFile() throws Exception {
+    // Given:
+    final List<String> migratedVersions = ImmutableList.of("1", "2", "3");
+    final List<String> migrationFiles = ImmutableList.of("1", "3");
+    final List<String> checksums = givenExistingMigrationFiles(migrationFiles);
+    givenAppliedMigrations(migratedVersions, ImmutableList.of(checksums.get(0), "missing", checksums.get(1)));
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir);
+
+    // Then:
+    assertThat(result, is(1));
+
+    // verification stops on failure, so version "1" is never queried
+    verifyClientCallsForVersions(ImmutableList.of("2", "3"));
+  }
+
+  @Test
+  public void shouldFailOnChecksumMismatch() throws Exception {
+    // Given:
+    final List<String> versions = ImmutableList.of("1", "2", "3");
+    final List<String> checksums = givenExistingMigrationFiles(versions);
+    givenAppliedMigrations(versions, ImmutableList.of(checksums.get(0), "mismatched_checksum", checksums.get(2)));
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir);
+
+    // Then:
+    assertThat(result, is(1));
+
+    // verification stops on failure, so version "1" is never queried
+    verifyClientCallsForVersions(ImmutableList.of("2", "3"));
+  }
+
+  @Test
+  public void shouldNotValidateCurrentVersionIfNotMigrated() throws Exception {
+    // Given:
+    final List<String> versions = ImmutableList.of("1", "2", "3");
+    final List<String> checksums = givenExistingMigrationFiles(versions);
+    final List<MigrationState> states = ImmutableList.of(MigrationState.MIGRATED, MigrationState.MIGRATED, MigrationState.ERROR);
+    givenAppliedMigrations(versions, checksums, states);
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir);
+
+    // Then:
+    assertThat(result, is(0));
+
+    //
+    verifyClientCallsForVersions(versions, "2");
+  }
+
+  /**
+   * @return checksums for the supplied versions
+   */
+  private List<String> givenExistingMigrationFiles(final List<String> versions) throws Exception {
+    final List<String> checksums = new ArrayList<>();
+
+    for (final String version : versions) {
+      final String filename = filePathForVersion(version);
+      final String fileContents = fileContentsForVersion(version);
+
+      assertThat(new File(filename).createNewFile(), is(true));
+
+      try (PrintWriter out = new PrintWriter(filename, Charset.defaultCharset().name())) {
+        out.println(fileContents);
+      } catch (Exception e) {
+        Assert.fail("Failed to write test file: " + filename);
+      }
+
+      checksums.add(MigrationsDirectoryUtil.computeHashForFile(filename));
+    }
+
+    return checksums;
+  }
+
   /**
    * @param versions versions, in the order they were applied
    * @param checksums corresponding checksums (ordered according to {@code versions})
@@ -120,7 +244,9 @@ public class ValidateMigrationsCommandTest {
       final List<String> checksums,
       final List<MigrationState> states
   ) throws Exception {
-    String version = versions.get(versions.size() - 1);
+    String version = versions.size() > 0
+        ? versions.get(versions.size() - 1)
+        : MetadataUtil.NONE_VERSION;
 
     Row row = mock(Row.class);
     BatchedQueryResult queryResult = mock(BatchedQueryResult.class);
@@ -150,80 +276,38 @@ public class ValidateMigrationsCommandTest {
    * @param versions versions, in the order they were applied
    */
   private void verifyClientCallsForVersions(final List<String> versions) {
+    final String lastVersion = versions.size() > 0 ? versions.get(versions.size() - 1) : "N/A";
+    verifyClientCallsForVersions(versions, lastVersion);
+  }
+
+  /**
+   * @param versions versions, in the order they were applied
+   * @param latestMigratedVersion latest migrated version, always either the last version or the
+   *                              second-to-last version in {@code versions}. Info for this
+   *                              version is fetched twice by the algorithm for `validate`.
+   */
+  private void verifyClientCallsForVersions(
+      final List<String> versions,
+      final String latestMigratedVersion
+  ) {
     final InOrder inOrder = inOrder(ksqlClient);
 
     // call to get latest version
     inOrder.verify(ksqlClient).executeQuery("SELECT VERSION FROM " + MIGRATIONS_TABLE
         + " WHERE version_key = '" + CURRENT_VERSION_KEY + "';");
 
-    // call to get info for latest version
-    inOrder.verify(ksqlClient, times(2)).executeQuery("SELECT checksum, previous, state FROM " + MIGRATIONS_TABLE
-        + " WHERE version_key = '" + versions.get(versions.size() - 1) + "';");
-
-    // calls to get all migrated versions
-    for (int i = versions.size() - 2; i >= 0; i--) {
-      inOrder.verify(ksqlClient).executeQuery("SELECT checksum, previous, state FROM " + MIGRATIONS_TABLE
-          + " WHERE version_key = '" + versions.get(i) + "';");
+    // calls to get info for migrated versions
+    for (int i = versions.size() - 1; i >= 0; i--) {
+      final int expectedTimes = versions.get(i).equals(latestMigratedVersion) ? 2 : 1;
+      inOrder.verify(ksqlClient, times(expectedTimes)).executeQuery(
+          "SELECT checksum, previous, state FROM " + MIGRATIONS_TABLE
+              + " WHERE version_key = '" + versions.get(i) + "';");
     }
 
     // close the client
     inOrder.verify(ksqlClient).close();
 
     inOrder.verifyNoMoreInteractions();
-  }
-
-  @Test
-  public void shouldValidateMultipleMigrations() throws Exception {
-
-  }
-
-  @Test
-  public void shouldValidateNoMigrations() throws Exception {
-
-  }
-
-  @Test
-  public void shouldValidateWithExtraMigrations() throws Exception {
-
-  }
-
-  @Test
-  public void shouldFailOnMissingMigrationFile() throws Exception {
-
-  }
-
-  @Test
-  public void shouldFailOnChecksumMismatch() throws Exception {
-
-  }
-
-  @Test
-  public void shouldNotValidateCurrentIfNotMigrated() throws Exception {
-
-  }
-
-  /**
-   * @return checksums for the supplied versions
-   */
-  private List<String> givenExistingMigrationFiles(final List<String> versions) throws Exception {
-    final List<String> checksums = new ArrayList<>();
-
-    for (final String version : versions) {
-      final String filename = filePathForVersion(version);
-      final String fileContents = fileContentsForVersion(version);
-
-      assertThat(new File(filename).createNewFile(), is(true));
-
-      try (PrintWriter out = new PrintWriter(filename, Charset.defaultCharset().name())) {
-        out.println(fileContents);
-      } catch (Exception e) {
-        Assert.fail("Failed to write test file: " + filename);
-      }
-
-      checksums.add(MigrationsDirectoryUtil.computeHashForFile(filename));
-    }
-
-    return checksums;
   }
 
   private String filePathForVersion(final String version) {

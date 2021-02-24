@@ -16,7 +16,7 @@
 package io.confluent.ksql.tools.migrations.commands;
 
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.computeHashForFile;
-import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getFileNameForVersion;
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getFilePathForVersion;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
 
 import com.github.rvesse.airline.annotations.Command;
@@ -68,13 +68,18 @@ public class ValidateMigrationsCommand extends BaseCommand {
       return 1;
     }
 
-    return command(config, MigrationsUtil::getKsqlClient);
+    return command(
+        config,
+        MigrationsUtil::getKsqlClient,
+        getMigrationsDirFromConfigFile(configFile)
+    );
   }
 
   @VisibleForTesting
   int command(
       final MigrationConfig config,
-      final Function<MigrationConfig, Client> clientSupplier
+      final Function<MigrationConfig, Client> clientSupplier,
+      final String migrationsDir
   ) {
     final Client ksqlClient;
     try {
@@ -86,7 +91,7 @@ public class ValidateMigrationsCommand extends BaseCommand {
 
     final boolean success;
     try {
-      success = validate(config, getMigrationsDirFromConfigFile(configFile), ksqlClient);
+      success = validate(config, migrationsDir, ksqlClient);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
       return 1;
@@ -123,13 +128,13 @@ public class ValidateMigrationsCommand extends BaseCommand {
 
       final String filename;
       try {
-        filename = getFileNameForVersion(version, migrationsDir).get();
+        filename = getFilePathForVersion(version, migrationsDir).get();
       } catch (MigrationException | NoSuchElementException e) {
         LOGGER.error("No migrations file found for version with status {}. Version: {}",
             MigrationState.MIGRATED, version);
         return false;
       }
-      
+
       final String hash = computeHashForFile(filename);
       if (!expectedHash.equals(hash)) {
         LOGGER.error("Migrations file found for version {} does not match the checksum saved "
@@ -153,7 +158,7 @@ public class ValidateMigrationsCommand extends BaseCommand {
         .getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
     final BatchedQueryResult result = ksqlClient.executeQuery(
         "SELECT checksum, previous FROM " + migrationTableName
-            + " WHERE version_key = 'CURRENT';");
+            + " WHERE version_key = '" + version + "';");
 
     final String expectedHash;
     final String prevVersion;

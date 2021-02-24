@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.kafka.streams.processor.internals.StreamsMetadataState.UNKNOWN_HOST;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import com.google.errorprone.annotations.Immutable;
@@ -182,20 +183,26 @@ public final class KsLocator implements Locator {
    */
   private List<PartitionMetadata>  getMetadataForAllPartitions(
       final Set<Integer> filterPartitions) {
-    final Set<String> sourceTopics = findSubtopologySourceTopics();
+    // It's important that we consider only the source topics for the subtopology that contains the
+    // state store. Otherwise, we'll be given the wrong partition -> host mappings.
+    // The underlying state store has a number of partitions that is the MAX of the number of
+    // partitions of all source topics of the subtopology.  Since partition X of all source topics
+    // of the particular subtopology will map to the same host, we can collect partition -> host
+    // for these topics to find the locations of each partition of the state store.
+    final Set<String> sourceTopicSuffixes = findSubtopologySourceTopicSuffixes();
     final Map<Integer, HostInfo> activeHostByPartition = new HashMap<>();
     final Map<Integer, Set<HostInfo>> standbyHostsByPartition = new HashMap<>();
     for (final StreamsMetadata streamsMetadata : kafkaStreams.allMetadataForStore(stateStoreName)) {
       streamsMetadata.topicPartitions().forEach(
           tp -> {
-            if (sourceTopics.contains(tp.topic())) {
+            if (sourceTopicSuffixes.stream().anyMatch(suffix -> tp.topic().endsWith(suffix))) {
               activeHostByPartition.put(tp.partition(), streamsMetadata.hostInfo());
             }
           });
 
       streamsMetadata.standbyTopicPartitions().forEach(
           tp -> {
-            if (sourceTopics.contains(tp.topic())) {
+            if (sourceTopicSuffixes.stream().anyMatch(suffix -> tp.topic().endsWith(suffix))) {
               standbyHostsByPartition.computeIfAbsent(tp.partition(), p -> new HashSet<>());
               standbyHostsByPartition.get(tp.partition()).add(streamsMetadata.hostInfo());
             }
@@ -222,7 +229,14 @@ public final class KsLocator implements Locator {
     return metadataList;
   }
 
-  private Set<String> findSubtopologySourceTopics() {
+  /**
+   * For the particular state store, this finds the subtopology which contains that store, and
+   * then finds the input topics for the subtopology by finding the source nodes. These topics are
+   * then used for checking against all the metadata for the state store and used to find the
+   * active and standby hosts for the topics. Without doing this check, incorrect assignments could
+   * be chosen since different subtopologies can be run by different hosts.
+   */
+  private Set<String> findSubtopologySourceTopicSuffixes() {
     for (final Subtopology subtopology : topology.describe().subtopologies()) {
       boolean containsStateStore = false;
       for (final TopologyDescription.Node node : subtopology.nodes()) {
@@ -241,12 +255,8 @@ public final class KsLocator implements Locator {
       for (final TopologyDescription.Node node : subtopology.nodes()) {
         if (node instanceof Source) {
           final Source source = (Source) node;
-          if (source.topicSet() != null) {
-            return source.topicSet()
-                .stream()
-                .map(name -> applicationId + "-" + name)
-                .collect(Collectors.toSet());
-          }
+          Preconditions.checkNotNull(source.topicSet(), "Expecting topic set, not regex");
+          return source.topicSet();
         }
       }
       throw new IllegalStateException("Failed to find source with topics");

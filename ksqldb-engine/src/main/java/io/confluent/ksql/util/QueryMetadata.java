@@ -372,7 +372,7 @@ public abstract class QueryMetadata {
     }
 
     public void add(final QueryError e) {
-      final boolean result = queue.add(e);
+      queue.add(e);
       evict();
     }
 

@@ -864,3 +864,7 @@ client.executeQuery(sql1).thenCombine(
       return null;
     });
 ```
+
+## Suggested Reading
+
+- [ksqlDB Meets Java: An IoT-Inspired Demo of the Java Client for ksqlDB](https://www.confluent.io/blog/ksqldb-java-client-iot-inspired-demo/)

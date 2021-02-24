@@ -109,6 +109,9 @@ public class SecureIntegrationTest {
   private static final Credentials SUPER_USER = VALID_USER1;
   private static final Credentials NORMAL_USER = VALID_USER2;
   private static final AtomicInteger COUNTER = new AtomicInteger(0);
+  private final String SERVICE_ID = "my-service-id_";
+  private final String QUERY_ID_PREFIX = "_confluent-ksql-" + SERVICE_ID;
+
 
   public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness
       .builder()
@@ -221,71 +224,36 @@ public class SecureIntegrationTest {
   @Test
   public void shouldWorkWithMinimalPrefixedAcls() {
     // Given:
-    final String serviceId = "my-service-id_";  // Defaults to "default_"
-    final String prefix = "_confluent-ksql-" + serviceId;
-
     final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
-    ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, serviceId);
+    ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, SERVICE_ID);
 
+    givenTestSetupWithAclsForQuery();
     givenAllowAcl(NORMAL_USER,
-                  resource(CLUSTER, "kafka-cluster"),
-                  ops(DESCRIBE_CONFIGS));
-
-    givenAllowAcl(NORMAL_USER,
-                  resource(TOPIC, INPUT_TOPIC),
-                  ops(READ));
-
-    givenAllowAcl(NORMAL_USER,
-                  resource(TOPIC, outputTopic),
-                  ops(CREATE /* as the topic doesn't exist yet*/, WRITE));
-
-    givenAllowAcl(NORMAL_USER,
-                  prefixedResource(TOPIC, prefix),
-                  ops(ALL));
-
-    givenAllowAcl(NORMAL_USER,
-                  prefixedResource(GROUP, prefix),
-                  ops(ALL));
-
+        resource(CLUSTER, "kafka-cluster"),
+        ops(DESCRIBE_CONFIGS));
     givenTestSetupWithConfig(ksqlConfig);
 
     // Then:
     assertCanRunRepartitioningKsqlQuery();
-    assertCanAccessClusterConfig(prefix);
+    assertCanAccessClusterConfig();
   }
 
   @Test
   public void shouldClassifyMissingSourceTopicExceptionAsUserError() {
     // Given:
-    final String serviceId = "my-service-id_";  // Defaults to "default_"
-    final String prefix = "_confluent-ksql-" + serviceId;
-
     final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
-    ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, serviceId);
+    ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, SERVICE_ID);
 
-    givenAllowAcl(NORMAL_USER,
-        resource(CLUSTER, "kafka-cluster"),
-        ops(DESCRIBE_CONFIGS));
-
-    givenAllowAcl(NORMAL_USER,
-        resource(TOPIC, INPUT_TOPIC),
-        ops(READ));
-
-    givenAllowAcl(NORMAL_USER,
-        resource(TOPIC, outputTopic),
-        ops(CREATE /* as the topic doesn't exist yet*/, WRITE));
-
-    givenAllowAcl(NORMAL_USER,
-        prefixedResource(TOPIC, prefix),
-        ops(ALL));
-
-    givenAllowAcl(NORMAL_USER,
-        prefixedResource(GROUP, prefix),
-        ops(ALL));
-
+    givenTestSetupWithAclsForQuery();
     givenTestSetupWithConfig(ksqlConfig);
 
+    // When:
     topicClient.deleteTopics(Collections.singleton(INPUT_TOPIC));
+    assertThatEventually(
+        "Wait for async topic deleting",
+        () -> topicClient.isTopicExists(outputTopic),
+        is(false)
+    );
 
     // Then:
     assertQueryFailsWithUserError(
@@ -304,34 +272,13 @@ public class SecureIntegrationTest {
   @Test
   public void shouldClassifyTopicAuthorizationExceptionAsUserError() {
     // Given:
-    final String serviceId = "my-service-id_";  // Defaults to "default_"
-    final String prefix = "_confluent-ksql-" + serviceId;
-
     final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
-    ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, serviceId);
+    ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, SERVICE_ID);
 
-    givenAllowAcl(NORMAL_USER,
-        resource(CLUSTER, "kafka-cluster"),
-        ops(DESCRIBE_CONFIGS));
-
-    givenAllowAcl(NORMAL_USER,
-        resource(TOPIC, INPUT_TOPIC),
-        ops(READ));
-
-    givenAllowAcl(NORMAL_USER,
-        prefixedResource(TOPIC, prefix),
-        ops(ALL));
-
-    givenAllowAcl(NORMAL_USER,
-        resource(TOPIC, outputTopic),
-        ops(CREATE /* as the topic doesn't exist yet*/, WRITE));
-
-    givenAllowAcl(NORMAL_USER,
-        prefixedResource(GROUP, prefix),
-        ops(ALL));
-
+    givenTestSetupWithAclsForQuery();
     givenTestSetupWithConfig(ksqlConfig);
 
+    // When:
     TEST_HARNESS.getKafkaCluster().addUserAcl(
         NORMAL_USER.username,
         AclPermissionType.DENY,
@@ -357,31 +304,18 @@ public class SecureIntegrationTest {
   @Test
   public void shouldClassifyGroupAuthorizationExceptionAsUserError() {
     // Given:
-    final String serviceId = "my-service-id_";  // Defaults to "default_"
-    final String prefix = "_confluent-ksql-" + serviceId;
-
     final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
-    ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, serviceId);
+    ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, SERVICE_ID);
 
-    givenAllowAcl(NORMAL_USER,
-        resource(CLUSTER, "kafka-cluster"),
-        ops(DESCRIBE_CONFIGS));
-
-    givenAllowAcl(NORMAL_USER,
-        resource(TOPIC, INPUT_TOPIC),
-        ops(READ));
-
-    givenAllowAcl(NORMAL_USER,
-        resource(TOPIC, outputTopic),
-        ops(CREATE /* as the topic doesn't exist yet*/, WRITE));
-
-    givenAllowAcl(NORMAL_USER,
-        prefixedResource(TOPIC, prefix),
-        ops(ALL));
-
-    // Skip setting consumer group permissions
-
+    givenTestSetupWithAclsForQuery();
     givenTestSetupWithConfig(ksqlConfig);
+
+    TEST_HARNESS.getKafkaCluster().addUserAcl(
+        NORMAL_USER.username,
+        AclPermissionType.DENY,
+        prefixedResource(GROUP, QUERY_ID_PREFIX),
+        ops(ALL)
+    );
 
     // Then:
     assertQueryFailsWithUserError(
@@ -393,7 +327,7 @@ public class SecureIntegrationTest {
         String.format(
             "%s: Not authorized to access group: %squery_",
             GroupAuthorizationException.class.getName(),
-            prefix
+            QUERY_ID_PREFIX
         ) + "%s"
     );
   }
@@ -401,33 +335,11 @@ public class SecureIntegrationTest {
   @Test
   public void shouldClassifyTransactionIdAuthorizationExceptionAsUserError() {
     // Given:
-    final String serviceId = "my-service-id_";  // Defaults to "default_"
-    final String prefix = "_confluent-ksql-" + serviceId;
-
     final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
-    ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, serviceId);
+    ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, SERVICE_ID);
     ksqlConfig.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.EXACTLY_ONCE_BETA);
 
-    givenAllowAcl(NORMAL_USER,
-        resource(CLUSTER, "kafka-cluster"),
-        ops(DESCRIBE_CONFIGS));
-
-    givenAllowAcl(NORMAL_USER,
-        resource(TOPIC, INPUT_TOPIC),
-        ops(READ));
-
-    givenAllowAcl(NORMAL_USER,
-        resource(TOPIC, outputTopic),
-        ops(CREATE /* as the topic doesn't exist yet*/, WRITE));
-
-    givenAllowAcl(NORMAL_USER,
-        prefixedResource(TOPIC, prefix),
-        ops(ALL));
-
-    givenAllowAcl(NORMAL_USER,
-        prefixedResource(GROUP, prefix),
-        ops(ALL));
-
+    givenTestSetupWithAclsForQuery(); // does not authorize TX, but we enabled EOS above
     givenTestSetupWithConfig(ksqlConfig);
 
     // Then:
@@ -469,6 +381,24 @@ public class SecureIntegrationTest {
     }
   }
 
+  private void givenTestSetupWithAclsForQuery() {
+      givenAllowAcl(NORMAL_USER,
+          resource(TOPIC, INPUT_TOPIC),
+          ops(READ));
+
+      givenAllowAcl(NORMAL_USER,
+          resource(TOPIC, outputTopic),
+          ops(CREATE /* as the topic doesn't exist yet*/, WRITE));
+
+      givenAllowAcl(NORMAL_USER,
+          prefixedResource(TOPIC, QUERY_ID_PREFIX),
+          ops(ALL));
+
+      givenAllowAcl(NORMAL_USER,
+          prefixedResource(GROUP, QUERY_ID_PREFIX),
+          ops(ALL));
+  }
+
   private static void givenAllowAcl(final Credentials credentials,
                                     final ResourcePattern resource,
                                     final Set<AclOperation> ops) {
@@ -505,11 +435,11 @@ public class SecureIntegrationTest {
     );
   }
 
-  private void assertCanAccessClusterConfig(final String resourcePrefix) {
+  private void assertCanAccessClusterConfig() {
     // Creating topic with default replicas causes topic client to query cluster config to get
     // default replica count:
     serviceContext.getTopicClient()
-        .createTopic(resourcePrefix + "-foo", 1, TopicProperties.DEFAULT_REPLICAS);
+        .createTopic(QUERY_ID_PREFIX + "-foo", 1, TopicProperties.DEFAULT_REPLICAS);
   }
 
   private void assertCanRunKsqlQuery(
@@ -536,7 +466,7 @@ public class SecureIntegrationTest {
 
     queryMetadata.start();
     assertThatEventually(
-        "",
+        "Wait for query to fail",
         () -> queryMetadata.getQueryErrors().size() > 0,
         is(true)
     );

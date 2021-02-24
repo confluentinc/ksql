@@ -371,25 +371,23 @@ public abstract class QueryMetadata {
       this.duration = duration;
     }
 
-    public boolean add(final QueryError e) {
+    public void add(final QueryError e) {
       final boolean result = queue.add(e);
-      while (queue.peek() != null) {
-        if (queue.peek().getTimestamp() > System.currentTimeMillis() - duration.toMillis()) {
-          break;
-        }
-        queue.poll();
-      }
-      return result;
+      evict();
     }
 
     public List<QueryError> toImmutableList() {
+      evict();
+      return ImmutableList.copyOf(queue);
+    }
+    
+    private void evict() {
       while (queue.peek() != null) {
         if (queue.peek().getTimestamp() > System.currentTimeMillis() - duration.toMillis()) {
           break;
         }
         queue.poll();
       }
-      return ImmutableList.copyOf(queue);
     }
 
   }

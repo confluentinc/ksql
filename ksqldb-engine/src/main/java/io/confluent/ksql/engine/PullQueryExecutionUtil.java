@@ -99,11 +99,18 @@ public final class PullQueryExecutionUtil {
   }
 
   private static KsqlException notMaterializedException(final SourceName sourceTable) {
+    final String tableName = sourceTable.toString().replaceAll("`", "");
     return new KsqlException(
-        "Can't pull from " + sourceTable + " as it's not a materialized table."
-            + PullQueryValidator.PULL_QUERY_SYNTAX_HELP
+            "The " + sourceTable + " table isn't queriable. To derive a queriable table, "
+                    + "you can do 'CREATE TABLE QUERIABLE_"
+                    + tableName
+                    + " AS SELECT * FROM "
+                    + tableName
+                    + "."
+                    + PullQueryValidator.PULL_QUERY_SYNTAX_HELP
     );
   }
+
 
 
 

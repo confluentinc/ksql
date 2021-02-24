@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.tools.migrations.commands;
 
+import static io.confluent.ksql.tools.migrations.util.MetadataUtil.getInfoForVersion;
+import static io.confluent.ksql.tools.migrations.util.MetadataUtil.getLatestMigratedVersion;
+import static io.confluent.ksql.tools.migrations.util.MetadataUtil.validateVersionIsMigrated;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.computeHashForFile;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getFilePathForVersion;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
@@ -22,19 +25,15 @@ import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.ge
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.help.Discussion;
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
-import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
+import io.confluent.ksql.tools.migrations.util.MetadataUtil.VersionInfo;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import io.confluent.ksql.util.KsqlException;
-import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,7 +138,7 @@ public class ValidateMigrationsCommand extends BaseCommand {
       }
 
       final String hash = computeHashForFile(filename);
-      final String expectedHash = versionInfo.expectedHash;
+      final String expectedHash = versionInfo.getExpectedHash();
       if (!expectedHash.equals(hash)) {
         LOGGER.error("Migrations file found for version {} does not match the checksum saved "
                 + "for this version. Expected checksum: {}. Actual checksum: {}. File name: {}",
@@ -148,98 +147,10 @@ public class ValidateMigrationsCommand extends BaseCommand {
       }
 
       nextVersion = version;
-      version = versionInfo.prevVersion;
+      version = versionInfo.getPrevVersion();
     }
 
     return true;
   }
 
-  private static String getLatestMigratedVersion(
-      final MigrationConfig config,
-      final Client ksqlClient
-  ) {
-    final String currentVersion = MetadataUtil.getCurrentVersion(config, ksqlClient);
-    if (currentVersion.equals(MetadataUtil.NONE_VERSION)) {
-      return currentVersion;
-    }
-
-    final VersionInfo currentVersionInfo = getInfoForVersion(currentVersion, config, ksqlClient);
-    if (currentVersionInfo.state == MigrationState.MIGRATED) {
-      return currentVersion;
-    }
-
-    if (currentVersionInfo.prevVersion.equals(MetadataUtil.NONE_VERSION)) {
-      return MetadataUtil.NONE_VERSION;
-    }
-
-    final VersionInfo prevVersionInfo = getInfoForVersion(
-        currentVersionInfo.prevVersion,
-        config,
-        ksqlClient
-    );
-    validateVersionIsMigrated(currentVersionInfo.prevVersion, prevVersionInfo, currentVersion);
-
-    return currentVersionInfo.prevVersion;
-  }
-
-  private static void validateVersionIsMigrated(
-      final String version,
-      final VersionInfo versionInfo,
-      final String nextVersion
-  ) {
-    if (versionInfo.state != MigrationState.MIGRATED) {
-      throw new MigrationException(String.format(
-          "Discovered version with previous version that does not have status {}. "
-              + "Version: {}. Previous version: {}. Previous version status: {}",
-          MigrationState.MIGRATED,
-          nextVersion,
-          version,
-          versionInfo.state
-      ));
-    }
-  }
-
-  private static VersionInfo getInfoForVersion(
-      final String version,
-      final MigrationConfig config,
-      final Client ksqlClient
-  ) {
-    final String migrationTableName = config
-        .getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
-    final BatchedQueryResult result = ksqlClient.executeQuery(
-        "SELECT checksum, previous, state FROM " + migrationTableName
-            + " WHERE version_key = '" + version + "';");
-
-    final String expectedHash;
-    final String prevVersion;
-    final String state;
-    try {
-      final List<Row> resultRows = result.get();
-      if (resultRows.size() == 0) {
-        throw new MigrationException(
-            "Failed to query state for migration with version " + version
-                + ": no such migration is present in the migrations metadata table");
-      }
-      expectedHash = resultRows.get(0).getString(0);
-      prevVersion = resultRows.get(0).getString(1);
-      state = resultRows.get(0).getString(2);
-    } catch (InterruptedException | ExecutionException e) {
-      throw new MigrationException(String.format(
-          "Failed to query state for migration with version %s: %s", version, e.getMessage()));
-    }
-
-    return new VersionInfo(expectedHash, prevVersion, state);
-  }
-
-  private static class VersionInfo {
-    final String expectedHash;
-    final String prevVersion;
-    final MigrationState state;
-
-    VersionInfo(final String expectedHash, final String prevVersion, final String state) {
-      this.expectedHash = Objects.requireNonNull(expectedHash, "expectedHash");
-      this.prevVersion = Objects.requireNonNull(prevVersion, "prevVersion");
-      this.state = MigrationState.valueOf(Objects.requireNonNull(state, "state"));
-    }
-  }
 }

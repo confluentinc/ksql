@@ -13,35 +13,56 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function.udf.map;
+package io.confluent.ksql.function.udf.lambda;
 
 import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Transform a map's key and values using two lambda functions
+ * Transform a collection with a function
  */
 @UdfDescription(
-    name = "map_transform",
-    category = FunctionCategory.MAP,
-    description = "Apply one function to each key and " 
-        + "one function to each value of a map. " 
-        + "The two arguments for each function are in order: key, value. " 
-        + "The first function provided will be applied to each key and the " 
-        + "second one applied to each value. "
-        + "The transformed map is returned.",
+    name = "transform",
+    category = FunctionCategory.LAMBDA,
+    description = "Apply a function to each element in a collection. " 
+        + "The transformed collection is returned.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
-public class MapTransform {
+public class Transform {
 
-  @Udf
-  public <K,V,R,T> Map<R,T> mapTransform(
+  @Udf(description = "When transforming an array, "
+      + "the function provided must have two arguments. "
+      + "The two arguments for each function are in order: " 
+      + "the key and then the value. "
+      + "The transformed array is returned."
+  )
+  public <T, R> List<R> transformArray(
+      @UdfParameter(description = "The array") final List<T> array,
+      @UdfParameter(description = "The lambda function") final Function<T, R> function
+  ) {
+    if (array == null) {
+      return null;
+    }
+    return array.stream().map(function::apply).collect(Collectors.toList());
+  }
+
+  @Udf(description = "When transforming a map, "
+      + "two functions must be provided. "
+      + "For each map entry, the first function provided will "
+      + "be applied to the key and the second one applied to the value. "
+      + "Each function must have two arguments. "
+      + "The two arguments for each function are in order: the key and then the value. "
+      + "The transformed map is returned."
+  )
+  public <K,V,R,T> Map<R,T> transformMap(
       @UdfParameter(description = "The map") final Map<K, V> map,
       @UdfParameter(description = "The key lambda function") final BiFunction<K, V, R> biFunction1,
       @UdfParameter(description = "The value lambda function") final BiFunction<K, V, T> biFunction2

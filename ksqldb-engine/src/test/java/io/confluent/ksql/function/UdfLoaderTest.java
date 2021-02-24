@@ -203,15 +203,15 @@ public class UdfLoaderTest {
             SqlTypes.INTEGER);
 
     // When:
-    final KsqlScalarFunction fun = FUNC_REG.getUdfFactory(FunctionName.of("reduce_map"))
+    final KsqlScalarFunction fun = FUNC_REG.getUdfFactory(FunctionName.of("reduce"))
         .getFunction(
             ImmutableList.of(
-                SqlArgument.of(SqlMap.of(SqlTypes.INTEGER, SqlTypes.INTEGER)),
                 SqlArgument.of(SqlTypes.INTEGER),
+                SqlArgument.of(SqlMap.of(SqlTypes.INTEGER, SqlTypes.INTEGER)),
                 SqlArgument.of(lambda)));
 
     // Then:
-    assertThat(fun.name().text(), equalToIgnoringCase("reduce_map"));
+    assertThat(fun.name().text(), equalToIgnoringCase("reduce"));
   }
 
   @Test
@@ -223,14 +223,14 @@ public class UdfLoaderTest {
             SqlTypes.INTEGER);
 
     // When:
-    final KsqlScalarFunction fun = FUNC_REG.getUdfFactory(FunctionName.of("array_transform"))
+    final KsqlScalarFunction fun = FUNC_REG.getUdfFactory(FunctionName.of("transform"))
         .getFunction(
             ImmutableList.of(
                 SqlArgument.of(SqlArray.of(SqlTypes.INTEGER)),
                 SqlArgument.of(lambda)));
 
     // Then:
-    assertThat(fun.name().text(), equalToIgnoringCase("array_transform"));
+    assertThat(fun.name().text(), equalToIgnoringCase("transform"));
   }
 
   @Test

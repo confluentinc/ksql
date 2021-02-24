@@ -29,7 +29,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class GroupAuthorizationClassifierTest {
 
   @Test
-  public void shouldClassifyTopicAuthorizationExceptionAsUserError() {
+  public void shouldClassifyGroupAuthorizationExceptionAsUserError() {
     // Given:
     final Exception e = new GroupAuthorizationException("foo");
 

@@ -180,17 +180,16 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldReturnEmptyIfNotMaterializedTable() {
     // Given:
-    final List<QueryMetadata> list = ksqlContext.sql("CREATE TABLE USERS_TABLE_CT"
-            + " (ID BIGINT PRIMARY KEY,"
-            + " usertimestamp BIGINT,"
-            + " gender VARCHAR,"
-            + " region_id VARCHAR"
-            + " ) WITH (kafka_topic='users_topic_ct',"
-            + " VALUE_FORMAT = 'JSON',"
-            + " PARTITIONS=1);");
+    final PersistentQueryMetadata query = executeQuery(
+            "CREATE TABLE " + output + " AS"
+                    + " SELECT * FROM " + USER_TABLE + ";"
+    );
+
+    // When:
+    final Optional<Materialization> result = query.getMaterialization(queryId, contextStacker);
 
     // Then:
-    assertThat(list.size(), is(0));
+    assertThat(result, is(Optional.empty()));
   }
 
   @Test
@@ -806,3 +805,4 @@ public class KsMaterializationFunctionalTest {
     return assertThatEventually(supplier, is(notNullValue()), RetryOnException);
   }
 }
+

@@ -112,7 +112,6 @@ public class SecureIntegrationTest {
   private static final String SERVICE_ID = "my-service-id_";
   private static final String QUERY_ID_PREFIX = "_confluent-ksql-" + SERVICE_ID;
 
-
   public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness
       .builder()
       .withKafkaCluster(

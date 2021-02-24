@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.query.QueryError.Type;
+import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.errors.TransactionalIdAuthorizationException;
 import org.apache.kafka.streams.errors.StreamsException;
@@ -27,15 +28,39 @@ import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class TransactionAuthorizationClassifierTest {
+public class AuthorizationClassifierTest {
 
   @Test
-  public void shouldClassifyTransactionalIdAuthorizationExceptionAsUserError() {
+  public void shouldClassifyWrappedAuthorizationExceptionAsUserError() {
     // Given:
-    final Exception e = new StreamsException(new TransactionalIdAuthorizationException("foo"));
+    final Exception e = new StreamsException(new AuthorizationException("foo"));
 
     // When:
-    final Type type = new TransactionAuthorizationClassifier("").classify(e);
+    final Type type = new AuthorizationClassifier("").classify(e);
+
+    // Then:
+    assertThat(type, is(Type.USER));
+  }
+
+  @Test
+  public void shouldClassifyAuthorizationExceptionAsUserError() {
+    // Given:
+    final Exception e = new AuthorizationException("foo");
+
+    // When:
+    final Type type = new AuthorizationClassifier("").classify(e);
+
+    // Then:
+    assertThat(type, is(Type.USER));
+  }
+
+  @Test
+  public void shouldClassifySubTypeOfAuthorizationExceptionAsUserError() {
+    // Given:
+    final Exception e = new TopicAuthorizationException("foo");
+
+    // When:
+    final Type type = new AuthorizationClassifier("").classify(e);
 
     // Then:
     assertThat(type, is(Type.USER));
@@ -47,7 +72,7 @@ public class TransactionAuthorizationClassifierTest {
     final Exception e = new Exception("foo");
 
     // When:
-    final Type type = new TransactionAuthorizationClassifier("").classify(e);
+    final Type type = new AuthorizationClassifier("").classify(e);
 
     // Then:
     assertThat(type, is(Type.UNKNOWN));

@@ -198,7 +198,7 @@
       ]
     },
     {
-      "name": "table table inner join should fail",
+      "name": "table table inner join should fail as the join result is not materialized",
       "statements": [
         "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='json');",
         "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='json');",

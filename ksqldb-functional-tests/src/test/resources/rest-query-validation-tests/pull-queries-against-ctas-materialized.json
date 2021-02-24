@@ -196,6 +196,21 @@
           {"row":{"columns":[90,"ninety",90,"a",10]}}
         ]}
       ]
+    },
+    {
+      "name": "pull query on `CREATE TABLE` table should fail",
+      "statements": [
+        "CREATE TABLE USERS (id BIGINT PRIMARY KEY, USER_TIMESTAMP BIGINT, GENDER VARCHAR, REGION_ID VARCHAR) WITH (KAFKA_TOPIC = 'my-users-topic', VALUE_FORMAT = 'JSON', PARTITIONS=1);",
+        "SELECT * FROM USERS;"
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}}
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Can't pull from `USERS` as it's not a materialized table. See https://cnfl.io/queries for more info.",
+        "status": 400
+      }
     }
   ]
 }

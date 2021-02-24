@@ -106,31 +106,31 @@ public class KsMaterializationFunctionalTest {
   private static final Duration WINDOW_SEGMENT_DURATION = Duration.ofSeconds(60);
   private static final int NUM_WINDOWS = 4;
   private static final List<Instant> WINDOW_START_INSTANTS = LongStream.range(1, NUM_WINDOWS + 1)
-          // records have to be apart by at-least a segment for retention to enforced
-          .mapToObj(i -> Instant.ofEpochMilli(i * WINDOW_SEGMENT_DURATION.toMillis()))
-          .collect(Collectors.toList());
+      // records have to be apart by at-least a segment for retention to enforced
+      .mapToObj(i -> Instant.ofEpochMilli(i * WINDOW_SEGMENT_DURATION.toMillis()))
+      .collect(Collectors.toList());
 
   private static final Deserializer<String> STRING_DESERIALIZER = new StringDeserializer();
   private static final Deserializer<Windowed<String>> TIME_WINDOWED_DESERIALIZER =
-          WindowedSerdes
-                  .timeWindowedSerdeFrom(String.class, WINDOW_SIZE.toMillis())
-                  .deserializer();
+      WindowedSerdes
+          .timeWindowedSerdeFrom(String.class, WINDOW_SIZE.toMillis())
+          .deserializer();
   private static final Deserializer<Windowed<String>> SESSION_WINDOWED_DESERIALIZER =
-          WindowedSerdes
-                  .sessionWindowedSerdeFrom(String.class)
-                  .deserializer();
+      WindowedSerdes
+          .sessionWindowedSerdeFrom(String.class)
+          .deserializer();
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
   @ClassRule
   public static final RuleChain CLUSTER_WITH_RETRY = RuleChain
-          .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
-          .around(TEST_HARNESS);
+      .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
+      .around(TEST_HARNESS);
 
   @Rule
   public final TestKsqlContext ksqlContext = TEST_HARNESS.ksqlContextBuilder()
-          .withAdditionalConfig(StreamsConfig.APPLICATION_SERVER_CONFIG, "https://localhost:34")
-          .build();
+      .withAdditionalConfig(StreamsConfig.APPLICATION_SERVER_CONFIG, "https://localhost:34")
+      .build();
 
   @Rule
   public final Timeout timeout = Timeout.seconds(120);
@@ -146,19 +146,19 @@ public class KsMaterializationFunctionalTest {
     TEST_HARNESS.ensureTopics(USERS_TOPIC, PAGE_VIEWS_TOPIC);
 
     TEST_HARNESS.produceRows(
-            USERS_TOPIC,
-            USER_DATA_PROVIDER,
-            KEY_FORMAT,
-            VALUE_FORMAT
+        USERS_TOPIC,
+        USER_DATA_PROVIDER,
+        KEY_FORMAT,
+        VALUE_FORMAT
     );
 
     for (final Instant windowTime : WINDOW_START_INSTANTS) {
       TEST_HARNESS.produceRows(
-              PAGE_VIEWS_TOPIC,
-              PAGE_VIEW_DATA_PROVIDER,
-              KEY_FORMAT,
-              VALUE_FORMAT,
-              windowTime::toEpochMilli
+          PAGE_VIEWS_TOPIC,
+          PAGE_VIEW_DATA_PROVIDER,
+          KEY_FORMAT,
+          VALUE_FORMAT,
+          windowTime::toEpochMilli
       );
     }
   }
@@ -181,8 +181,8 @@ public class KsMaterializationFunctionalTest {
   public void shouldReturnEmptyIfNotMaterializedTable() {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
-            "CREATE TABLE " + output + " AS"
-                    + " SELECT * FROM " + USER_TABLE + ";"
+        "CREATE TABLE " + output + " AS"
+            + " SELECT * FROM " + USER_TABLE + ";"
     );
 
     // When:
@@ -196,8 +196,8 @@ public class KsMaterializationFunctionalTest {
   public void shouldReturnEmptyIfNotMaterializedStream() {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
-            "CREATE STREAM " + output + " AS"
-                    + " SELECT * FROM " + USER_STREAM + ";"
+        "CREATE STREAM " + output + " AS"
+            + " SELECT * FROM " + USER_STREAM + ";"
     );
 
     // When:
@@ -214,10 +214,10 @@ public class KsMaterializationFunctionalTest {
       initializeKsql(ksqlNoAppServer);
 
       final PersistentQueryMetadata query = executeQuery(
-              ksqlNoAppServer,
-              "CREATE TABLE " + output + " AS"
-                      + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_TABLE
-                      + " GROUP BY USERID;"
+          ksqlNoAppServer,
+          "CREATE TABLE " + output + " AS"
+              + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_TABLE
+              + " GROUP BY USERID;"
       );
 
       // When:
@@ -232,9 +232,9 @@ public class KsMaterializationFunctionalTest {
   public void shouldQueryMaterializedTableForAggregatedTable() {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
-            "CREATE TABLE " + output + " AS"
-                    + " SELECT USERID, COUNT(*) FROM " + USER_TABLE
-                    + " GROUP BY USERID;"
+        "CREATE TABLE " + output + " AS"
+            + " SELECT USERID, COUNT(*) FROM " + USER_TABLE
+            + " GROUP BY USERID;"
     );
 
     final LogicalSchema schema = schema("KSQL_COL_0", SqlTypes.BIGINT);
@@ -266,9 +266,9 @@ public class KsMaterializationFunctionalTest {
   public void shouldQueryMaterializedTableForAggregatedStream() {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
-            "CREATE TABLE " + output + " AS"
-                    + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_STREAM
-                    + " GROUP BY USERID;"
+        "CREATE TABLE " + output + " AS"
+            + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_STREAM
+            + " GROUP BY USERID;"
     );
 
     final LogicalSchema schema = schema("COUNT", SqlTypes.BIGINT);
@@ -300,16 +300,16 @@ public class KsMaterializationFunctionalTest {
   public void shouldQueryMaterializedTableForTumblingWindowed() {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
-            "CREATE TABLE " + output + " AS"
-                    + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_STREAM
-                    + " WINDOW TUMBLING (SIZE " + WINDOW_SIZE.getSeconds() + " SECONDS)"
-                    + " GROUP BY USERID;"
+        "CREATE TABLE " + output + " AS"
+            + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_STREAM
+            + " WINDOW TUMBLING (SIZE " + WINDOW_SIZE.getSeconds() + " SECONDS)"
+            + " GROUP BY USERID;"
     );
 
     final LogicalSchema schema = schema("COUNT", SqlTypes.BIGINT);
 
     final Map<Windowed<String>, GenericRow> rows =
-            waitForUniqueUserRows(TIME_WINDOWED_DESERIALIZER, schema);
+        waitForUniqueUserRows(TIME_WINDOWED_DESERIALIZER, schema);
 
     // When:
     final Materialization materialization = query.getMaterialization(queryId, contextStacker).get();
@@ -324,7 +324,7 @@ public class KsMaterializationFunctionalTest {
       final GenericKey key = genericKey(k.key());
 
       final List<WindowedRow> resultAtWindowStart =
-              withRetry(() -> table.get(key, PARTITION, Range.singleton(w.start()), Range.all()));
+          withRetry(() -> table.get(key, PARTITION, Range.singleton(w.start()), Range.all()));
 
       assertThat("at exact window start", resultAtWindowStart, hasSize(1));
       assertThat(resultAtWindowStart.get(0).schema(), is(schema));
@@ -333,18 +333,18 @@ public class KsMaterializationFunctionalTest {
       assertThat(resultAtWindowStart.get(0).value(), is(v));
 
       final List<WindowedRow> resultAtWindowEnd =
-              withRetry(() -> table.get(key, PARTITION, Range.all(), Range.singleton(w.end())));
+          withRetry(() -> table.get(key, PARTITION, Range.all(), Range.singleton(w.end())));
       assertThat("at exact window end", resultAtWindowEnd, hasSize(1));
 
       final List<WindowedRow> resultFromRange = withRetry(() -> withRetry(() -> table
-              .get(key, PARTITION, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)),
-                      Range.all())));
+          .get(key, PARTITION, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)),
+              Range.all())));
 
       assertThat("range including window start", resultFromRange, is(resultAtWindowStart));
 
       final List<WindowedRow> resultPast = withRetry(() -> table
-              .get(key, PARTITION, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)),
-                      Range.all()));
+          .get(key, PARTITION, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)),
+              Range.all()));
       assertThat("past start", resultPast, is(empty())
       );
     });
@@ -354,17 +354,17 @@ public class KsMaterializationFunctionalTest {
   public void shouldQueryMaterializedTableForHoppingWindowed() {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
-            "CREATE TABLE " + output + " AS"
-                    + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_STREAM
-                    + " WINDOW HOPPING (SIZE " + WINDOW_SIZE.getSeconds() + " SECONDS,"
-                    + " ADVANCE BY " + WINDOW_SIZE.getSeconds() + " SECONDS)"
-                    + " GROUP BY USERID;"
+        "CREATE TABLE " + output + " AS"
+            + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_STREAM
+            + " WINDOW HOPPING (SIZE " + WINDOW_SIZE.getSeconds() + " SECONDS,"
+            + " ADVANCE BY " + WINDOW_SIZE.getSeconds() + " SECONDS)"
+            + " GROUP BY USERID;"
     );
 
     final LogicalSchema schema = schema("COUNT", SqlTypes.BIGINT);
 
     final Map<Windowed<String>, GenericRow> rows =
-            waitForUniqueUserRows(TIME_WINDOWED_DESERIALIZER, schema);
+        waitForUniqueUserRows(TIME_WINDOWED_DESERIALIZER, schema);
 
     // When:
     final Materialization materialization = query.getMaterialization(queryId, contextStacker).get();
@@ -379,7 +379,7 @@ public class KsMaterializationFunctionalTest {
       final GenericKey key = genericKey(k.key());
 
       final List<WindowedRow> resultAtWindowStart =
-              withRetry(() -> table.get(key, PARTITION, Range.singleton(w.start()), Range.all()));
+          withRetry(() -> table.get(key, PARTITION, Range.singleton(w.start()), Range.all()));
 
       assertThat("at exact window start", resultAtWindowStart, hasSize(1));
       assertThat(resultAtWindowStart.get(0).schema(), is(schema));
@@ -388,18 +388,18 @@ public class KsMaterializationFunctionalTest {
       assertThat(resultAtWindowStart.get(0).value(), is(v));
 
       final List<WindowedRow> resultAtWindowEnd =
-              withRetry(() -> table.get(key, PARTITION, Range.all(), Range.singleton(w.end())));
+          withRetry(() -> table.get(key, PARTITION, Range.all(), Range.singleton(w.end())));
       assertThat("at exact window end", resultAtWindowEnd, hasSize(1));
 
       final List<WindowedRow> resultFromRange = withRetry(() -> table
-              .get(key, PARTITION, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)),
-                      Range.all()));
+          .get(key, PARTITION, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)),
+              Range.all()));
 
       assertThat("range including window start", resultFromRange, is(resultAtWindowStart));
 
       final List<WindowedRow> resultPast = withRetry(() -> table
-              .get(key, PARTITION, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)),
-                      Range.all()));
+          .get(key, PARTITION, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)),
+              Range.all()));
 
       assertThat("past start", resultPast, is(empty()));
     });
@@ -409,16 +409,16 @@ public class KsMaterializationFunctionalTest {
   public void shouldQueryMaterializedTableForSessionWindowed() {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
-            "CREATE TABLE " + output + " AS"
-                    + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_STREAM
-                    + " WINDOW SESSION (" + WINDOW_SIZE.getSeconds() + " SECONDS)"
-                    + " GROUP BY USERID;"
+        "CREATE TABLE " + output + " AS"
+            + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_STREAM
+            + " WINDOW SESSION (" + WINDOW_SIZE.getSeconds() + " SECONDS)"
+            + " GROUP BY USERID;"
     );
 
     final LogicalSchema schema = schema("COUNT", SqlTypes.BIGINT);
 
     final Map<Windowed<String>, GenericRow> rows =
-            waitForUniqueUserRows(SESSION_WINDOWED_DESERIALIZER, schema);
+        waitForUniqueUserRows(SESSION_WINDOWED_DESERIALIZER, schema);
 
     // When:
     final Materialization materialization = query.getMaterialization(queryId, contextStacker).get();
@@ -433,7 +433,7 @@ public class KsMaterializationFunctionalTest {
       final GenericKey key = genericKey(k.key());
 
       final List<WindowedRow> resultAtWindowStart =
-              withRetry(() -> table.get(key, PARTITION, Range.singleton(w.start()), Range.all()));
+          withRetry(() -> table.get(key, PARTITION, Range.singleton(w.start()), Range.all()));
 
       assertThat("at exact window start", resultAtWindowStart, hasSize(1));
       assertThat(resultAtWindowStart.get(0).schema(), is(schema));
@@ -442,17 +442,17 @@ public class KsMaterializationFunctionalTest {
       assertThat(resultAtWindowStart.get(0).value(), is(v));
 
       final List<WindowedRow> resultAtWindowEnd =
-              withRetry(() -> table.get(key, PARTITION, Range.all(), Range.singleton(w.end())));
+          withRetry(() -> table.get(key, PARTITION, Range.all(), Range.singleton(w.end())));
       assertThat("at exact window end", resultAtWindowEnd, hasSize(1));
 
       final List<WindowedRow> resultFromRange = withRetry(() -> table
-              .get(key, PARTITION, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)),
-                      Range.all()));
+          .get(key, PARTITION, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1)),
+              Range.all()));
       assertThat("range including window start", resultFromRange, is(resultAtWindowStart));
 
       final List<WindowedRow> resultPast = withRetry(() -> table
-              .get(key, PARTITION, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)),
-                      Range.all()));
+          .get(key, PARTITION, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1)),
+              Range.all()));
       assertThat("past start", resultPast, is(empty()));
     });
   }
@@ -472,16 +472,16 @@ public class KsMaterializationFunctionalTest {
   public void shouldQueryTumblingWindowMaterializedTableWithRetention() {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
-            "CREATE TABLE " + output + " AS"
-                    + " SELECT PAGEID, COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
-                    + " WINDOW TUMBLING (SIZE " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS,"
-                    + " RETENTION " + (WINDOW_SEGMENT_DURATION.getSeconds() * 2) + " SECONDS,"
-                    + " GRACE PERIOD 0 SECONDS)"
-                    + " GROUP BY PAGEID;"
+        "CREATE TABLE " + output + " AS"
+            + " SELECT PAGEID, COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
+            + " WINDOW TUMBLING (SIZE " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS,"
+            + " RETENTION " + (WINDOW_SEGMENT_DURATION.getSeconds() * 2) + " SECONDS,"
+            + " GRACE PERIOD 0 SECONDS)"
+            + " GROUP BY PAGEID;"
     );
 
     final List<ConsumerRecord<Windowed<String>, GenericRow>> rows =
-            waitForPageViewRows(TIME_WINDOWED_DESERIALIZER, query.getPhysicalSchema());
+        waitForPageViewRows(TIME_WINDOWED_DESERIALIZER, query.getPhysicalSchema());
 
     // When:
     final Materialization materialization = query.getMaterialization(queryId, contextStacker).get();
@@ -490,9 +490,9 @@ public class KsMaterializationFunctionalTest {
     assertThat(materialization.windowType(), is(Optional.of(WindowType.TUMBLING)));
     final MaterializedWindowedTable table = materialization.windowed();
     final Set<Optional<Window>> expectedWindows = Stream.of(
-            Window.of(WINDOW_START_INSTANTS.get(1), WINDOW_START_INSTANTS.get(1).plusSeconds(WINDOW_SEGMENT_DURATION.getSeconds())),
-            Window.of(WINDOW_START_INSTANTS.get(2), WINDOW_START_INSTANTS.get(2).plusSeconds(WINDOW_SEGMENT_DURATION.getSeconds())),
-            Window.of(WINDOW_START_INSTANTS.get(3), WINDOW_START_INSTANTS.get(3).plusSeconds(WINDOW_SEGMENT_DURATION.getSeconds()))
+        Window.of(WINDOW_START_INSTANTS.get(1), WINDOW_START_INSTANTS.get(1).plusSeconds(WINDOW_SEGMENT_DURATION.getSeconds())),
+        Window.of(WINDOW_START_INSTANTS.get(2), WINDOW_START_INSTANTS.get(2).plusSeconds(WINDOW_SEGMENT_DURATION.getSeconds())),
+        Window.of(WINDOW_START_INSTANTS.get(3), WINDOW_START_INSTANTS.get(3).plusSeconds(WINDOW_SEGMENT_DURATION.getSeconds()))
     ).map(Optional::of).collect(Collectors.toSet());
     verifyRetainedWindows(rows, table, expectedWindows);
   }
@@ -501,17 +501,17 @@ public class KsMaterializationFunctionalTest {
   public void shouldQueryHoppingWindowMaterializedTableWithRetention() {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
-            "CREATE TABLE " + output + " AS"
-                    + " SELECT PAGEID, COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
-                    + " WINDOW HOPPING (SIZE " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS,"
-                    + " ADVANCE BY " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS, "
-                    + " RETENTION " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS,"
-                    + " GRACE PERIOD 0 SECONDS"
-                    + ") GROUP BY PAGEID;"
+        "CREATE TABLE " + output + " AS"
+            + " SELECT PAGEID, COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
+            + " WINDOW HOPPING (SIZE " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS,"
+            + " ADVANCE BY " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS, "
+            + " RETENTION " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS,"
+            + " GRACE PERIOD 0 SECONDS"
+            + ") GROUP BY PAGEID;"
     );
 
     final List<ConsumerRecord<Windowed<String>, GenericRow>> rows =
-            waitForPageViewRows(TIME_WINDOWED_DESERIALIZER, query.getPhysicalSchema());
+        waitForPageViewRows(TIME_WINDOWED_DESERIALIZER, query.getPhysicalSchema());
 
     // When:
     final Materialization materialization = query.getMaterialization(queryId, contextStacker).get();
@@ -520,8 +520,8 @@ public class KsMaterializationFunctionalTest {
     assertThat(materialization.windowType(), is(Optional.of(WindowType.HOPPING)));
     final MaterializedWindowedTable table = materialization.windowed();
     final Set<Optional<Window>> expectedWindows = Stream.of(
-            Window.of(WINDOW_START_INSTANTS.get(2), WINDOW_START_INSTANTS.get(2).plusSeconds(WINDOW_SEGMENT_DURATION.getSeconds())),
-            Window.of(WINDOW_START_INSTANTS.get(3), WINDOW_START_INSTANTS.get(3).plusSeconds(WINDOW_SEGMENT_DURATION.getSeconds()))
+        Window.of(WINDOW_START_INSTANTS.get(2), WINDOW_START_INSTANTS.get(2).plusSeconds(WINDOW_SEGMENT_DURATION.getSeconds())),
+        Window.of(WINDOW_START_INSTANTS.get(3), WINDOW_START_INSTANTS.get(3).plusSeconds(WINDOW_SEGMENT_DURATION.getSeconds()))
     ).map(Optional::of).collect(Collectors.toSet());
     verifyRetainedWindows(rows, table, expectedWindows);
   }
@@ -530,16 +530,16 @@ public class KsMaterializationFunctionalTest {
   public void shouldQuerySessionWindowMaterializedTableWithRetention() {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
-            "CREATE TABLE " + output + " AS"
-                    + " SELECT USERID, COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
-                    + " WINDOW SESSION (" + WINDOW_SEGMENT_DURATION.getSeconds()/2 + " SECONDS,"
-                    + " RETENTION " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS,"
-                    + " GRACE PERIOD 0 SECONDS"
-                    + ") GROUP BY USERID;"
+        "CREATE TABLE " + output + " AS"
+            + " SELECT USERID, COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
+            + " WINDOW SESSION (" + WINDOW_SEGMENT_DURATION.getSeconds()/2 + " SECONDS,"
+            + " RETENTION " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS,"
+            + " GRACE PERIOD 0 SECONDS"
+            + ") GROUP BY USERID;"
     );
 
     final List<ConsumerRecord<Windowed<String>, GenericRow>> rows =
-            waitForPageViewRows(SESSION_WINDOWED_DESERIALIZER, query.getPhysicalSchema());
+        waitForPageViewRows(SESSION_WINDOWED_DESERIALIZER, query.getPhysicalSchema());
 
     // When:
     final Materialization materialization = query.getMaterialization(queryId, contextStacker).get();
@@ -548,8 +548,8 @@ public class KsMaterializationFunctionalTest {
     assertThat(materialization.windowType(), is(Optional.of(WindowType.SESSION)));
     final MaterializedWindowedTable table = materialization.windowed();
     final Set<Optional<Window>> expectedWindows = Stream.of(
-            Window.of(WINDOW_START_INSTANTS.get(2), WINDOW_START_INSTANTS.get(2)),
-            Window.of(WINDOW_START_INSTANTS.get(3), WINDOW_START_INSTANTS.get(3))
+        Window.of(WINDOW_START_INSTANTS.get(2), WINDOW_START_INSTANTS.get(2)),
+        Window.of(WINDOW_START_INSTANTS.get(3), WINDOW_START_INSTANTS.get(3))
     ).map(Optional::of).collect(Collectors.toSet());
     verifyRetainedWindows(rows, table, expectedWindows);
   }
@@ -558,14 +558,14 @@ public class KsMaterializationFunctionalTest {
   public void shouldQueryMaterializedTableWithKeyFieldsInProjection() {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
-            "CREATE TABLE " + output + " AS"
-                    + " SELECT USERID, COUNT(*), AS_VALUE(USERID) AS USERID_2 FROM " + USER_TABLE
-                    + " GROUP BY USERID;"
+        "CREATE TABLE " + output + " AS"
+            + " SELECT USERID, COUNT(*), AS_VALUE(USERID) AS USERID_2 FROM " + USER_TABLE
+            + " GROUP BY USERID;"
     );
 
     final LogicalSchema schema = schema(
-            "KSQL_COL_0", SqlTypes.BIGINT,
-            "USERID_2", SqlTypes.STRING
+        "KSQL_COL_0", SqlTypes.BIGINT,
+        "USERID_2", SqlTypes.STRING
     );
 
     final Map<String, GenericRow> rows = waitForUniqueUserRows(STRING_DESERIALIZER, schema);
@@ -593,14 +593,14 @@ public class KsMaterializationFunctionalTest {
   public void shouldQueryMaterializedTableWithMultipleAggregationColumns() {
     // Given:
     final PersistentQueryMetadata query = executeQuery(
-            "CREATE TABLE " + output + " AS"
-                    + " SELECT USERID, COUNT(1) AS COUNT, SUM(REGISTERTIME) AS SUM FROM " + USER_TABLE
-                    + " GROUP BY USERID;"
+        "CREATE TABLE " + output + " AS"
+            + " SELECT USERID, COUNT(1) AS COUNT, SUM(REGISTERTIME) AS SUM FROM " + USER_TABLE
+            + " GROUP BY USERID;"
     );
 
     final LogicalSchema schema = schema(
-            "COUNT", SqlTypes.BIGINT,
-            "SUM", SqlTypes.BIGINT
+        "COUNT", SqlTypes.BIGINT,
+        "SUM", SqlTypes.BIGINT
     );
 
     final Map<String, GenericRow> rows = waitForUniqueUserRows(STRING_DESERIALIZER, schema);
@@ -630,17 +630,17 @@ public class KsMaterializationFunctionalTest {
 
     // Given:
     final PersistentQueryMetadata query = executeQuery(
-            "CREATE TABLE " + output + " AS"
-                    + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_TABLE
-                    + " GROUP BY USERID"
-                    + " HAVING SUM(REGISTERTIME) > 2;"
+        "CREATE TABLE " + output + " AS"
+            + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_TABLE
+            + " GROUP BY USERID"
+            + " HAVING SUM(REGISTERTIME) > 2;"
     );
 
     final LogicalSchema schema = schema("COUNT", SqlTypes.BIGINT);
 
     final int matches = (int) USER_DATA_PROVIDER.data().values().stream()
-            .filter(row -> ((Long) row.get(0)) > 2)
-            .count();
+        .filter(row -> ((Long) row.get(0)) > 2)
+        .count();
 
     final Map<String, GenericRow> rows = waitForUniqueUserRows(matches, STRING_DESERIALIZER, schema);
 
@@ -661,68 +661,68 @@ public class KsMaterializationFunctionalTest {
     });
 
     USER_DATA_PROVIDER.data().entries().stream()
-            .filter(e -> !rows.containsKey(e.getKey().get(0)))
-            .forEach(e -> {
-              // Rows filtered by the HAVING clause:
-              final Optional<Row> row = withRetry(() -> table.get(e.getKey(), PARTITION));
-              assertThat(row, is(Optional.empty()));
-            });
+        .filter(e -> !rows.containsKey(e.getKey().get(0)))
+        .forEach(e -> {
+          // Rows filtered by the HAVING clause:
+          final Optional<Row> row = withRetry(() -> table.get(e.getKey(), PARTITION));
+          assertThat(row, is(Optional.empty()));
+        });
   }
 
   private static void verifyRetainedWindows(
-          final List<ConsumerRecord<Windowed<String>, GenericRow>> rows,
-          final MaterializedWindowedTable table,
-          final Set<Optional<Window>> expectedWindows
+      final List<ConsumerRecord<Windowed<String>, GenericRow>> rows,
+      final MaterializedWindowedTable table,
+      final Set<Optional<Window>> expectedWindows
   ) {
     rows.forEach(record -> {
       final GenericKey key = genericKey(record.key().key());
       final List<WindowedRow> resultAtWindowStart =
-              withRetry(() -> table.get(key, PARTITION, Range.all(), Range.all()));
+          withRetry(() -> table.get(key, PARTITION, Range.all(), Range.all()));
 
       assertThat("Should have fewer windows retained",
-              resultAtWindowStart,
-              hasSize(expectedWindows.size()));
+          resultAtWindowStart,
+          hasSize(expectedWindows.size()));
       final Set<Optional<Window>> actualWindows = resultAtWindowStart.stream()
-              .map(WindowedRow::window)
-              .collect(Collectors.toSet());
+          .map(WindowedRow::window)
+          .collect(Collectors.toSet());
       assertThat("Should retain the latest windows", actualWindows, equalTo(expectedWindows));
     });
   }
 
   private <T> Map<T, GenericRow> waitForUniqueUserRows(
-          final Deserializer<T> keyDeserializer,
-          final LogicalSchema aggregateSchema
+      final Deserializer<T> keyDeserializer,
+      final LogicalSchema aggregateSchema
   ) {
     return waitForUniqueUserRows(
-            USER_DATA_PROVIDER.data().size(),
-            keyDeserializer,
-            aggregateSchema
+        USER_DATA_PROVIDER.data().size(),
+        keyDeserializer,
+        aggregateSchema
     );
   }
 
   private <T> Map<T, GenericRow> waitForUniqueUserRows(
-          final int count,
-          final Deserializer<T> keyDeserializer,
-          final LogicalSchema aggregateSchema
+      final int count,
+      final Deserializer<T> keyDeserializer,
+      final LogicalSchema aggregateSchema
   ) {
     return TEST_HARNESS.verifyAvailableUniqueRows(
-            output.toUpperCase(),
-            count,
-            VALUE_FORMAT,
-            PhysicalSchema.from(aggregateSchema, SerdeFeatures.of(), SerdeFeatures.of()),
-            keyDeserializer
+        output.toUpperCase(),
+        count,
+        VALUE_FORMAT,
+        PhysicalSchema.from(aggregateSchema, SerdeFeatures.of(), SerdeFeatures.of()),
+        keyDeserializer
     );
   }
 
   private <T> List<ConsumerRecord<T, GenericRow>> waitForPageViewRows(
-          final Deserializer<T> keyDeserializer,
-          final PhysicalSchema aggregateSchema) {
+      final Deserializer<T> keyDeserializer,
+      final PhysicalSchema aggregateSchema) {
     return TEST_HARNESS.verifyAvailableRows(
-            output.toUpperCase(),
-            hasSize(PAGE_VIEW_DATA_PROVIDER.data().size() * NUM_WINDOWS),
-            VALUE_FORMAT,
-            aggregateSchema,
-            keyDeserializer
+        output.toUpperCase(),
+        hasSize(PAGE_VIEW_DATA_PROVIDER.data().size() * NUM_WINDOWS),
+        VALUE_FORMAT,
+        aggregateSchema,
+        keyDeserializer
     );
   }
 
@@ -731,8 +731,8 @@ public class KsMaterializationFunctionalTest {
   }
 
   private PersistentQueryMetadata executeQuery(
-          final TestKsqlContext ksqlContext,
-          final String statement
+      final TestKsqlContext ksqlContext,
+      final String statement
   ) {
     final List<QueryMetadata> queries = ksqlContext.sql(statement);
 
@@ -748,52 +748,52 @@ public class KsMaterializationFunctionalTest {
 
   @SuppressWarnings("SameParameterValue")
   private static LogicalSchema schema(
-          final String columnName0,
-          final SqlType columnType0
+      final String columnName0,
+      final SqlType columnType0
   ) {
     return LogicalSchema.builder()
-            .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
-            .valueColumn(ColumnName.of(columnName0), columnType0)
-            .build();
+        .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of(columnName0), columnType0)
+        .build();
   }
 
   @SuppressWarnings("SameParameterValue")
   private static LogicalSchema schema(
-          final String columnName0, final SqlType columnType0,
-          final String columnName1, final SqlType columnType1
+      final String columnName0, final SqlType columnType0,
+      final String columnName1, final SqlType columnType1
   ) {
     return LogicalSchema.builder()
-            .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
-            .valueColumn(ColumnName.of(columnName0), columnType0)
-            .valueColumn(ColumnName.of(columnName1), columnType1)
-            .build();
+        .keyColumn(ColumnName.of("USERID"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of(columnName0), columnType0)
+        .valueColumn(ColumnName.of(columnName1), columnType1)
+        .build();
   }
 
   private static void initializeKsql(final TestKsqlContext ksqlContext) {
     ksqlContext.ensureStarted();
 
     ksqlContext.sql("CREATE TABLE " + USER_TABLE
-            + " (" + USER_DATA_PROVIDER.ksqlSchemaString(true) + ")"
-            + " WITH ("
-            + "    kafka_topic='" + USERS_TOPIC + "', "
-            + "    value_format='" + VALUE_FORMAT.name() + "'"
-            + ");"
+        + " (" + USER_DATA_PROVIDER.ksqlSchemaString(true) + ")"
+        + " WITH ("
+        + "    kafka_topic='" + USERS_TOPIC + "', "
+        + "    value_format='" + VALUE_FORMAT.name() + "'"
+        + ");"
     );
 
     ksqlContext.sql("CREATE STREAM " + USER_STREAM + " "
-            + " (" + USER_DATA_PROVIDER.ksqlSchemaString(false) + ")"
-            + " WITH ("
-            + "    kafka_topic='" + USERS_TOPIC + "', "
-            + "    value_format='" + VALUE_FORMAT.name() + "'"
-            + ");"
+        + " (" + USER_DATA_PROVIDER.ksqlSchemaString(false) + ")"
+        + " WITH ("
+        + "    kafka_topic='" + USERS_TOPIC + "', "
+        + "    value_format='" + VALUE_FORMAT.name() + "'"
+        + ");"
     );
 
     ksqlContext.sql("CREATE STREAM " + PAGE_VIEWS_STREAM + " "
-            + " (" + PAGE_VIEW_DATA_PROVIDER.ksqlSchemaString(false) + ")"
-            + " WITH ("
-            + "    kafka_topic='" + PAGE_VIEWS_TOPIC + "', "
-            + "    value_format='" + VALUE_FORMAT.name() + "'"
-            + ");"
+        + " (" + PAGE_VIEW_DATA_PROVIDER.ksqlSchemaString(false) + ")"
+        + " WITH ("
+        + "    kafka_topic='" + PAGE_VIEWS_TOPIC + "', "
+        + "    value_format='" + VALUE_FORMAT.name() + "'"
+        + ");"
     );
   }
 

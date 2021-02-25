@@ -38,7 +38,7 @@ public class ArithmeticUnaryTerm implements Term {
 
   @Override
   public SqlType getSqlType() {
-    return null;
+    return term.getSqlType();
   }
 
   public interface ArithmeticUnaryFunction {

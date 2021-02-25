@@ -40,7 +40,7 @@ import java.util.Objects;
 public final class CastInterpreter {
   private CastInterpreter() { }
 
-  public static <T> CastTerm cast(
+  public static CastTerm cast(
       final Term term,
       final SqlType from,
       final SqlType to,
@@ -56,17 +56,17 @@ public final class CastInterpreter {
   ) {
     final SqlBaseType toBaseType = to.baseType();
     if (toBaseType == SqlBaseType.INTEGER) {
-      return o -> castToInteger(o, from);
+      return castToInteger(from);
     } else if (toBaseType == SqlBaseType.BIGINT) {
-      return o -> castToLong(o, from);
+      return castToLong(from);
     } else if (toBaseType == SqlBaseType.DOUBLE) {
-      return o -> castToDouble(o, from);
+      return castToDouble(from);
     } else if (toBaseType == SqlBaseType.DECIMAL) {
-      return o -> castToBigDecimal(o, from, to);
+      return castToBigDecimal(from, to);
     } else if (toBaseType == SqlBaseType.STRING) {
-      return o -> castToString(o, from, config);
+      return castToString(from, config);
     } else if (toBaseType == SqlBaseType.BOOLEAN) {
-      return o -> castToBoolean(o, from);
+      return castToBoolean(from);
     } else if (toBaseType == SqlBaseType.ARRAY) {
       return castToArrayFunction(from, to, config);
     } else if (toBaseType == SqlBaseType.MAP) {
@@ -76,80 +76,78 @@ public final class CastInterpreter {
     }
   }
 
-  public static Integer castToInteger(
-      final Object object,
+  public static CastFunction castToInteger(
       final SqlType from
   ) {
     if (from.baseType() == SqlBaseType.STRING) {
-      return Integer.parseInt(((String) object).trim());
+      return object -> Integer.parseInt(((String) object).trim());
     }
-    return NumberConversions.toInteger(object, from, ConversionType.CAST);
+    return object -> NumberConversions.toInteger(object, from, ConversionType.CAST);
   }
 
-  public static Double castToDouble(
-      final Object object,
+  public static CastFunction castToDouble(
       final SqlType from
   ) {
     if (from.baseType() == SqlBaseType.STRING) {
-      return SqlDoubles.parseDouble(((String) object).trim());
+      return object -> SqlDoubles.parseDouble(((String) object).trim());
     }
-    return NumberConversions.toDouble(object, from, ConversionType.CAST);
+    return object -> NumberConversions.toDouble(object, from, ConversionType.CAST);
   }
 
-  public static Long castToLong(
-      final Object object,
+  public static CastFunction castToLong(
       final SqlType from
   ) {
     if (from.baseType() == SqlBaseType.STRING) {
-      return Long.parseLong(((String) object).trim());
+      return object -> Long.parseLong(((String) object).trim());
     }
-    return NumberConversions.toLong(object, from, ConversionType.CAST);
+    return object -> NumberConversions.toLong(object, from, ConversionType.CAST);
   }
 
-  public static BigDecimal castToBigDecimal(
-      final Object object,
+  public static CastFunction castToBigDecimal(
       final SqlType from,
       final SqlType to
   ) {
     final SqlDecimal sqlDecimal = (SqlDecimal) to;
     if (from.baseType() == SqlBaseType.INTEGER) {
-      return DecimalUtil.cast(((Integer) object), sqlDecimal.getPrecision(), sqlDecimal.getScale());
+      return object -> DecimalUtil.cast(((Integer) object),
+          sqlDecimal.getPrecision(), sqlDecimal.getScale());
     } else if (from.baseType() == SqlBaseType.BIGINT) {
-      return DecimalUtil.cast(((Long) object), sqlDecimal.getPrecision(), sqlDecimal.getScale());
+      return object -> DecimalUtil.cast(((Long) object), sqlDecimal.getPrecision(),
+          sqlDecimal.getScale());
     } else if (from.baseType() == SqlBaseType.DOUBLE) {
-      return DecimalUtil.cast(((Double) object), sqlDecimal.getPrecision(), sqlDecimal.getScale());
+      return object -> DecimalUtil.cast(((Double) object), sqlDecimal.getPrecision(),
+          sqlDecimal.getScale());
     } else if (from.baseType() == SqlBaseType.DECIMAL) {
-      return DecimalUtil.cast(((BigDecimal) object), sqlDecimal.getPrecision(),
+      return object -> DecimalUtil.cast(((BigDecimal) object), sqlDecimal.getPrecision(),
           sqlDecimal.getScale());
     } else if (from.baseType() == SqlBaseType.STRING) {
-      return DecimalUtil.cast(((String) object), sqlDecimal.getPrecision(), sqlDecimal.getScale());
+      return object -> DecimalUtil.cast(((String) object), sqlDecimal.getPrecision(),
+          sqlDecimal.getScale());
     }
     throw new KsqlException("Unsupported type cast to BigDecimal: " + from);
   }
 
-  public static String castToString(
-      final Object object,
+  public static CastFunction castToString(
       final SqlType from,
       final KsqlConfig config
   ) {
     if (from.baseType() == SqlBaseType.DECIMAL) {
-      return ((BigDecimal) object).toPlainString();
+      return object -> ((BigDecimal) object).toPlainString();
     } else if (from.baseType() == SqlBaseType.TIMESTAMP) {
-      return SqlTimestamps.formatTimestamp(((Timestamp) object));
+      return object -> SqlTimestamps.formatTimestamp(((Timestamp) object));
     }
-    return config.getBoolean(KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE)
+    return object -> config.getBoolean(KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE)
         ? Objects.toString(object, null)
         : String.valueOf(object);
   }
 
-  public static Boolean castToBoolean(
-      final Object object,
+  public static CastFunction castToBoolean(
       final SqlType from
   ) {
     if (from.baseType() == SqlBaseType.STRING) {
-      return SqlBooleans.parseBoolean(((String) object).trim());
+      return object -> SqlBooleans.parseBoolean(((String) object).trim());
     } else if (from.baseType() == SqlBaseType.BOOLEAN) {
-      return (Boolean) object;
+      return object -> object;
     }
     throw new KsqlException("Unsupported cast to BOOLEAN: " + from);
   }

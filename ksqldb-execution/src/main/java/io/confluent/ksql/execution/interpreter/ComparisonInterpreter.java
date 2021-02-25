@@ -20,8 +20,10 @@ import io.confluent.ksql.execution.interpreter.CastInterpreter.ConversionType;
 import io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConversions;
 import io.confluent.ksql.execution.interpreter.terms.BasicTerms.BooleanTerm;
 import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.CompareToTerm;
+import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.ComparisonCheckFunction;
 import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.ComparisonFunction;
 import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.ComparisonNullCheckFunction;
+import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.EqualsCheckFunction;
 import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.EqualsFunction;
 import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.EqualsTerm;
 import io.confluent.ksql.execution.interpreter.terms.Term;
@@ -30,7 +32,6 @@ import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.Optional;
@@ -43,64 +44,36 @@ public final class ComparisonInterpreter {
   private ComparisonInterpreter() { }
 
   /**
-   * After a comparison has been done between two expressions of comparable types, this
-   * evaluates the result according to the requested operation.
-   * @param type The comparison type
-   * @return The evaluated result
+   * Does a comparison between the two terms
+   * @param type The type of the comparison
+   * @param left Left term
+   * @param right Right term
+   * @return The term representing the result of the comparison
    */
-  public static BooleanTerm doComparisonCheck(
+  public static BooleanTerm doComparison(
       final ComparisonExpression.Type type,
       final Term left,
-      final Term right,
-      final ComparisonNullCheckFunction nullCheckFunction,
-      final ComparisonFunction comparisonFunction
+      final Term right
   ) {
-    switch (type) {
-      case EQUAL:
-        return new CompareToTerm(left, right, nullCheckFunction, comparisonFunction,
-            compareTo -> compareTo == 0);
-      case NOT_EQUAL:
-      case IS_DISTINCT_FROM:
-        return new CompareToTerm(left, right, nullCheckFunction, comparisonFunction,
-            compareTo -> compareTo != 0);
-      case GREATER_THAN_OR_EQUAL:
-        return new CompareToTerm(left, right, nullCheckFunction, comparisonFunction,
-            compareTo -> compareTo >= 0);
-      case GREATER_THAN:
-        return new CompareToTerm(left, right, nullCheckFunction, comparisonFunction,
-            compareTo -> compareTo > 0);
-      case LESS_THAN_OR_EQUAL:
-        return new CompareToTerm(left, right, nullCheckFunction, comparisonFunction,
-            compareTo -> compareTo <= 0);
-      case LESS_THAN:
-        return new CompareToTerm(left, right, nullCheckFunction, comparisonFunction,
-            compareTo -> compareTo < 0);
-      default:
-        throw new KsqlException(String.format("Unsupported comparison between %s and %s: %s",
-            left.getSqlType(), right.getSqlType(), type));
+    final ComparisonNullCheckFunction nullCheckFunction = getNullCheckFunction(type);
+
+    final Optional<ComparisonFunction> compareTo = doCompareTo(left, right);
+    if (compareTo.isPresent()) {
+      return new CompareToTerm(left, right, nullCheckFunction, compareTo.get(),
+          getComparisonCheckFunction(type, left, right));
     }
+
+    final Optional<EqualsFunction> equals = doEquals(left, right);
+    if (equals.isPresent()) {
+      return new EqualsTerm(left, right, nullCheckFunction, equals.get(),
+          getEqualsCheckFunction(type, left, right));
+    }
+
+    throw new KsqlException("Unsupported comparison between " + left.getSqlType() + " and "
+        + right.getSqlType());
   }
 
-  public static BooleanTerm doEqualsCheck(
-      final ComparisonExpression.Type type,
-      final Term left,
-      final Term right,
-      final ComparisonNullCheckFunction nullCheckFunction,
-      final EqualsFunction equalsFunction
-  ) {
-    switch (type) {
-      case EQUAL:
-        return new EqualsTerm(left, right, nullCheckFunction, equalsFunction, equals -> equals);
-      case NOT_EQUAL:
-      case IS_DISTINCT_FROM:
-        return new EqualsTerm(left, right, nullCheckFunction, equalsFunction, equals -> !equals);
-      default:
-        throw new KsqlException(String.format("Unsupported comparison between %s and %s: %s",
-            left.getSqlType(), left.getSqlType(), type));
-    }
-  }
-
-  public static BigDecimal toDecimal(final Object object, final SqlType from,
+  private static BigDecimal toDecimal(final Object object, final SqlType from,
       final ConversionType type) {
     if (object instanceof BigDecimal) {
       return (BigDecimal) object;
@@ -118,7 +91,7 @@ public final class ComparisonInterpreter {
     }
   }
 
-  public static Timestamp toTimestamp(final Object object, final SqlType from,
+  private static Timestamp toTimestamp(final Object object, final SqlType from,
       final ConversionType type) {
     if (object instanceof Timestamp) {
       return (Timestamp) object;
@@ -130,7 +103,9 @@ public final class ComparisonInterpreter {
     }
   }
 
-  public static ComparisonNullCheckFunction doNullCheck(final ComparisonExpression.Type type) {
+  private static ComparisonNullCheckFunction getNullCheckFunction(
+      final ComparisonExpression.Type type
+  ) {
     if (type == ComparisonExpression.Type.IS_DISTINCT_FROM) {
       return (c, l, r) -> {
         final Object leftObject = l.getValue(c);
@@ -149,11 +124,9 @@ public final class ComparisonInterpreter {
     };
   }
 
-  public static Optional<ComparisonFunction> doCompareTo(
-      final Pair<Term, SqlType> left,
-      final Pair<Term, SqlType> right) {
-    final SqlBaseType leftType = left.getRight().baseType();
-    final SqlBaseType rightType = right.getRight().baseType();
+  private static Optional<ComparisonFunction> doCompareTo(final Term left, final Term right) {
+    final SqlBaseType leftType = left.getSqlType().baseType();
+    final SqlBaseType rightType = right.getSqlType().baseType();
     if (either(leftType, rightType, SqlBaseType.DECIMAL)) {
       return Optional.of((c, l, r) -> doCompareTo(c, ComparisonInterpreter::toDecimal, l, r));
     } else if (either(leftType, rightType, SqlBaseType.TIMESTAMP)) {
@@ -170,7 +143,7 @@ public final class ComparisonInterpreter {
     return Optional.empty();
   }
 
-  public static <T extends Comparable<T>> int doCompareTo(
+  private static <T extends Comparable<T>> int doCompareTo(
       final TermEvaluationContext context,
       final Conversion<T> conversion,
       final Term left,
@@ -188,12 +161,8 @@ public final class ComparisonInterpreter {
     return leftType == value || rightType == value;
   }
 
-  public static Optional<EqualsFunction> doEquals(
-      final Pair<Term, SqlType> left,
-      final Pair<Term, SqlType> right
-  ) {
-    final SqlBaseType leftType = left.getRight().baseType();
-
+  private static Optional<EqualsFunction> doEquals(final Term left, final Term right) {
+    final SqlBaseType leftType = left.getSqlType().baseType();
     switch (leftType) {
       case ARRAY:
       case MAP:
@@ -205,7 +174,49 @@ public final class ComparisonInterpreter {
     }
   }
 
-  public interface Conversion<T extends Comparable> {
+  private static ComparisonCheckFunction getComparisonCheckFunction(
+      final ComparisonExpression.Type type,
+      final Term left,
+      final Term right
+  ) {
+    switch (type) {
+      case EQUAL:
+        return compareTo -> compareTo == 0;
+      case NOT_EQUAL:
+      case IS_DISTINCT_FROM:
+        return compareTo -> compareTo != 0;
+      case GREATER_THAN_OR_EQUAL:
+        return compareTo -> compareTo >= 0;
+      case GREATER_THAN:
+        return compareTo -> compareTo > 0;
+      case LESS_THAN_OR_EQUAL:
+        return compareTo -> compareTo <= 0;
+      case LESS_THAN:
+        return compareTo -> compareTo < 0;
+      default:
+        throw new KsqlException(String.format("Unsupported comparison between %s and %s: %s",
+            left.getSqlType(), right.getSqlType(), type));
+    }
+  }
+
+  private static EqualsCheckFunction getEqualsCheckFunction(
+      final ComparisonExpression.Type type,
+      final Term left,
+      final Term right
+  ) {
+    switch (type) {
+      case EQUAL:
+        return equals -> equals;
+      case NOT_EQUAL:
+      case IS_DISTINCT_FROM:
+        return equals -> !equals;
+      default:
+        throw new KsqlException(String.format("Unsupported comparison between %s and %s: %s",
+            left.getSqlType(), right.getSqlType(), type));
+    }
+  }
+
+  private interface Conversion<T extends Comparable> {
     T convert(Object object, SqlType from, ConversionType type);
   }
 }

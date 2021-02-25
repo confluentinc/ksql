@@ -23,7 +23,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 
 public final class InterpretedExpressionFactory {
 
@@ -42,10 +41,10 @@ public final class InterpretedExpressionFactory {
       if (returnType == null) {
         throw new KsqlException("NULL expression not supported");
       }
-      final Pair<Term, SqlType> pair = new TermCompiler(
+      final Term term = new TermCompiler(
           functionRegistry, schema, ksqlConfig, expressionTypeManager)
           .process(expression, null);
-      return new InterpretedExpression(expression, returnType, pair.getLeft());
+      return new InterpretedExpression(expression, returnType, term);
     } catch (KsqlException e) {
       throw new KsqlException("Invalid expression: " + e.getMessage()
           + ". expression:" + expression + ", schema:" + schema, e);

@@ -168,7 +168,7 @@ public final class BasicTerms {
 
     @Override
     public SqlType getSqlType() {
-      return SqlTypes.DOUBLE;
+      return SqlTypes.INTEGER;
     }
   }
 

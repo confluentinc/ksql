@@ -19,10 +19,12 @@ import static io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConv
 import static io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConversions.toInteger;
 import static io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConversions.toLong;
 
-import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.interpreter.CastInterpreter.ConversionType;
 import io.confluent.ksql.execution.interpreter.terms.ArithmeticBinaryTerm;
 import io.confluent.ksql.execution.interpreter.terms.ArithmeticBinaryTerm.ArithmeticBinaryFunction;
+import io.confluent.ksql.execution.interpreter.terms.ArithmeticUnaryTerm;
+import io.confluent.ksql.execution.interpreter.terms.ArithmeticUnaryTerm.ArithmeticUnaryFunction;
 import io.confluent.ksql.execution.interpreter.terms.CastTerm;
 import io.confluent.ksql.execution.interpreter.terms.Term;
 import io.confluent.ksql.schema.Operator;
@@ -33,7 +35,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.Pair;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
@@ -41,40 +42,55 @@ import java.math.RoundingMode;
 public final class ArithmeticInterpreter {
   private ArithmeticInterpreter() { }
 
-  public static Term doArithmetic(
-      final ArithmeticBinaryExpression node,
-      final Pair<Term, SqlType> left,
-      final Pair<Term, SqlType> right,
+  public static Term doUnaryArithmetic(final ArithmeticUnaryExpression node, final Term value) {
+    final ArithmeticUnaryFunction function;
+    switch (node.getSign()) {
+      case MINUS:
+        function = getUnaryMinusFunction(value);
+        break;
+      case PLUS:
+        function = getUnaryPlusFunction(value);
+        break;
+      default:
+        throw new UnsupportedOperationException("Unsupported sign: " + node.getSign());
+    }
+    return new ArithmeticUnaryTerm(value, function);
+  }
+
+  public static Term doBinaryArithmetic(
+      final Operator operator,
+      final Term left,
+      final Term right,
       final SqlType resultType,
-      final KsqlConfig ksqlConfig) {
+      final KsqlConfig ksqlConfig
+  ) {
     if (resultType.baseType() == SqlBaseType.DECIMAL) {
       final SqlDecimal decimal = (SqlDecimal) resultType;
-      final CastTerm leftTerm = CastInterpreter.cast(left.left, left.right,
-          DecimalUtil.toSqlDecimal(left.right), ksqlConfig);
-      final CastTerm rightTerm = CastInterpreter.cast(right.left, right.right,
-          DecimalUtil.toSqlDecimal(right.right), ksqlConfig);
-      final DecimalArithmeticBinaryFunction fn = getDecimalFunction(decimal, node.getOperator());
+      final CastTerm leftTerm = CastInterpreter.cast(left, left.getSqlType(),
+          DecimalUtil.toSqlDecimal(left.getSqlType()), ksqlConfig);
+      final CastTerm rightTerm = CastInterpreter.cast(right, right.getSqlType(),
+          DecimalUtil.toSqlDecimal(right.getSqlType()), ksqlConfig);
+      final DecimalArithmeticBinaryFunction fn = getDecimalFunction(decimal, operator);
       return new ArithmeticBinaryTerm(leftTerm, rightTerm,
           (o1, o2) -> fn.doFunction((BigDecimal) o1, (BigDecimal) o2),
           resultType);
     } else {
       final Term leftTerm =
-          left.getRight().baseType() == SqlBaseType.DECIMAL
-              ? CastInterpreter.cast(left.left, left.right, SqlTypes.DOUBLE, ksqlConfig)
-              : left.getLeft();
+          left.getSqlType().baseType() == SqlBaseType.DECIMAL
+              ? CastInterpreter.cast(left, left.getSqlType(), SqlTypes.DOUBLE, ksqlConfig)
+              : left;
       final Term rightTerm =
-          right.getRight().baseType() == SqlBaseType.DECIMAL
-              ? CastInterpreter.cast(right.left, right.right, SqlTypes.DOUBLE, ksqlConfig)
-              : right.getLeft();
+          right.getSqlType().baseType() == SqlBaseType.DECIMAL
+              ? CastInterpreter.cast(right, right.getSqlType(), SqlTypes.DOUBLE, ksqlConfig)
+              : right;
       return new ArithmeticBinaryTerm(leftTerm, rightTerm,
-          ArithmeticInterpreter.getNonDecimalArithmeticFunction(
-              node, left.getRight(), right.getRight()),
+          getNonDecimalArithmeticFunction(operator, left.getSqlType(), right.getSqlType()),
           resultType);
     }
   }
 
   private static ArithmeticBinaryFunction getNonDecimalArithmeticFunction(
-      final ArithmeticBinaryExpression node,
+      final Operator operator,
       final SqlType leftType,
       final SqlType rightType) {
     final SqlBaseType leftBaseType = leftType.baseType();
@@ -82,22 +98,56 @@ public final class ArithmeticInterpreter {
     if (leftBaseType == SqlBaseType.STRING && rightBaseType == SqlBaseType.STRING) {
       return (o1, o2) -> (String) o1 + (String) o2;
     } else if (leftBaseType == SqlBaseType.DOUBLE || rightBaseType == SqlBaseType.DOUBLE) {
-      final DoubleArithmeticBinaryFunction fn = getDoubleFunction(node.getOperator());
+      final DoubleArithmeticBinaryFunction fn = getDoubleFunction(operator);
       return (o1, o2) -> fn.doFunction(
           toDouble(o1, leftType, ConversionType.ARITHMETIC),
           toDouble(o2, rightType, ConversionType.ARITHMETIC));
     } else if (leftBaseType == SqlBaseType.BIGINT || rightBaseType == SqlBaseType.BIGINT) {
-      final LongArithmeticBinaryFunction fn = getLongFunction(node.getOperator());
+      final LongArithmeticBinaryFunction fn = getLongFunction(operator);
       return (o1, o2) -> fn.doFunction(
           toLong(o1, leftType, ConversionType.ARITHMETIC),
           toLong(o2, rightType, ConversionType.ARITHMETIC));
     } else if (leftBaseType == SqlBaseType.INTEGER || rightBaseType == SqlBaseType.INTEGER) {
-      final IntegerArithmeticBinaryFunction fn = getIntegerFunction(node.getOperator());
+      final IntegerArithmeticBinaryFunction fn = getIntegerFunction(operator);
       return (o1, o2) -> fn.doFunction(
           toInteger(o1, leftType, ConversionType.ARITHMETIC),
           toInteger(o2, rightType, ConversionType.ARITHMETIC));
     } else {
       throw new KsqlException("Can't do arithmetic for types " + leftType + " and " + rightType);
+    }
+  }
+
+  private static ArithmeticUnaryFunction getUnaryMinusFunction(final Term term) {
+    if (term.getSqlType().baseType() == SqlBaseType.DECIMAL) {
+      return o -> ((BigDecimal) o).negate(
+          new MathContext(((SqlDecimal) term.getSqlType()).getPrecision(),
+              RoundingMode.UNNECESSARY));
+    } else if (term.getSqlType().baseType() == SqlBaseType.DOUBLE) {
+      return o -> -((Double) o);
+    } else if (term.getSqlType().baseType() == SqlBaseType.INTEGER) {
+      return o -> -((Integer) o);
+    } else if (term.getSqlType().baseType() == SqlBaseType.BIGINT) {
+      return o -> -((Long) o);
+    } else {
+      throw new UnsupportedOperationException("Negation on unsupported type: "
+          + term.getSqlType());
+    }
+  }
+
+  private static ArithmeticUnaryFunction getUnaryPlusFunction(final Term term) {
+    if (term.getSqlType().baseType() == SqlBaseType.DECIMAL) {
+      return o -> ((BigDecimal) o)
+          .plus(new MathContext(((SqlDecimal) term.getSqlType()).getPrecision(),
+              RoundingMode.UNNECESSARY));
+    } else if (term.getSqlType().baseType() == SqlBaseType.DOUBLE) {
+      return o -> +((Double) o);
+    } else if (term.getSqlType().baseType() == SqlBaseType.INTEGER) {
+      return o -> +((Integer) o);
+    } else if (term.getSqlType().baseType() == SqlBaseType.BIGINT) {
+      return o -> +((Long) o);
+    } else {
+      throw new UnsupportedOperationException("Unary plus on unsupported type: "
+          + term.getSqlType());
     }
   }
 
@@ -154,7 +204,8 @@ public final class ArithmeticInterpreter {
 
   private static DecimalArithmeticBinaryFunction getDecimalFunction(
       final SqlDecimal decimal,
-      final Operator operator) {
+      final Operator operator
+  ) {
     final MathContext mc = new MathContext(decimal.getPrecision(),
         RoundingMode.UNNECESSARY);
     switch (operator) {

@@ -196,7 +196,12 @@ public final class KsLocator implements Locator {
       streamsMetadata.topicPartitions().forEach(
           tp -> {
             if (sourceTopicSuffixes.stream().anyMatch(suffix -> tp.topic().endsWith(suffix))) {
-              activeHostByPartition.put(tp.partition(), streamsMetadata.hostInfo());
+              activeHostByPartition.compute(tp.partition(), (partition, hostInfo) -> {
+                if (hostInfo != null && !streamsMetadata.hostInfo().equals(hostInfo)) {
+                  throw new IllegalStateException("Should only be one active host per partition");
+                }
+                return streamsMetadata.hostInfo();
+              });
             }
           });
 

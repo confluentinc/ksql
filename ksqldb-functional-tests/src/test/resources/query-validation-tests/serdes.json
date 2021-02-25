@@ -229,10 +229,6 @@
         {
           "name": "input_topic",
           "schema": {"type": "map", "values": ["null", "int"]}
-        },
-        {
-          "name": "OUTPUT",
-          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","int"],"default":null}]}}]}]}
         }
       ],
       "inputs": [
@@ -262,11 +258,6 @@
           "name": "input_topic",
           "schema": {"type": "map", "values": ["null", "int"]},
           "format": "AVRO"
-        },
-        {
-          "name": "OUTPUT",
-          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","string"],"default":null}]}}]}]},
-          "format": "AVRO"
         }
       ],
       "inputs": [
@@ -292,10 +283,6 @@
         {
           "name": "input_topic",
           "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type": "map", "values": ["null", "int"]}]}]}
-        },
-        {
-          "name": "OUTPUT",
-          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","int"],"default":null}]}}]}]}
         }
       ],
       "inputs": [
@@ -445,12 +432,6 @@
         "CREATE STREAM INPUT (K STRING KEY, foo BOOLEAN) WITH (kafka_topic='input_topic', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
       ],
-      "topics": [
-        {
-          "name": "OUTPUT",
-          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null","boolean"]}]}
-        }
-      ],
       "inputs": [
         {"topic": "input_topic", "value": {"FOO": true}},
         {"topic": "input_topic", "value": {"FOO": null}},
@@ -486,12 +467,6 @@
         "CREATE STREAM INPUT (foo ARRAY<BIGINT>) WITH (kafka_topic='input_topic', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
       ],
-      "topics": [
-        {
-          "name": "OUTPUT",
-          "schema": {"type": "array", "items": ["null", "long"]}
-        }
-      ],
       "inputs": [
         {"topic": "input_topic", "value": {"FOO": [12, 34, 999]}},
         {"topic": "input_topic", "value": {"FOO": [12, 34, null]}},
@@ -511,12 +486,6 @@
       "statements": [
         "CREATE STREAM INPUT (foo ARRAY<BIGINT>) WITH (kafka_topic='input_topic', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
-      ],
-      "topics": [
-        {
-          "name": "OUTPUT",
-          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type": "array", "items": ["null", "long"]}]}]}
-        }
       ],
       "inputs": [
         {"topic": "input_topic", "value": {"FOO": [12, 34, 999]}},
@@ -555,12 +524,6 @@
         "CREATE STREAM INPUT (foo MAP<STRING, DOUBLE>) WITH (kafka_topic='input_topic', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
       ],
-      "topics": [
-        {
-          "name": "OUTPUT",
-          "schema": {"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","double"],"default":null}]}}
-        }
-      ],
       "inputs": [
         {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
         {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": null}}},
@@ -580,12 +543,6 @@
       "statements": [
         "CREATE STREAM INPUT (foo MAP<STRING, DOUBLE>) WITH (kafka_topic='input_topic', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
-      ],
-      "topics": [
-        {
-          "name": "OUTPUT",
-          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","double"],"default":null}]}}]}]}
-        }
       ],
       "inputs": [
         {"topic": "input_topic", "value": {"FOO": {"a": 1.1, "b": 2.2, "c": 3.456}}},
@@ -624,12 +581,6 @@
         "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT * FROM INPUT;"
       ],
-      "topics": [
-        {
-          "name": "OUTPUT",
-          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "F0", "type": ["null", "int"]}]}
-        }
-      ],
       "inputs": [
         {"topic": "input_topic", "value": {"FOO": {"F0": 1}}},
         {"topic": "input_topic", "value": {"FOO": {"F0": null}}},
@@ -649,14 +600,6 @@
       "statements": [
         "CREATE STREAM INPUT (foo STRUCT<F0 INT>) WITH (kafka_topic='input_topic', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT WITH (WRAP_SINGLE_VALUE=true) AS SELECT * FROM INPUT;"
-      ],
-      "topics": [
-        {
-          "name": "OUTPUT",
-          "schema": {"name": "ignored", "type": "record", "fields": [
-            {"name": "FOO", "type": ["null", {"name": "ignored2", "type": "record", "fields": [{"name": "F0", "type": ["null", "int"]}]}]}
-          ]}
-        }
       ],
       "inputs": [
         {"topic": "input_topic", "value": {"FOO": {"F0": 1}}},

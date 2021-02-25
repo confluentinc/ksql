@@ -452,21 +452,32 @@ public class SqlToJavaVisitor {
       final String instanceName = funNameToCodeName.apply(functionName);
 
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
+
+      final TypeContext contextCopy = context.getCopy();
       final List<SqlArgument> argumentSchemas = new ArrayList<>();
+      final List<TypeContext> typeContextsForChildren = new ArrayList<>();
       final boolean hasLambda = node.hasLambdaFunctionCallArguments();
+
       for (final Expression argExpr : node.getArguments()) {
-        final TypeContext childContext = context.getCopy();
+        final TypeContext childContext;
+        if (argExpr instanceof LambdaFunctionCall) {
+          childContext = contextCopy.getCopy();
+        } else {
+          childContext = context.getCopy();
+        }
+
+        typeContextsForChildren.add(childContext.getCopy());
         final SqlType resolvedArgType =
             expressionTypeManager.getExpressionSqlType(argExpr, childContext);
         if (argExpr instanceof LambdaFunctionCall) {
           argumentSchemas.add(
               SqlArgument.of(
-                  SqlLambda.of(context.getLambdaInputTypes(), childContext.getSqlType())));
+                  SqlLambda.of(contextCopy.getLambdaInputTypes(), resolvedArgType)));
         } else {
           argumentSchemas.add(SqlArgument.of(resolvedArgType));
           // for lambdas - we save the type information to resolve the lambda generics
           if (hasLambda) {
-            context.visitType(resolvedArgType);
+            contextCopy.visitType(resolvedArgType);
           }
         }
       }
@@ -494,7 +505,7 @@ public class SqlToJavaVisitor {
         }
 
         joiner.add(
-            process(convertArgument(arg, sqlType, paramType), context.getCopy())
+            process(convertArgument(arg, sqlType, paramType),typeContextsForChildren.get(i))
             .getLeft());
       }
 

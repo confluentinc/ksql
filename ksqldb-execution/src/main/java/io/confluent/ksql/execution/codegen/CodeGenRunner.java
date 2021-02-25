@@ -183,23 +183,33 @@ public class CodeGenRunner {
 
     @Override
     public Void visitFunctionCall(final FunctionCall node, final TypeContext context) {
-      final List<SqlArgument> argumentTypes = new ArrayList<>();
       final FunctionName functionName = node.getName();
+
+      final TypeContext contextCopy = context.getCopy();
+      final List<SqlArgument> argumentTypes = new ArrayList<>();
+      final List<TypeContext> typeContextsForChildren = new ArrayList<>();
       final boolean hasLambda = node.hasLambdaFunctionCallArguments();
       for (final Expression argExpr : node.getArguments()) {
-        final TypeContext childContext = context.getCopy();
+        final TypeContext childContext;
+        if (argExpr instanceof LambdaFunctionCall) {
+          childContext = contextCopy.getCopy();
+        } else {
+          childContext = context.getCopy();
+        }
+
+        typeContextsForChildren.add(childContext);
         final SqlType resolvedArgType =
-            expressionTypeManager.getExpressionSqlType(argExpr, childContext);
+            expressionTypeManager.getExpressionSqlType(argExpr, childContext.getCopy());
 
         if (argExpr instanceof LambdaFunctionCall) {
           argumentTypes.add(
               SqlArgument.of(
-                  SqlLambda.of(context.getLambdaInputTypes(), childContext.getSqlType())));
+                  SqlLambda.of(contextCopy.getLambdaInputTypes(), resolvedArgType)));
         } else {
           argumentTypes.add(SqlArgument.of(resolvedArgType));
           // for lambdas - we save the type information to resolve the lambda generics
           if (hasLambda) {
-            context.visitType(resolvedArgType);
+            contextCopy.visitType(resolvedArgType);
           }
         }
       }
@@ -211,8 +221,9 @@ public class CodeGenRunner {
           function.newInstance(ksqlConfig)
       );
 
-      for (final Expression argExpr : node.getArguments()) {
-        process(argExpr, context.getCopy());
+      final List<Expression> arguments = node.getArguments();
+      for (int i = 0; i < arguments.size(); i++) {
+        process(arguments.get(i), typeContextsForChildren.get(i));
       }
       return null;
     }

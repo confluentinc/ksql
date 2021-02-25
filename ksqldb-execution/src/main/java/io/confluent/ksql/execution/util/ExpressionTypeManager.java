@@ -474,22 +474,30 @@ public class ExpressionTypeManager {
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
 
       final List<SqlArgument> argTypes = new ArrayList<>();
+      final TypeContext contextCopy = expressionTypeContext.getCopy();
 
       final boolean hasLambda = node.hasLambdaFunctionCallArguments();
       for (final Expression expression : node.getArguments()) {
-        final TypeContext childContext = expressionTypeContext.getCopy();
+        final TypeContext childContext;
+        if (expression instanceof LambdaFunctionCall) {
+          childContext = contextCopy.getCopy();
+        } else {
+          childContext = expressionTypeContext.getCopy();
+        }
         process(expression, childContext);
         final SqlType resolvedArgType = childContext.getSqlType();
+
         if (expression instanceof LambdaFunctionCall) {
           argTypes.add(
               SqlArgument.of(
-                  SqlLambda.of(expressionTypeContext.getLambdaInputTypes(), 
-                  childContext.getSqlType())));
+                  SqlLambda.of(
+                      contextCopy.getLambdaInputTypes(),
+                      resolvedArgType)));
         } else {
           argTypes.add(SqlArgument.of(resolvedArgType));
           // for lambdas - we save the type information to resolve the lambda generics
           if (hasLambda) {
-            expressionTypeContext.visitType(resolvedArgType);
+            contextCopy.visitType(resolvedArgType);
           }
         }
       }

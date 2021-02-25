@@ -1,3 +1,18 @@
+/*
+ * Copyright 2021 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.execution.interpreter.terms;
 
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
@@ -6,7 +21,10 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 
-public class BasicTerms {
+@SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
+public final class BasicTerms {
+
+  private BasicTerms() { }
 
   public static BooleanTerm of(final Boolean value) {
     return new BooleanTermImpl(value);
@@ -41,31 +59,31 @@ public class BasicTerms {
   }
 
   public interface BooleanTerm extends Term {
-    Boolean getBoolean(final TermEvaluationContext context);
+    Boolean getBoolean(TermEvaluationContext context);
   }
 
   public interface DecimalTerm extends Term {
-    BigDecimal getDecimal(final TermEvaluationContext context);
+    BigDecimal getDecimal(TermEvaluationContext context);
   }
 
   public interface DoubleTerm extends Term {
-    Double getDouble(final TermEvaluationContext context);
+    Double getDouble(TermEvaluationContext context);
   }
 
   public interface IntegerTerm extends Term {
-    Integer getInteger(final TermEvaluationContext context);
+    Integer getInteger(TermEvaluationContext context);
   }
 
   public interface LongTerm extends Term {
-    Long getLong(final TermEvaluationContext context);
+    Long getLong(TermEvaluationContext context);
   }
 
   public interface StringTerm extends Term {
-    String getString(final TermEvaluationContext context);
+    String getString(TermEvaluationContext context);
   }
 
   public interface TimestampTerm extends Term {
-    Timestamp getTimestamp(final TermEvaluationContext context);
+    Timestamp getTimestamp(TermEvaluationContext context);
   }
 
   public static class NullTerm implements Term {

@@ -1,3 +1,18 @@
+/*
+ * Copyright 2021 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.execution.interpreter;
 
 import static io.confluent.ksql.execution.interpreter.ComparisonInterpreter.doCompareTo;
@@ -104,6 +119,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 public class TermCompiler implements ExpressionVisitor<Pair<Term, SqlType>, Void> {
 
   private final FunctionRegistry functionRegistry;
@@ -451,7 +467,8 @@ public class TermCompiler implements ExpressionVisitor<Pair<Term, SqlType>, Void
     if (value.getRight().baseType()  == SqlBaseType.DECIMAL) {
       return new Pair<>(
           new ArithmeticUnaryTerm(value.getLeft(),
-              o -> ((BigDecimal) o).negate(new MathContext(((SqlDecimal) value.getRight()).getPrecision(),
+              o -> ((BigDecimal) o).negate(
+                  new MathContext(((SqlDecimal) value.getRight()).getPrecision(),
                   RoundingMode.UNNECESSARY))),
           value.getRight()
       );
@@ -579,12 +596,12 @@ public class TermCompiler implements ExpressionVisitor<Pair<Term, SqlType>, Void
         .coerceUserList(exp.getValues(), expressionTypeManager)
         .expressions();
 
-    List<Term> arrayTerms = expressions
+    final List<Term> arrayTerms = expressions
         .stream()
         .map(value -> process(value, context).getLeft())
         .collect(ImmutableList.toImmutableList());
 
-    SqlType sqlType = expressionTypeManager.getExpressionSqlType(exp);
+    final SqlType sqlType = expressionTypeManager.getExpressionSqlType(exp);
     return new Pair<>(
         new CreateArrayTerm(arrayTerms, sqlType),
         sqlType);
@@ -607,7 +624,7 @@ public class TermCompiler implements ExpressionVisitor<Pair<Term, SqlType>, Void
     final Iterable<Pair<Expression, Expression>> pairs = () -> Streams.zip(
         keys.stream(), values.stream(), Pair::of)
         .iterator();
-    ImmutableMap.Builder<Term, Term> mapTerms = ImmutableMap.builder();
+    final ImmutableMap.Builder<Term, Term> mapTerms = ImmutableMap.builder();
     for (Pair<Expression, Expression> p : pairs) {
       mapTerms.put(
           process(p.getLeft(), context).getLeft(),
@@ -626,7 +643,7 @@ public class TermCompiler implements ExpressionVisitor<Pair<Term, SqlType>, Void
       final Void context
   ) {
 
-    ImmutableMap.Builder<String, Term> nameToTerm = ImmutableMap.builder();
+    final ImmutableMap.Builder<String, Term> nameToTerm = ImmutableMap.builder();
     for (final Field field : node.getFields()) {
       nameToTerm.put(field.getName(), process(field.getValue(), context).getLeft());
     }
@@ -641,7 +658,7 @@ public class TermCompiler implements ExpressionVisitor<Pair<Term, SqlType>, Void
       final BetweenPredicate node,
       final Void context
   ) {
-    Expression and = new LogicalBinaryExpression(LogicalBinaryExpression.Type.AND,
+    final Expression and = new LogicalBinaryExpression(LogicalBinaryExpression.Type.AND,
         new ComparisonExpression(
             ComparisonExpression.Type.GREATER_THAN_OR_EQUAL,
             node.getValue(),

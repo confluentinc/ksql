@@ -19,7 +19,6 @@ import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.interpreter.CastInterpreter.ConversionType;
 import io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConversions;
 import io.confluent.ksql.execution.interpreter.terms.BasicTerms.BooleanTerm;
-import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm;
 import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.CompareToTerm;
 import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.ComparisonFunction;
 import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.ComparisonNullCheckFunction;

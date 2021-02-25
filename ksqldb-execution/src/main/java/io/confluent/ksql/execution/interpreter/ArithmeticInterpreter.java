@@ -53,9 +53,9 @@ public final class ArithmeticInterpreter {
           DecimalUtil.toSqlDecimal(left.right), ksqlConfig);
       final CastTerm rightTerm = CastInterpreter.cast(right.left, right.right,
           DecimalUtil.toSqlDecimal(right.right), ksqlConfig);
+      final DecimalArithmeticBinaryFunction fn = getDecimalFunction(decimal, node.getOperator());
       return new ArithmeticBinaryTerm(leftTerm, rightTerm,
-          (o1, o2) -> ArithmeticInterpreter.apply(
-              decimal, node.getOperator(), (BigDecimal) o1, (BigDecimal) o2),
+          (o1, o2) -> fn.doFunction((BigDecimal) o1, (BigDecimal) o2),
           resultType);
     } else {
       final Term leftTerm =
@@ -67,13 +67,13 @@ public final class ArithmeticInterpreter {
               ? CastInterpreter.cast(right.left, right.right, SqlTypes.DOUBLE, ksqlConfig)
               : right.getLeft();
       return new ArithmeticBinaryTerm(leftTerm, rightTerm,
-          ArithmeticInterpreter.doArithmeticNonDecimal(
+          ArithmeticInterpreter.getNonDecimalArithmeticFunction(
               node, left.getRight(), right.getRight()),
           resultType);
     }
   }
 
-  private static ArithmeticBinaryFunction doArithmeticNonDecimal(
+  private static ArithmeticBinaryFunction getNonDecimalArithmeticFunction(
       final ArithmeticBinaryExpression node,
       final SqlType leftType,
       final SqlType rightType) {
@@ -82,15 +82,18 @@ public final class ArithmeticInterpreter {
     if (leftBaseType == SqlBaseType.STRING && rightBaseType == SqlBaseType.STRING) {
       return (o1, o2) -> (String) o1 + (String) o2;
     } else if (leftBaseType == SqlBaseType.DOUBLE || rightBaseType == SqlBaseType.DOUBLE) {
-      return (o1, o2) -> ArithmeticInterpreter.apply(node.getOperator(),
+      final DoubleArithmeticBinaryFunction fn = getDoubleFunction(node.getOperator());
+      return (o1, o2) -> fn.doFunction(
           toDouble(o1, leftType, ConversionType.ARITHMETIC),
           toDouble(o2, rightType, ConversionType.ARITHMETIC));
     } else if (leftBaseType == SqlBaseType.BIGINT || rightBaseType == SqlBaseType.BIGINT) {
-      return (o1, o2) -> ArithmeticInterpreter.apply(node.getOperator(),
+      final LongArithmeticBinaryFunction fn = getLongFunction(node.getOperator());
+      return (o1, o2) -> fn.doFunction(
           toLong(o1, leftType, ConversionType.ARITHMETIC),
           toLong(o2, rightType, ConversionType.ARITHMETIC));
     } else if (leftBaseType == SqlBaseType.INTEGER || rightBaseType == SqlBaseType.INTEGER) {
-      return (o1, o2) -> ArithmeticInterpreter.apply(node.getOperator(),
+      final IntegerArithmeticBinaryFunction fn = getIntegerFunction(node.getOperator());
+      return (o1, o2) -> fn.doFunction(
           toInteger(o1, leftType, ConversionType.ARITHMETIC),
           toInteger(o2, rightType, ConversionType.ARITHMETIC));
     } else {
@@ -98,77 +101,91 @@ public final class ArithmeticInterpreter {
     }
   }
 
-  private static Double apply(final Operator operator, final Double a, final Double b) {
+  private static DoubleArithmeticBinaryFunction getDoubleFunction(final Operator operator) {
     switch (operator) {
       case ADD:
-        return a + b;
+        return (a, b) -> a + b;
       case SUBTRACT:
-        return a - b;
+        return (a, b) -> a - b;
       case MULTIPLY:
-        return a * b;
+        return (a, b) -> a * b;
       case DIVIDE:
-        return a / b;
+        return (a, b) -> a / b;
       case MODULUS:
-        return a % b;
+        return (a, b) -> a % b;
       default:
         throw new KsqlException("Unknown operator " + operator);
     }
   }
 
-  private static Integer apply(final Operator operator, final Integer a, final Integer b) {
+  private static IntegerArithmeticBinaryFunction getIntegerFunction(final Operator operator) {
     switch (operator) {
       case ADD:
-        return a + b;
+        return (a, b) -> a + b;
       case SUBTRACT:
-        return a - b;
+        return (a, b) -> a - b;
       case MULTIPLY:
-        return a * b;
+        return (a, b) -> a * b;
       case DIVIDE:
-        return a / b;
+        return (a, b) -> a / b;
       case MODULUS:
-        return a % b;
+        return (a, b) -> a % b;
       default:
         throw new KsqlException("Unknown operator " + operator);
     }
   }
 
-  private static Long apply(final Operator operator, final Long a, final Long b) {
+  private static LongArithmeticBinaryFunction getLongFunction(final Operator operator) {
     switch (operator) {
       case ADD:
-        return a + b;
+        return (a, b) -> a + b;
       case SUBTRACT:
-        return a - b;
+        return (a, b) -> a - b;
       case MULTIPLY:
-        return a * b;
+        return (a, b) -> a * b;
       case DIVIDE:
-        return a / b;
+        return (a, b) -> a / b;
       case MODULUS:
-        return a % b;
+        return (a, b) -> a % b;
       default:
         throw new KsqlException("Unknown operator " + operator);
     }
   }
 
-  private static BigDecimal apply(
+  private static DecimalArithmeticBinaryFunction getDecimalFunction(
       final SqlDecimal decimal,
-      final Operator operator,
-      final BigDecimal a,
-      final BigDecimal b) {
+      final Operator operator) {
     final MathContext mc = new MathContext(decimal.getPrecision(),
         RoundingMode.UNNECESSARY);
     switch (operator) {
       case ADD:
-        return a.add(b, mc).setScale(decimal.getScale());
+        return (a, b) -> a.add(b, mc).setScale(decimal.getScale());
       case SUBTRACT:
-        return a.subtract(b, mc).setScale(decimal.getScale());
+        return (a, b) -> a.subtract(b, mc).setScale(decimal.getScale());
       case MULTIPLY:
-        return a.multiply(b, mc).setScale(decimal.getScale());
+        return (a, b) -> a.multiply(b, mc).setScale(decimal.getScale());
       case DIVIDE:
-        return a.divide(b, mc).setScale(decimal.getScale());
+        return (a, b) -> a.divide(b, mc).setScale(decimal.getScale());
       case MODULUS:
-        return a.remainder(b, mc).setScale(decimal.getScale());
+        return (a, b) -> a.remainder(b, mc).setScale(decimal.getScale());
       default:
         throw new KsqlException("DECIMAL operator not supported: " + operator);
     }
+  }
+
+  private interface IntegerArithmeticBinaryFunction {
+    Integer doFunction(Integer o1, Integer o2);
+  }
+
+  private interface DoubleArithmeticBinaryFunction {
+    Double doFunction(Double o1, Double o2);
+  }
+
+  private interface LongArithmeticBinaryFunction {
+    Long doFunction(Long o1, Long o2);
+  }
+
+  private interface DecimalArithmeticBinaryFunction {
+    BigDecimal doFunction(BigDecimal o1, BigDecimal o2);
   }
 }

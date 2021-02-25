@@ -25,7 +25,6 @@ import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.function.Supplier;
 
-@SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 public class InterpretedExpression implements ExpressionEvaluator {
 
   private final Term term;

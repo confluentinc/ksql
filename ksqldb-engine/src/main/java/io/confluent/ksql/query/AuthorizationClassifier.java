@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"; you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -17,30 +17,38 @@ package io.confluent.ksql.query;
 
 import io.confluent.ksql.query.QueryError.Type;
 import java.util.Objects;
-import org.apache.kafka.streams.errors.MissingSourceTopicException;
+import org.apache.kafka.common.errors.AuthorizationException;
+import org.apache.kafka.streams.errors.StreamsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@code MissingTopicClassifier} classifies missing source topic exceptions as user error
+ * {@code AuthorizationClassifier} classifies missing ACLs as user error
  */
-public class MissingTopicClassifier implements QueryErrorClassifier {
+public class AuthorizationClassifier implements QueryErrorClassifier {
 
-  private static final Logger LOG = LoggerFactory.getLogger(MissingTopicClassifier.class);
+  private static final Logger LOG =
+      LoggerFactory.getLogger(AuthorizationClassifier.class);
 
   private final String queryId;
 
-  public MissingTopicClassifier(final String queryId) {
+  public AuthorizationClassifier(final String queryId) {
     this.queryId = Objects.requireNonNull(queryId, "queryId");
   }
 
   @Override
   public Type classify(final Throwable e) {
-    final Type type = e instanceof MissingSourceTopicException ? Type.USER : Type.UNKNOWN;
+    final Type type =
+        e instanceof AuthorizationException
+        || e instanceof StreamsException
+            && e.getCause() instanceof AuthorizationException
+        ? Type.USER
+        : Type.UNKNOWN;
 
     if (type == Type.USER) {
       LOG.info(
-          "Classified error as USER error based on missing topic. Query ID: {} Exception: {}",
+          "Classified error as USER error based on missing access rights."
+              + " Query ID: {} Exception: {}",
           queryId,
           e);
     }

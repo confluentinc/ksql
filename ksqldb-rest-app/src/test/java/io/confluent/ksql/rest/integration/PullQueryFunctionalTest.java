@@ -350,7 +350,8 @@ public class PullQueryFunctionalTest {
   @Test
   public void shouldDoTableScanBothNodes_multipleSubtopologies() {
     // Given:
-    // The 'a-' prefix creates a repartition and and therefore 2 subtopologies
+    // The 'a-' prefix creates a repartition and and therefore 2 subtopologies.  This is important
+    // to exercise the logic that filters source topics by subtopology for table scans.
     makeAdminRequest(
         "CREATE TABLE " + output + " AS"
             + " SELECT 'a-' + " + USER_PROVIDER.key() + " AS USERID, COUNT(1) AS COUNT FROM "

@@ -21,6 +21,42 @@
       ]
     },
     {
+      "name": "nested lambdas ex 1",
+      "statements": [
+        "CREATE STREAM test (ID STRING KEY, numbers MAP<STRING, ARRAY<INTEGER>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, TRANSFORM(FILTER(numbers, (a, b) => len(a) > 2 AND reduce(0, b, (c, d) => c+d) < 20), (X,Y) => lpad(x, REDUCE(2, Y, (s, k) => abs(abs(k)-s)), 'a'), (X,Y) => REDUCE(0, array_union(Y, TRANSFORM(Y, z => z*3)), (e, f) => e+f)) AS c FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "one", "value": {"numbers": {"a": [2,4,5], "bcd": [-5,7]}}},
+        {"topic": "test_topic", "key": "two", "value": {"numbers": {"hello": [200,4,5], "hey": [14, -3, -15, 3], "wow": [2, 3, 4]}}},
+        {"topic": "test_topic", "key": "three", "value": {"numbers": {"a": null, "bcdefg": [-15,72]}}},
+        {"topic": "test_topic", "key": "four", "value": {"numbers": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "one", "value": {"C":{"abcd": 8}}},
+        {"topic": "OUTPUT", "key": "two", "value": {"C":{"hey": -4, "w": 36}}},
+        {"topic": "OUTPUT", "key": "three", "value": {"C": {}}},
+        {"topic": "OUTPUT", "key": "four", "value": {"C":null}}
+      ]
+    },
+    {
+      "name": "capitalize all array elements",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE ARRAY<string>) WITH (kafka_topic='test_topic',value_format='AVRO');",
+        "CREATE STREAM OUTPUT as SELECT ID, ARRAY_TRANSFORM(VALUE, x => UCASE(x)) AS LAMBDA FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"VALUE": ["hello", "these", "are", "my", "strings"]}},
+        {"topic": "test_topic", "key": 1, "value": {"VALUE": ["check", null, "null"]}},
+        {"topic": "test_topic", "key": 0, "value": {"VALUE": ["ksqldb", "kafka", "streams"]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0,"value": {"LAMBDA": ["HELLO", "THESE", "ARE", "MY", "STRINGS"]}},
+        {"topic": "OUTPUT", "key": 1,"value": {"LAMBDA": ["CHECK", null, "NULL"]}},
+        {"topic": "OUTPUT", "key": 0,"value": {"LAMBDA": ["KSQLDB", "KAFKA", "STREAMS"]}}
+      ]
+    },
+    {
       "name": "apply lambda filter with udf to array",
       "statements": [
         "CREATE STREAM TEST (ID BIGINT KEY, VALUE ARRAY<DECIMAL(4,2)>) WITH (kafka_topic='test_topic',value_format='AVRO');",

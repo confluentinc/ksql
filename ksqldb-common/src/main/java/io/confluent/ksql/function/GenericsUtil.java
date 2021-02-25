@@ -213,23 +213,27 @@ public final class GenericsUtil {
     if (schema instanceof LambdaType) {
       final LambdaType lambdaType = (LambdaType) schema;
       final SqlLambda sqlLambda = instance.getSqlLambdaOrThrow();
-      if (sqlLambda.getInputType().size() != lambdaType.inputTypes().size()) {
-        throw new KsqlException(
-            "Number of lambda arguments doesn't match between schema and sql type");
-      }
-
-      int i = 0;
-      for (final ParamType paramType : lambdaType.inputTypes()) {
-        if (!resolveGenerics(
-            mapping, paramType, SqlArgument.of(sqlLambda.getInputType().get(i))
-        )) {
-          return false;
+      if (!sqlLambda.isNotImportant()) {
+        if (sqlLambda.getInputType().size() != lambdaType.inputTypes().size()) {
+          throw new KsqlException(
+              "Number of lambda arguments doesn't match between schema and sql type");
         }
-        i++;
+
+        int i = 0;
+        for (final ParamType paramType : lambdaType.inputTypes()) {
+          if (!resolveGenerics(
+              mapping, paramType, SqlArgument.of(sqlLambda.getInputType().get(i))
+          )) {
+            return false;
+          }
+          i++;
+        }
+        return resolveGenerics(
+            mapping, lambdaType.returnType(), SqlArgument.of(sqlLambda.getReturnType())
+        );
+      } else {
+        return lambdaType.inputTypes().size() == sqlLambda.getNumInputs();
       }
-      return resolveGenerics(
-          mapping, lambdaType.returnType(), SqlArgument.of(sqlLambda.getReturnType())
-      );
     }
 
     final SqlType sqlType = instance.getSqlTypeOrThrow();

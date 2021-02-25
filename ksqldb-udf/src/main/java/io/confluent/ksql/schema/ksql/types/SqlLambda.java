@@ -31,8 +31,10 @@ import java.util.stream.Collectors;
 @Immutable
 public final class SqlLambda {
 
-  private final List<SqlType> inputTypes;
-  private final SqlType returnType;
+  private List<SqlType> inputTypes;
+  private SqlType returnType;
+  private final Integer numInputs;
+  private boolean isFake;
 
   public static SqlLambda of(
       final List<SqlType> inputType,
@@ -41,13 +43,34 @@ public final class SqlLambda {
     return new SqlLambda(inputType, returnType);
   }
 
+  public static SqlLambda newof(
+      final Integer numInputs
+  ) {
+    return new SqlLambda(numInputs);
+  }
+
   public SqlLambda(
       final List<SqlType> inputTypes,
       final SqlType returnType
   ) {
     this.inputTypes = ImmutableList.copyOf(requireNonNull(inputTypes, "inputType"));
     this.returnType = requireNonNull(returnType, "returnType");
+    this.numInputs = inputTypes.size();
+    this.isFake = true;
   }
+
+  public SqlLambda(
+      final Integer numInputs
+  ) {
+    this.inputTypes = null;
+    this.returnType = null;
+    this.numInputs = numInputs;
+    this.isFake = true;
+  }
+
+  public void reverseIsFake() {this.isFake = false;}
+
+  public boolean isNotImportant() {return isFake;}
 
   public List<SqlType> getInputType() {
     return inputTypes;
@@ -56,6 +79,20 @@ public final class SqlLambda {
   public SqlType getReturnType() {
     return returnType;
   }
+
+  public Integer getNumInputs() {
+    return numInputs;
+  }
+
+  public void setInputType(final List<SqlType> list) {
+    this.inputTypes = list;
+  }
+
+
+  public void setReturnType(final SqlType type) {
+    this.returnType = type;
+  }
+
 
   @Override
   public boolean equals(final Object o) {
@@ -81,7 +118,13 @@ public final class SqlLambda {
   }
 
   public String toString(final FormatOptions formatOptions) {
-    return "LAMBDA "
+    /*return "LAMBDA "
+        + inputTypes.stream()
+        .map(Object::toString)
+        .collect(Collectors.joining(", ", "(", ")"))
+        + " => "
+        + returnType.toString(formatOptions);*/
+    return isFake ? "LAMBDA" : "LAMBDA "
         + inputTypes.stream()
         .map(Object::toString)
         .collect(Collectors.joining(", ", "(", ")"))

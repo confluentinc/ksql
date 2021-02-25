@@ -214,14 +214,12 @@ public class CodeGenRunner {
           }
         }
       }
-
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       final KsqlScalarFunction function = holder.getFunction(argumentTypes);
       spec.addFunction(
           function.name(),
           function.newInstance(ksqlConfig)
       );
-
       final List<Expression> arguments = node.getArguments();
       for (int i = 0; i < arguments.size(); i++) {
         process(arguments.get(i), typeContextsForChildren.get(i));

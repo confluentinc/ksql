@@ -4,7 +4,7 @@ import java.util.regex.Pattern
 def baseConfig = {
     owner = 'ksql'
     slackChannel = '#ksqldb-warn'
-    ksql_db_version = "0.16.0"  // next version to be released
+    ksql_db_version = "0.17.0"  // next version to be released
     cp_version = "6.2.0-beta210210003100"  // must be a beta version from the packaging build
     packaging_build_number = "1"
     default_git_revision = 'refs/heads/master' 

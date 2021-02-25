@@ -190,7 +190,6 @@ public class CodeGenRunner {
         final TypeContext childContext = context.getCopy();
         final SqlType resolvedArgType =
             expressionTypeManager.getExpressionSqlType(argExpr, childContext);
-        process(argExpr, context.getCopy());
 
         if (argExpr instanceof LambdaFunctionCall) {
           argumentTypes.add(
@@ -212,6 +211,9 @@ public class CodeGenRunner {
           function.newInstance(ksqlConfig)
       );
 
+      for (final Expression argExpr : node.getArguments()) {
+        process(argExpr, context.getCopy());
+      }
       return null;
     }
 

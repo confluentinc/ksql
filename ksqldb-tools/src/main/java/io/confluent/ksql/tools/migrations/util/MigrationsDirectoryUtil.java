@@ -81,12 +81,11 @@ public final class MigrationsDirectoryUtil {
       throw new MigrationException("Cannot find migration file with version "
           + version + " in " + migrationsDir);
     }
-    final String filepath = migrationsDir + "/" + filename.get();
     try {
-      return new String(Files.readAllBytes(Paths.get(filepath)), StandardCharsets.UTF_8);
+      return new String(Files.readAllBytes(Paths.get(filename.get())), StandardCharsets.UTF_8);
     } catch (IOException e) {
       throw new MigrationException(
-          String.format("Failed to read %s: %s", filepath, e.getMessage()));
+          String.format("Failed to read %s: %s", filename.get(), e.getMessage()));
     }
   }
 
@@ -98,5 +97,11 @@ public final class MigrationsDirectoryUtil {
       throw new MigrationException(String.format(
           "Could not compute hash for file '%s': %s", filename, e.getMessage()));
     }
+  }
+
+  public static String getNameFromMigrationFilePath(final String filename) {
+    return filename
+        .substring(filename.indexOf("__") + 2, filename.indexOf(".sql"))
+        .replace('_', ' ');
   }
 }

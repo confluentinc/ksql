@@ -15,19 +15,28 @@
 
 package io.confluent.ksql.tools.migrations.util;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
+import io.confluent.ksql.api.client.KsqlArray;
+import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.Row;
+import io.confluent.ksql.tools.migrations.Migration;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 public final class MetadataUtil {
 
   public static final String NONE_VERSION = "<none>";
   public static final String CURRENT_VERSION_KEY = "CURRENT";
+  private static final List<String> KEYS = ImmutableList.of(
+      "VERSION_KEY", "VERSION", "NAME", "STATE",
+      "CHECKSUM", "STARTED_ON", "COMPLETED_ON", "PREVIOUS"
+  );
 
   public enum MigrationState {
     PENDING,
@@ -54,6 +63,33 @@ public final class MetadataUtil {
       throw new MigrationException(
           String.format("Could not query %s: %s", migrationTableName, e.getMessage()));
     }
+  }
+
+  public static CompletableFuture<Void> writeRow(
+      final MigrationConfig config,
+      final Client client,
+      final String versionKey,
+      final String state,
+      final String startOn,
+      final String completedOn,
+      final Migration migration
+  ) {
+    final String migrationStreamName =
+        config.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME);
+    final List<String> values = ImmutableList.of(
+        versionKey,
+        migration.getVersion(),
+        migration.getName(),
+        state,
+        migration.getChecksum(),
+        startOn,
+        completedOn,
+        migration.getPrevious()
+    );
+    return client.insertInto(
+        migrationStreamName,
+        KsqlObject.fromArray(KEYS, new KsqlArray(values))
+    );
   }
 
   public static String getLatestMigratedVersion(
@@ -122,9 +158,9 @@ public final class MetadataUtil {
             "Failed to query state for migration with version " + version
                 + ": no such migration is present in the migrations metadata table");
       }
-      expectedHash = resultRows.get(0).getString(0);
-      prevVersion = resultRows.get(0).getString(1);
-      state = resultRows.get(0).getString(2);
+      expectedHash = resultRows.get(0).getString(1);
+      prevVersion = resultRows.get(0).getString(2);
+      state = resultRows.get(0).getString(3);
     } catch (InterruptedException | ExecutionException e) {
       throw new MigrationException(String.format(
           "Failed to query state for migration with version %s: %s", version, e.getMessage()));

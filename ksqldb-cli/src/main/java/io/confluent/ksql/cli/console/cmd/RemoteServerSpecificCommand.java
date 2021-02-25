@@ -21,8 +21,10 @@ import io.confluent.ksql.links.DocumentationLinks;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
+import io.confluent.ksql.rest.client.KsqlUnsupportedServerException;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.Event;
 import java.io.PrintWriter;
@@ -88,7 +90,7 @@ public final class RemoteServerSpecificCommand implements CliSpecificCommand {
       final KsqlRestClient restClient
   ) {
     try {
-      final RestResponse<?> restResponse = restClient.getServerInfo();
+      final RestResponse<ServerInfo> restResponse = restClient.getServerInfo();
       if (restResponse.isErroneous()) {
         final KsqlErrorMessage ksqlError = restResponse.getErrorMessage();
         if (Errors.toStatusCode(ksqlError.getErrorCode()) == NOT_ACCEPTABLE.code()) {
@@ -97,6 +99,8 @@ public final class RemoteServerSpecificCommand implements CliSpecificCommand {
         }
         writer.format(
             "Couldn't connect to the KSQL server: %s%n%n", ksqlError.getMessage());
+      } else {
+        checkServerCompatibility(restResponse.getResponse().getVersion());
       }
     } catch (final IllegalArgumentException exception) {
       writer.println("Server URL must begin with protocol (e.g., http:// or https://)");
@@ -123,8 +127,46 @@ public final class RemoteServerSpecificCommand implements CliSpecificCommand {
       writer.println(ErrorMessageUtil.buildErrorMessage(exception));
       writer.println(StringUtils.repeat('*', CONSOLE_WIDTH));
       writer.println();
+    } catch (final KsqlUnsupportedServerException exception) {
+      writer.println("ERROR: Server version not supported.");
+      writer.println("Detected server version: " + exception.getMessage());
+      writer.println("Required server version is 5.4.0 or newer.");
     } finally {
       writer.flush();
     }
+  }
+
+  private static void checkServerCompatibility(final String serverVersion) {
+    final String[] versionToken = serverVersion.split("\\.");
+    final int[] versionNumber = parseVersion(versionToken);
+    if (versionNumber == null) {
+      throw new KsqlRestClientException(
+          String.format("Could not verify server version: %s", serverVersion)
+      );
+    }
+
+    if (versionNumber[0] < 5
+        || (versionNumber[0] == 5 && versionNumber[1] < 4)) {
+      throw new KsqlUnsupportedServerException(serverVersion);
+    }
+  }
+
+  private static int[] parseVersion(final String[] versionToken) {
+    if (versionToken.length != 3) {
+      return null;
+    }
+
+    final int[] versionNumbers = new int[3];
+
+    int i = 0;
+    for (final String token : versionToken) {
+      try {
+        versionNumbers[i++] = Integer.parseInt(token);
+      } catch (final NumberFormatException fatal) {
+        return null;
+      }
+    }
+
+    return versionNumbers;
   }
 }

@@ -16,6 +16,7 @@
 package io.confluent.ksql.tools.migrations.commands;
 
 import static io.confluent.ksql.tools.migrations.util.MetadataUtil.CURRENT_VERSION_KEY;
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getFilePrefixForVersion;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.inOrder;
@@ -41,7 +42,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -313,7 +313,7 @@ public class ValidateMigrationsCommandTest {
   }
 
   private String filePathForVersion(final String version) {
-    final String prefix = "V" + StringUtils.leftPad(version, 6, "0");
+    final String prefix = getFilePrefixForVersion(version);
     return Paths.get(migrationsDir, prefix + "_awesome_migration").toString();
   }
 

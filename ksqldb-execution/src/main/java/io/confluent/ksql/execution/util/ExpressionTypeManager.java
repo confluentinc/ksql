@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.codegen.TypeContext;
+import io.confluent.ksql.execution.codegen.TypeContextUtil;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
@@ -473,23 +474,30 @@ public class ExpressionTypeManager {
 
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
 
+      // this context gets updated as we process non lambda arguments
+      final TypeContext currentTypeContext = expressionTypeContext.getCopy();
+
       final List<SqlArgument> argTypes = new ArrayList<>();
 
       final boolean hasLambda = node.hasLambdaFunctionCallArguments();
       for (final Expression expression : node.getArguments()) {
-        final TypeContext childContext = expressionTypeContext.getCopy();
+        final TypeContext childContext = TypeContextUtil.contextForExpression(
+            expression, expressionTypeContext, currentTypeContext
+        );
         process(expression, childContext);
         final SqlType resolvedArgType = childContext.getSqlType();
+
         if (expression instanceof LambdaFunctionCall) {
           argTypes.add(
               SqlArgument.of(
-                  SqlLambda.of(expressionTypeContext.getLambdaInputTypes(), 
-                  childContext.getSqlType())));
+                  SqlLambda.of(
+                      currentTypeContext.getLambdaInputTypes(),
+                      resolvedArgType)));
         } else {
           argTypes.add(SqlArgument.of(resolvedArgType));
           // for lambdas - we save the type information to resolve the lambda generics
           if (hasLambda) {
-            expressionTypeContext.visitType(resolvedArgType);
+            currentTypeContext.visitType(resolvedArgType);
           }
         }
       }

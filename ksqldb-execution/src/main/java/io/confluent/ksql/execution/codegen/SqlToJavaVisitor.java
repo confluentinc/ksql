@@ -452,21 +452,33 @@ public class SqlToJavaVisitor {
       final String instanceName = funNameToCodeName.apply(functionName);
 
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
+
+      // this context gets updated as we process non lambda arguments
+      final TypeContext currentTypeContext = context.getCopy();
+
       final List<SqlArgument> argumentSchemas = new ArrayList<>();
+      final List<TypeContext> typeContextsForChildren = new ArrayList<>();
       final boolean hasLambda = node.hasLambdaFunctionCallArguments();
+
       for (final Expression argExpr : node.getArguments()) {
-        final TypeContext childContext = context.getCopy();
+        final TypeContext childContext = TypeContextUtil.contextForExpression(
+            argExpr, context, currentTypeContext
+        );
+        typeContextsForChildren.add(childContext);
+
+        // pass a copy of the context to the type checker so that type checking in one
+        // expression subtree doesn't interfere with type checking in another one
         final SqlType resolvedArgType =
-            expressionTypeManager.getExpressionSqlType(argExpr, childContext);
+            expressionTypeManager.getExpressionSqlType(argExpr, childContext.getCopy());
         if (argExpr instanceof LambdaFunctionCall) {
           argumentSchemas.add(
               SqlArgument.of(
-                  SqlLambda.of(context.getLambdaInputTypes(), childContext.getSqlType())));
+                  SqlLambda.of(currentTypeContext.getLambdaInputTypes(), resolvedArgType)));
         } else {
           argumentSchemas.add(SqlArgument.of(resolvedArgType));
           // for lambdas - we save the type information to resolve the lambda generics
           if (hasLambda) {
-            context.visitType(resolvedArgType);
+            currentTypeContext.visitType(resolvedArgType);
           }
         }
       }
@@ -494,7 +506,7 @@ public class SqlToJavaVisitor {
         }
 
         joiner.add(
-            process(convertArgument(arg, sqlType, paramType), context.getCopy())
+            process(convertArgument(arg, sqlType, paramType), typeContextsForChildren.get(i))
             .getLeft());
       }
 

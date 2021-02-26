@@ -36,9 +36,15 @@ import io.confluent.ksql.tools.migrations.commands.BaseCommand;
 import io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.StreamsConfig;
@@ -46,6 +52,8 @@ import org.apache.kafka.test.TestUtils;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -88,8 +96,44 @@ public class MigrationsTest {
   }
 
   @Test
-  public void dummy() {
-    // placeholder until additional functionality (beyond initialization) is added
+  public void testApply() throws IOException {
+    // Migration file
+    createMigrationFile(
+        1,
+        "foo",
+        MigrationsDirectoryUtil.getMigrationsDirFromConfigFile(configFilePath),
+        "CREATE STREAM FOO (A STRING) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='DELIMITED');"
+    );
+    createMigrationFile(
+        2,
+        "bar",
+        MigrationsDirectoryUtil.getMigrationsDirFromConfigFile(configFilePath),
+        "CREATE STREAM BAR (A STRING) WITH (KAFKA_TOPIC='BAR', PARTITIONS=1, VALUE_FORMAT='DELIMITED');"
+    );
+    final int status = MIGRATIONS_CLI.parse("--config-file", configFilePath, "apply").run();
+    assertThat(status, is(0));
+
+    // verify FOO and BAR were registered
+    describeSource("FOO");
+    describeSource("BAR");
+
+    // verify current
+    final List<String> current = makeKsqlQuery("SELECT * FROM migration_schema_versions WHERE VERSION_KEY='CURRENT';");
+    assertThat(current.size(), is(2));
+    final JSONArray currentRow = new JSONObject(current.get(1)).getJSONObject("row").getJSONArray("columns");
+    assertThat(currentRow.get(1), is("2"));
+    assertThat(currentRow.get(2), is("bar"));
+    assertThat(currentRow.get(3), is("MIGRATED"));
+    assertThat(currentRow.get(7), is("1"));
+    // verify version 1
+    final List<String> version1 = makeKsqlQuery("SELECT * FROM migration_schema_versions WHERE VERSION_KEY='1';");
+    assertThat(current.size(), is(2));
+    final JSONArray version1Row = new JSONObject(version1.get(1)).getJSONObject("row").getJSONArray("columns");
+    assertThat(version1Row.get(1), is("1"));
+    assertThat(version1Row.get(2), is("foo"));
+    assertThat(version1Row.get(3), is("MIGRATED"));
+    assertThat(version1Row.get(7), is("<none>"));
+
   }
 
   private static void createAndVerifyDirectoryStructure(final String testDir) throws Exception {
@@ -176,6 +220,10 @@ public class MigrationsTest {
     return RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
   }
 
+  private static List<String> makeKsqlQuery(final String sql) {
+    return RestIntegrationTestUtil.makeWsRequest(REST_APP.getWsListener(), sql, Optional.empty(), Optional.empty(), Optional.empty());
+  }
+
   private static Matcher<? super FieldInfo> fieldInfo(
       final String name,
       final String type,
@@ -209,5 +257,19 @@ public class MigrationsTest {
         return fieldInfo.getType().get().equals(FieldInfo.FieldType.KEY);
       }
     };
+  }
+
+  private static void createMigrationFile(
+      final int version,
+      final String name,
+      final String migrationsDir,
+      final String content
+  ) throws IOException {
+    final String filePath = migrationsDir
+        + String.format("/V00000%d__%s.sql", version, name.replace(' ', '_'));
+    new File(filePath).createNewFile();
+    PrintWriter out = new PrintWriter(filePath, Charset.defaultCharset().name());
+    out.println(content);
+    out.close();
   }
 }

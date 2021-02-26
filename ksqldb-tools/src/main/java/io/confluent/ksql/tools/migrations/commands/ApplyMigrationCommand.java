@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.tools.migrations.commands;
 
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getAllMigrations;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
 
 import com.github.rvesse.airline.annotations.Command;
@@ -28,15 +29,14 @@ import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.VersionInfo;
-import io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import io.confluent.ksql.util.KsqlException;
-import java.util.ArrayList;
+import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,7 +92,8 @@ public class ApplyMigrationCommand extends BaseCommand {
     return command(
         config,
         MigrationsUtil::getKsqlClient,
-        getMigrationsDirFromConfigFile(configFile)
+        getMigrationsDirFromConfigFile(configFile),
+        Clock.systemDefaultZone()
     );
   }
 
@@ -100,7 +101,8 @@ public class ApplyMigrationCommand extends BaseCommand {
   int command(
       final MigrationConfig config,
       final Function<MigrationConfig, Client> clientSupplier,
-      final String migrationsDir
+      final String migrationsDir,
+      final Clock clock
   ) {
     final Client ksqlClient;
     try {
@@ -110,77 +112,50 @@ public class ApplyMigrationCommand extends BaseCommand {
       return 1;
     }
 
-    if (!ValidateMigrationsCommand.validate(config, migrationsDir, ksqlClient)) {
+    if (ValidateMigrationsCommand.validate(config, migrationsDir, ksqlClient)
+        && apply(config, ksqlClient, migrationsDir, clock)) {
+      ksqlClient.close();
+      return 0;
+    } else {
+      ksqlClient.close();
       return 1;
     }
+  }
 
-    final int startVersion = getStartVersion(config, ksqlClient);
-    final int endVersion;
-    try {
-      endVersion = getEndVersion(startVersion, migrationsDir);
-    } catch (MigrationException e) {
-      LOGGER.error(e.getMessage());
-      return 1;
-    }
-
+  private boolean apply(
+      final MigrationConfig config,
+      final Client ksqlClient,
+      final String migrationsDir,
+      final Clock clock
+  ) {
+    final int start = getStartVersion(config, ksqlClient);
+    final List<Migration> migrations;
     LOGGER.info("Loading migration files");
 
-    final List<Migration> migrations;
-    try {
-      migrations = loadMigrations(startVersion, endVersion, migrationsDir);
-    } catch (MigrationException e) {
-      LOGGER.error(e.getMessage());
-      return 1;
+    if (next) {
+      migrations = getAllMigrations(start, start, migrationsDir);
+    } else if (version >= start) {
+      migrations = getAllMigrations(start, version, migrationsDir);;
+    } else if (version > 0 && version < start) {
+      LOGGER.error("Specified version is lower than latest migrated version");
+      return false;
+    } else {
+      migrations = getAllMigrations(start, migrationsDir);
     }
 
     for (Migration migration : migrations) {
-      if (!applyMigration(config, ksqlClient, migration)) {
-        return 1;
+      if (!applyMigration(config, ksqlClient, migration, clock)) {
+        return false;
       }
     }
-    return 0;
-  }
-
-  private List<Migration> loadMigrations(
-      final int start,
-      final int end,
-      final String migrationsDir
-  ) {
-    final List<Migration> migrations = new ArrayList<>();
-    for (int version = start; version <= end; version++) {
-      migrations.add(loadMigration(version, migrationsDir));
-    }
-    return migrations;
-  }
-
-  private Migration loadMigration(
-      final int version,
-      final String migrationsDir
-  ) {
-    final String versionString = Integer.toString(version);
-
-    final Optional<String> migrationFilePath =
-        MigrationsDirectoryUtil.getFilePathForVersion(versionString, migrationsDir);
-    if (!migrationFilePath.isPresent()) {
-      throw new MigrationException("Failed to find file for version " + versionString);
-    }
-
-    final String migrationCommand =
-        MigrationsDirectoryUtil.getFileContentsForVersion(versionString, migrationsDir);
-
-    LOGGER.info(migrationFilePath.get() + " loaded");
-    return new Migration(
-        version,
-        MigrationsDirectoryUtil.getNameFromMigrationFilePath(migrationFilePath.get()),
-        MigrationsDirectoryUtil.computeHashForFile(migrationFilePath.get()),
-        migrationCommand
-    );
+    return true;
   }
 
   private boolean applyMigration(
       final MigrationConfig config,
       final Client ksqlClient,
-      final Migration migration
+      final Migration migration,
+      final Clock clock
   ) {
     LOGGER.info("Applying " + migration.getName() + " version " + migration.getVersion());
     LOGGER.info(migration.getCommand());
@@ -190,27 +165,31 @@ public class ApplyMigrationCommand extends BaseCommand {
     }
 
     if (!verifyMigrated(config, ksqlClient, migration.getPrevious(), MAX_RETRIES)) {
-      LOGGER.error("Failed to verify status of version" + migration.getPrevious());
+      LOGGER.error("Failed to verify status of version " + migration.getPrevious());
       return false;
     }
 
-    final String executionStart = Long.toString(System.nanoTime() / 1000000);
+    final String executionStart = Long.toString(clock.millis());
 
-    if (!updateState(config, ksqlClient, MigrationState.RUNNING, executionStart, migration)) {
+    if (
+        !updateState(config, ksqlClient, MigrationState.RUNNING, executionStart, migration, clock)
+    ) {
       return false;
     }
 
     try {
-      final List<String> commands = Arrays.asList(migration.getCommand().split(";"));
+      final List<String> commands = Arrays.stream(migration.getCommand().split(";"))
+          .filter(s -> s.length() > 1)
+          .collect(Collectors.toList());
       for (final String command : commands) {
         ksqlClient.executeStatement(command + ";").get();
       }
     } catch (InterruptedException | ExecutionException e) {
       LOGGER.error(e.getMessage());
-      updateState(config, ksqlClient, MigrationState.ERROR, executionStart, migration);
+      updateState(config, ksqlClient, MigrationState.ERROR, executionStart, migration, clock);
       return false;
     }
-    updateState(config, ksqlClient, MigrationState.MIGRATED, executionStart, migration);
+    updateState(config, ksqlClient, MigrationState.MIGRATED, executionStart, migration, clock);
     LOGGER.info("Successfully migrated");
     return true;
   }
@@ -221,26 +200,6 @@ public class ApplyMigrationCommand extends BaseCommand {
       return 1;
     } else {
       return Integer.parseInt(latestMigratedVersion) + 1;
-    }
-  }
-
-  private int getEndVersion(final int startVersion, final String migrationsDir) {
-    if (next) {
-      return startVersion;
-    } else if (version >= startVersion) {
-      return version;
-    } else if (version > 0 && version < startVersion) {
-      throw new MigrationException("Specified version is lower than latest migrated version");
-    } else {
-      int endVersion = startVersion;
-      while (
-          MigrationsDirectoryUtil
-              .getFilePathForVersion(Integer.toString(endVersion), migrationsDir)
-              .isPresent()
-      ) {
-        endVersion++;
-      }
-      return endVersion - 1;
     }
   }
 
@@ -259,7 +218,7 @@ public class ApplyMigrationCommand extends BaseCommand {
         return true;
       } else {
         LOGGER.info(String.format(
-            "Could not verify status of version %s. Retrying (%i/%i)", version, i, retries));
+            "Could not verify status of version %s. Retrying (%d/%d)", version, i, retries));
       }
     }
     return false;
@@ -270,10 +229,11 @@ public class ApplyMigrationCommand extends BaseCommand {
       final Client ksqlClient,
       final MigrationState state,
       final String executionStart,
-      final Migration migration
+      final Migration migration,
+      final Clock clock
   ) {
     final String executionEnd = (state == MigrationState.MIGRATED || state == MigrationState.ERROR)
-        ? Long.toString(System.nanoTime() / 1000000)
+        ? Long.toString(clock.millis())
         : "";
     try {
       MetadataUtil.writeRow(

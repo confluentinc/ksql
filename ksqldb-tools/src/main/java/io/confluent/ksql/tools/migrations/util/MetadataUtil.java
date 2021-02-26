@@ -127,8 +127,8 @@ public final class MetadataUtil {
   ) {
     if (versionInfo.state != MigrationState.MIGRATED) {
       throw new MigrationException(String.format(
-          "Discovered version with previous version that does not have status {}. "
-              + "Version: {}. Previous version: {}. Previous version status: {}",
+          "Discovered version with previous version that does not have status %s. "
+              + "Version: %s. Previous version: %s. Previous version status: %s",
           MigrationState.MIGRATED,
           nextVersion,
           version,

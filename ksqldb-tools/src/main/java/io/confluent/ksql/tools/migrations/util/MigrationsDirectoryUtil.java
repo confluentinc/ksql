@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.tools.migrations.util;
 
+import io.confluent.ksql.tools.migrations.Migration;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import java.io.File;
 import java.io.IOException;
@@ -24,6 +25,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -103,5 +105,48 @@ public final class MigrationsDirectoryUtil {
     return filename
         .substring(filename.indexOf("__") + 2, filename.indexOf(".sql"))
         .replace('_', ' ');
+  }
+
+  public static List<Migration> getAllMigrations(
+      final int start,
+      final int end,
+      final String migrationsDir
+  ) {
+    final List<Migration> migrations = new ArrayList<>();
+    for (int version = start; version <= end; version++) {
+      migrations.add(loadMigration(version, migrationsDir));
+    }
+    return migrations;
+  }
+
+  public static List<Migration> getAllMigrations(
+      final int start,
+      final String migrationsDir
+  ) {
+    int end = start;
+    while (getFilePathForVersion(Integer.toString(end), migrationsDir).isPresent()) {
+      end++;
+    }
+    return getAllMigrations(start, end - 1, migrationsDir);
+  }
+
+  private static Migration loadMigration(final int version, final String migrationsDir) {
+    final String versionString = Integer.toString(version);
+
+    final Optional<String> migrationFilePath =
+        MigrationsDirectoryUtil.getFilePathForVersion(versionString, migrationsDir);
+    if (!migrationFilePath.isPresent()) {
+      throw new MigrationException("Failed to find file for version " + versionString);
+    }
+
+    final String migrationCommand =
+        MigrationsDirectoryUtil.getFileContentsForVersion(versionString, migrationsDir);
+
+    return new Migration(
+        version,
+        MigrationsDirectoryUtil.getNameFromMigrationFilePath(migrationFilePath.get()),
+        MigrationsDirectoryUtil.computeHashForFile(migrationFilePath.get()),
+        migrationCommand
+    );
   }
 }

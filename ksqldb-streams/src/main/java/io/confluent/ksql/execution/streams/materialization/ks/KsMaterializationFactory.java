@@ -30,6 +30,7 @@ import java.util.Optional;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.Topology;
 
 /**
  * Factory class for {@link KsMaterialization}.
@@ -72,6 +73,7 @@ public final class KsMaterializationFactory {
   public Optional<KsMaterialization> create(
       final String stateStoreName,
       final KafkaStreams kafkaStreams,
+      final Topology topology,
       final LogicalSchema schema,
       final Serializer<GenericKey> keySerializer,
       final Optional<WindowInfo> windowInfo,
@@ -89,6 +91,7 @@ public final class KsMaterializationFactory {
     final KsLocator locator = locatorFactory.create(
         stateStoreName,
         kafkaStreams,
+        topology,
         keySerializer,
         localHost,
         applicationId
@@ -128,6 +131,7 @@ public final class KsMaterializationFactory {
     KsLocator create(
         String stateStoreName,
         KafkaStreams kafkaStreams,
+        Topology topology,
         Serializer<GenericKey> keySerializer,
         URL localHost,
         String applicationId

@@ -53,6 +53,9 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyQueryMetadata;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.TopologyDescription;
+import org.apache.kafka.streams.TopologyDescription.Subtopology;
 import org.apache.kafka.streams.state.HostInfo;
 import org.apache.kafka.streams.state.StreamsMetadata;
 import org.junit.Before;
@@ -82,21 +85,32 @@ public class KsLocatorTest {
   private static final HostInfo ACTIVE_HOST_INFO = new HostInfo("remoteHost", 2345);
   private static final HostInfo STANDBY_HOST_INFO1 = new HostInfo("standby1", 1234);
   private static final HostInfo STANDBY_HOST_INFO2 = new HostInfo("standby2", 5678);
-  private static final TopicPartition TOPIC_PARTITION1 = new TopicPartition("foo", 0);
-  private static final TopicPartition TOPIC_PARTITION2 = new TopicPartition("foo", 1);
-  private static final TopicPartition TOPIC_PARTITION3 = new TopicPartition("foo", 2);
+  private static final String TOPIC_NAME = "foo";
+  private static final String FULL_TOPIC_NAME = APPLICATION_ID + "-" + TOPIC_NAME;
+  private static final String BAD_TOPIC_NAME = "bar";
+  private static final TopicPartition TOPIC_PARTITION1 = new TopicPartition(FULL_TOPIC_NAME, 0);
+  private static final TopicPartition TOPIC_PARTITION2 = new TopicPartition(FULL_TOPIC_NAME, 1);
+  private static final TopicPartition TOPIC_PARTITION3 = new TopicPartition(FULL_TOPIC_NAME, 2);
+  private static final TopicPartition BAD_TOPIC_PARTITION1 = new TopicPartition(BAD_TOPIC_NAME, 0);
+  private static final TopicPartition BAD_TOPIC_PARTITION2 = new TopicPartition(BAD_TOPIC_NAME, 1);
+  private static final TopicPartition BAD_TOPIC_PARTITION3 = new TopicPartition(BAD_TOPIC_NAME, 2);
   private static final StreamsMetadata HOST1_STREAMS_MD1 = new StreamsMetadata(ACTIVE_HOST_INFO,
-      ImmutableSet.of("state_store"), ImmutableSet.of(TOPIC_PARTITION1),
-      ImmutableSet.of("state_store"), ImmutableSet.of(TOPIC_PARTITION2, TOPIC_PARTITION3));
+      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION1, BAD_TOPIC_PARTITION3),
+      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION2, TOPIC_PARTITION3,
+      BAD_TOPIC_PARTITION1, BAD_TOPIC_PARTITION2));
   private static final StreamsMetadata HOST1_STREAMS_MD2 = new StreamsMetadata(STANDBY_HOST_INFO1,
-      ImmutableSet.of("state_store"), ImmutableSet.of(TOPIC_PARTITION2),
-      ImmutableSet.of("state_store"), ImmutableSet.of(TOPIC_PARTITION1, TOPIC_PARTITION3));
+      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION2, BAD_TOPIC_PARTITION1),
+      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION1, TOPIC_PARTITION3,
+      BAD_TOPIC_PARTITION2, BAD_TOPIC_PARTITION3));
   private static final StreamsMetadata HOST1_STREAMS_MD3 = new StreamsMetadata(STANDBY_HOST_INFO2,
-      ImmutableSet.of("state_store"), ImmutableSet.of(TOPIC_PARTITION3),
-      ImmutableSet.of("state_store"), ImmutableSet.of(TOPIC_PARTITION1, TOPIC_PARTITION2));
+      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION3, BAD_TOPIC_PARTITION2),
+      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION1, TOPIC_PARTITION2,
+      BAD_TOPIC_PARTITION1, BAD_TOPIC_PARTITION3));
 
   @Mock
   private KafkaStreams kafkaStreams;
+  @Mock
+  private Topology topology;
   @Mock
   private KeyQueryMetadata keyQueryMetadata;
   @Mock
@@ -107,6 +121,14 @@ public class KsLocatorTest {
   private RoutingFilter activeFilter;
   @Mock
   private RoutingOptions routingOptions;
+  @Mock
+  private TopologyDescription description;
+  @Mock
+  private Subtopology sub1;
+  @Mock
+  private TopologyDescription.Source source;
+  @Mock
+  private TopologyDescription.Processor processor;
 
   private KsLocator locator;
   private KsqlNode activeNode;
@@ -121,7 +143,7 @@ public class KsLocatorTest {
 
   @Before
   public void setUp() {
-    locator = new KsLocator(STORE_NAME, kafkaStreams, keySerializer, LOCAL_HOST_URL,
+    locator = new KsLocator(STORE_NAME, kafkaStreams, topology, keySerializer, LOCAL_HOST_URL,
         APPLICATION_ID);
 
     activeNode = locator.asNode(ACTIVE_HOST);
@@ -400,9 +422,13 @@ public class KsLocatorTest {
   @Test
   public void shouldFindAllPartitionsWhenNoKeys() {
     // Given:
+    when(topology.describe()).thenReturn(description);
+    when(description.subtopologies()).thenReturn(ImmutableSet.of(sub1));
+    when(sub1.nodes()).thenReturn(ImmutableSet.of(source, processor));
+    when(source.topicSet()).thenReturn(ImmutableSet.of(TOPIC_NAME));
+    when(processor.stores()).thenReturn(ImmutableSet.of(STORE_NAME));
     when(kafkaStreams.allMetadataForStore(any()))
         .thenReturn(ImmutableList.of(HOST1_STREAMS_MD1, HOST1_STREAMS_MD2, HOST1_STREAMS_MD3));
-    getActiveStandbyMetadata(SOME_KEY, 0, ACTIVE_HOST_INFO, STANDBY_HOST_INFO1);
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(

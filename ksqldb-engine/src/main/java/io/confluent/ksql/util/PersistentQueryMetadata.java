@@ -131,7 +131,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     setUncaughtExceptionHandler(this::uncaughtHandler);
 
     this.materializationProvider = materializationProviderBuilder
-        .flatMap(builder -> builder.apply(getKafkaStreams()));
+        .flatMap(builder -> builder.apply(getKafkaStreams(), getTopology()));
   }
 
   @Override
@@ -202,7 +202,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
     final KafkaStreams newKafkaStreams = buildKafkaStreams();
     materializationProvider = materializationProviderBuilder.flatMap(
-        builder -> builder.apply(newKafkaStreams));
+        builder -> builder.apply(newKafkaStreams, getTopology()));
 
     resetKafkaStreams(newKafkaStreams);
     start();

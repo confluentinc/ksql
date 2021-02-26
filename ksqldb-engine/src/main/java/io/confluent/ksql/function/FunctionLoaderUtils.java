@@ -190,8 +190,7 @@ public final class FunctionLoaderUtils {
           }
           genericMapping.putAll(GenericsUtil.resolveGenerics(
               schema,
-              arguments.get(i),
-              true
+              arguments.get(i)
           ));
         } else {
           // we resolve any variadic as if it were an array so that the type
@@ -202,8 +201,7 @@ public final class FunctionLoaderUtils {
           genericMapping.putAll(
               GenericsUtil.resolveGenerics(
                   schema,
-                  SqlArgument.of(instance),
-                  false
+                  SqlArgument.of(instance)
               )
           );
         }

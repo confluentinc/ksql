@@ -83,7 +83,7 @@ import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SystemColumns;
-import io.confluent.ksql.schema.ksql.types.SqlLambda;
+import io.confluent.ksql.schema.ksql.types.SqlLambdaResolved;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -381,11 +381,11 @@ public class ExpressionTypeManagerTest {
     verify(udfFactory).getFunction(
         ImmutableList.of(
             SqlArgument.of(SqlTypes.array(SqlTypes.DOUBLE)),
-            SqlArgument.of(SqlLambda.of(1))));
+            SqlArgument.of(SqlLambdaResolved.of(1))));
     verify(function).getReturnType(
         ImmutableList.of(
             SqlArgument.of(SqlTypes.array(SqlTypes.DOUBLE)),
-            SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.DOUBLE), SqlTypes.DOUBLE))));
+            SqlArgument.of(SqlLambdaResolved.of(ImmutableList.of(SqlTypes.DOUBLE), SqlTypes.DOUBLE))));
   }
 
   @Test
@@ -418,11 +418,12 @@ public class ExpressionTypeManagerTest {
     verify(udfFactory).getFunction(
         ImmutableList.of(
             SqlArgument.of(SqlTypes.map(SqlTypes.BIGINT, SqlTypes.DOUBLE)),
-            SqlArgument.of(SqlLambda.of(2))));
+            SqlArgument.of(SqlLambdaResolved.of(2))));
     verify(function).getReturnType(
         ImmutableList.of(
             SqlArgument.of(SqlTypes.map(SqlTypes.BIGINT, SqlTypes.DOUBLE)),
-            SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.BIGINT, SqlTypes.DOUBLE), SqlTypes.BIGINT))));
+            SqlArgument.of(
+                SqlLambdaResolved.of(ImmutableList.of(SqlTypes.BIGINT, SqlTypes.DOUBLE), SqlTypes.BIGINT))));
   }
 
   @Test
@@ -468,13 +469,14 @@ public class ExpressionTypeManagerTest {
             SqlArgument.of(SqlTypes.array(SqlTypes.DOUBLE)),
             SqlArgument.of(SqlTypes.STRING),
             SqlArgument.of(SqlTypes.map(SqlTypes.BIGINT, SqlTypes.DOUBLE)),
-            SqlArgument.of(SqlLambda.of(4))));
+            SqlArgument.of(SqlLambdaResolved.of(4))));
     verify(function).getReturnType(
         ImmutableList.of(
             SqlArgument.of(SqlTypes.array(SqlTypes.DOUBLE)),
             SqlArgument.of(SqlTypes.STRING),
             SqlArgument.of(SqlTypes.map(SqlTypes.BIGINT, SqlTypes.DOUBLE)),
-            SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.DOUBLE, SqlTypes.STRING, SqlTypes.BIGINT, SqlTypes.DOUBLE), SqlTypes.BIGINT))));
+            SqlArgument.of(SqlLambdaResolved
+                .of(ImmutableList.of(SqlTypes.DOUBLE, SqlTypes.STRING, SqlTypes.BIGINT, SqlTypes.DOUBLE), SqlTypes.BIGINT))));
   }
 
   @Test

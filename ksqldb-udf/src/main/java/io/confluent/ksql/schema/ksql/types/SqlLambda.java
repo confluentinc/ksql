@@ -15,32 +15,17 @@
 
 package io.confluent.ksql.schema.ksql.types;
 
-import static java.util.Objects.requireNonNull;
-
-import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.utils.FormatOptions;
-import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
- * An internal object to track the input types and return types for a lambda
- * argument that's seen as an argument inside of a UDF.
+ * An internal object to represent a lambda function, this class only
+ * has information on the number of input arguments for a lambda.
  */
 @Immutable
-public final class SqlLambda {
+public class SqlLambda {
 
-  private final List<SqlType> inputTypes;
-  private final SqlType returnType;
-  private final Integer numInputs;
-
-  public static SqlLambda of(
-      final List<SqlType> inputType,
-      final SqlType returnType
-  ) {
-    return new SqlLambda(inputType, returnType);
-  }
+  private final int numInputs;
 
   public static SqlLambda of(
       final Integer numInputs
@@ -49,28 +34,9 @@ public final class SqlLambda {
   }
 
   public SqlLambda(
-      final List<SqlType> inputTypes,
-      final SqlType returnType
-  ) {
-    this.inputTypes = ImmutableList.copyOf(requireNonNull(inputTypes, "inputType"));
-    this.returnType = requireNonNull(returnType, "returnType");
-    this.numInputs = inputTypes.size();
-  }
-
-  public SqlLambda(
       final Integer numInputs
   ) {
-    this.inputTypes = null;
-    this.returnType = null;
     this.numInputs = numInputs;
-  }
-
-  public List<SqlType> getInputType() {
-    return inputTypes;
-  }
-
-  public SqlType getReturnType() {
-    return returnType;
   }
 
   public Integer getNumInputs() {
@@ -87,26 +53,16 @@ public final class SqlLambda {
       return false;
     }
     final SqlLambda lambda = (SqlLambda) o;
-    return Objects.equals(inputTypes, lambda.inputTypes)
-        && Objects.equals(returnType, lambda.returnType);
+    return numInputs == lambda.numInputs ;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(inputTypes, returnType);
+    return Objects.hash(numInputs);
   }
 
   @Override
   public String toString() {
-    return toString(FormatOptions.none());
-  }
-
-  public String toString(final FormatOptions formatOptions) {
-    return inputTypes == null || returnType == null ? "LAMBDA" : "LAMBDA "
-        + inputTypes.stream()
-        .map(Object::toString)
-        .collect(Collectors.joining(", ", "(", ")"))
-        + " => "
-        + returnType.toString(formatOptions);
+    return "LAMBDA";
   }
 }

@@ -1046,8 +1046,8 @@ public class SqlToJavaVisitorTest {
             ArrayType.of(ParamTypes.DOUBLE),
             ParamTypes.DOUBLE,
             LambdaType.of(
-                ImmutableList.of(ParamTypes.DOUBLE, ParamTypes.DOUBLE),
-                ParamTypes.DOUBLE))
+                ImmutableList.of(ParamTypes.DOUBLE, ParamTypes.INTEGER),
+                ParamTypes.INTEGER))
         );
 
     final Expression expression = new ArithmeticBinaryExpression(

@@ -18,7 +18,6 @@ package io.confluent.ksql.execution.util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.codegen.TypeContext;
-import io.confluent.ksql.execution.codegen.TypeContextUtil;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
@@ -57,25 +56,17 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.function.UdafUtil;
+import io.confluent.ksql.execution.util.FunctionArgumentsUtil.FunctionArgumentsAndContext;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.GenericsUtil;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.UdfFactory;
-import io.confluent.ksql.function.types.ArrayType;
-import io.confluent.ksql.function.types.GenericType;
-import io.confluent.ksql.function.types.LambdaType;
-import io.confluent.ksql.function.types.MapType;
-import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
-import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
@@ -86,10 +77,7 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VisitorUtil;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -483,91 +471,14 @@ public class ExpressionTypeManager {
       }
 
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
-
-      final List<SqlArgument> argTypesForFirstPass = new ArrayList<>();
-
-      final List<Expression> arguments = node.getArguments();
-
-      for (final Expression expression : arguments) {
-        if (expression instanceof LambdaFunctionCall) {
-          argTypesForFirstPass.add(
-              SqlArgument.of(
-                  SqlLambda.of(((LambdaFunctionCall) expression).getArguments().size())))
-          ;
-        } else {
-          final TypeContext childContext = expressionTypeContext.getCopy();
-          process(expression, childContext);
-          final SqlType resolvedArgType = childContext.getSqlType();
-          argTypesForFirstPass.add(SqlArgument.of(resolvedArgType));
-        }
-      }
-
-      final KsqlScalarFunction function = udfFactory.getFunction(argTypesForFirstPass);
-
-      if (node.hasLambdaFunctionCallArguments()) {
-        final List<ParamType> paramTypes = function.parameters();
-        final Map<GenericType, SqlType> reservedGenerics = new HashMap<>();
-        final List<SqlArgument> argForReturnType = new ArrayList<>();
-        for (int i = 0; i < arguments.size(); i++) {
-          final Expression expression = arguments.get(i);
-          final ParamType parameter = paramTypes.get(i);
-          if (expression instanceof LambdaFunctionCall) {
-            final TypeContext childContext = expressionTypeContext.getCopy();
-
-            // the function returned from the UDF factory should have lambda
-            // at this index in the function arguments if there's a
-            // lambda node at this index in the function node argument list
-            if (!(parameter instanceof LambdaType)) {
-              throw new KsqlException("Error while processing lambda function. "
-                  + "This is most likely an internal error and a "
-                  + "Github issue should be filed for debugging.");
-            }
-
-            final LambdaType lambdaParameter = (LambdaType) parameter;
-            for (ParamType inputParam : lambdaParameter.inputTypes()) {
-              if (inputParam instanceof GenericType) {
-                final GenericType genericParam = (GenericType) inputParam;
-                if (!reservedGenerics.containsKey(genericParam)) {
-                  throw new KsqlException(
-                      String.format(
-                          "Could not verify type for generic %s.",
-                          genericParam.toString()));
-                }
-                childContext.addLambdaInputType(reservedGenerics.get(genericParam));
-              } else {
-                childContext.addLambdaInputType(
-                    SchemaConverters.functionToSqlConverter().toSqlType(inputParam));
-              }
-            }
-            final List<SqlType> sqlTypesForLambdaArgMapping =
-                new ArrayList<>(childContext.getLambdaInputTypes());
-            process(expression, childContext);
-
-            final SqlType resolvedArgType = childContext.getSqlType();
-            final SqlArgument lambdaArgument = SqlArgument.of(
-                SqlLambda.of(sqlTypesForLambdaArgMapping, resolvedArgType));
-
-            argForReturnType.add(lambdaArgument);
-            GenericsUtil.reserveGenerics(
-                parameter,
-                lambdaArgument,
-                reservedGenerics
-            );
-          } else {
-            argForReturnType.add(argTypesForFirstPass.get(i));
-            GenericsUtil.reserveGenerics(
-                parameter,
-                argTypesForFirstPass.get(i),
-                reservedGenerics
-            );
-          }
-        }
-        final SqlType returnSchema = function.getReturnType(argForReturnType);
-        expressionTypeContext.setSqlType(returnSchema);
-      } else {
-        final SqlType returnSchema = function.getReturnType(argTypesForFirstPass);
-        expressionTypeContext.setSqlType(returnSchema);
-      }
+      final FunctionArgumentsAndContext argumentsAndContext = FunctionArgumentsUtil
+          .getLambdaContextAndType(
+              ExpressionTypeManager.this, 
+              node, 
+              udfFactory, 
+              expressionTypeContext);
+      
+      expressionTypeContext.setSqlType(argumentsAndContext.getReturnType());
       return null;
     }
 

@@ -1,10 +1,10 @@
 {
   "version" : "7.0.0",
-  "timestamp" : 1614328589072,
-  "path" : "query-validation-tests/complex-lambda.json",
+  "timestamp" : 1614581538111,
+  "path" : "query-validation-tests/reduce-map.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `MAPPING` MAP<STRING, ARRAY<INTEGER>>",
+      "schema" : "`ID` STRING KEY, `MAP` MAP<STRING, INTEGER>",
       "keyFormat" : {
         "format" : "KAFKA"
       },
@@ -13,7 +13,7 @@
       }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`ID` STRING KEY, `OUTPUT` MAP<STRING, INTEGER>",
+      "schema" : "`ID` STRING KEY, `REDUCE` INTEGER",
       "keyFormat" : {
         "format" : "KAFKA"
       },
@@ -23,70 +23,51 @@
     }
   },
   "testCase" : {
-    "name" : "complex lambda",
+    "name" : "apply reduce lambda function to map",
     "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : "zero",
+      "value" : {
+        "map" : {
+          "123" : 3,
+          "12" : 7,
+          "1234" : 2
+        }
+      }
+    }, {
       "topic" : "test_topic",
       "key" : "one",
       "value" : {
-        "MAPPING" : {
-          "a" : [ 2, 4, 5 ],
-          "bcd" : [ -5, 7 ]
+        "map" : {
+          "1" : 1,
+          "ttttt" : null,
+          "" : 3
         }
       }
     }, {
       "topic" : "test_topic",
       "key" : "two",
       "value" : {
-        "MAPPING" : {
-          "hello" : [ 200, 4, 5 ],
-          "hey" : [ 14, -3, -15, 3 ],
-          "wow" : [ 2, 3, 4 ]
-        }
-      }
-    }, {
-      "topic" : "test_topic",
-      "key" : "three",
-      "value" : {
-        "MAPPING" : {
-          "a" : null,
-          "bcdefg" : [ -15, 72 ]
-        }
-      }
-    }, {
-      "topic" : "test_topic",
-      "key" : "four",
-      "value" : {
-        "MAPPING" : null
+        "map" : null
       }
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
+      "key" : "zero",
+      "value" : {
+        "REDUCE" : -8
+      }
+    }, {
+      "topic" : "OUTPUT",
       "key" : "one",
       "value" : {
-        "OUTPUT" : {
-          "abcd" : 8
-        }
+        "REDUCE" : null
       }
     }, {
       "topic" : "OUTPUT",
       "key" : "two",
       "value" : {
-        "OUTPUT" : {
-          "hey" : -4,
-          "w" : 36
-        }
-      }
-    }, {
-      "topic" : "OUTPUT",
-      "key" : "three",
-      "value" : {
-        "OUTPUT" : { }
-      }
-    }, {
-      "topic" : "OUTPUT",
-      "key" : "four",
-      "value" : {
-        "OUTPUT" : null
+        "REDUCE" : 0
       }
     } ],
     "topics" : [ {
@@ -98,12 +79,12 @@
       "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM test (ID STRING KEY, MAPPING MAP<STRING, ARRAY<INTEGER>>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, TRANSFORM(FILTER(MAPPING, (a, b) => LEN(a) > 2 AND REDUCE(b, 0, (c, d) => c+d) < 20), (X,Y) => LPAD(x, REDUCE(Y, 2, (s, k) => ABS(ABS(k)-s)), 'a'), (X,Y) => REDUCE(ARRAY_UNION(Y, TRANSFORM(Y, z => z*3)), 0, (e, f) => e+f)) AS OUTPUT FROM test;" ],
+    "statements" : [ "CREATE STREAM test (ID STRING KEY, map MAP<STRING, INTEGER>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, REDUCE(map, 0, (s, k, v) => CASE WHEN LEN(k) > 3 THEN  s + v ELSE s - v END) AS reduce FROM test;" ],
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `OUTPUT` MAP<STRING, INTEGER>",
+        "schema" : "`ID` STRING KEY, `REDUCE` INTEGER",
         "keyFormat" : {
           "format" : "KAFKA"
         },
@@ -113,7 +94,7 @@
       }, {
         "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `MAPPING` MAP<STRING, ARRAY<INTEGER>>",
+        "schema" : "`ID` STRING KEY, `MAP` MAP<STRING, INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },

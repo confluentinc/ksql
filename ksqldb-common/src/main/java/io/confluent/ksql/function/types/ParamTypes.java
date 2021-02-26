@@ -21,6 +21,7 @@ import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlLambda;
+import io.confluent.ksql.schema.ksql.types.SqlLambdaResolved;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
@@ -57,26 +58,32 @@ public final class ParamTypes {
     final Optional<SqlLambda> sqlLambdaOptional = argument.getSqlLambda();
 
     if (sqlLambdaOptional.isPresent() && declared instanceof LambdaType) {
-      final SqlLambda sqlLambda = sqlLambdaOptional.get();
       final LambdaType declaredLambda = (LambdaType) declared;
-      if (sqlLambda.getInputType().size() != declaredLambda.inputTypes().size()) {
-        return false;
-      }
-      int i = 0;
-      for (final ParamType paramType: declaredLambda.inputTypes()) {
-        if (!areCompatible(
-            SqlArgument.of(sqlLambda.getInputType().get(i)),
-            paramType,
-            allowCast)
-        ) {
+      final SqlLambda sqlLambda = sqlLambdaOptional.get();
+      if (sqlLambda instanceof SqlLambdaResolved) {
+        final SqlLambdaResolved sqlLambdaResolved = (SqlLambdaResolved) sqlLambda;
+        if (sqlLambdaResolved.getInputType().size()
+            != declaredLambda.inputTypes().size()) {
           return false;
         }
-        i++;
+        int i = 0;
+        for (final ParamType paramType : declaredLambda.inputTypes()) {
+          if (!areCompatible(
+              SqlArgument.of(sqlLambdaResolved.getInputType().get(i)),
+              paramType,
+              allowCast)
+          ) {
+            return false;
+          }
+          i++;
+        }
+        return areCompatible(
+            SqlArgument.of(sqlLambdaResolved.getReturnType()),
+            declaredLambda.returnType(),
+            allowCast);
+      } else {
+        return sqlLambda.getNumInputs() == declaredLambda.inputTypes().size();
       }
-      return areCompatible(
-          SqlArgument.of(sqlLambda.getReturnType()),
-          declaredLambda.returnType(),
-          allowCast);
     }
 
     final SqlType argumentSqlType = argument.getSqlTypeOrThrow();

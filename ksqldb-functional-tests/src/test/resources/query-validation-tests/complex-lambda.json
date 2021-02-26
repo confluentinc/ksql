@@ -24,7 +24,7 @@
       "name": "complex lambda",
       "statements": [
         "CREATE STREAM test (ID STRING KEY, MAPPING MAP<STRING, ARRAY<INTEGER>>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ID, TRANSFORM(FILTER(MAPPING, (a, b) => LEN(a) > 2 AND REDUCE(0, b, (c, d) => c+d) < 20), (X,Y) => LPAD(x, REDUCE(2, Y, (s, k) => ABS(ABS(k)-s)), 'a'), (X,Y) => REDUCE(0, ARRAY_UNION(Y, TRANSFORM(Y, z => z*3)), (e, f) => e+f)) AS OUTPUT FROM test;"
+        "CREATE STREAM OUTPUT AS SELECT ID, TRANSFORM(FILTER(MAPPING, (a, b) => LEN(a) > 2 AND REDUCE(b, 0, (c, d) => c+d) < 20), (X,Y) => LPAD(x, REDUCE(Y, 2, (s, k) => ABS(ABS(k)-s)), 'a'), (X,Y) => REDUCE(ARRAY_UNION(Y, TRANSFORM(Y, z => z*3)), 0, (e, f) => e+f)) AS OUTPUT FROM test;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "one", "value": {"MAPPING": {"a": [2,4,5], "bcd": [-5,7]}}},

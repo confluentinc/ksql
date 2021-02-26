@@ -23,6 +23,8 @@ import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_U
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.ops;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_CONFIG;
 import static org.apache.kafka.common.acl.AclOperation.ALL;
 import static org.apache.kafka.common.acl.AclOperation.CREATE;
@@ -35,7 +37,6 @@ import static org.apache.kafka.common.resource.ResourceType.CLUSTER;
 import static org.apache.kafka.common.resource.ResourceType.GROUP;
 import static org.apache.kafka.common.resource.ResourceType.TOPIC;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
@@ -62,10 +63,7 @@ import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
 import io.confluent.ksql.topic.TopicProperties;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
-import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -242,6 +240,8 @@ public class SecureIntegrationTest {
     // Given:
     final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
     ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, SERVICE_ID);
+    ksqlConfig.put(KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS, 0L);
+    ksqlConfig.put(KSQL_QUERY_RETRY_BACKOFF_MAX_MS, 0L);
 
     givenTestSetupWithAclsForQuery();
     givenTestSetupWithConfig(ksqlConfig);
@@ -273,6 +273,8 @@ public class SecureIntegrationTest {
     // Given:
     final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
     ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, SERVICE_ID);
+    ksqlConfig.put(KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS, 0L);
+    ksqlConfig.put(KSQL_QUERY_RETRY_BACKOFF_MAX_MS, 0L);
 
     givenTestSetupWithAclsForQuery();
     givenTestSetupWithConfig(ksqlConfig);
@@ -305,6 +307,8 @@ public class SecureIntegrationTest {
     // Given:
     final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
     ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, SERVICE_ID);
+    ksqlConfig.put(KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS, 0L);
+    ksqlConfig.put(KSQL_QUERY_RETRY_BACKOFF_MAX_MS, 0L);
 
     givenTestSetupWithAclsForQuery();
     givenTestSetupWithConfig(ksqlConfig);
@@ -336,6 +340,8 @@ public class SecureIntegrationTest {
     // Given:
     final Map<String, Object> ksqlConfig = getKsqlConfig(NORMAL_USER);
     ksqlConfig.put(KSQL_SERVICE_ID_CONFIG, SERVICE_ID);
+    ksqlConfig.put(KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS, 0L);
+    ksqlConfig.put(KSQL_QUERY_RETRY_BACKOFF_MAX_MS, 0L);
     ksqlConfig.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, StreamsConfig.EXACTLY_ONCE_BETA);
 
     givenTestSetupWithAclsForQuery(); // does not authorize TX, but we enabled EOS above

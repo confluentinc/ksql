@@ -301,7 +301,8 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
     final List<Term> args = new ArrayList<>();
     for (int i = 0; i < arguments.size(); i++) {
       final Expression arg = arguments.get(i);
-      final SqlType sqlType = argumentSchemas.get(i).getSqlType();
+      // lambda arguments and null values are considered to have null type
+      final SqlType sqlType = argumentSchemas.get(i).getSqlType().orElse(null);;
 
       final ParamType paramType;
       if (i >= function.parameters().size() - 1 && function.isVariadic()) {

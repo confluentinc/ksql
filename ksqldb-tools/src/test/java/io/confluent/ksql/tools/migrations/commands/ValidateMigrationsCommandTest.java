@@ -268,9 +268,9 @@ public class ValidateMigrationsCommandTest {
           + " WHERE version_key = '" + version + "';"))
           .thenReturn(queryResult);
       when(queryResult.get()).thenReturn(ImmutableList.of(row));
-      when(row.getString(0)).thenReturn(checksums.get(i));
-      when(row.getString(1)).thenReturn(prevVersion);
-      when(row.getString(2)).thenReturn(states.get(i).toString());
+      when(row.getString(1)).thenReturn(checksums.get(i));
+      when(row.getString(2)).thenReturn(prevVersion);
+      when(row.getString(3)).thenReturn(states.get(i).toString());
     }
   }
 

@@ -207,6 +207,8 @@ public final class KsLocator implements Locator {
 
       streamsMetadata.standbyTopicPartitions().forEach(
           tp -> {
+            // Ideally, we'd also throw an exception if we found a mis-mapping for the standbys, but
+            // with multiple per partition, we can't easy sanity check.
             if (sourceTopicSuffixes.stream().anyMatch(suffix -> tp.topic().endsWith(suffix))) {
               standbyHostsByPartition.computeIfAbsent(tp.partition(), p -> new HashSet<>());
               standbyHostsByPartition.get(tp.partition()).add(streamsMetadata.hostInfo());

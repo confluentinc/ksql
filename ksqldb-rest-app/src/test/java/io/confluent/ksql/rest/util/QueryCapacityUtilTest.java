@@ -15,21 +15,23 @@
 
 package io.confluent.ksql.rest.util;
 
+import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
+import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
+import java.util.List;
+import java.util.Map;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -86,6 +88,51 @@ public class QueryCapacityUtilTest {
             + "Current persistent query count: 3. Configured limit: 2."));
   }
 
+  @Test
+  public void shouldReportPushQueryCapacityExceededIfOverLimit() {
+    // Given:
+    givenAllLiveQueries(10);
+    givenActivePersistentQueries(4);
+    givenPushQueryLimit("3");
+
+    // Then:
+    assertThat(QueryCapacityUtil.getNumLivePushQueries(ksqlEngine) > QueryCapacityUtil.getPushQueryLimit(ksqlConfig),
+            equalTo(true));
+  }
+
+  @Test
+  public void shouldReportPushQueryAtCapacityLimit() {
+    // Given:
+    givenAllLiveQueries(10);
+    givenActivePersistentQueries(4);
+    givenPushQueryLimit("6");
+
+    // Then:
+    assertThat(QueryCapacityUtil.getNumLivePushQueries(ksqlEngine) == QueryCapacityUtil.getPushQueryLimit(ksqlConfig),
+            equalTo(true));
+  }
+
+  @Test
+  public void shouldThrowWhenPushQueryLimitExceeded() {
+    // Given:
+    final String statementStr = "my statement";
+
+    // When:
+    final KsqlException e = assertThrows(
+            KsqlException.class,
+            () -> QueryCapacityUtil.throwTooManyActivePushQueriesException(statementStr, 6, 3)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+            "Not executing statement(s) 'my statement' as it would cause the number "
+                    + "of active, push queries to exceed the configured limit. "
+                    + "Terminate existing PUSH queries, "
+                    + "or increase the 'ksql.max.push.queries' setting "
+                    + "via the 'ksql-server.properties' file. "
+                    + "Current push query count: 6. Configured limit: 3."));
+  }
+
   @SuppressWarnings("unchecked")
   private void givenActivePersistentQueries(final int numQueries) {
     final List<PersistentQueryMetadata> queries = mock(List.class);
@@ -97,5 +144,18 @@ public class QueryCapacityUtilTest {
   private void givenQueryLimit(final int queryLimit) {
     when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG))
         .thenReturn(queryLimit);
+  }
+
+  private void givenAllLiveQueries(final int numLiveQueries) {
+    final List<QueryMetadata> queries = mock(List.class);
+    when(queries.size()).thenReturn(numLiveQueries);
+    when(ksqlEngine.getAllLiveQueries()).thenReturn(queries);
+  }
+
+  private void givenPushQueryLimit(final String pushQueryLimit) {
+    final Map<String, Object> configs = mock(Map.class);
+    when(ksqlConfig.originals()).thenReturn(configs);
+    when(configs.getOrDefault(KsqlRestConfig.MAX_PUSH_QUERIES, String.valueOf(Integer.MAX_VALUE)))
+            .thenReturn(pushQueryLimit);
   }
 }

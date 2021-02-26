@@ -82,7 +82,8 @@ public final class QueryCapacityUtil {
   public static int getPushQueryLimit(final KsqlConfig ksqlConfig) {
     return Integer.parseInt(ksqlConfig
             .originals()
-            .get(KsqlRestConfig.MAX_PUSH_QUERIES).toString());
+            .getOrDefault(KsqlRestConfig.MAX_PUSH_QUERIES, String.valueOf(Integer.MAX_VALUE))
+            .toString());
   }
 
 }

@@ -5,6 +5,24 @@
 There doesn't exist a built-in UDF that suits your needs and you're unable to implement and deploy a UDF.
 To get around this limitation, you use ksqlDB implemented lambda functions.
 
+## In action
+```sql
+CREATE STREAM stream1 (
+  id INT,
+  lambda_map MAP<STRING, INTEGER>
+) WITH (
+  kafka_topic = 'stream1',
+  partitions = 1,
+  value_format = 'avro'
+);
+
+CREATE STREAM output AS
+  SELECT id, 
+  TRANSFORM(lambda_map, (k, v) => UCASE(k), (k, v) => v + 5) 
+  FROM stream1
+  EMIT CHANGES;
+```
+
 ## Syntax
 
 The arguments for the lambda function are separated from the body of the lambda with a `=>`.
@@ -28,25 +46,6 @@ Lambda functions can only be used inside designated invocation functions. Invoca
 - [TRANSFORM](/developer-guide/ksqldb-reference/scalar-functions#TRANSFORM)
 - [REDUCE](/developer-guide/ksqldb-reference/scalar-functions#REDUCE)
 - [FILTER](/developer-guide/ksqldb-reference/scalar-functions#FILTER)
-
-
-## In action
-```sql
-CREATE STREAM stream1 (
-  id INT,
-  lambda_map MAP<STRING, INTEGER>
-) WITH (
-  kafka_topic = 'stream1',
-  partitions = 1,
-  value_format = 'avro'
-);
-
-CREATE STREAM output AS
-  SELECT id, 
-  TRANSFORM(lambda_map, (k, v) => UCASE(k), (k, v) => v + 5) 
-  FROM stream1
-  EMIT CHANGES;
-```
 
 ## Create a Lambda Compatible Stream
 Invocation functions require either a map or array input. Here, we create a stream

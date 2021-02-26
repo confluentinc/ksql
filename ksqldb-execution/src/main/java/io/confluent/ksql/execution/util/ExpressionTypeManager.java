@@ -132,10 +132,7 @@ public class ExpressionTypeManager {
     public Void visitLambdaExpression(
         final LambdaFunctionCall node, final TypeContext context
     ) {
-      process(node.getBody(), context);
-      // TODO: add proper type inference
-      context.setSqlType(SqlTypes.INTEGER);
-      return null;
+      throw new UnsupportedOperationException("Lambda expressions are not supported");
     }
 
     @Override

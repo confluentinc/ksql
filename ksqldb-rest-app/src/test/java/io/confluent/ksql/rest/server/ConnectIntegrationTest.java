@@ -125,7 +125,7 @@ public class ConnectIntegrationTest {
   }
 
   @After
-  public void afterRun() {
+  public void afterRun() throws UnsupportedEncodingException {
     Iterators.consumingIterator(connectNames.iterator())
         .forEachRemaining(
             name -> ksqlRestClient.makeKsqlRequest("DROP CONNECTOR `" + name + "`;"));
@@ -136,7 +136,7 @@ public class ConnectIntegrationTest {
         Matchers.empty()
     );
 
-    System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out)));
+    System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out), true, "UTF-8"));
   }
 
   @Test

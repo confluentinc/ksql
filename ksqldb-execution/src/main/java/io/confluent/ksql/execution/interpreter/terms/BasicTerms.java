@@ -245,14 +245,14 @@ public final class BasicTerms {
 
   public static class TimestampTermImpl implements TimestampTerm {
 
-    private final Timestamp timestamp;
+    private final long timeMs;
 
     public TimestampTermImpl(final Timestamp timestamp) {
-      this.timestamp = timestamp;
+      this.timeMs = timestamp.getTime();
     }
 
     public Timestamp getTimestamp(final TermEvaluationContext context) {
-      return timestamp;
+      return new Timestamp(timeMs);
     }
 
     @Override

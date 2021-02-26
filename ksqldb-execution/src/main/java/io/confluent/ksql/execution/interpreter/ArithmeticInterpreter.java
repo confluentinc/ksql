@@ -139,12 +139,12 @@ public final class ArithmeticInterpreter {
       return o -> ((BigDecimal) o)
           .plus(new MathContext(((SqlDecimal) term.getSqlType()).getPrecision(),
               RoundingMode.UNNECESSARY));
-    } else if (term.getSqlType().baseType() == SqlBaseType.DOUBLE) {
-      return o -> +((Double) o);
-    } else if (term.getSqlType().baseType() == SqlBaseType.INTEGER) {
-      return o -> +((Integer) o);
-    } else if (term.getSqlType().baseType() == SqlBaseType.BIGINT) {
-      return o -> +((Long) o);
+    } else if (term.getSqlType().baseType() == SqlBaseType.DOUBLE
+        || term.getSqlType().baseType() == SqlBaseType.INTEGER
+        || term.getSqlType().baseType() == SqlBaseType.BIGINT) {
+      // https://docs.oracle.com/javase/specs/jls/se8/html/jls-15.html#jls-15.15.3
+      // For integer, long, and double types, type promotion has no effect
+      return o -> o;
     } else {
       throw new UnsupportedOperationException("Unary plus on unsupported type: "
           + term.getSqlType());

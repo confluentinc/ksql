@@ -157,10 +157,17 @@ public final class GenericsUtil {
    */
   public static Map<GenericType, SqlType> resolveGenerics(
       final ParamType schema,
-      final SqlArgument instance
+      final SqlArgument instance,
+      final boolean resolveLambdaType
   ) {
     final List<Entry<GenericType, SqlType>> genericMapping = new ArrayList<>();
-    final boolean success = resolveGenerics(genericMapping, schema, instance);
+    final boolean success = resolveGenerics(
+        genericMapping,
+        schema,
+        instance,
+        resolveLambdaType
+    );
+
     if (!success) {
       throw new KsqlException(
           String.format("Cannot infer generics for %s from %s because "
@@ -192,7 +199,8 @@ public final class GenericsUtil {
   private static boolean resolveGenerics(
       final List<Entry<GenericType, SqlType>> mapping,
       final ParamType schema,
-      final SqlArgument instance
+      final SqlArgument instance,
+      final boolean resolveLambdaType
   ) {
     // CHECKSTYLE_RULES.ON: NPathComplexity
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
@@ -213,26 +221,28 @@ public final class GenericsUtil {
     if (schema instanceof LambdaType) {
       final LambdaType lambdaType = (LambdaType) schema;
       final SqlLambda sqlLambda = instance.getSqlLambdaOrThrow();
-      if (!sqlLambda.isNotImportant()) {
-        if (sqlLambda.getInputType().size() != lambdaType.inputTypes().size()) {
-          throw new KsqlException(
-              "Number of lambda arguments doesn't match between schema and sql type");
-        }
-
-        int i = 0;
-        for (final ParamType paramType : lambdaType.inputTypes()) {
-          if (!resolveGenerics(
-              mapping, paramType, SqlArgument.of(sqlLambda.getInputType().get(i))
-          )) {
-            return false;
+      if (lambdaType.inputTypes().size() == sqlLambda.getNumInputs()) {
+        if (resolveLambdaType) {
+          int i = 0;
+          for (final ParamType paramType : lambdaType.inputTypes()) {
+            if (!resolveGenerics(mapping, paramType,
+                SqlArgument.of(sqlLambda.getInputType().get(i)), resolveLambdaType)) {
+              return false;
+            }
+            i++;
           }
-          i++;
+          return resolveGenerics(
+              mapping,
+              lambdaType.returnType(),
+              SqlArgument.of(sqlLambda.getReturnType()),
+              resolveLambdaType
+          );
+        } else {
+          return true;
         }
-        return resolveGenerics(
-            mapping, lambdaType.returnType(), SqlArgument.of(sqlLambda.getReturnType())
-        );
       } else {
-        return lambdaType.inputTypes().size() == sqlLambda.getNumInputs();
+        throw new KsqlException(
+            "Number of lambda arguments doesn't match between schema and sql type");
       }
     }
 
@@ -247,14 +257,18 @@ public final class GenericsUtil {
       return resolveGenerics(
           mapping,
           ((ArrayType) schema).element(),
-          SqlArgument.of(sqlArray.getItemType()));
+          SqlArgument.of(sqlArray.getItemType()),
+          resolveLambdaType
+      );
     }
 
     if (schema instanceof MapType) {
       final SqlMap sqlMap = (SqlMap) sqlType;
       final MapType mapType = (MapType) schema;
-      return resolveGenerics(mapping, mapType.key(), SqlArgument.of(sqlMap.getKeyType()))
-          && resolveGenerics(mapping, mapType.value(), SqlArgument.of(sqlMap.getValueType()));
+      return resolveGenerics(mapping, mapType.key(),
+          SqlArgument.of(sqlMap.getKeyType()), resolveLambdaType)
+          && resolveGenerics(mapping, mapType.value(),
+          SqlArgument.of(sqlMap.getValueType()), resolveLambdaType);
     }
 
     if (schema instanceof StructType) {
@@ -278,10 +292,14 @@ public final class GenericsUtil {
    * @param instance  a schema without generics
    * @return whether {@code instance} conforms to the structure of {@code schema}
    */
-  public static boolean instanceOf(final ParamType schema, final SqlArgument instance) {
+  public static boolean instanceOf(
+      final ParamType schema,
+      final SqlArgument instance,
+      final boolean resolveLambdaType
+  ) {
     final List<Entry<GenericType, SqlType>> mappings = new ArrayList<>();
 
-    if (!resolveGenerics(mappings, schema, instance)) {
+    if (!resolveGenerics(mappings, schema, instance, resolveLambdaType)) {
       return false;
     }
 
@@ -294,5 +312,28 @@ public final class GenericsUtil {
     }
 
     return true;
+  }
+
+  public static void reserveGenerics(
+      final ParamType schema,
+      final SqlArgument argument,
+      final Map<GenericType, SqlType> reservedGenerics
+  ) {
+      final Map<GenericType, SqlType> newGenericMapping =
+          GenericsUtil.resolveGenerics(schema, argument, true);
+
+      for (final Entry<GenericType, SqlType> entry : newGenericMapping.entrySet()) {
+        final SqlType old = reservedGenerics.putIfAbsent(entry.getKey(), entry.getValue());
+        if (old != null && !old.equals(entry.getValue())) {
+          throw new KsqlException(String.format(
+              "Found invalid instance of generic schema when mapping %s to %s. "
+                  + "Cannot map %s to both %s and %s",
+              schema,
+              argument,
+              entry.getKey(),
+              old,
+              entry.getValue()));
+        }
+      }
   }
 }

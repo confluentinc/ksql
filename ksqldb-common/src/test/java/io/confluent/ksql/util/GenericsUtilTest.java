@@ -171,7 +171,7 @@ public class GenericsUtilTest {
     final SqlArgument instance = SqlArgument.of(SqlTypes.STRING);
 
     // When:
-    final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance);
+    final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance, false);
 
     // Then:
     assertThat(mapping, hasEntry(a, SqlTypes.STRING));
@@ -184,7 +184,7 @@ public class GenericsUtilTest {
     final SqlArgument instance = SqlArgument.of(SqlTypes.array(SqlTypes.STRING));
 
     // When:
-    final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance);
+    final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance, false);
 
     // Then:
     assertThat(mapping, hasEntry(a.element(), SqlTypes.STRING));
@@ -197,7 +197,7 @@ public class GenericsUtilTest {
     final SqlArgument instance = SqlArgument.of(SqlTypes.map(SqlTypes.DOUBLE, SqlTypes.BIGINT));
 
     // When:
-    final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance);
+    final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance, false);
 
     // Then:
     assertThat(mapping, hasEntry(a.key(), SqlTypes.DOUBLE));
@@ -213,7 +213,7 @@ public class GenericsUtilTest {
     final SqlArgument instance = SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.DOUBLE, SqlTypes.BIGINT), SqlTypes.BIGINT));
 
     // When:
-    final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance);
+    final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance, true);
 
     // Then:
     assertThat(mapping, hasEntry(typeA, SqlTypes.DOUBLE));
@@ -232,7 +232,7 @@ public class GenericsUtilTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> GenericsUtil.resolveGenerics(a, instance)
+        () -> GenericsUtil.resolveGenerics(a, instance, true)
     );
 
     // Then:
@@ -251,7 +251,7 @@ public class GenericsUtilTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> GenericsUtil.resolveGenerics(a, instance)
+        () -> GenericsUtil.resolveGenerics(a, instance, true)
     );
 
     // Then:
@@ -267,7 +267,7 @@ public class GenericsUtilTest {
     final SqlArgument instance = SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.INTEGER), SqlTypes.BIGINT));
 
     // When:
-    final boolean isInstance = GenericsUtil.instanceOf(lambda, instance);
+    final boolean isInstance = GenericsUtil.instanceOf(lambda, instance, true);
 
     // Then:
     assertThat("expected instance of", isInstance);
@@ -283,8 +283,8 @@ public class GenericsUtilTest {
     final SqlArgument mapInstance = SqlArgument.of(SqlTypes.map(SqlTypes.STRING, SqlTypes.BOOLEAN));
 
     // When:
-    final boolean isInstance1 = GenericsUtil.instanceOf(map, lambdaInstance);
-    final boolean isInstance2 = GenericsUtil.instanceOf(lambda, mapInstance);
+    final boolean isInstance1 = GenericsUtil.instanceOf(map, lambdaInstance, true);
+    final boolean isInstance2 = GenericsUtil.instanceOf(lambda, mapInstance, true);
 
     // Then:
     assertThat("expected not instance of", !isInstance1);
@@ -298,7 +298,7 @@ public class GenericsUtilTest {
     final SqlArgument instance = SqlArgument.of(SqlTypes.array(SqlTypes.STRING));
 
     // When:
-    final boolean isInstance = GenericsUtil.instanceOf(map, instance);
+    final boolean isInstance = GenericsUtil.instanceOf(map, instance, true);
 
     // Then:
     assertThat("expected not instance of", !isInstance);
@@ -321,6 +321,6 @@ public class GenericsUtilTest {
     final SqlArgument instance = SqlArgument.of(SqlTypes.array(SqlTypes.STRING));
 
     // When:
-    GenericsUtil.resolveGenerics(a, instance);
+    GenericsUtil.resolveGenerics(a, instance, true);
   }
 }

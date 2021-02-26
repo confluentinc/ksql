@@ -115,7 +115,7 @@ CREATE STREAM stream1 (
 
 CREATE STREAM output AS
   SELECT id, 
-  REDUCE(2, lambda_arr, (s, x) => ceil(x/s)) 
+  REDUCE(lambda_arr, 2, (s, x) => ceil(x/s)) 
   FROM stream1
   EMIT CHANGES;
 ```

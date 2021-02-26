@@ -545,9 +545,9 @@ If the collection is a map, two lambda functions must be provided and each lambd
 Since: 0.17.0
 
 ```sql
-REDUCE(state, array, (s, x) => ...)
+REDUCE(array, state, (s, x) => ...)
 
-REDUCE(state, map, (x, k, v) => ...)
+REDUCE(map, state, (s, k, v) => ...)
 ```
 
 Reduce a collection starting from an initial state.

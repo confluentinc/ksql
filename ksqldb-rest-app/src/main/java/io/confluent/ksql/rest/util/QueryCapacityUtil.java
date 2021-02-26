@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 
@@ -53,4 +54,35 @@ public final class QueryCapacityUtil {
   private static int getQueryLimit(final KsqlConfig ksqlConfig) {
     return ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG);
   }
+
+  public static void throwTooManyActivePushQueriesException(
+          final String statementStr,
+          final int numPushQueries,
+          final int pushQueryLimit
+  ) {
+    throw new KsqlException(
+            String.format(
+                    "Not executing statement(s) '%s' as it would cause the number "
+                            + "of active, push queries to exceed the configured limit. "
+                            + "Terminate existing PUSH queries, "
+                            + "or increase the '%s' setting via the 'ksql-server.properties' file. "
+                            + "Current push query count: %d. Configured limit: %d.",
+                    statementStr,
+                    KsqlRestConfig.MAX_PUSH_QUERIES,
+                    numPushQueries,
+                    pushQueryLimit
+            )
+    );
+  }
+
+  public static int getNumLivePushQueries(final KsqlExecutionContext ctx) {
+    return ctx.getAllLiveQueries().size() - ctx.getPersistentQueries().size();
+  }
+
+  public static int getPushQueryLimit(final KsqlConfig ksqlConfig) {
+    return Integer.parseInt(ksqlConfig
+            .originals()
+            .get("ksql.max.push.queries").toString());
+  }
+
 }

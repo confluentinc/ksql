@@ -44,6 +44,7 @@ import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
+import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -352,6 +353,14 @@ public class StreamedQueryResource implements KsqlConfigurable {
   ) {
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, streamsProperties));
+
+    final int numPushQueries = QueryCapacityUtil.getNumLivePushQueries(ksqlEngine);
+    final int pushQueryLimit = QueryCapacityUtil.getPushQueryLimit(ksqlConfig);
+
+    if (numPushQueries >= pushQueryLimit) {
+      QueryCapacityUtil.throwTooManyActivePushQueriesException(statement.getStatementText(),
+              numPushQueries, pushQueryLimit);
+    }
 
     final TransientQueryMetadata query = ksqlEngine
         .executeQuery(serviceContext, configured, false);

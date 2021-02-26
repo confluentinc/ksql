@@ -31,6 +31,10 @@ KSQL 5.4.0 includes new features, including:
   The format only supports single values, i.e. only single field, being primarily intended for use
   as a key format.
 
+* User-defined table functions (UDTF) are now supported by KSQL, and ``explode()`` has
+  been added as a new built-in UDTF. ``explode()`` takes an array as an argument, and outputs a row for
+  each element in the array (essentially, ``flatMap()``).
+
 KSQL 5.4.0 includes the following misc. changes:
 
 * Require either the value for a ``@UdfParameter`` or for the UDF JAR to be compiled with

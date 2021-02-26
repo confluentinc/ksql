@@ -19,7 +19,7 @@
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.ID ID,\n  TRANSFORM(TRANSFORM(TEST.VALUE, (X, Y) => X, (X, Y) => FILTER(Y, (Z) => (Z IS NOT NULL))), (X, Y) => UCASE(X), (K, V) => ARRAY_MAX(V)) FILTERED_TRANSFORMED\nFROM TEST TEST\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.ID ID,\n  TRANSFORM(TRANSFORM(TEST.VALUE, (X, Y) => X, (X, Y) => FILTER(Y, (Z) => (Z < 5))), (X, Y) => UCASE(X), (K, V) => ARRAY_MAX(V)) FILTERED_TRANSFORMED\nFROM TEST TEST\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "OUTPUT",
@@ -65,7 +65,7 @@
             "sourceSchema" : "`ID` BIGINT KEY, `VALUE` MAP<STRING, ARRAY<INTEGER>>"
           },
           "keyColumnNames" : [ "ID" ],
-          "selectExpressions" : [ "TRANSFORM(TRANSFORM(VALUE, (X, Y) => X, (X, Y) => FILTER(Y, (Z) => (Z IS NOT NULL))), (X, Y) => UCASE(X), (K, V) => ARRAY_MAX(V)) AS FILTERED_TRANSFORMED" ]
+          "selectExpressions" : [ "TRANSFORM(TRANSFORM(VALUE, (X, Y) => X, (X, Y) => FILTER(Y, (Z) => (Z < 5))), (X, Y) => UCASE(X), (K, V) => ARRAY_MAX(V)) AS FILTERED_TRANSFORMED" ]
         },
         "formats" : {
           "keyFormat" : {

@@ -453,31 +453,32 @@ public class SqlToJavaVisitor {
 
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
 
-      final TypeContext contextCopy = context.getCopy();
+      // this context gets updated as we process non lambda arguments
+      final TypeContext currentTypeContext = context.getCopy();
+
       final List<SqlArgument> argumentSchemas = new ArrayList<>();
       final List<TypeContext> typeContextsForChildren = new ArrayList<>();
       final boolean hasLambda = node.hasLambdaFunctionCallArguments();
 
       for (final Expression argExpr : node.getArguments()) {
-        final TypeContext childContext;
-        if (argExpr instanceof LambdaFunctionCall) {
-          childContext = contextCopy.getCopy();
-        } else {
-          childContext = context.getCopy();
-        }
+        final TypeContext childContext = TypeContextUtil.contextForExpression(
+            argExpr, context, currentTypeContext
+        );
+        typeContextsForChildren.add(childContext);
 
-        typeContextsForChildren.add(childContext.getCopy());
+        // pass a copy of the context to the type checker so that type checking in one
+        // expression subtree doesn't interfere with type checking in another one
         final SqlType resolvedArgType =
-            expressionTypeManager.getExpressionSqlType(argExpr, childContext);
+            expressionTypeManager.getExpressionSqlType(argExpr, childContext.getCopy());
         if (argExpr instanceof LambdaFunctionCall) {
           argumentSchemas.add(
               SqlArgument.of(
-                  SqlLambda.of(contextCopy.getLambdaInputTypes(), resolvedArgType)));
+                  SqlLambda.of(currentTypeContext.getLambdaInputTypes(), resolvedArgType)));
         } else {
           argumentSchemas.add(SqlArgument.of(resolvedArgType));
           // for lambdas - we save the type information to resolve the lambda generics
           if (hasLambda) {
-            contextCopy.visitType(resolvedArgType);
+            currentTypeContext.visitType(resolvedArgType);
           }
         }
       }
@@ -505,7 +506,7 @@ public class SqlToJavaVisitor {
         }
 
         joiner.add(
-            process(convertArgument(arg, sqlType, paramType),typeContextsForChildren.get(i))
+            process(convertArgument(arg, sqlType, paramType), typeContextsForChildren.get(i))
             .getLeft());
       }
 

@@ -101,6 +101,20 @@ to your ksqlDB Server properties file:
 ksql.fail.on.production.error=false
 ```
 
+## `ksql.functions.collect_list.limit`
+
+Limit the size of the resultant Array to N entries, beyond which
+any further values are silently ignored, by setting this configuration to N.
+
+Also see [aggregate-functions](/reference/aggregate-functions)
+
+## `ksql.functions.collect_set.limit`
+
+Limits the size of the resultant Set to N entries, beyond which
+any further values are silently ignored, by setting this configuration to N.
+
+Also see [aggregate-functions](/reference/aggregate-functions)
+
 ## `ksql.functions.substring.legacy.args`
 
 **Per query:** yes

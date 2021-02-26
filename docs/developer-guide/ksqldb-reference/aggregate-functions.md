@@ -38,7 +38,7 @@ limit are silently ignored.
 When using with a window type of `session`, it can sometimes
 happen that two session windows get merged together into one when a
 out-of-order record with a timestamp between the two windows is
-processed. In this case the record limit is calculated by
+processed. In this case, the record limit is calculated by
 first considering all the records from the first window, then the
 out-of-order record, then the records from the second window in
 the order they were originally processed.
@@ -63,7 +63,7 @@ limit are silently ignored.
 When using with a window type of `session`, it can sometimes
 happen that two session windows get merged together into one when a
 out-of-order record with a timestamp between the two windows is
-processed. In this case the record limit is calculated by
+processed. In this case, the record limit is calculated by
 first considering all the records from the first window, then the
 out-of-order record, then the records from the second window in
 the order they were originally processed.

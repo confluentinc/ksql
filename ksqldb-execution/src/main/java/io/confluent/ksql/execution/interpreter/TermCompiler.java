@@ -409,7 +409,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
       final ArithmeticUnaryExpression node, final Void context
   ) {
     final Term value = process(node.getValue(), context);
-    return ArithmeticInterpreter.doUnaryArithmetic(node, value);
+    return ArithmeticInterpreter.doUnaryArithmetic(node.getSign(), value);
   }
 
   @Override

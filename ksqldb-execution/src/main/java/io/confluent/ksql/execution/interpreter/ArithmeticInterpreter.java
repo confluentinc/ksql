@@ -19,7 +19,7 @@ import static io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConv
 import static io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConversions.toInteger;
 import static io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConversions.toLong;
 
-import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
+import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
 import io.confluent.ksql.execution.interpreter.CastInterpreter.ConversionType;
 import io.confluent.ksql.execution.interpreter.terms.ArithmeticBinaryTerm;
 import io.confluent.ksql.execution.interpreter.terms.ArithmeticBinaryTerm.ArithmeticBinaryFunction;
@@ -42,9 +42,15 @@ import java.math.RoundingMode;
 public final class ArithmeticInterpreter {
   private ArithmeticInterpreter() { }
 
-  public static Term doUnaryArithmetic(final ArithmeticUnaryExpression node, final Term value) {
+  /**
+   * Creates a term representing unary arithmetic on the given input term.
+   * @param sign The sign of the unary operation
+   * @param value The input term
+   * @return The resulting term
+   */
+  public static Term doUnaryArithmetic(final Sign sign, final Term value) {
     final ArithmeticUnaryFunction function;
-    switch (node.getSign()) {
+    switch (sign) {
       case MINUS:
         function = getUnaryMinusFunction(value);
         break;
@@ -52,11 +58,20 @@ public final class ArithmeticInterpreter {
         function = getUnaryPlusFunction(value);
         break;
       default:
-        throw new UnsupportedOperationException("Unsupported sign: " + node.getSign());
+        throw new UnsupportedOperationException("Unsupported sign: " + sign);
     }
     return new ArithmeticUnaryTerm(value, function);
   }
 
+  /**
+   * Creates a term representing binary arithmetic on the given input term.
+   * @param operator The operator in use
+   * @param left The left term
+   * @param right The right term
+   * @param resultType The type of the resulting operation
+   * @param ksqlConfig The ksqlconfig
+   * @return
+   */
   public static Term doBinaryArithmetic(
       final Operator operator,
       final Term left,

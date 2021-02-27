@@ -106,8 +106,7 @@ public class ApplyMigrationCommandTest {
   }
 
   @Test
-  public void shouldApplyFirstMigration()
-      throws IOException, ExecutionException, InterruptedException {
+  public void shouldApplyFirstMigration() throws Exception {
     // Given:
     command = PARSER.parse("-n");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
@@ -120,18 +119,17 @@ public class ApplyMigrationCommandTest {
     // Then:
     assertThat(result, is(0));
     final InOrder inOrder = inOrder(ksqlClient);
-    verifyMigratedVersion(inOrder, 1, MigrationState.MIGRATED);
+    verifyMigratedVersion(inOrder, 1, "<none>", MigrationState.MIGRATED);
     inOrder.verify(ksqlClient).close();
     inOrder.verifyNoMoreInteractions();
   }
 
   @Test
-  public void shouldApplySecondMigration()
-      throws IOException, ExecutionException, InterruptedException {
+  public void shouldApplySecondMigration() throws Exception {
     // Given:
     command = PARSER.parse("-n");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
-    createMigrationFile(2, NAME, migrationsDir, COMMAND);
+    createMigrationFile(3, NAME, migrationsDir, COMMAND);
     when(versionQueryResult.get()).thenReturn(ImmutableList.of(createVersionRow("1")));
     when(infoQueryResult.get()).thenReturn(ImmutableList.of(createInfoRow(1, NAME, MigrationState.MIGRATED)));
 
@@ -142,14 +140,13 @@ public class ApplyMigrationCommandTest {
     // Then:
     assertThat(result, is(0));
     final InOrder inOrder = inOrder(ksqlClient);
-    verifyMigratedVersion(inOrder, 2, MigrationState.MIGRATED);
+    verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED);
     inOrder.verify(ksqlClient).close();
     inOrder.verifyNoMoreInteractions();
   }
 
   @Test
-  public void shouldApplyMultipleMigrations()
-      throws IOException, ExecutionException, InterruptedException {
+  public void shouldApplyMultipleMigrations() throws Exception {
     // Given:
     command = PARSER.parse("-a");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
@@ -164,15 +161,36 @@ public class ApplyMigrationCommandTest {
     // Then:
     assertThat(result, is(0));
     final InOrder inOrder = inOrder(ksqlClient);
-    verifyMigratedVersion(inOrder, 1, MigrationState.MIGRATED);
-    verifyMigratedVersion(inOrder, 2, MigrationState.MIGRATED);
+    verifyMigratedVersion(inOrder, 1, "<none>", MigrationState.MIGRATED);
+    verifyMigratedVersion(inOrder, 2, "1", MigrationState.MIGRATED);
     inOrder.verify(ksqlClient).close();
     inOrder.verifyNoMoreInteractions();
   }
 
   @Test
-  public void shouldNotApplyMigrationIfPreviousNotFinished()
-      throws IOException, ExecutionException, InterruptedException {
+  public void shouldApplyUntilVersion() throws Exception {
+    // Given:
+    command = PARSER.parse("-u", "2");
+    createMigrationFile(1, NAME, migrationsDir, COMMAND);
+    createMigrationFile(2, NAME, migrationsDir, COMMAND);
+    when(versionQueryResult.get()).thenReturn(ImmutableList.of());
+    when(infoQueryResult.get()).thenReturn(ImmutableList.of(createInfoRow(1, NAME, MigrationState.MIGRATED)));
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(0));
+    final InOrder inOrder = inOrder(ksqlClient);
+    verifyMigratedVersion(inOrder, 1, "<none>", MigrationState.MIGRATED);
+    verifyMigratedVersion(inOrder, 2, "1", MigrationState.MIGRATED);
+    inOrder.verify(ksqlClient).close();
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void shouldNotApplyMigrationIfPreviousNotFinished() throws Exception {
     // Given:
     command = PARSER.parse("-a");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
@@ -187,14 +205,13 @@ public class ApplyMigrationCommandTest {
     // Then:
     assertThat(result, is(1));
     final InOrder inOrder = inOrder(ksqlClient);
-    verifyMigratedVersion(inOrder, 1, MigrationState.MIGRATED);
+    verifyMigratedVersion(inOrder, 1, "<none>", MigrationState.MIGRATED);
     inOrder.verify(ksqlClient).close();
     Mockito.verify(ksqlClient, Mockito.times(1)).executeStatement(COMMAND);
   }
 
   @Test
-  public void shouldLogErrorStateIfMigrationFails()
-      throws IOException, ExecutionException, InterruptedException {
+  public void shouldLogErrorStateIfMigrationFails() throws Exception {
     // Given:
     command = PARSER.parse("-n");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
@@ -208,14 +225,13 @@ public class ApplyMigrationCommandTest {
     // Then:
     assertThat(result, is(1));
     final InOrder inOrder = inOrder(ksqlClient);
-    verifyMigratedVersion(inOrder, 1, MigrationState.ERROR);
+    verifyMigratedVersion(inOrder, 1, "<none>", MigrationState.ERROR);
     inOrder.verify(ksqlClient).close();
     inOrder.verifyNoMoreInteractions();
   }
 
   @Test
-  public void shouldSkipApplyIfValidateFails()
-      throws IOException, ExecutionException, InterruptedException {
+  public void shouldSkipApplyIfValidateFails() throws Exception {
     // Given:
     command = PARSER.parse("-n");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
@@ -230,11 +246,12 @@ public class ApplyMigrationCommandTest {
     // Then:
     assertThat(result, is(1));
     Mockito.verify(ksqlClient, Mockito.times(3)).executeQuery(any());
+    Mockito.verify(ksqlClient, Mockito.times(0)).executeStatement(any());
+    Mockito.verify(ksqlClient, Mockito.times(0)).insertInto(any(), any());
   }
 
   @Test
-  public void shouldFailIfUntilVersionLowerThanNextPendingVersion()
-      throws IOException, ExecutionException, InterruptedException {
+  public void shouldFailIfUntilVersionLowerThanPreviousVersion() throws Exception {
     // Given:
     command = PARSER.parse("-u", "1");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
@@ -277,7 +294,8 @@ public class ApplyMigrationCommandTest {
       final String name,
       final MigrationState state,
       final String startOn,
-      final String completedOn
+      final String completedOn,
+      final String previous
   ) {
     final List<String> KEYS = ImmutableList.of(
         "VERSION_KEY", "VERSION", "NAME", "STATE",
@@ -292,7 +310,7 @@ public class ApplyMigrationCommandTest {
         MigrationsDirectoryUtil.computeHashForFile(getMigrationFilePath(version, name, migrationsDir)),
         startOn,
         completedOn,
-        version == 1 ? MetadataUtil.NONE_VERSION : Integer.toString(version - 1)
+        previous
     );
 
     return KsqlObject.fromArray(KEYS, new KsqlArray(values));
@@ -318,23 +336,23 @@ public class ApplyMigrationCommandTest {
     );
   }
 
-  private void verifyMigratedVersion(final InOrder inOrder, final int version, final MigrationState finalState) {
+  private void verifyMigratedVersion(final InOrder inOrder, final int version, final String previous, final MigrationState finalState) {
     inOrder.verify(ksqlClient).insertInto(
         MIGRATIONS_STREAM,
-        createKsqlObject(MetadataUtil.CURRENT_VERSION_KEY, version, NAME, MigrationState.RUNNING, "1000", "")
+        createKsqlObject(MetadataUtil.CURRENT_VERSION_KEY, version, NAME, MigrationState.RUNNING, "1000", "", previous)
     );
     inOrder.verify(ksqlClient).insertInto(
         MIGRATIONS_STREAM,
-        createKsqlObject(Integer.toString(version), version, NAME, MigrationState.RUNNING, "1000", "")
+        createKsqlObject(Integer.toString(version), version, NAME, MigrationState.RUNNING, "1000", "", previous)
     );
     inOrder.verify(ksqlClient).executeStatement(COMMAND);
     inOrder.verify(ksqlClient).insertInto(
         MIGRATIONS_STREAM,
-        createKsqlObject(MetadataUtil.CURRENT_VERSION_KEY, version, NAME, finalState, "1000", "1000")
+        createKsqlObject(MetadataUtil.CURRENT_VERSION_KEY, version, NAME, finalState, "1000", "1000", previous)
     );
     inOrder.verify(ksqlClient).insertInto(
         MIGRATIONS_STREAM,
-        createKsqlObject(Integer.toString(version), version, NAME, finalState, "1000", "1000")
+        createKsqlObject(Integer.toString(version), version, NAME, finalState, "1000", "1000", previous)
     );
   }
 }

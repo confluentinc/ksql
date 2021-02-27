@@ -72,19 +72,20 @@ public final class MetadataUtil {
       final String state,
       final String startOn,
       final String completedOn,
-      final Migration migration
+      final Migration migration,
+      final String previous
   ) {
     final String migrationStreamName =
         config.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME);
     final List<String> values = ImmutableList.of(
         versionKey,
-        migration.getVersion(),
+        Integer.toString(migration.getVersion()),
         migration.getName(),
         state,
         migration.getChecksum(),
         startOn,
         completedOn,
-        migration.getPrevious()
+        previous
     );
     return client.insertInto(
         migrationStreamName,

@@ -15,14 +15,12 @@
 
 package io.confluent.ksql.tools.migrations;
 
-import io.confluent.ksql.tools.migrations.util.MetadataUtil;
 import java.util.Objects;
 
 public class Migration {
-  private final String version;
+  private final int version;
   private final String name;
   private final String checksum;
-  private final String previous;
   private final String command;
 
   public Migration(
@@ -34,14 +32,13 @@ public class Migration {
     if (version < 1) {
       throw new MigrationException("Version must be positive, received " + version);
     }
-    this.version = Integer.toString(version);
+    this.version = version;
     this.name = Objects.requireNonNull(name);
     this.checksum = Objects.requireNonNull(checksum);
-    this.previous = version == 1 ? MetadataUtil.NONE_VERSION : Integer.toString(version - 1);
     this.command = Objects.requireNonNull(command);
   }
 
-  public String getVersion() {
+  public int getVersion() {
     return version;
   }
 
@@ -55,9 +52,5 @@ public class Migration {
 
   public String getCommand() {
     return command;
-  }
-
-  public String getPrevious() {
-    return previous;
   }
 }

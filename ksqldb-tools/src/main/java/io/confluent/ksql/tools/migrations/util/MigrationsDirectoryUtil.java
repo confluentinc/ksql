@@ -25,7 +25,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -77,17 +76,12 @@ public final class MigrationsDirectoryUtil {
     }
   }
 
-  public static String getFileContentsForVersion(final String version, final String migrationsDir) {
-    final Optional<String> filename = getFilePathForVersion(version, migrationsDir);
-    if (!filename.isPresent()) {
-      throw new MigrationException("Cannot find migration file with version "
-          + version + " in " + migrationsDir);
-    }
+  public static String getFileContentsForName(final String filename) {
     try {
-      return new String(Files.readAllBytes(Paths.get(filename.get())), StandardCharsets.UTF_8);
+      return new String(Files.readAllBytes(Paths.get(filename)), StandardCharsets.UTF_8);
     } catch (IOException e) {
       throw new MigrationException(
-          String.format("Failed to read %s: %s", filename.get(), e.getMessage()));
+          String.format("Failed to read %s: %s", filename, e.getMessage()));
     }
   }
 
@@ -107,46 +101,27 @@ public final class MigrationsDirectoryUtil {
         .replace('_', ' ');
   }
 
-  public static List<Migration> getAllMigrations(
-      final int start,
-      final int end,
-      final String migrationsDir
-  ) {
-    final List<Migration> migrations = new ArrayList<>();
-    for (int version = start; version <= end; version++) {
-      migrations.add(loadMigration(version, migrationsDir));
-    }
-    return migrations;
+  public static int getVersionFromMigrationFilePath(final String filename) {
+    return Integer.parseInt(filename.substring(1, 7));
   }
 
-  public static List<Migration> getAllMigrations(
-      final int start,
-      final String migrationsDir
-  ) {
-    int end = start;
-    while (getFilePathForVersion(Integer.toString(end), migrationsDir).isPresent()) {
-      end++;
-    }
-    return getAllMigrations(start, end - 1, migrationsDir);
-  }
-
-  private static Migration loadMigration(final int version, final String migrationsDir) {
-    final String versionString = Integer.toString(version);
-
-    final Optional<String> migrationFilePath =
-        MigrationsDirectoryUtil.getFilePathForVersion(versionString, migrationsDir);
-    if (!migrationFilePath.isPresent()) {
-      throw new MigrationException("Failed to find file for version " + versionString);
+  public static List<Migration> getAllMigrations(final String migrationsDir) {
+    final File directory = new File(migrationsDir);
+    if (!directory.isDirectory()) {
+      throw new MigrationException(migrationsDir + " is not a directory.");
     }
 
-    final String migrationCommand =
-        MigrationsDirectoryUtil.getFileContentsForVersion(versionString, migrationsDir);
+    final String[] names = directory.list();
+    if (names == null) {
+      throw new MigrationException("Failed to retrieve files from " + migrationsDir);
+    }
 
-    return new Migration(
-        version,
-        MigrationsDirectoryUtil.getNameFromMigrationFilePath(migrationFilePath.get()),
-        MigrationsDirectoryUtil.computeHashForFile(migrationFilePath.get()),
-        migrationCommand
-    );
+    return Arrays.stream(names)
+        .map(name ->new Migration(
+            getVersionFromMigrationFilePath(name),
+            getNameFromMigrationFilePath(name),
+            computeHashForFile(migrationsDir + "/" + name),
+            getFileContentsForName(migrationsDir + "/" + name)))
+        .collect(Collectors.toList());
   }
 }

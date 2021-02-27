@@ -30,16 +30,14 @@ import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.tools.migrations.commands.BaseCommand;
 import io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil;
-import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -52,8 +50,6 @@ import org.apache.kafka.test.TestUtils;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -118,22 +114,28 @@ public class MigrationsTest {
     describeSource("BAR");
 
     // verify current
-    final List<String> current = makeKsqlQuery("SELECT * FROM migration_schema_versions WHERE VERSION_KEY='CURRENT';");
+    final List<StreamedRow> current = makeKsqlQuery("SELECT * FROM migration_schema_versions WHERE VERSION_KEY='CURRENT';");
     assertThat(current.size(), is(2));
-    final JSONArray currentRow = new JSONObject(current.get(1)).getJSONObject("row").getJSONArray("columns");
-    assertThat(currentRow.get(1), is("2"));
-    assertThat(currentRow.get(2), is("bar"));
-    assertThat(currentRow.get(3), is("MIGRATED"));
-    assertThat(currentRow.get(7), is("1"));
-    // verify version 1
-    final List<String> version1 = makeKsqlQuery("SELECT * FROM migration_schema_versions WHERE VERSION_KEY='1';");
-    assertThat(current.size(), is(2));
-    final JSONArray version1Row = new JSONObject(version1.get(1)).getJSONObject("row").getJSONArray("columns");
-    assertThat(version1Row.get(1), is("1"));
-    assertThat(version1Row.get(2), is("foo"));
-    assertThat(version1Row.get(3), is("MIGRATED"));
-    assertThat(version1Row.get(7), is("<none>"));
+    assertThat(current.get(1).getRow().get().getColumns().get(1), is("2"));
+    assertThat(current.get(1).getRow().get().getColumns().get(2), is("bar"));
+    assertThat(current.get(1).getRow().get().getColumns().get(3), is("MIGRATED"));
+    assertThat(current.get(1).getRow().get().getColumns().get(7), is("1"));
 
+    // verify version 1
+    final List<StreamedRow> version1 = makeKsqlQuery("SELECT * FROM migration_schema_versions WHERE VERSION_KEY='1';");
+    assertThat(version1.size(), is(2));
+    assertThat(version1.get(1).getRow().get().getColumns().get(1), is("1"));
+    assertThat(version1.get(1).getRow().get().getColumns().get(2), is("foo"));
+    assertThat(version1.get(1).getRow().get().getColumns().get(3), is("MIGRATED"));
+    assertThat(version1.get(1).getRow().get().getColumns().get(7), is("<none>"));
+
+    // verify version 2
+    final List<StreamedRow> version2 = makeKsqlQuery("SELECT * FROM migration_schema_versions WHERE VERSION_KEY='CURRENT';");
+    assertThat(version2.size(), is(2));
+    assertThat(version2.get(1).getRow().get().getColumns().get(1), is("2"));
+    assertThat(version2.get(1).getRow().get().getColumns().get(2), is("bar"));
+    assertThat(version2.get(1).getRow().get().getColumns().get(3), is("MIGRATED"));
+    assertThat(version2.get(1).getRow().get().getColumns().get(7), is("1"));
   }
 
   private static void createAndVerifyDirectoryStructure(final String testDir) throws Exception {
@@ -220,8 +222,8 @@ public class MigrationsTest {
     return RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
   }
 
-  private static List<String> makeKsqlQuery(final String sql) {
-    return RestIntegrationTestUtil.makeWsRequest(REST_APP.getWsListener(), sql, Optional.empty(), Optional.empty(), Optional.empty());
+  private static List<StreamedRow> makeKsqlQuery(final String sql) {
+    return RestIntegrationTestUtil.makeQueryRequest(REST_APP, sql, Optional.empty());
   }
 
   private static Matcher<? super FieldInfo> fieldInfo(

@@ -28,9 +28,9 @@ import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
-import io.confluent.ksql.tools.migrations.util.MetadataUtil.VersionInfo;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.RetryUtil;
 import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
@@ -128,25 +128,33 @@ public class ApplyMigrationCommand extends BaseCommand {
       final String migrationsDir,
       final Clock clock
   ) {
-    final int start = getStartVersion(config, ksqlClient);
-    final List<Migration> migrations;
+    String previous = MetadataUtil.getLatestMigratedVersion(config, ksqlClient);
+    final int minimumVersion = previous.equals(MetadataUtil.NONE_VERSION)
+        ? 1
+        : Integer.parseInt(previous) + 1;
     LOGGER.info("Loading migration files");
+    final List<Migration> migrations = getAllMigrations(migrationsDir).stream()
+        .filter(migration -> {
+          if (version > 0) {
+            return migration.getVersion() <= version && migration.getVersion() >= minimumVersion;
+          } else {
+            return migration.getVersion() >= minimumVersion;
+          }
+        })
+        .collect(Collectors.toList());
 
-    if (next) {
-      migrations = getAllMigrations(start, start, migrationsDir);
-    } else if (version >= start) {
-      migrations = getAllMigrations(start, version, migrationsDir);;
-    } else if (version > 0 && version < start) {
-      LOGGER.error("Specified version is lower than latest migrated version");
+    if (migrations.size() == 0) {
+      LOGGER.error("No eligible migrations found.");
       return false;
     } else {
-      migrations = getAllMigrations(start, migrationsDir);
+      LOGGER.info(migrations.size() + " migration files loaded.");
     }
 
     for (Migration migration : migrations) {
-      if (!applyMigration(config, ksqlClient, migration, clock)) {
+      if (!applyMigration(config, ksqlClient, migration, clock, previous)) {
         return false;
       }
+      previous = Integer.toString(migration.getVersion());
     }
     return true;
   }
@@ -155,7 +163,8 @@ public class ApplyMigrationCommand extends BaseCommand {
       final MigrationConfig config,
       final Client ksqlClient,
       final Migration migration,
-      final Clock clock
+      final Clock clock,
+      final String previous
   ) {
     LOGGER.info("Applying " + migration.getName() + " version " + migration.getVersion());
     LOGGER.info(migration.getCommand());
@@ -164,15 +173,16 @@ public class ApplyMigrationCommand extends BaseCommand {
       return true;
     }
 
-    if (!verifyMigrated(config, ksqlClient, migration.getPrevious(), MAX_RETRIES)) {
-      LOGGER.error("Failed to verify status of version " + migration.getPrevious());
+    if (!verifyMigrated(config, ksqlClient, previous, MAX_RETRIES)) {
+      LOGGER.error("Failed to verify status of version " + previous);
       return false;
     }
 
     final String executionStart = Long.toString(clock.millis());
 
     if (
-        !updateState(config, ksqlClient, MigrationState.RUNNING, executionStart, migration, clock)
+        !updateState(config, ksqlClient, MigrationState.RUNNING,
+            executionStart, migration, clock, previous)
     ) {
       return false;
     }
@@ -186,21 +196,14 @@ public class ApplyMigrationCommand extends BaseCommand {
       }
     } catch (InterruptedException | ExecutionException e) {
       LOGGER.error(e.getMessage());
-      updateState(config, ksqlClient, MigrationState.ERROR, executionStart, migration, clock);
+      updateState(config, ksqlClient, MigrationState.ERROR,
+          executionStart, migration, clock, previous);
       return false;
     }
-    updateState(config, ksqlClient, MigrationState.MIGRATED, executionStart, migration, clock);
+    updateState(config, ksqlClient, MigrationState.MIGRATED,
+        executionStart, migration, clock, previous);
     LOGGER.info("Successfully migrated");
     return true;
-  }
-
-  private int getStartVersion(final MigrationConfig config, final Client ksqlClient) {
-    final String latestMigratedVersion = MetadataUtil.getLatestMigratedVersion(config, ksqlClient);
-    if (latestMigratedVersion.equals(MetadataUtil.NONE_VERSION)) {
-      return 1;
-    } else {
-      return Integer.parseInt(latestMigratedVersion) + 1;
-    }
   }
 
   private boolean verifyMigrated(
@@ -212,16 +215,23 @@ public class ApplyMigrationCommand extends BaseCommand {
     if (version.equals(MetadataUtil.NONE_VERSION)) {
       return true;
     }
-    for (int i = 1; i <= retries; i++) {
-      final VersionInfo versionInfo = MetadataUtil.getInfoForVersion(version, config, ksqlClient);
-      if (versionInfo.getState().equals(MigrationState.MIGRATED)) {
-        return true;
-      } else {
-        LOGGER.info(String.format(
-            "Could not verify status of version %s. Retrying (%d/%d)", version, i, retries));
-      }
+    try {
+      RetryUtil.retryWithBackoff(
+          retries,
+          1000,
+          1000,
+          () -> {
+            if (!MetadataUtil.getInfoForVersion(version, config, ksqlClient)
+                .getState().equals(MigrationState.MIGRATED)) {
+              throw new MigrationException("Could not verify status of version " + version);
+            }
+          }
+      );
+    } catch (MigrationException e) {
+      LOGGER.error(e.getMessage());
+      return false;
     }
-    return false;
+    return true;
   }
 
   private boolean updateState(
@@ -230,7 +240,8 @@ public class ApplyMigrationCommand extends BaseCommand {
       final MigrationState state,
       final String executionStart,
       final Migration migration,
-      final Clock clock
+      final Clock clock,
+      final String previous
   ) {
     final String executionEnd = (state == MigrationState.MIGRATED || state == MigrationState.ERROR)
         ? Long.toString(clock.millis())
@@ -243,16 +254,18 @@ public class ApplyMigrationCommand extends BaseCommand {
           state.toString(),
           executionStart,
           executionEnd,
-          migration
+          migration,
+          previous
       ).get();
       MetadataUtil.writeRow(
           config,
           ksqlClient,
-          migration.getVersion(),
+          Integer.toString(migration.getVersion()),
           state.toString(),
           executionStart,
           executionEnd,
-          migration
+          migration,
+          previous
       ).get();
       return true;
     } catch (InterruptedException | ExecutionException e) {

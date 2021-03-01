@@ -73,7 +73,8 @@ public final class MetadataUtil {
       final String startOn,
       final String completedOn,
       final Migration migration,
-      final String previous
+      final String previous,
+      final String checksum
   ) {
     final String migrationStreamName =
         config.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME);
@@ -82,7 +83,7 @@ public final class MetadataUtil {
         Integer.toString(migration.getVersion()),
         migration.getName(),
         state,
-        MigrationsDirectoryUtil.computeHashForFile(migration.getFilepath()),
+        checksum,
         startOn,
         completedOn,
         previous

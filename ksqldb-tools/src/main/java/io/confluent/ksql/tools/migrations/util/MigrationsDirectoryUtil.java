@@ -104,14 +104,17 @@ public final class MigrationsDirectoryUtil {
   }
 
   public static int getVersionFromMigrationFilePath(final String filename) {
-    final Matcher matcher = Pattern.compile(".*V([0-9]{6}).*\\.sql").matcher(filename);
+    final Matcher matcher = Pattern.compile("V([0-9]{6})__.*\\.sql").matcher(filename);
     if (matcher.find()) {
-      return Integer.parseInt(matcher.group(1));
+      final int version = Integer.parseInt(matcher.group(1));
+      if (version > 0) {
+        return version;
+      } else {
+        throw new MigrationException("Version number must be positive - found " + filename);
+      }
     } else {
-
       throw new MigrationException(
-          "File path does not match expected pattern path/to/file/V<six digit number>__<name>.sql: "
-              + filename);
+          "File path does not match expected pattern V<six digit number>__<name>.sql: " + filename);
     }
   }
 

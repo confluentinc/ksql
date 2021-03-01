@@ -261,6 +261,7 @@ public class ApplyMigrationCommand extends BaseCommand {
     final String executionEnd = (state == MigrationState.MIGRATED || state == MigrationState.ERROR)
         ? Long.toString(clock.millis())
         : "";
+    final String checksum = MigrationsDirectoryUtil.computeHashForFile(migration.getFilepath());
     try {
       MetadataUtil.writeRow(
           config,
@@ -270,7 +271,8 @@ public class ApplyMigrationCommand extends BaseCommand {
           executionStart,
           executionEnd,
           migration,
-          previous
+          previous,
+          checksum
       ).get();
       MetadataUtil.writeRow(
           config,
@@ -280,7 +282,8 @@ public class ApplyMigrationCommand extends BaseCommand {
           executionStart,
           executionEnd,
           migration,
-          previous
+          previous,
+          checksum
       ).get();
       return true;
     } catch (InterruptedException | ExecutionException e) {

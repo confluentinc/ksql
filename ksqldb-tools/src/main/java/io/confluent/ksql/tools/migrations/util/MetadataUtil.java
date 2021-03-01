@@ -82,7 +82,7 @@ public final class MetadataUtil {
         Integer.toString(migration.getVersion()),
         migration.getName(),
         state,
-        migration.getChecksum(),
+        MigrationsDirectoryUtil.computeHashForFile(migration.getFilepath()),
         startOn,
         completedOn,
         previous

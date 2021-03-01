@@ -28,6 +28,7 @@ import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
+import io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.RetryUtil;
@@ -132,20 +133,29 @@ public class ApplyMigrationCommand extends BaseCommand {
     final int minimumVersion = previous.equals(MetadataUtil.NONE_VERSION)
         ? 1
         : Integer.parseInt(previous) + 1;
+    if (minimumVersion <= 0) {
+      LOGGER.error("Invalid migration version found: " + minimumVersion);
+    }
+
     LOGGER.info("Loading migration files");
-    final List<Migration> migrations = getAllMigrations(migrationsDir).stream()
-        .filter(migration -> {
-          if (version > 0) {
-            return migration.getVersion() <= version && migration.getVersion() >= minimumVersion;
-          } else {
-            return migration.getVersion() >= minimumVersion;
-          }
-        })
-        .collect(Collectors.toList());
+    final List<Migration> migrations;
+    try {
+      migrations = getAllMigrations(migrationsDir).stream()
+          .filter(migration -> {
+            if (version > 0) {
+              return migration.getVersion() <= version && migration.getVersion() >= minimumVersion;
+            } else {
+              return migration.getVersion() >= minimumVersion;
+            }
+          })
+          .collect(Collectors.toList());
+    } catch (MigrationException e) {
+      LOGGER.error(e.getMessage());
+      return false;
+    }
 
     if (migrations.size() == 0) {
-      LOGGER.error("No eligible migrations found.");
-      return false;
+      LOGGER.info("No eligible migrations found.");
     } else {
       LOGGER.info(migrations.size() + " migration files loaded.");
     }
@@ -167,7 +177,9 @@ public class ApplyMigrationCommand extends BaseCommand {
       final String previous
   ) {
     LOGGER.info("Applying " + migration.getName() + " version " + migration.getVersion());
-    LOGGER.info(migration.getCommand());
+    final String migrationFileContent =
+        MigrationsDirectoryUtil.getFileContentsForName(migration.getFilepath());
+    LOGGER.info(migrationFileContent);
 
     if (dryRun) {
       return true;
@@ -188,7 +200,7 @@ public class ApplyMigrationCommand extends BaseCommand {
     }
 
     try {
-      final List<String> commands = Arrays.stream(migration.getCommand().split(";"))
+      final List<String> commands = Arrays.stream(migrationFileContent.split(";"))
           .filter(s -> s.length() > 1)
           .collect(Collectors.toList());
       for (final String command : commands) {
@@ -221,9 +233,12 @@ public class ApplyMigrationCommand extends BaseCommand {
           1000,
           1000,
           () -> {
-            if (!MetadataUtil.getInfoForVersion(version, config, ksqlClient)
-                .getState().equals(MigrationState.MIGRATED)) {
-              throw new MigrationException("Could not verify status of version " + version);
+            final MigrationState state = MetadataUtil
+                .getInfoForVersion(version, config, ksqlClient)
+                .getState();
+            if (!state.equals(MigrationState.MIGRATED)) {
+              throw new MigrationException(
+                  String.format("Expected status MIGRATED for version %s. Got %s", version, state));
             }
           }
       );

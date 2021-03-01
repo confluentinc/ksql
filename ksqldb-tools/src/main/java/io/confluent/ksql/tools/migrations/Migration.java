@@ -20,37 +20,30 @@ import java.util.Objects;
 public class Migration {
   private final int version;
   private final String name;
-  private final String checksum;
-  private final String command;
+  private final String filepath;
 
   public Migration(
       final int version,
       final String name,
-      final String checksum,
-      final String command
+      final String filepath
   ) {
     if (version < 1) {
       throw new MigrationException("Version must be positive, received " + version);
     }
     this.version = version;
     this.name = Objects.requireNonNull(name);
-    this.checksum = Objects.requireNonNull(checksum);
-    this.command = Objects.requireNonNull(command);
+    this.filepath = Objects.requireNonNull(filepath);
   }
 
   public int getVersion() {
     return version;
   }
 
-  public String getChecksum() {
-    return checksum;
-  }
-
   public String getName() {
     return name;
   }
 
-  public String getCommand() {
-    return command;
+  public String getFilepath() {
+    return filepath;
   }
 }

@@ -28,6 +28,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
@@ -102,7 +104,15 @@ public final class MigrationsDirectoryUtil {
   }
 
   public static int getVersionFromMigrationFilePath(final String filename) {
-    return Integer.parseInt(filename.substring(1, 7));
+    final Matcher matcher = Pattern.compile(".*V([0-9]{6}).*\\.sql").matcher(filename);
+    if (matcher.find()) {
+      return Integer.parseInt(matcher.group(1));
+    } else {
+
+      throw new MigrationException(
+          "File path does not match expected pattern path/to/file/V<six digit number>__<name>.sql: "
+              + filename);
+    }
   }
 
   public static List<Migration> getAllMigrations(final String migrationsDir) {
@@ -117,11 +127,10 @@ public final class MigrationsDirectoryUtil {
     }
 
     return Arrays.stream(names)
-        .map(name ->new Migration(
+        .map(name -> new Migration(
             getVersionFromMigrationFilePath(name),
             getNameFromMigrationFilePath(name),
-            computeHashForFile(migrationsDir + "/" + name),
-            getFileContentsForName(migrationsDir + "/" + name)))
+            migrationsDir + "/" + name))
         .collect(Collectors.toList());
   }
 }

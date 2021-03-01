@@ -251,10 +251,11 @@ public class ApplyMigrationCommandTest {
   }
 
   @Test
-  public void shouldFailIfUntilVersionLowerThanPreviousVersion() throws Exception {
+  public void shouldFailIfFileDoesntFitFormat() throws Exception {
     // Given:
-    command = PARSER.parse("-u", "1");
+    command = PARSER.parse("-n");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
+    new File(migrationsDir + "/foo.sql").createNewFile();
     when(versionQueryResult.get()).thenReturn(ImmutableList.of(createVersionRow("1")));
     when(infoQueryResult.get()).thenReturn(ImmutableList.of(createInfoRow(1, NAME, MigrationState.MIGRATED)));
 

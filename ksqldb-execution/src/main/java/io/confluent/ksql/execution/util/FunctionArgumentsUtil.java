@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -30,10 +30,13 @@ import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlLambdaResolved;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public final class FunctionArgumentsUtil {
 
@@ -77,17 +80,16 @@ public final class FunctionArgumentsUtil {
   }
 
   /**
-   * Given a function call node, we have to do a two pass processing of the arguments
-   * in order to properly handle any potential lambda functions. In the first pass, 
-   * if there are lambda functions, we create a SqlLambda that contains the number 
-   * of input arguments for the lambda. We pass an argument list 
-   * (that doesn't contain SqlLambdaResolved) to UdfFactory in order to 
-   * get the correct function. We can make this assumption due to Java's handling of 
-   * function erasure (there can't exist two function variants that have the same signature).
-   * In the second pass,we use the LambdaType inputTypes field to map types to the 
-   * LambdaFunctionCall input arguments in order to construct SqlLambdaResolved that has
-   * the proper input types and return types. We also need to construct a list of
-   * contexts that should be used when processing each function call argument subtree.
+   * Given a function call node, we have to do a two pass processing of the 
+   * function arguments in order to properly handle any potential lambda functions.
+   * In the first pass, if there are lambda functions, we create a SqlLambda that only contains
+   * the number of input arguments for the lambda. We pass this first argument list
+   * to UdfFactory in order to get the correct function. We can make this assumption 
+   * due to Java's handling of type erasure (Function(T,R) is considered the same as
+   * Function(U,R)).
+   * In the second pass, we use the LambdaType inputTypes field to construct SqlLambdaResolved
+   * that has the proper input type list and return type. We also need to construct a list of
+   * contexts that should be used when processing each function argument subtree.
    *
    * @param expressionTypeManager an expression type manager
    * @param functionCall  the function expression
@@ -95,16 +97,18 @@ public final class FunctionArgumentsUtil {
    * @param context a type context
    *
    * @return a wrapper that contains a list of function arguments 
-   *         (any lambdas are now SqlLambdaResolved), the ksql function, 
-   *         type contexts for use in further processing the function call 
+   *         (any lambdas are SqlLambdaResolved), the ksql function, 
+   *         type contexts for use in further processing the function 
    *         argument child nodes, and the return type of the ksql function
    */
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   public static FunctionArgumentsAndContext getLambdaContextAndType(
       final ExpressionTypeManager expressionTypeManager,
       final FunctionCall functionCall,
       final UdfFactory udfFactory,
       final TypeContext context
   ) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     final List<Expression> arguments = functionCall.getArguments();
     final List<SqlArgument> functionArgumentTypes = firstPassOverFunctionArguments(
         arguments,
@@ -130,6 +134,7 @@ public final class FunctionArgumentsUtil {
       final Map<GenericType, SqlType> reservedGenerics = new HashMap<>();
       final List<SqlArgument> functionArgumentTypesWithResolvedLambdaType = new ArrayList<>();
 
+      // second pass over the function arguments to properly do lambda type checking
       for (int i = 0; i < arguments.size(); i++) {
         final Expression expression = arguments.get(i);
         final ParamType parameter = paramTypes.get(i);
@@ -172,29 +177,23 @@ public final class FunctionArgumentsUtil {
 
           functionArgumentTypesWithResolvedLambdaType.add(lambdaArgument);
           typeContextsForChildren.add(childContext);
-
-          // we need to reserve generics from the lambda argument because the
-          // return type could be generic and we want to make sure if there's 
-          // multiple lambdas with the same generic return type that they all match up
-          if (GenericsUtil.hasGenerics(parameter)) {
-            GenericsUtil.reserveGenerics(
-                parameter,
-                lambdaArgument,
-                reservedGenerics
-            );
-          }
         } else {
           functionArgumentTypesWithResolvedLambdaType.add(functionArgumentTypes.get(i));
           typeContextsForChildren.add(context.getCopy());
-          if (GenericsUtil.hasGenerics(parameter)) {
-            GenericsUtil.reserveGenerics(
-                parameter,
-                functionArgumentTypes.get(i),
-                reservedGenerics
-            );
+        }
+
+        if (GenericsUtil.hasGenerics(parameter)) {
+          final Pair<Boolean, Optional<KsqlException>> success = GenericsUtil.reserveGenerics(
+              parameter,
+              functionArgumentTypesWithResolvedLambdaType.get(i),
+              reservedGenerics
+          );
+          if (!success.getLeft() && success.getRight().isPresent()) {
+            throw success.getRight().get();
           }
         }
       }
+
       returnSchema = function.getReturnType(functionArgumentTypesWithResolvedLambdaType);
       return new FunctionArgumentsAndContext(
           typeContextsForChildren,

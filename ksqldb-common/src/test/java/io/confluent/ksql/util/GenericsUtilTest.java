@@ -38,6 +38,8 @@ import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlLambdaResolved;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import org.junit.Test;
@@ -314,7 +316,7 @@ public class GenericsUtilTest {
         SqlLambdaResolved.of(ImmutableList.of(SqlTypes.INTEGER), SqlTypes.BIGINT));
 
     // When:
-    final boolean isInstance = GenericsUtil.instanceOf(lambda, instance);
+    final boolean isInstance = GenericsUtil.reserveGenerics(lambda, instance, new HashMap<>()).getLeft();
 
     // Then:
     assertThat("expected instance of", isInstance);
@@ -331,8 +333,8 @@ public class GenericsUtilTest {
     final SqlArgument mapInstance = SqlArgument.of(SqlTypes.map(SqlTypes.STRING, SqlTypes.BOOLEAN));
 
     // When:
-    final boolean isInstance1 = GenericsUtil.instanceOf(map, lambdaInstance);
-    final boolean isInstance2 = GenericsUtil.instanceOf(lambda, mapInstance);
+    final boolean isInstance1 = GenericsUtil.reserveGenerics(map, lambdaInstance, new HashMap<>()).getLeft();
+    final boolean isInstance2 = GenericsUtil.reserveGenerics(lambda, mapInstance, new HashMap<>()).getLeft();
 
     // Then:
     assertThat("expected not instance of", !isInstance1);
@@ -346,7 +348,7 @@ public class GenericsUtilTest {
     final SqlArgument instance = SqlArgument.of(SqlTypes.array(SqlTypes.STRING));
 
     // When:
-    final boolean isInstance = GenericsUtil.instanceOf(map, instance);
+    final boolean isInstance = GenericsUtil.reserveGenerics(map, instance, new HashMap<>()).getLeft();
 
     // Then:
     assertThat("expected not instance of", !isInstance);

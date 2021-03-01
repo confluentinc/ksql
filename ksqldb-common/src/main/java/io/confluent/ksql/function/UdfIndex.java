@@ -363,17 +363,11 @@ public class UdfIndex<T extends FunctionSignature> {
       }
 
       if (GenericsUtil.hasGenerics(type)) {
-        try {
-          GenericsUtil.reserveGenerics(type, argument, reservedGenerics);
-          return true;
-        } catch (final Exception e) {
-          return false;
-        }
+        return GenericsUtil.reserveGenerics(type, argument, reservedGenerics).getLeft();
       }
 
       return ParamTypes.areCompatible(argument, type, allowCasts);
     }
-    // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
 
     @Override
     public String toString() {

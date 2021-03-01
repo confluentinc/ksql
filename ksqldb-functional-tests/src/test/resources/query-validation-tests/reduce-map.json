@@ -34,6 +34,23 @@
         {"topic": "OUTPUT", "key": "one", "value": {"REDUCE": null}},
         {"topic": "OUTPUT", "key": "two", "value": {"REDUCE": null}}
       ]
+    },
+    {
+      "name": "reduce map with double",
+      "statements": [
+        "CREATE STREAM test (ID STRING KEY, map MAP<STRING, DOUBLE>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, REDUCE(map, CAST(3.2 AS DOUBLE), (s,x,y) => CASE WHEN instr(x, 'ye') > 0 THEN ceil(y * s) ELSE floor(s * y) END) AS reduce FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "zero", "value": {"map": {"yes, thanks": 3.5, "nope": 7.3, "sure, yeah":  2.1}}},
+        {"topic": "test_topic", "key": "one", "value": {"map": {"yeowza": 1.8, "nah": null, "":  3.2}}},
+        {"topic": "test_topic", "key": "two", "value": {"map": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "zero", "value": {"REDUCE": 189.0}},
+        {"topic": "OUTPUT", "key": "one", "value": {"REDUCE": null}},
+        {"topic": "OUTPUT", "key": "two", "value": {"REDUCE": 3.2}}
+      ]
     }
   ]
 } 

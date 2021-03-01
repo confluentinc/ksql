@@ -35,6 +35,13 @@ public final class SqlLambdaResolved extends SqlLambda {
   private final SqlType returnType;
 
   public static SqlLambdaResolved of(
+      final int numInputs
+  ) {
+    throw new IllegalArgumentException("SqlLambdaResolved can only be constructed " 
+        + "with the input types and return type specified.");
+  }
+
+  public static SqlLambdaResolved of(
       final List<SqlType> inputType,
       final SqlType returnType
   ) {

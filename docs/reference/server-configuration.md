@@ -61,11 +61,6 @@ The connect worker configuration file, if spinning up {{ site.kconnect }}
 alongside the ksqlDB server. Don't set this property if you're using
 an external `ksql.connect.url`.
 
-## `ksql.connect.polling.enable`
-
-Toggles whether or not to poll connect for new connectors and
-automatically register them in ksqlDB.
-
 ## `ksql.fail.on.deserialization.error`
 
 **Per query:** yes

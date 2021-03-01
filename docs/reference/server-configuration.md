@@ -61,11 +61,6 @@ The connect worker configuration file, if spinning up {{ site.kconnect }}
 alongside the ksqlDB server. Don't set this property if you're using
 an external `ksql.connect.url`.
 
-## `ksql.connect.polling.enable`
-
-Toggles whether or not to poll connect for new connectors and
-automatically register them in ksqlDB.
-
 ## `ksql.fail.on.deserialization.error`
 
 **Per query:** yes
@@ -100,6 +95,20 @@ to your ksqlDB Server properties file:
 ```properties
 ksql.fail.on.production.error=false
 ```
+
+## `ksql.functions.collect_list.limit`
+
+Limit the size of the resultant Array to N entries, beyond which
+any further values are silently ignored, by setting this configuration to N.
+
+Also see [aggregate-functions](/reference/aggregate-functions)
+
+## `ksql.functions.collect_set.limit`
+
+Limits the size of the resultant Set to N entries, beyond which
+any further values are silently ignored, by setting this configuration to N.
+
+Also see [aggregate-functions](/reference/aggregate-functions)
 
 ## `ksql.functions.substring.legacy.args`
 

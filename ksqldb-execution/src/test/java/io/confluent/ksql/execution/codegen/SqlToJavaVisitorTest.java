@@ -30,7 +30,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
@@ -80,6 +79,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.math.BigDecimal;
@@ -241,10 +241,10 @@ public class SqlToJavaVisitorTest {
     final KsqlScalarFunction ssFunction = mock(KsqlScalarFunction.class);
     final UdfFactory catFactory = mock(UdfFactory.class);
     final KsqlScalarFunction catFunction = mock(KsqlScalarFunction.class);
-    givenUdf("SUBSTRING", ssFactory, ssFunction);
+    givenUdf("SUBSTRING", ssFactory, ssFunction, SqlTypes.STRING);
     when(ssFunction.parameters())
         .thenReturn(ImmutableList.of(ParamTypes.STRING, ParamTypes.INTEGER, ParamTypes.INTEGER));
-    givenUdf("CONCAT", catFactory, catFunction);
+    givenUdf("CONCAT", catFactory, catFunction, SqlTypes.STRING);
     when(catFunction.parameters())
         .thenReturn(ImmutableList.of(ParamTypes.STRING, ParamTypes.STRING));
     final FunctionName ssName = FunctionName.of("SUBSTRING");
@@ -282,7 +282,7 @@ public class SqlToJavaVisitorTest {
     // Given:
     final UdfFactory udfFactory = mock(UdfFactory.class);
     final KsqlScalarFunction udf = mock(KsqlScalarFunction.class);
-    givenUdf("FOO", udfFactory, udf);
+    givenUdf("FOO", udfFactory, udf, SqlTypes.STRING);
     when(udf.parameters()).thenReturn(ImmutableList.of(ParamTypes.DOUBLE, ParamTypes.LONG));
 
     // When:
@@ -310,7 +310,7 @@ public class SqlToJavaVisitorTest {
     // Given:
     final UdfFactory udfFactory = mock(UdfFactory.class);
     final KsqlScalarFunction udf = mock(KsqlScalarFunction.class);
-    givenUdf("FOO", udfFactory, udf);
+    givenUdf("FOO", udfFactory, udf, SqlTypes.STRING);
     when(udf.parameters()).thenReturn(ImmutableList.of(ParamTypes.DOUBLE, ArrayType.of(ParamTypes.LONG)));
     when(udf.isVariadic()).thenReturn(true);
 
@@ -342,7 +342,7 @@ public class SqlToJavaVisitorTest {
     // Given:
     final UdfFactory udfFactory = mock(UdfFactory.class);
     final KsqlScalarFunction udf = mock(KsqlScalarFunction.class);
-    givenUdf("FOO", udfFactory, udf);
+    givenUdf("FOO", udfFactory, udf, SqlTypes.STRING);
     when(udf.parameters()).thenReturn(ImmutableList.of(GenericType.of("T"), GenericType.of("T")));
 
     // When:
@@ -903,12 +903,12 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
-  public void shouldGenerateCorrectCodeForTransformLambdaExpression() {
+  public void shouldGenerateCorrectCodeForLambdaExpression() {
     // Given:
     final UdfFactory udfFactory = mock(UdfFactory.class);
     final KsqlScalarFunction udf = mock(KsqlScalarFunction.class);
-    givenUdf("ABS", udfFactory, udf);
-    givenUdf("TRANSFORM", udfFactory, udf);
+    givenUdf("ABS", udfFactory, udf, SqlTypes.STRING);
+    givenUdf("TRANSFORM", udfFactory, udf, SqlTypes.STRING);
     when(udf.parameters()).
         thenReturn(ImmutableList.of(
             ArrayType.of(ParamTypes.DOUBLE),
@@ -935,11 +935,11 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
-  public void shouldGenerateCorrectCodeForReduceLambdaExpression() {
+  public void shouldGenerateCorrectCodeForLambdaExpressionWithTwoArguments() {
     // Given:
     final UdfFactory udfFactory = mock(UdfFactory.class);
     final KsqlScalarFunction udf = mock(KsqlScalarFunction.class);
-    givenUdf("REDUCE", udfFactory, udf);
+    givenUdf("REDUCE", udfFactory, udf, SqlTypes.STRING);
     when(udf.parameters()).
         thenReturn(ImmutableList.of(
             ArrayType.of(ParamTypes.DOUBLE),
@@ -976,6 +976,155 @@ public class SqlToJavaVisitorTest {
                 "   return (X + S);\n" +
                 " }\n" +
                 "}))"));
+  }
+ 
+  @Test
+  public void shouldGenerateCorrectCodeForFunctionWithMultipleLambdas() {
+    // Given:
+    final UdfFactory udfFactory = mock(UdfFactory.class);
+    final KsqlScalarFunction udf = mock(KsqlScalarFunction.class);
+    givenUdf("function", udfFactory, udf, SqlTypes.STRING);
+    when(udf.parameters()).
+        thenReturn(ImmutableList.of(
+            ArrayType.of(ParamTypes.DOUBLE),
+            ParamTypes.STRING,
+            LambdaType.of(
+                ImmutableList.of(ParamTypes.DOUBLE, ParamTypes.STRING),
+                ParamTypes.DOUBLE),
+            LambdaType.of(
+                ImmutableList.of(ParamTypes.DOUBLE, ParamTypes.STRING),
+                ParamTypes.STRING)
+        ));
+
+    final Expression expression = new FunctionCall (
+        FunctionName.of("function"),
+        ImmutableList.of(
+            ARRAYCOL,
+            COL1,
+            new LambdaFunctionCall(
+                ImmutableList.of("X", "S"),
+                new ArithmeticBinaryExpression(
+                    Operator.ADD,
+                    new LambdaVariable("X"),
+                    new LambdaVariable("X"))
+            ),
+            new LambdaFunctionCall(
+                ImmutableList.of("X", "S"),
+                new SearchedCaseExpression(
+                    ImmutableList.of(
+                        new WhenClause(
+                            new ComparisonExpression(
+                                ComparisonExpression.Type.LESS_THAN, new LambdaVariable("X"), new IntegerLiteral(10)),
+                            new StringLiteral("test")
+                        ),
+                        new WhenClause(
+                            new ComparisonExpression(
+                                ComparisonExpression.Type.LESS_THAN, new LambdaVariable("X"), new IntegerLiteral(100)),
+                            new StringLiteral("test2")
+                        )
+                    ),
+                    Optional.of(new LambdaVariable("S"))
+                )
+            )));
+
+    // When:
+    final String javaExpression = sqlToJavaVisitor.process(expression);
+
+    // Then
+    assertThat(
+        javaExpression, equalTo("((String) function_0.evaluate(COL4, COL1, new BiFunction() {\n"
+            + " @Override\n"
+            + " public Object apply(Object arg1, Object arg2) {\n"
+            + "   final Double X = (Double) arg1;\n"
+            + "   final String S = (String) arg2;\n"
+            + "   return (X + X);\n"
+            + " }\n"
+            + "}, new BiFunction() {\n"
+            + " @Override\n"
+            + " public Object apply(Object arg1, Object arg2) {\n"
+            + "   final Double X = (Double) arg1;\n"
+            + "   final String S = (String) arg2;\n"
+            + "   return ((java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.copyOf(Arrays.asList( SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(X)) == null || ((Object)(10)) == null) ? false : (X < 10)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"test\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(X)) == null || ((Object)(100)) == null) ? false : (X < 100)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"test2\"; }}))), new Supplier<java.lang.String>() { @Override public java.lang.String get() { return S; }}));\n"
+            + " }\n"
+            + "}))"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForNestedLambdas() {
+    // Given:
+    final UdfFactory udfFactory = mock(UdfFactory.class);
+    final KsqlScalarFunction udf = mock(KsqlScalarFunction.class);
+    givenUdf("nested", udfFactory, udf, SqlTypes.DOUBLE);
+    when(udf.parameters()).
+        thenReturn(ImmutableList.of(
+            ArrayType.of(ParamTypes.DOUBLE),
+            ParamTypes.DOUBLE,
+            LambdaType.of(
+                ImmutableList.of(ParamTypes.DOUBLE, ParamTypes.DOUBLE),
+                ParamTypes.DOUBLE))
+        );
+
+    final Expression expression = new ArithmeticBinaryExpression(
+        Operator.ADD,
+        new FunctionCall(
+            FunctionName.of("nested"),
+            ImmutableList.of(
+                ARRAYCOL,
+                new IntegerLiteral(0),
+                new LambdaFunctionCall(
+                    ImmutableList.of("A", "B"),
+                    new ArithmeticBinaryExpression(
+                        Operator.ADD,
+                        new FunctionCall(
+                            FunctionName.of("nested"),
+                            ImmutableList.of(
+                                ARRAYCOL,
+                                new IntegerLiteral(0),
+                                new LambdaFunctionCall(
+                                    ImmutableList.of("Q", "V"),
+                                    new ArithmeticBinaryExpression(
+                                        Operator.ADD,
+                                        new LambdaVariable("Q"),
+                                        new LambdaVariable("V"))
+                                ))),
+                        new LambdaVariable("B"))
+                ))),
+        new IntegerLiteral(5)
+    );
+
+    // When:
+    final String javaExpression = sqlToJavaVisitor.process(expression);
+
+    // Then
+    assertThat(
+        javaExpression, equalTo(
+            "(((Double) nested_0.evaluate(COL4, (Double)NullSafe.apply(0,new Function() {\n"
+                + " @Override\n"
+                + " public Object apply(Object arg1) {\n"
+                + "   final Integer val = (Integer) arg1;\n"
+                + "   return val.doubleValue();\n"
+                + " }\n"
+                + "}), new BiFunction() {\n"
+                + " @Override\n"
+                + " public Object apply(Object arg1, Object arg2) {\n"
+                + "   final Double A = (Double) arg1;\n"
+                + "   final Integer B = (Integer) arg2;\n"
+                + "   return (((Double) nested_1.evaluate(COL4, (Double)NullSafe.apply(0,new Function() {\n"
+                + " @Override\n"
+                + " public Object apply(Object arg1) {\n"
+                + "   final Integer val = (Integer) arg1;\n"
+                + "   return val.doubleValue();\n"
+                + " }\n"
+                + "}), new BiFunction() {\n"
+                + " @Override\n"
+                + " public Object apply(Object arg1, Object arg2) {\n"
+                + "   final Double Q = (Double) arg1;\n"
+                + "   final Integer V = (Integer) arg2;\n"
+                + "   return (Q + V);\n"
+                + " }\n"
+                + "})) + B);\n"
+                + " }\n"
+                + "})) + 5)"));
   }
 
   @Test
@@ -1015,12 +1164,15 @@ public class SqlToJavaVisitorTest {
   }
 
   private void givenUdf(
-      final String name, final UdfFactory factory, final KsqlScalarFunction function
+      final String name,
+      final UdfFactory factory,
+      final KsqlScalarFunction function,
+      final SqlType returnType
   ) {
     when(functionRegistry.isAggregate(FunctionName.of(name))).thenReturn(false);
     when(functionRegistry.getUdfFactory(FunctionName.of(name))).thenReturn(factory);
     when(factory.getFunction(anyList())).thenReturn(function);
-    when(function.getReturnType(anyList())).thenReturn(SqlTypes.STRING);
+    when(function.getReturnType(anyList())).thenReturn(returnType);
     final UdfMetadata metadata = mock(UdfMetadata.class);
     when(factory.getMetadata()).thenReturn(metadata);
   }

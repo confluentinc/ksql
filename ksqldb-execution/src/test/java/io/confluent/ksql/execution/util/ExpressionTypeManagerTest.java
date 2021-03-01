@@ -527,6 +527,78 @@ public class ExpressionTypeManagerTest {
   }
 
   @Test
+  public void shouldHandleMultipleLambdasInSameFunctionCallWithDifferentVariableNames() {
+    // Given:
+    givenUdfWithNameAndReturnType("TRANSFORM", SqlTypes.INTEGER);
+    final Expression expression = new ArithmeticBinaryExpression(
+        Operator.ADD,
+        new FunctionCall(
+            FunctionName.of("TRANSFORM"),
+            ImmutableList.of(
+                ARRAYCOL,
+                new IntegerLiteral(0),
+                new LambdaFunctionCall(
+                    ImmutableList.of("A", "B"),
+                    new ArithmeticBinaryExpression(
+                        Operator.ADD,
+                        new LambdaVariable("A"),
+                        new LambdaVariable("B"))
+                ),
+                new LambdaFunctionCall(
+                    ImmutableList.of("K", "V"),
+                    new ArithmeticBinaryExpression(
+                        Operator.ADD,
+                        new LambdaVariable("K"),
+                        new LambdaVariable("V"))
+                ))),
+        new IntegerLiteral(5)
+    );
+
+    // When:
+    final SqlType result = expressionTypeManager.getExpressionSqlType(expression);
+
+    assertThat(result, is(SqlTypes.INTEGER));
+  }
+
+  @Test
+  public void shouldHandleNestedLambdas() {
+    // Given:
+    givenUdfWithNameAndReturnType("TRANSFORM", SqlTypes.INTEGER);
+    final Expression expression = new ArithmeticBinaryExpression(
+        Operator.ADD,
+        new FunctionCall(
+            FunctionName.of("TRANSFORM"),
+            ImmutableList.of(
+                ARRAYCOL,
+                new IntegerLiteral(0),
+                new LambdaFunctionCall(
+                    ImmutableList.of("A", "B"),
+                    new ArithmeticBinaryExpression(
+                        Operator.ADD,
+                        new FunctionCall(
+                            FunctionName.of("TRANSFORM"),
+                            ImmutableList.of(
+                                ARRAYCOL,
+                                new IntegerLiteral(0),
+                                new LambdaFunctionCall(
+                                    ImmutableList.of("Q", "V"),
+                                    new ArithmeticBinaryExpression(
+                                        Operator.ADD,
+                                        new LambdaVariable("Q"),
+                                        new LambdaVariable("V"))
+                                ))),
+                        new LambdaVariable("B"))
+                ))),
+        new IntegerLiteral(5)
+    );
+
+    // When:
+    final SqlType result = expressionTypeManager.getExpressionSqlType(expression);
+
+    assertThat(result, is(SqlTypes.INTEGER));
+  }
+
+  @Test
   public void shouldHandleStructFieldDereference() {
     // Given:
     final Expression expression = new DereferenceExpression(

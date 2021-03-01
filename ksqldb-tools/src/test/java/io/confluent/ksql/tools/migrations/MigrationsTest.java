@@ -33,6 +33,8 @@ import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.tools.migrations.commands.BaseCommand;
+import io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil;
+import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -76,7 +78,7 @@ public class MigrationsTest {
     final String testDir = Paths.get(TestUtils.tempDirectory().getAbsolutePath(), "migrations_integ_test").toString();
     createAndVerifyDirectoryStructure(testDir);
 
-    configFilePath = Paths.get(testDir, MigrationsUtil.MIGRATIONS_CONFIG_FILE).toString();
+    configFilePath = Paths.get(testDir, MigrationsDirectoryUtil.MIGRATIONS_CONFIG_FILE).toString();
     initializeAndVerifyMetadataStreamAndTable(configFilePath);
   }
 
@@ -101,12 +103,12 @@ public class MigrationsTest {
     assertThat(rootDir.isDirectory(), is(true));
 
     // verify migrations directory
-    final File migrationsDir = new File(Paths.get(testDir, MigrationsUtil.MIGRATIONS_DIR).toString());
+    final File migrationsDir = new File(Paths.get(testDir, MigrationsDirectoryUtil.MIGRATIONS_DIR).toString());
     assertThat(migrationsDir.exists(), is(true));
     assertThat(migrationsDir.isDirectory(), is(true));
 
     // verify config file
-    final File configFile = new File(Paths.get(testDir, MigrationsUtil.MIGRATIONS_CONFIG_FILE).toString());
+    final File configFile = new File(Paths.get(testDir, MigrationsDirectoryUtil.MIGRATIONS_CONFIG_FILE).toString());
     assertThat(configFile.exists(), is(true));
     assertThat(configFile.isDirectory(), is(false));
 

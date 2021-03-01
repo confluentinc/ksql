@@ -25,6 +25,7 @@ import io.confluent.ksql.tools.migrations.commands.InitializeMigrationCommand;
 import io.confluent.ksql.tools.migrations.commands.MigrationInfoCommand;
 import io.confluent.ksql.tools.migrations.commands.NewMigrationCommand;
 import io.confluent.ksql.tools.migrations.commands.ValidateMigrationsCommand;
+import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 
 /**
  * This class is the entrypoint to all migration-related tooling. This

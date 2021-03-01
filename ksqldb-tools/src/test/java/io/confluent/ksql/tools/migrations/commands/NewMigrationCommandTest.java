@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.tools.migrations.commands;
 
-import static io.confluent.ksql.tools.migrations.MigrationsUtil.MIGRATIONS_CONFIG_FILE;
-import static io.confluent.ksql.tools.migrations.MigrationsUtil.MIGRATIONS_DIR;
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.MIGRATIONS_CONFIG_FILE;
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.MIGRATIONS_DIR;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;

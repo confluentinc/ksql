@@ -15,14 +15,14 @@
 
 package io.confluent.ksql.tools.migrations.commands;
 
-import static io.confluent.ksql.tools.migrations.MigrationsUtil.MIGRATIONS_CONFIG_FILE;
-import static io.confluent.ksql.tools.migrations.MigrationsUtil.MIGRATIONS_DIR;
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.MIGRATIONS_CONFIG_FILE;
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.MIGRATIONS_DIR;
 
 import com.github.rvesse.airline.annotations.Arguments;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.restrictions.Required;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
-import io.confluent.ksql.tools.migrations.MigrationsUtil;
+import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;

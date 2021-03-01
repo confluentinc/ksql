@@ -37,7 +37,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
-import io.confluent.ksql.execution.expression.tree.IntervalExpression;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
@@ -506,6 +506,11 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
+    public Expression visitIntervalUnit(final IntervalUnit node, final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
+    }
+
+    @Override
     public Expression visitNullLiteral(final NullLiteral node, final C context) {
       return plugin.apply(node, new Context<>(context, this)).orElse(node);
     }
@@ -518,18 +523,6 @@ public final class ExpressionTreeRewriter<C> {
     @Override
     public Expression visitDecimalLiteral(final DecimalLiteral node, final C context) {
       return plugin.apply(node, new Context<>(context, this)).orElse(node);
-    }
-
-    @Override
-    public Expression visitIntervalExpression(final IntervalExpression node, final C context) {
-      final Optional<Expression> result
-          = plugin.apply(node, new Context<>(context, this));
-      if (result.isPresent()) {
-        return result.get();
-      }
-
-      final Expression expr = rewriter.apply(node.getExpression(), context);
-      return new IntervalExpression(node.getLocation(), expr, node.getTimeUnit());
     }
 
     @Override

@@ -1153,24 +1153,24 @@ Converts a BIGINT millisecond timestamp value into a TIMESTAMP value.
 
 ### TIMESTAMPADD
 
-Since: 0.16
+Since: 0.17
 
 ```sql
-TIMESTAMPADD(COL0, 5 MINUTES)
+TIMESTAMPADD(unit, interval, COL0)
 ```
 
-Adds an interval to a timestamp. Intervals are defined by an integral value and a supported
+Adds an interval to a timestamp. Intervals are defined by an integer value and a supported
 [time unit](../../reference/sql/time.md#Time units).
 
 ### TIMESTAMPSUB
 
-Since: 0.16
+Since: 0.17
 
 ```sql
-TIMESTAMPSUB(COL0, 5 MINUTES)
+TIMESTAMPSUB(unit, interval, COL0)
 ```
 
-Subtracts an interval from a timestamp. Intervals are defined by an integral value and a supported
+Subtracts an interval from a timestamp. Intervals are defined by an integer value and a supported
 [time unit](../../reference/sql/time.md#Time units).
 
 ## URLs

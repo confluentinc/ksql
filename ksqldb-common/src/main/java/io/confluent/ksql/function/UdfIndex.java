@@ -22,6 +22,7 @@ import io.confluent.ksql.function.types.GenericType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlIntervalUnit;
 import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.utils.FormatOptions;
@@ -204,8 +205,14 @@ public class UdfIndex<T extends FunctionSignature> {
             return "null";
           } else {
             final Optional<SqlLambda> sqlLambda = argument.getSqlLambda();
-            return sqlLambda.map(lambda -> lambda.toString(FormatOptions.noEscape()))
-                .orElseGet(() -> argument.getSqlTypeOrThrow().toString(FormatOptions.noEscape()));
+            final Optional<SqlIntervalUnit> sqlIntervalUnit = argument.getSqlIntervalUnit();
+            if (sqlLambda.isPresent()) {
+              return sqlLambda.get().toString(FormatOptions.noEscape());
+            } else if (sqlIntervalUnit.isPresent()) {
+              return sqlIntervalUnit.get().toString();
+            } else {
+              return argument.getSqlTypeOrThrow().toString(FormatOptions.noEscape());
+            }
           }
         })
         .collect(Collectors.joining(", ", "(", ")"));

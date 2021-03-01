@@ -22,6 +22,7 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlIntervalUnit;
 import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.junit.Test;
@@ -37,6 +38,7 @@ public class SqlArgumentTest {
             SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.STRING), SqlTypes.INTEGER)),
             SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.STRING), SqlTypes.INTEGER)))
         .addEqualityGroup(SqlArgument.of(null, null), SqlArgument.of(null, null))
+        .addEqualityGroup(SqlArgument.of(SqlIntervalUnit.INSTANCE), SqlArgument.of(SqlIntervalUnit.INSTANCE))
         .testEquals();
   }
 

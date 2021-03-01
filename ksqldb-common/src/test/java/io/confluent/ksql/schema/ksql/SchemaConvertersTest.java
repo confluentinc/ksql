@@ -115,7 +115,6 @@ public class SchemaConvertersTest {
       .put(SqlTypes.DOUBLE, ParamTypes.DOUBLE)
       .put(SqlTypes.STRING, ParamTypes.STRING)
       .put(SqlTypes.TIMESTAMP, ParamTypes.TIMESTAMP)
-      .put(SqlTypes.INTERVAL, ParamTypes.INTERVAL)
       .put(SqlArray.of(SqlTypes.INTEGER), ArrayType.of(ParamTypes.INTEGER))
       .put(SqlDecimal.of(2, 1), ParamTypes.DECIMAL)
       .put(

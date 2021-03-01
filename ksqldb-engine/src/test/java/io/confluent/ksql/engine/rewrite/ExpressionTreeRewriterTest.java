@@ -46,7 +46,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
-import io.confluent.ksql.execution.expression.tree.IntervalExpression;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
@@ -749,16 +749,10 @@ public class ExpressionTreeRewriterTest {
   }
 
   @Test
-  public void shouldRewriteIntervalExpression() {
+  public void shouldRewriteIntervalUnitUsingPlugin() {
     // Given:
-    final IntervalExpression expression = new IntervalExpression(LITERALS.get(0), TimeUnit.DAYS);
-    when(processor.apply(expression.getExpression(), context)).thenReturn(expr1);
-
-    // When:
-    final Expression rewritten = expressionRewriter.rewrite(expression, context);
-
-    // Then:
-    assertThat(rewritten, equalTo(new IntervalExpression(expression.getLocation(), expr1, expression.getTimeUnit())));
+    final IntervalUnit expression = new IntervalUnit(TimeUnit.DAYS);
+    shouldRewriteUsingPlugin(expression);
   }
 
   @SuppressWarnings("unchecked")

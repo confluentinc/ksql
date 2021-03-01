@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import io.confluent.ksql.schema.ksql.types.SqlIntervalUnit;
 import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.Objects;
@@ -29,26 +30,34 @@ public class SqlArgument {
 
   private final Optional<SqlType> sqlType;
   private final Optional<SqlLambda> sqlLambda;
+  private final Optional<SqlIntervalUnit> sqlIntervalUnit;
 
-  public SqlArgument(final SqlType type, final SqlLambda lambda) {
+  public SqlArgument(
+      final SqlType type, final SqlLambda lambda, final SqlIntervalUnit intervalUnit
+  ) {
     if (type != null && lambda != null) {
       throw new RuntimeException(
           "A function argument was assigned to be both a type and a lambda");
     }
     sqlType = Optional.ofNullable(type);
     sqlLambda = Optional.ofNullable(lambda);
+    sqlIntervalUnit = Optional.ofNullable(intervalUnit);
   }
 
   public static SqlArgument of(final SqlType type) {
-    return new SqlArgument(type, null);
+    return new SqlArgument(type, null, null);
   }
 
   public static SqlArgument of(final SqlLambda type) {
-    return new SqlArgument(null, type);
+    return new SqlArgument(null, type, null);
+  }
+
+  public static SqlArgument of(final SqlIntervalUnit type) {
+    return new SqlArgument(null, null, type);
   }
 
   public static SqlArgument of(final SqlType sqlType, final SqlLambda lambdaType) {
-    return new SqlArgument(sqlType, lambdaType);
+    return new SqlArgument(sqlType, lambdaType, null);
   }
 
   public Optional<SqlType> getSqlType() {
@@ -67,6 +76,10 @@ public class SqlArgument {
     return sqlLambda;
   }
 
+  public Optional<SqlIntervalUnit> getSqlIntervalUnit() {
+    return sqlIntervalUnit;
+  }
+
   public SqlLambda getSqlLambdaOrThrow() {
     if (sqlType.isPresent()) {
       throw new RuntimeException("Was expecting lambda as a function argument");
@@ -79,7 +92,7 @@ public class SqlArgument {
 
   @Override
   public int hashCode() {
-    return Objects.hash(sqlType, sqlLambda);
+    return Objects.hash(sqlType, sqlLambda, sqlIntervalUnit);
   }
 
   @Override
@@ -92,13 +105,17 @@ public class SqlArgument {
     }
     final SqlArgument that = (SqlArgument) o;
     return Objects.equals(sqlType, that.sqlType)
-        && Objects.equals(sqlLambda, that.sqlLambda);
+        && Objects.equals(sqlLambda, that.sqlLambda)
+        && Objects.equals(sqlIntervalUnit, that.sqlIntervalUnit);
   }
 
   @Override
   public String toString() {
     if (sqlType.isPresent()) {
       return sqlType.get().toString();
+    }
+    if (sqlIntervalUnit.isPresent()) {
+      return sqlIntervalUnit.get().toString();
     }
     return sqlLambda.map(SqlLambda::toString).orElse("null");
   }

@@ -1,7 +1,7 @@
 {
-  "version" : "6.2.0",
-  "timestamp" : 1611199602049,
-  "path" : "query-validation-tests/interval.json",
+  "version" : "7.0.0",
+  "timestamp" : 1614633950278,
+  "path" : "query-validation-tests/timestampadd.json",
   "schemas" : {
     "CSAS_TEST2_0.TEST2" : {
       "schema" : "`ID` STRING KEY, `KSQL_COL_0` TIMESTAMP",
@@ -13,7 +13,7 @@
       }
     },
     "CSAS_TEST2_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `TIME` TIMESTAMP, `A` INTEGER",
+      "schema" : "`ID` STRING KEY, `TIME` TIMESTAMP",
       "keyFormat" : {
         "format" : "KAFKA"
       },
@@ -23,16 +23,16 @@
     }
   },
   "testCase" : {
-    "name" : "interval expression can be defined with an expression",
+    "name" : "adds",
     "inputs" : [ {
       "topic" : "test",
       "key" : null,
-      "value" : "10,10"
+      "value" : "10"
     } ],
     "outputs" : [ {
       "topic" : "TEST2",
       "key" : null,
-      "value" : "25"
+      "value" : "20"
     } ],
     "topics" : [ {
       "name" : "TEST2",
@@ -43,12 +43,12 @@
       "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, TIME TIMESTAMP, A INT) WITH (kafka_topic='test', value_format='DELIMITED');", "CREATE STREAM TEST2 AS SELECT ID, TIMESTAMPADD(TIME, ABS(A+5) MILLISECONDS) FROM TEST;" ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, time TIMESTAMP) WITH (kafka_topic='test', value_format='DELIMITED');", "CREATE STREAM TEST2 AS SELECT id, timestampadd(MILLISECONDS, 10, time) FROM TEST;" ],
     "post" : {
       "sources" : [ {
         "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `TIME` TIMESTAMP, `A` INTEGER",
+        "schema" : "`ID` STRING KEY, `TIME` TIMESTAMP",
         "keyFormat" : {
           "format" : "KAFKA"
         },

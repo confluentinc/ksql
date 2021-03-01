@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -15,25 +15,15 @@
 
 package io.confluent.ksql.schema.ksql.types;
 
-import io.confluent.ksql.schema.utils.FormatOptions;
+public final class SqlIntervalUnit {
 
-public final class SqlInterval extends SqlType {
+  public static final SqlIntervalUnit INSTANCE = new SqlIntervalUnit();
 
-  public static SqlInterval of() {
-    return new SqlInterval();
-  }
-
-  private SqlInterval() {
-    super(SqlBaseType.BIGINT);
-  }
-
-  @Override
-  public String toString(final FormatOptions formatOptions) {
-    return toString();
+  private SqlIntervalUnit() {
   }
 
   @Override
   public String toString() {
-    return "INTERVAL";
+    return "INTERVAL UNIT";
   }
 }

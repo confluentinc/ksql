@@ -21,7 +21,7 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
 import java.sql.Timestamp;
-import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 @UdfDescription(
     name = "timestampadd",
@@ -33,9 +33,10 @@ public class TimestampAdd {
 
   @Udf(description = "Adds a duration to a timestamp")
   public Timestamp timestampAdd(
-      @UdfParameter(description = "A TIMESTAMP value.") final Timestamp timestamp,
-      @UdfParameter(description = "The duration to add. This is denoted by [number] [time unit],"
-          + "for example 3 MONTHS or 10 SECONDS") final Duration duration) {
-    return new Timestamp(timestamp.getTime() + duration.toMillis());
+      @UdfParameter(description = "A unit of time, for example DAY or HOUR") final TimeUnit unit,
+      @UdfParameter(description = "An integer number of intervals to add") final int interval,
+      @UdfParameter(description = "A TIMESTAMP value.") final Timestamp timestamp
+  ) {
+    return new Timestamp(timestamp.getTime() + unit.toMillis(interval));
   }
 }

@@ -31,11 +31,11 @@ import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
@@ -57,7 +57,7 @@ class UdafTypes {
       .add(List.class)
       .add(Map.class)
       .add(Timestamp.class)
-      .add(Duration.class)
+      .add(TimeUnit.class)
       .add(Function.class)
       .add(BiFunction.class)
       .add(TriFunction.class)

@@ -56,7 +56,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
-import io.confluent.ksql.execution.expression.tree.IntervalExpression;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
 import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
@@ -66,7 +66,6 @@ import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimeLiteral;
-import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -75,8 +74,6 @@ import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.GenericType;
 import io.confluent.ksql.function.types.LambdaType;
-import io.confluent.ksql.function.types.MapType;
-import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.ColumnName;
@@ -85,9 +82,7 @@ import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
-import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -866,27 +861,15 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
-  public void shouldGenerateCorrectCodeForIntervalExpression() {
+  public void shouldGenerateCorrectCodeForIntervalUnit() {
     // Given:
-    final IntervalExpression intervalExpression = new IntervalExpression(new IntegerLiteral(25), TimeUnit.DAYS);
+    final IntervalUnit intervalUnit = new IntervalUnit(TimeUnit.DAYS);
 
     // When:
-    final String java = sqlToJavaVisitor.process(intervalExpression);
+    final String java = sqlToJavaVisitor.process(intervalUnit);
 
     // Then:
-    assertThat(java, containsString("DurationParser.buildDuration(25, \"DAYS\")"));
-  }
-
-  @Test
-  public void shouldThrowOnInvalidIntervalExpression() {
-    // Given:
-    final IntervalExpression intervalExpression = new IntervalExpression(new StringLiteral("33"), TimeUnit.DAYS);
-
-    // When:
-    final Exception e = assertThrows(KsqlException.class, () -> sqlToJavaVisitor.process(intervalExpression));
-
-    // Then:
-    assertThat(e.getMessage(), containsString("Intervals must be defined using an INTEGER or BIGINT typed expression; found STRING instead"));
+    assertThat(java, containsString("TimeUnit.DAYS"));
   }
 
   @Test

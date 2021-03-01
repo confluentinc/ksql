@@ -36,7 +36,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
-import io.confluent.ksql.execution.expression.tree.IntervalExpression;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
@@ -67,6 +67,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlIntervalUnit;
 import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
@@ -151,6 +152,11 @@ public class ExpressionTypeManager {
         final LambdaVariable node, final TypeContext expressionTypeContext
     ) {
       expressionTypeContext.setSqlType(expressionTypeContext.getLambdaType(node.getValue()));
+      return null;
+    }
+
+    @Override
+    public Void visitIntervalUnit(final IntervalUnit exp, final TypeContext expressionTypeContext) {
       return null;
     }
 
@@ -486,6 +492,8 @@ public class ExpressionTypeManager {
               SqlArgument.of(
                   SqlLambda.of(expressionTypeContext.getLambdaInputTypes(), 
                   childContext.getSqlType())));
+        } else if (expression instanceof IntervalUnit) {
+          argTypes.add(SqlArgument.of(SqlIntervalUnit.INSTANCE));
         } else {
           argTypes.add(SqlArgument.of(resolvedArgType));
           // for lambdas - we save the type information to resolve the lambda generics
@@ -535,15 +543,6 @@ public class ExpressionTypeManager {
     ) {
       expressionTypeContext.setSqlType(DecimalUtil.fromValue(decimalLiteral.getValue()));
 
-      return null;
-    }
-
-    @Override
-    public Void visitIntervalExpression(
-        final IntervalExpression exp,
-        final TypeContext context
-    ) {
-      context.setSqlType(SqlTypes.INTERVAL);
       return null;
     }
 

@@ -35,8 +35,6 @@ public interface ExpressionVisitor<R, C> {
 
   R visitDecimalLiteral(DecimalLiteral exp, C context);
 
-  R visitIntervalExpression(IntervalExpression exp, C context);
-
   R visitDereferenceExpression(DereferenceExpression exp, C context);
 
   R visitDoubleLiteral(DoubleLiteral exp, C context);
@@ -92,4 +90,6 @@ public interface ExpressionVisitor<R, C> {
   R visitLambdaExpression(LambdaFunctionCall exp, C context);
 
   R visitLambdaVariable(LambdaVariable exp, C context);
+
+  R visitIntervalUnit(IntervalUnit exp, C context);
 }

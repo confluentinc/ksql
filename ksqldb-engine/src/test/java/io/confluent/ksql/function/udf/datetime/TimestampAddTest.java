@@ -19,7 +19,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.sql.Timestamp;
-import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,10 +34,20 @@ public class TimestampAddTest {
   @Test
   public void addToTimestamp() {
     // When:
-    final Timestamp result = udf.timestampAdd(new Timestamp(100), Duration.ofMillis(50));
+    final Timestamp result = udf.timestampAdd(TimeUnit.MILLISECONDS, 50, new Timestamp(100));
 
     // Then:
     final Timestamp expectedResult = new Timestamp(150);
+    assertThat(result, is(expectedResult));
+  }
+
+  @Test
+  public void addNegativeTimestamp() {
+    // When:
+    final Timestamp result = udf.timestampAdd(TimeUnit.MILLISECONDS, -300, new Timestamp(100));
+
+    // Then:
+    final Timestamp expectedResult = new Timestamp(-200);
     assertThat(result, is(expectedResult));
   }
 }

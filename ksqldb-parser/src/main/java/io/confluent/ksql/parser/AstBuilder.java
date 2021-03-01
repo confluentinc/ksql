@@ -40,7 +40,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
-import io.confluent.ksql.execution.expression.tree.IntervalExpression;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
@@ -1205,14 +1205,27 @@ public class AstBuilder {
 
     @Override
     public Node visitFunctionCall(final SqlBaseParser.FunctionCallContext context) {
-      final List<Expression> expressionList = visit(context.expression(), Expression.class);
-      expressionList.addAll(visit(context.intervalExpression(), Expression.class));
+      final List<Expression> expressionList = visit(context.functionArgument(), Expression.class);
       expressionList.addAll(visit(context.lambdaFunction(), Expression.class));
       return new FunctionCall(
           getLocation(context),
           FunctionName.of(ParserUtil.getIdentifierText(context.identifier())),
           expressionList
       );
+    }
+
+    @Override
+    public Node visitFunctionArgument(final SqlBaseParser.FunctionArgumentContext context) {
+      if (context.windowUnit() != null) {
+        return visitWindowUnit(context.windowUnit());
+      } else {
+        return visit(context.expression());
+      }
+    }
+
+    @Override
+    public Node visitWindowUnit(final SqlBaseParser.WindowUnitContext context) {
+      return new IntervalUnit(WindowExpression.getWindowUnit(context.getText().toUpperCase()));
     }
 
     @Override
@@ -1274,14 +1287,6 @@ public class AstBuilder {
     @Override
     public Node visitBooleanValue(final SqlBaseParser.BooleanValueContext context) {
       return new BooleanLiteral(getLocation(context), context.getText());
-    }
-
-    @Override
-    public Node visitIntervalExpression(final SqlBaseParser.IntervalExpressionContext context) {
-      return new IntervalExpression(
-          (Expression) visit(context.valueExpression()),
-          WindowExpression.getWindowUnit(context.windowUnit().getText().toUpperCase())
-      );
     }
 
     @Override

@@ -15,11 +15,9 @@
 
 package io.confluent.ksql.function.types;
 
-public final class IntervalType extends ObjectType {
-  public static final IntervalType INSTANCE = new IntervalType();
+public class IntervalUnitType extends ObjectType {
 
-  private IntervalType() {
-  }
+  public static final IntervalUnitType INSTANCE = new IntervalUnitType();
 
   @Override
   public int hashCode() {
@@ -28,11 +26,11 @@ public final class IntervalType extends ObjectType {
 
   @Override
   public boolean equals(final Object obj) {
-    return obj instanceof  IntervalType;
+    return obj instanceof IntervalUnitType;
   }
 
   @Override
   public String toString() {
-    return "INTERVAL";
+    return "INTERVAL UNIT";
   }
 }

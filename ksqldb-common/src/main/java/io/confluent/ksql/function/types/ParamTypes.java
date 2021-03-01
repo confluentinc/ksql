@@ -25,7 +25,6 @@ import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Map.Entry;
 import java.util.Optional;
 
@@ -41,7 +40,7 @@ public final class ParamTypes {
   public static final LongType LONG = LongType.INSTANCE;
   public static final ParamType DECIMAL = DecimalType.INSTANCE;
   public static final TimestampType TIMESTAMP = TimestampType.INSTANCE;
-  public static final IntervalType INTERVAL = IntervalType.INSTANCE;
+  public static final IntervalUnitType INTERVALUNIT = IntervalUnitType.INSTANCE;
 
   public static boolean areCompatible(final SqlArgument actual, final ParamType declared) {
     return areCompatible(actual, declared, false);
@@ -81,6 +80,12 @@ public final class ParamTypes {
           allowCast);
     }
 
+    if (argument.getSqlIntervalUnit().isPresent() && declared instanceof IntervalUnitType) {
+      return true;
+    } else if (argument.getSqlIntervalUnit().isPresent() || declared instanceof IntervalUnitType) {
+      return false;
+    }
+
     final SqlType argumentSqlType = argument.getSqlTypeOrThrow();
     if (argumentSqlType.baseType() == SqlBaseType.ARRAY && declared instanceof ArrayType) {
       return areCompatible(
@@ -102,10 +107,6 @@ public final class ParamTypes {
 
     if (argumentSqlType.baseType() == SqlBaseType.STRUCT && declared instanceof StructType) {
       return isStructCompatible(argumentSqlType, declared);
-    }
-
-    if (argumentSqlType == SqlTypes.INTERVAL && declared instanceof IntervalType) {
-      return true;
     }
 
     return isPrimitiveMatch(argumentSqlType, declared, allowCast);

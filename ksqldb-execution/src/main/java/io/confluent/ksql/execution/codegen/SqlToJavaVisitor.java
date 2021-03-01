@@ -54,7 +54,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
-import io.confluent.ksql.execution.expression.tree.IntervalExpression;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
@@ -85,7 +85,6 @@ import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.parser.DurationParser;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -97,6 +96,7 @@ import io.confluent.ksql.schema.ksql.SqlTimestamps;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlIntervalUnit;
 import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -129,6 +129,7 @@ public class SqlToJavaVisitor {
       "io.confluent.ksql.execution.codegen.helpers.ArrayAccess",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction.LazyWhenClause",
+      "java.util.concurrent.TimeUnit",
       "java.sql.Timestamp",
       "java.util.Arrays",
       "java.util.HashMap",
@@ -158,8 +159,7 @@ public class SqlToJavaVisitor {
       InListEvaluator.class.getCanonicalName(),
       SqlDoubles.class.getCanonicalName(),
       SqlBooleans.class.getCanonicalName(),
-      SqlTimestamps.class.getCanonicalName(),
-      DurationParser.class.getCanonicalName()
+      SqlTimestamps.class.getCanonicalName()
   );
 
   private static final Map<Operator, String> DECIMAL_OPERATOR_NAME = ImmutableMap
@@ -317,23 +317,6 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    public Pair<String, SqlType> visitIntervalExpression(
-        final IntervalExpression node,
-        final TypeContext context
-    ) {
-      final Pair<String, SqlType> value = process(node.getExpression(), context);
-      if (!(value.getRight() == SqlTypes.BIGINT || value.getRight() == SqlTypes.INTEGER)) {
-        throw new KsqlException("Intervals must be defined using an INTEGER "
-            + "or BIGINT typed expression; found " + value.getRight() + " instead");
-      }
-      return new Pair<>(
-          "DurationParser.buildDuration("
-              + value.getLeft() + ", \"" +  node.getTimeUnit() + "\")",
-          SqlTypes.INTERVAL
-      );
-    }
-
-    @Override
     public Pair<String, SqlType> visitSimpleCaseExpression(
         final SimpleCaseExpression simpleCaseExpression, final TypeContext context
     ) {
@@ -411,6 +394,13 @@ public class SqlToJavaVisitor {
     }
 
     @Override
+    public Pair<String, SqlType> visitIntervalUnit(
+        final IntervalUnit exp, final TypeContext context
+    ) {
+      return new Pair<>("TimeUnit." + exp.getUnit().toString(), null);
+    }
+
+    @Override
     public Pair<String, SqlType> visitUnqualifiedColumnReference(
         final UnqualifiedColumnReferenceExp node,
         final TypeContext context
@@ -482,6 +472,8 @@ public class SqlToJavaVisitor {
           argumentSchemas.add(
               SqlArgument.of(
                   SqlLambda.of(context.getLambdaInputTypes(), childContext.getSqlType())));
+        } else if (argExpr instanceof IntervalUnit) {
+          argumentSchemas.add(SqlArgument.of(SqlIntervalUnit.INSTANCE));
         } else {
           argumentSchemas.add(SqlArgument.of(resolvedArgType));
           // for lambdas - we save the type information to resolve the lambda generics

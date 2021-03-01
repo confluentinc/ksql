@@ -51,7 +51,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
-import io.confluent.ksql.execution.expression.tree.IntervalExpression;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
 import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
@@ -923,18 +923,6 @@ public class ExpressionTypeManagerTest {
         UnsupportedOperationException.class,
         () -> expressionTypeManager.getExpressionSqlType(new TimeLiteral("TIME '00:00:00'"))
     );
-  }
-
-  @Test
-  public void shouldReturnIntervalForIntervalExpression() {
-    // Given:
-    final Expression expression = new IntervalExpression(new IntegerLiteral(23), TimeUnit.DAYS);
-
-    // When:
-    final SqlType result = expressionTypeManager.getExpressionSqlType(expression);
-
-    // Then:
-    assertThat(result, is(SqlTypes.INTERVAL));
   }
 
   @Test

@@ -20,8 +20,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.schema.ksql.SqlArgument;
+import io.confluent.ksql.schema.ksql.types.SqlIntervalUnit;
 import io.confluent.ksql.schema.ksql.types.SqlLambda;
-import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.junit.Test;
 
@@ -82,7 +82,10 @@ public class ParamTypesTest {
         false),
         is(true));
 
-    assertThat(ParamTypes.areCompatible(SqlArgument.of(SqlTypes.INTERVAL), ParamTypes.INTERVAL),
+    assertThat(ParamTypes.areCompatible(
+        SqlArgument.of(SqlIntervalUnit.INSTANCE),
+        ParamTypes.INTERVALUNIT,
+        true),
         is(true));
 
     assertThat(
@@ -130,7 +133,7 @@ public class ParamTypesTest {
     assertThat(ParamTypes.areCompatible(SqlArgument.of(SqlTypes.DOUBLE), ParamTypes.LONG, true), is(false));
 
     assertThat(ParamTypes.areCompatible(SqlArgument.of(SqlTypes.DOUBLE), ParamTypes.DECIMAL, true), is(false));
-    assertThat(ParamTypes.areCompatible(SqlArgument.of(SqlTypes.BIGINT), ParamTypes.INTERVAL, true), is(false));
+    assertThat(ParamTypes.areCompatible(SqlArgument.of(SqlTypes.INTEGER), ParamTypes.INTERVALUNIT, true), is(false));
   }
 }
 

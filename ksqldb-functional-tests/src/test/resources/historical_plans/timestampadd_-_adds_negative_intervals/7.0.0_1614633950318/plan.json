@@ -1,36 +1,36 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM TEST (ID STRING KEY, TIME TIMESTAMP) WITH (KAFKA_TOPIC='test', KEY_FORMAT='KAFKA', VALUE_FORMAT='DELIMITED');",
+    "statementText" : "CREATE STREAM TEST (ID INTEGER KEY, TIME TIMESTAMP) WITH (KAFKA_TOPIC='test', KEY_FORMAT='KAFKA', VALUE_FORMAT='AVRO');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "TEST",
-      "schema" : "`ID` STRING KEY, `TIME` TIMESTAMP",
+      "schema" : "`ID` INTEGER KEY, `TIME` TIMESTAMP",
       "topicName" : "test",
       "formats" : {
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "valueFormat" : {
-          "format" : "DELIMITED"
+          "format" : "AVRO"
         }
       },
       "orReplace" : false
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM TEST2 AS SELECT\n  TEST.ID ID,\n  TIMESTAMPADD(TEST.TIME, 10 MILLISECONDS) KSQL_COL_0\nFROM TEST TEST\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM TEST2 AS SELECT\n  TEST.ID ID,\n  TIMESTAMPADD(MILLISECONDS, -5, TEST.TIME) VALUE\nFROM TEST TEST\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "TEST2",
-      "schema" : "`ID` STRING KEY, `KSQL_COL_0` TIMESTAMP",
+      "schema" : "`ID` INTEGER KEY, `VALUE` TIMESTAMP",
       "topicName" : "TEST2",
       "formats" : {
         "keyFormat" : {
           "format" : "KAFKA"
         },
         "valueFormat" : {
-          "format" : "DELIMITED"
+          "format" : "AVRO"
         }
       },
       "orReplace" : false
@@ -59,20 +59,20 @@
                 "format" : "KAFKA"
               },
               "valueFormat" : {
-                "format" : "DELIMITED"
+                "format" : "AVRO"
               }
             },
-            "sourceSchema" : "`ID` STRING KEY, `TIME` TIMESTAMP"
+            "sourceSchema" : "`ID` INTEGER KEY, `TIME` TIMESTAMP"
           },
           "keyColumnNames" : [ "ID" ],
-          "selectExpressions" : [ "TIMESTAMPADD(TIME, 10 MILLISECONDS) AS KSQL_COL_0" ]
+          "selectExpressions" : [ "TIMESTAMPADD(MILLISECONDS, -5, TIME) AS VALUE" ]
         },
         "formats" : {
           "keyFormat" : {
             "format" : "KAFKA"
           },
           "valueFormat" : {
-            "format" : "DELIMITED"
+            "format" : "AVRO"
           }
         },
         "topicName" : "TEST2"
@@ -102,7 +102,7 @@
     "ksql.query.pull.max.qps" : "2147483647",
     "ksql.access.validator.enable" : "auto",
     "ksql.streams.bootstrap.servers" : "localhost:0",
-    "ksql.query.pull.metrics.enabled" : "false",
+    "ksql.query.pull.metrics.enabled" : "true",
     "ksql.create.or.replace.enabled" : "true",
     "ksql.metrics.extension" : null,
     "ksql.hidden.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",

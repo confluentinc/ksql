@@ -19,7 +19,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.types.ArrayType;
-import io.confluent.ksql.function.types.IntervalType;
 import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
@@ -382,7 +381,6 @@ public final class SchemaConverters {
             .put(ParamTypes.LONG, SqlTypes.BIGINT)
             .put(ParamTypes.DOUBLE, SqlTypes.DOUBLE)
             .put(ParamTypes.TIMESTAMP, SqlTypes.TIMESTAMP)
-            .put(ParamTypes.INTERVAL, SqlTypes.INTERVAL)
             .build();
 
     @Override
@@ -444,10 +442,6 @@ public final class SchemaConverters {
 
       if (paramType instanceof StructType) {
         return SqlBaseType.STRUCT;
-      }
-
-      if (paramType instanceof IntervalType) {
-        return null;
       }
 
       throw new KsqlException("Cannot convert param type to sql type: " + paramType);

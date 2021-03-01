@@ -1,6 +1,6 @@
 {
-  "version" : "6.2.0",
-  "timestamp" : 1611199643145,
+  "version" : "7.0.0",
+  "timestamp" : 1614633950987,
   "path" : "query-validation-tests/timestampsub.json",
   "schemas" : {
     "CSAS_TEST2_0.TEST2" : {
@@ -43,7 +43,7 @@
       "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, time TIMESTAMP) WITH (kafka_topic='test', value_format='DELIMITED');", "CREATE STREAM TEST2 AS SELECT id, timestampsub(time, 10 MILLISECONDS) FROM TEST;" ],
+    "statements" : [ "CREATE STREAM TEST (ID STRING KEY, time TIMESTAMP) WITH (kafka_topic='test', value_format='DELIMITED');", "CREATE STREAM TEST2 AS SELECT id, timestampsub(MILLISECONDS, 10, time) FROM TEST;" ],
     "post" : {
       "sources" : [ {
         "name" : "TEST",

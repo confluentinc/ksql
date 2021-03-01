@@ -19,7 +19,7 @@
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM TEST2 AS SELECT\n  TEST.ID ID,\n  TIMESTAMPSUB(TEST.TIME, 10 MILLISECONDS) KSQL_COL_0\nFROM TEST TEST\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM TEST2 AS SELECT\n  TEST.ID ID,\n  TIMESTAMPADD(MILLISECONDS, 10, TEST.TIME) KSQL_COL_0\nFROM TEST TEST\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "TEST2",
@@ -65,7 +65,7 @@
             "sourceSchema" : "`ID` STRING KEY, `TIME` TIMESTAMP"
           },
           "keyColumnNames" : [ "ID" ],
-          "selectExpressions" : [ "TIMESTAMPSUB(TIME, 10 MILLISECONDS) AS KSQL_COL_0" ]
+          "selectExpressions" : [ "TIMESTAMPADD(MILLISECONDS, 10, TIME) AS KSQL_COL_0" ]
         },
         "formats" : {
           "keyFormat" : {
@@ -102,7 +102,7 @@
     "ksql.query.pull.max.qps" : "2147483647",
     "ksql.access.validator.enable" : "auto",
     "ksql.streams.bootstrap.servers" : "localhost:0",
-    "ksql.query.pull.metrics.enabled" : "false",
+    "ksql.query.pull.metrics.enabled" : "true",
     "ksql.create.or.replace.enabled" : "true",
     "ksql.metrics.extension" : null,
     "ksql.hidden.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",

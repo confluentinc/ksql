@@ -39,7 +39,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
-import io.confluent.ksql.execution.expression.tree.IntervalExpression;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
@@ -179,7 +179,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatIntervalExpression() {
-    assertThat(ExpressionFormatter.formatExpression(new IntervalExpression(new IntegerLiteral(34), TimeUnit.DAYS)), equalTo("34 DAYS"));
+    assertThat(ExpressionFormatter.formatExpression(new IntervalUnit(TimeUnit.DAYS)), equalTo("DAYS"));
   }
 
   @Test

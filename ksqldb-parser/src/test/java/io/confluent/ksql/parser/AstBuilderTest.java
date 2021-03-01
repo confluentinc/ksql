@@ -29,7 +29,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
-import io.confluent.ksql.execution.expression.tree.IntervalExpression;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
 import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
@@ -395,13 +395,13 @@ public class AstBuilderTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("no viable alternative at input 'TRANSFORM_ARRAY(X =>'"));
+    assertThat(e.getMessage(), containsString("mismatched input '=>' expecting {',', ')'}"));
   }
 
   @Test
-  public void shouldBuildIntervalExpression() {
+  public void shouldBuildIntervalUnit() {
     // Given:
-    final SingleStatementContext stmt = givenQuery("SELECT TIMESTAMPADD(Col6, 5 HOURS) FROM TEST1;");
+    final SingleStatementContext stmt = givenQuery("SELECT TIMESTAMP_ADD(MINUTES, 5, Col4) FROM TEST1;");
 
     // When:
     final Query result = (Query) builder.buildStatement(stmt);
@@ -410,70 +410,15 @@ public class AstBuilderTest {
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
         new SingleColumn(
             new FunctionCall(
-                FunctionName.of("TIMESTAMPADD"),
+                FunctionName.of("TIMESTAMP_ADD"),
                 ImmutableList.of(
-                    column("COL6"),
-                    new IntervalExpression(
-                        new IntegerLiteral(5),
-                        TimeUnit.HOURS
-                    )
+                    new IntervalUnit(TimeUnit.MINUTES),
+                    new IntegerLiteral(5),
+                    column("COL4")
                 )
             ),
             Optional.empty())
     ))));
-  }
-
-  @Test
-  public void shouldBuildMultipleIntervalExpression() {
-    // Given:
-    final SingleStatementContext stmt = givenQuery("SELECT TIMESTAMPADD(Col6, 5 HOURS, 6 MINUTES) FROM TEST1;");
-
-    // When:
-    final Query result = (Query) builder.buildStatement(stmt);
-
-    // Then:
-    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
-        new SingleColumn(
-            new FunctionCall(
-                FunctionName.of("TIMESTAMPADD"),
-                ImmutableList.of(
-                    column("COL6"),
-                    new IntervalExpression(
-                        new IntegerLiteral(5),
-                        TimeUnit.HOURS
-                    ),
-                    new IntervalExpression(
-                        new IntegerLiteral(6),
-                        TimeUnit.MINUTES
-                    )
-                )
-            ),
-            Optional.empty())
-    ))));
-  }
-
-  @Test
-  public void shouldNotBuildIntervalExpressionNotLastArgument() {
-    // Given:
-    final Exception e = assertThrows(
-        ParseFailedException.class,
-        () -> givenQuery("SELECT TIMESTAMPADD(5 HOURS, Col6) FROM TEST1;")
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("no viable alternative at input 'TIMESTAMPADD(5 HOURS"));
-  }
-
-  @Test
-  public void shouldNotBuildLambdaAndInterval() {
-    // Given:
-    final Exception e = assertThrows(
-        ParseFailedException.class,
-        () -> givenQuery("SELECT TRANSFORM_ARRAY(Col4, X => X + 5, 5 HOURS) FROM TEST1;")
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString("mismatched input '5' expecting {"));
   }
 
   @Test

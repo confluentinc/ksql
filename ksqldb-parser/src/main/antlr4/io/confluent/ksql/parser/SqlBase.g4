@@ -297,9 +297,7 @@ primaryExpression
     | MAP '(' (expression ASSIGN expression (',' expression ASSIGN expression)*)? ')'     #mapConstructor
     | STRUCT '(' (identifier ASSIGN expression (',' identifier ASSIGN expression)*)? ')'  #structConstructor
     | identifier '(' ASTERISK ')'                              		                        #functionCall
-    | identifier'(' expression ',' intervalExpression ')' 						                    #functionCall
-    | identifier '(' (expression (',' expression)*
-                     ((',' lambdaFunction)* | (',' intervalExpression)*))? ')'            #functionCall
+    | identifier '(' (functionArgument (',' functionArgument)* ((',' lambdaFunction)*))? ')' #functionCall
     | value=primaryExpression '[' index=valueExpression ']'                               #subscript
     | identifier                                                                          #columnReference
     | identifier '.' identifier                                                           #qualifiedColumnReference
@@ -307,8 +305,9 @@ primaryExpression
     | '(' expression ')'                                                                  #parenthesizedExpression
     ;
 
-intervalExpression
-    : valueExpression windowUnit
+functionArgument
+    : expression
+    | windowUnit
     ;
 
 timeZoneSpecifier

@@ -82,11 +82,6 @@ public abstract class VisitParentExpressionVisitor<R, C> implements ExpressionVi
   }
 
   @Override
-  public R visitIntervalExpression(final IntervalExpression node, final C context) {
-    return visitExpression(node, context);
-  }
-
-  @Override
   public R visitWhenClause(final WhenClause node, final C context) {
     return visitExpression(node, context);
   }
@@ -227,5 +222,10 @@ public abstract class VisitParentExpressionVisitor<R, C> implements ExpressionVi
   @Override
   public R visitLambdaVariable(final LambdaVariable node, final C context) {
     return visitLiteral(node, context);
+  }
+
+  @Override
+  public R visitIntervalUnit(final IntervalUnit node, final C context) {
+    return visitExpression(node, context);
   }
 }

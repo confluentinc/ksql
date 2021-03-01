@@ -253,6 +253,7 @@ def job = {
                             withEnv(['MAVEN_OPTS=-XX:MaxPermSize=128M']) {
                                 sh """
                                 cp ${settingsFile} ~/.m2/settings.xml
+                                cp ${settingsFile} .
                                 ${env.WORKSPACE}/build-packages.sh --workspace . \
                                     --docker-registry ${config.dockerRegistry} \
                                     --project-version ${config.ksql_db_artifact_version} \
@@ -261,7 +262,6 @@ def job = {
                             }
                             step([$class: 'hudson.plugins.findbugs.FindBugsPublisher', pattern: '**/*bugsXml.xml'])
 
-                            sh "cp ${settingsFile} ."
                             if (!config.isPrJob) {
                                 def git_tag = "v${config.ksql_db_artifact_version}-ksqldb"
                                 sh "git tag ${git_tag}"

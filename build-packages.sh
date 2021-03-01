@@ -122,6 +122,7 @@ echo "Versioning Diff:"
 git diff | cat
 
 # Commit changes
+git add .
 git commit -a -m "build: Setting project version ${FULL_VERSION} and parent version ${UPSTREAM_VERSION}."
 
 # We run things through fakeroot, which causes issues with finding an .m2/repository location to write. We set the homedir where it does

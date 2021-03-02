@@ -165,6 +165,27 @@ public final class MigrationsDirectoryUtil {
       ));
     }
 
+    validateMigrationVersionsUnique(migrations);
+
     return migrations;
+  }
+
+  private static void validateMigrationVersionsUnique(final List<Migration> migrations) {
+    if (migrations.size() == 0) {
+      return;
+    }
+
+    Migration previous = migrations.get(0);
+    for (int i = 1; i < migrations.size(); i++) {
+      if (migrations.get(i).getVersion() == previous.getVersion()) {
+        throw new MigrationException(String.format(
+            "Found multiple migrations files with the same version. Version: %d. Files: '%s', '%s'",
+            migrations.get(i).getVersion(),
+            migrations.get(i).getFilepath(),
+            previous.getFilepath()
+        ));
+      }
+      previous = migrations.get(i);
+    }
   }
 }

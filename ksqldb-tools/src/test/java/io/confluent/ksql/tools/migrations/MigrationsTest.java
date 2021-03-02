@@ -114,7 +114,7 @@ public class MigrationsTest {
         () -> makeKsqlQuery("SELECT * FROM migration_schema_versions WHERE VERSION_KEY='CURRENT';").size(),
         is(1)
     );
-    final int status = MIGRATIONS_CLI.parse("--config-file", configFilePath, "apply").run();
+    final int status = MIGRATIONS_CLI.parse("--config-file", configFilePath, "apply", "-a").run();
     assertThat(status, is(0));
 
     // verify FOO and BAR were registered

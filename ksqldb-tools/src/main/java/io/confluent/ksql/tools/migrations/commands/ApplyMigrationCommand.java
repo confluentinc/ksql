@@ -16,6 +16,7 @@
 package io.confluent.ksql.tools.migrations.commands;
 
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getAllMigrations;
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationForVersion;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
 
 import com.github.rvesse.airline.annotations.Command;
@@ -36,6 +37,7 @@ import java.time.Clock;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -192,7 +194,12 @@ public class ApplyMigrationCommand extends BaseCommand {
       final int minimumVersion
   ) {
     if (version > 0) {
-      // TODO
+      final Optional<Migration> migration =
+          getMigrationForVersion(String.valueOf(version), migrationsDir);
+      if (!migration.isPresent()) {
+        throw new MigrationException("No migration file with version " + version + " exists.");
+      }
+      return Collections.singletonList(migration.get());
     }
 
     final List<Migration> migrations = getAllMigrations(migrationsDir).stream()

@@ -16,8 +16,8 @@
 package io.confluent.ksql.tools.migrations.commands;
 
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getAllVersions;
-import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getFilePathForVersion;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getFilePrefixForVersion;
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationForVersion;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
 
 import com.github.rvesse.airline.annotations.Arguments;
@@ -26,6 +26,7 @@ import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.help.Examples;
 import com.github.rvesse.airline.annotations.restrictions.Required;
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.tools.migrations.Migration;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import java.io.File;
 import java.io.IOException;
@@ -103,17 +104,17 @@ public class CreateMigrationCommand extends BaseCommand {
       return true;
     }
 
-    final Optional<String> existingFile;
+    final Optional<Migration> existingMigration;
     try {
-      existingFile = getFilePathForVersion(String.valueOf(version), migrationsDir);
+      existingMigration = getMigrationForVersion(String.valueOf(version), migrationsDir);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
       return false;
     }
 
-    if (existingFile.isPresent()) {
+    if (existingMigration.isPresent()) {
       LOGGER.error("Found existing migrations file for version {}: {}",
-          version, existingFile.get());
+          version, existingMigration.get().getFilepath());
       return false;
     }
 

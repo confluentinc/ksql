@@ -24,7 +24,6 @@ import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -106,43 +105,44 @@ public final class MetadataUtil {
       return currentVersion;
     }
 
-    final VersionInfo currentVersionInfo = getInfoForVersion(currentVersion, config, ksqlClient);
-    if (currentVersionInfo.state == MigrationState.MIGRATED) {
+    final MigrationVersionInfo currentVersionInfo =
+        getInfoForVersion(currentVersion, config, ksqlClient);
+    if (currentVersionInfo.getState() == MigrationState.MIGRATED) {
       return currentVersion;
     }
 
-    if (currentVersionInfo.prevVersion.equals(MetadataUtil.NONE_VERSION)) {
+    if (currentVersionInfo.getPrevVersion().equals(MetadataUtil.NONE_VERSION)) {
       return MetadataUtil.NONE_VERSION;
     }
 
-    final VersionInfo prevVersionInfo = getInfoForVersion(
-        currentVersionInfo.prevVersion,
+    final MigrationVersionInfo prevVersionInfo = getInfoForVersion(
+        currentVersionInfo.getPrevVersion(),
         config,
         ksqlClient
     );
-    validateVersionIsMigrated(currentVersionInfo.prevVersion, prevVersionInfo, currentVersion);
+    validateVersionIsMigrated(currentVersionInfo.getPrevVersion(), prevVersionInfo, currentVersion);
 
-    return currentVersionInfo.prevVersion;
+    return currentVersionInfo.getPrevVersion();
   }
 
   public static void validateVersionIsMigrated(
       final String version,
-      final VersionInfo versionInfo,
+      final MigrationVersionInfo versionInfo,
       final String nextVersion
   ) {
-    if (versionInfo.state != MigrationState.MIGRATED) {
+    if (versionInfo.getState() != MigrationState.MIGRATED) {
       throw new MigrationException(String.format(
           "Discovered version with previous version that does not have status %s. "
               + "Version: %s. Previous version: %s. Previous version status: %s",
           MigrationState.MIGRATED,
           nextVersion,
           version,
-          versionInfo.state
+          versionInfo.getState()
       ));
     }
   }
 
-  public static VersionInfo getInfoForVersion(
+  public static MigrationVersionInfo getInfoForVersion(
       final String version,
       final MigrationConfig config,
       final Client ksqlClient
@@ -171,30 +171,6 @@ public final class MetadataUtil {
           "Failed to query state for migration with version %s: %s", version, e.getMessage()));
     }
 
-    return new VersionInfo(expectedHash, prevVersion, state);
-  }
-
-  public static class VersionInfo {
-    private final String expectedHash;
-    private final String prevVersion;
-    private final MigrationState state;
-
-    VersionInfo(final String expectedHash, final String prevVersion, final String state) {
-      this.expectedHash = Objects.requireNonNull(expectedHash, "expectedHash");
-      this.prevVersion = Objects.requireNonNull(prevVersion, "prevVersion");
-      this.state = MigrationState.valueOf(Objects.requireNonNull(state, "state"));
-    }
-
-    public String getExpectedHash() {
-      return expectedHash;
-    }
-
-    public String getPrevVersion() {
-      return prevVersion;
-    }
-
-    public MigrationState getState() {
-      return state;
-    }
+    return new MigrationVersionInfo(expectedHash, prevVersion, state);
   }
 }

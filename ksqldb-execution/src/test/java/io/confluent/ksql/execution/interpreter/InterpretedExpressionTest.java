@@ -168,10 +168,10 @@ public class InterpretedExpressionTest {
     InterpretedExpression interpreter3 = interpreter(expression3);
 
     // Then:
-    assertThat(interpreter1.evaluate(make(3, 5)), is(true));
-    assertThat(interpreter1.evaluate(make(3, -20)), is(false));
-    assertThat(interpreter2.evaluate(make(3, 5)), is(true));
-    assertThat(interpreter2.evaluate(make(3, 20)), is(false));
+    assertThat(interpreter1.evaluate(make(3, 5d)), is(true));
+    assertThat(interpreter1.evaluate(make(3, -20d)), is(false));
+    assertThat(interpreter2.evaluate(make(3, 5d)), is(true));
+    assertThat(interpreter2.evaluate(make(3, 20d)), is(false));
     assertThat(interpreter3.evaluate(make(3, 6.5d)), is(true));
     assertThat(interpreter3.evaluate(make(3, 8.5d)), is(false));
   }

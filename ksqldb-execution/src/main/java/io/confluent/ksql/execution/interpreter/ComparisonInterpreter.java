@@ -16,8 +16,8 @@
 package io.confluent.ksql.execution.interpreter;
 
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
-import io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConversions;
 import io.confluent.ksql.execution.interpreter.terms.BasicTerms.BooleanTerm;
+import io.confluent.ksql.execution.interpreter.terms.CastTerm.ComparableCastFunction;
 import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.CompareToTerm;
 import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.ComparisonCheckFunction;
 import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.ComparisonFunction;
@@ -26,13 +26,9 @@ import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.EqualsCheckF
 import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.EqualsFunction;
 import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.EqualsTerm;
 import io.confluent.ksql.execution.interpreter.terms.Term;
-import io.confluent.ksql.schema.ksql.SqlTimestamps;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import java.math.BigDecimal;
-import java.sql.Timestamp;
 import java.util.Optional;
 
 /**
@@ -72,33 +68,16 @@ public final class ComparisonInterpreter {
         + right.getSqlType());
   }
 
-  private static BigDecimal toDecimal(final Object object, final SqlType from) {
-    if (object instanceof BigDecimal) {
-      return (BigDecimal) object;
-    } else if (object instanceof Double) {
-      return BigDecimal.valueOf((Double) object);
-    } else if (object instanceof Integer) {
-      return new BigDecimal((Integer) object);
-    } else if (object instanceof Long) {
-      return new BigDecimal((Long) object);
-    } else if (object instanceof String) {
-      return new BigDecimal((String) object);
-    } else {
-      throw new KsqlException(String.format("Unsupported comparison between %s and %s", from,
-          SqlBaseType.DECIMAL));
-    }
-  }
-
-  private static Timestamp toTimestamp(final Object object, final SqlType from) {
-    if (object instanceof Timestamp) {
-      return (Timestamp) object;
-    } else if (object instanceof String) {
-      return SqlTimestamps.parseTimestamp((String) object);
-    } else {
-      throw new KsqlException(String.format("Unsupported comparison between %s and %s", from,
-          SqlTypes.TIMESTAMP));
-    }
-  }
+//  private static Timestamp toTimestamp(final Object object, final SqlType from) {
+//    if (object instanceof Timestamp) {
+//      return (Timestamp) object;
+//    } else if (object instanceof String) {
+//      return SqlTimestamps.parseTimestamp((String) object);
+//    } else {
+//      throw new KsqlException(String.format("Unsupported comparison between %s and %s", from,
+//          SqlTypes.TIMESTAMP));
+//    }
+//  }
 
   private static ComparisonNullCheckFunction getNullCheckFunction(
       final ComparisonExpression.Type type
@@ -125,17 +104,17 @@ public final class ComparisonInterpreter {
     final SqlBaseType leftType = left.getSqlType().baseType();
     final SqlBaseType rightType = right.getSqlType().baseType();
     if (either(leftType, rightType, SqlBaseType.DECIMAL)) {
-      return Optional.of((c, l, r) -> doCompareTo(c, ComparisonInterpreter::toDecimal, l, r));
+      return Optional.of((c, l, r) -> doCompareTo(c, CastInterpreter::castToBigDecimalFunction, l, r));
     } else if (either(leftType, rightType, SqlBaseType.TIMESTAMP)) {
-      return Optional.of((c, l, r) -> doCompareTo(c, ComparisonInterpreter::toTimestamp, l, r));
+      return Optional.of((c, l, r) -> doCompareTo(c, CastInterpreter::castToTimestampFunction, l, r));
     } else if (leftType == SqlBaseType.STRING) {
       return Optional.of((c, l, r) -> l.getValue(c).toString().compareTo(r.getValue(c).toString()));
     } else if (either(leftType, rightType, SqlBaseType.DOUBLE)) {
-      return Optional.of((c, l, r) -> doCompareTo(c, NumberConversions::toDouble, l, r));
+      return Optional.of((c, l, r) -> doCompareTo(c, CastInterpreter::castToDoubleFunction, l, r));
     } else if (either(leftType, rightType, SqlBaseType.BIGINT)) {
-      return Optional.of((c, l, r) -> doCompareTo(c, NumberConversions::toLong, l, r));
+      return Optional.of((c, l, r) -> doCompareTo(c, CastInterpreter::castToLongFunction, l, r));
     } else if (either(leftType, rightType, SqlBaseType.INTEGER)) {
-      return Optional.of((c, l, r) -> doCompareTo(c, NumberConversions::toInteger, l, r));
+      return Optional.of((c, l, r) -> doCompareTo(c, CastInterpreter::castToIntegerFunction, l, r));
     }
     return Optional.empty();
   }
@@ -147,8 +126,8 @@ public final class ComparisonInterpreter {
       final Term right) {
     final Object leftObject = left.getValue(context);
     final Object rightObject = right.getValue(context);
-    return conversion.convert(leftObject, left.getSqlType()).compareTo(
-        conversion.convert(rightObject, right.getSqlType()));
+    return conversion.convert(left.getSqlType()).cast(leftObject).compareTo(
+        conversion.convert(right.getSqlType()).cast(rightObject));
   }
 
   private static boolean either(
@@ -213,7 +192,7 @@ public final class ComparisonInterpreter {
     }
   }
 
-  private interface Conversion<T extends Comparable> {
-    T convert(Object object, SqlType from);
+  private interface Conversion<T extends Comparable<T>> {
+    ComparableCastFunction<T> convert(SqlType from);
   }
 }

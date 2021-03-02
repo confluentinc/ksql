@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.interpreter;
 import io.confluent.ksql.execution.codegen.helpers.CastEvaluator;
 import io.confluent.ksql.execution.interpreter.terms.CastTerm;
 import io.confluent.ksql.execution.interpreter.terms.CastTerm.CastFunction;
+import io.confluent.ksql.execution.interpreter.terms.CastTerm.ComparableCastFunction;
 import io.confluent.ksql.execution.interpreter.terms.Term;
 import io.confluent.ksql.schema.ksql.SqlBooleans;
 import io.confluent.ksql.schema.ksql.SqlDoubles;
@@ -32,7 +33,9 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -67,6 +70,8 @@ public final class CastInterpreter {
       return castToStringFunction(from, config);
     } else if (toBaseType == SqlBaseType.BOOLEAN) {
       return castToBooleanFunction(from);
+    } else if (toBaseType == SqlBaseType.TIMESTAMP) {
+      return castToTimestampFunction(from);
     } else if (toBaseType == SqlBaseType.ARRAY) {
       return castToArrayFunction(from, to, config);
     } else if (toBaseType == SqlBaseType.MAP) {
@@ -76,46 +81,97 @@ public final class CastInterpreter {
     }
   }
 
-  public static CastFunction castToIntegerFunction(final SqlType from) {
-    if (from.baseType() == SqlBaseType.STRING) {
-      return object -> Integer.parseInt(((String) object).trim());
+  public static ComparableCastFunction<Integer> castToIntegerFunction(final SqlType from) {
+    switch (from.baseType()) {
+      case STRING:
+        return object -> Integer.parseInt(((String) object).trim());
+      case DECIMAL:
+        return object -> ((BigDecimal) object).intValue();
+      case DOUBLE:
+        return object -> ((Double) object).intValue();
+      case INTEGER:
+        return object -> ((Integer) object);
+      case BIGINT:
+        return object -> ((Long) object).intValue();
+      default:
+        throw new KsqlException(getErrorMessage(from, SqlTypes.INTEGER));
     }
-    return object -> NumberConversions.toInteger(object, from);
   }
 
-  public static CastFunction castToDoubleFunction(final SqlType from) {
-    if (from.baseType() == SqlBaseType.STRING) {
-      return object -> SqlDoubles.parseDouble(((String) object).trim());
+  public static ComparableCastFunction<Double> castToDoubleFunction(final SqlType from) {
+    switch (from.baseType()) {
+      case STRING:
+        return object -> SqlDoubles.parseDouble(((String) object).trim());
+      case DECIMAL:
+        return object -> ((BigDecimal) object).doubleValue();
+      case DOUBLE:
+        return object -> (Double) object;
+      case INTEGER:
+        return object -> ((Integer) object).doubleValue();
+      case BIGINT:
+        return object -> ((Long) object).doubleValue();
+      default:
+        throw new KsqlException(getErrorMessage(from, SqlTypes.DOUBLE));
     }
-    return object -> NumberConversions.toDouble(object, from);
   }
 
-  public static CastFunction castToLongFunction(final SqlType from) {
-    if (from.baseType() == SqlBaseType.STRING) {
-      return object -> Long.parseLong(((String) object).trim());
+  public static ComparableCastFunction<Long> castToLongFunction(final SqlType from) {
+    switch (from.baseType()) {
+      case STRING:
+        return object -> Long.parseLong(((String) object).trim());
+      case DECIMAL:
+        return object -> ((BigDecimal) object).longValue();
+      case DOUBLE:
+        return object -> ((Double) object).longValue();
+      case INTEGER:
+        return object -> ((Integer) object).longValue();
+      case BIGINT:
+        return object -> ((Long) object);
+      default:
+        throw new KsqlException(getErrorMessage(from, SqlTypes.BIGINT));
     }
-    return object -> NumberConversions.toLong(object, from);
   }
 
   public static CastFunction castToBigDecimalFunction(final SqlType from, final SqlType to) {
     final SqlDecimal sqlDecimal = (SqlDecimal) to;
-    if (from.baseType() == SqlBaseType.INTEGER) {
-      return object -> DecimalUtil.cast(((Integer) object),
-          sqlDecimal.getPrecision(), sqlDecimal.getScale());
-    } else if (from.baseType() == SqlBaseType.BIGINT) {
-      return object -> DecimalUtil.cast(((Long) object), sqlDecimal.getPrecision(),
-          sqlDecimal.getScale());
-    } else if (from.baseType() == SqlBaseType.DOUBLE) {
-      return object -> DecimalUtil.cast(((Double) object), sqlDecimal.getPrecision(),
-          sqlDecimal.getScale());
-    } else if (from.baseType() == SqlBaseType.DECIMAL) {
-      return object -> DecimalUtil.cast(((BigDecimal) object), sqlDecimal.getPrecision(),
-          sqlDecimal.getScale());
-    } else if (from.baseType() == SqlBaseType.STRING) {
-      return object -> DecimalUtil.cast(((String) object), sqlDecimal.getPrecision(),
-          sqlDecimal.getScale());
+    switch (from.baseType()) {
+      case INTEGER:
+        return object -> DecimalUtil.cast(((Integer) object),
+            sqlDecimal.getPrecision(), sqlDecimal.getScale());
+      case BIGINT:
+        return object -> DecimalUtil.cast(((Long) object), sqlDecimal.getPrecision(),
+            sqlDecimal.getScale());
+      case DOUBLE:
+        return object -> DecimalUtil.cast(((Double) object), sqlDecimal.getPrecision(),
+            sqlDecimal.getScale());
+      case DECIMAL:
+        return object -> DecimalUtil.cast(((BigDecimal) object), sqlDecimal.getPrecision(),
+            sqlDecimal.getScale());
+      case STRING:
+        return object -> DecimalUtil.cast(((String) object), sqlDecimal.getPrecision(),
+            sqlDecimal.getScale());
+      default:
+        throw new KsqlException(String.format("Unsupported cast between %s and %s", from,
+            SqlBaseType.DECIMAL));
     }
-    throw new KsqlException("Unsupported type cast to BigDecimal: " + from);
+  }
+
+  public static ComparableCastFunction<BigDecimal> castToBigDecimalFunction(final SqlType from) {
+    switch (from.baseType()) {
+      case DECIMAL:
+        return object -> (BigDecimal) object;
+      case DOUBLE:
+        return object -> BigDecimal.valueOf((Double) object);
+      case INTEGER:
+        return object -> new BigDecimal((Integer) object);
+      case BIGINT:
+        return object -> new BigDecimal((Long) object);
+      case STRING:
+        return object -> new BigDecimal((String) object);
+      default:
+        throw new KsqlException(String.format("Unsupported cast between %s and %s", from,
+            SqlBaseType.DECIMAL));
+    }
   }
 
   public static CastFunction castToStringFunction(
@@ -141,6 +197,17 @@ public final class CastInterpreter {
       return object -> object;
     }
     throw new KsqlException("Unsupported cast to BOOLEAN: " + from);
+  }
+
+  public static ComparableCastFunction<Date> castToTimestampFunction(
+      final SqlType from
+  ) {
+    if (from.baseType() == SqlBaseType.STRING) {
+      return object -> SqlTimestamps.parseTimestamp(((String) object).trim());
+    } else if (from.baseType() == SqlBaseType.TIMESTAMP) {
+      return object -> (Timestamp) object;
+    }
+    throw new KsqlException("Unsupported cast to TIMESTAMP: " + from);
   }
 
   public static CastFunction castToArrayFunction(
@@ -177,44 +244,6 @@ public final class CastInterpreter {
           CastEvaluator.castMap((Map<?, ?>) o, keyCastFunction::cast, valueCastFunction::cast);
     }
     throw new KsqlException("Unsupported cast to " + to + ": " + from);
-  }
-
-  /**
-   * Conversion functions that work for converting type either during comparison or casting.
-   */
-  public static class NumberConversions {
-    public static Double toDouble(final Object object, final SqlType from) {
-      if (object == null) {
-        return null;
-      }
-      if (object instanceof Number) {
-        return ((Number) object).doubleValue();
-      } else {
-        throw new KsqlException(getErrorMessage(from, SqlTypes.DOUBLE));
-      }
-    }
-
-    public static Long toLong(final Object object, final SqlType from) {
-      if (object == null) {
-        return null;
-      }
-      if (object instanceof Number) {
-        return ((Number) object).longValue();
-      } else {
-        throw new KsqlException(getErrorMessage(from, SqlTypes.BIGINT));
-      }
-    }
-
-    public static Integer toInteger(final Object object, final SqlType from) {
-      if (object == null) {
-        return null;
-      }
-      if (object instanceof Number) {
-        return ((Number) object).intValue();
-      } else {
-        throw new KsqlException(getErrorMessage(from, SqlTypes.INTEGER));
-      }
-    }
   }
 
   private static String getErrorMessage(

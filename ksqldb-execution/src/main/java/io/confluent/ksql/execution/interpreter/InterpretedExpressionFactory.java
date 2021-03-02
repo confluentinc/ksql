@@ -48,6 +48,9 @@ public final class InterpretedExpressionFactory {
     } catch (KsqlException e) {
       throw new KsqlException("Invalid expression: " + e.getMessage()
           + ". expression:" + expression + ", schema:" + schema, e);
+    } catch (final Exception e) {
+      throw new RuntimeException("Unexpected error generating code for expression: " + expression,
+          e);
     }
   }
 }

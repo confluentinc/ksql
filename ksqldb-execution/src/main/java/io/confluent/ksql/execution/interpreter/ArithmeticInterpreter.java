@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.execution.interpreter;
 
-import static io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConversions.toDouble;
-import static io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConversions.toInteger;
-import static io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConversions.toLong;
+import static io.confluent.ksql.execution.interpreter.CastInterpreter.castToDoubleFunction;
+import static io.confluent.ksql.execution.interpreter.CastInterpreter.castToIntegerFunction;
+import static io.confluent.ksql.execution.interpreter.CastInterpreter.castToLongFunction;
 
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
 import io.confluent.ksql.execution.interpreter.terms.ArithmeticBinaryTerm;
@@ -98,7 +98,7 @@ public final class ArithmeticInterpreter {
               ? CastInterpreter.cast(right, right.getSqlType(), SqlTypes.DOUBLE, ksqlConfig)
               : right;
       return new ArithmeticBinaryTerm(leftTerm, rightTerm,
-          getNonDecimalArithmeticFunction(operator, left.getSqlType(), right.getSqlType()),
+          getNonDecimalArithmeticFunction(operator, leftTerm.getSqlType(), rightTerm.getSqlType()),
           resultType);
     }
   }
@@ -113,13 +113,19 @@ public final class ArithmeticInterpreter {
       return (o1, o2) -> (String) o1 + (String) o2;
     } else if (leftBaseType == SqlBaseType.DOUBLE || rightBaseType == SqlBaseType.DOUBLE) {
       final DoubleArithmeticBinaryFunction fn = getDoubleFunction(operator);
-      return (o1, o2) -> fn.doFunction(toDouble(o1, leftType), toDouble(o2, rightType));
+      return (o1, o2) -> fn.doFunction(
+          castToDoubleFunction(leftType).cast(o1),
+          castToDoubleFunction(rightType).cast(o2));
     } else if (leftBaseType == SqlBaseType.BIGINT || rightBaseType == SqlBaseType.BIGINT) {
       final LongArithmeticBinaryFunction fn = getLongFunction(operator);
-      return (o1, o2) -> fn.doFunction(toLong(o1, leftType), toLong(o2, rightType));
+      return (o1, o2) -> fn.doFunction(
+          castToLongFunction(leftType).cast(o1),
+          castToLongFunction(rightType).cast(o2));
     } else if (leftBaseType == SqlBaseType.INTEGER || rightBaseType == SqlBaseType.INTEGER) {
       final IntegerArithmeticBinaryFunction fn = getIntegerFunction(operator);
-      return (o1, o2) -> fn.doFunction(toInteger(o1, leftType), toInteger(o2, rightType));
+      return (o1, o2) -> fn.doFunction(
+          castToIntegerFunction(leftType).cast(o1),
+          castToIntegerFunction(rightType).cast(o2));
     } else {
       throw new KsqlException("Can't do arithmetic for types " + leftType + " and " + rightType);
     }

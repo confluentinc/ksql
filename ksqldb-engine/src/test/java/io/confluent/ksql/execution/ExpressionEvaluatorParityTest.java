@@ -2,6 +2,7 @@ package io.confluent.ksql.execution;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -126,10 +127,21 @@ public class ExpressionEvaluatorParityTest {
   }
 
   @Test
+  public void shouldDoComparisons_null() throws Exception {
+    ordersRow = GenericRow.genericRow(null, null, null, null, null, null, null, null, null);
+    assertOrdersError("1 = null",
+        compileTime("Unexpected error generating code for Test. expression:(1 = null)"),
+        compileTime("Invalid expression: Comparison with NULL not supported: INTEGER = NULL"));
+    assertOrders("ORDERID = 1", false);
+    assertOrders("ITEMID > 'a'", false);
+  }
+
+  @Test
   public void shouldDereference() throws Exception {
     assertOrders("ITEMINFO->NAME", ITEM_NAME);
     assertOrders("ITEMINFO->CATEGORY->NAME", CATEGORY_NAME);
     assertOrders("'a-' + ITEMINFO->CATEGORY->NAME + '-b'", "a-cat-b");
+    assertOrdersError("ADDRESS->STREET + 'foo'", evalLogger(null));
   }
 
   @Test
@@ -157,6 +169,16 @@ public class ExpressionEvaluatorParityTest {
     assertOrdersError("1 + 'a'",
         compileTime("Unsupported arithmetic types"),
         compileTime("Unsupported arithmetic types"));
+  }
+
+  @Test
+  public void shouldDoArithmetic_nulls() throws Exception {
+    ordersRow = GenericRow.genericRow(null, null, null, null, null, null, null, null, null);
+    assertOrdersError("1 + null",  compileTime("Unexpected error generating code for Test"),
+        compileTime("Unexpected error generating code for expression: (1 + null)"));
+    assertOrdersError("'a' + null",  compileTime("Unexpected error generating code for Test"),
+        compileTime("Unexpected error generating code for expression: ('a' + null)"));
+    assertOrdersError("1 + ORDERID",  evalLogger(null));
   }
 
   @Test
@@ -193,6 +215,16 @@ public class ExpressionEvaluatorParityTest {
   }
 
   @Test
+  public void shouldDoCasts_nulls() throws Exception {
+    ordersRow = GenericRow.genericRow(null, null, null, null, null, null, null, null, null);
+    assertOrdersError("cast(null as int)",
+        compileTime("Unexpected error generating code for expression: CAST(null AS INTEGER)"),
+        compileTime("Unexpected error generating code for expression: CAST(null AS INTEGER)"));
+    assertOrders("cast(ORDERID as int)", null);
+    assertOrders("cast(ITEMID as int)", null);
+  }
+
+  @Test
   public void createComplexTypes() throws Exception {
     assertOrders("Array[1,2,3]", ImmutableList.of(1, 2, 3));
     assertOrdersError("Array[1,'a',3]",
@@ -215,6 +247,14 @@ public class ExpressionEvaluatorParityTest {
       final Object result
   ) throws Exception {
     assertResult(STREAM_NAME, expressionStr, ordersRow, result, Optional.empty(), Optional.empty());
+  }
+
+  private void assertOrdersError(
+      final String expressionStr,
+      final EvaluatorError compilerError
+  ) throws Exception {
+    assertResult(STREAM_NAME, expressionStr, ordersRow, null, Optional.of(compilerError),
+        Optional.empty());
   }
 
   private void assertOrdersError(
@@ -295,8 +335,12 @@ public class ExpressionEvaluatorParityTest {
       verify(processingLogger, times(1)).error(errorMessageCaptor.capture());
       RecordProcessingError processingError
           = ((RecordProcessingError) errorMessageCaptor.getValue());
-      assertThat(processingError.getException().get().getMessage(),
-          containsString(error.get().getMessage()));
+      if (error.get().getMessage() == null) {
+        assertThat(processingError.getException().get().getMessage(), nullValue());
+      } else {
+        assertThat(processingError.getException().get().getMessage(),
+            containsString(error.get().getMessage()));
+      }
     } else {
       verify(processingLogger, never()).error(any());
     }

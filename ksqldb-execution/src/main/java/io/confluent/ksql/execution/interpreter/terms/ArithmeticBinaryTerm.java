@@ -39,6 +39,11 @@ public class ArithmeticBinaryTerm implements Term {
 
   @Override
   public Object getValue(final TermEvaluationContext context) {
+    final Object leftObject = left.getValue(context);
+    final Object rightObject = right.getValue(context);
+    if (leftObject == null || rightObject == null) {
+      return null;
+    }
     return arithmeticBinaryFunction.doFunction(left.getValue(context), right.getValue(context));
   }
 

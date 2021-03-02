@@ -51,4 +51,8 @@ public class CastTerm implements Term {
   public interface CastFunction {
     Object cast(Object object);
   }
+
+  public interface ComparableCastFunction<T extends Comparable<T>> extends CastFunction {
+    T cast(Object object);
+  }
 }

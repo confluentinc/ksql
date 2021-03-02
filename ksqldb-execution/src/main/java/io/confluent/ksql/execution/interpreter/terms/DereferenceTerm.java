@@ -32,7 +32,11 @@ public class DereferenceTerm implements Term {
   }
 
   public Object getValue(final TermEvaluationContext context) {
-    return ((Struct) struct.getValue(context)).get(fieldName);
+    final Struct structObject = ((Struct) struct.getValue(context));
+    if (structObject == null) {
+      return null;
+    }
+    return structObject.get(fieldName);
   }
 
   @Override

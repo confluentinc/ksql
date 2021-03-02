@@ -255,7 +255,7 @@ public class ApplyMigrationCommandTest {
     // Given:
     command = PARSER.parse("-n");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
-    new File(migrationsDir + "/foo.sql").createNewFile();
+    assertThat(new File(migrationsDir + "/foo.sql").createNewFile(), is(true));
     when(versionQueryResult.get()).thenReturn(ImmutableList.of(createVersionRow("1")));
     when(infoQueryResult.get()).thenReturn(ImmutableList.of(createInfoRow(1, NAME, MigrationState.MIGRATED)));
 
@@ -274,7 +274,7 @@ public class ApplyMigrationCommandTest {
       final String content
   ) throws IOException {
     final String filePath = getMigrationFilePath(version, name, migrationsDir);
-    new File(filePath).createNewFile();
+    assertThat(new File(filePath).createNewFile(), is(true));
     PrintWriter out = new PrintWriter(filePath, Charset.defaultCharset().name());
     out.println(content);
     out.close();

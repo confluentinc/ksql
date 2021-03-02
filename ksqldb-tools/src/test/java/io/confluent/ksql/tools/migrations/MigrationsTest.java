@@ -277,7 +277,7 @@ public class MigrationsTest {
   ) throws IOException {
     final String filePath = migrationsDir
         + String.format("/V00000%d__%s.sql", version, name.replace(' ', '_'));
-    new File(filePath).createNewFile();
+    assertThat(new File(filePath).createNewFile(), is(true));
     PrintWriter out = new PrintWriter(filePath, Charset.defaultCharset().name());
     out.println(content);
     out.close();

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.tools.migrations.util;
 
+import io.confluent.ksql.tools.migrations.Migration;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import java.io.File;
 import java.io.IOException;
@@ -27,6 +28,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
@@ -75,18 +78,12 @@ public final class MigrationsDirectoryUtil {
     }
   }
 
-  public static String getFileContentsForVersion(final String version, final String migrationsDir) {
-    final Optional<String> filename = getFilePathForVersion(version, migrationsDir);
-    if (!filename.isPresent()) {
-      throw new MigrationException("Cannot find migration file with version "
-          + version + " in " + migrationsDir);
-    }
-    final String filepath = migrationsDir + "/" + filename.get();
+  public static String getFileContentsForName(final String filename) {
     try {
-      return new String(Files.readAllBytes(Paths.get(filepath)), StandardCharsets.UTF_8);
+      return new String(Files.readAllBytes(Paths.get(filename)), StandardCharsets.UTF_8);
     } catch (IOException e) {
       throw new MigrationException(
-          String.format("Failed to read %s: %s", filepath, e.getMessage()));
+          String.format("Failed to read %s: %s", filename, e.getMessage()));
     }
   }
 
@@ -98,5 +95,46 @@ public final class MigrationsDirectoryUtil {
       throw new MigrationException(String.format(
           "Could not compute hash for file '%s': %s", filename, e.getMessage()));
     }
+  }
+
+  public static String getNameFromMigrationFilePath(final String filename) {
+    return filename
+        .substring(filename.indexOf("__") + 2, filename.indexOf(".sql"))
+        .replace('_', ' ');
+  }
+
+  public static int getVersionFromMigrationFilePath(final String filename) {
+    final Matcher matcher = Pattern.compile("V([0-9]{6})__.*\\.sql").matcher(filename);
+    if (matcher.find()) {
+      final int version = Integer.parseInt(matcher.group(1));
+      if (version > 0) {
+        return version;
+      } else {
+        throw new MigrationException("Version number must be positive - found " + filename);
+      }
+    } else {
+      throw new MigrationException(
+          "File path does not match expected pattern V<six digit number>__<name>.sql: " + filename);
+    }
+  }
+
+  public static List<Migration> getAllMigrations(final String migrationsDir) {
+    final File directory = new File(migrationsDir);
+    if (!directory.isDirectory()) {
+      throw new MigrationException(migrationsDir + " is not a directory.");
+    }
+
+    final String[] names = directory.list();
+    if (names == null) {
+      throw new MigrationException("Failed to retrieve files from " + migrationsDir);
+    }
+
+    return Arrays.stream(names)
+        .sorted()
+        .map(name -> new Migration(
+            getVersionFromMigrationFilePath(name),
+            getNameFromMigrationFilePath(name),
+            migrationsDir + "/" + name))
+        .collect(Collectors.toList());
   }
 }

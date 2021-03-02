@@ -88,28 +88,32 @@ public class ValidateMigrationsCommand extends BaseCommand {
       return 1;
     }
 
-    final boolean success;
+    if (!validateMetadataInitialized(ksqlClient, config)) {
+      ksqlClient.close();
+      return 1;
+    }
+
+    boolean success;
     try {
       success = validate(config, migrationsDir, ksqlClient);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
-      return 1;
+      success = false;
+    } finally {
+      ksqlClient.close();
     }
 
     if (success) {
       LOGGER.info("Successfully validated checksums for migrations that have already been applied");
-      ksqlClient.close();
+      return 0;
     } else {
-      ksqlClient.close();
       return 1;
     }
-
-    return 0;
   }
 
   @Override
   protected Logger getLogger() {
-    return null;
+    return LOGGER;
   }
 
   /**

@@ -15,9 +15,22 @@
 
 package io.confluent.ksql.tools.migrations.commands;
 
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
+import static io.confluent.ksql.tools.migrations.util.ServerVersionUtil.getServerInfo;
+import static io.confluent.ksql.tools.migrations.util.ServerVersionUtil.versionSupportsMultiKeyPullQuery;
+
 import com.github.rvesse.airline.annotations.Command;
+import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.api.client.Client;
+import io.confluent.ksql.api.client.ServerInfo;
+import io.confluent.ksql.tools.migrations.MigrationConfig;
+import io.confluent.ksql.tools.migrations.MigrationException;
+import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
+import io.confluent.ksql.util.KsqlException;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 @Command(
     name = "info",
@@ -29,12 +42,59 @@ public class MigrationInfoCommand extends BaseCommand {
 
   @Override
   protected int command() {
-    throw new UnsupportedOperationException();
+    if (!validateConfigFilePresent()) {
+      return 1;
+    }
+
+    final MigrationConfig config;
+    try {
+      config = MigrationConfig.load(configFile);
+    } catch (KsqlException | MigrationException e) {
+      LOGGER.error(e.getMessage());
+      return 1;
+    }
+
+    return command(
+        config,
+        MigrationsUtil::getKsqlClient,
+        getMigrationsDirFromConfigFile(configFile)
+    );
+  }
+
+  @VisibleForTesting
+  int command(
+      final MigrationConfig config,
+      final Function<MigrationConfig, Client> clientSupplier,
+      final String migrationsDir
+  ) {
+    final Client ksqlClient;
+    try {
+      ksqlClient = clientSupplier.apply(config);
+    } catch (MigrationException e) {
+      LOGGER.error(e.getMessage());
+      return 1;
+    }
+
+    if (!validateMetadataInitialized(ksqlClient, config)) {
+      ksqlClient.close();
+      return 1;
+    }
+
+    throw new NotImplementedException();
   }
 
   @Override
   protected Logger getLogger() {
     return LOGGER;
+  }
+
+  private static boolean serverSupportsMultiKeyPullQuery(
+      final Client ksqlClient,
+      final MigrationConfig config
+  ) {
+    final String ksqlServerUrl = config.getString(MigrationConfig.KSQL_SERVER_URL);
+    final ServerInfo serverInfo = getServerInfo(ksqlClient, ksqlServerUrl);
+    return versionSupportsMultiKeyPullQuery(serverInfo.getServerVersion());
   }
 
 }

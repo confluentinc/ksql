@@ -15,9 +15,15 @@
 
 package io.confluent.ksql.tools.migrations.commands;
 
+import static io.confluent.ksql.tools.migrations.commands.InitializeMigrationCommand.INITIALIZE_COMMAND_NAME;
+
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.OptionType;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.api.client.Client;
+import io.confluent.ksql.tools.migrations.MigrationConfig;
+import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
+import java.util.concurrent.ExecutionException;
 import org.slf4j.Logger;
 
 /**
@@ -71,6 +77,31 @@ public abstract class BaseCommand {
       getLogger().error("Migrations config file required but not specified. "
           + "Specify with {} (or, equivalently, {}).",
           CONFIG_FILE_OPTION, CONFIG_FILE_OPTION_SHORT);
+      return false;
+    }
+    return true;
+  }
+
+  protected boolean validateMetadataInitialized(
+      final Client ksqlClient,
+      final MigrationConfig config
+  ) {
+    final String streamName = config.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME);
+    final String tableName = config.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
+    return describeSource(ksqlClient, streamName, "stream")
+        && describeSource(ksqlClient, tableName, "table");
+  }
+
+  private boolean describeSource(
+      final Client ksqlClient,
+      final String sourceName,
+      final String type) {
+    try {
+      ksqlClient.describeSource(sourceName).get();
+    } catch (InterruptedException | ExecutionException e) {
+      getLogger().error(String.format("Failed to verify existence of migrations metadata %s '%s'. "
+          + "Did you run `%s %s`? Error message: %s", type, sourceName,
+          MigrationsUtil.MIGRATIONS_COMMAND, INITIALIZE_COMMAND_NAME, e.getMessage()));
       return false;
     }
     return true;

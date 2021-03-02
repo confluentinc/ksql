@@ -105,6 +105,11 @@ public class ApplyMigrationCommand extends BaseCommand {
       final String migrationsDir,
       final Clock clock
   ) {
+    if (version < 0) {
+      LOGGER.error("Optional migration version must be positive. Got: {}", version);
+      return 1;
+    }
+
     final Client ksqlClient;
     try {
       ksqlClient = clientSupplier.apply(config);
@@ -113,14 +118,23 @@ public class ApplyMigrationCommand extends BaseCommand {
       return 1;
     }
 
-    if (ValidateMigrationsCommand.validate(config, migrationsDir, ksqlClient)
-        && apply(config, ksqlClient, migrationsDir, clock)) {
-      ksqlClient.close();
-      return 0;
-    } else {
+    if (!validateMetadataInitialized(ksqlClient, config)) {
       ksqlClient.close();
       return 1;
     }
+
+    boolean success;
+    try {
+      success = ValidateMigrationsCommand.validate(config, migrationsDir, ksqlClient)
+          && apply(config, ksqlClient, migrationsDir, clock);
+    } catch (MigrationException e) {
+      LOGGER.error(e.getMessage());
+      success = false;
+    } finally {
+      ksqlClient.close();
+    }
+
+    return success ? 0 : 1;
   }
 
   private boolean apply(
@@ -133,9 +147,6 @@ public class ApplyMigrationCommand extends BaseCommand {
     final int minimumVersion = previous.equals(MetadataUtil.NONE_VERSION)
         ? 1
         : Integer.parseInt(previous) + 1;
-    if (minimumVersion <= 0) {
-      LOGGER.error("Invalid migration version found: " + minimumVersion);
-    }
 
     LOGGER.info("Loading migration files");
     final List<Migration> migrations;

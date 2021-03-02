@@ -106,6 +106,31 @@ Takes as argument an array of columns and outputs all possible combinations of t
 It produces `2^d` new rows where `d` is the number of columns given as parameter.
 Duplicate entries for columns with null value are skipped.
 
+For example, given the following input records:
+
+```sql
+{"topic": "test_topic", "key": "0", "value": {"col1": 1, "col2": 2}}
+{"topic": "test_topic", "key": "1", "value": {"col1": 1, "col2": null}}
+```
+
+And the following stream: 
+
+```sql
+CREATE STREAM TEST (col1 INT, col2 INT) WITH (kafka_topic='test_topic', value_format='JSON');
+CREATE STREAM OUTPUT AS SELECT cube_explode(array[col1, col2]) VAL FROM TEST;
+```
+
+The `cube_explode` function produces the following output:
+
+```sql
+{"topic": "OUTPUT", "key": "0", "value": {"VAL": [null, null]}}
+{"topic": "OUTPUT", "key": "0", "value": {"VAL": [null, 2]}}
+{"topic": "OUTPUT", "key": "0", "value": {"VAL": [1, null]}}
+{"topic": "OUTPUT", "key": "0", "value": {"VAL": [1, 2]}}
+{"topic": "OUTPUT", "key": "1", "value": {"VAL": [null, null]}}
+{"topic": "OUTPUT", "key": "1", "value": {"VAL": [1, null]}}
+```
+
 ### `EXPLODE`
 
 Since: 0.6.0

@@ -150,12 +150,10 @@ public final class MetadataUtil {
     final String migrationTableName = config
         .getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
     final BatchedQueryResult result = ksqlClient.executeQuery(
-        "SELECT checksum, previous, state FROM " + migrationTableName
-            + " WHERE version_key = '" + version + "';");
+        "SELECT checksum, previous, state, name, started_on, completed_on, error_reason FROM "
+            + migrationTableName + " WHERE version_key = '" + version + "';");
 
-    final String expectedHash;
-    final String prevVersion;
-    final String state;
+    final Row resultRow;
     try {
       final List<Row> resultRows = result.get();
       if (resultRows.size() == 0) {
@@ -163,14 +161,20 @@ public final class MetadataUtil {
             "Failed to query state for migration with version " + version
                 + ": no such migration is present in the migrations metadata table");
       }
-      expectedHash = resultRows.get(0).getString(1);
-      prevVersion = resultRows.get(0).getString(2);
-      state = resultRows.get(0).getString(3);
+      resultRow = resultRows.get(0);
     } catch (InterruptedException | ExecutionException e) {
       throw new MigrationException(String.format(
           "Failed to query state for migration with version %s: %s", version, e.getMessage()));
     }
 
-    return new MigrationVersionInfo(expectedHash, prevVersion, state);
+    return new MigrationVersionInfo(
+        resultRow.getString(1),
+        resultRow.getString(2),
+        resultRow.getString(3),
+        resultRow.getString(4),
+        resultRow.getString(5),
+        resultRow.getString(6),
+        resultRow.getString(7)
+    );
   }
 }

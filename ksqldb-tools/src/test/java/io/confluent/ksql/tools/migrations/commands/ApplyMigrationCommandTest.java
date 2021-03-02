@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.github.rvesse.airline.SingleCommand;
@@ -105,7 +106,9 @@ public class ApplyMigrationCommandTest {
     when(ksqlClient.executeStatement(any())).thenReturn(statementResultCf);
     when(ksqlClient.executeQuery("SELECT VERSION FROM " + MIGRATIONS_TABLE + " WHERE version_key = 'CURRENT';"))
         .thenReturn(versionQueryResult);
-    when(ksqlClient.executeQuery("SELECT checksum, previous, state FROM " + MIGRATIONS_TABLE + " WHERE version_key = '1';"))
+    when(ksqlClient.executeQuery(
+        "SELECT checksum, previous, state, name, started_on, completed_on, error_reason FROM "
+            + MIGRATIONS_TABLE + " WHERE version_key = '1';"))
         .thenReturn(infoQueryResult);
     when(ksqlClient.describeSource(MIGRATIONS_STREAM)).thenReturn(sourceDescriptionCf);
     when(ksqlClient.describeSource(MIGRATIONS_TABLE)).thenReturn(sourceDescriptionCf);
@@ -142,8 +145,8 @@ public class ApplyMigrationCommandTest {
     command = PARSER.parse("-n");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
     createMigrationFile(3, NAME, migrationsDir, COMMAND);
-    when(versionQueryResult.get()).thenReturn(ImmutableList.of(createVersionRow("1")));
-    when(infoQueryResult.get()).thenReturn(ImmutableList.of(createInfoRow(1, NAME, MigrationState.MIGRATED)));
+    givenCurrentMigrationVersion("1");
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
     final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
@@ -164,7 +167,7 @@ public class ApplyMigrationCommandTest {
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
     createMigrationFile(2, NAME, migrationsDir, COMMAND);
     when(versionQueryResult.get()).thenReturn(ImmutableList.of());
-    when(infoQueryResult.get()).thenReturn(ImmutableList.of(createInfoRow(1, NAME, MigrationState.MIGRATED)));
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
     final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
@@ -188,7 +191,7 @@ public class ApplyMigrationCommandTest {
     // extra migration to ensure only the first two are applied
     createMigrationFile(3, NAME, migrationsDir, COMMAND);
     when(versionQueryResult.get()).thenReturn(ImmutableList.of());
-    when(infoQueryResult.get()).thenReturn(ImmutableList.of(createInfoRow(1, NAME, MigrationState.MIGRATED)));
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
     final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
@@ -209,8 +212,8 @@ public class ApplyMigrationCommandTest {
     command = PARSER.parse("-v", "3");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
     createMigrationFile(3, NAME, migrationsDir, COMMAND);
-    when(versionQueryResult.get()).thenReturn(ImmutableList.of(createVersionRow("1")));
-    when(infoQueryResult.get()).thenReturn(ImmutableList.of(createInfoRow(1, NAME, MigrationState.MIGRATED)));
+    givenCurrentMigrationVersion("1");
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
     final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
@@ -231,7 +234,7 @@ public class ApplyMigrationCommandTest {
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
     createMigrationFile(2, NAME, migrationsDir, COMMAND);
     when(versionQueryResult.get()).thenReturn(ImmutableList.of());
-    when(infoQueryResult.get()).thenReturn(ImmutableList.of(createInfoRow(1, NAME, MigrationState.RUNNING)));
+    givenAppliedMigration(1, NAME, MigrationState.RUNNING);
 
     // When:
     final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
@@ -273,8 +276,8 @@ public class ApplyMigrationCommandTest {
     command = PARSER.parse("-n");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
     createMigrationFile(1, "anotherone", migrationsDir, COMMAND);
-    when(versionQueryResult.get()).thenReturn(ImmutableList.of(createVersionRow("1")));
-    when(infoQueryResult.get()).thenReturn(ImmutableList.of(createInfoRow(1, NAME, MigrationState.MIGRATED)));
+    givenCurrentMigrationVersion("1");
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
     final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
@@ -380,24 +383,30 @@ public class ApplyMigrationCommandTest {
     return KsqlObject.fromArray(KEYS, new KsqlArray(values));
   }
 
-  private Row createVersionRow(final String version) {
-    return new RowImpl(
-        ImmutableList.of("VERSION"),
-        RowUtil.columnTypesFromStrings(ImmutableList.of("STRING")),
-        new JsonArray(ImmutableList.of(version)),
-        ImmutableMap.of("VERSION", 1)
-    );
+  private void givenCurrentMigrationVersion(final String version) throws Exception {
+    final Row row = mock(Row.class);
+    when(row.getString("VERSION")).thenReturn(version);
+    when(versionQueryResult.get()).thenReturn(ImmutableList.of(row));
   }
 
-  private Row createInfoRow(final int version, final String name, final MigrationState state) {
+  private void givenAppliedMigration(
+      final int version,
+      final String name,
+      final MigrationState state
+  ) throws Exception {
     final String checksum = MigrationsDirectoryUtil.computeHashForFile(getMigrationFilePath(version, name, migrationsDir));
     final String previous = version == 1 ? MetadataUtil.NONE_VERSION : Integer.toString(version - 1);
-    return new RowImpl(
-        ImmutableList.of("CHECKSUM", "PREVIOUS", "STATE"),
-        RowUtil.columnTypesFromStrings(ImmutableList.of("STRING", "STRING", "STRING")),
-        new JsonArray(ImmutableList.of(checksum, previous, state.toString())),
-        ImmutableMap.of("CHECKSUM", 1, "PREVIOUS", 2, "STATE", 3)
-    );
+
+    final Row row = mock(Row.class);
+    when(row.getString(1)).thenReturn(checksum);
+    when(row.getString(2)).thenReturn(previous);
+    when(row.getString(3)).thenReturn(state.toString());
+    when(row.getString(4)).thenReturn("name");
+    when(row.getString(5)).thenReturn("start_timestamp");
+    when(row.getString(6)).thenReturn("stop_timestamp");
+    when(row.getString(7)).thenReturn("no_error");
+
+    when(infoQueryResult.get()).thenReturn(ImmutableList.of(row));
   }
 
   private void verifyMigratedVersion(

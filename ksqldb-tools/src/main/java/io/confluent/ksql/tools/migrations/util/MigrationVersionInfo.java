@@ -23,15 +23,27 @@ public class MigrationVersionInfo {
   private final String expectedHash;
   private final String prevVersion;
   private final MigrationState state;
+  private final String name;
+  private final String startedOn;
+  private final String completedOn;
+  private final String errorReason;
 
   public MigrationVersionInfo(
       final String expectedHash,
       final String prevVersion,
-      final String state
+      final String state,
+      final String name,
+      final String startedOn,
+      final String completedOn,
+      final String errorReason
   ) {
     this.expectedHash = Objects.requireNonNull(expectedHash, "expectedHash");
     this.prevVersion = Objects.requireNonNull(prevVersion, "prevVersion");
     this.state = MigrationState.valueOf(Objects.requireNonNull(state, "state"));
+    this.name = Objects.requireNonNull(name, "name");
+    this.startedOn = Objects.requireNonNull(startedOn, "startedOn");
+    this.completedOn = Objects.requireNonNull(completedOn, "completedOn");
+    this.errorReason = Objects.requireNonNull(errorReason, "errorReason");
   }
 
   public String getExpectedHash() {
@@ -44,6 +56,22 @@ public class MigrationVersionInfo {
 
   public MigrationState getState() {
     return state;
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public String getStartedOn() {
+    return startedOn;
+  }
+
+  public String getCompletedOn() {
+    return completedOn;
+  }
+
+  public String getErrorReason() {
+    return errorReason;
   }
 
 }

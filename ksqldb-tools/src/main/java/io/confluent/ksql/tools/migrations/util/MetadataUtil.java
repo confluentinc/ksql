@@ -73,7 +73,7 @@ public final class MetadataUtil {
       final String state,
       final String startOn,
       final String completedOn,
-      final Migration migration,
+      final MigrationFile migration,
       final String previous,
       final String checksum,
       final Optional<String> errorReason

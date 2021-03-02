@@ -94,7 +94,7 @@ public class MigrationsTest {
 
   @Test
   public void testApply() throws IOException {
-    // Migration file
+    // MigrationFile file
     createMigrationFile(
         1,
         "foo FOO fO0",

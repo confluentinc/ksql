@@ -28,7 +28,7 @@ import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
-import io.confluent.ksql.tools.migrations.util.Migration;
+import io.confluent.ksql.tools.migrations.util.MigrationFile;
 import io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import io.confluent.ksql.util.KsqlException;
@@ -165,7 +165,7 @@ public class ApplyMigrationCommand extends BaseCommand {
         : Integer.parseInt(previous) + 1;
 
     LOGGER.info("Loading migration files");
-    final List<Migration> migrations;
+    final List<MigrationFile> migrations;
     try {
       migrations = loadMigrationsToApply(migrationsDir, minimumVersion);
     } catch (MigrationException e) {
@@ -179,7 +179,7 @@ public class ApplyMigrationCommand extends BaseCommand {
       LOGGER.info(migrations.size() + " migration file(s) loaded.");
     }
 
-    for (Migration migration : migrations) {
+    for (MigrationFile migration : migrations) {
       if (!applyMigration(config, ksqlClient, migration, clock, previous)) {
         return false;
       }
@@ -189,12 +189,12 @@ public class ApplyMigrationCommand extends BaseCommand {
     return true;
   }
 
-  private List<Migration> loadMigrationsToApply(
+  private List<MigrationFile> loadMigrationsToApply(
       final String migrationsDir,
       final int minimumVersion
   ) {
     if (version > 0) {
-      final Optional<Migration> migration =
+      final Optional<MigrationFile> migration =
           getMigrationForVersion(String.valueOf(version), migrationsDir);
       if (!migration.isPresent()) {
         throw new MigrationException("No migration file with version " + version + " exists.");
@@ -202,7 +202,7 @@ public class ApplyMigrationCommand extends BaseCommand {
       return Collections.singletonList(migration.get());
     }
 
-    final List<Migration> migrations = getAllMigrations(migrationsDir).stream()
+    final List<MigrationFile> migrations = getAllMigrations(migrationsDir).stream()
         .filter(migration -> {
           if (migration.getVersion() < minimumVersion) {
             return false;
@@ -228,14 +228,14 @@ public class ApplyMigrationCommand extends BaseCommand {
   private boolean applyMigration(
       final MigrationConfig config,
       final Client ksqlClient,
-      final Migration migration,
+      final MigrationFile migration,
       final Clock clock,
       final String previous
   ) {
     LOGGER.info("Applying migration version {}: {}", migration.getVersion(), migration.getName());
     final String migrationFileContent =
         MigrationsDirectoryUtil.getFileContentsForName(migration.getFilepath());
-    LOGGER.info("Migration file contents:\n{}", migrationFileContent);
+    LOGGER.info("MigrationFile file contents:\n{}", migrationFileContent);
 
     if (dryRun) {
       LOGGER.info("Dry run complete. No migrations were actually applied.");
@@ -316,7 +316,7 @@ public class ApplyMigrationCommand extends BaseCommand {
       final Client ksqlClient,
       final MigrationState state,
       final String executionStart,
-      final Migration migration,
+      final MigrationFile migration,
       final Clock clock,
       final String previous,
       final Optional<String> errorReason

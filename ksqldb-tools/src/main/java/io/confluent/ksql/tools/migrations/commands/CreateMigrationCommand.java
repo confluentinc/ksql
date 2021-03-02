@@ -27,7 +27,7 @@ import com.github.rvesse.airline.annotations.help.Examples;
 import com.github.rvesse.airline.annotations.restrictions.Required;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.tools.migrations.MigrationException;
-import io.confluent.ksql.tools.migrations.util.Migration;
+import io.confluent.ksql.tools.migrations.util.MigrationFile;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -104,7 +104,7 @@ public class CreateMigrationCommand extends BaseCommand {
       return true;
     }
 
-    final Optional<Migration> existingMigration;
+    final Optional<MigrationFile> existingMigration;
     try {
       existingMigration = getMigrationForVersion(String.valueOf(version), migrationsDir);
     } catch (MigrationException e) {

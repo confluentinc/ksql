@@ -59,7 +59,7 @@ public final class MigrationsDirectoryUtil {
     return "V" + StringUtils.leftPad(version, 6, "0");
   }
 
-  public static Optional<Migration> getMigrationForVersion(
+  public static Optional<MigrationFile> getMigrationForVersion(
       final String version,
       final String migrationsDir
   ) {
@@ -75,7 +75,7 @@ public final class MigrationsDirectoryUtil {
       throw new MigrationException("Failed to retrieve files from " + migrationsDir);
     }
 
-    final List<Migration> matches = Arrays.stream(names)
+    final List<MigrationFile> matches = Arrays.stream(names)
         .filter(name -> name.startsWith(prefix))
         .map(name -> getMigrationFromFilename(migrationsDir, name))
         .filter(Optional::isPresent)
@@ -111,14 +111,14 @@ public final class MigrationsDirectoryUtil {
    */
   public static List<Integer> getAllVersions(final String migrationsDir) {
     return getAllMigrations(migrationsDir).stream()
-        .map(Migration::getVersion)
+        .map(MigrationFile::getVersion)
         .collect(Collectors.toList());
   }
 
   /**
    * @return all migration files in sorted order
    */
-  public static List<Migration> getAllMigrations(final String migrationsDir) {
+  public static List<MigrationFile> getAllMigrations(final String migrationsDir) {
     final File directory = new File(migrationsDir);
     if (!directory.isDirectory()) {
       throw new MigrationException(migrationsDir + " is not a directory.");
@@ -139,7 +139,7 @@ public final class MigrationsDirectoryUtil {
         .filter(name -> !new File(name).isDirectory())
         .collect(Collectors.toList());
 
-    final List<Migration> migrations = filenames.stream()
+    final List<MigrationFile> migrations = filenames.stream()
         .map(name -> getMigrationFromFilename(migrationsDir, name))
         .filter(Optional::isPresent)
         .map(Optional::get)
@@ -150,7 +150,7 @@ public final class MigrationsDirectoryUtil {
     return migrations;
   }
 
-  private static Optional<Migration> getMigrationFromFilename(
+  private static Optional<MigrationFile> getMigrationFromFilename(
       final String migrationsDir,
       final String filename
   ) {
@@ -164,24 +164,24 @@ public final class MigrationsDirectoryUtil {
     final int version = Integer.parseInt(matcher.group(1));
     if (version <= 0) {
       throw new MigrationException(
-          "Migration file versions must be positive. Found: " + filename);
+          "MigrationFile file versions must be positive. Found: " + filename);
     }
 
     final String description = matcher.group(2).replace('_', ' ');
 
-    return Optional.of(new Migration(
+    return Optional.of(new MigrationFile(
         version,
         description,
         Paths.get(migrationsDir, filename).toString()
     ));
   }
 
-  private static void validateMigrationVersionsUnique(final List<Migration> migrations) {
+  private static void validateMigrationVersionsUnique(final List<MigrationFile> migrations) {
     if (migrations.size() == 0) {
       return;
     }
 
-    Migration previous = migrations.get(0);
+    MigrationFile previous = migrations.get(0);
     for (int i = 1; i < migrations.size(); i++) {
       if (migrations.get(i).getVersion() == previous.getVersion()) {
         throw new MigrationException(String.format(

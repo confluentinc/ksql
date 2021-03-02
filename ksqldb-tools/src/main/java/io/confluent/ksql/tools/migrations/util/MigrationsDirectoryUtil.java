@@ -130,6 +130,7 @@ public final class MigrationsDirectoryUtil {
     }
 
     return Arrays.stream(names)
+        .sorted()
         .map(name -> new Migration(
             getVersionFromMigrationFilePath(name),
             getNameFromMigrationFilePath(name),

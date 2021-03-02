@@ -251,26 +251,31 @@ public class ApplyMigrationCommand extends BaseCommand {
 
     if (
         !updateState(config, ksqlClient, MigrationState.RUNNING,
-            executionStart, migration, clock, previous)
+            executionStart, migration, clock, previous, Optional.empty())
     ) {
       return false;
     }
 
-    try {
-      final List<String> commands = Arrays.stream(migrationFileContent.split(";"))
-          .filter(s -> s.length() > 1)
-          .collect(Collectors.toList());
-      for (final String command : commands) {
-        ksqlClient.executeStatement(command + ";").get();
+    final List<String> commands = Arrays.stream(migrationFileContent.split(";"))
+        .map(String::trim)
+        .filter(s -> !s.isEmpty())
+        .map(s -> s + ";")
+        .collect(Collectors.toList());
+    for (final String command : commands) {
+      try {
+        ksqlClient.executeStatement(command).get();
+      } catch (InterruptedException | ExecutionException e) {
+        final String errorMsg = String.format(
+            "Failed to execute sql: %s. Error: %s", command, e.getMessage());
+        LOGGER.error(errorMsg);
+        updateState(config, ksqlClient, MigrationState.ERROR,
+            executionStart, migration, clock, previous, Optional.of(errorMsg));
+        return false;
       }
-    } catch (InterruptedException | ExecutionException e) {
-      LOGGER.error(e.getMessage());
-      updateState(config, ksqlClient, MigrationState.ERROR,
-          executionStart, migration, clock, previous);
-      return false;
     }
+
     updateState(config, ksqlClient, MigrationState.MIGRATED,
-        executionStart, migration, clock, previous);
+        executionStart, migration, clock, previous, Optional.empty());
     LOGGER.info("Successfully migrated");
     return true;
   }
@@ -313,7 +318,8 @@ public class ApplyMigrationCommand extends BaseCommand {
       final String executionStart,
       final Migration migration,
       final Clock clock,
-      final String previous
+      final String previous,
+      final Optional<String> errorReason
   ) {
     final String executionEnd = (state == MigrationState.MIGRATED || state == MigrationState.ERROR)
         ? Long.toString(clock.millis())
@@ -329,7 +335,8 @@ public class ApplyMigrationCommand extends BaseCommand {
           executionEnd,
           migration,
           previous,
-          checksum
+          checksum,
+          errorReason
       ).get();
       MetadataUtil.writeRow(
           config,
@@ -340,7 +347,8 @@ public class ApplyMigrationCommand extends BaseCommand {
           executionEnd,
           migration,
           previous,
-          checksum
+          checksum,
+          errorReason
       ).get();
       return true;
     } catch (InterruptedException | ExecutionException e) {

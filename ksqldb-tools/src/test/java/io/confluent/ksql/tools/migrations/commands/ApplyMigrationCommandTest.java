@@ -46,6 +46,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.junit.Before;
@@ -250,7 +251,7 @@ public class ApplyMigrationCommandTest {
     command = PARSER.parse("-n");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
     when(versionQueryResult.get()).thenReturn(ImmutableList.of());
-    when(statementResultCf.get()).thenThrow(new InterruptedException());
+    when(statementResultCf.get()).thenThrow(new ExecutionException("sql rejected", new RuntimeException()));
 
     // When:
     final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
@@ -259,7 +260,9 @@ public class ApplyMigrationCommandTest {
     // Then:
     assertThat(result, is(1));
     final InOrder inOrder = inOrder(ksqlClient);
-    verifyMigratedVersion(inOrder, 1, "<none>", MigrationState.ERROR);
+    verifyMigratedVersion(
+        inOrder, 1, "<none>", MigrationState.ERROR,
+        Optional.of("Failed to execute sql: " + COMMAND + ". Error: sql rejected"));
     inOrder.verify(ksqlClient).close();
     inOrder.verifyNoMoreInteractions();
   }
@@ -354,11 +357,12 @@ public class ApplyMigrationCommandTest {
       final MigrationState state,
       final String startOn,
       final String completedOn,
-      final String previous
+      final String previous,
+      final Optional<String> errorReason
   ) {
     final List<String> KEYS = ImmutableList.of(
         "VERSION_KEY", "VERSION", "NAME", "STATE",
-        "CHECKSUM", "STARTED_ON", "COMPLETED_ON", "PREVIOUS"
+        "CHECKSUM", "STARTED_ON", "COMPLETED_ON", "PREVIOUS", "ERROR_REASON"
     );
 
     final List<String> values = ImmutableList.of(
@@ -369,7 +373,8 @@ public class ApplyMigrationCommandTest {
         MigrationsDirectoryUtil.computeHashForFile(getMigrationFilePath(version, name, migrationsDir)),
         startOn,
         completedOn,
-        previous
+        previous,
+        errorReason.orElse("N/A")
     );
 
     return KsqlObject.fromArray(KEYS, new KsqlArray(values));
@@ -395,23 +400,42 @@ public class ApplyMigrationCommandTest {
     );
   }
 
-  private void verifyMigratedVersion(final InOrder inOrder, final int version, final String previous, final MigrationState finalState) {
+  private void verifyMigratedVersion(
+      final InOrder inOrder,
+      final int version,
+      final String previous,
+      final MigrationState finalState
+  ) {
+    verifyMigratedVersion(inOrder, version, previous, finalState, Optional.empty());
+  }
+
+  private void verifyMigratedVersion(
+      final InOrder inOrder,
+      final int version,
+      final String previous,
+      final MigrationState finalState,
+      final Optional<String> errorReason
+  ) {
     inOrder.verify(ksqlClient).insertInto(
         MIGRATIONS_STREAM,
-        createKsqlObject(MetadataUtil.CURRENT_VERSION_KEY, version, NAME, MigrationState.RUNNING, "1000", "", previous)
+        createKsqlObject(MetadataUtil.CURRENT_VERSION_KEY, version, NAME, MigrationState.RUNNING,
+            "1000", "", previous, Optional.empty())
     );
     inOrder.verify(ksqlClient).insertInto(
         MIGRATIONS_STREAM,
-        createKsqlObject(Integer.toString(version), version, NAME, MigrationState.RUNNING, "1000", "", previous)
+        createKsqlObject(Integer.toString(version), version, NAME, MigrationState.RUNNING,
+            "1000", "", previous, Optional.empty())
     );
     inOrder.verify(ksqlClient).executeStatement(COMMAND);
     inOrder.verify(ksqlClient).insertInto(
         MIGRATIONS_STREAM,
-        createKsqlObject(MetadataUtil.CURRENT_VERSION_KEY, version, NAME, finalState, "1000", "1000", previous)
+        createKsqlObject(MetadataUtil.CURRENT_VERSION_KEY, version, NAME, finalState,
+            "1000", "1000", previous, errorReason)
     );
     inOrder.verify(ksqlClient).insertInto(
         MIGRATIONS_STREAM,
-        createKsqlObject(Integer.toString(version), version, NAME, finalState, "1000", "1000", previous)
+        createKsqlObject(Integer.toString(version), version, NAME, finalState,
+            "1000", "1000", previous, errorReason)
     );
   }
 }

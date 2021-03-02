@@ -26,6 +26,7 @@ import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -35,8 +36,9 @@ public final class MetadataUtil {
   public static final String CURRENT_VERSION_KEY = "CURRENT";
   private static final List<String> KEYS = ImmutableList.of(
       "VERSION_KEY", "VERSION", "NAME", "STATE",
-      "CHECKSUM", "STARTED_ON", "COMPLETED_ON", "PREVIOUS"
+      "CHECKSUM", "STARTED_ON", "COMPLETED_ON", "PREVIOUS", "ERROR_REASON"
   );
+  private static final String EMPTY_ERROR_REASON = "N/A";
 
   public enum MigrationState {
     PENDING,
@@ -74,7 +76,8 @@ public final class MetadataUtil {
       final String completedOn,
       final Migration migration,
       final String previous,
-      final String checksum
+      final String checksum,
+      final Optional<String> errorReason
   ) {
     final String migrationStreamName =
         config.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME);
@@ -86,7 +89,8 @@ public final class MetadataUtil {
         checksum,
         startOn,
         completedOn,
-        previous
+        previous,
+        errorReason.orElse(EMPTY_ERROR_REASON)
     );
     return client.insertInto(
         migrationStreamName,

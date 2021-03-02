@@ -193,7 +193,8 @@ public class MigrationsTest {
         fieldInfo("CHECKSUM", "STRING", false),
         fieldInfo("STARTED_ON", "STRING", false),
         fieldInfo("COMPLETED_ON", "STRING", false),
-        fieldInfo("PREVIOUS", "STRING", false)
+        fieldInfo("PREVIOUS", "STRING", false),
+        fieldInfo("ERROR_REASON", "STRING", false)
     ));
 
     // verify metadata table
@@ -212,7 +213,8 @@ public class MigrationsTest {
         fieldInfo("CHECKSUM", "STRING", false),
         fieldInfo("STARTED_ON", "STRING", false),
         fieldInfo("COMPLETED_ON", "STRING", false),
-        fieldInfo("PREVIOUS", "STRING", false)
+        fieldInfo("PREVIOUS", "STRING", false),
+        fieldInfo("ERROR_REASON", "STRING", false)
     ));
   }
 

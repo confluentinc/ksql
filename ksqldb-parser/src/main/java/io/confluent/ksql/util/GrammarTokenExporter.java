@@ -22,7 +22,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import scala.Console;
 
 public final class GrammarTokenExporter {
   private GrammarTokenExporter() {
@@ -30,7 +29,11 @@ public final class GrammarTokenExporter {
 
   public static void main(final String[] args) throws IOException {
     final List<String> tokens = GrammarTokenExporter.getTokens();
-    Console.println("'" + String.join(" ", tokens) + "'");
+    final List<String> tokensWithQuotes = new ArrayList<>();
+    for (String token:tokens) {
+      tokensWithQuotes.add("'" + token + "'");
+    }
+    System.out.println(tokensWithQuotes);
   }
 
   private static final Pattern pattern = Pattern.compile("(T__[0-9]|\\w+_\\w+|UNRECOGNIZED)");

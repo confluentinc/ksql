@@ -17,6 +17,7 @@ package io.confluent.ksql.schema.ksql.types;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.utils.FormatOptions;
@@ -48,7 +49,8 @@ public final class SqlLambdaResolved extends SqlLambda {
     return new SqlLambdaResolved(inputType, returnType);
   }
 
-  public SqlLambdaResolved(
+  @VisibleForTesting
+  SqlLambdaResolved(
       final List<SqlType> inputTypes,
       final SqlType returnType
   ) {

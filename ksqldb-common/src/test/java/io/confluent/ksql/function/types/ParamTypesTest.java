@@ -68,7 +68,7 @@ public class ParamTypesTest {
 
 
     assertThat(ParamTypes.areCompatible(
-        SqlArgument.of(new SqlLambdaResolved(ImmutableList.of(SqlTypes.INTEGER), SqlTypes.INTEGER)),
+        SqlArgument.of(SqlLambdaResolved.of(ImmutableList.of(SqlTypes.INTEGER), SqlTypes.INTEGER)),
         LambdaType.of(ImmutableList.of(ParamTypes.STRING), ParamTypes.STRING),
         false),
         is(false));
@@ -102,7 +102,7 @@ public class ParamTypesTest {
         is(true));
 
     assertThat(ParamTypes.areCompatible(
-        SqlArgument.of(new SqlLambdaResolved(ImmutableList.of(SqlTypes.STRING), SqlTypes.STRING)),
+        SqlArgument.of(SqlLambdaResolved.of(ImmutableList.of(SqlTypes.STRING), SqlTypes.STRING)),
         LambdaType.of(ImmutableList.of(ParamTypes.STRING), ParamTypes.STRING),
         false),
         is(true));
@@ -111,13 +111,13 @@ public class ParamTypesTest {
   @Test
   public void shouldOnlyLookAtInputTypeSizeForCompatibleLambdaTypeAndSqlLambda() {
     assertThat(ParamTypes.areCompatible(
-        SqlArgument.of(new SqlLambda(1)),
+        SqlArgument.of(SqlLambda.of(1)),
         LambdaType.of(ImmutableList.of(ParamTypes.STRING), ParamTypes.STRING),
         false),
         is(true));
 
     assertThat(ParamTypes.areCompatible(
-        SqlArgument.of(new SqlLambda(2)),
+        SqlArgument.of(SqlLambda.of(2)),
         LambdaType.of(ImmutableList.of(ParamTypes.DOUBLE), ParamTypes.STRING),
         false),
         is(false));

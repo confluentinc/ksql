@@ -56,7 +56,7 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.function.UdafUtil;
-import io.confluent.ksql.execution.util.FunctionArgumentsUtil.FunctionArgumentsAndContext;
+import io.confluent.ksql.execution.util.FunctionArgumentsUtil.FunctionTypeInfo;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -138,7 +138,6 @@ public class ExpressionTypeManager {
     public Void visitLambdaExpression(
         final LambdaFunctionCall node, final TypeContext context
     ) {
-      context.mapLambdaInputTypes(node.getArguments());
       process(node.getBody(), context);
       return null;
     }
@@ -471,8 +470,8 @@ public class ExpressionTypeManager {
       }
 
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
-      final FunctionArgumentsAndContext argumentsAndContext = FunctionArgumentsUtil
-          .getLambdaContextAndType(
+      final FunctionTypeInfo argumentsAndContext = FunctionArgumentsUtil
+          .getFunctionTypeInfo(
               ExpressionTypeManager.this, 
               node, 
               udfFactory, 

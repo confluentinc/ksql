@@ -31,7 +31,8 @@ import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.execution.util.FunctionArgumentsUtil;
-import io.confluent.ksql.execution.util.FunctionArgumentsUtil.FunctionArgumentsAndContext;
+import io.confluent.ksql.execution.util.FunctionArgumentsUtil.ArgumentInfo;
+import io.confluent.ksql.execution.util.FunctionArgumentsUtil.FunctionTypeInfo;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
@@ -182,15 +183,18 @@ public class CodeGenRunner {
     @Override
     public Void visitFunctionCall(final FunctionCall node, final TypeContext context) {
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
-      final FunctionArgumentsAndContext argumentsAndContext = FunctionArgumentsUtil
-          .getLambdaContextAndType(
+      final FunctionTypeInfo argumentsAndContext = FunctionArgumentsUtil
+          .getFunctionTypeInfo(
               expressionTypeManager,
               node,
               udfFactory,
               context);
 
       final List<Expression> arguments = node.getArguments();
-      final List<TypeContext> typeContextsForChildren = argumentsAndContext.getContexts();
+      final List<TypeContext> typeContextsForChildren =
+          argumentsAndContext.getArgumentInfos().stream()
+              .map(ArgumentInfo::getContext)
+              .collect(Collectors.toList());
       final KsqlScalarFunction function = argumentsAndContext.getFunction();
 
       spec.addFunction(
@@ -268,7 +272,6 @@ public class CodeGenRunner {
 
     @Override
     public Void visitLambdaExpression(final LambdaFunctionCall node, final TypeContext context) {
-      context.mapLambdaInputTypes(node.getArguments());
       process(node.getBody(), context);
       return null;
     }

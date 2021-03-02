@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.schema.ksql.types;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
@@ -33,7 +34,8 @@ public class SqlLambda {
     return new SqlLambda(numInputs);
   }
 
-  public SqlLambda(
+  @VisibleForTesting
+  SqlLambda(
       final Integer numInputs
   ) {
     this.numInputs = numInputs;

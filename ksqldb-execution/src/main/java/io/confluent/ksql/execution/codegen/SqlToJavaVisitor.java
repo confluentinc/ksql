@@ -76,7 +76,8 @@ import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.util.CoercionUtil;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.execution.util.FunctionArgumentsUtil;
-import io.confluent.ksql.execution.util.FunctionArgumentsUtil.FunctionArgumentsAndContext;
+import io.confluent.ksql.execution.util.FunctionArgumentsUtil.ArgumentInfo;
+import io.confluent.ksql.execution.util.FunctionArgumentsUtil.FunctionTypeInfo;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.GenericsUtil;
 import io.confluent.ksql.function.KsqlScalarFunction;
@@ -90,7 +91,6 @@ import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SqlBooleans;
 import io.confluent.ksql.schema.ksql.SqlDoubles;
 import io.confluent.ksql.schema.ksql.SqlTimestamps;
@@ -368,7 +368,6 @@ public class SqlToJavaVisitor {
     public Pair<String, SqlType> visitLambdaExpression(
         final LambdaFunctionCall lambdaFunctionCall, final TypeContext context) {
 
-      context.mapLambdaInputTypes(lambdaFunctionCall.getArguments());
       final Pair<String, SqlType> lambdaBody = process(lambdaFunctionCall.getBody(), context);
 
       final List<Pair<String, Class<?>>> argPairs = new ArrayList<>();
@@ -451,8 +450,8 @@ public class SqlToJavaVisitor {
       final FunctionName functionName = node.getName();
       final String instanceName = funNameToCodeName.apply(functionName);
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
-      final FunctionArgumentsAndContext argumentsAndContext = FunctionArgumentsUtil
-          .getLambdaContextAndType(
+      final FunctionTypeInfo argumentsAndContext = FunctionArgumentsUtil
+          .getFunctionTypeInfo(
               expressionTypeManager,
               node,
               udfFactory,
@@ -465,8 +464,7 @@ public class SqlToJavaVisitor {
               .getSimpleName();
 
       final List<Expression> arguments = node.getArguments();
-      final List<SqlArgument> argumentSchemas = argumentsAndContext.getArguments();
-      final List<TypeContext> typeContextsForChildren = argumentsAndContext.getContexts();
+      final List<ArgumentInfo> argumentInfos = argumentsAndContext.getArgumentInfos();
       final KsqlScalarFunction function = argumentsAndContext.getFunction();
 
       final StringJoiner joiner = new StringJoiner(", ");
@@ -474,7 +472,8 @@ public class SqlToJavaVisitor {
         final Expression arg = arguments.get(i);
 
         // lambda arguments and null values are considered to have null type
-        final SqlType sqlType = argumentSchemas.get(i).getSqlType().orElse(null);
+        final SqlType sqlType =
+            argumentInfos.get(i).getSqlArgument().getSqlType().orElse(null);
 
         final ParamType paramType;
         if (i >= function.parameters().size() - 1 && function.isVariadic()) {
@@ -484,7 +483,7 @@ public class SqlToJavaVisitor {
         }
 
         joiner.add(
-            process(convertArgument(arg, sqlType, paramType), typeContextsForChildren.get(i))
+            process(convertArgument(arg, sqlType, paramType), argumentInfos.get(i).getContext())
             .getLeft());
       }
 

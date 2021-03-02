@@ -19,6 +19,7 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
+import io.confluent.ksql.tools.migrations.util.ServerVersionUtil;
 import java.io.File;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -103,6 +104,6 @@ public final class MigrationConfig extends AbstractConfig {
       throw new MigrationException("Missing required property: " + MigrationConfig.KSQL_SERVER_URL);
     }
 
-    return MigrationsUtil.getServerInfo(ksqlServerUrl).getKsqlServiceId();
+    return ServerVersionUtil.getServerInfo(ksqlServerUrl).getKsqlServiceId();
   }
 }

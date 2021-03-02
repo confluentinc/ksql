@@ -16,8 +16,8 @@
 package io.confluent.ksql.tools.migrations.commands;
 
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
-import static io.confluent.ksql.tools.migrations.util.MigrationsUtil.getServerInfo;
-import static io.confluent.ksql.tools.migrations.util.MigrationsUtil.versionSupportsMultiKeyPullQuery;
+import static io.confluent.ksql.tools.migrations.util.ServerVersionUtil.getServerInfo;
+import static io.confluent.ksql.tools.migrations.util.ServerVersionUtil.versionSupportsMultiKeyPullQuery;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.google.common.annotations.VisibleForTesting;
@@ -74,7 +74,7 @@ public class MigrationInfoCommand extends BaseCommand {
       return 1;
     }
 
-    boolean success = false;
+    boolean success;
     try {
       // find all files
 

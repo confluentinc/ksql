@@ -15,14 +15,14 @@
 
 package io.confluent.ksql.tools.migrations.util;
 
-import static io.confluent.ksql.tools.migrations.util.MigrationsUtil.isSupportedVersion;
-import static io.confluent.ksql.tools.migrations.util.MigrationsUtil.versionSupportsMultiKeyPullQuery;
+import static io.confluent.ksql.tools.migrations.util.ServerVersionUtil.isSupportedVersion;
+import static io.confluent.ksql.tools.migrations.util.ServerVersionUtil.versionSupportsMultiKeyPullQuery;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import org.junit.Test;
 
-public class MigrationsUtilTest {
+public class ServerVersionUtilTest {
 
   @Test
   public void shouldReturnSupportedVersion() {

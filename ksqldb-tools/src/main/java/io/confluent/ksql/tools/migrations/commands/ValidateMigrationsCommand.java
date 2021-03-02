@@ -88,7 +88,7 @@ public class ValidateMigrationsCommand extends BaseCommand {
       return 1;
     }
 
-    boolean success = false;
+    boolean success;
     try {
       success = validate(config, migrationsDir, ksqlClient);
     } catch (MigrationException e) {

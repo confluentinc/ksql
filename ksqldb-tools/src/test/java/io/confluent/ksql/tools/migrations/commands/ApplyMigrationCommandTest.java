@@ -251,20 +251,25 @@ public class ApplyMigrationCommandTest {
   }
 
   @Test
-  public void shouldFailIfFileDoesntFitFormat() throws Exception {
+  public void shouldNotFailIfFileDoesntFitFormat() throws Exception {
     // Given:
     command = PARSER.parse("-n");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
+    when(versionQueryResult.get()).thenReturn(ImmutableList.of());
+
+    // extra file that does not match expected format
     assertThat(new File(migrationsDir + "/foo.sql").createNewFile(), is(true));
-    when(versionQueryResult.get()).thenReturn(ImmutableList.of(createVersionRow("1")));
-    when(infoQueryResult.get()).thenReturn(ImmutableList.of(createInfoRow(1, NAME, MigrationState.MIGRATED)));
 
     // When:
     final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
-    assertThat(result, is(1));
+    assertThat(result, is(0));
+    final InOrder inOrder = inOrder(ksqlClient);
+    verifyMigratedVersion(inOrder, 1, "<none>", MigrationState.MIGRATED);
+    inOrder.verify(ksqlClient).close();
+    inOrder.verifyNoMoreInteractions();
   }
 
   private void createMigrationFile(

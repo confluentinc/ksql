@@ -216,7 +216,8 @@ public class ValidateMigrationsCommandTest {
     final List<String> checksums = givenExistingMigrationFiles(versions);
     givenAppliedMigrations(versions, checksums);
 
-    when(sourceDescriptionCf.get()).thenThrow(new ExecutionException("Source not found", new RuntimeException()));
+    when(sourceDescriptionCf.get())
+        .thenThrow(new ExecutionException("Source not found", new RuntimeException()));
 
     // When:
     final int result = command.command(config, cfg -> ksqlClient, migrationsDir);

@@ -82,7 +82,6 @@ public abstract class BaseCommand {
     return true;
   }
 
-  // TODO: add this to apply as well
   protected boolean validateMetadataInitialized(
       final Client ksqlClient,
       final MigrationConfig config

@@ -15,15 +15,10 @@
 
 package io.confluent.ksql.tools.migrations;
 
-import io.confluent.ksql.api.client.Client;
-import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.properties.PropertiesUtil;
-import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import io.confluent.ksql.tools.migrations.util.ServerVersionUtil;
 import java.io.File;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;

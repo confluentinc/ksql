@@ -18,9 +18,11 @@ package io.confluent.ksql.tools.migrations.commands;
 import com.github.rvesse.airline.annotations.Command;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.Client;
+import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
+import io.confluent.ksql.tools.migrations.util.ServerVersionUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -28,10 +30,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Command(
-    name = "initialize",
+    name = InitializeMigrationCommand.INITIALIZE_COMMAND_NAME,
     description = "Initializes the schema metadata (stream and table)."
 )
 public class InitializeMigrationCommand extends BaseCommand {
+
+  static final String INITIALIZE_COMMAND_NAME = "initialize";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(InitializeMigrationCommand.class);
 
@@ -113,7 +117,8 @@ public class InitializeMigrationCommand extends BaseCommand {
       return 1;
     }
 
-    if (tryCreate(ksqlClient, eventStreamCommand, streamName, true)
+    if (serverVersionCompatible(ksqlClient, config)
+        && tryCreate(ksqlClient, eventStreamCommand, streamName, true)
         && tryCreate(ksqlClient, versionTableCommand, tableName, false)) {
       LOGGER.info("Schema metadata initialized successfully");
       ksqlClient.close();
@@ -125,7 +130,29 @@ public class InitializeMigrationCommand extends BaseCommand {
     return 0;
   }
 
-  private boolean tryCreate(
+  private static boolean serverVersionCompatible(
+      final Client ksqlClient,
+      final MigrationConfig config
+  ) {
+    final String ksqlServerUrl = config.getString(MigrationConfig.KSQL_SERVER_URL);
+    final ServerInfo serverInfo;
+    try {
+      serverInfo = ServerVersionUtil.getServerInfo(ksqlClient, ksqlServerUrl);
+    } catch (MigrationException e) {
+      LOGGER.error("Failed to get server info to verify version compatibility: {}", e.getMessage());
+      return false;
+    }
+
+    final String serverVersion = serverInfo.getServerVersion();
+    try {
+      return ServerVersionUtil.isSupportedVersion(serverVersion);
+    } catch (MigrationException e) {
+      LOGGER.warn(e.getMessage() + ". Proceeding anyway.");
+      return true;
+    }
+  }
+
+  private static boolean tryCreate(
       final Client client,
       final String command,
       final String name,

@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import com.github.rvesse.airline.SingleCommand;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ExecuteStatementResult;
+import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -84,7 +85,11 @@ public class InitializeMigrationCommandTest {
   @Mock
   private Client client;
   @Mock
-  private CompletableFuture<ExecuteStatementResult> cf;
+  private CompletableFuture<ServerInfo> serverInfoCf;
+  @Mock
+  private CompletableFuture<ExecuteStatementResult> executeStatementCf;
+  @Mock
+  private ServerInfo serverInfo;
   @Mock
   private ExecuteStatementResult executeStatementResult;
 
@@ -97,8 +102,11 @@ public class InitializeMigrationCommandTest {
     when(config.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_TOPIC_NAME)).thenReturn(MIGRATIONS_STREAM_TOPIC);
     when(config.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_TOPIC_NAME)).thenReturn(MIGRATIONS_TABLE_TOPIC);
     when(config.getInt(MigrationConfig.KSQL_MIGRATIONS_TOPIC_REPLICAS)).thenReturn(TOPIC_REPLICAS);
-    when(client.executeStatement(anyString())).thenReturn(cf);
-    when(cf.get()).thenReturn(executeStatementResult);
+    when(client.serverInfo()).thenReturn(serverInfoCf);
+    when(client.executeStatement(anyString())).thenReturn(executeStatementCf);
+    when(serverInfoCf.get()).thenReturn(serverInfo);
+    when(serverInfo.getServerVersion()).thenReturn("v0.14.0");
+    when(executeStatementCf.get()).thenReturn(executeStatementResult);
 
     command = PARSER.parse();
   }
@@ -128,7 +136,7 @@ public class InitializeMigrationCommandTest {
   @Test
   public void shouldNotCreateTableIfFailedToCreateStream() throws Exception {
     // Given:
-    when(cf.get()).thenThrow(new ExecutionException(new RuntimeException("failed")));
+    when(executeStatementCf.get()).thenThrow(new ExecutionException(new RuntimeException("failed")));
 
     // When:
     final int status = command.command(config, cfg -> client);
@@ -137,5 +145,35 @@ public class InitializeMigrationCommandTest {
     assertThat(status, is(1));
 
     verify(client, never()).executeStatement(EXPECTED_CTAS_STATEMENT);
+  }
+
+  @Test
+  public void shouldNotInitializeIfServerVersionIncompatible() {
+    // Given:
+    when(serverInfo.getServerVersion()).thenReturn("v0.9.0");
+
+    // When:
+    final int status = command.command(config, cfg -> client);
+
+    // Then:
+    assertThat(status, is(1));
+
+    verify(client, never()).executeStatement(EXPECTED_CS_STATEMENT);
+    verify(client, never()).executeStatement(EXPECTED_CTAS_STATEMENT);
+  }
+
+  @Test
+  public void shouldInitializeEvenIfCantParseServerVersion() {
+    // Given:
+    when(serverInfo.getServerVersion()).thenReturn("not_a_valid_version");
+
+    // When:
+    final int status = command.command(config, cfg -> client);
+
+    // Then:
+    assertThat(status, is(0));
+
+    verify(client).executeStatement(EXPECTED_CS_STATEMENT);
+    verify(client).executeStatement(EXPECTED_CTAS_STATEMENT);
   }
 }

@@ -30,6 +30,7 @@ import io.confluent.ksql.api.client.ExecuteStatementResult;
 import io.confluent.ksql.api.client.KsqlArray;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.Row;
+import io.confluent.ksql.api.client.SourceDescription;
 import io.confluent.ksql.api.client.impl.RowImpl;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
@@ -81,9 +82,15 @@ public class ApplyMigrationCommandTest {
   @Mock
   private BatchedQueryResult infoQueryResult;
   @Mock
+  private ExecuteStatementResult statementResult;
+  @Mock
+  private SourceDescription sourceDescription;
+  @Mock
   private CompletableFuture<Void> insertResult;
   @Mock
-  private CompletableFuture<ExecuteStatementResult> statementResult;
+  private CompletableFuture<ExecuteStatementResult> statementResultCf;
+  @Mock
+  private CompletableFuture<SourceDescription> sourceDescriptionCf;
 
   private String migrationsDir;
   private ApplyMigrationCommand command;
@@ -94,13 +101,15 @@ public class ApplyMigrationCommandTest {
     when(config.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME)).thenReturn(MIGRATIONS_STREAM);
 
     when(ksqlClient.insertInto(any(), any())).thenReturn(insertResult);
-    when(ksqlClient.executeStatement(any())).thenReturn(statementResult);
+    when(ksqlClient.executeStatement(any())).thenReturn(statementResultCf);
     when(ksqlClient.executeQuery("SELECT VERSION FROM " + MIGRATIONS_TABLE + " WHERE version_key = 'CURRENT';"))
         .thenReturn(versionQueryResult);
     when(ksqlClient.executeQuery("SELECT checksum, previous, state FROM " + MIGRATIONS_TABLE + " WHERE version_key = '1';"))
         .thenReturn(infoQueryResult);
-    when(insertResult.get()).thenReturn(null);
-    when(statementResult.get()).thenReturn(null);
+    when(ksqlClient.describeSource(MIGRATIONS_STREAM)).thenReturn(sourceDescriptionCf);
+    when(ksqlClient.describeSource(MIGRATIONS_TABLE)).thenReturn(sourceDescriptionCf);
+    when(sourceDescriptionCf.get()).thenReturn(sourceDescription);
+    when(statementResultCf.get()).thenReturn(statementResult);
 
     migrationsDir = folder.getRoot().getPath();
   }
@@ -216,7 +225,7 @@ public class ApplyMigrationCommandTest {
     command = PARSER.parse("-n");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
     when(versionQueryResult.get()).thenReturn(ImmutableList.of());
-    when(statementResult.get()).thenThrow(new InterruptedException());
+    when(statementResultCf.get()).thenThrow(new InterruptedException());
 
     // When:
     final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
@@ -265,6 +274,26 @@ public class ApplyMigrationCommandTest {
 
     // Then:
     assertThat(result, is(1));
+  }
+
+  @Test
+  public void shouldFailIfMetadataNotInitialized() throws Exception {
+    // Given:
+    command = PARSER.parse("-n");
+    createMigrationFile(1, NAME, migrationsDir, COMMAND);
+    when(versionQueryResult.get()).thenReturn(ImmutableList.of());
+
+    when(sourceDescriptionCf.get())
+        .thenThrow(new ExecutionException("Source not found", new RuntimeException()));
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(1));
+    Mockito.verify(ksqlClient, Mockito.times(0)).executeStatement(any());
+    Mockito.verify(ksqlClient, Mockito.times(0)).insertInto(any(), any());
   }
 
   private void createMigrationFile(

@@ -34,6 +34,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.RetryUtil;
 import java.time.Clock;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -76,6 +77,15 @@ public class ApplyMigrationCommand extends BaseCommand {
   @RequireOnlyOne(tag = "target")
   private int untilVersion;
 
+  @Option(
+      title = "untilVersion",
+      name = {"-v", "--version"},
+      arity = 1,
+      description = "apply the migration with the specified version"
+  )
+  @RequireOnlyOne(tag = "target")
+  private int version;
+
   @Override
   protected int command() {
     if (!validateConfigFilePresent()) {
@@ -107,6 +117,10 @@ public class ApplyMigrationCommand extends BaseCommand {
   ) {
     if (untilVersion < 0) {
       LOGGER.error("'until' migration version must be positive. Got: {}", untilVersion);
+      return 1;
+    }
+    if (version < 0) {
+      LOGGER.error("migration version to apply must be positive. Got: {}", version);
       return 1;
     }
 
@@ -151,43 +165,57 @@ public class ApplyMigrationCommand extends BaseCommand {
     LOGGER.info("Loading migration files");
     final List<Migration> migrations;
     try {
-      migrations = getAllMigrations(migrationsDir).stream()
-          .filter(migration -> {
-            if (untilVersion > 0) {
-              return migration.getVersion() <= untilVersion && migration.getVersion() >= minimumVersion;
-            } else {
-              return migration.getVersion() >= minimumVersion;
-            }
-          })
-          .collect(Collectors.toList());
+      migrations = loadMigrationsToApply(migrationsDir, minimumVersion);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
       return false;
     }
 
     if (migrations.size() == 0) {
-      if (next) {
-        LOGGER.error("No eligible migrations found.");
-        return false;
-      } else {
-        LOGGER.info("No eligible migrations found.");
-        return true;
-      }
-    }
-    LOGGER.info(migrations.size() + " migration files loaded.");
-
-    if (next) {
-      return applyMigration(config, ksqlClient, migrations.get(0), clock, previous);
+      LOGGER.info("No eligible migrations found.");
     } else {
-      for (Migration migration : migrations) {
-        if (!applyMigration(config, ksqlClient, migration, clock, previous)) {
-          return false;
-        }
-        previous = Integer.toString(migration.getVersion());
+      LOGGER.info(migrations.size() + " migration file(s) loaded.");
+    }
+
+    for (Migration migration : migrations) {
+      if (!applyMigration(config, ksqlClient, migration, clock, previous)) {
+        return false;
       }
+      previous = Integer.toString(migration.getVersion());
     }
 
     return true;
+  }
+
+  private List<Migration> loadMigrationsToApply(
+      final String migrationsDir,
+      final int minimumVersion
+  ) {
+    if (version > 0) {
+      // TODO
+    }
+
+    final List<Migration> migrations = getAllMigrations(migrationsDir).stream()
+        .filter(migration -> {
+          if (migration.getVersion() < minimumVersion) {
+            return false;
+          }
+          if (untilVersion > 0) {
+            return migration.getVersion() <= untilVersion;
+          } else {
+            return true;
+          }
+        })
+        .collect(Collectors.toList());
+
+    if (next) {
+      if (migrations.size() == 0) {
+        throw new MigrationException("No eligible migrations found.");
+      }
+      return Collections.singletonList(migrations.get(0));
+    }
+
+    return migrations;
   }
 
   private boolean applyMigration(

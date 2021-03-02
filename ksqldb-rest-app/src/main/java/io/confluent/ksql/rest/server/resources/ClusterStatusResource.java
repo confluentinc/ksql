@@ -36,6 +36,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.apache.kafka.streams.processor.TaskMetadata;
 import org.apache.kafka.streams.state.HostInfo;
 import org.apache.kafka.streams.state.StreamsMetadata;
 
@@ -79,7 +81,8 @@ public class ClusterStatusResource {
                                           entry.getValue().getLastStatusUpdateMs(),
                                           getActiveStandbyInformation(entry.getKey()),
                                           getHostStoreLags(entry.getKey(),
-                                              entry.getValue().isHostAlive()))
+                                          entry.getValue().isHostAlive()),
+                                              getTaskMetadata(entry.getKey()))
         ));
 
     return new ClusterStatusResponse(response);
@@ -115,6 +118,19 @@ public class ClusterStatusResource {
             queryIdAndStreamsMetadata.toActiveStandbyEntity()
         );
       }
+    }
+    return perQueryMap;
+  }
+
+  private Map<String, Set<TaskMetadata>> getTaskMetadata(
+          final KsqlHostInfo ksqlHostInfo
+  ) {
+    final Map<String, Set<TaskMetadata>> perQueryMap = new HashMap<>();
+    for (PersistentQueryMetadata persistentQueryMetadata: engine.getPersistentQueries()) {
+      perQueryMap.put(
+          persistentQueryMetadata.getQueryId().toString(),
+          persistentQueryMetadata.getTaskMetadata()
+      );
     }
     return perQueryMap;
   }

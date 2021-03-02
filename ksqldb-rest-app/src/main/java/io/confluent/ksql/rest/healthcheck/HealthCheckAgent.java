@@ -36,10 +36,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.admin.DescribeTopicsOptions;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
+import org.apache.kafka.streams.processor.TaskMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,6 +51,7 @@ public class HealthCheckAgent {
   public static final String METASTORE_CHECK_NAME = "metastore";
   public static final String KAFKA_CHECK_NAME = "kafka";
   public static final String COMMAND_RUNNER_CHECK_NAME = "commandRunner";
+  public static final String QUERY_TASKS_METADATA_NAME = "metadata";
 
   private static final List<Check> DEFAULT_CHECKS = ImmutableList.of(
       new ExecuteStatementCheck(METASTORE_CHECK_NAME, "list streams; list tables; list queries;"),
@@ -84,7 +87,15 @@ public class HealthCheckAgent {
         ));
     final boolean allHealthy = results.values().stream()
         .allMatch(HealthCheckResponseDetail::getIsHealthy);
-    return new HealthCheckResponse(allHealthy, results);
+    final Map<String, Set<TaskMetadata>> metadata = ksqlClient
+            .makeClusterStatusRequest(serverEndpoint)
+            .getResponse()
+            .getClusterStatus()
+            .values()
+            .stream()
+            .flatMap(t -> t.getTasksMetadataPerQuery().entrySet().stream())
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    return new HealthCheckResponse(allHealthy, results, metadata);
   }
 
   private interface Check {

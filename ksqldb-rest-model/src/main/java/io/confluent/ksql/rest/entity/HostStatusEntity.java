@@ -20,8 +20,11 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import org.apache.kafka.streams.processor.TaskMetadata;
+
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 @Immutable
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -31,20 +34,23 @@ public class HostStatusEntity {
   private final long lastStatusUpdateMs;
   private final ImmutableMap<String, ActiveStandbyEntity> activeStandbyPerQuery;
   private final HostStoreLags hostStoreLags;
+  private final ImmutableMap<String, Set<TaskMetadata>> tasksMetadataPerQuery;
 
   @JsonCreator
   public HostStatusEntity(
-      @JsonProperty("hostAlive") final boolean hostAlive,
-      @JsonProperty("lastStatusUpdateMs") final long lastStatusUpdateMs,
-      @JsonProperty("activeStandbyPerQuery")
+          @JsonProperty("hostAlive") final boolean hostAlive,
+          @JsonProperty("lastStatusUpdateMs") final long lastStatusUpdateMs,
+          @JsonProperty("activeStandbyPerQuery")
       final Map<String, ActiveStandbyEntity> activeStandbyPerQuery,
-      @JsonProperty("hostStoreLags") final HostStoreLags hostStoreLags
+          @JsonProperty("hostStoreLags") final HostStoreLags hostStoreLags,
+          @JsonProperty("metadata") final Map<String, Set<TaskMetadata>> tasksMetadataPerQuery
   ) {
     this.hostAlive = hostAlive;
     this.lastStatusUpdateMs = lastStatusUpdateMs;
     this.activeStandbyPerQuery = ImmutableMap.copyOf(Objects.requireNonNull(
         activeStandbyPerQuery, "activeStandbyPerQuery"));
     this.hostStoreLags = Objects.requireNonNull(hostStoreLags, "hostStoreLags");
+    this.tasksMetadataPerQuery = ImmutableMap.copyOf(tasksMetadataPerQuery);
   }
 
   public boolean getHostAlive() {
@@ -57,6 +63,10 @@ public class HostStatusEntity {
 
   public ImmutableMap<String, ActiveStandbyEntity> getActiveStandbyPerQuery() {
     return activeStandbyPerQuery;
+  }
+
+  public ImmutableMap<String, Set<TaskMetadata>> getTasksMetadataPerQuery() {
+    return tasksMetadataPerQuery;
   }
 
   public HostStoreLags getHostStoreLags() {
@@ -77,12 +87,18 @@ public class HostStatusEntity {
     return hostAlive == that.hostAlive
         && lastStatusUpdateMs == that.lastStatusUpdateMs
         && Objects.equals(activeStandbyPerQuery, that.activeStandbyPerQuery)
-        && Objects.equals(hostStoreLags, that.hostStoreLags);
+        && Objects.equals(hostStoreLags, that.hostStoreLags)
+        && Objects.equals(tasksMetadataPerQuery, that.tasksMetadataPerQuery);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(hostAlive, lastStatusUpdateMs, activeStandbyPerQuery, hostStoreLags);
+    return Objects.hash(
+            hostAlive,
+            lastStatusUpdateMs,
+            activeStandbyPerQuery,
+            hostStoreLags,
+            tasksMetadataPerQuery);
   }
 
   @Override
@@ -92,6 +108,7 @@ public class HostStatusEntity {
         + ", lastStatusUpdateMs=" + lastStatusUpdateMs
         + ", activeStandbyPerQuery=" + activeStandbyPerQuery
         + ", hostStoreLags=" + hostStoreLags
+        + ", tasksMetadataPerQuery=" + tasksMetadataPerQuery
         + '}';
   }
 }

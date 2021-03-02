@@ -21,6 +21,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 public class TypeContext {
   private SqlType sqlType;
@@ -78,5 +79,10 @@ public class TypeContext {
     }
     final TypeContext context = (TypeContext) o;
     return lambdaInputTypeMapping.equals(context.lambdaInputTypeMapping);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(lambdaInputTypeMapping);
   }
 }

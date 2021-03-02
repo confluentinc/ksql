@@ -159,7 +159,7 @@ public final class GenericsUtil {
    * @return a mapping from generic type to resolved type, an exception is thrown if 
    *         the mapping failed
    */
-  public static Map<GenericType, SqlType> resolveGenerics(
+  public static Map<GenericType, SqlType> reserveGenerics(
       final ParamType schema,
       final SqlArgument instance
   ) {
@@ -171,6 +171,54 @@ public final class GenericsUtil {
     }
 
     return ImmutableMap.copyOf(genericMapping);
+  }
+
+  /**
+   * Identifies a mapping from generic type to concrete type based on a {@code schema} and
+   * an {@code instance}, where the {@code instance} schema is expected to have no generic
+   * types and have the same nested structure as {@code schema}. Adds the mapping to an 
+   * existing mapping passed into the function
+   *
+   * @param schema    the schema that may contain generics
+   * @param instance  a schema with the same structure as {@code schema} but with no generics
+   * @param reservedGenerics  mapping of generic type to resolved type
+   *
+   * @return if the mapping succeeded and if it failed, an exception with why it failed
+   */
+  public static Pair<Boolean, Optional<KsqlException>> reserveGenerics(
+      final ParamType schema,
+      final SqlArgument instance,
+      final Map<GenericType, SqlType> reservedGenerics
+  ) {
+    final List<Entry<GenericType, SqlType>> genericMapping = new ArrayList<>();
+    final boolean success = resolveGenerics(
+        genericMapping,
+        schema,
+        instance
+    );
+
+    if (!success) {
+      return new Pair<>(false, Optional.of(new KsqlException(
+          String.format("Cannot infer generics for %s from %s because "
+                  + "they do not have the same schema structure.",
+              schema,
+              instance))));
+    }
+
+    for (final Entry<GenericType, SqlType> entry : genericMapping) {
+      final SqlType old = reservedGenerics.putIfAbsent(entry.getKey(), entry.getValue());
+      if (old != null && !old.equals(entry.getValue())) {
+        return new Pair<>(false, Optional.of(new KsqlException(String.format(
+            "Found invalid instance of generic schema when mapping %s to %s. "
+                + "Cannot map %s to both %s and %s",
+            schema,
+            instance,
+            entry.getKey(),
+            old,
+            entry.getValue()))));
+      }
+    }
+    return new Pair<>(true, null);
   }
 
   /**
@@ -277,53 +325,5 @@ public final class GenericsUtil {
     final ParamType instanceParamType = SchemaConverters
         .sqlToFunctionConverter().toFunctionType(instance.getSqlTypeOrThrow());
     return schema.getClass() == instanceParamType.getClass();
-  }
-
-  /**
-   * Identifies a mapping from generic type to concrete type based on a {@code schema} and
-   * an {@code instance}, where the {@code instance} schema is expected to have no generic
-   * types and have the same nested structure as {@code schema}. Adds the mapping to an 
-   * existing mapping passed into the function
-   *
-   * @param schema    the schema that may contain generics
-   * @param instance  a schema with the same structure as {@code schema} but with no generics
-   * @param reservedGenerics  mapping of generic type to resolved type
-   *
-   * @return if the mapping succeeded and if it failed, an exception with why it failed
-   */
-  public static Pair<Boolean, Optional<KsqlException>> reserveGenerics(
-      final ParamType schema,
-      final SqlArgument instance,
-      final Map<GenericType, SqlType> reservedGenerics
-  ) {
-    final List<Entry<GenericType, SqlType>> genericMapping = new ArrayList<>();
-    final boolean success = resolveGenerics(
-        genericMapping,
-        schema,
-        instance
-    );
-
-    if (!success) {
-      return new Pair<>(false, Optional.of(new KsqlException(
-          String.format("Cannot infer generics for %s from %s because "
-              + "they do not have the same schema structure.",
-              schema,
-              instance))));
-    }
-
-    for (final Entry<GenericType, SqlType> entry : genericMapping) {
-      final SqlType old = reservedGenerics.putIfAbsent(entry.getKey(), entry.getValue());
-      if (old != null && !old.equals(entry.getValue())) {
-        return new Pair<>(false, Optional.of(new KsqlException(String.format(
-            "Found invalid instance of generic schema when mapping %s to %s. "
-                + "Cannot map %s to both %s and %s",
-            schema,
-            instance,
-            entry.getKey(),
-            old,
-            entry.getValue()))));
-      }
-    }
-    return new Pair<>(true, null);
   }
 }

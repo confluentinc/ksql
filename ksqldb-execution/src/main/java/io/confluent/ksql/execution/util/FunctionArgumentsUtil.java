@@ -53,7 +53,7 @@ public final class FunctionArgumentsUtil {
     private final SqlType returnType;
     private final KsqlScalarFunction function;
 
-    public static FunctionTypeInfo of(
+    private static FunctionTypeInfo of(
         final List<ArgumentInfo> argumentInfos,
         final SqlType returnType,
         final KsqlScalarFunction function
@@ -88,7 +88,7 @@ public final class FunctionArgumentsUtil {
     final SqlArgument sqlArgument;
     final TypeContext context;
 
-    public static ArgumentInfo of(
+    private static ArgumentInfo of(
         final SqlArgument sqlArgument,
         final TypeContext context
     ) {
@@ -182,11 +182,12 @@ public final class FunctionArgumentsUtil {
           // at this index in the function arguments if there's a
           // lambda node at this index in the function node argument list
           if (!(parameter instanceof LambdaType)) {
-            throw new RuntimeException("Error while processing lambda function. "
+            throw new RuntimeException(String.format("Error while processing lambda function."
+                + "Expected lambda parameter but was %s"
                 + "This is most likely an internal error and a "
                 + "Github issue should be filed for debugging. "
                 + "Include the function name, the parameters passed in, the expected "
-                + "signature, and any other relevant information.");
+                + "signature, and any other relevant information.", parameter.toString()));
           }
 
           final ArrayList<SqlType> lambdaSqlTypes = new ArrayList<>();

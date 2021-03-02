@@ -38,7 +38,6 @@ import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlLambdaResolved;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -174,7 +173,7 @@ public class GenericsUtilTest {
     final SqlArgument instance = SqlArgument.of(SqlTypes.STRING);
 
     // When:
-    final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance);
+    final Map<GenericType, SqlType> mapping = GenericsUtil.reserveGenerics(a, instance);
 
     // Then:
     assertThat(mapping, hasEntry(a, SqlTypes.STRING));
@@ -187,7 +186,7 @@ public class GenericsUtilTest {
     final SqlArgument instance = SqlArgument.of(SqlTypes.array(SqlTypes.STRING));
 
     // When:
-    final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance);
+    final Map<GenericType, SqlType> mapping = GenericsUtil.reserveGenerics(a, instance);
 
     // Then:
     assertThat(mapping, hasEntry(a.element(), SqlTypes.STRING));
@@ -200,7 +199,7 @@ public class GenericsUtilTest {
     final SqlArgument instance = SqlArgument.of(SqlTypes.map(SqlTypes.DOUBLE, SqlTypes.BIGINT));
 
     // When:
-    final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance);
+    final Map<GenericType, SqlType> mapping = GenericsUtil.reserveGenerics(a, instance);
 
     // Then:
     assertThat(mapping, hasEntry(a.key(), SqlTypes.DOUBLE));
@@ -217,7 +216,7 @@ public class GenericsUtilTest {
         SqlLambdaResolved.of(ImmutableList.of(SqlTypes.DOUBLE, SqlTypes.BIGINT), SqlTypes.BIGINT));
 
     // When:
-    final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance);
+    final Map<GenericType, SqlType> mapping = GenericsUtil.reserveGenerics(a, instance);
 
     // Then:
     assertThat(mapping, hasEntry(typeA, SqlTypes.DOUBLE));
@@ -237,7 +236,7 @@ public class GenericsUtilTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> GenericsUtil.resolveGenerics(a, instance)
+        () -> GenericsUtil.reserveGenerics(a, instance)
     );
 
     // Then:
@@ -257,7 +256,7 @@ public class GenericsUtilTest {
         SqlLambda.of(2));
 
     // When:
-    final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance);
+    final Map<GenericType, SqlType> mapping = GenericsUtil.reserveGenerics(a, instance);
 
     // Then:
     
@@ -278,7 +277,7 @@ public class GenericsUtilTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> GenericsUtil.resolveGenerics(a, instance)
+        () -> GenericsUtil.reserveGenerics(a, instance)
     );
 
     // Then:
@@ -299,7 +298,7 @@ public class GenericsUtilTest {
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> GenericsUtil.resolveGenerics(a, instance)
+        () -> GenericsUtil.reserveGenerics(a, instance)
     );
 
     // Then:
@@ -371,6 +370,6 @@ public class GenericsUtilTest {
     final SqlArgument instance = SqlArgument.of(SqlTypes.array(SqlTypes.STRING));
 
     // When:
-    GenericsUtil.resolveGenerics(a, instance);
+    GenericsUtil.reserveGenerics(a, instance);
   }
 }

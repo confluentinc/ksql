@@ -1114,17 +1114,6 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
-  public void shouldThrowErrorOnEmptyLambdaInput() {
-    // Given:
-    final Expression expression = new LambdaFunctionCall(
-        ImmutableList.of("x"),
-        (new FunctionCall(FunctionName.of("ABS"), ImmutableList.of(new LambdaVariable("X")))));
-
-    // When:
-    assertThrows(IllegalArgumentException.class, () -> sqlToJavaVisitor.process(expression));
-  }
-
-  @Test
   public void shouldThrowOnSimpleCase() {
     // Given:
     final Expression expression = new SimpleCaseExpression(

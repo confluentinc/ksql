@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.Row;
+import io.confluent.ksql.api.client.SourceDescription;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
@@ -41,6 +42,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
 import org.junit.Before;
@@ -58,6 +61,7 @@ public class ValidateMigrationsCommandTest {
   private static final SingleCommand<ValidateMigrationsCommand> PARSER =
       SingleCommand.singleCommand(ValidateMigrationsCommand.class);
 
+  private static final String MIGRATIONS_STREAM = "migrations_stream";
   private static final String MIGRATIONS_TABLE = "migrations_table";
 
   @Rule
@@ -67,13 +71,21 @@ public class ValidateMigrationsCommandTest {
   private MigrationConfig config;
   @Mock
   private Client ksqlClient;
+  @Mock
+  private CompletableFuture<SourceDescription> sourceDescriptionCf;
+  @Mock
+  private SourceDescription sourceDescription;
 
   private String migrationsDir;
   private ValidateMigrationsCommand command;
 
   @Before
-  public void setUp() {
+  public void setUp() throws Exception {
+    when(config.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME)).thenReturn(MIGRATIONS_STREAM);
     when(config.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME)).thenReturn(MIGRATIONS_TABLE);
+    when(ksqlClient.describeSource(MIGRATIONS_STREAM)).thenReturn(sourceDescriptionCf);
+    when(ksqlClient.describeSource(MIGRATIONS_TABLE)).thenReturn(sourceDescriptionCf);
+    when(sourceDescriptionCf.get()).thenReturn(sourceDescription);
 
     migrationsDir = folder.getRoot().getPath();
     command = PARSER.parse();
@@ -195,6 +207,22 @@ public class ValidateMigrationsCommandTest {
 
     //
     verifyClientCallsForVersions(versions, "2");
+  }
+
+  @Test
+  public void shouldFailIfMetadataNotInitialized() throws Exception {
+    // Given:
+    final List<String> versions = ImmutableList.of();
+    final List<String> checksums = givenExistingMigrationFiles(versions);
+    givenAppliedMigrations(versions, checksums);
+
+    when(sourceDescriptionCf.get()).thenThrow(new ExecutionException("Source not found", new RuntimeException()));
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir);
+
+    // Then:
+    assertThat(result, is(1));
   }
 
   /**

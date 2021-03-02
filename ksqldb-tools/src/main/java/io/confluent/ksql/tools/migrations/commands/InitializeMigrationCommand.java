@@ -30,10 +30,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Command(
-    name = "initialize",
+    name = InitializeMigrationCommand.INITIALIZE_COMMAND_NAME,
     description = "Initializes the schema metadata (stream and table)."
 )
 public class InitializeMigrationCommand extends BaseCommand {
+
+  static final String INITIALIZE_COMMAND_NAME = "initialize";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(InitializeMigrationCommand.class);
 

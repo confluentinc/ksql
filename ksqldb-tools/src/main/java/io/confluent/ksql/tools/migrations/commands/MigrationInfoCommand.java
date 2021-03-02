@@ -74,6 +74,11 @@ public class MigrationInfoCommand extends BaseCommand {
       return 1;
     }
 
+    if (!validateMetadataInitialized(ksqlClient, config)) {
+      ksqlClient.close();
+      return 1;
+    }
+
     boolean success;
     try {
       // find all files

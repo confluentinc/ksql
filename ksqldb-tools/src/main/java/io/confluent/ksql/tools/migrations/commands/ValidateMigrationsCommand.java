@@ -88,6 +88,11 @@ public class ValidateMigrationsCommand extends BaseCommand {
       return 1;
     }
 
+    if (!validateMetadataInitialized(ksqlClient, config)) {
+      ksqlClient.close();
+      return 1;
+    }
+
     boolean success;
     try {
       success = validate(config, migrationsDir, ksqlClient);
@@ -108,7 +113,7 @@ public class ValidateMigrationsCommand extends BaseCommand {
 
   @Override
   protected Logger getLogger() {
-    return null;
+    return LOGGER;
   }
 
   /**

@@ -97,14 +97,14 @@ public class MigrationsTest {
     // Migration file
     createMigrationFile(
         1,
-        "foo",
-        MigrationsDirectoryUtil.getMigrationsDirFromConfigFile(configFilePath),
+        "foo FOO fO0",
+        configFilePath,
         "CREATE STREAM FOO (A STRING) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='DELIMITED');"
     );
     createMigrationFile(
         2,
-        "bar",
-        MigrationsDirectoryUtil.getMigrationsDirFromConfigFile(configFilePath),
+        "bar_bar_BAR",
+        configFilePath,
         "CREATE STREAM BAR (A STRING) WITH (KAFKA_TOPIC='BAR', PARTITIONS=1, VALUE_FORMAT='DELIMITED');"
     );
 
@@ -125,7 +125,7 @@ public class MigrationsTest {
     final List<StreamedRow> current = makeKsqlQuery("SELECT * FROM migration_schema_versions WHERE VERSION_KEY='CURRENT';");
     assertThatEventually(() -> current.size(), is(2));
     assertThatEventually(() -> current.get(1).getRow().get().getColumns().get(1), is("2"));
-    assertThatEventually(() -> current.get(1).getRow().get().getColumns().get(2), is("bar"));
+    assertThatEventually(() -> current.get(1).getRow().get().getColumns().get(2), is("bar bar BAR"));
     assertThatEventually(() -> current.get(1).getRow().get().getColumns().get(3), is("MIGRATED"));
     assertThatEventually(() -> current.get(1).getRow().get().getColumns().get(7), is("1"));
 
@@ -133,7 +133,7 @@ public class MigrationsTest {
     final List<StreamedRow> version1 = makeKsqlQuery("SELECT * FROM migration_schema_versions WHERE VERSION_KEY='1';");
     assertThatEventually(() -> version1.size(), is(2));
     assertThatEventually(() -> version1.get(1).getRow().get().getColumns().get(1), is("1"));
-    assertThatEventually(() -> version1.get(1).getRow().get().getColumns().get(2), is("foo"));
+    assertThatEventually(() -> version1.get(1).getRow().get().getColumns().get(2), is("foo FOO fO0"));
     assertThatEventually(() -> version1.get(1).getRow().get().getColumns().get(3), is("MIGRATED"));
     assertThatEventually(() -> version1.get(1).getRow().get().getColumns().get(7), is("<none>"));
 
@@ -141,7 +141,7 @@ public class MigrationsTest {
     final List<StreamedRow> version2 = makeKsqlQuery("SELECT * FROM migration_schema_versions WHERE VERSION_KEY='CURRENT';");
     assertThatEventually(() -> version2.size(), is(2));
     assertThatEventually(() -> version2.get(1).getRow().get().getColumns().get(1), is("2"));
-    assertThatEventually(() -> version2.get(1).getRow().get().getColumns().get(2), is("bar"));
+    assertThatEventually(() -> version2.get(1).getRow().get().getColumns().get(2), is("bar bar BAR"));
     assertThatEventually(() -> version2.get(1).getRow().get().getColumns().get(3), is("MIGRATED"));
     assertThatEventually(() -> version2.get(1).getRow().get().getColumns().get(7), is("1"));
   }
@@ -272,14 +272,25 @@ public class MigrationsTest {
   private static void createMigrationFile(
       final int version,
       final String name,
-      final String migrationsDir,
+      final String configFilePath,
       final String content
   ) throws IOException {
-    final String filePath = migrationsDir
-        + String.format("/V00000%d__%s.sql", version, name.replace(' ', '_'));
-    assertThat(new File(filePath).createNewFile(), is(true));
-    PrintWriter out = new PrintWriter(filePath, Charset.defaultCharset().name());
-    out.println(content);
-    out.close();
+    // use `create` to create empty file
+    final int status = MIGRATIONS_CLI.parse("--config-file", configFilePath,
+        "create", name, "-v", String.valueOf(version)).run();
+    assertThat(status, is(0));
+
+    // validate file created
+    final File filePath = new File(Paths.get(
+        MigrationsDirectoryUtil.getMigrationsDirFromConfigFile(configFilePath),
+        String.format("/V00000%d__%s.sql", version, name.replace(' ', '_'))
+    ).toString());
+    assertThat(filePath.exists(), is(true));
+    assertThat(filePath.isDirectory(), is(false));
+
+    // write contents to file
+    try (PrintWriter out = new PrintWriter(filePath, Charset.defaultCharset().name())) {
+      out.println(content);
+    }
   }
 }

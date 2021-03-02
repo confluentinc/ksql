@@ -25,6 +25,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -32,11 +33,17 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class MigrationsDirectoryUtil {
 
   public static final String MIGRATIONS_DIR = "migrations";
   public static final String MIGRATIONS_CONFIG_FILE = "ksql-migrations.properties";
+
+  private static final Pattern MIGRATION_FILE_MATCHER = Pattern.compile("V([0-9]{6})__(.+)\\.sql");
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(MigrationsDirectoryUtil.class);
 
   private MigrationsDirectoryUtil() {
   }
@@ -50,11 +57,15 @@ public final class MigrationsDirectoryUtil {
     return parentDir.resolve(MIGRATIONS_DIR).toString();
   }
 
+  public static String getFilePrefixForVersion(final String version) {
+    return "V" + StringUtils.leftPad(version, 6, "0");
+  }
+
   public static Optional<String> getFilePathForVersion(
       final String version,
       final String migrationsDir
   ) {
-    final String prefix = "V" + StringUtils.leftPad(version, 6, "0");
+    final String prefix = getFilePrefixForVersion(version);
 
     final File directory = new File(migrationsDir);
     if (!directory.isDirectory()) {
@@ -97,44 +108,63 @@ public final class MigrationsDirectoryUtil {
     }
   }
 
-  public static String getNameFromMigrationFilePath(final String filename) {
-    return filename
-        .substring(filename.indexOf("__") + 2, filename.indexOf(".sql"))
-        .replace('_', ' ');
+  /**
+   * @return all migration file versions in sorted order
+   */
+  public static List<Integer> getAllVersions(final String migrationsDir) {
+    return getAllMigrations(migrationsDir).stream()
+        .map(Migration::getVersion)
+        .collect(Collectors.toList());
   }
 
-  public static int getVersionFromMigrationFilePath(final String filename) {
-    final Matcher matcher = Pattern.compile("V([0-9]{6})__.*\\.sql").matcher(filename);
-    if (matcher.find()) {
-      final int version = Integer.parseInt(matcher.group(1));
-      if (version > 0) {
-        return version;
-      } else {
-        throw new MigrationException("Version number must be positive - found " + filename);
-      }
-    } else {
-      throw new MigrationException(
-          "File path does not match expected pattern V<six digit number>__<name>.sql: " + filename);
-    }
-  }
-
+  /**
+   * @return all migration files in sorted order
+   */
   public static List<Migration> getAllMigrations(final String migrationsDir) {
     final File directory = new File(migrationsDir);
     if (!directory.isDirectory()) {
       throw new MigrationException(migrationsDir + " is not a directory.");
     }
 
-    final String[] names = directory.list();
-    if (names == null) {
+    final String[] allNames;
+    try {
+      allNames = directory.list();
+    } catch (SecurityException e) {
+      throw new MigrationException("Failed to retrieve files from " + migrationsDir
+          + ": " + e.getMessage());
+    }
+    if (allNames == null) {
       throw new MigrationException("Failed to retrieve files from " + migrationsDir);
     }
-
-    return Arrays.stream(names)
+    final List<String> filenames = Arrays.stream(allNames)
         .sorted()
-        .map(name -> new Migration(
-            getVersionFromMigrationFilePath(name),
-            getNameFromMigrationFilePath(name),
-            migrationsDir + "/" + name))
+        .filter(name -> !new File(name).isDirectory())
         .collect(Collectors.toList());
+
+    final List<Migration> migrations = new ArrayList<>();
+    for (final String filename : filenames) {
+      final Matcher matcher = MIGRATION_FILE_MATCHER.matcher(filename);
+      if (!matcher.find()) {
+        LOGGER.warn("Skipping file does not match expected migration file pattern "
+            + "'V<six digit number>__<name>.sql': {}", filename);
+        continue;
+      }
+
+      final int version = Integer.parseInt(matcher.group(1));
+      if (version <= 0) {
+        throw new MigrationException(
+            "Migration file versions must be positive. Found: " + filename);
+      }
+
+      final String description = matcher.group(2).replace('_', ' ');
+
+      migrations.add(new Migration(
+          version,
+          description,
+          migrationsDir + "/" + filename
+      ));
+    }
+
+    return migrations;
   }
 }

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.tools.migrations.util;
 
-import io.confluent.ksql.tools.migrations.Migration;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import java.io.File;
 import java.io.IOException;

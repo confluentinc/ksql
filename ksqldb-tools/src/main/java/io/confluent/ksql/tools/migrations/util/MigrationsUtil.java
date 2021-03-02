@@ -30,11 +30,32 @@ public final class MigrationsUtil {
   public static final String MIGRATIONS_COMMAND = "ksql-migrations";
 
   public static Client getKsqlClient(final MigrationConfig config) throws MigrationException {
-    final String ksqlServerUrl = config.getString(MigrationConfig.KSQL_SERVER_URL);
-    return getKsqlClient(ksqlServerUrl);
+    return getKsqlClient(
+        config.getString(MigrationConfig.KSQL_SERVER_URL),
+        config.getString(MigrationConfig.KSQL_USERNAME),
+        config.getString(MigrationConfig.KSQL_PASSWORD),
+        config.getString(MigrationConfig.SSL_TRUSTSTORE_LOCATION),
+        config.getString(MigrationConfig.SSL_TRUSTSTORE_PASSWORD),
+        config.getString(MigrationConfig.SSL_KEYSTORE_LOCATION),
+        config.getString(MigrationConfig.SSL_KEYSTORE_PASSWORD),
+        config.getString(MigrationConfig.SSL_KEY_PASSWORD),
+        config.getString(MigrationConfig.SSL_KEY_ALIAS),
+        config.getBoolean(MigrationConfig.SSL_ALPN)
+    );
   }
 
-  public static Client getKsqlClient(final String ksqlServerUrl) throws MigrationException {
+  public static Client getKsqlClient(
+      final String ksqlServerUrl,
+      final String username,
+      final String password,
+      final String sslTrustStoreLocation,
+      final String sslTrustStorePassword,
+      final String sslKeystoreLocation,
+      final String sslKeystorePassword,
+      final String sslKeyPassword,
+      final String sslKeyAlias,
+      final boolean sslAlpn
+  ) throws MigrationException {
     final URL url;
     try {
       url = new URL(ksqlServerUrl);
@@ -46,6 +67,26 @@ public final class MigrationsUtil {
         .create()
         .setHost(url.getHost())
         .setPort(url.getPort());
+
+    if (username != null || password != null) {
+      options.setBasicAuthCredentials(username, password);
+    }
+
+    if (sslTrustStoreLocation != null
+        || sslKeystoreLocation != null
+        || sslKeyPassword != null
+        || sslKeyAlias != null
+    ) {
+      options.setUseTls(true);
+    }
+
+    options.setTrustStore(sslTrustStoreLocation);
+    options.setTrustStorePassword(sslTrustStorePassword);
+    options.setKeyStore(sslKeystoreLocation);
+    options.setKeyStorePassword(sslKeystorePassword);
+    options.setKeyPassword(sslKeyPassword);
+    options.setKeyAlias(sslKeyAlias);
+    options.setUseAlpn(sslAlpn);
 
     return Client.create(options);
   }

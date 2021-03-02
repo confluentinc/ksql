@@ -32,15 +32,6 @@ public final class ServerVersionUtil {
   private ServerVersionUtil() {
   }
 
-  public static ServerInfo getServerInfo(final String ksqlServerUrl) {
-    final Client client = MigrationsUtil.getKsqlClient(ksqlServerUrl);
-    try {
-      return getServerInfo(client, ksqlServerUrl);
-    } finally {
-      client.close();
-    }
-  }
-
   public static ServerInfo getServerInfo(final Client ksqlClient, final String ksqlServerUrl) {
     final CompletableFuture<ServerInfo> response = ksqlClient.serverInfo();
 

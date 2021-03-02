@@ -114,6 +114,8 @@ import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.parser.tree.DescribeFunction;
+import io.confluent.ksql.parser.tree.DescribeStreams;
+import io.confluent.ksql.parser.tree.DescribeTables;
 import io.confluent.ksql.parser.tree.DropConnector;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -747,6 +749,12 @@ public class AstBuilder {
 
     @Override
     public Node visitShowColumns(final SqlBaseParser.ShowColumnsContext context) {
+      // Special check to allow `DESCRIBE TABLES` while still allowing
+      // users to maintain statements that used TABLES as a column name
+      if (context.sourceName().identifier() instanceof SqlBaseParser.UnquotedIdentifierContext
+          && context.sourceName().getText().toUpperCase().equals("TABLES")) {
+        return new DescribeTables(getLocation(context), context.EXTENDED() != null);
+      }
       return new ShowColumns(
           getLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
@@ -1289,6 +1297,12 @@ public class AstBuilder {
           getLocation(ctx),
           ParserUtil.getIdentifierText(ctx.identifier())
       );
+    }
+
+    @Override
+    public Node visitDescribeStreams(final SqlBaseParser.DescribeStreamsContext context) {
+      return new DescribeStreams(
+          getLocation(context), context.EXTENDED() != null);
     }
 
     @Override

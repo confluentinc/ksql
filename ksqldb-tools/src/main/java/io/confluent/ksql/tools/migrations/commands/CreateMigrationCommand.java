@@ -20,6 +20,8 @@ import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.help.Examples;
 import com.github.rvesse.airline.annotations.restrictions.Required;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Command(
     name = "create",
@@ -32,6 +34,8 @@ import com.github.rvesse.airline.annotations.restrictions.Required;
         + "(e.g. V000002__Add_users.sql)"
 )
 public class CreateMigrationCommand extends BaseCommand {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(CreateMigrationCommand.class);
 
   @Option(
       name = {"-v", "--version"},
@@ -48,7 +52,12 @@ public class CreateMigrationCommand extends BaseCommand {
   private String description;
 
   @Override
-  public void run() {
+  protected int command() {
     throw new UnsupportedOperationException();
+  }
+
+  @Override
+  protected Logger getLogger() {
+    return LOGGER;
   }
 }

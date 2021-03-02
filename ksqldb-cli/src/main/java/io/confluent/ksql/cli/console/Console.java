@@ -643,7 +643,7 @@ public class Console implements Closeable {
     if (!source.isExtended()) {
       printSchema(source.getWindowType(), source.getFields(), isTable);
       writer().println(
-          "For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;");
+          "For runtime statistics and query details run: DESCRIBE <Stream,Table> EXTENDED;");
       return;
     }
     writer().println(String.format("%-20s : %s", "Type", source.getType()));

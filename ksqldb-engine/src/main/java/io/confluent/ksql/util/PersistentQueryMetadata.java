@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 
 /**
  * Metadata of a persistent query, e.g. {@code CREATE STREAM FOO AS SELECT * FROM BAR;}.
@@ -76,7 +77,9 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final QueryErrorClassifier errorClassifier,
       final ExecutionStep<?> physicalPlan,
       final int maxQueryErrorsQueueSize,
-      final ProcessingLogger processingLogger
+      final ProcessingLogger processingLogger,
+      final long retryBackoffInitialMs,
+      final long retryBackoffMaxMs
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -93,7 +96,9 @@ public class PersistentQueryMetadata extends QueryMetadata {
         closeTimeout,
         id,
         errorClassifier,
-        maxQueryErrorsQueueSize
+        maxQueryErrorsQueueSize,
+        retryBackoffInitialMs,
+        retryBackoffMaxMs
     );
 
     this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");
@@ -103,11 +108,6 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.materializationProviderBuilder =
         requireNonNull(materializationProviderBuilder, "materializationProviderBuilder");
     this.processingLogger = requireNonNull(processingLogger, "processingLogger");
-
-    this.materializationProvider = materializationProviderBuilder
-        .flatMap(builder -> builder.apply(getKafkaStreams()));
-
-    setUncaughtExceptionHandler(this::uncaughtHandler);
   }
 
   protected PersistentQueryMetadata(
@@ -125,11 +125,25 @@ public class PersistentQueryMetadata extends QueryMetadata {
   }
 
   @Override
-  protected void uncaughtHandler(final Thread thread, final Throwable error) {
-    super.uncaughtHandler(thread, error);
+  public void initialize() {
+    // initialize the first KafkaStreams
+    super.initialize();
+    setUncaughtExceptionHandler(this::uncaughtHandler);
+
+    this.materializationProvider = materializationProviderBuilder
+        .flatMap(builder -> builder.apply(getKafkaStreams(), getTopology()));
+  }
+
+  @Override
+  protected StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
+          final Throwable error
+  ) {
+    final StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse response =
+            super.uncaughtHandler(error);
 
     processingLogger.error(KafkaStreamsThreadError.of(
-        "Unhandled exception caught in streams thread", thread, error));
+        "Unhandled exception caught in streams thread", Thread.currentThread(), error));
+    return response;
   }
 
   public DataSourceType getDataSourceType() {
@@ -188,7 +202,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
     final KafkaStreams newKafkaStreams = buildKafkaStreams();
     materializationProvider = materializationProviderBuilder.flatMap(
-        builder -> builder.apply(newKafkaStreams));
+        builder -> builder.apply(newKafkaStreams, getTopology()));
 
     resetKafkaStreams(newKafkaStreams);
     start();

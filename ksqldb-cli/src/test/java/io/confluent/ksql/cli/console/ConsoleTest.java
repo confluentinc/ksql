@@ -701,7 +701,7 @@ public class ConsoleTest {
           + " f_6    | MAP<STRING, BIGINT>            " + NEWLINE
           + " f_7    | STRUCT<a DOUBLE>               " + NEWLINE
           + "-----------------------------------------" + NEWLINE
-          + "For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;"
+          + "For runtime statistics and query details run: DESCRIBE <Stream,Table> EXTENDED;"
           + NEWLINE));
     }
   }

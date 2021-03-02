@@ -18,6 +18,7 @@ package io.confluent.ksql.tools.migrations.commands;
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.OptionType;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.slf4j.Logger;
 
 /**
  * Defines common options across all of the migration
@@ -27,10 +28,13 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
     value = "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD",
     justification = "code is skeleton only at the moment, used to generate HELP message"
 )
-public abstract class BaseCommand implements Runnable {
+public abstract class BaseCommand {
+
+  private static final String CONFIG_FILE_OPTION = "--config-file";
+  private static final String CONFIG_FILE_OPTION_SHORT = "-c";
 
   @Option(
-      name = {"-c", "--config-file"},
+      name = {CONFIG_FILE_OPTION_SHORT, CONFIG_FILE_OPTION},
       title = "config-file",
       description = "Specifies a configuration file",
       type = OptionType.GLOBAL
@@ -38,11 +42,37 @@ public abstract class BaseCommand implements Runnable {
   protected String configFile;
 
   @Option(
-      name = {"-n", "--dry-run"},
+      name = {"--dry-run"},
       title = "dry-run",
       description = "dry run the current command, no ksqlDB statements will be executed",
       type = OptionType.GLOBAL
   )
   protected boolean dryRun = false;
 
+  /**
+   * @return exit status of the command
+   */
+  public int run() {
+    final long startTime = System.nanoTime();
+    final int status = command();
+    getLogger().info("Execution time: " + (System.nanoTime() - startTime) / 1000000000);
+    return status;
+  }
+
+  /**
+   * @return exit status of the command
+   */
+  protected abstract int command();
+
+  protected abstract Logger getLogger();
+
+  protected boolean validateConfigFilePresent() {
+    if (configFile == null || configFile.equals("")) {
+      getLogger().error("Migrations config file required but not specified. "
+          + "Specify with {} (or, equivalently, {}).",
+          CONFIG_FILE_OPTION, CONFIG_FILE_OPTION_SHORT);
+      return false;
+    }
+    return true;
+  }
 }

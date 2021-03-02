@@ -1,0 +1,43 @@
+{
+  "comments": [
+    "Tests covering the use of advanced lambda functions."
+  ],
+  "tests": [
+    {
+      "name": "transform a map with array values",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE MAP<STRING, ARRAY<INT>>) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT as SELECT ID, TRANSFORM(TRANSFORM(VALUE, (x,y) => x, (x,y) => FIlTER(y, z => z < 5)), (x,y) => UCASE(x) , (k,v) => ARRAY_MAX(v)) as FILTERED_TRANSFORMED from TEST emit changes;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0,"value": {"value":  {"a": [2,null,5,4], "b": [-1,-2]}}},
+        {"topic": "test_topic", "key": 1,"value": {"value":  {"c": [null,null,-1], "t": [3, 1]}}},
+        {"topic": "test_topic", "key": 2,"value": {"value":  {"d": [4], "q": [0, 0]}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"FILTERED_TRANSFORMED":{"A": 4, "B": -1}}},
+        {"topic": "OUTPUT", "key": 1, "value": {"FILTERED_TRANSFORMED":{"C": -1, "T":  3}}},
+        {"topic": "OUTPUT", "key": 2, "value": {"FILTERED_TRANSFORMED":{"D": 4, "Q": 0}}}
+      ]
+    },
+    {
+      "name": "complex lambda",
+      "statements": [
+        "CREATE STREAM test (ID STRING KEY, MAPPING MAP<STRING, ARRAY<INTEGER>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, TRANSFORM(FILTER(MAPPING, (a, b) => LEN(a) > 2 AND REDUCE(0, b, (c, d) => c+d) < 20), (X,Y) => LPAD(x, REDUCE(2, Y, (s, k) => ABS(ABS(k)-s)), 'a'), (X,Y) => REDUCE(0, ARRAY_UNION(Y, TRANSFORM(Y, z => z*3)), (e, f) => e+f)) AS OUTPUT FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "one", "value": {"MAPPING": {"a": [2,4,5], "bcd": [-5,7]}}},
+        {"topic": "test_topic", "key": "two", "value": {"MAPPING": {"hello": [200,4,5], "hey": [14, -3, -15, 3], "wow": [2, 3, 4]}}},
+        {"topic": "test_topic", "key": "three", "value": {"MAPPING": {"a": null, "bcdefg": [-15,72]}}},
+        {"topic": "test_topic", "key": "four", "value": {"MAPPING": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "one", "value": {"OUTPUT":{"abcd": 8}}},
+        {"topic": "OUTPUT", "key": "two", "value": {"OUTPUT":{"hey": -4, "w": 36}}},
+        {"topic": "OUTPUT", "key": "three", "value": {"OUTPUT": {}}},
+        {"topic": "OUTPUT", "key": "four", "value": {"OUTPUT":null}}
+      ]
+    }
+  ]
+} 

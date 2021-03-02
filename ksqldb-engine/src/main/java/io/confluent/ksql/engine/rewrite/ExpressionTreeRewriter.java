@@ -74,7 +74,7 @@ import java.util.stream.Collectors;
  * @param <C> A context type to be passed through to the plugin.
  */
 public final class ExpressionTreeRewriter<C> {
-  
+
   public static final class Context<C> {
     private final C context;
     private final ExpressionVisitor<Expression, C> rewriter;

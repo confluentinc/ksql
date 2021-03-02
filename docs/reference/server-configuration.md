@@ -1,5 +1,3 @@
-<<<<<<< HEAD:docs/reference/server-configuration.md
-=======
 ---
 layout: page
 title: ksqlDB Server Configuration Parameter Reference
@@ -8,7 +6,6 @@ description: Parameters for onfiguring ksqlDB Server
 keywords: ksqldb, configure, server, setup, install
 ---
 
->>>>>>> master:docs/reference/server-configuration.md
 # Server configuration
 
 These configuration parameters control the general behavior of ksqlDB server.
@@ -34,11 +31,7 @@ For more information on setting properties, see
     name by converting to uppercase, replacing periods with underscores, and
     prepending with `KSQL_`. For example, the name of the `ksql.service.id`
     environment variable is `KSQL_KSQL_SERVICE_ID`. For more information,
-<<<<<<< HEAD:docs/reference/server-configuration.md
-    see [Install ksqlDB with Docker](../install-ksqldb-with-docker.md).
-=======
     see [Install ksqlDB with Docker](/operate-and-deploy/installation/install-ksqldb-with-docker).
->>>>>>> master:docs/reference/server-configuration.md
 
 ## `ksql.advertised.listener`
 
@@ -67,11 +60,6 @@ use `localhost` and the configuration port specified in the
 The connect worker configuration file, if spinning up {{ site.kconnect }}
 alongside the ksqlDB server. Don't set this property if you're using
 an external `ksql.connect.url`.
-
-## `ksql.connect.polling.enable`
-
-Toggles whether or not to poll connect for new connectors and
-automatically register them in ksqlDB.
 
 ## `ksql.fail.on.deserialization.error`
 
@@ -108,18 +96,21 @@ to your ksqlDB Server properties file:
 ksql.fail.on.production.error=false
 ```
 
+## `ksql.functions.collect_list.limit`
+
+Limit the size of the resultant Array to N entries, beyond which
+any further values are silently ignored, by setting this configuration to N.
+
+Also see [aggregate-functions](/reference/aggregate-functions)
+
+## `ksql.functions.collect_set.limit`
+
+Limits the size of the resultant Set to N entries, beyond which
+any further values are silently ignored, by setting this configuration to N.
+
+Also see [aggregate-functions](/reference/aggregate-functions)
+
 ## `ksql.functions.substring.legacy.args`
-<<<<<<< HEAD:docs/reference/server-configuration.md
-
-**Per query:** yes
-
-Controls the semantics of the SUBSTRING UDF. Refer to the SUBSTRING
-documentation in the [function](../../../developer-guide/ksqldb-reference/scalar-functions.md)
-guide for details.
-
-## `ksql.internal.listener`
-
-=======
 
 **Per query:** yes
 
@@ -129,7 +120,6 @@ guide for details.
 
 ## `ksql.internal.listener`
 
->>>>>>> master:docs/reference/server-configuration.md
 The `ksql.internal.listener` setting controls the address bound for use by internal,
 intra-cluster communication.
 
@@ -159,19 +149,6 @@ property , and the replication factor is taken from the
 [ksql.logging.processing.topic.replication.factor](#ksqlloggingprocessingtopicreplicationfactor)
 property. By default, this property has the value `false`.
 
-<<<<<<< HEAD:docs/reference/server-configuration.md
-## `ksql.logging.processing.topic.auto.create`
-
-Toggles automatic processing log topic creation. If set to true, ksqlDB
-automatically tries to create a processing log topic at startup.
-The name of the topic is the value of the
-[ksql.logging.processing.topic.name](#ksqlloggingprocessingtopicname) property.
-The number of partitions is taken from the
-[ksql.logging.processing.topic.partitions](#ksqlloggingprocessingtopicpartitions)
-property , and the replication factor is taken from the
-[ksql.logging.processing.topic.replication.factor](#ksqlloggingprocessingtopicreplicationfactor)
-property. By default, this property has the value `false`.
-
 ## `ksql.logging.processing.topic.name`
 
 If automatic processing log topic creation is enabled, ksqlDB sets the
@@ -195,31 +172,6 @@ default, this property has the value `1`.
 
 ## `ksql.logging.processing.stream.auto.create`
 
-=======
-## `ksql.logging.processing.topic.name`
-
-If automatic processing log topic creation is enabled, ksqlDB sets the
-name of the topic to the value of this property. If automatic processing
-log stream creation is enabled, ksqlDB uses this topic to back the stream.
-By default, this property has the value
-`<service id>ksql_processing_log`, where `<service id>` is the value of
-the [ksql.service.id](#ksqlserviceid) property.
-
-## `ksql.logging.processing.topic.partitions`
-
-If automatic processing log topic creation is enabled, ksqlDB creates the
-topic with number of partitions set to the value of this property. By
-default, this property has the value `1`.
-
-## `ksql.logging.processing.topic.replication.factor`
-
-If automatic processing log topic creation is enabled, ksqlDB creates the
-topic with number of replicas set to the value of this property. By
-default, this property has the value `1`.
-
-## `ksql.logging.processing.stream.auto.create`
-
->>>>>>> master:docs/reference/server-configuration.md
 Toggles automatic processing log stream creation. If set to true, and
 ksqlDB is running in interactive mode on a new cluster, ksqlDB automatically
 creates a processing log stream when it starts up. The name for the
@@ -230,44 +182,6 @@ property. The stream is created over the topic set in the
 By default, this property has the value `false`.
 
 ## `ksql.logging.processing.stream.name`
-<<<<<<< HEAD:docs/reference/server-configuration.md
-
-If automatic processing log stream creation is enabled, ksqlDB sets the
-name of the stream to the value of this property. By default, this
-property has the value `KSQL_PROCESSING_LOG`.
-
-## `ksql.logging.processing.rows.include`
-
-Toggles whether or not the processing log should include rows in log
-messages. By default, this property has the value `false`.
-
-## `ksql.logging.server.rate.limited.response.codes`
-
-A list of `code:qps` pairs, to limit the rate of server request
-logging.  An example would be "400:10" which would limit 400 error
-logs to 10 per second.  This is useful for limiting certain 4XX errors that you
-might not want to blow up in the logs.
-This setting enables seeing the logs when the request rate is low 
-and dropping them when they go over the threshold.
-A message will be logged every 5 seconds indicating if the rate limit
-is being hit, so an absence of this message means a complete set of logs.
-
-## `ksql.logging.server.rate.limited.request.paths`
-
-A list of `path:qps` pairs, to limit the rate of server request
-logging.  An example would be "/query:10" which would limit pull query
-logs to 10 per second. This is useful for requests that are coming in
-at a high rate, such as for pull queries.
-This setting enables seeing the logs when the request rate is low
-and dropping them when they go over the threshold.
-A message will be logged every 5 seconds indicating if the rate limit
-is being hit, so an absence of this message means a complete set of logs.
-
-## `ksql.metrics.tags.custom`
-
-A list of tags to be included with emitted
-[JMX metrics](../../index.md#monitoring-and-metrics), formatted as
-=======
 
 If automatic processing log stream creation is enabled, ksqlDB sets the
 name of the stream to the value of this property. By default, this
@@ -304,7 +218,6 @@ is being hit, so an absence of this message means a complete set of logs.
 
 A list of tags to be included with emitted
 [JMX metrics](/operate-and-deploy/monitoring), formatted as
->>>>>>> master:docs/reference/server-configuration.md
 a string of `key:value` pairs separated by commas. For example,
 `key1:value1,key2:value2`.
 
@@ -316,11 +229,7 @@ value of `ksql.output.topic.name.prefix` to the names of automatically
 created output topics. For example, you might use "ksql-interactive-"
 to name output topics in a ksqlDB Server cluster that's deployed in
 interactive mode. For more information, see
-<<<<<<< HEAD:docs/reference/server-configuration.md
-[Interactive ksqlDB clusters](security.md#interactive-ksqldb-clusters).
-=======
 [Interactive ksqlDB clusters](/operate-and-deploy/installation/server-config/security#interactive-ksqldb-clusters).
->>>>>>> master:docs/reference/server-configuration.md
 
 ## `ksql.persistence.default.format.key`
 
@@ -420,38 +329,6 @@ statements.
     Not all formats support wrapping and unwrapping. If you use a format that doesn't support
     the default value you set, the format ignores the setting. For information on which formats
     support wrapping and unwrapping, see the [serialization docs](/reference/serialization).
-<<<<<<< HEAD:docs/reference/server-configuration.md
-
-## `ksql.schema.registry.url`
-
-**Per query:** yes
-
-The {{ site.sr }} URL path to connect ksqlDB to. To communicate with {{ site.sr }}
-over a secure connection, see
-[Configure ksqlDB for Secured {{ site.srlong }}](security.md#configure-ksqldb-for-https).
-
-## `ksql.service.id`
-
-**Per query:** yes
-
-The service ID of the ksqlDB server. This is used to define the ksqlDB
-cluster membership of a ksqlDB Server instance.
-
-- If multiple ksqlDB servers connect to the same {{ site.ak }} cluster
-  (i.e. the same `bootstrap.servers` *and* the same `ksql.service.id`)
-  they form a ksqlDB cluster and share the workload.
-
-- If multiple ksqlDB servers connect to the same {{ site.ak }} cluster but
-  *don't* have the same `ksql.service.id`, they each get a different command
-  topic and form separate ksqlDB clusters, by `ksql.service.id`.  
-
-By default, the service ID of ksqlDB servers is `default_`. The service ID
-is also used as the prefix for the internal topics created by ksqlDB.
-Using the default value `ksql.service.id`, the ksqlDB internal topics will
-be prefixed as `_confluent-ksql-default_`. For example, `_command_topic`
-becomes `_confluent-ksql-default__command_topic`).
-
-=======
 
 ## `ksql.schema.registry.url`
 
@@ -482,20 +359,13 @@ Using the default value `ksql.service.id`, the ksqlDB internal topics will
 be prefixed as `_confluent-ksql-default_`. For example, `_command_topic`
 becomes `_confluent-ksql-default__command_topic`).
 
->>>>>>> master:docs/reference/server-configuration.md
 !!! important
     By convention, the `ksql.service.id` property should end with a
     separator character of some form, like a dash or underscore, as
     this makes the internal topic names easier to read.
-<<<<<<< HEAD:docs/reference/server-configuration.md
 
 ## `ksql.streams.auto.offset.reset`
 
-=======
-
-## `ksql.streams.auto.offset.reset`
-
->>>>>>> master:docs/reference/server-configuration.md
 Determines what to do when there is no initial offset in {{ site.aktm }}
 or if the current offset doesn't exist on the server. The default
 value in ksqlDB is `latest`, which means all {{ site.ak }} topics are read from
@@ -507,7 +377,7 @@ SET 'auto.offset.reset'='earliest';
 ```
 
 For more information, see [Kafka Consumer](https://docs.confluent.io/current/clients/consumer.html) and
-[AUTO_OFFSET_RESET_CONFIG](https://docs.confluent.io/{{ site.release }}/clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#AUTO_OFFSET_RESET_CONFIG).
+[AUTO_OFFSET_RESET_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#AUTO_OFFSET_RESET_CONFIG).
 
 ## `ksql.streams.bootstrap.servers`
 
@@ -523,7 +393,7 @@ SET 'bootstrap.servers'='localhost:9095';
 For more information, see
 [Streams parameter reference](https://docs.confluent.io/current/streams/developer-guide/config-streams.html#configuration-parameter-reference)
 and 
-[BOOTSTRAP_SERVERS_CONFIG](https://docs.confluent.io/{{ site.release }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#BOOTSTRAP_SERVERS_CONFIG).
+[BOOTSTRAP_SERVERS_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#BOOTSTRAP_SERVERS_CONFIG).
 
 ## `ksql.streams.commit.interval.ms`
 
@@ -538,7 +408,7 @@ SET 'commit.interval.ms'='5000';
 For more information, see the
 [Streams parameter reference](https://docs.confluent.io/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
 and 
-[COMMIT_INTERVAL_MS_CONFIG](https://docs.confluent.io/{{ site.release }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#COMMIT_INTERVAL_MS_CONFIG),
+[COMMIT_INTERVAL_MS_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#COMMIT_INTERVAL_MS_CONFIG),
 
 ## `ksql.streams.cache.max.bytes.buffering`
 
@@ -553,7 +423,7 @@ SET 'cache.max.bytes.buffering'='20000000';
 For more information, see the
 [Streams parameter reference](https://docs.confluent.io/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
 and
-[CACHE_MAX_BYTES_BUFFERING_CONFIG](https://docs.confluent.io/{{ site.release }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG).
+[CACHE_MAX_BYTES_BUFFERING_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG).
 
 ## `ksql.streams.num.stream.threads`
 
@@ -598,11 +468,7 @@ limit to prevent users from overloading the server with too many
 queries, since throughput suffers as more queries are run
 simultaneously, and also because there is some small CPU overhead
 associated with starting each new query. For more information, see
-<<<<<<< HEAD:docs/reference/server-configuration.md
-[Sizing Recommendations](../../capacity-planning.md#recommendations-and-best-practices).
-=======
 [Sizing Recommendations](/operate-and-deploy/capacity-planning).
->>>>>>> master:docs/reference/server-configuration.md
 
 ## `ksql.query.pull.enable.standby.reads`
 
@@ -630,6 +496,29 @@ the pull query REST endpoint (by including it in the request e.g: `"streamsPrope
 By default, any amount of lag is allowed. For using this functionality, the server must be configured with `ksql.heartbeat.enable=true` and 
 `ksql.lag.reporting.enable=true`, so the servers can exchange lag information between themselves ahead of time, to validate pull queries against the allowed lag.
 
+## `ksql.query.pull.table.scan.enabled`
+
+**Per query:** yes
+
+Config to control whether table scans are permitted when executing pull queries. Without this enabled, only key lookups are used. Enabling table scans
+removes various restrictions on what types of queries are allowed. In particular, these pull query types are now permitted:
+
+- No WHERE clause
+- Range queries on keys
+- Equality and range queries on non-key columns
+- Multi-column key queries without specifying all key columns
+
+There may be significant performance implications to using these types of queries, depending on the size of the data and other workloads running, so use this config carefully.
+
+Also, note that this config can be set on the CLI, but only used to disable table scans:
+
+```sql
+SET 'ksql.query.pull.table.scan.enabled'='false';
+```
+
+The server will reject requests that attempt to enable table scans. Disabling table scans per 
+request can be useful when throwing an error is preferable to doing the potentially expensive scan.
+
 ## `ksql.variable.substitution.enable`
 
 Enables variable substitution through [`DEFINE`](../../../../developer-guide/ksqldb-reference/define) statements.
@@ -638,11 +527,7 @@ Enables variable substitution through [`DEFINE`](../../../../developer-guide/ksq
 
 The `listeners` setting controls the REST API endpoint for the ksqlDB
 Server. For more info, see
-<<<<<<< HEAD:docs/reference/server-configuration.md
-[ksqlDB REST API Reference](../../../developer-guide/api.md).
-=======
 [ksqlDB REST API Reference](/developer-guide/api).
->>>>>>> master:docs/reference/server-configuration.md
 
 The default `listeners` is `http://0.0.0.0:8088`, which binds to all
 IPv4 interfaces. Set `listeners` to `http://[::]:8088` to bind to all
@@ -664,11 +549,7 @@ listeners=http://server1245:8088
 ```
 
 You can configure ksqlDB Server to use HTTPS. For more information, see
-<<<<<<< HEAD:docs/reference/server-configuration.md
-[Configure ksqlDB for HTTPS](security.md#configure-ksqldb-for-https).
-=======
 [Configure ksqlDB for HTTPS](/operate-and-deploy/installation/server-config/security#configure-ksqldb-for-https).
->>>>>>> master:docs/reference/server-configuration.md
 
 ## `response.http.headers.config`
 
@@ -690,13 +571,8 @@ response.http.headers.config="add Cache-Control: no-cache, no-store, must-revali
 The default number of partitions for the topics created by ksqlDB. The
 default is four. This property has been deprecated.
 For more info see the WITH clause properties in
-<<<<<<< HEAD:docs/reference/server-configuration.md
-[CREATE STREAM AS SELECT](../../../developer-guide/ksqldb-reference/create-stream-as-select.md) and
-[CREATE TABLE AS SELECT](../../../developer-guide/ksqldb-reference/create-table-as-select.md).
-=======
 [CREATE STREAM AS SELECT](/developer-guide/ksqldb-reference/create-stream-as-select) and
 [CREATE TABLE AS SELECT](/developer-guide/ksqldb-reference/create-table-as-select).
->>>>>>> master:docs/reference/server-configuration.md
 
 ## `ksql.sink.replicas` (Deprecated)
 
@@ -705,10 +581,5 @@ For more info see the WITH clause properties in
 The default number of replicas for the topics created by ksqlDB. The
 default is one. This property has been deprecated. For
 more info see the WITH clause properties in
-<<<<<<< HEAD:docs/reference/server-configuration.md
-[CREATE STREAM AS SELECT](../../../developer-guide/ksqldb-reference/create-stream-as-select.md) and
-[CREATE TABLE AS SELECT](../../../developer-guide/ksqldb-reference/create-table-as-select.md).
-=======
 [CREATE STREAM AS SELECT](/developer-guide/ksqldb-reference/create-stream-as-select) and
 [CREATE TABLE AS SELECT](/developer-guide/ksqldb-reference/create-table-as-select).
->>>>>>> master:docs/reference/server-configuration.md

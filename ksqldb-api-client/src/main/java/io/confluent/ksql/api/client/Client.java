@@ -225,6 +225,16 @@ public interface Client {
   CompletableFuture<SourceDescription> describeSource(String sourceName);
 
   /**
+   * Returns metadata about the ksqlDB server.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @return metadata for server
+   */
+  CompletableFuture<ServerInfo> serverInfo();
+
+  /**
    * Closes the underlying HTTP client.
    */
   void close();

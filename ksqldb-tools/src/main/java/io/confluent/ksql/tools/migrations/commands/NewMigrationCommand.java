@@ -15,23 +15,119 @@
 
 package io.confluent.ksql.tools.migrations.commands;
 
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.MIGRATIONS_CONFIG_FILE;
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.MIGRATIONS_DIR;
+
 import com.github.rvesse.airline.annotations.Arguments;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.restrictions.Required;
+import io.confluent.ksql.tools.migrations.MigrationConfig;
+import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.nio.file.FileSystemException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Command(
-    name = "new",
+    name = NewMigrationCommand.NEW_COMMAND_NAME,
     description = "Creates a new migrations project, directory structure and config file."
 )
 public class NewMigrationCommand extends BaseCommand {
 
+  static final String NEW_COMMAND_NAME = "new";
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(NewMigrationCommand.class);
+
   @Required
-  @Arguments(description = "the project path to create the directory", title = "project-path")
-  private String projectPath;
+  @Arguments(
+      description = "project-path: the project path to create the directory\n"
+          + "ksql-server-url: the address of the ksqlDB server to connect to",
+      title = {"project-path", "ksql-server-url"})
+  private List<String> args;
 
   @Override
-  public void run() {
-    throw new UnsupportedOperationException();
+  protected int command() {
+    if (args.size() != 2) {
+      LOGGER.error(
+          "Unexpected number of arguments to `{} {}}`. Expected: 2. Got: {}. "
+              + "See `{} help {}` for usage.",
+          MigrationsUtil.MIGRATIONS_COMMAND, NEW_COMMAND_NAME, args.size(),
+          MigrationsUtil.MIGRATIONS_COMMAND, NEW_COMMAND_NAME);
+      return 1;
+    }
+
+    final String projectPath = args.get(0);
+    final String ksqlServerUrl = args.get(1);
+    if (tryCreateDirectory(projectPath)
+        && tryCreateDirectory(Paths.get(projectPath, MIGRATIONS_DIR).toString())
+        && tryCreatePropertiesFile(
+            Paths.get(projectPath, MIGRATIONS_CONFIG_FILE).toString(),
+            ksqlServerUrl)
+    ) {
+      LOGGER.info("Migrations project directory created successfully");
+      return 0;
+    } else {
+      return 1;
+    }
   }
 
+  @Override
+  protected Logger getLogger() {
+    return LOGGER;
+  }
+
+  private boolean tryCreateDirectory(final String path) {
+    final File directory = new File(path);
+
+    if (directory.exists() && directory.isDirectory()) {
+      LOGGER.warn(path + " already exists. Skipping directory creation.");
+      return true;
+    } else if (directory.exists() && !directory.isDirectory()) {
+      LOGGER.error(path + " already exists as a file. Cannot create directory.");
+      return false;
+    }
+
+    try {
+      LOGGER.info("Creating directory: " + path);
+      Files.createDirectories(Paths.get(path));
+    } catch (FileSystemException e) {
+      LOGGER.error("Permission denied: create directory " + path);
+      return false;
+    } catch (IOException e) {
+      LOGGER.error(String.format("Failed to create directory %s: %s", path, e.getMessage()));
+      return false;
+    }
+    return true;
+  }
+
+  private boolean tryCreatePropertiesFile(final String path, final String ksqlServerUrl) {
+    try {
+      LOGGER.info("Creating file: " + path);
+      if (!new File(path).createNewFile()) {
+        LOGGER.warn(path + " already exists. Skipping file creation.");
+      }
+    } catch (IOException e) {
+      LOGGER.error(String.format("Failed to create file %s: %s", path, e.getMessage()));
+      return false;
+    }
+
+    final String initialConfig = MigrationConfig.KSQL_SERVER_URL + "=" + ksqlServerUrl;
+    LOGGER.info("Writing to config file: " + initialConfig);
+    try (PrintWriter out = new PrintWriter(path, Charset.defaultCharset().name())) {
+      out.println(initialConfig);
+    } catch (FileNotFoundException | UnsupportedEncodingException e) {
+      LOGGER.error(String.format("Failed to write to config file %s: %s", path, e.getMessage()));
+      return false;
+    }
+
+    return true;
+  }
 }

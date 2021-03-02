@@ -21,7 +21,7 @@ complete setup in the [quickstart](https://ksqldb.io/quickstart.html).
 
 ```yaml
 ksqldb-server:
-  image: confluentinc/ksqldb-server:{{ site.release }}
+  image: confluentinc/ksqldb-server:{{ site.ksqldbversion }}
   hostname: ksqldb-server
   container_name: ksqldb-server
   depends_on:

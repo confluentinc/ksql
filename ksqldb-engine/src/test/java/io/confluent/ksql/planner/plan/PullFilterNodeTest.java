@@ -18,6 +18,7 @@ package io.confluent.ksql.planner.plan;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isA;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
@@ -41,6 +42,7 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.planner.PullPlannerOptions;
 import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds;
 import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds.WindowRange;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -83,6 +85,8 @@ public class PullFilterNodeTest {
   private MetaStore metaStore;
   @Mock
   private KsqlConfig ksqlConfig;
+  @Mock
+  private PullPlannerOptions plannerOptions;
 
   @Before
   public void setUp() {
@@ -104,7 +108,8 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        false
+        false,
+        plannerOptions
     );
 
     // When:
@@ -136,7 +141,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
+            false,
+            plannerOptions
         ));
 
     // Then:
@@ -158,7 +164,8 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        false
+        false,
+        plannerOptions
     );
 
     // When:
@@ -196,8 +203,8 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        false
-    );
+        false,
+        plannerOptions);
 
     // When:
     final List<LookupConstraint> keys = filterNode.getLookupConstraints();
@@ -228,8 +235,8 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        false
-    );
+        false,
+        plannerOptions);
 
     // When:
     final List<LookupConstraint> keys = filterNode.getLookupConstraints();
@@ -261,7 +268,8 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
@@ -299,7 +307,8 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
@@ -343,7 +352,8 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
@@ -387,7 +397,8 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
@@ -431,7 +442,8 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
@@ -475,7 +487,8 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
@@ -519,7 +532,8 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
@@ -563,7 +577,8 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
@@ -607,7 +622,8 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
@@ -651,7 +667,8 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
@@ -706,7 +723,8 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
@@ -755,7 +773,8 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
@@ -800,7 +819,8 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
@@ -831,12 +851,28 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            true
+            true,
+            plannerOptions
         ));
 
     // Then:
     assertThat(e.getMessage(), containsString("WHERE clause missing key column for disjunct: "
         + "(WINDOWSTART = 1234)"));
+  }
+
+  @Test
+  public void shouldExtractConstraintForSpecialCol_tableScan() {
+    // Given:
+    when(plannerOptions.getTableScansEnabled()).thenReturn(true);
+    when(source.getSchema()).thenReturn(INPUT_SCHEMA);
+    final Expression expression = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("WINDOWSTART")),
+        new IntegerLiteral(1234)
+    );
+
+    // Then:
+    expectTableScan(expression, true);
   }
 
   @Test
@@ -868,7 +904,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            true
+            true,
+            plannerOptions
         ));
 
     // Then:
@@ -896,13 +933,28 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
-        ));
+            false,
+            plannerOptions));
 
     // Then:
     assertThat(e.getMessage(), containsString(
         "Multi-column sources must specify every key in the WHERE clause. "
             + "Specified: [`K1`] Expected: [`K1` INTEGER KEY, `K2` INTEGER KEY]"));
+  }
+
+  @Test
+  public void shouldExtractConstraintForMultiKeyExpressionsThatDontCoverAllKeys_tableScan() {
+    // Given:
+    when(plannerOptions.getTableScansEnabled()).thenReturn(true);
+    when(source.getSchema()).thenReturn(MULTI_KEY_SCHEMA);
+    final Expression expression = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K1")),
+        new IntegerLiteral(1)
+    );
+
+    // Then:
+    expectTableScan(expression, false);
   }
 
 
@@ -924,11 +976,12 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
+            false,
+            plannerOptions
         ));
 
     // Then:
-    assertThat(e.getMessage(), containsString("Bound on non-key column `C1`."));
+    assertThat(e.getMessage(), containsString("Bound on non-existent column `C1`."));
   }
 
   @Test
@@ -945,7 +998,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
+            false,
+            plannerOptions
         ));
 
     // Then:
@@ -971,11 +1025,27 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
+            false,
+            plannerOptions
         ));
 
     // Then:
     assertThat(e.getMessage(), containsString("Bound on key columns '[`K` INTEGER KEY]' must currently be '='."));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldExtractConstraintWithLiteralRange_tableScan() {
+    // Given:
+    when(plannerOptions.getTableScansEnabled()).thenReturn(true);
+    final Expression expression = new ComparisonExpression(
+        Type.GREATER_THAN,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+        new IntegerLiteral(1)
+    );
+
+    // Then:
+    expectTableScan(expression, false);
   }
 
   @Test
@@ -1007,7 +1077,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
+            false,
+            plannerOptions
         ));
 
     // Then:
@@ -1033,7 +1104,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
+            false,
+            plannerOptions
         ));
 
     // Then:
@@ -1064,7 +1136,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
+            false,
+            plannerOptions
         ));
 
     // Then:
@@ -1072,7 +1145,7 @@ public class PullFilterNodeTest {
   }
 
   @Test
-  public void shouldThrowOnMultiKeyExpressions() {
+  public void shouldThrowOnMultipleKeyExpressions() {
     // Given:
     final Expression expression1 = new ComparisonExpression(
         Type.EQUAL,
@@ -1099,11 +1172,79 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
+            false,
+            plannerOptions
         ));
 
     // Then:
     assertThat(e.getMessage(), containsString("An equality condition on the key column cannot be combined with other comparisons"));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldExtractConstraintWithMultipleKeyExpressions_tableScan() {
+    // Given:
+    when(plannerOptions.getTableScansEnabled()).thenReturn(true);
+    final Expression expression1 = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+        new IntegerLiteral(1)
+    );
+    final Expression expression2 = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+        new IntegerLiteral(2)
+    );
+    final Expression expression  = new LogicalBinaryExpression(
+        LogicalBinaryExpression.Type.AND,
+        expression1,
+        expression2
+    );
+
+    // Then:
+    expectTableScan(expression, false);
+  }
+
+  @Test
+  public void shouldThrowOnNonKeyCol() {
+    // Given:
+    final Expression expression = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("COL0")),
+        new StringLiteral("abc")
+    );
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> new PullFilterNode(
+            NODE_ID,
+            source,
+            expression,
+            metaStore,
+            ksqlConfig,
+            false,
+            plannerOptions
+        ));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("WHERE clause missing key column for disjunct: "
+        + "(COL0 = 'abc')"));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldExtractConstraintWithNonKeyCol_tableScan() {
+    // Given:
+    when(plannerOptions.getTableScansEnabled()).thenReturn(true);
+    final Expression expression = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("COL0")),
+        new StringLiteral("abc")
+    );
+
+    // Then:
+    expectTableScan(expression, false);
   }
 
   @Test
@@ -1134,7 +1275,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
+            false,
+            plannerOptions
         ));
 
     // Then:
@@ -1169,7 +1311,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            true
+            true,
+            plannerOptions
         ));
 
     // Then:
@@ -1216,7 +1359,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            true
+            true,
+            plannerOptions
         ));
 
     // Then:
@@ -1262,7 +1406,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            true
+            true,
+            plannerOptions
         ));
 
     // Then:
@@ -1297,7 +1442,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            true
+            true,
+            plannerOptions
         ));
 
     // Then:
@@ -1343,7 +1489,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            true
+            true,
+            plannerOptions
         ));
 
     // Then:
@@ -1378,10 +1525,33 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
+            false,
+            plannerOptions
         ));
 
     // Then:
     assertThat(e.getMessage(), containsString("Cannot use WINDOWSTART/WINDOWEND on non-windowed source."));
+  }
+
+  @SuppressWarnings("unchecked")
+  private void expectTableScan(final Expression expression, final boolean windowed) {
+    // Given:
+    PullFilterNode filterNode = new PullFilterNode(
+        NODE_ID,
+        source,
+        expression,
+        metaStore,
+        ksqlConfig,
+        windowed,
+        plannerOptions
+    );
+
+    // When:
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
+
+    // Then:
+    assertThat(filterNode.isWindowed(), is(windowed));
+    assertThat(keys.size(), is(1));
+    assertThat(keys.get(0), isA((Class) NonKeyConstraint.class));
   }
 }

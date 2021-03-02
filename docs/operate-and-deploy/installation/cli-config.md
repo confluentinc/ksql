@@ -31,7 +31,7 @@ statement from within the ksqlDB CLI session. For more information, see
 
 Here are some common ksqlDB CLI properties that you can customize:
 
--   [ksql.streams.auto.offset.reset](server-config/config-reference.md#ksqlstreamsautooffsetreset)
--   [ksql.streams.cache.max.bytes.buffering](server-config/config-reference.md#ksqlstreamscachemaxbytesbuffering)
--   [ksql.streams.num.stream.threads](server-config/config-reference.md#ksqlstreamsnumstreamthreads)
+-   [ksql.streams.auto.offset.reset](/reference/server-configuration#ksqlstreamsautooffsetreset)
+-   [ksql.streams.cache.max.bytes.buffering](/reference/server-configuration#ksqlstreamscachemaxbytesbuffering)
+-   [ksql.streams.num.stream.threads](/reference/server-configuration#ksqlstreamsnumstreamthreads)
 

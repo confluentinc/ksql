@@ -762,7 +762,7 @@ public class KsqlConfig extends AbstractConfig {
         .define(
             KSQL_QUERY_PULL_METRICS_ENABLED,
             Type.BOOLEAN,
-            false,
+            true,
             Importance.LOW,
             KSQL_QUERY_PULL_METRICS_ENABLED_DOC
         )

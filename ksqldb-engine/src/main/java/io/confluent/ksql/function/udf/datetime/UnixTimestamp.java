@@ -24,18 +24,20 @@ import java.sql.Timestamp;
 @UdfDescription(
     name = "unix_timestamp",
     category = FunctionCategory.DATE_TIME,
-    description = "Gets the Unix timestamp in milliseconds, represented as a BIGINT.",
+    description = "Returns the current number of milliseconds for the system since "
+        + "1970-01-01 00:00:00 UTC/GMT.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class UnixTimestamp {
 
-  @Udf(description = "Gets a BIGINT millisecond from the Unix timestamp at the moment the"
-      + "function is called.")
+  @Udf(description = "Returns the current number of milliseconds for the system since "
+      + "1970-01-01 00:00:00 UTC/GMT.")
   public long unixTimestamp() {
     return System.currentTimeMillis();
   }
 
-  @Udf(description = "Returns the BIGINT millisecond representation of the given timestamp.")
+  @Udf(description = "Returns the number of milliseconds "
+      + "since 1970-01-01 00:00:00 UTC/GMT represented by the given timestamp.")
   public long unixTimestamp(
       @UdfParameter(
           description = "the TIMESTAMP value.") final Timestamp timestamp

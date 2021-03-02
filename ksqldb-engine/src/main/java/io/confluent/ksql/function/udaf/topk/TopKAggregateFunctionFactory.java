@@ -21,6 +21,7 @@ import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
@@ -48,14 +49,14 @@ public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
 
   @Override
   public KsqlAggregateFunction createAggregateFunction(
-      final List<SqlType> argumentType,
+      final List<SqlArgument> argumentType,
       final AggregateFunctionInitArguments initArgs
   ) {
     if (argumentType.isEmpty()) {
       throw new KsqlException("TOPK function should have two arguments.");
     }
     final int tkValFromArg = (Integer)(initArgs.arg(0));
-    final SqlType argSchema = argumentType.get(0);
+    final SqlType argSchema = argumentType.get(0).getSqlTypeOrThrow();
     switch (argSchema.baseType()) {
       case INTEGER:
         return new TopkKudaf<>(

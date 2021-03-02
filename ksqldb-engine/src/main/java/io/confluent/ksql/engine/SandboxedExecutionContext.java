@@ -28,6 +28,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
+import io.confluent.ksql.planner.PullPlannerOptions;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
@@ -127,11 +128,13 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
       final ServiceContext serviceContext,
       final ConfiguredKsqlPlan ksqlPlan
   ) {
-    return EngineExecutor.create(
+    final ExecuteResult result = EngineExecutor.create(
         engineContext,
         serviceContext,
         ksqlPlan.getConfig()
     ).execute(ksqlPlan.getPlan());
+    result.getQuery().ifPresent(query -> query.getKafkaStreams().close());
+    return result;
   }
 
   @Override
@@ -164,6 +167,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
       final ConfiguredStatement<Query> statement,
       final HARouting routing,
       final RoutingOptions routingOptions,
+      final PullPlannerOptions pullPlannerOptions,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final boolean startImmediately
   ) {
@@ -175,6 +179,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
         statement,
         routing,
         routingOptions,
+        pullPlannerOptions,
         pullQueryMetrics,
         startImmediately
     );

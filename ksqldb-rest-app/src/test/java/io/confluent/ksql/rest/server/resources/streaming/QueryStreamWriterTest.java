@@ -39,7 +39,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
 import java.io.ByteArrayOutputStream;
-import java.lang.Thread.UncaughtExceptionHandler;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
@@ -47,6 +46,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -73,7 +73,7 @@ public class QueryStreamWriterTest {
   @Mock
   private BlockingRowQueue rowQueue;
   @Captor
-  private ArgumentCaptor<UncaughtExceptionHandler> ehCapture;
+  private ArgumentCaptor<StreamsUncaughtExceptionHandler> ehCapture;
   @Captor
   private ArgumentCaptor<LimitHandler> limitHandlerCapture;
   private QueryStreamWriter writer;
@@ -229,7 +229,7 @@ public class QueryStreamWriterTest {
 
   private void givenUncaughtException(final KsqlException e) {
     verify(queryMetadata).setUncaughtExceptionHandler(ehCapture.capture());
-    ehCapture.getValue().uncaughtException(new Thread(), e);
+    ehCapture.getValue().handle(e);
   }
 
   private static Answer<Void> streamRows(final Object... rows) {

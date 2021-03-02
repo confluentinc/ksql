@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.codegen.helpers;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 
@@ -37,20 +38,12 @@ public final class LambdaUtil {
    * @param lambdaBody the body of the lambda.
    * @return code to instantiate the function.
    */
-  public static String function(
+  public static String toJavaCode(
       final String argName,
       final Class<?> argType,
       final String lambdaBody
   ) {
-    final String javaType = argType.getSimpleName();
-    final String function =  "new Function() {\n"
-        + " @Override\n"
-        + " public Object apply(Object arg) {\n"
-        + "   " + javaType + " " + argName + " = (" + javaType + ") arg;\n"
-        + "   return " + lambdaBody + ";\n"
-        + " }\n"
-        + "}";
-    return function;
+    return toJavaCode(ImmutableList.of(new Pair<>(argName, argType)), lambdaBody);
   }
 
   /**
@@ -62,7 +55,7 @@ public final class LambdaUtil {
    * @return code to instantiate the function.
    */
   // CHECKSTYLE_RULES.OFF: FinalLocalVariable
-  public static String function(
+  public static String toJavaCode(
       final List<Pair<String, Class<?>>> argList,
       final String lambdaBody
   ) {
@@ -72,13 +65,14 @@ public final class LambdaUtil {
       i++;
       final String javaType = argPair.right.getSimpleName();
       arguments.append(
-          "   " + javaType + " " + argPair.left + " = (" + javaType + ") arg" + i + ";\n");
+          "   " + "final" + " " + javaType + " " + argPair.left
+              + " = (" + javaType + ") arg" + i + ";\n");
     }
     String functionType;
     String functionApply;
     if (argList.size() == 1) {
       functionType = "Function()";
-      functionApply = " public Object apply(Object arg) {\n";
+      functionApply = " public Object apply(Object arg1) {\n";
     } else if (argList.size() == 2) {
       functionType = "BiFunction()";
       functionApply = " public Object apply(Object arg1, Object arg2) {\n";

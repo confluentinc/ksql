@@ -18,6 +18,7 @@ package io.confluent.ksql.serde.protobuf;
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
+import com.google.protobuf.Timestamp;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -63,6 +64,13 @@ public class KsqlProtobufSerializerTest {
                           "    { key: \"scale\", value: \"2\" }\n" +
                           "  ]}];\n" +
                           "}\n");
+  private static final ParsedSchema TIMESTAMP_SCHEMA =
+      parseProtobufSchema(
+          "syntax = \"proto3\";\n" +
+              "\n" +
+              "import \"google/protobuf/timestamp.proto\";\n" +
+              "\n" +
+              "message ConnectDefault1 {google.protobuf.Timestamp F1 = 1;}\n");
 
   private static final String SOME_TOPIC = "bob";
 
@@ -91,6 +99,16 @@ public class KsqlProtobufSerializerTest {
         decimal,
         DECIMAL_SCHEMA,
         bytes
+    );
+  }
+
+  @Test
+  public void shouldSerializeTimestampField() {
+    shouldSerializeFieldTypeCorrectly(
+        org.apache.kafka.connect.data.Timestamp.SCHEMA,
+        new java.sql.Timestamp(2000),
+        TIMESTAMP_SCHEMA,
+        Timestamp.newBuilder().setSeconds(2).setNanos(0).build()
     );
   }
 
@@ -123,8 +141,7 @@ public class KsqlProtobufSerializerTest {
     final Message record = deserialize(bytes);
     assertThat(record.getAllFields().size(), equalTo(1));
     Descriptors.FieldDescriptor field = record.getDescriptorForType().findFieldByName("field0");
-    assertThat(DecimalUtils.toBigDecimal((Message) record.getField(field)),
-            equalTo(DecimalUtils.toBigDecimal(protobufValue)));
+    assertThat(record.getField(field).toString(), equalTo(protobufValue.toString()));
   }
 
   private <T> Serializer<T> givenSerializerForSchema(

@@ -328,7 +328,7 @@ public class ApiIntegrationTest {
     String sql = "SELECT * from " + AGG_TABLE + " WHERE LONG=12345;";
 
     // Then:
-    shouldFailToExecuteQuery(sql, "WHERE clause on non-key column: LONG");
+    shouldFailToExecuteQuery(sql, "WHERE clause missing key column for disjunct: (LONG = 12345).");
   }
 
   @Test

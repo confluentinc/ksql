@@ -37,6 +37,7 @@ import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.LookupConstraint;
+import io.confluent.ksql.planner.plan.NonKeyConstraint;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PullFilterNode;
@@ -176,8 +177,14 @@ public class PullPhysicalPlanBuilder {
   private AbstractPhysicalOperator translateDataSourceNode(
       final DataSourceNode logicalNode
   ) {
+    boolean isTableScan = false;
     if (!seenSelectOperator) {
       lookupConstraints = Collections.emptyList();
+      isTableScan = true;
+    } else if (lookupConstraints.stream().anyMatch(lc -> lc instanceof NonKeyConstraint)) {
+      isTableScan = true;
+    }
+    if (isTableScan) {
       if (!logicalNode.isWindowed()) {
         return new TableScanOperator(mat, logicalNode);
       } else {

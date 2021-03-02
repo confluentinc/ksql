@@ -27,6 +27,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.TimeZone;
 import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,10 +45,11 @@ public class FormatTimestampTest {
     // When:
     final String result = udf.formatTimestamp(new Timestamp(1638360611123L),
         "yyyy-MM-dd HH:mm:ss.SSS");
+    final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
 
     // Then:
-    final String expectedResult = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
-        .format(new Date(1638360611123L));
+    final String expectedResult = sdf.format(new Date(1638360611123L));
     assertThat(result, is(expectedResult));
   }
 
@@ -69,21 +71,6 @@ public class FormatTimestampTest {
 
     // Then:
     assertThat(result, is("2018-08-15 10:10:43"));
-  }
-
-  @Test
-  public void testTimeZoneInLocalTime() {
-    // Given:
-    final Timestamp timestamp = new Timestamp(1534353043000L);
-
-    // When:
-    final String localTime = udf.formatTimestamp(timestamp, "yyyy-MM-dd HH:mm:ss zz");
-
-    // Then:
-    final String expected = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss zz")
-        .format(timestamp);
-
-    assertThat(localTime, is(expected));
   }
 
   @Test
@@ -134,8 +121,9 @@ public class FormatTimestampTest {
         "yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'");
 
     // Then:
-    final String expectedResult = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'")
-        .format(new Date(1638360611123L));
+    final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Fred'");
+    sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+    final String expectedResult = sdf.format(new Date(1638360611123L));
     assertThat(result, is(expectedResult));
   }
 
@@ -170,7 +158,9 @@ public class FormatTimestampTest {
             final String pattern = "yyyy-MM-dd HH:mm:ss.SSS'X" + idx + "'";
             final Timestamp timestamp = new Timestamp(1538361611123L + idx);
             final String result = udf.formatTimestamp(timestamp, pattern);
-            final String expectedResult = new SimpleDateFormat(pattern).format(timestamp);
+            final SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+            sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+            final String expectedResult = sdf.format(timestamp);
             assertThat(result, is(expectedResult));
           } catch (final Exception e) {
             fail(e.getMessage());
@@ -187,7 +177,9 @@ public class FormatTimestampTest {
         .forEach(idx -> {
           final Timestamp timestamp = new Timestamp(1538361611123L + idx);
           final String result = udf.formatTimestamp(timestamp, pattern);
-          final String expectedResult = new SimpleDateFormat(pattern).format(timestamp);
+          final SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+          sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+          final String expectedResult = sdf.format(timestamp);
           assertThat(result, is(expectedResult));
 
           final Timestamp roundtripTimestamp = parseTimestamp.parseTimestamp(result, pattern);
@@ -225,7 +217,9 @@ public class FormatTimestampTest {
   }
 
   private void assertLikeSimpleDateFormat(final String format) {
-    final String expected = new SimpleDateFormat(format).format(1538361611123L);
+    final SimpleDateFormat sdf = new SimpleDateFormat(format);
+    sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+    final String expected = sdf.format(1538361611123L);
     final Object result = new FormatTimestamp()
         .formatTimestamp(new Timestamp(1538361611123L), format);
     assertThat(result, is(expected));

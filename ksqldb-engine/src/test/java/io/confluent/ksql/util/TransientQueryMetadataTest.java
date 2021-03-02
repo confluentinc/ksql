@@ -85,7 +85,9 @@ public class TransientQueryMetadataTest {
         closeCallback,
         CLOSE_TIMEOUT,
         10,
-        ResultType.STREAM
+        ResultType.STREAM,
+        0L,
+        0L
     );
   }
 

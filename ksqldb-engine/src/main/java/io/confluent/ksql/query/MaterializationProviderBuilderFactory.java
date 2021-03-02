@@ -31,14 +31,15 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.Topology;
 
 public final class MaterializationProviderBuilderFactory {
   // Interface used for Function alias
   public interface MaterializationProviderBuilder
-      extends Function<KafkaStreams, Optional<MaterializationProvider>> {
+      extends BiFunction<KafkaStreams, Topology, Optional<MaterializationProvider>> {
   }
 
   private final KsqlConfig ksqlConfig;
@@ -67,8 +68,9 @@ public final class MaterializationProviderBuilderFactory {
       final Map<String, Object> streamsProperties,
       final String applicationId
   ) {
-    return (kafkaStreams) -> buildMaterializationProvider(
+    return (kafkaStreams, topology) -> buildMaterializationProvider(
         kafkaStreams,
+        topology,
         materializationInfo,
         querySchema,
         keyFormat,
@@ -79,6 +81,7 @@ public final class MaterializationProviderBuilderFactory {
 
   private Optional<MaterializationProvider> buildMaterializationProvider(
       final KafkaStreams kafkaStreams,
+      final Topology topology,
       final MaterializationInfo materializationInfo,
       final PhysicalSchema schema,
       final KeyFormat keyFormat,
@@ -99,6 +102,7 @@ public final class MaterializationProviderBuilderFactory {
         .create(
             materializationInfo.stateStoreName(),
             kafkaStreams,
+            topology,
             materializationInfo.getStateStoreSchema(),
             keySerializer,
             keyFormat.getWindowInfo(),

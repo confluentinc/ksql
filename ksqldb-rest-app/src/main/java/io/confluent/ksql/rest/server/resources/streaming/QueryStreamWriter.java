@@ -35,6 +35,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -183,12 +185,13 @@ class QueryStreamWriter implements StreamingOutput {
     }
   }
 
-  private class StreamsExceptionHandler implements Thread.UncaughtExceptionHandler {
+  private class StreamsExceptionHandler implements StreamsUncaughtExceptionHandler {
     @Override
-    public void uncaughtException(final Thread thread, final Throwable exception) {
-      streamsException = exception instanceof Exception
-          ? (Exception) exception
-          : new RuntimeException(exception);
+    public StreamThreadExceptionResponse handle(final Throwable throwable) {
+      streamsException = throwable instanceof Exception
+              ? (Exception) throwable
+              : new RuntimeException(throwable);
+      return StreamThreadExceptionResponse.SHUTDOWN_CLIENT;
     }
   }
 

@@ -486,7 +486,7 @@ information, see [SELECT (Push Query)](../../ksqldb-reference/select-push-query)
 ```sql
 SELECT select_expr [, ...]
   FROM from_item
-  [ LEFT JOIN join_table ON join_criteria ]
+  [[ LEFT | FULL | INNER ] JOIN join_item ON [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ] join_criteria]*
   [ WINDOW window_expression ]
   [ WHERE condition ]
   [ GROUP BY grouping_expression [, ...] ]
@@ -523,7 +523,7 @@ SHOW | LIST FUNCTIONS;
 ```
 
 ## SHOW PROPERTIES
-List the [configuration settings](../../operate-and-deploy/installation/server-config/config-reference.md)
+List the [configuration settings](/reference/server-configuration)
 that are currently in effect. For more information, see [SHOW PROPERTIES](../../ksqldb-reference/show-properties).
 
 ```sql

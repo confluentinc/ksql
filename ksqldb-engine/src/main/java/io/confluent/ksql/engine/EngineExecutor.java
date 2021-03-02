@@ -44,6 +44,7 @@ import io.confluent.ksql.physical.pull.PullQueryQueuePopulator;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
+import io.confluent.ksql.planner.PullPlannerOptions;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
@@ -146,6 +147,7 @@ final class EngineExecutor {
       final ConfiguredStatement<Query> statement,
       final HARouting routing,
       final RoutingOptions routingOptions,
+      final PullPlannerOptions pullPlannerOptions,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final boolean startImmediately
   ) {
@@ -163,7 +165,7 @@ final class EngineExecutor {
       );
       final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
       final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
-          statement, analysis, ksqlConfig);
+          statement, analysis, ksqlConfig, pullPlannerOptions);
       final PullPhysicalPlan physicalPlan = buildPullPhysicalPlan(
           logicalPlan,
           analysis
@@ -323,10 +325,11 @@ final class EngineExecutor {
   private LogicalPlanNode buildAndValidateLogicalPlan(
       final ConfiguredStatement<?> statement,
       final ImmutableAnalysis analysis,
-      final KsqlConfig config
+      final KsqlConfig config,
+      final PullPlannerOptions pullPlannerOptions
   ) {
     final OutputNode outputNode = new LogicalPlanner(config, analysis, engineContext.getMetaStore())
-        .buildPullLogicalPlan();
+        .buildPullLogicalPlan(pullPlannerOptions);
     return new LogicalPlanNode(
         statement.getStatementText(),
         Optional.of(outputNode)

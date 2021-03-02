@@ -39,6 +39,8 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DefineVariable;
+import io.confluent.ksql.parser.tree.DescribeStreams;
+import io.confluent.ksql.parser.tree.DescribeTables;
 import io.confluent.ksql.parser.tree.DropStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -430,6 +432,24 @@ public final class SqlFormatter {
     @Override
     protected Void visitListTables(final ListTables node, final Integer context) {
       builder.append("SHOW TABLES");
+      if (node.getShowExtended()) {
+        visitExtended();
+      }
+      return null;
+    }
+
+    @Override
+    protected Void visitDescribeStreams(final DescribeStreams node, final Integer context) {
+      builder.append("DESCRIBE STREAMS");
+      if (node.getShowExtended()) {
+        visitExtended();
+      }
+      return null;
+    }
+
+    @Override
+    protected Void visitDescribeTables(final DescribeTables node, final Integer context) {
+      builder.append("DESCRIBE TABLES");
       if (node.getShowExtended()) {
         visitExtended();
       }

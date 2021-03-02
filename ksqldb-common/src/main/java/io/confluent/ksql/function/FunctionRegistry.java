@@ -16,6 +16,7 @@
 package io.confluent.ksql.function;
 
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.testing.EffectivelyImmutable;
@@ -114,7 +115,7 @@ public interface FunctionRegistry {
    * @return the function instance.
    * @throws KsqlException on unknown table function, or on unsupported {@code argumentType}.
    */
-  KsqlTableFunction getTableFunction(FunctionName functionName, List<SqlType> argumentTypes);
+  KsqlTableFunction getTableFunction(FunctionName functionName, List<SqlArgument> argumentTypes);
 
   /**
    * @return all UDF factories.

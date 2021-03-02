@@ -43,6 +43,19 @@
       "outputs": [
         {"topic": "OUTPUT", "value": {"KSQL_COL_0":"2018-05-11 14:58:33 PDT"}, "timestamp": 1526075913000}
       ]
+    },
+    {
+      "name": "timestamp to string without a time zone",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING KEY, TIME TIMESTAMP) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, FORMAT_TIMESTAMP(TIME, 'yyyy-MM-dd HH:mm:ss') FROM input;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"time": 1526075913000}, "timestamp": 1526075913000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0":"2018-05-11 21:58:33"}, "timestamp": 1526075913000}
+      ]
     }
   ]
 }

@@ -73,7 +73,7 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:2181'
 
   ksqldb-server:
-    image: confluentinc/ksqldb-server:{{ site.release }}
+    image: confluentinc/ksqldb-server:{{ site.ksqldbversion }}
     hostname: ksqldb-server
     container_name: ksqldb-server
     depends_on:
@@ -102,7 +102,7 @@ services:
       KSQL_CONNECT_PLUGIN_PATH: "/usr/share/kafka/plugins"
 
   ksqldb-cli:
-    image: confluentinc/ksqldb-cli:{{ site.release }}
+    image: confluentinc/ksqldb-cli:{{ site.ksqldbversion }}
     container_name: ksqldb-cli
     depends_on:
       - broker

@@ -217,4 +217,12 @@ public abstract class AstVisitor<R, C> {
   public R visitAlterSource(final AlterSource node, final C context) {
     return visitNode(node, context);
   }
+
+  protected R visitDescribeStreams(final DescribeStreams node, final C context) {
+    return visitStatement(node, context);
+  }
+
+  protected R visitDescribeTables(final DescribeTables node, final C context) {
+    return visitStatement(node, context);
+  }
 }

@@ -196,7 +196,8 @@ public class QueryExecutorTest {
     when(materializationBuilder.build()).thenReturn(materializationInfo);
     when(materializationInfo.getStateStoreSchema()).thenReturn(aggregationSchema);
     when(materializationInfo.stateStoreName()).thenReturn(STORE_NAME);
-    when(ksMaterializationFactory.create(any(), any(), any(), any(), any(), any(), any(), any()))
+    when(ksMaterializationFactory.create(any(), any(), any(), any(), any(), any(), any(), any(),
+        any()))
         .thenReturn(Optional.of(ksMaterialization));
     when(ksqlMaterializationFactory.create(any(), any(), any(), any())).thenReturn(materialization);
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
@@ -273,6 +274,7 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
+    queryMetadata.initialize();
 
     // Then:
     assertThat(queryMetadata.getStatementString(), equalTo(STATEMENT_TEXT));
@@ -300,6 +302,7 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
+    queryMetadata.initialize();
     queryMetadata.start();
 
     // Then:
@@ -317,6 +320,7 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
+    queryMetadata.initialize();
     queryMetadata.start();
 
     // When:
@@ -336,13 +340,14 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY
-    );
+    ).initialize();
 
     // Then:
     final Map<String, Object> properties = capturedStreamsProperties();
     verify(ksMaterializationFactory).create(
         eq(STORE_NAME),
         same(kafkaStreams),
+        same(topology),
         same(aggregationSchema),
         any(),
         eq(Optional.empty()),
@@ -363,6 +368,7 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
+    queryMetadata.initialize();
     queryMetadata.start();
 
     // When:
@@ -390,6 +396,7 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
+    queryMetadata.initialize();
 
     // When:
     final Optional<Materialization> result = queryMetadata.getMaterialization(QUERY_ID, stacker);
@@ -408,7 +415,7 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY
-    );
+    ).initialize();
 
     // Then:
     assertThat(
@@ -428,7 +435,7 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY
-    );
+    ).initialize();
 
     // Then:
     final Map<String, Object> streamsProperties = capturedStreamsProperties();
@@ -458,6 +465,7 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
+    queryMetadata.initialize();
     queryMetadata.start();
 
     // Then:
@@ -516,7 +524,7 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY
-    );
+    ).initialize();
 
     // Then:
     assertPropertiesContainDummyInterceptors();
@@ -540,7 +548,7 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY
-    );
+    ).initialize();
 
     // Then:
     assertPropertiesContainDummyInterceptors();
@@ -565,7 +573,7 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY
-    );
+    ).initialize();
 
     // Then:
     final Map<String, Object> streamsProperties = capturedStreamsProperties();
@@ -594,7 +602,7 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY
-    );
+    ).initialize();
 
     // Then:
     final Map<String, Object> streamsProps = capturedStreamsProperties();

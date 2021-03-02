@@ -23,7 +23,6 @@ import static io.vertx.core.http.HttpVersion.HTTP_1_1;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.UrlEscapers;
-import io.confluent.ksql.api.utils.ReceiveStream;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -175,7 +174,7 @@ public final class RestIntegrationTestUtil {
     }
   }
 
-  static List<StreamedRow> makeQueryRequest(
+  public static List<StreamedRow> makeQueryRequest(
       final TestKsqlRestApp restApp,
       final String sql,
       final Optional<BasicCredentials> userCreds

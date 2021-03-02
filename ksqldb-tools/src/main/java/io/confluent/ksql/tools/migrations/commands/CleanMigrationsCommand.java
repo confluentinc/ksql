@@ -16,6 +16,8 @@
 package io.confluent.ksql.tools.migrations.commands;
 
 import com.github.rvesse.airline.annotations.Command;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Command(
     name = "new",
@@ -23,9 +25,16 @@ import com.github.rvesse.airline.annotations.Command;
 )
 public class CleanMigrationsCommand extends BaseCommand {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(CleanMigrationsCommand.class);
+
   @Override
-  public void run() {
+  protected int command() {
     throw new UnsupportedOperationException();
+  }
+
+  @Override
+  protected Logger getLogger() {
+    return LOGGER;
   }
 
 }

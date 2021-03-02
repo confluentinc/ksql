@@ -60,7 +60,9 @@ public class TransientQueryMetadata extends QueryMetadata {
       final Consumer<QueryMetadata> closeCallback,
       final long closeTimeout,
       final int maxQueryErrorsQueueSize,
-      final ResultType resultType
+      final ResultType resultType,
+      final long retryBackoffInitialMs,
+      final long retryBackoffMaxMs
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -77,8 +79,11 @@ public class TransientQueryMetadata extends QueryMetadata {
         closeTimeout,
         new QueryId(queryApplicationId),
         QueryErrorClassifier.DEFAULT_CLASSIFIER,
-        maxQueryErrorsQueueSize
+        maxQueryErrorsQueueSize,
+        retryBackoffInitialMs,
+        retryBackoffMaxMs
     );
+    this.initialize();
     this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
     this.resultType = Objects.requireNonNull(resultType, "resultType");
     this.onStop(ignored -> isRunning.set(false));

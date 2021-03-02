@@ -54,7 +54,7 @@ Start by creating a `pom.xml` for your Java application:
     <properties>
         <!-- Keep versions as properties to allow easy modification -->
         <java.version>8</java.version>
-        <ksqldb.version>{{ site.release }}</ksqldb.version>
+        <ksqldb.version>{{ site.ksqldbversion }}</ksqldb.version>
         <!-- Maven properties for compilation -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -69,7 +69,7 @@ Start by creating a `pom.xml` for your Java application:
         <repository>
             <id>confluent</id>
             <name>Confluent</name>
-            <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/{{ site.kstreamsbetatag }}/1/maven/</url>
+            <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/{{ site.kstreamsbetatag }}/{{ site.kstreamsbetabuild }}/maven/</url>
         </repository>
     </repositories>
 
@@ -80,7 +80,7 @@ Start by creating a `pom.xml` for your Java application:
         </pluginRepository>
         <pluginRepository>
             <id>confluent</id>
-            <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/{{ site.kstreamsbetatag }}/1/maven/</url>
+            <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/{{ site.kstreamsbetatag }}/{{ site.kstreamsbetabuild }}/maven/</url>
         </pluginRepository>
     </pluginRepositories>
 
@@ -864,3 +864,7 @@ client.executeQuery(sql1).thenCombine(
       return null;
     });
 ```
+
+## Suggested Reading
+
+- [ksqlDB Meets Java: An IoT-Inspired Demo of the Java Client for ksqlDB](https://www.confluent.io/blog/ksqldb-java-client-iot-inspired-demo/)

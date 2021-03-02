@@ -33,7 +33,8 @@ import java.util.concurrent.ExecutionException;
     category = FunctionCategory.DATE_TIME,
     author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Converts a string representation of a date in the given format"
-        + " into the BIGINT value that represents the millisecond timestamp."
+        + " into the number of milliseconds since 1970-01-01 00:00:00 UTC/GMT."
+        + " The system default time zone is used when no time zone is explicitly provided."
 )
 public class StringToTimestamp {
 
@@ -43,9 +44,10 @@ public class StringToTimestamp {
           .build(CacheLoader.from(StringToTimestampParser::new));
 
   @Udf(description = "Converts a string representation of a date in the given format"
-      + " into the BIGINT value that represents the millisecond timestamp."
+      + " into the number of milliseconds since 1970-01-01 00:00:00 UTC/GMT."
       + " Single quotes in the timestamp format can be escaped with '',"
-      + " for example: 'yyyy-MM-dd''T''HH:mm:ssX'.")
+      + " for example: 'yyyy-MM-dd''T''HH:mm:ssX'."
+      + " The system default time zone is used when no time zone is explicitly provided.")
   public long stringToTimestamp(
       @UdfParameter(
           description = "The string representation of a date.") final String formattedTimestamp,
@@ -63,7 +65,7 @@ public class StringToTimestamp {
   }
 
   @Udf(description = "Converts a string representation of a date at the given time zone"
-      + " in the given format into the BIGINT value that represents the millisecond timestamp."
+      + " into the number of milliseconds since 1970-01-01 00:00:00 UTC/GMT."
       + " Single quotes in the timestamp format can be escaped with '',"
       + " for example: 'yyyy-MM-dd''T''HH:mm:ssX'.")
   public long stringToTimestamp(

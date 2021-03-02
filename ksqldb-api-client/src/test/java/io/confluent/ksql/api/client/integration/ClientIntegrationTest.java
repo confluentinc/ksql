@@ -51,6 +51,7 @@ import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.QueryInfo;
 import io.confluent.ksql.api.client.QueryInfo.QueryType;
 import io.confluent.ksql.api.client.Row;
+import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.api.client.SourceDescription;
 import io.confluent.ksql.api.client.StreamInfo;
 import io.confluent.ksql.api.client.StreamedQueryResult;
@@ -72,6 +73,7 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
+import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.StructuredTypesDataProvider;
 import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Vertx;
@@ -956,6 +958,20 @@ public class ClientIntegrationTest {
     assertThat(e.getCause().getMessage(), containsString("Error code: 40001"));
   }
 
+  @Test
+  public void shouldGetServerInfo() throws Exception {
+    // Given:
+    final String expectedClusterId = REST_APP.getServiceContext().getAdminClient().describeCluster().clusterId().get();
+
+    // When:
+    final ServerInfo serverInfo = client.serverInfo().get();
+
+    //Then:
+    assertThat(serverInfo.getServerVersion(), is(AppInfo.getVersion()));
+    assertThat(serverInfo.getKsqlServiceId(), is("default_"));
+    assertThat(serverInfo.getKafkaClusterId(), is(expectedClusterId));
+  }
+
   private Client createClient() {
     final ClientOptions clientOptions = ClientOptions.create()
         .setHost("localhost")
@@ -1227,7 +1243,7 @@ public class ClientIntegrationTest {
       @Override
       public void describeTo(final Description description) {
         description.appendText(String.format(
-            "tableName: %s. topicName: %s. keyFormat: %s. valueFormat: %s. isWindowed: %s",
+            "streamName: %s. topicName: %s. keyFormat: %s. valueFormat: %s. isWindowed: %s",
             streamName, topicName, keyFormat, valueFormat, isWindowed));
       }
     };

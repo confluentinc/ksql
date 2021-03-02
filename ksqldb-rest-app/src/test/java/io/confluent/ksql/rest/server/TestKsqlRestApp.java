@@ -498,7 +498,7 @@ public class TestKsqlRestApp extends ExternalResource {
         visited.add(s);
 
         final RestResponse<KsqlEntityList> res =
-            makeKsqlRequest(client, "DESCRIBE EXTENDED `" + s + "`;");
+            makeKsqlRequest(client, "DESCRIBE `" + s + "` EXTENDED;");
 
         if (res.isErroneous()) {
           throw new AssertionError("Failed to describe stream " + s + "."

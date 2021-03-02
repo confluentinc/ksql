@@ -30,7 +30,6 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 @Command(
     name = "info",
@@ -80,7 +79,28 @@ public class MigrationInfoCommand extends BaseCommand {
       return 1;
     }
 
-    throw new NotImplementedException();
+    boolean success;
+    try {
+      // find all files
+
+      // issue either a single pull query or multiple pull queries to get status
+      if (serverSupportsMultiKeyPullQuery(ksqlClient, config)) {
+
+      } else {
+
+      }
+
+      // format into table and print
+
+      success = true;
+    } catch (MigrationException e) {
+      LOGGER.error(e.getMessage());
+      success = false;
+    } finally {
+      ksqlClient.close();
+    }
+
+    return success ? 0 : 1;
   }
 
   @Override

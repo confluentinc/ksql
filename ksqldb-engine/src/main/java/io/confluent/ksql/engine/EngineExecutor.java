@@ -163,7 +163,7 @@ final class EngineExecutor {
           queryAnalyzer.analyze(statement.getStatement(), Optional.empty()),
           new PullQueryExecutionUtil.ColumnReferenceRewriter()::process
       );
-      final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
+      final KsqlConfig ksqlConfig = sessionConfig.getConfig(true);
       final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
           statement, analysis, ksqlConfig, pullPlannerOptions);
       final PullPhysicalPlan physicalPlan = buildPullPhysicalPlan(

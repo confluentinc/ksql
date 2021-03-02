@@ -521,12 +521,13 @@ request can be useful when throwing an error is preferable to doing the potentia
 
 ## `ksql.query.pull.interpreter.enabled`
 
-**Per query:** no
+**Per query:** yes
 
 Controls whether pull queries use the interpreter or the code compiler as their expression
-evaluator. The code compiler is the default. The code compiler is used
+evaluator. The interpreter is the default. The code compiler is used
 for persistent and push queries, which are naturally longer-lived than pull queries. The overhead of compilation slows down pull queries significantly, so using an
-interpreter gives significant performance gains.
+interpreter gives significant performance gains. This can be disabled per query if the code compiler
+is preferred.
 
 ## `ksql.variable.substitution.enable`
 

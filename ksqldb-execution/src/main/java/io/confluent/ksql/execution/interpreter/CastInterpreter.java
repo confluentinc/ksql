@@ -56,17 +56,17 @@ public final class CastInterpreter {
   ) {
     final SqlBaseType toBaseType = to.baseType();
     if (toBaseType == SqlBaseType.INTEGER) {
-      return castToInteger(from);
+      return castToIntegerFunction(from);
     } else if (toBaseType == SqlBaseType.BIGINT) {
-      return castToLong(from);
+      return castToLongFunction(from);
     } else if (toBaseType == SqlBaseType.DOUBLE) {
-      return castToDouble(from);
+      return castToDoubleFunction(from);
     } else if (toBaseType == SqlBaseType.DECIMAL) {
-      return castToBigDecimal(from, to);
+      return castToBigDecimalFunction(from, to);
     } else if (toBaseType == SqlBaseType.STRING) {
-      return castToString(from, config);
+      return castToStringFunction(from, config);
     } else if (toBaseType == SqlBaseType.BOOLEAN) {
-      return castToBoolean(from);
+      return castToBooleanFunction(from);
     } else if (toBaseType == SqlBaseType.ARRAY) {
       return castToArrayFunction(from, to, config);
     } else if (toBaseType == SqlBaseType.MAP) {
@@ -76,37 +76,28 @@ public final class CastInterpreter {
     }
   }
 
-  public static CastFunction castToInteger(
-      final SqlType from
-  ) {
+  public static CastFunction castToIntegerFunction(final SqlType from) {
     if (from.baseType() == SqlBaseType.STRING) {
       return object -> Integer.parseInt(((String) object).trim());
     }
-    return object -> NumberConversions.toInteger(object, from, ConversionType.CAST);
+    return object -> NumberConversions.toInteger(object, from);
   }
 
-  public static CastFunction castToDouble(
-      final SqlType from
-  ) {
+  public static CastFunction castToDoubleFunction(final SqlType from) {
     if (from.baseType() == SqlBaseType.STRING) {
       return object -> SqlDoubles.parseDouble(((String) object).trim());
     }
-    return object -> NumberConversions.toDouble(object, from, ConversionType.CAST);
+    return object -> NumberConversions.toDouble(object, from);
   }
 
-  public static CastFunction castToLong(
-      final SqlType from
-  ) {
+  public static CastFunction castToLongFunction(final SqlType from) {
     if (from.baseType() == SqlBaseType.STRING) {
       return object -> Long.parseLong(((String) object).trim());
     }
-    return object -> NumberConversions.toLong(object, from, ConversionType.CAST);
+    return object -> NumberConversions.toLong(object, from);
   }
 
-  public static CastFunction castToBigDecimal(
-      final SqlType from,
-      final SqlType to
-  ) {
+  public static CastFunction castToBigDecimalFunction(final SqlType from, final SqlType to) {
     final SqlDecimal sqlDecimal = (SqlDecimal) to;
     if (from.baseType() == SqlBaseType.INTEGER) {
       return object -> DecimalUtil.cast(((Integer) object),
@@ -127,7 +118,7 @@ public final class CastInterpreter {
     throw new KsqlException("Unsupported type cast to BigDecimal: " + from);
   }
 
-  public static CastFunction castToString(
+  public static CastFunction castToStringFunction(
       final SqlType from,
       final KsqlConfig config
   ) {
@@ -141,7 +132,7 @@ public final class CastInterpreter {
         : String.valueOf(object);
   }
 
-  public static CastFunction castToBoolean(
+  public static CastFunction castToBooleanFunction(
       final SqlType from
   ) {
     if (from.baseType() == SqlBaseType.STRING) {
@@ -166,7 +157,7 @@ public final class CastInterpreter {
       return o ->
           CastEvaluator.castArray((List<?>) o, itemCastFunction::cast);
     }
-    throw new KsqlException(getErrorMessage(ConversionType.CAST, from, to));
+    throw new KsqlException(getErrorMessage(from, to));
   }
 
   public static CastFunction castToMapFunction(
@@ -192,62 +183,44 @@ public final class CastInterpreter {
    * Conversion functions that work for converting type either during comparison or casting.
    */
   public static class NumberConversions {
-    public static Double toDouble(final Object object, final SqlType from,
-        final ConversionType type) {
+    public static Double toDouble(final Object object, final SqlType from) {
       if (object == null) {
         return null;
       }
       if (object instanceof Number) {
         return ((Number) object).doubleValue();
       } else {
-        throw new KsqlException(getErrorMessage(type, from, SqlTypes.DOUBLE));
+        throw new KsqlException(getErrorMessage(from, SqlTypes.DOUBLE));
       }
     }
 
-    public static Long toLong(final Object object, final SqlType from, final ConversionType type) {
+    public static Long toLong(final Object object, final SqlType from) {
       if (object == null) {
         return null;
       }
       if (object instanceof Number) {
         return ((Number) object).longValue();
       } else {
-        throw new KsqlException(getErrorMessage(type, from, SqlTypes.BIGINT));
+        throw new KsqlException(getErrorMessage(from, SqlTypes.BIGINT));
       }
     }
 
-    public static Integer toInteger(final Object object, final SqlType from,
-        final ConversionType type) {
+    public static Integer toInteger(final Object object, final SqlType from) {
       if (object == null) {
         return null;
       }
       if (object instanceof Number) {
         return ((Number) object).intValue();
       } else {
-        throw new KsqlException(getErrorMessage(type, from, SqlTypes.INTEGER));
+        throw new KsqlException(getErrorMessage(from, SqlTypes.INTEGER));
       }
     }
   }
 
   private static String getErrorMessage(
-      final ConversionType type,
       final SqlType from,
       final SqlType to
   ) {
-    switch (type) {
-      case CAST:
-        return String.format("Unsupported cast from %s to %s", from, to);
-      case COMPARISON:
-        return String.format("Unsupported comparison between %s and %s", from, to);
-      case ARITHMETIC:
-        return String.format("Unsupported arithmetic between %s and %s", from, to);
-      default:
-        throw new KsqlException("Unknown Conversion type " + type);
-    }
-  }
-
-  public enum ConversionType {
-    CAST,
-    COMPARISON,
-    ARITHMETIC
+    return String.format("Unsupported cast from %s to %s", from, to);
   }
 }

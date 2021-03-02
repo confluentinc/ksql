@@ -16,7 +16,6 @@
 package io.confluent.ksql.execution.interpreter;
 
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
-import io.confluent.ksql.execution.interpreter.CastInterpreter.ConversionType;
 import io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConversions;
 import io.confluent.ksql.execution.interpreter.terms.BasicTerms.BooleanTerm;
 import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.CompareToTerm;
@@ -73,8 +72,7 @@ public final class ComparisonInterpreter {
         + right.getSqlType());
   }
 
-  private static BigDecimal toDecimal(final Object object, final SqlType from,
-      final ConversionType type) {
+  private static BigDecimal toDecimal(final Object object, final SqlType from) {
     if (object instanceof BigDecimal) {
       return (BigDecimal) object;
     } else if (object instanceof Double) {
@@ -91,8 +89,7 @@ public final class ComparisonInterpreter {
     }
   }
 
-  private static Timestamp toTimestamp(final Object object, final SqlType from,
-      final ConversionType type) {
+  private static Timestamp toTimestamp(final Object object, final SqlType from) {
     if (object instanceof Timestamp) {
       return (Timestamp) object;
     } else if (object instanceof String) {
@@ -150,8 +147,8 @@ public final class ComparisonInterpreter {
       final Term right) {
     final Object leftObject = left.getValue(context);
     final Object rightObject = right.getValue(context);
-    return conversion.convert(leftObject, left.getSqlType(), ConversionType.COMPARISON).compareTo(
-        conversion.convert(rightObject, right.getSqlType(), ConversionType.COMPARISON));
+    return conversion.convert(leftObject, left.getSqlType()).compareTo(
+        conversion.convert(rightObject, right.getSqlType()));
   }
 
   private static boolean either(
@@ -217,6 +214,6 @@ public final class ComparisonInterpreter {
   }
 
   private interface Conversion<T extends Comparable> {
-    T convert(Object object, SqlType from, ConversionType type);
+    T convert(Object object, SqlType from);
   }
 }

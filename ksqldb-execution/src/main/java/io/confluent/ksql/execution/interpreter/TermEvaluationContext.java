@@ -21,11 +21,7 @@ public final class TermEvaluationContext {
 
   private final GenericRow row;
 
-  public static TermEvaluationContext of(final GenericRow row) {
-    return new TermEvaluationContext(row);
-  }
-
-  private TermEvaluationContext(final GenericRow row) {
+  public TermEvaluationContext(final GenericRow row) {
     this.row = row;
   }
 

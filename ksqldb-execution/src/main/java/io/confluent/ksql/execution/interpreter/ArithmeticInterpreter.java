@@ -20,7 +20,6 @@ import static io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConv
 import static io.confluent.ksql.execution.interpreter.CastInterpreter.NumberConversions.toLong;
 
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
-import io.confluent.ksql.execution.interpreter.CastInterpreter.ConversionType;
 import io.confluent.ksql.execution.interpreter.terms.ArithmeticBinaryTerm;
 import io.confluent.ksql.execution.interpreter.terms.ArithmeticBinaryTerm.ArithmeticBinaryFunction;
 import io.confluent.ksql.execution.interpreter.terms.ArithmeticUnaryTerm;
@@ -114,19 +113,13 @@ public final class ArithmeticInterpreter {
       return (o1, o2) -> (String) o1 + (String) o2;
     } else if (leftBaseType == SqlBaseType.DOUBLE || rightBaseType == SqlBaseType.DOUBLE) {
       final DoubleArithmeticBinaryFunction fn = getDoubleFunction(operator);
-      return (o1, o2) -> fn.doFunction(
-          toDouble(o1, leftType, ConversionType.ARITHMETIC),
-          toDouble(o2, rightType, ConversionType.ARITHMETIC));
+      return (o1, o2) -> fn.doFunction(toDouble(o1, leftType), toDouble(o2, rightType));
     } else if (leftBaseType == SqlBaseType.BIGINT || rightBaseType == SqlBaseType.BIGINT) {
       final LongArithmeticBinaryFunction fn = getLongFunction(operator);
-      return (o1, o2) -> fn.doFunction(
-          toLong(o1, leftType, ConversionType.ARITHMETIC),
-          toLong(o2, rightType, ConversionType.ARITHMETIC));
+      return (o1, o2) -> fn.doFunction(toLong(o1, leftType), toLong(o2, rightType));
     } else if (leftBaseType == SqlBaseType.INTEGER || rightBaseType == SqlBaseType.INTEGER) {
       final IntegerArithmeticBinaryFunction fn = getIntegerFunction(operator);
-      return (o1, o2) -> fn.doFunction(
-          toInteger(o1, leftType, ConversionType.ARITHMETIC),
-          toInteger(o2, rightType, ConversionType.ARITHMETIC));
+      return (o1, o2) -> fn.doFunction(toInteger(o1, leftType), toInteger(o2, rightType));
     } else {
       throw new KsqlException("Can't do arithmetic for types " + leftType + " and " + rightType);
     }

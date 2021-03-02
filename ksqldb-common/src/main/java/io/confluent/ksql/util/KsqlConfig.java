@@ -250,7 +250,7 @@ public class KsqlConfig extends AbstractConfig {
       "Enables whether we use the interpreter for expression evaluation for pull queries, or the"
           + "default code generator. They should produce the same results, but the interpreter is"
           + " much faster for short-lived queries.";
-  public static final boolean KSQL_QUERY_PULL_INTERPRETER_ENABLED_DEFAULT = false;
+  public static final boolean KSQL_QUERY_PULL_INTERPRETER_ENABLED_DEFAULT = true;
 
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =

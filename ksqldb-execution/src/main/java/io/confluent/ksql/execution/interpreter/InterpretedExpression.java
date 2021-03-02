@@ -42,7 +42,7 @@ public class InterpretedExpression implements ExpressionEvaluator {
 
   @VisibleForTesting
   Object evaluate(final GenericRow row) {
-    return term.getValue(TermEvaluationContext.of(row));
+    return term.getValue(new TermEvaluationContext(row));
   }
 
   @Override

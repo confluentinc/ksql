@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.execution.codegen.helpers.ArrayAccess;
+import io.confluent.ksql.execution.codegen.helpers.InListEvaluator;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
@@ -61,13 +62,14 @@ import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
-import io.confluent.ksql.execution.interpreter.terms.BasicTerms;
-import io.confluent.ksql.execution.interpreter.terms.BasicTerms.BooleanTerm;
+import io.confluent.ksql.execution.interpreter.terms.LiteralTerms;
+import io.confluent.ksql.execution.interpreter.terms.TypedTerms.BooleanTerm;
 import io.confluent.ksql.execution.interpreter.terms.ColumnReferenceTerm;
 import io.confluent.ksql.execution.interpreter.terms.CreateArrayTerm;
 import io.confluent.ksql.execution.interpreter.terms.CreateMapTerm;
 import io.confluent.ksql.execution.interpreter.terms.DereferenceTerm;
 import io.confluent.ksql.execution.interpreter.terms.FunctionCallTerm;
+import io.confluent.ksql.execution.interpreter.terms.InPredicateTerm;
 import io.confluent.ksql.execution.interpreter.terms.IsNotNullTerm;
 import io.confluent.ksql.execution.interpreter.terms.IsNullTerm;
 import io.confluent.ksql.execution.interpreter.terms.LikeTerm;
@@ -105,8 +107,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-@SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class TermCompiler implements ExpressionVisitor<Term, Void> {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final FunctionRegistry functionRegistry;
   private final LogicalSchema schema;
@@ -127,13 +130,19 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
 
   private Term visitIllegalState(final Expression expression) {
     throw new IllegalStateException(
-        format("expression type %s should never be visited", expression.getClass()));
+        format("Expression type %s should never be visited.\n"
+                + "Check if there's an existing issue: "
+                + "https://github.com/confluentinc/ksql/issues\n"
+                + "If not, please file a new one with your expression.",
+            expression.getClass()));
   }
 
   private Term visitUnsupported(final Expression expression) {
     throw new UnsupportedOperationException(
-        format(
-            "not yet implemented: %s.visit%s",
+        format("Not yet implemented: %s.visit%s.\n"
+                + "Check if there's an existing issue: "
+                + "https://github.com/confluentinc/ksql/issues\n"
+                + "If not, please file a new one with your expression.",
             getClass().getName(),
             expression.getClass().getSimpleName()
         )
@@ -155,7 +164,16 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
       final InPredicate inPredicate,
       final Void context
   ) {
-    return visitUnsupported(inPredicate);
+    final InPredicate preprocessed = InListEvaluator
+        .preprocess(inPredicate, expressionTypeManager);
+
+    final Term value = process(preprocessed.getValue(), context);
+
+    final List<Term> valueList = preprocessed.getValueList().getValues().stream()
+        .map(v -> process(v, context))
+        .collect(ImmutableList.toImmutableList());
+
+    return new InPredicateTerm(value, valueList);
   }
 
   @Override
@@ -169,7 +187,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
   public Term visitTimestampLiteral(
       final TimestampLiteral node, final Void context
   ) {
-    return BasicTerms.of(node.getValue());
+    return LiteralTerms.of(node.getValue());
   }
 
   @Override
@@ -192,17 +210,17 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
       final BooleanLiteral node,
       final Void context
   ) {
-    return BasicTerms.of(node.getValue());
+    return LiteralTerms.of(node.getValue());
   }
 
   @Override
   public Term visitStringLiteral(final StringLiteral node, final Void context) {
-    return BasicTerms.of(node.getValue());
+    return LiteralTerms.of(node.getValue());
   }
 
   @Override
   public Term visitDoubleLiteral(final DoubleLiteral node, final Void context) {
-    return BasicTerms.of(node.getValue());
+    return LiteralTerms.of(node.getValue());
   }
 
   @Override
@@ -211,12 +229,12 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
       final Void context
   ) {
     final SqlType sqlType = DecimalUtil.fromValue(decimalLiteral.getValue());
-    return BasicTerms.of(decimalLiteral.getValue(), sqlType);
+    return LiteralTerms.of(decimalLiteral.getValue(), sqlType);
   }
 
   @Override
   public Term visitNullLiteral(final NullLiteral node, final Void context) {
-    return BasicTerms.ofNull();
+    return LiteralTerms.ofNull();
   }
 
   @Override
@@ -248,8 +266,8 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
       final QualifiedColumnReferenceExp node,
       final Void context
   ) {
-    throw new UnsupportedOperationException(
-        "Qualified column reference must be resolved to unqualified reference before codegen"
+    throw new IllegalStateException(
+        "Qualified column reference must be resolved to unqualified reference before interpreter"
     );
   }
 
@@ -271,7 +289,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
 
   @Override
   public Term visitLongLiteral(final LongLiteral node, final Void context) {
-    return BasicTerms.of(node.getValue());
+    return LiteralTerms.of(node.getValue());
   }
 
   @Override
@@ -279,7 +297,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
       final IntegerLiteral node,
       final Void context
   ) {
-    return BasicTerms.of(node.getValue());
+    return LiteralTerms.of(node.getValue());
   }
 
   @Override

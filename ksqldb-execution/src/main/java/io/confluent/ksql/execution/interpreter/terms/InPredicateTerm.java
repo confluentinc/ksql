@@ -15,27 +15,34 @@
 
 package io.confluent.ksql.execution.interpreter.terms;
 
+import io.confluent.ksql.execution.codegen.helpers.InListEvaluator;
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
 import io.confluent.ksql.execution.interpreter.terms.TypedTerms.BooleanTerm;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.util.List;
 
-public class IsNullTerm implements BooleanTerm {
+public class InPredicateTerm implements BooleanTerm {
 
-  private final Term term;
+  private final Term value;
+  private final List<Term> valueList;
 
-  public IsNullTerm(final Term term) {
-    this.term = term;
+  public InPredicateTerm(final Term value, final List<Term> valueList) {
+    this.value = value;
+    this.valueList = valueList;
   }
 
   @Override
-  public Boolean getValue(final TermEvaluationContext context) {
+  public Object getValue(TermEvaluationContext context) {
     return getBoolean(context);
   }
 
   @Override
-  public Boolean getBoolean(final TermEvaluationContext context) {
-    return term.getValue(context) == null;
+  public Boolean getBoolean(TermEvaluationContext context) {
+    final Object[] values = valueList.stream()
+        .map(v -> v.getValue(context))
+        .toArray();
+    return InListEvaluator.matches(value.getValue(context), values);
   }
 
   @Override

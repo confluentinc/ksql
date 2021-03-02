@@ -16,15 +16,22 @@
 package io.confluent.ksql.execution.interpreter.terms;
 
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
+import io.confluent.ksql.execution.interpreter.terms.TypedTerms.BooleanTerm;
+import io.confluent.ksql.execution.interpreter.terms.TypedTerms.DecimalTerm;
+import io.confluent.ksql.execution.interpreter.terms.TypedTerms.DoubleTerm;
+import io.confluent.ksql.execution.interpreter.terms.TypedTerms.IntegerTerm;
+import io.confluent.ksql.execution.interpreter.terms.TypedTerms.LongTerm;
+import io.confluent.ksql.execution.interpreter.terms.TypedTerms.StringTerm;
+import io.confluent.ksql.execution.interpreter.terms.TypedTerms.TimestampTerm;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
-public final class BasicTerms {
+public final class LiteralTerms {
 
-  private BasicTerms() { }
+  private LiteralTerms() { }
 
   public static BooleanTerm of(final Boolean value) {
     return new BooleanTermImpl(value);
@@ -56,34 +63,6 @@ public final class BasicTerms {
 
   public static NullTerm ofNull() {
     return new NullTerm();
-  }
-
-  public interface BooleanTerm extends Term {
-    Boolean getBoolean(TermEvaluationContext context);
-  }
-
-  public interface DecimalTerm extends Term {
-    BigDecimal getDecimal(TermEvaluationContext context);
-  }
-
-  public interface DoubleTerm extends Term {
-    Double getDouble(TermEvaluationContext context);
-  }
-
-  public interface IntegerTerm extends Term {
-    Integer getInteger(TermEvaluationContext context);
-  }
-
-  public interface LongTerm extends Term {
-    Long getLong(TermEvaluationContext context);
-  }
-
-  public interface StringTerm extends Term {
-    String getString(TermEvaluationContext context);
-  }
-
-  public interface TimestampTerm extends Term {
-    Timestamp getTimestamp(TermEvaluationContext context);
   }
 
   public static class NullTerm implements Term {

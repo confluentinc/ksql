@@ -39,6 +39,9 @@ public final class InterpretedExpressionFactory {
           = new ExpressionTypeManager(schema, functionRegistry);
       final SqlType returnType = expressionTypeManager.getExpressionSqlType(expression);
       if (returnType == null) {
+        // This should only happen if the only thing in the expression is a null literal.  This
+        // should fail the type checking well before making it here, so shouldn't happen in
+        // practice.
         throw new KsqlException("NULL expression not supported");
       }
       final Term term = new TermCompiler(

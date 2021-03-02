@@ -25,6 +25,7 @@ import io.confluent.ksql.execution.interpreter.terms.ArithmeticBinaryTerm.Arithm
 import io.confluent.ksql.execution.interpreter.terms.ArithmeticUnaryTerm;
 import io.confluent.ksql.execution.interpreter.terms.ArithmeticUnaryTerm.ArithmeticUnaryFunction;
 import io.confluent.ksql.execution.interpreter.terms.CastTerm;
+import io.confluent.ksql.execution.interpreter.terms.CastTerm.ComparableCastFunction;
 import io.confluent.ksql.execution.interpreter.terms.Term;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
@@ -84,7 +85,7 @@ public final class ArithmeticInterpreter {
           DecimalUtil.toSqlDecimal(left.getSqlType()), ksqlConfig);
       final CastTerm rightTerm = CastInterpreter.cast(right, right.getSqlType(),
           DecimalUtil.toSqlDecimal(right.getSqlType()), ksqlConfig);
-      final DecimalArithmeticBinaryFunction fn = getDecimalFunction(decimal, operator);
+      final TypedArithmeticBinaryFunction<BigDecimal> fn = getDecimalFunction(decimal, operator);
       return new ArithmeticBinaryTerm(leftTerm, rightTerm,
           (o1, o2) -> fn.doFunction((BigDecimal) o1, (BigDecimal) o2),
           resultType);
@@ -112,20 +113,20 @@ public final class ArithmeticInterpreter {
     if (leftBaseType == SqlBaseType.STRING && rightBaseType == SqlBaseType.STRING) {
       return (o1, o2) -> (String) o1 + (String) o2;
     } else if (leftBaseType == SqlBaseType.DOUBLE || rightBaseType == SqlBaseType.DOUBLE) {
-      final DoubleArithmeticBinaryFunction fn = getDoubleFunction(operator);
-      return (o1, o2) -> fn.doFunction(
-          castToDoubleFunction(leftType).cast(o1),
-          castToDoubleFunction(rightType).cast(o2));
+      final TypedArithmeticBinaryFunction<Double> fn = getDoubleFunction(operator);
+      final ComparableCastFunction<Double> castLeft = castToDoubleFunction(leftType);
+      final ComparableCastFunction<Double> castRight = castToDoubleFunction(rightType);
+      return (o1, o2) -> fn.doFunction(castLeft.cast(o1), castRight.cast(o2));
     } else if (leftBaseType == SqlBaseType.BIGINT || rightBaseType == SqlBaseType.BIGINT) {
-      final LongArithmeticBinaryFunction fn = getLongFunction(operator);
-      return (o1, o2) -> fn.doFunction(
-          castToLongFunction(leftType).cast(o1),
-          castToLongFunction(rightType).cast(o2));
+      final TypedArithmeticBinaryFunction<Long> fn = getLongFunction(operator);
+      final ComparableCastFunction<Long> castLeft = castToLongFunction(leftType);
+      final ComparableCastFunction<Long> castRight = castToLongFunction(rightType);
+      return (o1, o2) -> fn.doFunction(castLeft.cast(o1), castRight.cast(o2));
     } else if (leftBaseType == SqlBaseType.INTEGER || rightBaseType == SqlBaseType.INTEGER) {
-      final IntegerArithmeticBinaryFunction fn = getIntegerFunction(operator);
-      return (o1, o2) -> fn.doFunction(
-          castToIntegerFunction(leftType).cast(o1),
-          castToIntegerFunction(rightType).cast(o2));
+      final TypedArithmeticBinaryFunction<Integer> fn = getIntegerFunction(operator);
+      final ComparableCastFunction<Integer> castLeft = castToIntegerFunction(leftType);
+      final ComparableCastFunction<Integer> castRight = castToIntegerFunction(rightType);
+      return (o1, o2) -> fn.doFunction(castLeft.cast(o1), castRight.cast(o2));
     } else {
       throw new KsqlException("Can't do arithmetic for types " + leftType + " and " + rightType);
     }
@@ -165,7 +166,7 @@ public final class ArithmeticInterpreter {
     }
   }
 
-  private static DoubleArithmeticBinaryFunction getDoubleFunction(final Operator operator) {
+  private static TypedArithmeticBinaryFunction<Double> getDoubleFunction(final Operator operator) {
     switch (operator) {
       case ADD:
         return (a, b) -> a + b;
@@ -182,7 +183,9 @@ public final class ArithmeticInterpreter {
     }
   }
 
-  private static IntegerArithmeticBinaryFunction getIntegerFunction(final Operator operator) {
+  private static TypedArithmeticBinaryFunction<Integer> getIntegerFunction(
+      final Operator operator
+  ) {
     switch (operator) {
       case ADD:
         return (a, b) -> a + b;
@@ -199,7 +202,7 @@ public final class ArithmeticInterpreter {
     }
   }
 
-  private static LongArithmeticBinaryFunction getLongFunction(final Operator operator) {
+  private static TypedArithmeticBinaryFunction<Long> getLongFunction(final Operator operator) {
     switch (operator) {
       case ADD:
         return (a, b) -> a + b;
@@ -216,7 +219,7 @@ public final class ArithmeticInterpreter {
     }
   }
 
-  private static DecimalArithmeticBinaryFunction getDecimalFunction(
+  private static TypedArithmeticBinaryFunction<BigDecimal> getDecimalFunction(
       final SqlDecimal decimal,
       final Operator operator
   ) {
@@ -238,19 +241,7 @@ public final class ArithmeticInterpreter {
     }
   }
 
-  private interface IntegerArithmeticBinaryFunction {
-    Integer doFunction(Integer o1, Integer o2);
-  }
-
-  private interface DoubleArithmeticBinaryFunction {
-    Double doFunction(Double o1, Double o2);
-  }
-
-  private interface LongArithmeticBinaryFunction {
-    Long doFunction(Long o1, Long o2);
-  }
-
-  private interface DecimalArithmeticBinaryFunction {
-    BigDecimal doFunction(BigDecimal o1, BigDecimal o2);
+  private interface TypedArithmeticBinaryFunction<T> {
+    T doFunction(T o1, T o2);
   }
 }

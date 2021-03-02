@@ -16,7 +16,7 @@
 package io.confluent.ksql.execution.interpreter.terms;
 
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
-import io.confluent.ksql.execution.interpreter.terms.BasicTerms.BooleanTerm;
+import io.confluent.ksql.execution.interpreter.terms.TypedTerms.BooleanTerm;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 

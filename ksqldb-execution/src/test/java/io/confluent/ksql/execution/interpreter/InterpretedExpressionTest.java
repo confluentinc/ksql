@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.interpreter;
 
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL11;
+import static io.confluent.ksql.execution.testutil.TestExpressions.COL1;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL3;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL7;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL8;
@@ -47,6 +48,8 @@ import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.InListExpression;
+import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
@@ -887,6 +890,41 @@ public class InterpretedExpressionTest {
     assertThat(interpreter2.evaluate(ROW), is(-1));
     assertThat(interpreter3.evaluate(ROW), is(new BigDecimal("-345.5")));
     assertThat(interpreter4.evaluate(ROW), is(-45.5d));
+  }
+
+  @Test
+  public void shouldEvaluateInPredicate() {
+    // Given:
+    final Expression in1 = new InPredicate(
+        COL7,
+        new InListExpression(ImmutableList.of(
+            new IntegerLiteral(4),
+            new IntegerLiteral(6),
+            new IntegerLiteral(8)
+        ))
+    );
+    final Expression in2 = new InPredicate(
+        COL1,
+        new InListExpression(ImmutableList.of(
+            new StringLiteral("a"),
+            new StringLiteral("b"),
+            new StringLiteral("c")
+        ))
+    );
+
+    // When:
+    InterpretedExpression interpreter1 = interpreter(in1);
+    InterpretedExpression interpreter2 = interpreter(in2);
+
+    // Then:
+    assertThat(interpreter1.evaluate(make(7, 1)), is(false));
+    assertThat(interpreter1.evaluate(make(7, 6)), is(true));
+    assertThat(interpreter1.evaluate(make(7, 8)), is(true));
+    assertThat(interpreter1.evaluate(make(7, 10)), is(false));
+
+    assertThat(interpreter2.evaluate(make(1, "z")), is(false));
+    assertThat(interpreter2.evaluate(make(1, "a")), is(true));
+    assertThat(interpreter2.evaluate(make(1, "c")), is(true));
   }
 
   private void givenUdf(

@@ -16,7 +16,7 @@
 package io.confluent.ksql.execution.interpreter.terms;
 
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
-import io.confluent.ksql.execution.interpreter.terms.BasicTerms.BooleanTerm;
+import io.confluent.ksql.execution.interpreter.terms.TypedTerms.BooleanTerm;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Optional;
@@ -47,11 +47,13 @@ public class ComparisonTerm  {
 
     @Override
     public Boolean getBoolean(final TermEvaluationContext context) {
-      final Optional<Boolean> nullCheck = nullCheckFunction.checkNull(context, left, right);
+      final Object leftObject = left.getValue(context);
+      final Object rightObject = right.getValue(context);
+      final Optional<Boolean> nullCheck = nullCheckFunction.checkNull(leftObject, rightObject);
       if (nullCheck.isPresent()) {
         return nullCheck.get();
       }
-      final int compareTo = comparisonFunction.compareTo(context, left, right);
+      final int compareTo = comparisonFunction.compareTo(leftObject, rightObject);
       return comparisonCheckFunction.doCheck(compareTo);
     }
 
@@ -89,11 +91,13 @@ public class ComparisonTerm  {
 
     @Override
     public Boolean getBoolean(final TermEvaluationContext context) {
-      final Optional<Boolean> nullCheck = nullCheckFunction.checkNull(context, left, right);
+      final Object leftObject = left.getValue(context);
+      final Object rightObject = right.getValue(context);
+      final Optional<Boolean> nullCheck = nullCheckFunction.checkNull(leftObject, rightObject);
       if (nullCheck.isPresent()) {
         return nullCheck.get();
       }
-      final boolean equals = equalsFunction.equals(context, left, right);
+      final boolean equals = equalsFunction.equals(leftObject, rightObject);
       return equalsCheckFunction.doCheck(equals);
     }
 
@@ -110,7 +114,7 @@ public class ComparisonTerm  {
 
   public interface ComparisonFunction {
 
-    int compareTo(TermEvaluationContext context, Term left, Term right);
+    int compareTo(Object left, Object right);
   }
 
   public interface ComparisonCheckFunction {
@@ -120,7 +124,7 @@ public class ComparisonTerm  {
 
   public interface EqualsFunction {
 
-    boolean equals(TermEvaluationContext context, Term left, Term right);
+    boolean equals(Object left, Object right);
   }
 
   public interface EqualsCheckFunction {
@@ -129,6 +133,6 @@ public class ComparisonTerm  {
 
   public interface ComparisonNullCheckFunction {
 
-    Optional<Boolean> checkNull(TermEvaluationContext context, Term left, Term right);
+    Optional<Boolean> checkNull(Object left, Object right);
   }
 }

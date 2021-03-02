@@ -119,6 +119,8 @@ public class ApplyMigrationCommandTest {
     // Given:
     command = PARSER.parse("-n");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
+    // extra migration to ensure only the first is applied
+    createMigrationFile(3, NAME, migrationsDir, COMMAND);
     when(versionQueryResult.get()).thenReturn(ImmutableList.of());
 
     // When:
@@ -286,7 +288,6 @@ public class ApplyMigrationCommandTest {
     // Given:
     command = PARSER.parse("-n");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
-    when(versionQueryResult.get()).thenReturn(ImmutableList.of());
 
     when(sourceDescriptionCf.get())
         .thenThrow(new ExecutionException("Source not found", new RuntimeException()));

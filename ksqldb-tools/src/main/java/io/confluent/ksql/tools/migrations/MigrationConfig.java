@@ -103,24 +103,6 @@ public final class MigrationConfig extends AbstractConfig {
       throw new MigrationException("Missing required property: " + MigrationConfig.KSQL_SERVER_URL);
     }
 
-    final Client client = MigrationsUtil.getKsqlClient(ksqlServerUrl);
-    final CompletableFuture<ServerInfo> response = client.serverInfo();
-
-    try {
-      final String serviceId = response.get().getKsqlServiceId();
-      return serviceId;
-    } catch (InterruptedException e) {
-      throw new MigrationException("Interrupted while attempting to connect to "
-          + ksqlServerUrl + "/info");
-    } catch (ExecutionException e) {
-      if (e.getCause() instanceof IllegalStateException) {
-        throw new MigrationException(e.getCause().getMessage()
-            + "\nPlease ensure that " + ksqlServerUrl + " is an active ksqlDB server and that the "
-            + "version of the migration tool is compatible with the version of the ksqlDB server.");
-      }
-      throw new MigrationException("Failed to query " + ksqlServerUrl + "/info: " + e.getMessage());
-    } finally {
-      client.close();
-    }
+    return MigrationsUtil.getServerInfo(ksqlServerUrl).getKsqlServiceId();
   }
 }

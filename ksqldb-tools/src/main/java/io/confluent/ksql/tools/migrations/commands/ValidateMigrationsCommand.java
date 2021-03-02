@@ -88,23 +88,22 @@ public class ValidateMigrationsCommand extends BaseCommand {
       return 1;
     }
 
-    final boolean success;
+    boolean success = false;
     try {
       success = validate(config, migrationsDir, ksqlClient);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
-      return 1;
+      success = false;
+    } finally {
+      ksqlClient.close();
     }
 
     if (success) {
       LOGGER.info("Successfully validated checksums for migrations that have already been applied");
-      ksqlClient.close();
+      return 0;
     } else {
-      ksqlClient.close();
       return 1;
     }
-
-    return 0;
   }
 
   @Override

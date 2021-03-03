@@ -188,7 +188,10 @@ public final class FunctionLoaderUtils {
                     "Lambda function %s cannot be variadic.",
                     arguments.get(i).toString()));
           }
-          genericMapping.putAll(GenericsUtil.resolveGenerics(schema, arguments.get(i)));
+          genericMapping.putAll(GenericsUtil.reserveGenerics(
+              schema,
+              arguments.get(i)
+          ));
         } else {
           // we resolve any variadic as if it were an array so that the type
           // structure matches the input type
@@ -196,7 +199,10 @@ public final class FunctionLoaderUtils {
               ? SqlTypes.array(arguments.get(i).getSqlTypeOrThrow())
               : arguments.get(i).getSqlTypeOrThrow();
           genericMapping.putAll(
-              GenericsUtil.resolveGenerics(schema, SqlArgument.of(instance))
+              GenericsUtil.reserveGenerics(
+                  schema,
+                  SqlArgument.of(instance)
+              )
           );
         }
       }

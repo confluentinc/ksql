@@ -41,10 +41,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
-import io.confluent.ksql.function.types.ArrayType;
-import io.confluent.ksql.function.types.LambdaType;
-import io.confluent.ksql.function.types.ParamType;
-import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udaf.TestUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udf.Kudf;
@@ -59,7 +55,7 @@ import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
-import io.confluent.ksql.schema.ksql.types.SqlLambda;
+import io.confluent.ksql.schema.ksql.types.SqlLambdaResolved;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -197,8 +193,8 @@ public class UdfLoaderTest {
   @Test
   public void shouldLoadLambdaReduceUdfs() {
     // Given:
-    final SqlLambda lambda =
-        SqlLambda.of(
+    final SqlLambdaResolved lambda =
+        SqlLambdaResolved.of(
             ImmutableList.of(SqlTypes.INTEGER, SqlTypes.INTEGER, SqlTypes.INTEGER),
             SqlTypes.INTEGER);
 
@@ -206,8 +202,8 @@ public class UdfLoaderTest {
     final KsqlScalarFunction fun = FUNC_REG.getUdfFactory(FunctionName.of("reduce"))
         .getFunction(
             ImmutableList.of(
-                SqlArgument.of(SqlTypes.INTEGER),
                 SqlArgument.of(SqlMap.of(SqlTypes.INTEGER, SqlTypes.INTEGER)),
+                SqlArgument.of(SqlTypes.INTEGER),
                 SqlArgument.of(lambda)));
 
     // Then:
@@ -217,8 +213,8 @@ public class UdfLoaderTest {
   @Test
   public void shouldLoadLambdaTransformUdfs() {
     // Given:
-    final SqlLambda lambda =
-        SqlLambda.of(
+    final SqlLambdaResolved lambda =
+        SqlLambdaResolved.of(
             ImmutableList.of(SqlTypes.INTEGER),
             SqlTypes.INTEGER);
 

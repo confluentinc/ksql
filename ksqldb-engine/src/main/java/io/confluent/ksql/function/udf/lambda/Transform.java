@@ -51,7 +51,7 @@ public class Transform {
     if (array == null) {
       return null;
     }
-    return array.stream().map(function::apply).collect(Collectors.toList());
+    return array.stream().map(function).collect(Collectors.toList());
   }
 
   @Udf(description = "When transforming a map, "

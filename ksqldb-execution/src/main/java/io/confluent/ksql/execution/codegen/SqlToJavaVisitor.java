@@ -76,9 +76,12 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.util.CoercionUtil;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
+import io.confluent.ksql.execution.util.FunctionArgumentsUtil;
+import io.confluent.ksql.execution.util.FunctionArgumentsUtil.ArgumentInfo;
+import io.confluent.ksql.execution.util.FunctionArgumentsUtil.FunctionTypeInfo;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.GenericsUtil;
-import io.confluent.ksql.function.KsqlFunction;
+import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.ParamType;
@@ -89,15 +92,12 @@ import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SqlBooleans;
 import io.confluent.ksql.schema.ksql.SqlDoubles;
 import io.confluent.ksql.schema.ksql.SqlTimestamps;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
-import io.confluent.ksql.schema.ksql.types.SqlIntervalUnit;
-import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -370,7 +370,6 @@ public class SqlToJavaVisitor {
     public Pair<String, SqlType> visitLambdaExpression(
         final LambdaFunctionCall lambdaFunctionCall, final TypeContext context) {
 
-      context.mapLambdaInputTypes(lambdaFunctionCall.getArguments());
       final Pair<String, SqlType> lambdaBody = process(lambdaFunctionCall.getBody(), context);
 
       final List<Pair<String, Class<?>>> argPairs = new ArrayList<>();
@@ -458,57 +457,32 @@ public class SqlToJavaVisitor {
         final FunctionCall node, final TypeContext context
     ) {
       final FunctionName functionName = node.getName();
-
       final String instanceName = funNameToCodeName.apply(functionName);
-
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
+      final FunctionTypeInfo argumentsAndContext = FunctionArgumentsUtil
+          .getFunctionTypeInfo(
+              expressionTypeManager,
+              node,
+              udfFactory,
+              context);
 
-      // this context gets updated as we process non lambda arguments
-      final TypeContext currentTypeContext = context.getCopy();
-
-      final List<SqlArgument> argumentSchemas = new ArrayList<>();
-      final List<TypeContext> typeContextsForChildren = new ArrayList<>();
-      final boolean hasLambda = node.hasLambdaFunctionCallArguments();
-
-      for (final Expression argExpr : node.getArguments()) {
-        final TypeContext childContext = TypeContextUtil.contextForExpression(
-            argExpr, context, currentTypeContext
-        );
-        typeContextsForChildren.add(childContext);
-
-        // pass a copy of the context to the type checker so that type checking in one
-        // expression subtree doesn't interfere with type checking in another one
-        final SqlType resolvedArgType =
-            expressionTypeManager.getExpressionSqlType(argExpr, childContext.getCopy());
-        if (argExpr instanceof LambdaFunctionCall) {
-          argumentSchemas.add(
-              SqlArgument.of(
-                  SqlLambda.of(currentTypeContext.getLambdaInputTypes(), resolvedArgType)));
-        } else if (argExpr instanceof IntervalUnit) {
-          argumentSchemas.add(SqlArgument.of(SqlIntervalUnit.INSTANCE));
-        } else {
-          argumentSchemas.add(SqlArgument.of(resolvedArgType));
-          // for lambdas - we save the type information to resolve the lambda generics
-          if (hasLambda) {
-            currentTypeContext.visitType(resolvedArgType);
-          }
-        }
-      }
-
-      final KsqlFunction function = udfFactory.getFunction(argumentSchemas);
-
-      final SqlType functionReturnSchema = function.getReturnType(argumentSchemas);
+      final SqlType returnType = argumentsAndContext.getReturnType();
       final String javaReturnType =
-          SchemaConverters.sqlToJavaConverter().toJavaType(functionReturnSchema).getSimpleName();
+          SchemaConverters.sqlToJavaConverter()
+              .toJavaType(returnType)
+              .getSimpleName();
 
       final List<Expression> arguments = node.getArguments();
+      final List<ArgumentInfo> argumentInfos = argumentsAndContext.getArgumentInfos();
+      final KsqlScalarFunction function = argumentsAndContext.getFunction();
 
       final StringJoiner joiner = new StringJoiner(", ");
       for (int i = 0; i < arguments.size(); i++) {
         final Expression arg = arguments.get(i);
 
         // lambda arguments and null values are considered to have null type
-        final SqlType sqlType = argumentSchemas.get(i).getSqlType().orElse(null);
+        final SqlType sqlType =
+            argumentInfos.get(i).getSqlArgument().getSqlType().orElse(null);
 
         final ParamType paramType;
         if (i >= function.parameters().size() - 1 && function.isVariadic()) {
@@ -518,7 +492,7 @@ public class SqlToJavaVisitor {
         }
 
         joiner.add(
-            process(convertArgument(arg, sqlType, paramType), typeContextsForChildren.get(i))
+            process(convertArgument(arg, sqlType, paramType), argumentInfos.get(i).getContext())
             .getLeft());
       }
 
@@ -526,7 +500,7 @@ public class SqlToJavaVisitor {
       final String argumentsString = joiner.toString();
       final String codeString = "((" + javaReturnType + ") " + instanceName
           + ".evaluate(" + argumentsString + "))";
-      return new Pair<>(codeString, functionReturnSchema);
+      return new Pair<>(codeString, returnType);
     }
 
     private Expression convertArgument(

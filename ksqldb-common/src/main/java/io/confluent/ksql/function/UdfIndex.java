@@ -22,8 +22,6 @@ import io.confluent.ksql.function.types.GenericType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.schema.ksql.SqlArgument;
-import io.confluent.ksql.schema.ksql.types.SqlIntervalUnit;
-import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlException;
@@ -204,15 +202,7 @@ public class UdfIndex<T extends FunctionSignature> {
           if (argument == null) {
             return "null";
           } else {
-            final Optional<SqlLambda> sqlLambda = argument.getSqlLambda();
-            final Optional<SqlIntervalUnit> sqlIntervalUnit = argument.getSqlIntervalUnit();
-            if (sqlLambda.isPresent()) {
-              return sqlLambda.get().toString(FormatOptions.noEscape());
-            } else if (sqlIntervalUnit.isPresent()) {
-              return sqlIntervalUnit.get().toString();
-            } else {
-              return argument.getSqlTypeOrThrow().toString(FormatOptions.noEscape());
-            }
+            return argument.toString(FormatOptions.noEscape());
           }
         })
         .collect(Collectors.joining(", ", "(", ")"));
@@ -373,32 +363,10 @@ public class UdfIndex<T extends FunctionSignature> {
       }
 
       if (GenericsUtil.hasGenerics(type)) {
-        return reserveGenerics(type, argument, reservedGenerics);
+        return GenericsUtil.reserveGenerics(type, argument, reservedGenerics).getLeft();
       }
 
       return ParamTypes.areCompatible(argument, type, allowCasts);
-    }
-    // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
-
-    private static boolean reserveGenerics(
-        final ParamType schema,
-        final SqlArgument argument,
-        final Map<GenericType, SqlType> reservedGenerics
-    ) {
-      if (!GenericsUtil.instanceOf(schema, argument)) {
-        return false;
-      }
-      final Map<GenericType, SqlType> genericMapping =
-          GenericsUtil.resolveGenerics(schema, argument);
-
-      for (final Entry<GenericType, SqlType> entry : genericMapping.entrySet()) {
-        final SqlType old = reservedGenerics.putIfAbsent(entry.getKey(), entry.getValue());
-        if (old != null && !old.equals(entry.getValue())) {
-          return false;
-        }
-      }
-
-      return true;
     }
 
     @Override

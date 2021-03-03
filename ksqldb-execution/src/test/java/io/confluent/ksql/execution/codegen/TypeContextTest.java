@@ -19,42 +19,47 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
-
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.junit.Test;
 
+import java.util.HashMap;
+import java.util.Map;
+
+@SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
 public class TypeContextTest {
 
   @Test
-  public void shouldThrowOnLambdaMismatch() {
+  public void shouldThrowOnMappingMismatch() {
     // Given
-    final TypeContext context = new TypeContext();
-    context.addLambdaInputType(SqlTypes.STRING);
-    context.addLambdaInputType(SqlTypes.STRING);
+    final TypeContext context = new TypeContext(ImmutableMap.of("x", SqlTypes.STRING, "y", SqlTypes.STRING));
 
     // When
     final Exception e =
-        assertThrows(IllegalArgumentException.class, () -> context.mapLambdaInputTypes(ImmutableList.of("x", "y", "z")));
+        assertThrows(IllegalStateException.class, () ->
+            context.copyWithLambdaVariableTypeMapping(
+                ImmutableMap.of("x", SqlTypes.BIGINT, "y", SqlTypes.STRING))
+        );
 
     // Then
     assertThat(e.getMessage(),
-        is("Was expecting 2 arguments but found 3, [x, y, z]. Check your lambda statement."));
+        is("Could not resolve type for lambda variable x, cannot be both STRING and BIGINT"));
   }
 
   @Test
-  public void shouldMapLambdaTypesAndClearInputList() {
+  public void shouldCopyContextWithLambdaMapping() {
     // Given
-    final TypeContext context = new TypeContext();
-    context.addLambdaInputType(SqlTypes.STRING);
-    context.addLambdaInputType(SqlTypes.BIGINT);
+    final Map<String, SqlType> arguments = new HashMap<>(ImmutableMap.of("x", SqlTypes.STRING, "y", SqlTypes.BIGINT));
+    final TypeContext context = new TypeContext(arguments);
 
     // When
-    context.mapLambdaInputTypes(ImmutableList.of("x", "y"));
+    final TypeContext copyContext = context.copyWithLambdaVariableTypeMapping(arguments);
 
     // Then
-    assertThat(context.getLambdaType("x"), is(SqlTypes.STRING));
-    assertThat(context.getLambdaType("y"), is(SqlTypes.BIGINT));
-    assertThat(context.getLambdaInputTypes().size(), is(0));
+    assertThat(copyContext.equals(context), is(true));
+    assertThat(context.getLambdaType("x"), is(copyContext.getLambdaType("x")));
+    assertThat(context.getLambdaType("y"), is(copyContext.getLambdaType("y")));
   }
 }

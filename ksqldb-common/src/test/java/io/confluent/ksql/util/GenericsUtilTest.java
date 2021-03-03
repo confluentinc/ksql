@@ -35,8 +35,10 @@ import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlLambda;
+import io.confluent.ksql.schema.ksql.types.SqlLambdaResolved;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import org.junit.Test;
@@ -171,7 +173,7 @@ public class GenericsUtilTest {
     final SqlArgument instance = SqlArgument.of(SqlTypes.STRING);
 
     // When:
-    final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance);
+    final Map<GenericType, SqlType> mapping = GenericsUtil.reserveGenerics(a, instance);
 
     // Then:
     assertThat(mapping, hasEntry(a, SqlTypes.STRING));
@@ -184,7 +186,7 @@ public class GenericsUtilTest {
     final SqlArgument instance = SqlArgument.of(SqlTypes.array(SqlTypes.STRING));
 
     // When:
-    final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance);
+    final Map<GenericType, SqlType> mapping = GenericsUtil.reserveGenerics(a, instance);
 
     // Then:
     assertThat(mapping, hasEntry(a.element(), SqlTypes.STRING));
@@ -197,7 +199,7 @@ public class GenericsUtilTest {
     final SqlArgument instance = SqlArgument.of(SqlTypes.map(SqlTypes.DOUBLE, SqlTypes.BIGINT));
 
     // When:
-    final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance);
+    final Map<GenericType, SqlType> mapping = GenericsUtil.reserveGenerics(a, instance);
 
     // Then:
     assertThat(mapping, hasEntry(a.key(), SqlTypes.DOUBLE));
@@ -205,15 +207,16 @@ public class GenericsUtilTest {
   }
 
   @Test
-  public void shouldIdentifyLambdaGenerics() {
+  public void shouldIdentifySqlLambdaResolvedGenerics() {
     // Given:
     final GenericType typeA = GenericType.of("A");
     final GenericType typeB = GenericType.of("B");
     final LambdaType a = LambdaType.of(ImmutableList.of(typeA, typeB), typeB);
-    final SqlArgument instance = SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.DOUBLE, SqlTypes.BIGINT), SqlTypes.BIGINT));
+    final SqlArgument instance = SqlArgument.of(
+        SqlLambdaResolved.of(ImmutableList.of(SqlTypes.DOUBLE, SqlTypes.BIGINT), SqlTypes.BIGINT));
 
     // When:
-    final Map<GenericType, SqlType> mapping = GenericsUtil.resolveGenerics(a, instance);
+    final Map<GenericType, SqlType> mapping = GenericsUtil.reserveGenerics(a, instance);
 
     // Then:
     assertThat(mapping, hasEntry(typeA, SqlTypes.DOUBLE));
@@ -221,23 +224,66 @@ public class GenericsUtilTest {
   }
 
   @Test
-  public void shouldFailToIdentifyLambdasWithDifferentSchema() {
+  public void shouldFailToIdentifySqlLambdaResolvedWithDifferentSchema() {
     // Given:
     final GenericType typeA = GenericType.of("A");
     final GenericType typeB = GenericType.of("B");
     final GenericType typeC = GenericType.of("C");
     final LambdaType a = LambdaType.of(ImmutableList.of(typeA, typeC), typeB);
-    final SqlArgument instance = SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.DOUBLE), SqlTypes.BIGINT));
+    final SqlArgument instance = SqlArgument.of(
+        SqlLambdaResolved.of(ImmutableList.of(SqlTypes.DOUBLE), SqlTypes.BIGINT));
 
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> GenericsUtil.resolveGenerics(a, instance)
+        () -> GenericsUtil.reserveGenerics(a, instance)
     );
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Number of lambda arguments doesn't match between schema and sql type"));
+        "Cannot infer generics for LAMBDA (A, C) => B from LAMBDA (DOUBLE) => BIGINT " 
+            + "because they do not have the same schema structure"));
+  }
+
+  @Test
+  public void shouldNotMapGenericsForNonSqlLambdaResolved() {
+    // Given:
+    final GenericType typeA = GenericType.of("A");
+    final GenericType typeB = GenericType.of("B");
+    final GenericType typeC = GenericType.of("C");
+    final LambdaType a = LambdaType.of(ImmutableList.of(typeA, typeC), typeB);
+    final SqlArgument instance = SqlArgument.of(
+        SqlLambda.of(2));
+
+    // When:
+    final Map<GenericType, SqlType> mapping = GenericsUtil.reserveGenerics(a, instance);
+
+    // Then:
+    
+    // the map should be empty since the instance type was a SqlLambda without any types resolved
+    assertThat(mapping.size(), is(0));
+  }
+
+  @Test
+  public void shouldFailToIdentifyLambdasWithDifferentArgumentList() {
+    // Given:
+    final GenericType typeA = GenericType.of("A");
+    final GenericType typeB = GenericType.of("B");
+    final GenericType typeC = GenericType.of("C");
+    final LambdaType a = LambdaType.of(ImmutableList.of(typeA, typeC), typeB);
+    final SqlArgument instance = SqlArgument.of(
+        SqlLambda.of(4));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> GenericsUtil.reserveGenerics(a, instance)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Cannot infer generics for LAMBDA (A, C) => B from LAMBDA " 
+            + "because they do not have the same schema structure."));
   }
 
   @Test
@@ -246,12 +292,13 @@ public class GenericsUtilTest {
     final GenericType typeA = GenericType.of("A");
 
     final LambdaType a = LambdaType.of(ImmutableList.of(typeA), typeA);
-    final SqlArgument instance = SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.DOUBLE), SqlTypes.BOOLEAN));
+    final SqlArgument instance = SqlArgument.of(
+        SqlLambdaResolved.of(ImmutableList.of(SqlTypes.DOUBLE), SqlTypes.BOOLEAN));
 
     // When:
     final Exception e = assertThrows(
         KsqlException.class,
-        () -> GenericsUtil.resolveGenerics(a, instance)
+        () -> GenericsUtil.reserveGenerics(a, instance)
     );
 
     // Then:
@@ -264,10 +311,11 @@ public class GenericsUtilTest {
   public void shouldIdentifyInstanceOfLambda() {
     // Given:
     final LambdaType lambda = LambdaType.of(ImmutableList.of(GenericType.of("A")), GenericType.of("B"));
-    final SqlArgument instance = SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.INTEGER), SqlTypes.BIGINT));
+    final SqlArgument instance = SqlArgument.of(
+        SqlLambdaResolved.of(ImmutableList.of(SqlTypes.INTEGER), SqlTypes.BIGINT));
 
     // When:
-    final boolean isInstance = GenericsUtil.instanceOf(lambda, instance);
+    final boolean isInstance = GenericsUtil.reserveGenerics(lambda, instance, new HashMap<>()).getLeft();
 
     // Then:
     assertThat("expected instance of", isInstance);
@@ -277,14 +325,15 @@ public class GenericsUtilTest {
   public void shouldNotIdentifyInstanceOfTypeMismatchLambda() {
     // Given:
     final MapType map = MapType.of(GenericType.of("A"), GenericType.of("B"));
-    final SqlArgument lambdaInstance = SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.INTEGER), SqlTypes.BIGINT));
+    final SqlArgument lambdaInstance = SqlArgument.of(
+        SqlLambdaResolved.of(ImmutableList.of(SqlTypes.INTEGER), SqlTypes.BIGINT));
 
     final LambdaType lambda = LambdaType.of(ImmutableList.of(GenericType.of("A")), GenericType.of("B"));
     final SqlArgument mapInstance = SqlArgument.of(SqlTypes.map(SqlTypes.STRING, SqlTypes.BOOLEAN));
 
     // When:
-    final boolean isInstance1 = GenericsUtil.instanceOf(map, lambdaInstance);
-    final boolean isInstance2 = GenericsUtil.instanceOf(lambda, mapInstance);
+    final boolean isInstance1 = GenericsUtil.reserveGenerics(map, lambdaInstance, new HashMap<>()).getLeft();
+    final boolean isInstance2 = GenericsUtil.reserveGenerics(lambda, mapInstance, new HashMap<>()).getLeft();
 
     // Then:
     assertThat("expected not instance of", !isInstance1);
@@ -298,7 +347,7 @@ public class GenericsUtilTest {
     final SqlArgument instance = SqlArgument.of(SqlTypes.array(SqlTypes.STRING));
 
     // When:
-    final boolean isInstance = GenericsUtil.instanceOf(map, instance);
+    final boolean isInstance = GenericsUtil.reserveGenerics(map, instance, new HashMap<>()).getLeft();
 
     // Then:
     assertThat("expected not instance of", !isInstance);
@@ -321,6 +370,6 @@ public class GenericsUtilTest {
     final SqlArgument instance = SqlArgument.of(SqlTypes.array(SqlTypes.STRING));
 
     // When:
-    GenericsUtil.resolveGenerics(a, instance);
+    GenericsUtil.reserveGenerics(a, instance);
   }
 }

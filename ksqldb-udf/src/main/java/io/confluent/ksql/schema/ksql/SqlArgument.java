@@ -17,7 +17,9 @@ package io.confluent.ksql.schema.ksql;
 
 import io.confluent.ksql.schema.ksql.types.SqlIntervalUnit;
 import io.confluent.ksql.schema.ksql.types.SqlLambda;
+import io.confluent.ksql.schema.ksql.types.SqlLambdaResolved;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.utils.FormatOptions;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -111,12 +113,21 @@ public class SqlArgument {
 
   @Override
   public String toString() {
+    return toString(FormatOptions.none());
+  }
+
+  public String toString(final FormatOptions formatOptions) {
     if (sqlType.isPresent()) {
-      return sqlType.get().toString();
+      return sqlType.get().toString(formatOptions);
     }
     if (sqlIntervalUnit.isPresent()) {
       return sqlIntervalUnit.get().toString();
     }
-    return sqlLambda.map(SqlLambda::toString).orElse("null");
+    return sqlLambda.map(lambda -> {
+      if (lambda instanceof SqlLambdaResolved) {
+        return ((SqlLambdaResolved) lambda).toString();
+      }
+      return lambda.toString();
+    }).orElse("null");
   }
 }

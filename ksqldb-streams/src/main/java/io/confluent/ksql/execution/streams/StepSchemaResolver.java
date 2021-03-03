@@ -16,7 +16,7 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -184,7 +184,7 @@ public final class StepSchemaResolver {
       final LogicalSchema sourceSchema,
       final StreamGroupByV1<?> streamGroupBy
   ) {
-    final List<ExpressionMetadata> compiledGroupBy = CodeGenRunner.compileExpressions(
+    final List<CompiledExpression> compiledGroupBy = CodeGenRunner.compileExpressions(
         streamGroupBy.getGroupByExpressions().stream(),
         "Group By",
         sourceSchema,
@@ -199,7 +199,7 @@ public final class StepSchemaResolver {
       final LogicalSchema sourceSchema,
       final StreamGroupBy<?> streamGroupBy
   ) {
-    final List<ExpressionMetadata> compiledGroupBy = CodeGenRunner.compileExpressions(
+    final List<CompiledExpression> compiledGroupBy = CodeGenRunner.compileExpressions(
         streamGroupBy.getGroupByExpressions().stream(),
         "Group By",
         sourceSchema,
@@ -214,7 +214,7 @@ public final class StepSchemaResolver {
       final LogicalSchema sourceSchema,
       final TableGroupByV1<?> tableGroupBy
   ) {
-    final List<ExpressionMetadata> compiledGroupBy = CodeGenRunner.compileExpressions(
+    final List<CompiledExpression> compiledGroupBy = CodeGenRunner.compileExpressions(
         tableGroupBy.getGroupByExpressions().stream(),
         "Group By",
         sourceSchema,
@@ -229,7 +229,7 @@ public final class StepSchemaResolver {
       final LogicalSchema sourceSchema,
       final TableGroupBy<?> tableGroupBy
   ) {
-    final List<ExpressionMetadata> compiledGroupBy = CodeGenRunner.compileExpressions(
+    final List<CompiledExpression> compiledGroupBy = CodeGenRunner.compileExpressions(
         tableGroupBy.getGroupByExpressions().stream(),
         "Group By",
         sourceSchema,

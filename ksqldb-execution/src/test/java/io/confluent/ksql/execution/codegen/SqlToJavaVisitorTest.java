@@ -1060,8 +1060,8 @@ public class SqlToJavaVisitorTest {
             ArrayType.of(ParamTypes.DOUBLE),
             ParamTypes.DOUBLE,
             LambdaType.of(
-                ImmutableList.of(ParamTypes.DOUBLE, ParamTypes.DOUBLE),
-                ParamTypes.DOUBLE))
+                ImmutableList.of(ParamTypes.DOUBLE, ParamTypes.INTEGER),
+                ParamTypes.INTEGER))
         );
 
     final Expression expression = new ArithmeticBinaryExpression(
@@ -1125,17 +1125,6 @@ public class SqlToJavaVisitorTest {
                 + "})) + B);\n"
                 + " }\n"
                 + "})) + 5)"));
-  }
-
-  @Test
-  public void shouldThrowErrorOnEmptyLambdaInput() {
-    // Given:
-    final Expression expression = new LambdaFunctionCall(
-        ImmutableList.of("x"),
-        (new FunctionCall(FunctionName.of("ABS"), ImmutableList.of(new LambdaVariable("X")))));
-
-    // When:
-    assertThrows(IllegalArgumentException.class, () -> sqlToJavaVisitor.process(expression));
   }
 
   @Test

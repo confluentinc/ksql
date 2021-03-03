@@ -69,6 +69,13 @@ import io.confluent.ksql.execution.testutil.TestExpressions;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.DoubleType;
+import io.confluent.ksql.function.types.IntegerType;
+import io.confluent.ksql.function.types.LambdaType;
+import io.confluent.ksql.function.types.LongType;
+import io.confluent.ksql.function.types.MapType;
+import io.confluent.ksql.function.types.StringType;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
@@ -78,12 +85,11 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlLambda;
+import io.confluent.ksql.schema.ksql.types.SqlLambdaResolved;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.hamcrest.Matchers;
@@ -352,6 +358,11 @@ public class ExpressionTypeManagerTest {
   public void shouldEvaluateLambdaInUDFWithArray() {
     // Given:
     givenUdfWithNameAndReturnType("TRANSFORM", SqlTypes.DOUBLE);
+    when(function.parameters()).thenReturn(
+        ImmutableList.of(
+            ArrayType.of(DoubleType.INSTANCE),
+            LambdaType.of(ImmutableList.of(DoubleType.INSTANCE), DoubleType.INSTANCE)));
+
     final Expression expression =
         new FunctionCall(
             FunctionName.of("TRANSFORM"),
@@ -373,31 +384,23 @@ public class ExpressionTypeManagerTest {
     verify(udfFactory).getFunction(
         ImmutableList.of(
             SqlArgument.of(SqlTypes.array(SqlTypes.DOUBLE)),
-            SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.DOUBLE), SqlTypes.DOUBLE))));
+            SqlArgument.of(SqlLambda.of(1))));
     verify(function).getReturnType(
         ImmutableList.of(
             SqlArgument.of(SqlTypes.array(SqlTypes.DOUBLE)),
-            SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.DOUBLE), SqlTypes.DOUBLE))));
+            SqlArgument.of(SqlLambdaResolved.of(ImmutableList.of(SqlTypes.DOUBLE), SqlTypes.DOUBLE))));
   }
 
   @Test
   public void shouldEvaluateLambdaInUDFWithMap() {
     // Given:
     givenUdfWithNameAndReturnType("TRANSFORM", SqlTypes.DOUBLE);
-    final Expression expression1 =
-        new FunctionCall(
-            FunctionName.of("TRANSFORM"),
-            ImmutableList.of(
-                MAPCOL,
-                new LambdaFunctionCall(
-                    ImmutableList.of("X"),
-                    new ArithmeticBinaryExpression(
-                        Operator.ADD,
-                        new LambdaVariable("X"),
-                        new IntegerLiteral(5))
-                )));
+    when(function.parameters()).thenReturn(
+        ImmutableList.of(
+            MapType.of(DoubleType.INSTANCE, DoubleType.INSTANCE),
+            LambdaType.of(ImmutableList.of(LongType.INSTANCE, DoubleType.INSTANCE), DoubleType.INSTANCE)));
 
-    final Expression expression2 =
+    final Expression expression =
         new FunctionCall(
             FunctionName.of("TRANSFORM"),
             ImmutableList.of(
@@ -411,30 +414,39 @@ public class ExpressionTypeManagerTest {
                 )));
 
     // When:
-    final Exception e = assertThrows(
-        Exception.class,
-        () -> expressionTypeManager.getExpressionSqlType(expression1)
-    );
-    final SqlType exprType = expressionTypeManager.getExpressionSqlType(expression2);
+    final SqlType exprType = expressionTypeManager.getExpressionSqlType(expression);
 
     // Then:
     assertThat(exprType, is(SqlTypes.DOUBLE));
     verify(udfFactory).getFunction(
         ImmutableList.of(
             SqlArgument.of(SqlTypes.map(SqlTypes.BIGINT, SqlTypes.DOUBLE)),
-            SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.BIGINT, SqlTypes.DOUBLE), SqlTypes.BIGINT))));
+            SqlArgument.of(SqlLambda.of(2))));
     verify(function).getReturnType(
         ImmutableList.of(
             SqlArgument.of(SqlTypes.map(SqlTypes.BIGINT, SqlTypes.DOUBLE)),
-            SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.BIGINT, SqlTypes.DOUBLE), SqlTypes.BIGINT))));
-    assertThat(e.getMessage(), Matchers.containsString(
-        "Was expecting 2 arguments but found 1, [X]. Check your lambda statement."));
+            SqlArgument.of(
+                SqlLambdaResolved.of(ImmutableList.of(SqlTypes.BIGINT, SqlTypes.DOUBLE), SqlTypes.BIGINT))));
   }
 
   @Test
   public void shouldEvaluateAnyNumberOfArgumentLambda() {
     // Given:
     givenUdfWithNameAndReturnType("TRANSFORM", SqlTypes.STRING);
+    when(function.parameters()).thenReturn(
+        ImmutableList.of(
+            ArrayType.of(DoubleType.INSTANCE),
+            StringType.INSTANCE,
+            MapType.of(LongType.INSTANCE, DoubleType.INSTANCE),
+            LambdaType.of(
+                ImmutableList.of(
+                    DoubleType.INSTANCE,
+                    StringType.INSTANCE,
+                    LongType.INSTANCE,
+                    DoubleType.INSTANCE
+                ),
+                StringType.INSTANCE)));
+
     final Expression expression =
         new FunctionCall(
             FunctionName.of("TRANSFORM"),
@@ -460,19 +472,30 @@ public class ExpressionTypeManagerTest {
             SqlArgument.of(SqlTypes.array(SqlTypes.DOUBLE)),
             SqlArgument.of(SqlTypes.STRING),
             SqlArgument.of(SqlTypes.map(SqlTypes.BIGINT, SqlTypes.DOUBLE)),
-            SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.DOUBLE, SqlTypes.STRING, SqlTypes.BIGINT, SqlTypes.DOUBLE), SqlTypes.BIGINT))));
+            SqlArgument.of(SqlLambda.of(4))));
     verify(function).getReturnType(
         ImmutableList.of(
             SqlArgument.of(SqlTypes.array(SqlTypes.DOUBLE)),
             SqlArgument.of(SqlTypes.STRING),
             SqlArgument.of(SqlTypes.map(SqlTypes.BIGINT, SqlTypes.DOUBLE)),
-            SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.DOUBLE, SqlTypes.STRING, SqlTypes.BIGINT, SqlTypes.DOUBLE), SqlTypes.BIGINT))));
+            SqlArgument.of(SqlLambdaResolved
+                .of(ImmutableList.of(SqlTypes.DOUBLE, SqlTypes.STRING, SqlTypes.BIGINT, SqlTypes.DOUBLE), SqlTypes.BIGINT))));
   }
 
   @Test
   public void shouldEvaluateLambdaArgsToType() {
     // Given:
     givenUdfWithNameAndReturnType("TRANSFORM", SqlTypes.STRING);
+    when(function.parameters()).thenReturn(
+        ImmutableList.of(
+            ArrayType.of(DoubleType.INSTANCE),
+            StringType.INSTANCE,
+            LambdaType.of(
+                ImmutableList.of(
+                    DoubleType.INSTANCE,
+                    StringType.INSTANCE
+                ),
+                StringType.INSTANCE)));
     final Expression expression =
         new FunctionCall(
             FunctionName.of("TRANSFORM"),
@@ -502,6 +525,17 @@ public class ExpressionTypeManagerTest {
   public void shouldFailToEvaluateLambdaWithMismatchedArgumentNumber() {
     // Given:
     givenUdfWithNameAndReturnType("TRANSFORM", SqlTypes.DOUBLE);
+    when(function.parameters()).thenReturn(
+        ImmutableList.of(
+            ArrayType.of(DoubleType.INSTANCE),
+            LambdaType.of(
+                ImmutableList.of(
+                    DoubleType.INSTANCE
+                ),
+                StringType.INSTANCE
+            )
+        )
+    );
     final Expression expression =
         new FunctionCall(
             FunctionName.of("TRANSFORM"),
@@ -530,12 +564,30 @@ public class ExpressionTypeManagerTest {
   public void shouldHandleMultipleLambdasInSameFunctionCallWithDifferentVariableNames() {
     // Given:
     givenUdfWithNameAndReturnType("TRANSFORM", SqlTypes.INTEGER);
+    when(function.parameters()).thenReturn(
+        ImmutableList.of(
+            MapType.of(LongType.INSTANCE, DoubleType.INSTANCE),
+            IntegerType.INSTANCE,
+            LambdaType.of(
+                ImmutableList.of(
+                    DoubleType.INSTANCE,
+                    DoubleType.INSTANCE
+                ),
+                StringType.INSTANCE),
+            LambdaType.of(
+                ImmutableList.of(
+                    DoubleType.INSTANCE,
+                    DoubleType.INSTANCE
+                ),
+                StringType.INSTANCE
+            )
+        ));
     final Expression expression = new ArithmeticBinaryExpression(
         Operator.ADD,
         new FunctionCall(
             FunctionName.of("TRANSFORM"),
             ImmutableList.of(
-                ARRAYCOL,
+                MAPCOL,
                 new IntegerLiteral(0),
                 new LambdaFunctionCall(
                     ImmutableList.of("A", "B"),
@@ -564,6 +616,24 @@ public class ExpressionTypeManagerTest {
   public void shouldHandleNestedLambdas() {
     // Given:
     givenUdfWithNameAndReturnType("TRANSFORM", SqlTypes.INTEGER);
+    when(function.parameters()).thenReturn(
+        ImmutableList.of(
+            ArrayType.of(LongType.INSTANCE),
+            IntegerType.INSTANCE,
+            LambdaType.of(
+                ImmutableList.of(
+                    DoubleType.INSTANCE,
+                    DoubleType.INSTANCE
+                ),
+                StringType.INSTANCE),
+            LambdaType.of(
+                ImmutableList.of(
+                    DoubleType.INSTANCE,
+                    DoubleType.INSTANCE
+                ),
+                StringType.INSTANCE
+            )
+        ));
     final Expression expression = new ArithmeticBinaryExpression(
         Operator.ADD,
         new FunctionCall(

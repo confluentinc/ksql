@@ -15,14 +15,10 @@
 
 package io.confluent.ksql.tools.migrations;
 
-import io.confluent.ksql.api.client.Client;
-import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.properties.PropertiesUtil;
-import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
+import io.confluent.ksql.tools.migrations.util.ServerVersionUtil;
 import java.io.File;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
@@ -103,24 +99,6 @@ public final class MigrationConfig extends AbstractConfig {
       throw new MigrationException("Missing required property: " + MigrationConfig.KSQL_SERVER_URL);
     }
 
-    final Client client = MigrationsUtil.getKsqlClient(ksqlServerUrl);
-    final CompletableFuture<ServerInfo> response = client.serverInfo();
-
-    try {
-      final String serviceId = response.get().getKsqlServiceId();
-      return serviceId;
-    } catch (InterruptedException e) {
-      throw new MigrationException("Interrupted while attempting to connect to "
-          + ksqlServerUrl + "/info");
-    } catch (ExecutionException e) {
-      if (e.getCause() instanceof IllegalStateException) {
-        throw new MigrationException(e.getCause().getMessage()
-            + "\nPlease ensure that " + ksqlServerUrl + " is an active ksqlDB server and that the "
-            + "version of the migration tool is compatible with the version of the ksqlDB server.");
-      }
-      throw new MigrationException("Failed to query " + ksqlServerUrl + "/info: " + e.getMessage());
-    } finally {
-      client.close();
-    }
+    return ServerVersionUtil.getServerInfo(ksqlServerUrl).getKsqlServiceId();
   }
 }

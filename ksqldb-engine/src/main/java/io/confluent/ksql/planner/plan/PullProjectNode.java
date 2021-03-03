@@ -18,8 +18,10 @@ package io.confluent.ksql.planner.plan;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.interpreter.InterpretedExpressionFactory;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.AllColumns;
@@ -65,7 +67,7 @@ public class PullProjectNode extends ProjectNode {
   private final ImmutableList<SelectExpression> selectExpressions;
   private final LogicalSchema outputSchema;
   private final LogicalSchema intermediateSchema;
-  private final List<ExpressionMetadata> compiledSelectExpressions;
+  private final List<ExpressionEvaluator> compiledSelectExpressions;
   private final RewrittenAnalysis analysis;
   private final boolean isSelectStar;
   private final boolean addAdditionalColumnsToIntermediateSchema;
@@ -96,13 +98,10 @@ public class PullProjectNode extends ProjectNode {
         ? Collections.emptyList()
         : selectExpressions
         .stream()
-        .map(selectExpression -> CodeGenRunner.compileExpression(
-            selectExpression.getExpression(),
-            "Select",
-            intermediateSchema,
-            ksqlConfig,
-            metaStore
-        ))
+        .map(selectExpression ->
+            getExpressionEvaluator(
+                selectExpression.getExpression(), intermediateSchema, metaStore, ksqlConfig)
+        )
         .collect(ImmutableList.toImmutableList());
   }
 
@@ -116,7 +115,7 @@ public class PullProjectNode extends ProjectNode {
     return selectExpressions;
   }
 
-  public List<ExpressionMetadata> getCompiledSelectExpressions() {
+  public List<ExpressionEvaluator> getCompiledSelectExpressions() {
     if (isSelectStar) {
       throw new IllegalStateException("Select expressions aren't compiled for select star");
     }
@@ -241,5 +240,29 @@ public class PullProjectNode extends ProjectNode {
       }
     }
     return schemaBuilder.build();
+  }
+
+  private static ExpressionEvaluator getExpressionEvaluator(
+      final Expression expression,
+      final LogicalSchema schema,
+      final MetaStore metaStore,
+      final KsqlConfig ksqlConfig) {
+
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)) {
+      return InterpretedExpressionFactory.create(
+          expression,
+          schema,
+          metaStore,
+          ksqlConfig
+      );
+    } else {
+      return CodeGenRunner.compileExpression(
+          expression,
+          "Select",
+          schema,
+          ksqlConfig,
+          metaStore
+      );
+    }
   }
 }

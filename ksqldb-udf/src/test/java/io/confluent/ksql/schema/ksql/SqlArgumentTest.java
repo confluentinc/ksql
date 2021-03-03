@@ -24,6 +24,7 @@ import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlIntervalUnit;
 import io.confluent.ksql.schema.ksql.types.SqlLambda;
+import io.confluent.ksql.schema.ksql.types.SqlLambdaResolved;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.junit.Test;
 
@@ -35,8 +36,13 @@ public class SqlArgumentTest {
     new EqualsTester()
         .addEqualityGroup(SqlArgument.of(SqlArray.of(SqlTypes.STRING)), SqlArgument.of(SqlArray.of(SqlTypes.STRING)))
         .addEqualityGroup(
-            SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.STRING), SqlTypes.INTEGER)),
-            SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.STRING), SqlTypes.INTEGER)))
+            SqlArgument.of(SqlLambdaResolved.of(ImmutableList.of(SqlTypes.STRING), SqlTypes.INTEGER)),
+            SqlArgument.of(SqlLambdaResolved.of(ImmutableList.of(SqlTypes.STRING), SqlTypes.INTEGER)))
+        .addEqualityGroup(
+            SqlArgument.of(SqlLambda.of(2)),
+            SqlArgument.of(SqlLambda.of(2)))
+        .addEqualityGroup(
+            SqlArgument.of(SqlLambda.of(4)))
         .addEqualityGroup(SqlArgument.of(null, null), SqlArgument.of(null, null))
         .addEqualityGroup(SqlArgument.of(SqlIntervalUnit.INSTANCE), SqlArgument.of(SqlIntervalUnit.INSTANCE))
         .testEquals();
@@ -56,16 +62,22 @@ public class SqlArgumentTest {
 
   @Test
   public void shouldReturnLambdaIfPresent() {
-    final SqlArgument argument = SqlArgument.of(SqlLambda.of(ImmutableList.of(SqlTypes.STRING), SqlTypes.INTEGER));
-    assertThat("lambda", argument.getSqlLambdaOrThrow()
-        .equals(SqlLambda.of(ImmutableList.of(SqlTypes.STRING), SqlTypes.INTEGER)));
+    final SqlArgument argument1 = SqlArgument.of(
+        SqlLambdaResolved.of(ImmutableList.of(SqlTypes.STRING), SqlTypes.INTEGER));
+    assertThat("lambda", argument1.getSqlLambdaOrThrow()
+        .equals(SqlLambdaResolved.of(ImmutableList.of(SqlTypes.STRING), SqlTypes.INTEGER)));
+
+    final SqlArgument argument2= SqlArgument.of(SqlLambda.of(1));
+    assertThat("lambda", argument2.getSqlLambdaOrThrow()
+        .equals(SqlLambda.of(1)));
   }
 
   @Test
   public void shouldThrowIfAssigningTypeAndLambdaToSqlArgument() {
     final Exception e = assertThrows(
         RuntimeException.class,
-        () -> SqlArgument.of(SqlTypes.STRING, (SqlLambda.of(ImmutableList.of(SqlTypes.STRING), SqlTypes.INTEGER)))
+        () -> SqlArgument.of(SqlTypes.STRING, (SqlLambdaResolved
+            .of(ImmutableList.of(SqlTypes.STRING), SqlTypes.INTEGER)))
     );
     assertThat(e.getMessage(), containsString(
         "A function argument was assigned to be both a type and a lambda"));
@@ -73,7 +85,8 @@ public class SqlArgumentTest {
 
   @Test
   public void shouldThrowWhenLambdaPresentWhenGettingType() {
-    final SqlArgument argument = SqlArgument.of(null, (SqlLambda.of(ImmutableList.of(SqlTypes.STRING), SqlTypes.INTEGER)));
+    final SqlArgument argument = SqlArgument.of(null, (SqlLambdaResolved
+        .of(ImmutableList.of(SqlTypes.STRING), SqlTypes.INTEGER)));
 
     final Exception e = assertThrows(
         RuntimeException.class,

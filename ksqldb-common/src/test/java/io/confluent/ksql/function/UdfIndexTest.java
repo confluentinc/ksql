@@ -22,8 +22,7 @@ import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
-import io.confluent.ksql.schema.ksql.types.SqlIntervalUnit;
-import io.confluent.ksql.schema.ksql.types.SqlLambda;
+import io.confluent.ksql.schema.ksql.types.SqlLambdaResolved;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -274,7 +273,7 @@ public class UdfIndexTest {
         ImmutableList.of(
             SqlArgument.of(MAP2_ARG),
             SqlArgument.of(
-                SqlLambda.of(
+                SqlLambdaResolved.of(
                     ImmutableList.of(SqlTypes.STRING),
                     SqlTypes.STRING))));
 
@@ -282,7 +281,7 @@ public class UdfIndexTest {
         ImmutableList.of(
             SqlArgument.of(MAP2_ARG),
             SqlArgument.of(
-                SqlLambda.of(
+                SqlLambdaResolved.of(
                     ImmutableList.of(INTEGER),
                     INTEGER))));
 
@@ -303,7 +302,7 @@ public class UdfIndexTest {
         ImmutableList.of(
             SqlArgument.of(MAP1_ARG),
             SqlArgument.of(
-                SqlLambda.of(
+                SqlLambdaResolved.of(
                     ImmutableList.of(SqlTypes.STRING, SqlTypes.STRING),
                     INTEGER))));
 
@@ -323,7 +322,7 @@ public class UdfIndexTest {
         ImmutableList.of(
             SqlArgument.of(MAP1_ARG),
             SqlArgument.of(
-                SqlLambda.of(
+                SqlLambdaResolved.of(
                     ImmutableList.of(SqlTypes.STRING, SqlTypes.STRING),
                     SqlTypes.BOOLEAN))));
 
@@ -331,7 +330,7 @@ public class UdfIndexTest {
         ImmutableList.of(
             SqlArgument.of(MAP1_ARG),
             SqlArgument.of(
-                SqlLambda.of(
+                SqlLambdaResolved.of(
                     ImmutableList.of(SqlTypes.STRING, SqlTypes.STRING),
                     INTEGER))));
 
@@ -341,7 +340,7 @@ public class UdfIndexTest {
             ImmutableList.of(
                 SqlArgument.of(MAP1_ARG),
                 SqlArgument.of(
-                    SqlLambda.of(
+                    SqlLambdaResolved.of(
                         ImmutableList.of(SqlTypes.BOOLEAN, INTEGER),
                         INTEGER))))
     );
@@ -370,7 +369,7 @@ public class UdfIndexTest {
             ImmutableList.of(
                 SqlArgument.of(MAP1_ARG),
                 SqlArgument.of(
-                    SqlLambda.of(
+                    SqlLambdaResolved.of(
                         ImmutableList.of(SqlTypes.BOOLEAN, SqlTypes.STRING),
                         INTEGER))))
     );
@@ -381,8 +380,8 @@ public class UdfIndexTest {
             ImmutableList.of(
                 SqlArgument.of(MAP1_ARG),
                 SqlArgument.of(
-                    SqlLambda.of(
-                        ImmutableList.of(SqlTypes.STRING,SqlTypes.STRING, SqlTypes.STRING),
+                    SqlLambdaResolved.of(
+                        ImmutableList.of(SqlTypes.STRING, SqlTypes.STRING, SqlTypes.STRING),
                         INTEGER)
                 )))
     );
@@ -393,7 +392,12 @@ public class UdfIndexTest {
     assertThat(e1.getMessage(), containsString("Valid alternatives are:"
         + lineSeparator()
         + "other(MAP<A, B>, LAMBDA (A, B) => C)"));
-    assertThat(e2.getMessage(), containsString("Number of lambda arguments doesn't match between schema and sql type"));
+
+    assertThat(e2.getMessage(), containsString("does not accept parameters (" +
+        "MAP<STRING, STRING>, LAMBDA (STRING, STRING, STRING) => INTEGER)."));
+    assertThat(e2.getMessage(), containsString("Valid alternatives are:"
+        + lineSeparator()
+        + "other(MAP<A, B>, LAMBDA (A, B) => C)"));
   }
 
   @Test

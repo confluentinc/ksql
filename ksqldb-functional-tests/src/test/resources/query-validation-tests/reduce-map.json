@@ -7,7 +7,7 @@
       "name": "apply reduce lambda function to map",
       "statements": [
         "CREATE STREAM test (ID STRING KEY, map MAP<STRING, INTEGER>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ID, REDUCE(0, map, (s, k, v) => CASE WHEN LEN(k) > 3 THEN  s + v ELSE s - v END) AS reduce FROM test;"
+        "CREATE STREAM OUTPUT AS SELECT ID, REDUCE(map, 0, (s, k, v) => CASE WHEN LEN(k) > 3 THEN  s + v ELSE s - v END) AS reduce FROM test;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "zero", "value": {"map": {"123": 3, "12": 7, "1234":  2}}},
@@ -24,7 +24,7 @@
       "name": "reduce map with null initial state",
       "statements": [
         "CREATE STREAM test (ID STRING KEY, map MAP<STRING, INTEGER>, state BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT ID, REDUCE(state, map, (s,x,y) => y + s) AS reduce FROM test;"
+        "CREATE STREAM OUTPUT AS SELECT ID, REDUCE(map, state, (s,x,y) => y + s) AS reduce FROM test;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": "one", "value": {"map": {"test1": 6, "test2": 7}, "state": null}},
@@ -33,6 +33,23 @@
       "outputs": [
         {"topic": "OUTPUT", "key": "one", "value": {"REDUCE": null}},
         {"topic": "OUTPUT", "key": "two", "value": {"REDUCE": null}}
+      ]
+    },
+    {
+      "name": "reduce map with double",
+      "statements": [
+        "CREATE STREAM test (ID STRING KEY, map MAP<STRING, DOUBLE>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, REDUCE(map, CAST(3.2 AS DOUBLE), (s,x,y) => CASE WHEN instr(x, 'ye') > 0 THEN ceil(y * s) ELSE floor(s * y) END) AS reduce FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "zero", "value": {"map": {"yes, thanks": 3.5, "nope": 7.3, "sure, yeah":  2.1}}},
+        {"topic": "test_topic", "key": "one", "value": {"map": {"yeowza": 1.8, "nah": null, "":  3.2}}},
+        {"topic": "test_topic", "key": "two", "value": {"map": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "zero", "value": {"REDUCE": 189.0}},
+        {"topic": "OUTPUT", "key": "one", "value": {"REDUCE": null}},
+        {"topic": "OUTPUT", "key": "two", "value": {"REDUCE": 3.2}}
       ]
     }
   ]

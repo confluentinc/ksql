@@ -1,3 +1,11 @@
+---
+layout: page
+title: Time units and formats
+tagline: Valid time units and formats in ksqlDB
+description: Use built-in formats for time-based operations, like windowing, in ksqlDB
+keywords: time, datetime, timestamp, format, window
+---
+
 ### Time units
 
 The following list shows valid time units for the `SIZE`, `ADVANCE BY`,

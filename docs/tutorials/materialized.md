@@ -1,3 +1,11 @@
+---
+layout: page
+title: Materialized cache 
+tagline: Learn how to create and query a set of materialized views by using ksqlDB
+description: Use ksqlDB to create and query a set of materialized views about phone calls made to the call center
+keywords: materialized view, cache, changelog
+---
+
 # Materialized cache
 
 ## What is it?

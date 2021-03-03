@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -27,7 +26,7 @@ import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
-import io.confluent.ksql.util.StreamsTaskMetadata;
+import org.apache.kafka.streams.processor.TaskMetadata;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,7 +36,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class QueryDescription {
@@ -54,7 +52,7 @@ public class QueryDescription {
   private final Map<KsqlHostInfoEntity, KsqlQueryStatus> ksqlHostQueryStatus;
   private final KsqlQueryType queryType;
   private final List<QueryError> queryErrors;
-  private final Set<StreamsTaskMetadata> tasksMetadata;
+  private final Set<TaskMetadata> tasksMetadata;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @SuppressWarnings("WeakerAccess") // Invoked via reflection
@@ -73,7 +71,7 @@ public class QueryDescription {
           ksqlHostQueryStatus,
       @JsonProperty("queryType") final KsqlQueryType queryType,
       @JsonProperty("queryErrors") final List<QueryError> queryErrors,
-      @JsonProperty("tasksMetadata") final Set<StreamsTaskMetadata> tasksMetadata
+      @JsonProperty("tasksMetadata") final Set<TaskMetadata> tasksMetadata
   ) {
     this.id = Objects.requireNonNull(id, "id");
     this.statementText = Objects.requireNonNull(statementText, "statementText");
@@ -128,7 +126,7 @@ public class QueryDescription {
     return overriddenProperties;
   }
 
-  public Set<StreamsTaskMetadata> getTasksMetadata() {
+  public Set<TaskMetadata> getTasksMetadata() {
     return tasksMetadata;
   }
 

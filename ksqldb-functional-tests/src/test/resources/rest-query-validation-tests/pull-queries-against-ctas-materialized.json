@@ -4,11 +4,11 @@
   ],
   "tests": [
     {
-      "name": "select * against mat table",
+      "name": "select * against mat table table scan",
       "statements": [
-        "CREATE TABLE users (id BIGINT PRIMARY KEY,usertimestamp BIGINT,gender VARCHAR,region_id VARCHAR) WITH (KAFKA_TOPIC = 'users_topic',VALUE_FORMAT = 'JSON',PARTITIONS=1);",
-        "CREATE TABLE queriable_users AS SELECT * from users;",
-        "SELECT * FROM queriable_users;"
+        "CREATE TABLE USERS (ID BIGINT PRIMARY KEY, USERTIMESTAMP BIGINT, GENDER VARCHAR, REGION_ID VARCHAR) WITH (KAFKA_TOPIC = 'users_topic',VALUE_FORMAT = 'JSON',PARTITIONS=1);",
+        "CREATE TABLE QUERYABLE_USERS AS SELECT * FROM USERS;",
+        "SELECT * FROM QUERYABLE_USERS;"
       ],
       "inputs": [
         {"topic": "users_topic", "timestamp": 12345, "key": 1, "value": {"usertimestamp": 1000, "gender":  "m", "region_id": "w"}},
@@ -29,9 +29,9 @@
     {
       "name": "select * against mat table key lookup",
       "statements": [
-        "CREATE TABLE users (id BIGINT PRIMARY KEY,usertimestamp BIGINT,gender VARCHAR,region_id VARCHAR) WITH (KAFKA_TOPIC = 'users_topic',VALUE_FORMAT = 'JSON',PARTITIONS=1);",
-        "CREATE TABLE queriable_users AS SELECT * from users;",
-        "SELECT * FROM queriable_users where id=2;"
+        "CREATE TABLE USERS (ID BIGINT PRIMARY KEY, USERTIMESTAMP BIGINT, GENDER VARCHAR, REGION_ID VARCHAR) WITH (KAFKA_TOPIC = 'users_topic',VALUE_FORMAT = 'JSON',PARTITIONS=1);",
+        "CREATE TABLE QUERYABLE_USERS AS SELECT * FROM USERS;",
+        "SELECT * FROM QUERYABLE_USERS WHERE ID=2;"
       ],
       "inputs": [
         {"topic": "users_topic", "timestamp": 12345, "key": 1, "value": {"usertimestamp": 1000, "gender":  "m", "region_id": "w"}},
@@ -48,7 +48,7 @@
       ]
     },
     {
-      "name": "select star with projection",
+      "name": "select * with projection table scan",
       "statements": [
         "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE NEW_INPUT AS SELECT ID, CONCAT(GRADE, '+'), RANK * 2 FROM INPUT;",
@@ -70,7 +70,7 @@
       ]
     },
     {
-      "name": "select star with projection and filter",
+      "name": "select star with projection key lookup",
       "statements": [
         "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE NEW_INPUT AS SELECT ID, CONCAT(GRADE, '+'), RANK * 2 FROM INPUT;",
@@ -120,7 +120,7 @@
       ]
     },
     {
-      "name": "select with projection and IN",
+      "name": "select with projection and IN clause",
       "statements": [
         "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE NEW_INPUT AS SELECT ID, CONCAT(GRADE, '+'), RANK * 2 AS DOUBLE_RANK FROM INPUT;",

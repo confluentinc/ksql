@@ -110,8 +110,4 @@ public final class PullQueryExecutionUtil {
                     + PullQueryValidator.PULL_QUERY_SYNTAX_HELP
     );
   }
-
-
-
-
 }

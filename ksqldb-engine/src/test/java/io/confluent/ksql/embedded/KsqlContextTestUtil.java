@@ -70,7 +70,8 @@ public final class KsqlContextTestUtil {
         ProcessingLogContext.create(),
         functionRegistry,
         ServiceInfo.create(ksqlConfig, metricsPrefix),
-        new SequentialQueryIdGenerator()
+        new SequentialQueryIdGenerator(),
+        ksqlConfig
     );
 
     return new KsqlContext(

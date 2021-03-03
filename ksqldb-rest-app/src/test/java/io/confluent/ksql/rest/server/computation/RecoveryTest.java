@@ -123,7 +123,8 @@ public class RecoveryTest {
         serviceContext,
         new MetaStoreImpl(new InternalFunctionRegistry()),
         ignored -> engineMetrics,
-        queryIdGenerator);
+        queryIdGenerator,
+        ksqlConfig);
   }
 
   private static class FakeCommandQueue implements CommandQueue {

@@ -338,6 +338,11 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SUPPRESS_ENABLED_DOC =
       "Feature flag for suppression, specifically EMIT FINAL";
 
+  public static final String KSQL_LAMBDAS_ENABLED = "ksql.lambdas.enabled";
+  public static final Boolean KSQL_LAMBDAS_ENABLED_DEFAULT = true;
+  public static final String KSQL_LAMBDAS_ENABLED_DOC =
+      "Feature flag for lambdas";
+
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES = "ksql.suppress.buffer.size.bytes";
   public static final Long KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT = -1L;
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DOC =
@@ -892,6 +897,12 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT_DEFAULT,
             Importance.LOW,
             KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT_DOC
+        ).define(
+            KSQL_LAMBDAS_ENABLED,
+            Type.BOOLEAN,
+            KSQL_LAMBDAS_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_LAMBDAS_ENABLED_DOC
         )
         .withClientSslSupport();
 

@@ -40,8 +40,11 @@ import io.confluent.ksql.schema.ksql.ColumnAliasGenerator;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.AmbiguousColumnException;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.UnknownSourceException;
+
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -66,7 +69,18 @@ public final class AstSanitizer {
   private AstSanitizer() {
   }
 
-  public static Statement sanitize(final Statement node, final MetaStore metaStore) {
+
+  public static Statement sanitize(
+      final Statement node,
+      final MetaStore metaStore) {
+    return sanitize(node, metaStore, true);
+  }
+
+  public static Statement sanitize(
+      final Statement node,
+      final MetaStore metaStore,
+      final Boolean lambdaEnabled
+  ) {
     final DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
     dataSourceExtractor.extractDataSources(node);
 
@@ -74,7 +88,7 @@ public final class AstSanitizer {
         new RewriterPlugin(metaStore, dataSourceExtractor);
 
     final ExpressionRewriterPlugin expressionRewriterPlugin =
-        new ExpressionRewriterPlugin(dataSourceExtractor);
+        new ExpressionRewriterPlugin(dataSourceExtractor, lambdaEnabled);
 
     final BiFunction<Expression, SanitizerContext, Expression> expressionRewriter =
         (e,v) -> ExpressionTreeRewriter.rewriteWith(expressionRewriterPlugin::process, e, v);
@@ -90,10 +104,7 @@ public final class AstSanitizer {
     private final DataSourceExtractor dataSourceExtractor;
     private final ColumnAliasGenerator aliasGenerator;
 
-    RewriterPlugin(
-        final MetaStore metaStore,
-        final DataSourceExtractor dataSourceExtractor
-    ) {
+    RewriterPlugin(final MetaStore metaStore, final DataSourceExtractor dataSourceExtractor) {
       super(Optional.empty());
       this.metaStore = requireNonNull(metaStore, "metaStore");
       this.dataSourceExtractor = requireNonNull(dataSourceExtractor, "dataSourceExtractor");
@@ -166,10 +177,12 @@ public final class AstSanitizer {
       ExpressionTreeRewriter.Context<SanitizerContext>> {
 
     private final DataSourceExtractor dataSourceExtractor;
+    private final Boolean lambdaEnabled;
 
-    ExpressionRewriterPlugin(final DataSourceExtractor dataSourceExtractor) {
+    ExpressionRewriterPlugin(final DataSourceExtractor dataSourceExtractor, final Boolean lambdaEnabled) {
       super(Optional.empty());
       this.dataSourceExtractor = requireNonNull(dataSourceExtractor, "dataSourceExtractor");
+      this.lambdaEnabled = lambdaEnabled;
     }
 
     @Override
@@ -204,6 +217,9 @@ public final class AstSanitizer {
         final LambdaFunctionCall expression,
         final ExpressionTreeRewriter.Context<SanitizerContext> ctx
     ) {
+      if (!lambdaEnabled) {
+        throw new UnsupportedOperationException("Lambdas are not enabled at this time.");
+      }
       dataSourceExtractor.getAllSources().forEach(aliasedDataSource -> {
         for (String argument : expression.getArguments()) {
           if (aliasedDataSource.getDataSource().getSchema().columns().stream()

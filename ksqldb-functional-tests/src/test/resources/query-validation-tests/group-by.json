@@ -544,6 +544,35 @@
       }
     },
     {
+      "name": "multiple expressions - KAFKA to non-KAFKA key format",
+      "statements": [
+        "CREATE STREAM TEST (f1 INT KEY, f2 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT WITH (KEY_FORMAT='JSON') AS SELECT f2, f1, f2+f1, COUNT(*) FROM TEST GROUP BY f1, f2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"f2": "2"}},
+        {"topic": "test_topic", "key": 2, "value": {"f2": "4"}},
+        {"topic": "test_topic", "key": 1, "value": {"f2": null}},
+        {"topic": "test_topic", "key": 1, "value": null},
+        {"topic": "test_topic", "key": null, "value": {"f2": "1"}},
+        {"topic": "test_topic", "key": 1, "value": {"f2": "2"}},
+        {"topic": "test_topic", "key": 2, "value": {"f2": "4"}},
+        {"topic": "test_topic", "key": 2, "value": {"f2": "1"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"F1": 1, "F2": 2}, "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 1}},
+        {"topic": "OUTPUT", "key": {"F1": 2, "F2": 4}, "value": {"KSQL_COL_0": 6, "KSQL_COL_1": 1}},
+        {"topic": "OUTPUT", "key": {"F1": 1, "F2": 2}, "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 2}},
+        {"topic": "OUTPUT", "key": {"F1": 2, "F2": 4}, "value": {"KSQL_COL_0": 6, "KSQL_COL_1": 2}},
+        {"topic": "OUTPUT", "key": {"F1": 2, "F2": 1}, "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "F1 INT KEY, F2 INT KEY, KSQL_COL_0 INT, KSQL_COL_1 BIGINT"}
+        ]
+      }
+    },
+    {
       "name": "multiple expressions - windowed",
       "statements": [
         "CREATE STREAM TEST (f1 INT KEY, f2 INT) WITH (kafka_topic='test_topic', format='JSON');",
@@ -574,6 +603,33 @@
       "statements": [
         "CREATE TABLE INPUT (ID INT PRIMARY KEY, VALUE INT) WITH (kafka_topic='test_topic', format='JSON');",
         "CREATE TABLE OUTPUT as SELECT 1 as k, value, count(1) AS ID FROM INPUT group by value, 1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 10, "value": {"VALUE": 0}},
+        {"topic": "test_topic", "key": 1666, "value": {"VALUE": 0}},
+        {"topic": "test_topic", "key": 98, "value": {"VALUE": 0}},
+        {"topic": "test_topic", "key": 98, "value": {"VALUE": 1}},
+        {"topic": "test_topic", "key": 2, "value": {"VALUE": null}},
+        {"topic": "test_topic", "key": 2, "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": {"VALUE": 0, "K": 1}, "value": {"ID": 1}},
+        {"topic": "OUTPUT", "key": {"VALUE": 0, "K": 1}, "value": {"ID": 2}},
+        {"topic": "OUTPUT", "key": {"VALUE": 0, "K": 1}, "value": {"ID": 3}},
+        {"topic": "OUTPUT", "key": {"VALUE": 0, "K": 1}, "value": {"ID": 2}},
+        {"topic": "OUTPUT", "key": {"VALUE": 1, "K": 1}, "value": {"ID": 1}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "VALUE INT KEY, K INT KEY, ID BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "multiple expressions - table aggregate - KAFKA to non-KAFKA key format",
+      "statements": [
+        "CREATE TABLE INPUT (ID INT PRIMARY KEY, VALUE INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT WITH (KEY_FORMAT='JSON') as SELECT 1 as k, value, count(1) AS ID FROM INPUT group by value, 1;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 10, "value": {"VALUE": 0}},

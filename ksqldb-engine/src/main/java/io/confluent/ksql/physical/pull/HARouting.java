@@ -60,17 +60,15 @@ public final class HARouting implements AutoCloseable {
 
   private final ExecutorService executorService;
   private final RoutingFilterFactory routingFilterFactory;
-  private final ServiceContext serviceContext;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RouteQuery routeQuery;
 
   public HARouting(
       final RoutingFilterFactory routingFilterFactory,
-      final ServiceContext serviceContext,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final KsqlConfig ksqlConfig
   ) {
-    this(routingFilterFactory, serviceContext, pullQueryMetrics, ksqlConfig,
+    this(routingFilterFactory, pullQueryMetrics, ksqlConfig,
          HARouting::executeOrRouteQuery);
   }
 
@@ -78,14 +76,12 @@ public final class HARouting implements AutoCloseable {
   @VisibleForTesting
   HARouting(
       final RoutingFilterFactory routingFilterFactory,
-      final ServiceContext serviceContext,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final KsqlConfig ksqlConfig,
       final RouteQuery routeQuery
   ) {
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.executorService = Executors.newFixedThreadPool(
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG),
         new ThreadFactoryBuilder().setNameFormat("pull-query-executor-%d").build());
@@ -99,6 +95,7 @@ public final class HARouting implements AutoCloseable {
   }
 
   public PullQueryResult handlePullQuery(
+      final ServiceContext serviceContext,
       final PullPhysicalPlan pullPhysicalPlan,
       final ConfiguredStatement<Query> statement,
       final RoutingOptions routingOptions,

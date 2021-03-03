@@ -8,7 +8,6 @@ description: Learn about the configuration settings you can use to set up ksqlDB
 - [Configure Security for ksqlDB](security.md)
 - [ksqlDB Configuration Parameter Reference](config-reference.md)
 - [Configure ksqlDB for Avro, Protobuf, and JSON schemas](avro-schema.md)
-- [Integrate ksqlDB with {{ site.c3 }}](integrate-ksql-with-confluent-control-center.md)
 
 ksqlDB configuration parameters can be set for ksqlDB Server and for queries,
 as well as for the underlying {{ site.kstreams }} and {{ site.ak }} Clients
@@ -182,7 +181,7 @@ these queries in your production environment, you want to lock down
 access to ksqlDB servers, version-control the exact queries, and store
 them in a .sql file. This prevents users from interacting directly with
 the production ksqlDB cluster. For more information, see
-[Headless Deployment](../../../concepts/ksqldb-architecture.md#headless-deployment).
+[Headless Deployment](/operate-and-deploy/how-it-works#headless-deployment).
 
 You can configure servers to exclusively run a predefined script (`.sql`
 file) via the `--queries-file` command line argument, or the

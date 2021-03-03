@@ -24,7 +24,6 @@ features of the other services it communicates with, like {{ site.aktm }} and
         - [Configuring internal for SSL-mutual authentication and external for HTTP-BASIC authentication](#configuring-internal-for-ssl-mutual-authentication-and-external-for-http-basic-authentication)
     - [Securing headless deployments](#securing-headless-deployments)
   * [Securing communication with other services](#securing-communication-with-other-services)
-    - [Configure ksqlDB for Confluent Control Center](#configure-ksqldb-for-confluent-control-center)
     - [Configure ksqlDB for Secured Confluent Schema Registry](#configure-ksqldb-for-secured-confluent-schema-registry)
     - [Configure ksqlDB for Secured Apache Kafka clusters](#configure-ksqldb-for-secured-apache-kafka-clusters)
         * [Configuring Kafka Encrypted Communication](#configuring-kafka-encrypted-communication)
@@ -524,22 +523,12 @@ This section covers how to secure communications of ksqlDB with other services.
 
 The section is split into:
 
-[Configure ksqlDB for Confluent Control Center](#configure-ksqldb-for-confluent-control-center):
-Covers how to secure communication with Confluent Control Center.
-
 [Configure ksqlDB for Secured Confluent Schema Registry](#configure-ksqldb-for-secured-confluent-schema-registry):
 Covers how to secure communication with schema registry.
 
 [Configure ksqlDB for Secured Apache Kafka clusters](#configure-ksqldb-for-secured-apache-kafka-clusters):
 Covers how to secure communication with Kafka.
 
-
-Configure ksqlDB for Confluent Control Center
--------------------------------------------
-
-You can use ksqlDB with a Kafka cluster in {{ site.c3 }}. For more
-information, see
-[Integrate ksqlDB with {{ site.c3 }}](integrate-ksql-with-confluent-control-center.md).
 
 Configure ksqlDB for Secured Confluent Schema Registry
 ------------------------------------------------------
@@ -841,7 +830,7 @@ bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --
 
 #### Interactive ksqlDB clusters
 
-[Interactive ksqlDB clusters](../../../concepts/ksqldb-architecture.md#interactive-deployment)
+[Interactive ksqlDB clusters](/operate-and-deploy/how-it-works#interactive-deployment)
 accept SQL statements from users and hence may require access to a wide
 variety of input and output topics. Add ACLs to appropriate literal and
 prefixed resource patterns to allow ksqlDB access to the input and output
@@ -997,7 +986,7 @@ user.
 
 #### Interactive ksqlDB clusters pre Kafka 2.0
 
-[Interactive ksqlDB clusters](../../../concepts/ksqldb-architecture.md#interactive-deployment),
+[Interactive ksqlDB clusters](/operate-and-deploy/how-it-works#interactive-deployment),
 (which is the default configuration), require that the authenticated
 ksqlDB user has open access to create, read, write, delete topics, and use
 any consumer group:

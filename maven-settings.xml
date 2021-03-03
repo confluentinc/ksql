@@ -14,7 +14,7 @@
         <repository>
           <id>confluent-other</id>
           <name>Confluent</name>
-          <url>https://jenkins-confluent-packages-beta-maven.s3-us-west-2.amazonaws.com/6.2.0-beta201122193350/1/maven</url>
+          <url>https://jenkins-confluent-packages-beta-maven.s3-us-west-2.amazonaws.com/6.2.0-beta201122193350-cp5/3/maven</url>
         </repository>
 
         <!-- needed for HTML API doc generation post-release only --> 
@@ -30,7 +30,7 @@
         <pluginRepository>
           <id>confluent-other</id>
           <name>Confluent Plugin Repository</name>
-          <url>https://jenkins-confluent-packages-beta-maven.s3-us-west-2.amazonaws.com/6.2.0-beta201122193350/1/maven</url>
+          <url>https://jenkins-confluent-packages-beta-maven.s3-us-west-2.amazonaws.com/6.2.0-beta201122193350-cp5/3/maven</url>
           <layout>default</layout>
           <snapshots>
             <enabled>true</enabled>

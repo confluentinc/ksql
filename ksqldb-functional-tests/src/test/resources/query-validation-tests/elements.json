@@ -19,23 +19,6 @@
       }
     },
     {
-      "name": "validate without value elements FAILS",
-      "statements": [
-        "CREATE STREAM INPUT (ID INT KEY) WITH (kafka_topic='input', value_format='JSON');"
-      ],
-      "topics": [
-        {
-          "name": "input",
-          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
-          "valueFormat": "JSON"
-        }
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
-        "message": "ksqlDB does not support sources with no value columns: https://github.com/confluentinc/ksql/issues/5564"
-      }
-    },
-    {
       "name": "validate without elements OK - AVRO",
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AvRo');",

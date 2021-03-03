@@ -20,6 +20,7 @@ import static io.confluent.ksql.serde.FormatFactory.KAFKA;
 import static io.confluent.ksql.serde.FormatFactory.PROTOBUF;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
@@ -29,6 +30,10 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.json.JsonFormat;
+import io.confluent.ksql.serde.kafka.KafkaFormat;
+import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -252,5 +257,143 @@ public class SerdeFeaturesFactoryTest {
 
     // Then:
     assertThat(result.findAny(SerdeFeatures.WRAPPING_FEATURES), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldRemoveUnapplicableKeyWrappingWhenSanitizingMulticolKey() {
+    // Given:
+    final KeyFormat format = KeyFormat.nonWindowed(
+        FormatInfo.of(JsonFormat.NAME),
+        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+
+    // When:
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, 2, true);
+
+    // Then:
+    assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(JsonFormat.NAME)));
+    assertThat(sanitized.getFeatures(), equalTo(SerdeFeatures.of()));
+  }
+
+  @Test
+  public void shouldRemoveUnapplicableKeyWrappingWhenSanitizingNoKeyCols() {
+    // Given:
+    final KeyFormat format = KeyFormat.nonWindowed(
+        FormatInfo.of(JsonFormat.NAME),
+        SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
+
+    // When:
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, 0, true);
+
+    // Then:
+    assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(JsonFormat.NAME)));
+    assertThat(sanitized.getFeatures(), equalTo(SerdeFeatures.of()));
+  }
+
+  @Test
+  public void shouldAddKeyWrappingWhenSanitizing() {
+    // Given:
+    final KeyFormat format = KeyFormat.nonWindowed(
+        FormatInfo.of(JsonFormat.NAME),
+        SerdeFeatures.of());
+
+    // When:
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, 1, true);
+
+    // Then:
+    assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(JsonFormat.NAME)));
+    assertThat(sanitized.getFeatures(), equalTo(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)));
+  }
+
+  @Test
+  public void shouldLeaveApplicableKeyWrappingUnchangedWhenSanitizing() {
+    // Given:
+    final KeyFormat format = KeyFormat.nonWindowed(
+        FormatInfo.of(JsonFormat.NAME),
+        SerdeFeatures.of(SerdeFeature.WRAP_SINGLES));
+
+    // When:
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, 1, true);
+
+    // Then:
+    assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(JsonFormat.NAME)));
+    assertThat(sanitized.getFeatures(), equalTo(SerdeFeatures.of(SerdeFeature.WRAP_SINGLES)));
+  }
+
+  @Test
+  public void shouldConvertFormatForMulticolKeysWhenSanitizingFromKafkaFormat() {
+    // Given:
+    final KeyFormat format = KeyFormat.nonWindowed(
+        FormatInfo.of(KafkaFormat.NAME),
+        SerdeFeatures.of());
+
+    // When:
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, 2, true);
+
+    // Then:
+    assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(JsonFormat.NAME)));
+    assertThat(sanitized.getFeatures(), equalTo(SerdeFeatures.of()));
+  }
+
+  @Test
+  public void shouldConvertFormatForMulticolKeysWhenSanitizingFromNoneFormat() {
+    // Given:
+    final KeyFormat format = KeyFormat.nonWindowed(
+        FormatInfo.of(NoneFormat.NAME),
+        SerdeFeatures.of());
+
+    // When:
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, 2, true);
+
+    // Then:
+    assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(JsonFormat.NAME)));
+    assertThat(sanitized.getFeatures(), equalTo(SerdeFeatures.of()));
+  }
+
+  @Test
+  public void shouldNotConvertFormatWhenSanitizingFromOtherFormats() {
+    // Given:
+    final FormatInfo formatInfo = FormatInfo.of(
+        AvroFormat.NAME,
+        ImmutableMap.of(AvroFormat.FULL_SCHEMA_NAME, "io.confluent.ksql.avro_schemas.Foo"));
+    final KeyFormat format = KeyFormat.nonWindowed(
+        formatInfo,
+        SerdeFeatures.of(SerdeFeature.WRAP_SINGLES));
+
+    // When:
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, 2, true);
+
+    // Then:
+    assertThat(sanitized.getFormatInfo(), equalTo(formatInfo));
+    assertThat(sanitized.getFeatures(), equalTo(SerdeFeatures.of()));
+  }
+
+  @Test
+  public void shouldNotConvertFormatForMulticolKeysWhenSanitizingIfNotMultiColumn() {
+    // Given:
+    final KeyFormat format = KeyFormat.nonWindowed(
+        FormatInfo.of(KafkaFormat.NAME),
+        SerdeFeatures.of());
+
+    // When:
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, 1, true);
+
+    // Then:
+    assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(KafkaFormat.NAME)));
+    assertThat(sanitized.getFeatures(), equalTo(SerdeFeatures.of()));
+  }
+
+  @Test
+  public void shouldNotConvertFormatForMulticolKeysWhenSanitizingIfDisallowed() {
+    // Given:
+    final KeyFormat format = KeyFormat.nonWindowed(
+        FormatInfo.of(KafkaFormat.NAME),
+        SerdeFeatures.of());
+
+    // When:
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, 2, false);
+
+    // Then:
+    assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(KafkaFormat.NAME)));
+    assertThat(sanitized.getFeatures(), equalTo(SerdeFeatures.of()));
   }
 }

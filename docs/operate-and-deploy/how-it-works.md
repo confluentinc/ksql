@@ -62,15 +62,68 @@ ksqlDB and Kafka Streams
 
 ksqlDB is built on {{ site.kstreams }}, a robust stream processing framework
 that is part of {{ site.aktm }}. You can use ksqlDB and {{ site.kstreams }}
-together in your event streaming applications. For more information on
-their relationship, see [ksqlDB and Kafka Streams](ksqldb-and-kafka-streams.md).
-For more information on {{ site.kstreams }}, see
-[Streams Architecture](https://docs.confluent.io/current/streams/architecture.html).
+together in your event streaming applications.
+
+![The Confluent Platform stack, with ksqlDB built on Kafka Streams](../img/ksqldb-kafka-streams-core-kafka-stack.png)
+
+ksqlDB gives you a query layer for building event streaming applications on
+{{ site.ak }} topics. ksqlDB abstracts away much of the complex programming
+that's required for real-time operations on streams of data, so that one line
+of SQL can do the work of a dozen lines of Java or Scala.
+
+For example, to implement simple fraud-detection logic on a {{ site.ak }} topic
+named `payments`, you could write one line of SQL:
+
+```sql
+CREATE STREAM fraudulent_payments AS
+ SELECT fraudProbability(data) FROM payments
+ WHERE fraudProbability(data) > 0.8
+ EMIT CHANGES;
+```
+
+The equivalent Scala code on {{ site.kstreams }} might resemble:
+
+```scala
+// Example fraud-detection logic using the Kafka Streams API.
+object FraudFilteringApplication extends App {
+
+  val builder: StreamsBuilder = new StreamsBuilder()
+  val fraudulentPayments: KStream[String, Payment] = builder
+    .stream[String, Payment]("payments")
+    .filter((_ ,payment) => payment.fraudProbability > 0.8)
+  fraudulentPayments.to("fraudulent-payments-topic")
+
+  val config = new java.util.Properties 
+  config.put(StreamsConfig.APPLICATION_ID_CONFIG, "fraud-filtering-app")
+  config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka-broker1:9092")
+
+  val streams: KafkaStreams = new KafkaStreams(builder.build(), config)
+  streams.start()
+}
+```
+
+ksqlDB is easier to use, and {{ site.kstreams }} is more flexible. Which
+technology you choose for your real-time streaming applications depends
+on a number of considerations. Keep in mind that you can use both ksqlDB
+and {{ site.kstreams }} together in your implementations.
 
 Also, you can implement custom logic and aggregations in your ksqlDB
-applications by implementing user defined functions (UDFs) in Java. For more
-information, see
-[Custom Function Reference](functions.md).
+applications by implementing [user defined functions](/how-to-guides/create-a-user-defined-function) (UDFs) in Java.
+
+Differences Between ksqlDB and Kafka Streams
+--------------------------------------------
+
+The following table summarizes some of the differences between ksqlDB and
+{{ site.kstreams }}.
+
+|    Differences    |                   ksqlDB                    |                    {{ site.kstreams }}                    |
+| ----------------- | ------------------------------------------- | --------------------------------------------------------- |
+| You write:        | SQL statements                              | JVM applications                                          |
+| Graphical UI      | Yes, in {{ site.c3 }} and {{ site.ccloud }} | No                                                        |
+| Console           | Yes                                         | No                                                        |
+| Data formats      | Avro, Protobuf, JSON, JSON_SR, CSV          | Any data format, including Avro, JSON, CSV, Protobuf, XML |
+| REST API included | Yes                                         | No, but you can implement your own                        |
+| Runtime included  | Yes, the ksqlDB server                      | Applications run as standard JVM processes                |
 
 ksqlDB Language Elements
 ----------------------
@@ -117,9 +170,6 @@ The DML statements include:
 The CSAS and CTAS statements occupy both categories, because they
 perform both a metadata change, like adding a stream, and they
 manipulate data, by creating a derivative of existing records.
-
-For more information, see
-[ksqlDB Syntax Reference](../developer-guide/syntax-reference.md).
 
 ksqlDB Deployment Modes
 -----------------------
@@ -396,3 +446,50 @@ If the DML statement is CREATE STREAM AS SELECT or CREATE TABLE AS
 SELECT, the result from the generated {{ site.kstreams }} application is a
 persistent query that writes continuously to its output topic until the
 query is terminated.
+
+Developer Workflows
+-------------------
+
+There are different workflows for ksqlDB and {{ site.kstreams }} when you
+develop streaming applications.
+
+- ksqlDB: You write SQL queries interactively and view the results in
+real-time, either in the ksqlDB CLI or in {{ site.c3 }}.
+- {{ site.kstreams }}: You write code in Java or Scala, recompile, and run
+and test the application in an IDE, like IntelliJ. You deploy the
+application to production as a jar file that runs in a {{ site.ak }} cluster.
+
+ksqlDB and Kafka Streams: Where to Start?
+-----------------------------------------
+
+Use the following table to help you decide between ksqlDB and Kafka
+Streams as a starting point for your real-time streaming application
+development.
+
+
+|                                                    Start with ksqlDB when...                                                    |                                                                          Start with {{ site.kstreams }} when...                                                                          |
+| ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| New to streaming and {{ site.ak }}                                                                                              | Prefer writing and deploying JVM applications like Java and Scala; for example, due to people skills, tech environment                                                                   |
+| To quicken and broaden the adoption and value of {{ site.ak }} in your organization                                             | Use case is not naturally expressible through SQL, for example, finite state machines                                                                                                    |
+| Prefer an interactive experience with UI and CLI                                                                                | Building microservices                                                                                                                                                                   |
+| Prefer SQL to writing code in Java or Scala                                                                                     | Must integrate with external services, or use 3rd-party libraries (but ksqlDB user defined functions(UDFs) may help)                                                                     |
+| Use cases include enriching data; joining data sources; filtering, transforming, and masking data; identifying anomalous events | To customize or fine-tune a use case, for example, with the {{ site.kstreams }} Processor API: custom join variants, or probabilistic counting at very large scale with Count-Min Sketch |
+| Use case is naturally expressible by using SQL, with optional help from UDFs                                                    | Need queryable state, which ksqlDB doesn't support                                                                                                                                       |
+| Want the power of {{ site.kstreams }} but you aren't on the JVM: use the ksqlDB REST API from Python, Go, C#, JavaScript, shell |                                                                                                                                                                                          |
+
+Usually, ksqlDB isn't a good fit for BI reports, ad-hoc querying, or
+queries with random access patterns, because it's a continuous query
+system on data streams.
+
+To get started with ksqlDB, try the
+[Tutorials and Examples](../tutorials/index.md).
+
+To get started with {{ site.kstreams }}, try the
+[Streams Quick Start](https://docs.confluent.io/current/streams/quickstart.html).
+
+Next Steps
+----------
+
+-   [Quickstart](https://ksqldb.io/quickstart.html)
+-   [Streams Developer Guide](https://docs.confluent.io/current/streams/developer-guide/index.html)
+

@@ -185,7 +185,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
     final KeyFormat newKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
         forceInternalKeyFormat.orElse(keyFormat),
-        keyExpression.size() == 1
+        keyExpression.size(),
+        false // logical schema changes are not supported
     );
 
     final ExecutionStep<KTableHolder<K>> step = ExecutionStepFactory.tableSelectKey(
@@ -224,7 +225,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     // the key format directly (as opposed to the logic in SchemaKStream)
     final KeyFormat groupedKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
         KeyFormat.nonWindowed(keyFormat.getFormatInfo(), keyFormat.getFeatures()),
-        groupByExpressions.size() == 1
+        groupByExpressions.size(),
+        true
     );
 
     final TableGroupBy<K> step = ExecutionStepFactory.tableGroupBy(

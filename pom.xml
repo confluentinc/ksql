@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent</groupId>
         <artifactId>common</artifactId>
-        <version>6.2.0-beta201122193350</version>
+        <version>6.2.0-beta201122193350-cp5</version>
     </parent>
 
     <groupId>io.confluent.ksql</groupId>
@@ -135,8 +135,8 @@
         <git-commit-id-plugin.version>2.2.6</git-commit-id-plugin.version>
         <scala.version>2.13.2</scala.version>
         <apache.io.version>2.6</apache.io.version>
-        <io.confluent.ksql.version>6.2.0-0</io.confluent.ksql.version>
-        <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
+        <io.confluent.ksql.version>0.15.0</io.confluent.ksql.version>
+        <io.confluent.schema-registry.version>6.2.0-beta201122193350-cp5</io.confluent.schema-registry.version>
     </properties>
 
     <dependencyManagement>

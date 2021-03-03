@@ -86,6 +86,7 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.serde.json.JsonFormat;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -562,7 +563,7 @@ public class SchemaKTableTest {
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
                 Formats.of(
-                    initialSchemaKTable.keyFormat.getFormatInfo(),
+                    FormatInfo.of(JsonFormat.NAME), // key format is updated to supported multiple grouping expressions
                     valueFormat.getFormatInfo(),
                     SerdeFeatures.of(),
                     SerdeFeatures.of()

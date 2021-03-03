@@ -1,5 +1,6 @@
-What is it?
------------
+# Streaming ETL pipeline
+
+## What is it?
 
 A streaming ETL pipeline, sometimes called a “streaming data pipeline”, is a set of software services that ingests events, transforms them, and loads them into destination storage systems. It’s often the case that you have data in one place and want to move it to another as soon as you receive it, but you need to make some changes to the data as you transfer it.
 
@@ -11,8 +12,7 @@ A streaming ETL pipeline enables streaming events between arbitrary sources and 
 
 One way you might do this is to capture the changelogs of upstream Postgres and MongoDB databases using the [Debezium](https://debezium.io) {{ site.ak }} connectors. The changelog can be stored in {{ site.ak }}, where a series of deployed programs transforms, aggregates, and joins the data together. The processed data can be streamed out to ElasticSearch for indexing. Many people build this sort of architecture, but could it be made simpler?
 
-Why ksqlDB?
------------
+## Why ksqlDB?
 
 Gluing all of the above services together is certainly a challenge. Along with your original databases and target analytical data store, you end up managing clusters for {{ site.ak }}, connectors, and your stream processors. It's challenging to operate the entire stack as one.
 
@@ -22,8 +22,7 @@ ksqlDB helps streamline how you write and deploy streaming data pipelines by boi
 
 Using ksqlDB, you can run any {{ site.kconnectlong }} connector by embedding it in ksqlDB's servers. You can transform, join, and aggregate all of your streams together by using a coherent, powerful SQL language. This gives you a slender architecture for managing the end-to-end flow of your data pipeline.
 
-Implement it
-------------
+## Implement it
 
 Suppose you work at a retail company that sells and ships orders to online customers. You want to analyze the shipment activity of orders as they happen in real-time. Because the company is somewhat large, the data for customers, orders, and shipments are spread across different databases and tables.
 
@@ -623,8 +622,7 @@ When you're done, tear down the stack by running:
 docker-compose down
 ```
 
-Next steps
-----------
+## Next steps
 
 Want to learn more? Try another use case tutorial:
 

@@ -136,7 +136,7 @@ ksqlDB splits a key of `120,21` and a value of `bob,49` into the four fields (tw
 with `ORGID KEY` of `120`, `ID KEY` of `21`, `NAME` of `bob` and `AGE` of `49`.
 
 This data format supports all SQL
-[data types](syntax-reference.md#data-types) except `ARRAY`, `MAP` and
+[data types](/reference/sql/data-types) except `ARRAY`, `MAP` and
 `STRUCT`.
 
 ### JSON
@@ -152,11 +152,11 @@ This data format supports all SQL
 
 There are two JSON formats, `JSON` and `JSON_SR`. Both support serializing and
 deserializing JSON data. The latter offers integration with the {{ site.sr }},
-registering and retrieving JSON schemas. The former does not. Though the `JSON`
-does support reading data written by the `JSON_SR` format, (which prefixes the
-JSON data with a magic byte and schema id).
+registering and retrieving JSON schemas while the former does not. These two
+formats are _not_ byte compatible (you cannot read data produced by one by the
+other).
 
-The JSON formats supports all SQL [data types](syntax-reference.md#data-types).
+The JSON formats supports all SQL [data types](/reference/sql/data-types).
 By itself, JSON doesn't support a map type, so ksqlDB serializes `MAP` types as
 JSON objects. For this reason, the JSON format  supports only `MAP` objects
 that have `STRING` keys.
@@ -264,7 +264,7 @@ used.
 | [Single field unwrapping][2] | Yes       |
 
 The `AVRO` format supports Avro binary serialization of all SQL
-[data types](syntax-reference.md#data-types), including records and
+[data types](/reference/sql/data-types), including records and
 top-level primitives, arrays, and maps.
 
 The format requires ksqlDB to be configured to store and retrieve the Avro
@@ -481,8 +481,8 @@ to be serialized as a named field, for example:
 If your data contains only a single field, and that field is not wrapped
 within a JSON object, or an Avro record is using the `AVRO` format, then
 you can use the `WRAP_SINGLE_VALUE` property in the `WITH` clause of
-your [CREATE TABLE](ksqldb-reference/create-table.md) or
-[CREATE STREAM](ksqldb-reference/create-stream.md) statements. Setting the
+your [CREATE TABLE](/developer-guide/ksqldb-reference/create-table) or
+[CREATE STREAM](/developer-guide/ksqldb-reference/create-stream) statements. Setting the
 property to `false` tells ksqlDB that the value isn't wrapped, so the
 example above would be a JSON number:
 

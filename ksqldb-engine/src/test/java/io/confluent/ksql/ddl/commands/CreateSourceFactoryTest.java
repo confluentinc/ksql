@@ -946,10 +946,7 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(
-            tableElement(KEY, "k", new Type(SqlTypes.STRING)),
-            tableElement(VALUE, "v", new Type(SqlTypes.INTEGER))
-        ),
+        TableElements.of(tableElement(KEY, "k", new Type(SqlTypes.STRING))),
         false,
         true,
         withProperties
@@ -966,10 +963,7 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(
-            tableElement(KEY, "k", new Type(SqlTypes.INTEGER)),
-            tableElement(VALUE, "v", new Type(SqlTypes.INTEGER))
-        ),
+        TableElements.of(tableElement(KEY, "k", new Type(SqlTypes.INTEGER))),
         false,
         true,
         withProperties
@@ -990,10 +984,7 @@ public class CreateSourceFactoryTest {
     // Given:
     final CreateStream statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(
-            tableElement(KEY, "someKey", new Type(SqlTypes.STRING)),
-            tableElement(VALUE, "someVal", new Type(SqlTypes.INTEGER))
-        ),
+        TableElements.of(tableElement(KEY, "someKey", new Type(SqlTypes.STRING))),
         false,
         true,
         withProperties

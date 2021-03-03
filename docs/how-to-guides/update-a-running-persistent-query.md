@@ -1,37 +1,48 @@
----
-layout: page
-title: Evolving Production Queries
-tagline: Replacing existing queries
-description: Learn how to manage your production deployments over time
-keywords: ksqldb, upgrade, schema evolution
----
+# How to update a running persistent query
 
-Production deployments of databases are never static; they evolve as application
-and business requirements change. To that end, all popular data stores have ways
-of managing and manipulating existing data. For stream processing applications,
-you may want to modify your application because of:
+## Context
 
-- Business Requirements: requirements simply change over time
-- Schema Evolution: the incoming data or required output has been modified
-- Optimizations: the same application can be executed more efficiently (either
-  by user or engine)
+You have a persistent query that is running and processing rows, and you want to change
+it to do something different. You want the new version of the query to start processing rows
+where the old version left off. This is generally known as *upgrading* a query.
 
-ksqlDB provides various mechanisms to interact with a query that's running in
-production.
+## In action
 
-1. *In-place upgrades*: users modify the behavior of a query, resuming from a
+```sql
+-- Before
+CREATE STREAM valid_purchases AS
+  SELECT *
+  FROM purchases
+  WHERE cost > 0.00 AND quantity > 0;
+
+-- After
+CREATE OR REPLACE STREAM valid_purchases AS
+  SELECT *
+  FROM purchases
+  WHERE quantity > 0;
+```
+
+## Upgrade types
+
+ksqlDB provides two mechanisms to change a query that is already running:
+
+1. *In-place upgrades*: you modify the behavior of a query, and it resumes from a
    previously committed offset. The syntax that ksqlDB uses to indicate an
    in-place upgrade is `CREATE OR REPLACE`.
-1. *Replacing upgrades*: these upgrades require you to tear down existing
-   queries, and start a new one from either `earliest` or `latest` offsets.
+1. *Replacing upgrades*: you tear down an existing query,
+   and start a new one from either `earliest` or `latest` offsets.
    To accomplish this, users you first issue a `TERMINATE <query_id>;` and a
    `DROP <source>` before creating the query again.
 
 ## Understanding upgrades
 
-To better understand the different types of upgrades that exist on continuous
-queries, we define a taxonomy on query upgrades as any combination of three
-types of characteristics: _source query_, _upgrade_ and (optionally) _environment_.
+Obviously, it would be preferable to always perform an in-place upgrade
+when you change a query. But because of how streaming programs are constructed,
+this isn't not always possible to do that.
+
+To better understand the different types of upgrades that are allowed on persistent
+queries, here's a taxonomy usin gthe combination of three
+types of query characteristics: _source query_, _upgrade_ and (optionally) _environment_.
 
 | **Category** | **Characteristic** | **Description** |
 |----------|----------------|-------------|
@@ -62,28 +73,40 @@ in-place upgrade.
 Any in place upgrades on windowed or joined sources, as well as upgrades on
 any table aggregation, are not yet supported.
 
-## A motivating example
+## In-place upgrades
 
 Imagine a query that reads from a stream of purchases made at ksqlDB's flagship
 store, ksqlMart, and filters out transactions that might be invalid:
 
 ```sql
-CREATE STREAM purchases (product_id INT KEY, name VARCHAR, cost DOUBLE, quantity INT);
-CREATE STREAM valid_purchases AS SELECT * FROM purchases WHERE cost > 0.00 AND quantity > 0;
+CREATE STREAM purchases (
+  product_id INT KEY,
+  name VARCHAR,
+  cost DOUBLE,
+  quantity INT
+);
+
+CREATE STREAM valid_purchases AS
+  SELECT *
+  FROM purchases
+  WHERE cost > 0.00 AND quantity > 0;
 ```
 
-### Data selection (simple)
+### Data selection
 
 Over time, ksqlMart changes its return policy and begins issuing full refunds.
 These events have a negative `cost` column value. Since these events are now
 valid, ksqlMart needs to update the query to remove the `cost > 0.00` clause:
 
 ```sql
-CREATE OR REPLACE STREAM valid_purchases AS SELECT * FROM purchases WHERE quantity > 0;
+CREATE OR REPLACE STREAM valid_purchases AS
+  SELECT *
+  FROM purchases
+  WHERE quantity > 0;
 ```
 
-This `CREATE OR REPLACE` statement instructs ksqlDB to terminate the old query,
-and create a new one with the new semantics that will continue from the last
+The `CREATE OR REPLACE` statement instructs ksqlDB to terminate the old query,
+and create a new one that will continue from the last
 event that the previous query processed. Note that this means any previously 
 processed data with negative cost will not be included, even if issuing the
 query with `SET 'auto.offset.reset'='earliest';`.
@@ -100,18 +123,28 @@ named `popularity`. In order to reflect this change in their `valid_purchases`
 stream, they need to issue two different commands:
 
 ```sql
-CREATE OR REPLACE STREAM purchases (product_id INT KEY, name VARCHAR, cost DOUBLE, quantity INT, popularity DOUBLE); 
-CREATE OR REPLACE STREAM valid_purchases AS SELECT * FROM purchases WHERE quantity > 0;
+CREATE OR REPLACE STREAM purchases (
+  product_id INT KEY,
+  name VARCHAR,
+  cost DOUBLE,
+  quantity INT,
+  popularity DOUBLE
+);
+
+CREATE OR REPLACE STREAM valid_purchases AS
+  SELECT *
+  FROM purchases
+  WHERE quantity > 0;
 ```
 
 There are a few things to note in the above statements:
 
-1. DDL statements can be updated using `CREATE OR REPLACE`.
+1. Data declaration statements can be updated using `CREATE OR REPLACE`.
 2. ksqlMart re-issued the `SELECT *` statement even though the statement text is
-   identical to the previous statement they issued.
-3. Why is (2) necessary? ksqlDB resolves `SELECT *` at the time the query was
-   issued, which means that any updates to `purchases` after issuing a
-   `CREATE AS SELECT` statement aren't picked up in `valid_purchases`.
+   identical to the previous statement they issued. This is necessary because
+   ksqlDB resolves `SELECT *` at the time the query was issued, which means
+   that any updates to `purchases` after issuing a `CREATE AS SELECT`
+   statement aren't picked up in `valid_purchases`.
 
 _Schema Evolution_ upgrades have much stricter requirements than _Data Selection_
 upgrades. ksqlDB supports only adding new columns at the end of the schema. Removing, 
@@ -125,10 +158,12 @@ ksqlMart, as is common with data-driven companies that leverage ksqlDB, also has
 queries that generate analytics on their purchases:
 
 ```sql
-CREATE TABLE purchase_stats
-    AS SELECT product_id, COUNT(*) AS num_sales, AVG(cost * quantity) AS average_sale
-    FROM valid_purchases 
-    GROUP BY product_id;
+CREATE TABLE purchase_stats AS
+  SELECT product_id,
+         COUNT(*) AS num_sales,
+         AVG(cost * quantity) AS average_sale
+  FROM valid_purchases 
+  GROUP BY product_id;
 ```
 
 After some time, they realize that the `purchase_stats` stream doesn't account
@@ -138,11 +173,13 @@ aggregation, so they update their query in place to add a filter for this
 condition:
 
 ```sql
-CREATE OR REPLACE TABLE purchase_stats
-    AS SELECT product_id, COUNT(*) AS num_sales, AVG(cost * quantity) AS average_sale
-    FROM valid_purchases 
-    WHERE cost > 0
-    GROUP BY product_id;
+CREATE OR REPLACE TABLE purchase_stats AS
+  SELECT product_id,
+         COUNT(*) AS num_sales,
+         AVG(cost * quantity) AS average_sale
+  FROM valid_purchases 
+  WHERE cost > 0
+  GROUP BY product_id;
 ```
 
 This updated query ensures only that _new_ refunds don't count toward the stats,
@@ -153,21 +190,25 @@ replacing upgrade that read from the earliest offset in the `valid_purchases` st
 
 ```sql
 TERMINATE CTAS_PURCHASE_STATS_0;
+
 DROP STREAM purhcase_stats;
+
 SET 'auto.offset.reset'='earliest';
 
 -- read from the start and create a new table
-CREATE TABLE purchase_stats
-    AS SELECT product_id, COUNT(*) AS num_sales, AVG(cost * quantity) AS average_sale
-    FROM valid_purchases 
-    WHERE cost > 0
-    GROUP BY product_id;
+CREATE TABLE purchase_stats AS
+  SELECT product_id,
+         COUNT(*) AS num_sales,
+         AVG(cost * quantity) AS average_sale
+  FROM valid_purchases 
+  WHERE cost > 0
+  GROUP BY product_id;
 ```
 
 This solution becomes more difficult if there are downstream consumers of the
 `purchase_stats` table.
 
-### Additional restrictions on stateful data selection
+## Additional restrictions on stateful data selection
 
 ksqlDB maintains state in order to accomplish stateful tasks such as
 aggregations. To ensure that all intermediate state is compatible, ksqlDB

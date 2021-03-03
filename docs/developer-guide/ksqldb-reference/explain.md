@@ -25,7 +25,7 @@ information and metrics. Statements such as DESCRIBE EXTENDED, for
 example, show the IDs of queries related to a stream or table.
 
 For more information, see
-[ksqlDB Query Lifecycle](../../concepts/ksqldb-architecture.md#ksqldb-query-lifecycle).
+[ksqlDB Query Lifecycle](/operate-and-deploy/how-it-works#ksqldb-query-lifecycle).
 
 Example
 -------

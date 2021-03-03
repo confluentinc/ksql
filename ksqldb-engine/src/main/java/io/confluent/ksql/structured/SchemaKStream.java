@@ -342,7 +342,8 @@ public class SchemaKStream<K> {
         resolveSchema(step),
         SerdeFeaturesFactory.sanitizeKeyFormat(
             newKeyFormat,
-            keyExpression.size() == 1),
+            keyExpression.size(),
+            true),
         ksqlConfig,
         functionRegistry
     );
@@ -372,7 +373,8 @@ public class SchemaKStream<K> {
 
     final KeyFormat sanitizedKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
         rekeyedFormat,
-        groupByExpressions.size() == 1
+        groupByExpressions.size(),
+        true
     );
     final StreamGroupBy<K> source = ExecutionStepFactory.streamGroupBy(
         contextStacker,
@@ -384,7 +386,7 @@ public class SchemaKStream<K> {
     return new SchemaKGroupedStream(
         source,
         resolveSchema(source),
-        rekeyedFormat,
+        sanitizedKeyFormat,
         ksqlConfig,
         functionRegistry
     );

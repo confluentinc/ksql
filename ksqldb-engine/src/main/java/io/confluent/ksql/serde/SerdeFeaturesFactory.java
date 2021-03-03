@@ -18,6 +18,9 @@ package io.confluent.ksql.serde;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.json.JsonFormat;
+import io.confluent.ksql.serde.kafka.KafkaFormat;
+import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
@@ -96,9 +99,11 @@ public final class SerdeFeaturesFactory {
 
   /**
    * Not all {@code KeyFormat}s are valid internal topic formats. Specifically,
-   * we want to ensure that the key format is (1) not NONE and (2) explicitly sets
-   * the wrapping if it contains only a single column. This method ensures that
-   * both of these are eagerly set.
+   * we want to ensure that the key format explicitly sets the wrapping if it
+   * contains only a single column. This method ensures that key wrapping is eagerly set.
+   *
+   * <p>Additionally, internal topics with multiple key columns cannot use the NONE or KAFKA
+   * key formats. In these cases, we switch to the JSON key format instead.
    *
    * <p>Note that while it is safe to call this method multiple times (it is idempotent),
    * it should be called before we build the execution steps to make sure that we never
@@ -106,9 +111,46 @@ public final class SerdeFeaturesFactory {
    * To achieve this, we've audited the SchemaKStream, SchemaKTable and SchemaGroupedKStream
    * classes to ensure that anytime a key is changed we properly set the key format.
    *
-   * @return the key format to use
+   * @param keyFormat un-sanitized format
+   * @param numKeyColumns number of key columns for this stream/table
+   * @param allowKeyFormatChangeToSupportMultipleKeys safeguard to prevent changing key formats in
+   *                                                  unexpected ways. if false, no format change
+   *                                                  will take place
+   * @return the new key format to use
    */
   public static KeyFormat sanitizeKeyFormat(
+      final KeyFormat keyFormat,
+      final int numKeyColumns,
+      final boolean allowKeyFormatChangeToSupportMultipleKeys
+  ) {
+    return sanitizeKeyFormatWrapping(
+        sanitizeKeyFormatForMultipleColumns(
+            keyFormat,
+            numKeyColumns,
+            allowKeyFormatChangeToSupportMultipleKeys),
+        numKeyColumns == 1
+    );
+  }
+
+  private static KeyFormat sanitizeKeyFormatForMultipleColumns(
+      final KeyFormat keyFormat,
+      final int numKeyColumns,
+      final boolean allowKeyFormatChangeToSupportMultipleKeys
+  ) {
+    if (!allowKeyFormatChangeToSupportMultipleKeys
+        || numKeyColumns <= 1
+        || formatSupportsMultipleColumns(keyFormat)) {
+      return keyFormat;
+    }
+
+    if (keyFormat.isWindowed()) {
+      throw new IllegalStateException("Should not convert format of windowed key");
+    }
+
+    return KeyFormat.nonWindowed(FormatInfo.of(JsonFormat.NAME), SerdeFeatures.of());
+  }
+
+  private static KeyFormat sanitizeKeyFormatWrapping(
       final KeyFormat keyFormat,
       final boolean isSingleKey
   ) {
@@ -214,4 +256,8 @@ public final class SerdeFeaturesFactory {
     return Optional.of(feature);
   }
 
+  private static boolean formatSupportsMultipleColumns(final KeyFormat format) {
+    return !format.getFormat().equals(KafkaFormat.NAME)
+        && !format.getFormat().equals(NoneFormat.NAME);
+  }
 }

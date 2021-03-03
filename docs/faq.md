@@ -100,7 +100,7 @@ ksqlDB supports the following formats:
     standard `LongSerializer`).
 
 For more information, see
-[Serialization Formats](developer-guide/serialization.md#serialization-formats).
+[Serialization Formats](/reference/serialization#serialization-formats).
 
 Is ksqlDB fully compliant with ANSI SQL?
 ----------------------------------------

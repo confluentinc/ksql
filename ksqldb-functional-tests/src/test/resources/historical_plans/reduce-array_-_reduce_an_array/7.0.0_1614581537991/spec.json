@@ -1,10 +1,10 @@
 {
   "version" : "7.0.0",
-  "timestamp" : 1614069675859,
-  "path" : "query-validation-tests/reduce-map.json",
+  "timestamp" : 1614581537991,
+  "path" : "query-validation-tests/reduce-array.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `MAP` MAP<STRING, INTEGER>",
+      "schema" : "`ID` STRING KEY, `NUMBERS` ARRAY<INTEGER>",
       "keyFormat" : {
         "format" : "KAFKA"
       },
@@ -23,51 +23,43 @@
     }
   },
   "testCase" : {
-    "name" : "apply reduce lambda function to map",
+    "name" : "reduce an array",
     "inputs" : [ {
-      "topic" : "test_topic",
-      "key" : "zero",
-      "value" : {
-        "map" : {
-          "123" : 3,
-          "12" : 7,
-          "1234" : 2
-        }
-      }
-    }, {
       "topic" : "test_topic",
       "key" : "one",
       "value" : {
-        "map" : {
-          "1" : 1,
-          "ttttt" : null,
-          "" : 3
-        }
+        "numbers" : [ 3, 6 ]
       }
     }, {
       "topic" : "test_topic",
       "key" : "two",
       "value" : {
-        "map" : null
+        "numbers" : [ 5, null ]
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : "three",
+      "value" : {
+        "numbers" : null
       }
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
-      "key" : "zero",
+      "key" : "one",
       "value" : {
-        "REDUCE" : -8
+        "REDUCE" : 11
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "one",
+      "key" : "two",
       "value" : {
         "REDUCE" : null
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "two",
+      "key" : "three",
       "value" : {
-        "REDUCE" : 0
+        "REDUCE" : 2
       }
     } ],
     "topics" : [ {
@@ -79,7 +71,7 @@
       "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM test (ID STRING KEY, map MAP<STRING, INTEGER>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, REDUCE(0, map, (s, k, v) => CASE WHEN LEN(k) > 3 THEN  s + v ELSE s - v END) AS reduce FROM test;" ],
+    "statements" : [ "CREATE STREAM test (ID STRING KEY, numbers ARRAY<INTEGER>) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, REDUCE(numbers, 2, (s, x) => s + x) AS reduce FROM test;" ],
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
@@ -94,7 +86,7 @@
       }, {
         "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `MAP` MAP<STRING, INTEGER>",
+        "schema" : "`ID` STRING KEY, `NUMBERS` ARRAY<INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },

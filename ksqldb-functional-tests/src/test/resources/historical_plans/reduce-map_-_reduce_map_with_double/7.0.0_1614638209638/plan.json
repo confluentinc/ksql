@@ -1,11 +1,11 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM TEST (ID STRING KEY, MAP MAP<STRING, INTEGER>) WITH (KAFKA_TOPIC='test_topic', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
+    "statementText" : "CREATE STREAM TEST (ID STRING KEY, MAP MAP<STRING, DOUBLE>) WITH (KAFKA_TOPIC='test_topic', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "TEST",
-      "schema" : "`ID` STRING KEY, `MAP` MAP<STRING, INTEGER>",
+      "schema" : "`ID` STRING KEY, `MAP` MAP<STRING, DOUBLE>",
       "topicName" : "test_topic",
       "formats" : {
         "keyFormat" : {
@@ -19,11 +19,11 @@
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.ID ID,\n  REDUCE(0, TEST.MAP, (S, K, V) => (CASE WHEN (LEN(K) > 3) THEN (S + V) ELSE (S - V) END)) REDUCE\nFROM TEST TEST\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.ID ID,\n  REDUCE(TEST.MAP, CAST(3.2 AS DOUBLE), (S, X, Y) => (CASE WHEN (INSTR(X, 'ye') > 0) THEN CEIL((Y * S)) ELSE FLOOR((S * Y)) END)) REDUCE\nFROM TEST TEST\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "OUTPUT",
-      "schema" : "`ID` STRING KEY, `REDUCE` INTEGER",
+      "schema" : "`ID` STRING KEY, `REDUCE` DOUBLE",
       "topicName" : "OUTPUT",
       "formats" : {
         "keyFormat" : {
@@ -62,10 +62,10 @@
                 "format" : "JSON"
               }
             },
-            "sourceSchema" : "`ID` STRING KEY, `MAP` MAP<STRING, INTEGER>"
+            "sourceSchema" : "`ID` STRING KEY, `MAP` MAP<STRING, DOUBLE>"
           },
           "keyColumnNames" : [ "ID" ],
-          "selectExpressions" : [ "REDUCE(0, MAP, (S, K, V) => (CASE WHEN (LEN(K) > 3) THEN (S + V) ELSE (S - V) END)) AS REDUCE" ]
+          "selectExpressions" : [ "REDUCE(MAP, CAST(3.2 AS DOUBLE), (S, X, Y) => (CASE WHEN (INSTR(X, 'ye') > 0) THEN CEIL((Y * S)) ELSE FLOOR((S * Y)) END)) AS REDUCE" ]
         },
         "formats" : {
           "keyFormat" : {

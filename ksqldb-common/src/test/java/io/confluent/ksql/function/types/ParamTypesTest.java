@@ -21,7 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlLambda;
-import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlLambdaResolved;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.junit.Test;
 
@@ -68,7 +68,7 @@ public class ParamTypesTest {
 
 
     assertThat(ParamTypes.areCompatible(
-        SqlArgument.of(new SqlLambda(ImmutableList.of(SqlTypes.INTEGER), SqlTypes.INTEGER)),
+        SqlArgument.of(SqlLambdaResolved.of(ImmutableList.of(SqlTypes.INTEGER), SqlTypes.INTEGER)),
         LambdaType.of(ImmutableList.of(ParamTypes.STRING), ParamTypes.STRING),
         false),
         is(false));
@@ -102,10 +102,25 @@ public class ParamTypesTest {
         is(true));
 
     assertThat(ParamTypes.areCompatible(
-        SqlArgument.of(new SqlLambda(ImmutableList.of(SqlTypes.STRING), SqlTypes.STRING)),
+        SqlArgument.of(SqlLambdaResolved.of(ImmutableList.of(SqlTypes.STRING), SqlTypes.STRING)),
         LambdaType.of(ImmutableList.of(ParamTypes.STRING), ParamTypes.STRING),
         false),
         is(true));
+  }
+
+  @Test
+  public void shouldOnlyLookAtInputTypeSizeForCompatibleLambdaTypeAndSqlLambda() {
+    assertThat(ParamTypes.areCompatible(
+        SqlArgument.of(SqlLambda.of(1)),
+        LambdaType.of(ImmutableList.of(ParamTypes.STRING), ParamTypes.STRING),
+        false),
+        is(true));
+
+    assertThat(ParamTypes.areCompatible(
+        SqlArgument.of(SqlLambda.of(2)),
+        LambdaType.of(ImmutableList.of(ParamTypes.DOUBLE), ParamTypes.STRING),
+        false),
+        is(false));
   }
 
   @Test

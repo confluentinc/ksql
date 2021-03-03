@@ -19,7 +19,7 @@
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.ID ID,\n  REDUCE(2, TEST.NUMBERS, (S, X) => (S + X)) REDUCE\nFROM TEST TEST\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.ID ID,\n  REDUCE(TEST.NUMBERS, 2, (S, X) => (S + X)) REDUCE\nFROM TEST TEST\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "OUTPUT",
@@ -65,7 +65,7 @@
             "sourceSchema" : "`ID` STRING KEY, `NUMBERS` ARRAY<INTEGER>"
           },
           "keyColumnNames" : [ "ID" ],
-          "selectExpressions" : [ "REDUCE(2, NUMBERS, (S, X) => (S + X)) AS REDUCE" ]
+          "selectExpressions" : [ "REDUCE(NUMBERS, 2, (S, X) => (S + X)) AS REDUCE" ]
         },
         "formats" : {
           "keyFormat" : {

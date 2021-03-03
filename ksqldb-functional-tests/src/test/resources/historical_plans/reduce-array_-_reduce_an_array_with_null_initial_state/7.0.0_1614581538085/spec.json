@@ -1,10 +1,10 @@
 {
   "version" : "7.0.0",
-  "timestamp" : 1614069675904,
-  "path" : "query-validation-tests/reduce-map.json",
+  "timestamp" : 1614581538085,
+  "path" : "query-validation-tests/reduce-array.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
-      "schema" : "`ID` STRING KEY, `MAP` MAP<STRING, INTEGER>, `STATE` BIGINT",
+      "schema" : "`ID` STRING KEY, `NUMBERS` ARRAY<INTEGER>, `STATE` BIGINT",
       "keyFormat" : {
         "format" : "KAFKA"
       },
@@ -23,22 +23,19 @@
     }
   },
   "testCase" : {
-    "name" : "reduce map with null initial state",
+    "name" : "reduce an array with null initial state",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : "one",
       "value" : {
-        "map" : {
-          "test1" : 6,
-          "test2" : 7
-        },
+        "numbers" : [ 1, 2 ],
         "state" : null
       }
     }, {
       "topic" : "test_topic",
       "key" : "two",
       "value" : {
-        "map" : null,
+        "numbers" : null,
         "state" : null
       }
     } ],
@@ -64,7 +61,7 @@
       "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM test (ID STRING KEY, map MAP<STRING, INTEGER>, state BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, REDUCE(state, map, (s,x,y) => y + s) AS reduce FROM test;" ],
+    "statements" : [ "CREATE STREAM test (ID STRING KEY, numbers ARRAY<INTEGER>, state BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT ID, REDUCE(numbers, state, (s, x) => s + x) AS reduce FROM test;" ],
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
@@ -79,7 +76,7 @@
       }, {
         "name" : "TEST",
         "type" : "STREAM",
-        "schema" : "`ID` STRING KEY, `MAP` MAP<STRING, INTEGER>, `STATE` BIGINT",
+        "schema" : "`ID` STRING KEY, `NUMBERS` ARRAY<INTEGER>, `STATE` BIGINT",
         "keyFormat" : {
           "format" : "KAFKA"
         },

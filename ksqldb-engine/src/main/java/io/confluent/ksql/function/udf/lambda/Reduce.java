@@ -49,8 +49,8 @@ public class Reduce {
       + "The final state is returned."
   )
   public <T,S> S reduceArray(
-      @UdfParameter(description = "The initial state.") final S initialState,
       @UdfParameter(description = "The array.") final List<T> list,
+      @UdfParameter(description = "The initial state.") final S initialState,
       @UdfParameter(description = "The reduce function.") final BiFunction<S, T, S> biFunction
   ) {
     if (initialState == null) {
@@ -75,8 +75,8 @@ public class Reduce {
       + "The final state is returned."
   )
   public <K,V,S> S reduceMap(
-      @UdfParameter(description = "The initial state.") final S initialState,
       @UdfParameter(description = "The map.") final Map<K, V> map,
+      @UdfParameter(description = "The initial state.") final S initialState,
       @UdfParameter(description = "The reduce function.") final TriFunction<S, K, V, S> triFunction
   ) {
     if (initialState == null) {

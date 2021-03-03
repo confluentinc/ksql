@@ -1,11 +1,11 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM TEST (ID STRING KEY, MAPPING MAP<STRING, ARRAY<INTEGER>>) WITH (KAFKA_TOPIC='test_topic', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
+    "statementText" : "CREATE STREAM TEST (ID STRING KEY, ARRAYING ARRAY<MAP<STRING, INTEGER>>) WITH (KAFKA_TOPIC='test_topic', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "TEST",
-      "schema" : "`ID` STRING KEY, `MAPPING` MAP<STRING, ARRAY<INTEGER>>",
+      "schema" : "`ID` STRING KEY, `ARRAYING` ARRAY<MAP<STRING, INTEGER>>",
       "topicName" : "test_topic",
       "formats" : {
         "keyFormat" : {
@@ -19,11 +19,11 @@
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.ID ID,\n  TRANSFORM(FILTER(TEST.MAPPING, (A, B) => ((LEN(A) > 2) AND (REDUCE(0, B, (C, D) => (C + D)) < 20))), (X, Y) => LPAD(X, REDUCE(2, Y, (S, K) => ABS((ABS(K) - S))), 'a'), (X, Y) => REDUCE(0, ARRAY_UNION(Y, TRANSFORM(Y, (Z) => (Z * 3))), (E, F) => (E + F))) OUTPUT\nFROM TEST TEST\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.ID ID,\n  REDUCE(TEST.ARRAYING, 5, (S, A) => (S + REDUCE(TRANSFORM(FILTER(A, (X, Y) => ((LEN(X) > 5) AND ((Y % 2) <> 0))), (E, F) => CONCAT(E, 'leah'), (G, H) => (H + LEN(G))), 0, (S2, R, B) => (S2 + (2 * B))))) OUTPUT\nFROM TEST TEST\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "OUTPUT",
-      "schema" : "`ID` STRING KEY, `OUTPUT` MAP<STRING, INTEGER>",
+      "schema" : "`ID` STRING KEY, `OUTPUT` INTEGER",
       "topicName" : "OUTPUT",
       "formats" : {
         "keyFormat" : {
@@ -62,10 +62,10 @@
                 "format" : "JSON"
               }
             },
-            "sourceSchema" : "`ID` STRING KEY, `MAPPING` MAP<STRING, ARRAY<INTEGER>>"
+            "sourceSchema" : "`ID` STRING KEY, `ARRAYING` ARRAY<MAP<STRING, INTEGER>>"
           },
           "keyColumnNames" : [ "ID" ],
-          "selectExpressions" : [ "TRANSFORM(FILTER(MAPPING, (A, B) => ((LEN(A) > 2) AND (REDUCE(0, B, (C, D) => (C + D)) < 20))), (X, Y) => LPAD(X, REDUCE(2, Y, (S, K) => ABS((ABS(K) - S))), 'a'), (X, Y) => REDUCE(0, ARRAY_UNION(Y, TRANSFORM(Y, (Z) => (Z * 3))), (E, F) => (E + F))) AS OUTPUT" ]
+          "selectExpressions" : [ "REDUCE(ARRAYING, 5, (S, A) => (S + REDUCE(TRANSFORM(FILTER(A, (X, Y) => ((LEN(X) > 5) AND ((Y % 2) <> 0))), (E, F) => CONCAT(E, 'leah'), (G, H) => (H + LEN(G))), 0, (S2, R, B) => (S2 + (2 * B))))) AS OUTPUT" ]
         },
         "formats" : {
           "keyFormat" : {

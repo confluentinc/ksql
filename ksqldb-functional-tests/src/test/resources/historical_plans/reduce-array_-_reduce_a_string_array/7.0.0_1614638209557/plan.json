@@ -1,11 +1,11 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM TEST (ID STRING KEY, MAP MAP<STRING, INTEGER>, STATE BIGINT) WITH (KAFKA_TOPIC='test_topic', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
+    "statementText" : "CREATE STREAM TEST (ID STRING KEY, NUMBERS ARRAY<STRING>) WITH (KAFKA_TOPIC='test_topic', KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "TEST",
-      "schema" : "`ID` STRING KEY, `MAP` MAP<STRING, INTEGER>, `STATE` BIGINT",
+      "schema" : "`ID` STRING KEY, `NUMBERS` ARRAY<STRING>",
       "topicName" : "test_topic",
       "formats" : {
         "keyFormat" : {
@@ -19,11 +19,11 @@
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.ID ID,\n  REDUCE(TEST.STATE, TEST.MAP, (S, X, Y) => (Y + S)) REDUCE\nFROM TEST TEST\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.ID ID,\n  REDUCE(TEST.NUMBERS, '', (STATE, X) => CONCAT(STATE, X)) REDUCE\nFROM TEST TEST\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "OUTPUT",
-      "schema" : "`ID` STRING KEY, `REDUCE` BIGINT",
+      "schema" : "`ID` STRING KEY, `REDUCE` STRING",
       "topicName" : "OUTPUT",
       "formats" : {
         "keyFormat" : {
@@ -62,10 +62,10 @@
                 "format" : "JSON"
               }
             },
-            "sourceSchema" : "`ID` STRING KEY, `MAP` MAP<STRING, INTEGER>, `STATE` BIGINT"
+            "sourceSchema" : "`ID` STRING KEY, `NUMBERS` ARRAY<STRING>"
           },
           "keyColumnNames" : [ "ID" ],
-          "selectExpressions" : [ "REDUCE(STATE, MAP, (S, X, Y) => (Y + S)) AS REDUCE" ]
+          "selectExpressions" : [ "REDUCE(NUMBERS, '', (STATE, X) => CONCAT(STATE, X)) AS REDUCE" ]
         },
         "formats" : {
           "keyFormat" : {

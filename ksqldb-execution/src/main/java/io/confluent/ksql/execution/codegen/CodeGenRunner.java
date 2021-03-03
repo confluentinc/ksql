@@ -30,21 +30,20 @@ import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
+import io.confluent.ksql.execution.util.FunctionArgumentsUtil;
+import io.confluent.ksql.execution.util.FunctionArgumentsUtil.ArgumentInfo;
+import io.confluent.ksql.execution.util.FunctionArgumentsUtil.FunctionTypeInfo;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
-import io.confluent.ksql.schema.ksql.SqlArgument;
-import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
@@ -183,46 +182,25 @@ public class CodeGenRunner {
 
     @Override
     public Void visitFunctionCall(final FunctionCall node, final TypeContext context) {
-      final FunctionName functionName = node.getName();
+      final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
+      final FunctionTypeInfo argumentsAndContext = FunctionArgumentsUtil
+          .getFunctionTypeInfo(
+              expressionTypeManager,
+              node,
+              udfFactory,
+              context);
 
-      // this context gets updated as we process non lambda arguments
-      final TypeContext currentTypeContext = context.getCopy();
+      final List<Expression> arguments = node.getArguments();
+      final List<TypeContext> typeContextsForChildren =
+          argumentsAndContext.getArgumentInfos().stream()
+              .map(ArgumentInfo::getContext)
+              .collect(Collectors.toList());
+      final KsqlScalarFunction function = argumentsAndContext.getFunction();
 
-      final List<SqlArgument> argumentTypes = new ArrayList<>();
-      final List<TypeContext> typeContextsForChildren = new ArrayList<>();
-      final boolean hasLambda = node.hasLambdaFunctionCallArguments();
-      for (final Expression argExpr : node.getArguments()) {
-        final TypeContext childContext = TypeContextUtil.contextForExpression(
-            argExpr, context, currentTypeContext
-        );
-        typeContextsForChildren.add(childContext);
-
-        // pass a copy of the context to the type checker so that type checking in one
-        // expression subtree doesn't interfere with type checking in another one
-        final SqlType resolvedArgType =
-            expressionTypeManager.getExpressionSqlType(argExpr, childContext.getCopy());
-
-        if (argExpr instanceof LambdaFunctionCall) {
-          argumentTypes.add(
-              SqlArgument.of(
-                  SqlLambda.of(currentTypeContext.getLambdaInputTypes(), resolvedArgType)));
-        } else {
-          argumentTypes.add(SqlArgument.of(resolvedArgType));
-          // for lambdas - we save the type information to resolve the lambda generics
-          if (hasLambda) {
-            currentTypeContext.visitType(resolvedArgType);
-          }
-        }
-      }
-
-      final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
-      final KsqlScalarFunction function = holder.getFunction(argumentTypes);
       spec.addFunction(
           function.name(),
           function.newInstance(ksqlConfig)
       );
-
-      final List<Expression> arguments = node.getArguments();
       for (int i = 0; i < arguments.size(); i++) {
         process(arguments.get(i), typeContextsForChildren.get(i));
       }
@@ -294,7 +272,6 @@ public class CodeGenRunner {
 
     @Override
     public Void visitLambdaExpression(final LambdaFunctionCall node, final TypeContext context) {
-      context.mapLambdaInputTypes(node.getArguments());
       process(node.getBody(), context);
       return null;
     }

@@ -18,7 +18,6 @@ package io.confluent.ksql.execution.util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.codegen.TypeContext;
-import io.confluent.ksql.execution.codegen.TypeContextUtil;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
@@ -57,6 +56,7 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.function.UdafUtil;
+import io.confluent.ksql.execution.util.FunctionArgumentsUtil.FunctionTypeInfo;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -67,7 +67,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
-import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
@@ -78,7 +77,6 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.VisitorUtil;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -140,7 +138,6 @@ public class ExpressionTypeManager {
     public Void visitLambdaExpression(
         final LambdaFunctionCall node, final TypeContext context
     ) {
-      context.mapLambdaInputTypes(node.getArguments());
       process(node.getBody(), context);
       return null;
     }
@@ -473,37 +470,14 @@ public class ExpressionTypeManager {
       }
 
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
-
-      // this context gets updated as we process non lambda arguments
-      final TypeContext currentTypeContext = expressionTypeContext.getCopy();
-
-      final List<SqlArgument> argTypes = new ArrayList<>();
-
-      final boolean hasLambda = node.hasLambdaFunctionCallArguments();
-      for (final Expression expression : node.getArguments()) {
-        final TypeContext childContext = TypeContextUtil.contextForExpression(
-            expression, expressionTypeContext, currentTypeContext
-        );
-        process(expression, childContext);
-        final SqlType resolvedArgType = childContext.getSqlType();
-
-        if (expression instanceof LambdaFunctionCall) {
-          argTypes.add(
-              SqlArgument.of(
-                  SqlLambda.of(
-                      currentTypeContext.getLambdaInputTypes(),
-                      resolvedArgType)));
-        } else {
-          argTypes.add(SqlArgument.of(resolvedArgType));
-          // for lambdas - we save the type information to resolve the lambda generics
-          if (hasLambda) {
-            currentTypeContext.visitType(resolvedArgType);
-          }
-        }
-      }
-
-      final SqlType returnSchema = udfFactory.getFunction(argTypes).getReturnType(argTypes);
-      expressionTypeContext.setSqlType(returnSchema);
+      final FunctionTypeInfo argumentsAndContext = FunctionArgumentsUtil
+          .getFunctionTypeInfo(
+              ExpressionTypeManager.this, 
+              node, 
+              udfFactory, 
+              expressionTypeContext);
+      
+      expressionTypeContext.setSqlType(argumentsAndContext.getReturnType());
       return null;
     }
 

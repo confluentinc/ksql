@@ -17,13 +17,10 @@ package io.confluent.ksql.tools.migrations.commands;
 
 import static io.confluent.ksql.tools.migrations.util.MetadataUtil.getOptionalInfoForVersions;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
-import static io.confluent.ksql.tools.migrations.util.ServerVersionUtil.getServerInfo;
-import static io.confluent.ksql.tools.migrations.util.ServerVersionUtil.versionSupportsMultiKeyPullQuery;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.Client;
-import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.MigrationVersionInfo;
@@ -31,6 +28,8 @@ import io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +85,7 @@ public class MigrationInfoCommand extends BaseCommand {
     boolean success;
     try {
       final List<Integer> versions = MigrationsDirectoryUtil.getAllVersions(migrationsDir);
-      final List<MigrationVersionInfo> versionInfo =
+      final Map<Integer, Optional<MigrationVersionInfo>> versionInfo =
           getOptionalInfoForVersions(versions, config, ksqlClient);
       printAsTable(versions, versionInfo);
 
@@ -108,7 +107,7 @@ public class MigrationInfoCommand extends BaseCommand {
 
   private static void printAsTable(
       final List<Integer> versions,
-      final List<MigrationVersionInfo> versionInfo
+      final Map<Integer, Optional<MigrationVersionInfo>> versionInfo
   ) {
     // TODO
   }

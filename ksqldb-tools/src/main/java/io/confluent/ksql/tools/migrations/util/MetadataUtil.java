@@ -27,8 +27,8 @@ import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
-import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -186,7 +186,7 @@ public final class MetadataUtil {
     return Optional.of(MigrationVersionInfo.fromResultRow(resultRow));
   }
 
-  public static List<MigrationVersionInfo> getOptionalInfoForVersions(
+  public static Map<Integer, Optional<MigrationVersionInfo>> getOptionalInfoForVersions(
       final List<Integer> versions,
       final MigrationConfig config,
       final Client ksqlClient
@@ -201,22 +201,24 @@ public final class MetadataUtil {
               + versions.stream().map(String::valueOf).collect(Collectors.joining("', '"))
               + "');");
 
+      final Map<Integer, MigrationVersionInfo> resultSet;
       try {
-        return result.get().stream()
+        resultSet = result.get().stream()
             .map(MigrationVersionInfo::fromResultRow)
-            .sorted(Comparator.comparingInt(MigrationVersionInfo::getVersion))
-            .collect(Collectors.toList());
+            .collect(Collectors.toMap(MigrationVersionInfo::getVersion, vInfo -> vInfo));
       } catch (InterruptedException | ExecutionException e) {
         throw new MigrationException(String.format(
             "Failed to query state for migration with versions %s: %s", versions, e.getMessage()));
       }
+
+      return versions.stream()
+          .collect(Collectors.toMap(v -> v, v -> Optional.ofNullable(resultSet.get(v))));
     } else {
       // issue multiple, single-key pull queries
       return versions.stream()
-          .map(v -> getOptionalInfoForVersion(String.valueOf(v), config, ksqlClient))
-          .filter(Optional::isPresent)
-          .map(Optional::get)
-          .collect(Collectors.toList());
+          .collect(Collectors.toMap(
+              v -> v,
+              v -> getOptionalInfoForVersion(String.valueOf(v), config, ksqlClient)));
     }
   }
 

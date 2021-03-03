@@ -1,3 +1,11 @@
+---
+layout: page
+title: Monitoring
+tagline: Monitor ksqlDB
+description: Enable metrics monitoring on ksqlDB Server 
+keywords: metrics, monitor, jmx
+---
+
 # Monitoring
 
 ## Context

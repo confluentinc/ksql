@@ -1,3 +1,11 @@
+---
+layout: page
+title: Streaming ETL pipeline 
+tagline: Learn how to create a streaming ETL pipeline by using ksqlDB
+description: Use ksqlDB to create a streaming ETL pipeline that ingests and joins events together to create a cohesive view of orders that shipped
+keywords: etl, streaming data pipeline, join
+---
+
 # Streaming ETL pipeline
 
 ## What is it?

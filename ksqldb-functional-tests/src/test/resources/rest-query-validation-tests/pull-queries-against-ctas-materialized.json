@@ -1,0 +1,210 @@
+{
+  "comments": [
+    "Tests covering Pull queries of materialized using CTAS tables"
+  ],
+  "tests": [
+    {
+      "name": "select * against mat table table scan",
+      "statements": [
+        "CREATE TABLE USERS (ID BIGINT PRIMARY KEY, USERTIMESTAMP BIGINT, GENDER VARCHAR, REGION_ID VARCHAR) WITH (KAFKA_TOPIC = 'users_topic',VALUE_FORMAT = 'JSON',PARTITIONS=1);",
+        "CREATE TABLE QUERYABLE_USERS AS SELECT * FROM USERS;",
+        "SELECT * FROM QUERYABLE_USERS;"
+      ],
+      "inputs": [
+        {"topic": "users_topic", "timestamp": 12345, "key": 1, "value": {"usertimestamp": 1000, "gender":  "m", "region_id": "w"}},
+        {"topic": "users_topic", "timestamp": 13345, "key": 2, "value": {"usertimestamp": 2000, "gender":  "f", "region_id": "e"}},
+        {"topic": "users_topic", "timestamp": 14345, "key": 3, "value": {"usertimestamp": 3000, "gender":  "f", "region_id": "n"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` BIGINT KEY, `USERTIMESTAMP` BIGINT, `GENDER` STRING, `REGION_ID` STRING"}},
+          {"row":{"columns":[1,1000,"m","w"]}},
+          {"row":{"columns":[2,2000,"f","e"]}},
+          {"row":{"columns":[3,3000,"f","n"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "select * against mat table key lookup",
+      "statements": [
+        "CREATE TABLE USERS (ID BIGINT PRIMARY KEY, USERTIMESTAMP BIGINT, GENDER VARCHAR, REGION_ID VARCHAR) WITH (KAFKA_TOPIC = 'users_topic',VALUE_FORMAT = 'JSON',PARTITIONS=1);",
+        "CREATE TABLE QUERYABLE_USERS AS SELECT * FROM USERS;",
+        "SELECT * FROM QUERYABLE_USERS WHERE ID=2;"
+      ],
+      "inputs": [
+        {"topic": "users_topic", "timestamp": 12345, "key": 1, "value": {"usertimestamp": 1000, "gender":  "m", "region_id": "w"}},
+        {"topic": "users_topic", "timestamp": 13345, "key": 2, "value": {"usertimestamp": 2000, "gender":  "f", "region_id": "e"}},
+        {"topic": "users_topic", "timestamp": 14345, "key": 3, "value": {"usertimestamp": 3000, "gender":  "f", "region_id": "n"}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` BIGINT KEY, `USERTIMESTAMP` BIGINT, `GENDER` STRING, `REGION_ID` STRING"}},
+          {"row":{"columns":[2,2000,"f","e"]}}
+        ]}
+      ]
+    },
+    {
+      "name": "select * with projection table scan",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE NEW_INPUT AS SELECT ID, CONCAT(GRADE, '+'), RANK * 2 FROM INPUT;",
+        "SELECT * FROM NEW_INPUT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"GRADE": "A", "RANK": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"GRADE": "B", "RANK": 2}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `KSQL_COL_0` STRING, `KSQL_COL_1` INTEGER"}},
+          {"row":{"columns":["11", "A+", 2]}},
+          {"row":{"columns":["10", "B+", 4]}}
+        ]}
+
+      ]
+    },
+    {
+      "name": "select star with projection key lookup",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE NEW_INPUT AS SELECT ID, CONCAT(GRADE, '+'), RANK * 2 FROM INPUT;",
+        "SELECT * FROM NEW_INPUT WHERE ID='11';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"GRADE": "A", "RANK": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"GRADE": "B", "RANK": 2}},
+        {"topic": "test_topic", "timestamp": 12389, "key": "12", "value": {"GRADE": "C", "RANK": 3}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `KSQL_COL_0` STRING, `KSQL_COL_1` INTEGER"}},
+          {"row":{"columns":["11", "A+", 2]}}
+        ]}
+
+      ]
+    },
+    {
+      "name": "select with projection table scan and key lookup",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE NEW_INPUT AS SELECT ID, CONCAT(GRADE, '+'), RANK * 2 AS DOUBLE_RANK FROM INPUT;",
+        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT;",
+        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT WHERE ID='11';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"GRADE": "A", "RANK": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"GRADE": "B", "RANK": 2}},
+        {"topic": "test_topic", "timestamp": 12389, "key": "12", "value": {"GRADE": "C", "RANK": 3}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":["11", 2]}},
+          {"row":{"columns":["10", 4]}},
+          {"row":{"columns":["12", 6]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":["11", 2]}}
+        ]}
+      ]
+    },
+    {
+      "name": "select with projection and IN clause",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE NEW_INPUT AS SELECT ID, CONCAT(GRADE, '+'), RANK * 2 AS DOUBLE_RANK FROM INPUT;",
+        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT WHERE ID IN ('11', '12');"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"GRADE": "A", "RANK": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"GRADE": "B", "RANK": 2}},
+        {"topic": "test_topic", "timestamp": 12389, "key": "12", "value": {"GRADE": "C", "RANK": 3}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":["11", 2]}},
+          {"row":{"columns":["12", 6]}}
+        ]}
+      ]
+    },
+    {
+      "name": "table table inner join",
+      "statements": [
+        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='json');",
+        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='json');",
+        "CREATE TABLE INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;",
+        "CREATE TABLE INNER_JOIN_MAT AS SELECT * FROM INNER_JOIN;",
+        "SELECT * FROM INNER_JOIN_MAT;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "left_topic", "key": 90, "value": {"NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "left_topic", "key": 100, "value": {"NAME": "100", "VALUE": 5}, "timestamp": 11000},
+        {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "right_topic", "key": 90, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "key": 100, "value": {"F1": "c", "F2": 20}, "timestamp": 15500},
+        {"topic": "right_topic", "key": 500, "value": {"F1": "D", "F2": 500}, "timestamp": 15555}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`T_ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT"}},
+          {"row":{"columns":[100,"100",5,"c",20]}},
+          {"row":{"columns":[0,"zero",0,"blah",50]}},
+          {"row":{"columns":[90,"ninety",90,"a",10]}}
+        ]}
+      ]
+    },
+    {
+      "name": "table table inner join should fail as the join result is not materialized",
+      "statements": [
+        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='json');",
+        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='json');",
+        "CREATE TABLE INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;",
+        "SELECT * FROM INNER_JOIN;"
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}}
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "The `INNER_JOIN` table isn't queryable. To derive a queryable table, you can do 'CREATE TABLE QUERYABLE_INNER_JOIN AS SELECT * FROM INNER_JOIN'. See https://cnfl.io/queries for more info.",
+        "status": 400
+      }
+    },
+    {
+      "name": "pull query on `CREATE TABLE` table should fail ",
+      "statements": [
+        "CREATE TABLE USERS (id BIGINT PRIMARY KEY, USER_TIMESTAMP BIGINT, GENDER VARCHAR, REGION_ID VARCHAR) WITH (KAFKA_TOPIC = 'my-users-topic', VALUE_FORMAT = 'JSON', PARTITIONS=1);",
+        "SELECT * FROM USERS;"
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}}
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "The `USERS` table isn't queryable. To derive a queryable table, you can do 'CREATE TABLE QUERYABLE_USERS AS SELECT * FROM USERS'. See https://cnfl.io/queries for more info.",
+        "status": 400
+      }
+    }
+  ]
+}

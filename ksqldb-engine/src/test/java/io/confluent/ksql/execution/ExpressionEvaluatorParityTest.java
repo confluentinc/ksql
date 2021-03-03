@@ -212,6 +212,8 @@ public class ExpressionEvaluatorParityTest {
     assertOrdersError("CAST('123' as ARRAY<INTEGER>)",
         compileTime("Cast of STRING to ARRAY<INTEGER> is not supported"),
         compileTime("Unsupported cast from STRING to ARRAY<INTEGER>"));
+    assertOrders("CAST('true' as BOOLEAN)", true);
+    assertOrders("TRUE AND CAST('true' as BOOLEAN)", true);
   }
 
   @Test
@@ -240,6 +242,16 @@ public class ExpressionEvaluatorParityTest {
         .build())
         .put("A", 123)
         .put("B", "abc"));
+  }
+
+  @Test
+  public void shouldDoNot() throws Exception {
+    assertOrders("not true", false);
+    assertOrders("not false", true);
+    assertOrders("not cast('true' as BOOLEAN)", false);
+    assertOrders("not ORDERID > 9 AND ORDERUNITS < 100", false);
+    assertOrders("ORDERID > 9 AND not ORDERUNITS < 100", false);
+    assertOrders("not (ORDERID > 9 AND ORDERUNITS < 100)", false);
   }
 
   private void assertOrders(

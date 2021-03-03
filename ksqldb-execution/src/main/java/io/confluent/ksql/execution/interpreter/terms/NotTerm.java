@@ -16,26 +16,20 @@
 package io.confluent.ksql.execution.interpreter.terms;
 
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
-import io.confluent.ksql.execution.interpreter.terms.TypedTerms.BooleanTerm;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 
-public class NotTerm implements BooleanTerm {
+public class NotTerm implements Term {
 
-  private final BooleanTerm term;
+  private final Term term;
 
-  public NotTerm(final BooleanTerm term) {
+  public NotTerm(final Term term) {
     this.term = term;
   }
 
   @Override
-  public Boolean getBoolean(final TermEvaluationContext context) {
-    return !term.getBoolean(context);
-  }
-
-  @Override
   public Object getValue(final TermEvaluationContext context) {
-    return getBoolean(context);
+    return !((Boolean) term.getValue(context));
   }
 
   @Override

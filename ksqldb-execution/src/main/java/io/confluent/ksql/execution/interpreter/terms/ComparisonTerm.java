@@ -16,14 +16,13 @@
 package io.confluent.ksql.execution.interpreter.terms;
 
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
-import io.confluent.ksql.execution.interpreter.terms.TypedTerms.BooleanTerm;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Optional;
 
 public class ComparisonTerm  {
 
-  public static class CompareToTerm implements BooleanTerm {
+  public static class CompareToTerm implements Term {
 
     private final Term left;
     private final Term right;
@@ -46,7 +45,7 @@ public class ComparisonTerm  {
     }
 
     @Override
-    public Boolean getBoolean(final TermEvaluationContext context) {
+    public Object getValue(final TermEvaluationContext context) {
       final Object leftObject = left.getValue(context);
       final Object rightObject = right.getValue(context);
       final Optional<Boolean> nullCheck = nullCheckFunction.checkNull(leftObject, rightObject);
@@ -57,17 +56,13 @@ public class ComparisonTerm  {
       return comparisonCheckFunction.doCheck(compareTo);
     }
 
-    public Object getValue(final TermEvaluationContext context) {
-      return getBoolean(context);
-    }
-
     @Override
     public SqlType getSqlType() {
       return SqlTypes.BOOLEAN;
     }
   }
 
-  public static class EqualsTerm implements BooleanTerm {
+  public static class EqualsTerm implements Term {
 
     private final Term left;
     private final Term right;
@@ -90,7 +85,7 @@ public class ComparisonTerm  {
     }
 
     @Override
-    public Boolean getBoolean(final TermEvaluationContext context) {
+    public Object getValue(final TermEvaluationContext context) {
       final Object leftObject = left.getValue(context);
       final Object rightObject = right.getValue(context);
       final Optional<Boolean> nullCheck = nullCheckFunction.checkNull(leftObject, rightObject);
@@ -99,10 +94,6 @@ public class ComparisonTerm  {
       }
       final boolean equals = equalsFunction.equals(leftObject, rightObject);
       return equalsCheckFunction.doCheck(equals);
-    }
-
-    public Object getValue(final TermEvaluationContext context) {
-      return getBoolean(context);
     }
 
     @Override

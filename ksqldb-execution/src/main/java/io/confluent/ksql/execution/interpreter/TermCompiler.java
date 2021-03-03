@@ -62,8 +62,6 @@ import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
-import io.confluent.ksql.execution.interpreter.terms.LiteralTerms;
-import io.confluent.ksql.execution.interpreter.terms.TypedTerms.BooleanTerm;
 import io.confluent.ksql.execution.interpreter.terms.ColumnReferenceTerm;
 import io.confluent.ksql.execution.interpreter.terms.CreateArrayTerm;
 import io.confluent.ksql.execution.interpreter.terms.CreateMapTerm;
@@ -73,6 +71,7 @@ import io.confluent.ksql.execution.interpreter.terms.InPredicateTerm;
 import io.confluent.ksql.execution.interpreter.terms.IsNotNullTerm;
 import io.confluent.ksql.execution.interpreter.terms.IsNullTerm;
 import io.confluent.ksql.execution.interpreter.terms.LikeTerm;
+import io.confluent.ksql.execution.interpreter.terms.LiteralTerms;
 import io.confluent.ksql.execution.interpreter.terms.LogicalBinaryTerms;
 import io.confluent.ksql.execution.interpreter.terms.NotTerm;
 import io.confluent.ksql.execution.interpreter.terms.SearchedCaseTerm;
@@ -258,7 +257,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
         .orElseThrow(() ->
             new KsqlException("Field not found: " + node.getColumnName()));
 
-    return ColumnReferenceTerm.create(schemaColumn.index(), schemaColumn.type());
+    return new ColumnReferenceTerm(schemaColumn.index(), schemaColumn.type());
   }
 
   @Override
@@ -369,10 +368,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
               left.getSqlType(), right.getSqlType()));
     }
 
-    final BooleanTerm leftBoolean = (BooleanTerm) left;
-    final BooleanTerm rightBoolean = (BooleanTerm) right;
-
-    return LogicalBinaryTerms.create(node.getType(), leftBoolean, rightBoolean);
+    return LogicalBinaryTerms.create(node.getType(), left, right);
   }
 
   @Override
@@ -383,8 +379,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
           format("Not expression expects a boolean value.  Actual %s", term.getSqlType()));
     }
 
-    final BooleanTerm termBoolean = (BooleanTerm) term;
-    return new NotTerm(termBoolean);
+    return new NotTerm(term);
   }
 
   @Override

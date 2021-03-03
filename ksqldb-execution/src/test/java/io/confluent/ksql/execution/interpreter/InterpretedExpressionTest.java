@@ -60,6 +60,7 @@ import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
+import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -75,7 +76,9 @@ import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.math.BigDecimal;
+import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
@@ -538,6 +541,27 @@ public class InterpretedExpressionTest {
     assertThat(interpreter2.evaluate(ROW), is(BigDecimal.valueOf(1234.5d).setScale(1)));
     assertThat(interpreter3.evaluate(ROW), is(BigDecimal.valueOf(12).setScale(1)));
     assertThat(interpreter4.evaluate(ROW), is(BigDecimal.valueOf(4567.5d).setScale(1)));
+  }
+
+  @Test
+  public void shouldEvaluateCastToTimestamp() {
+    // Given:
+    final Expression cast1 = new Cast(
+        new TimestampLiteral(Timestamp.from(Instant.ofEpochMilli(1000))),
+        new Type(SqlPrimitiveType.of("TIMESTAMP"))
+    );
+    final Expression cast2 = new Cast(
+        new StringLiteral("2017-11-13T23:59:58"),
+        new Type(SqlPrimitiveType.of("TIMESTAMP"))
+    );
+
+    // When:
+    InterpretedExpression interpreter1 = interpreter(cast1);
+    InterpretedExpression interpreter2 = interpreter(cast2);
+
+    // Then:
+    assertThat(interpreter1.evaluate(ROW), is(new Timestamp(1000L)));
+    assertThat(interpreter2.evaluate(ROW), is(new Timestamp(1510617598000L)));
   }
 
   @Test

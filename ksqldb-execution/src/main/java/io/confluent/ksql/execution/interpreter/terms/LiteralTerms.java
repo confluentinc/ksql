@@ -16,13 +16,6 @@
 package io.confluent.ksql.execution.interpreter.terms;
 
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
-import io.confluent.ksql.execution.interpreter.terms.TypedTerms.BooleanTerm;
-import io.confluent.ksql.execution.interpreter.terms.TypedTerms.DecimalTerm;
-import io.confluent.ksql.execution.interpreter.terms.TypedTerms.DoubleTerm;
-import io.confluent.ksql.execution.interpreter.terms.TypedTerms.IntegerTerm;
-import io.confluent.ksql.execution.interpreter.terms.TypedTerms.LongTerm;
-import io.confluent.ksql.execution.interpreter.terms.TypedTerms.StringTerm;
-import io.confluent.ksql.execution.interpreter.terms.TypedTerms.TimestampTerm;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
@@ -33,31 +26,31 @@ public final class LiteralTerms {
 
   private LiteralTerms() { }
 
-  public static BooleanTerm of(final Boolean value) {
+  public static Term of(final Boolean value) {
     return new BooleanTermImpl(value);
   }
 
-  public static DecimalTerm of(final BigDecimal value, final SqlType sqlType) {
+  public static Term of(final BigDecimal value, final SqlType sqlType) {
     return new DecimalTermImpl(value, sqlType);
   }
 
-  public static DoubleTerm of(final Double value) {
+  public static Term of(final Double value) {
     return new DoubleTermImpl(value);
   }
 
-  public static IntegerTerm of(final Integer value) {
+  public static Term of(final Integer value) {
     return new IntegerTermImpl(value);
   }
 
-  public static LongTerm of(final Long value) {
+  public static Term of(final Long value) {
     return new LongTermImpl(value);
   }
 
-  public static StringTerm of(final String value) {
+  public static Term of(final String value) {
     return new StringTermImpl(value);
   }
 
-  public static TimestampTerm of(final Timestamp value) {
+  public static Term of(final Timestamp value) {
     return new TimestampTermImpl(value);
   }
 
@@ -81,16 +74,12 @@ public final class LiteralTerms {
     }
   }
 
-  public static class BooleanTermImpl implements BooleanTerm {
+  public static class BooleanTermImpl implements Term {
 
     private final Boolean value;
 
     public BooleanTermImpl(final Boolean value) {
       this.value = value;
-    }
-
-    public Boolean getBoolean(final TermEvaluationContext context) {
-      return value;
     }
 
     @Override
@@ -105,7 +94,7 @@ public final class LiteralTerms {
   }
 
 
-  public static class DoubleTermImpl implements DoubleTerm {
+  public static class DoubleTermImpl implements Term {
 
     private final Double value;
 
@@ -113,13 +102,9 @@ public final class LiteralTerms {
       this.value = value;
     }
 
-    public Double getDouble(final TermEvaluationContext context) {
-      return value;
-    }
-
     @Override
     public Object getValue(final TermEvaluationContext context) {
-      return getDouble(context);
+      return value;
     }
 
     @Override
@@ -128,7 +113,7 @@ public final class LiteralTerms {
     }
   }
 
-  public static class IntegerTermImpl implements IntegerTerm {
+  public static class IntegerTermImpl implements Term {
 
     private final Integer value;
 
@@ -136,13 +121,9 @@ public final class LiteralTerms {
       this.value = value;
     }
 
-    public Integer getInteger(final TermEvaluationContext context) {
-      return value;
-    }
-
     @Override
     public Object getValue(final TermEvaluationContext context) {
-      return getInteger(context);
+      return value;
     }
 
     @Override
@@ -151,7 +132,7 @@ public final class LiteralTerms {
     }
   }
 
-  public static class LongTermImpl implements LongTerm {
+  public static class LongTermImpl implements Term {
 
     private final Long value;
 
@@ -159,13 +140,9 @@ public final class LiteralTerms {
       this.value = value;
     }
 
-    public Long getLong(final TermEvaluationContext context) {
-      return value;
-    }
-
     @Override
     public Object getValue(final TermEvaluationContext context) {
-      return getLong(context);
+      return value;
     }
 
     @Override
@@ -174,7 +151,7 @@ public final class LiteralTerms {
     }
   }
 
-  public static class StringTermImpl implements StringTerm {
+  public static class StringTermImpl implements Term {
 
     private final String value;
 
@@ -182,13 +159,9 @@ public final class LiteralTerms {
       this.value = value;
     }
 
-    public String getString(final TermEvaluationContext context) {
-      return value;
-    }
-
     @Override
     public Object getValue(final TermEvaluationContext context) {
-      return getString(context);
+      return value;
     }
 
     @Override
@@ -197,7 +170,7 @@ public final class LiteralTerms {
     }
   }
 
-  public static class DecimalTermImpl implements DecimalTerm {
+  public static class DecimalTermImpl implements Term {
 
     private final BigDecimal value;
     private final SqlType sqlType;
@@ -207,13 +180,9 @@ public final class LiteralTerms {
       this.sqlType = sqlType;
     }
 
-    public BigDecimal getDecimal(final TermEvaluationContext context) {
-      return value;
-    }
-
     @Override
     public Object getValue(final TermEvaluationContext context) {
-      return getDecimal(context);
+      return value;
     }
 
     @Override
@@ -222,7 +191,7 @@ public final class LiteralTerms {
     }
   }
 
-  public static class TimestampTermImpl implements TimestampTerm {
+  public static class TimestampTermImpl implements Term {
 
     private final long timeMs;
 
@@ -230,13 +199,9 @@ public final class LiteralTerms {
       this.timeMs = timestamp.getTime();
     }
 
-    public Timestamp getTimestamp(final TermEvaluationContext context) {
-      return new Timestamp(timeMs);
-    }
-
     @Override
     public Object getValue(final TermEvaluationContext context) {
-      return getTimestamp(context);
+      return new Timestamp(timeMs);
     }
 
     @Override

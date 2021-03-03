@@ -17,7 +17,6 @@ package io.confluent.ksql.execution.interpreter.terms;
 
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
-import io.confluent.ksql.execution.interpreter.terms.TypedTerms.BooleanTerm;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
@@ -26,21 +25,18 @@ public final class LogicalBinaryTerms {
 
   private LogicalBinaryTerms() { }
 
-  public static class AndTerm implements BooleanTerm {
-    private final BooleanTerm left;
-    private final BooleanTerm right;
+  public static class AndTerm implements Term {
+    private final Term left;
+    private final Term right;
 
-    public AndTerm(final BooleanTerm left, final BooleanTerm right) {
+    public AndTerm(final Term left, final Term right) {
       this.left = left;
       this.right = right;
     }
 
-    public Boolean getBoolean(final TermEvaluationContext context) {
-      return left.getBoolean(context) && right.getBoolean(context);
-    }
-
+    @Override
     public Object getValue(final TermEvaluationContext context) {
-      return getBoolean(context);
+      return (Boolean) left.getValue(context) && (Boolean) right.getValue(context);
     }
 
     @Override
@@ -49,21 +45,18 @@ public final class LogicalBinaryTerms {
     }
   }
 
-  public static class OrTerm implements BooleanTerm {
-    private final BooleanTerm left;
-    private final BooleanTerm right;
+  public static class OrTerm implements Term {
+    private final Term left;
+    private final Term right;
 
-    public OrTerm(final BooleanTerm left, final BooleanTerm right) {
+    public OrTerm(final Term left, final Term right) {
       this.left = left;
       this.right = right;
     }
 
-    public Boolean getBoolean(final TermEvaluationContext context) {
-      return left.getBoolean(context) || right.getBoolean(context);
-    }
-
+    @Override
     public Object getValue(final TermEvaluationContext context) {
-      return getBoolean(context);
+      return (Boolean) left.getValue(context) || (Boolean) right.getValue(context);
     }
 
     @Override
@@ -72,10 +65,10 @@ public final class LogicalBinaryTerms {
     }
   }
 
-  public static BooleanTerm create(
+  public static Term create(
       final LogicalBinaryExpression.Type type,
-      final BooleanTerm left,
-      final BooleanTerm right
+      final Term left,
+      final Term right
   ) {
     switch (type) {
       case OR:

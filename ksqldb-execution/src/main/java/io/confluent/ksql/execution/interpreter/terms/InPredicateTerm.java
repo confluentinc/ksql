@@ -17,12 +17,11 @@ package io.confluent.ksql.execution.interpreter.terms;
 
 import io.confluent.ksql.execution.codegen.helpers.InListEvaluator;
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
-import io.confluent.ksql.execution.interpreter.terms.TypedTerms.BooleanTerm;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.List;
 
-public class InPredicateTerm implements BooleanTerm {
+public class InPredicateTerm implements Term {
 
   private final Term value;
   private final List<Term> valueList;
@@ -33,12 +32,7 @@ public class InPredicateTerm implements BooleanTerm {
   }
 
   @Override
-  public Object getValue(TermEvaluationContext context) {
-    return getBoolean(context);
-  }
-
-  @Override
-  public Boolean getBoolean(TermEvaluationContext context) {
+  public Object getValue(final TermEvaluationContext context) {
     final Object[] values = valueList.stream()
         .map(v -> v.getValue(context))
         .toArray();

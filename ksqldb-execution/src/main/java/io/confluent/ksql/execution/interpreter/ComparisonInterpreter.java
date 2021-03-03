@@ -22,7 +22,6 @@ import static io.confluent.ksql.execution.interpreter.CastInterpreter.castToLong
 import static io.confluent.ksql.execution.interpreter.CastInterpreter.castToTimestampFunction;
 
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
-import io.confluent.ksql.execution.interpreter.terms.TypedTerms.BooleanTerm;
 import io.confluent.ksql.execution.interpreter.terms.CastTerm.ComparableCastFunction;
 import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.CompareToTerm;
 import io.confluent.ksql.execution.interpreter.terms.ComparisonTerm.ComparisonCheckFunction;
@@ -52,7 +51,7 @@ public final class ComparisonInterpreter {
    * @param right Right term
    * @return The term representing the result of the comparison
    */
-  public static BooleanTerm doComparison(
+  public static Term doComparison(
       final ComparisonExpression.Type type,
       final Term left,
       final Term right

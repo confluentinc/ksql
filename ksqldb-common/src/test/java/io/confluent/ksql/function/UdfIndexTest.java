@@ -22,6 +22,7 @@ import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlIntervalUnit;
 import io.confluent.ksql.schema.ksql.types.SqlLambdaResolved;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;

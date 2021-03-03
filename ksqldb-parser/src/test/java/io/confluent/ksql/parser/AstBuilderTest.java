@@ -401,7 +401,7 @@ public class AstBuilderTest {
   @Test
   public void shouldBuildIntervalUnit() {
     // Given:
-    final SingleStatementContext stmt = givenQuery("SELECT TIMESTAMP_ADD(MINUTES, 5, Col4) FROM TEST1;");
+    final SingleStatementContext stmt = givenQuery("SELECT TIMESTAMPADD(MINUTES, 5, Col4) FROM TEST1;");
 
     // When:
     final Query result = (Query) builder.buildStatement(stmt);
@@ -410,7 +410,7 @@ public class AstBuilderTest {
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
         new SingleColumn(
             new FunctionCall(
-                FunctionName.of("TIMESTAMP_ADD"),
+                FunctionName.of("TIMESTAMPADD"),
                 ImmutableList.of(
                     new IntervalUnit(TimeUnit.MINUTES),
                     new IntegerLiteral(5),

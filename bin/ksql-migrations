@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# (Copyright) [2018 - 2018] Confluent, Inc.
+# (Copyright) [2021 - 2021] Confluent, Inc.
 
 : "${JAVA_HOME:=""}"
 
@@ -39,5 +39,9 @@ if [ -d "$DIR" ]; then
 fi
 
 : "${KSQL_CONFIG_DIR:="$base_dir/config"}"
+: "${KSQL_LOG4J_OPTS:=""}"
+if [ -z "$KSQL_LOG4J_OPTS" ]; then
+  export KSQL_LOG4J_OPTS="$KSQL_CONFIG_DIR/log4j-console.properties"
+fi
 
-exec "$JAVA" -cp "$KSQL_CLASSPATH" io.confluent.ksql.tools.migrations.Migrations "$@"
+exec "$JAVA" -Dlog4j.configuration=file://"$KSQL_LOG4J_OPTS" -cp "$KSQL_CLASSPATH" io.confluent.ksql.tools.migrations.Migrations "$@"

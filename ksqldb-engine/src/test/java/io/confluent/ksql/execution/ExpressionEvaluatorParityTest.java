@@ -254,6 +254,28 @@ public class ExpressionEvaluatorParityTest {
     assertOrders("not (ORDERID > 9 AND ORDERUNITS < 100)", false);
   }
 
+  @Test
+  public void shouldDoLambda() throws Exception {
+    assertOrders("filter(Array[1,2,3], x => x > 5)", ImmutableList.of());
+    assertOrders("filter(Array[1,2,3], x => x > 1)", ImmutableList.of(2, 3));
+    assertOrders("filter(Array[Array[1,2,3],Array[4,5,6],Array[7,8,9]], "
+        + "x => array_length(filter(x, y => y % 2 = 0)) > 1)",
+        ImmutableList.of(ImmutableList.of(4, 5, 6)));
+    assertOrders("transform(Array[Array[1,2,3],Array[4,5,6],Array[7,8,9]], "
+            + "x => transform(x, y => y % 2 = 0))",
+        ImmutableList.of(
+            ImmutableList.of(false, true, false),
+            ImmutableList.of(true, false, true),
+            ImmutableList.of(false, true, false)));
+    assertOrders("filter(MAP(1 := 'cat', 2 := 'dog', 3 := 'rat'), (x,y)  => x > 1 "
+        + "AND instr(y, 'at') > 0)", ImmutableMap.of(3, "rat"));
+    assertOrders("transform(MAP(1 := MAP('a' := 'cat', 'b' := 'rat'),"
+        + " 2 := MAP('c' := 'dog', 'd' := 'frog')), (x,y) => x, (x,y) => "
+        + "transform(y, (a,b) => a + 'z', (a,b) => 'pet ' + b))",
+        ImmutableMap.of(1, ImmutableMap.of("bz", "pet rat", "az", "pet cat"),
+            2, ImmutableMap.of("dz", "pet frog", "cz", "pet dog")));
+  }
+
   private void assertOrders(
       final String expressionStr,
       final Object result

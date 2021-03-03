@@ -15,7 +15,9 @@
 
 package io.confluent.ksql.execution.interpreter;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.interpreter.TermCompiler.Context;
 import io.confluent.ksql.execution.interpreter.terms.Term;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -23,7 +25,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.HashMap;
 
 public final class InterpretedExpressionFactory {
 
@@ -35,11 +36,22 @@ public final class InterpretedExpressionFactory {
       final FunctionRegistry functionRegistry,
       final KsqlConfig ksqlConfig
   ) {
+    return create(expression, schema, functionRegistry, ksqlConfig, new Context());
+  }
+
+  @VisibleForTesting
+  public static InterpretedExpression create(
+      final Expression expression,
+      final LogicalSchema schema,
+      final FunctionRegistry functionRegistry,
+      final KsqlConfig ksqlConfig,
+      final Context context
+  ) {
     try {
       final ExpressionTypeManager expressionTypeManager
           = new ExpressionTypeManager(schema, functionRegistry);
-      final SqlType returnType = expressionTypeManager.getExpressionSqlType(
-          expression, new HashMap<>());
+      final SqlType returnType = expressionTypeManager.getExpressionSqlType(expression,
+          context.getLambdaSqlTypeMapping());
       if (returnType == null) {
         // This should only happen if the only thing in the expression is a null literal.  This
         // should fail the type checking well before making it here, so shouldn't happen in
@@ -48,7 +60,7 @@ public final class InterpretedExpressionFactory {
       }
       final Term term = new TermCompiler(
           functionRegistry, schema, ksqlConfig, expressionTypeManager)
-          .process(expression, null);
+          .process(expression, context);
       return new InterpretedExpression(expression, returnType, term);
     } catch (KsqlException e) {
       throw new KsqlException("Invalid expression: " + e.getMessage()

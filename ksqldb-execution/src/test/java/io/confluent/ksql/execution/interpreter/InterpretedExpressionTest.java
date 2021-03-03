@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.execution.interpreter;
 
-import static io.confluent.ksql.execution.testutil.TestExpressions.COL11;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL1;
+import static io.confluent.ksql.execution.testutil.TestExpressions.COL11;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL3;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL7;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL8;
@@ -32,6 +32,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.codegen.helpers.TriFunction;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
@@ -53,6 +54,8 @@ import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
+import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
@@ -63,11 +66,14 @@ import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
+import io.confluent.ksql.execution.interpreter.TermCompiler.Context;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.GenericType;
 import io.confluent.ksql.function.types.IntegerType;
+import io.confluent.ksql.function.types.LambdaType;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.FunctionName;
@@ -76,11 +82,14 @@ import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.math.BigDecimal;
-import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -132,6 +141,19 @@ public class InterpretedExpressionTest {
         SCHEMA,
         functionRegistry,
         ksqlConfig
+    );
+  }
+
+  private InterpretedExpression interpreter(
+      final Expression expression,
+      final Context context
+  ) {
+    return InterpretedExpressionFactory.create(
+        expression,
+        SCHEMA,
+        functionRegistry,
+        ksqlConfig,
+        context
     );
   }
 
@@ -951,6 +973,97 @@ public class InterpretedExpressionTest {
     assertThat(interpreter2.evaluate(make(1, "c")), is(true));
   }
 
+  @Test
+  public void shouldEvaluateLambda_functionCall() {
+    // Given:
+    final UdfFactory udfFactory = mock(UdfFactory.class);
+    final KsqlScalarFunction udf = mock(KsqlScalarFunction.class);
+    when(udf.newInstance(any())).thenReturn(new TransFormUdf());
+    givenUdf("TRANSFORM", udfFactory, udf);
+    when(udf.parameters()).thenReturn(ImmutableList.of(ArrayType.of(IntegerType.INSTANCE),
+        LambdaType.of(ImmutableList.of(IntegerType.INSTANCE), IntegerType.INSTANCE)));
+    when(udf.getReturnType(any())).thenReturn(SqlTypes.array(SqlTypes.INTEGER));
+
+    // When:
+    InterpretedExpression interpreter1 = interpreter(
+        new FunctionCall(
+            FunctionName.of("TRANSFORM"),
+            ImmutableList.of(
+                new CreateArrayExpression(ImmutableList.of(
+                    new IntegerLiteral(1), new IntegerLiteral(2))),
+                new LambdaFunctionCall(
+                    ImmutableList.of("X"),
+                    new ArithmeticBinaryExpression(
+                        Operator.ADD, new IntegerLiteral(1),
+                        new LambdaVariable("X")
+                    )
+                )
+            )
+        )
+    );
+
+    // Then:
+    assertThat(interpreter1.evaluate(ROW), is(ImmutableList.of(2, 3)));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldEvaluateLambda() {
+    // Given:
+    final Expression lambda1 = new LambdaFunctionCall(
+        ImmutableList.of("X"),
+        new ArithmeticBinaryExpression(
+            Operator.ADD,
+            new IntegerLiteral(1),
+            new LambdaVariable("X")
+        )
+    );
+    final Expression lambda2 = new LambdaFunctionCall(
+        ImmutableList.of("X", "Y"),
+        new ArithmeticBinaryExpression(
+            Operator.ADD,
+            new LambdaVariable("Y"),
+            new LambdaVariable("X")
+        )
+    );
+    final Expression lambda3 = new LambdaFunctionCall(
+        ImmutableList.of("X", "Y", "Z"),
+        new ArithmeticBinaryExpression(
+            Operator.ADD,
+            new LambdaVariable("X"),
+            new ArithmeticBinaryExpression(
+                Operator.ADD, new LambdaVariable("Y"),
+                new LambdaVariable("Z")
+            )
+        )
+    );
+    final Context context1 = new Context(ImmutableMap.of("X", SqlTypes.INTEGER));
+    final Context context2 = new Context(ImmutableMap.of("X", SqlTypes.INTEGER,
+            "Y", SqlTypes.INTEGER));
+    final Context context3 = new Context(ImmutableMap.of("X", SqlTypes.INTEGER,
+            "Y", SqlTypes.INTEGER, "Z", SqlTypes.INTEGER));
+
+    // When:
+    InterpretedExpression interpreter1 = interpreter(lambda1, context1);
+    InterpretedExpression interpreter2 = interpreter(lambda2, context2);
+    InterpretedExpression interpreter3 = interpreter(lambda3, context3);
+
+    // Then:
+    final Function<Integer, Integer> func1 = (Function<Integer, Integer>) interpreter1.evaluate(ROW);
+    assertThat(func1.apply(1), is(2));
+    assertThat(func1.apply(2), is(3));
+
+    final BiFunction<Integer, Integer, Integer> func2 = (BiFunction<Integer, Integer, Integer>)
+        interpreter2.evaluate(ROW);
+    assertThat(func2.apply(1, 2), is(3));
+    assertThat(func2.apply(2, 4), is(6));
+
+    final TriFunction<Integer, Integer, Integer, Integer> func3
+        = (TriFunction<Integer, Integer, Integer, Integer>) interpreter3.evaluate(ROW);
+    assertThat(func3.apply(1, 2, 3), is(6));
+    assertThat(func3.apply(2, 4, 6), is(12));
+  }
+
   private void givenUdf(
       final String name, final UdfFactory factory, final KsqlScalarFunction function
   ) {
@@ -969,6 +1082,21 @@ public class InterpretedExpressionTest {
       int a = (Integer) args[0];
       int b = (Integer) args[1];
       return a + b;
+    }
+  }
+
+  private static class TransFormUdf implements Kudf {
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Object evaluate(Object... args) {
+      List<Integer> a = (List<Integer>) args[0];
+      Function<Integer, Integer> b = (Function<Integer, Integer>) args[1];
+      List<Integer> result = new ArrayList<>();
+      for (int value : a) {
+        result.add(b.apply(value));
+      }
+      return result;
     }
   }
 }

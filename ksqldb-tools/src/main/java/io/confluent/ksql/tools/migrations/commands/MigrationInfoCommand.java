@@ -24,6 +24,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
+import io.confluent.ksql.tools.migrations.util.MetadataUtil;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
 import io.confluent.ksql.tools.migrations.util.MigrationFile;
 import io.confluent.ksql.tools.migrations.util.MigrationVersionInfo;
@@ -89,22 +90,8 @@ public class MigrationInfoCommand extends BaseCommand {
 
     boolean success;
     try {
-      // TODO: print current version
-
-      final List<MigrationFile> allMigrations =
-          MigrationsDirectoryUtil.getAllMigrations(migrationsDir);
-      final List<Integer> allVersions = allMigrations.stream()
-          .map(MigrationFile::getVersion)
-          .collect(Collectors.toList());
-
-      if (allMigrations.size() != 0) {
-        final Map<Integer, Optional<MigrationVersionInfo>> versionInfos =
-            getOptionalInfoForVersions(allVersions, config, ksqlClient);
-
-        printAsTable(allMigrations, versionInfos);
-      } else {
-        LOGGER.info("No migrations files found");
-      }
+      printCurrentVersion(config, ksqlClient);
+      printVersionInfoTable(config, ksqlClient, migrationsDir);
 
       success = true;
     } catch (MigrationException e) {
@@ -120,6 +107,35 @@ public class MigrationInfoCommand extends BaseCommand {
   @Override
   protected Logger getLogger() {
     return LOGGER;
+  }
+
+  private void printCurrentVersion(
+      final MigrationConfig config,
+      final Client ksqlClient
+  ) {
+    final String currentVersion = MetadataUtil.getCurrentVersion(config, ksqlClient);
+    LOGGER.info("Current migration version: {}", currentVersion);
+  }
+
+  private void printVersionInfoTable(
+      final MigrationConfig config,
+      final Client ksqlClient,
+      final String migrationsDir
+  ) {
+    final List<MigrationFile> allMigrations =
+        MigrationsDirectoryUtil.getAllMigrations(migrationsDir);
+    final List<Integer> allVersions = allMigrations.stream()
+        .map(MigrationFile::getVersion)
+        .collect(Collectors.toList());
+
+    if (allMigrations.size() != 0) {
+      final Map<Integer, Optional<MigrationVersionInfo>> versionInfos =
+          getOptionalInfoForVersions(allVersions, config, ksqlClient);
+
+      printAsTable(allMigrations, versionInfos);
+    } else {
+      LOGGER.info("No migrations files found");
+    }
   }
 
   private static void printAsTable(

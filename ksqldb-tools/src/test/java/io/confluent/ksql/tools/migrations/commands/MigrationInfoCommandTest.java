@@ -221,6 +221,10 @@ public class MigrationInfoCommandTest {
   ) throws Exception {
     givenExistingMigrationFiles(appliedVersions);
     givenExistingMigrationFiles(unappliedVersions);
+    givenCurrentMigrationVersion(
+        appliedVersions.size() > 0
+            ? appliedVersions.get(appliedVersions.size() - 1)
+            : MetadataUtil.NONE_VERSION);
 
     final List<Row> appliedRows = new ArrayList<>();
     for (int i = 0; i < appliedVersions.size(); i++) {

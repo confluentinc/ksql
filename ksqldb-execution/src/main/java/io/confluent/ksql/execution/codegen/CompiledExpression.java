@@ -19,6 +19,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenSpec.ArgumentSpec;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -30,7 +31,7 @@ import java.util.function.Supplier;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 @Immutable
-public class ExpressionMetadata {
+public class CompiledExpression implements ExpressionEvaluator {
 
   @EffectivelyImmutable
   private final IExpressionEvaluator expressionEvaluator;
@@ -39,7 +40,7 @@ public class ExpressionMetadata {
   private final Expression expression;
   private final CodeGenSpec spec;
 
-  public ExpressionMetadata(
+  public CompiledExpression(
       final IExpressionEvaluator expressionEvaluator,
       final CodeGenSpec spec,
       final SqlType expressionType,

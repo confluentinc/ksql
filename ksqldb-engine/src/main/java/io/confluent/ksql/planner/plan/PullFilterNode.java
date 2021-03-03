@@ -23,7 +23,6 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.engine.generic.GenericExpressionResolver;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -35,6 +34,8 @@ import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.interpreter.InterpretedExpressionFactory;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.planner.PullPlannerOptions;
@@ -73,7 +74,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
   );
 
   private final boolean isWindowed;
-  private final ExpressionMetadata compiledWhereClause;
+  private final ExpressionEvaluator compiledWhereClause;
   private final boolean addAdditionalColumnsToIntermediateSchema;
   private final LogicalSchema intermediateSchema;
   private final MetaStore metaStore;
@@ -121,18 +122,13 @@ public class PullFilterNode extends SingleSourcePlanNode {
     // Extraction of lookup constraints
     lookupConstraints = extractLookupConstraints();
 
-    // Compiling expression into byte code
+    // Compiling expression into byte code/interpreting the expression
     this.addAdditionalColumnsToIntermediateSchema = shouldAddAdditionalColumnsInSchema();
     this.intermediateSchema = PullLogicalPlanUtil.buildIntermediateSchema(
         source.getSchema().withoutPseudoAndKeyColsInValue(),
         addAdditionalColumnsToIntermediateSchema, isWindowed);
-    compiledWhereClause = CodeGenRunner.compileExpression(
-        rewrittenPredicate,
-        "Predicate",
-        intermediateSchema,
-        ksqlConfig,
-        metaStore
-    );
+    compiledWhereClause = getExpressionEvaluator(
+        rewrittenPredicate, intermediateSchema, metaStore, ksqlConfig);
   }
 
   public Expression getRewrittenPredicate() {
@@ -149,7 +145,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
     throw new UnsupportedOperationException();
   }
 
-  public ExpressionMetadata getCompiledWhereClause() {
+  public ExpressionEvaluator getCompiledWhereClause() {
     return compiledWhereClause;
   }
 
@@ -820,5 +816,29 @@ public class PullFilterNode extends SingleSourcePlanNode {
     final boolean hasKeyColumns = !keyColumns.isEmpty();
 
     return hasSystemColumns || hasKeyColumns;
+  }
+
+  private static ExpressionEvaluator getExpressionEvaluator(
+      final Expression expression,
+      final LogicalSchema schema,
+      final MetaStore metaStore,
+      final KsqlConfig ksqlConfig) {
+
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)) {
+      return InterpretedExpressionFactory.create(
+          expression,
+          schema,
+          metaStore,
+          ksqlConfig
+      );
+    } else {
+      return CodeGenRunner.compileExpression(
+          expression,
+          "Predicate",
+          schema,
+          ksqlConfig,
+          metaStore
+      );
+    }
   }
 }

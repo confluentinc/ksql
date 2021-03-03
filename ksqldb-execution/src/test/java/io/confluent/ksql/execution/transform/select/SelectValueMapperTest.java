@@ -29,7 +29,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
@@ -55,11 +55,11 @@ public class SelectValueMapperTest {
   private static final GenericRow VALUE = genericRow(1234, 0, "hotdog");
 
   @Mock
-  private ExpressionMetadata col0;
+  private CompiledExpression col0;
   @Mock
-  private ExpressionMetadata col1;
+  private CompiledExpression col1;
   @Mock
-  private ExpressionMetadata col2;
+  private CompiledExpression col2;
   @Mock
   private ProcessingLogger processingLogger;
   @Mock

@@ -64,7 +64,7 @@ public class CodeGenRunner {
   private final ExpressionTypeManager expressionTypeManager;
   private final KsqlConfig ksqlConfig;
 
-  public static List<ExpressionMetadata> compileExpressions(
+  public static List<CompiledExpression> compileExpressions(
       final Stream<Expression> expressions,
       final String type,
       final LogicalSchema schema,
@@ -78,7 +78,7 @@ public class CodeGenRunner {
         .collect(Collectors.toList());
   }
 
-  public static ExpressionMetadata compileExpression(
+  public static CompiledExpression compileExpression(
       final Expression expression,
       final String type,
       final LogicalSchema schema,
@@ -89,7 +89,7 @@ public class CodeGenRunner {
     return compileExpression(expression, type, codeGen);
   }
 
-  private static ExpressionMetadata compileExpression(
+  private static CompiledExpression compileExpression(
       final Expression expression,
       final String type,
       final CodeGenRunner codeGen
@@ -115,7 +115,7 @@ public class CodeGenRunner {
     return visitor.spec.build();
   }
 
-  public ExpressionMetadata buildCodeGenFromParseTree(
+  public CompiledExpression buildCodeGenFromParseTree(
       final Expression expression,
       final String type
   ) {
@@ -139,7 +139,7 @@ public class CodeGenRunner {
       final IExpressionEvaluator ee =
           cook(javaCode, expressionType, spec.argumentNames(), spec.argumentTypes());
 
-      return new ExpressionMetadata(ee, spec, returnType, expression);
+      return new CompiledExpression(ee, spec, returnType, expression);
     } catch (KsqlException | CompileException e) {
       throw new KsqlException("Invalid " + type + ": " + e.getMessage()
           + ". expression:" + expression + ", schema:" + schema, e);

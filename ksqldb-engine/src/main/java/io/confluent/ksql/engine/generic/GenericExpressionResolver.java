@@ -20,7 +20,7 @@ import static io.confluent.ksql.schema.ksql.types.SqlTypes.TIMESTAMP;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
@@ -87,7 +87,7 @@ public class GenericExpressionResolver {
     @Override
     protected Object visitExpression(final Expression expression, final Void context) {
       new EnsureNoColReferences(expression).process(expression, context);
-      final ExpressionMetadata metadata =
+      final CompiledExpression metadata =
           CodeGenRunner.compileExpression(
               expression,
               operation,

@@ -30,7 +30,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-public class ExpressionMetadataTest {
+public class CompiledExpressionTest {
 
   private static final Long RETURN_VALUE = 12345L;
   private static final SqlType EXPRESSION_TYPE = SqlTypes.BIGINT;
@@ -46,7 +46,7 @@ public class ExpressionMetadataTest {
   private ProcessingLogger processingLogger;
   @Mock
   private Supplier<String> errorMsgSupplier;
-  private ExpressionMetadata expressionMetadata;
+  private CompiledExpression compiledExpression;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -73,7 +73,7 @@ public class ExpressionMetadataTest {
         Integer.class,
         1
     );
-    expressionMetadata = new ExpressionMetadata(
+    compiledExpression = new CompiledExpression(
         expressionEvaluator,
         spec.build(),
         EXPRESSION_TYPE,
@@ -81,7 +81,7 @@ public class ExpressionMetadataTest {
     );
 
     // When:
-    final Object result = expressionMetadata
+    final Object result = compiledExpression
         .evaluate(genericRow(123, 456), DEFAULT_VAL, processingLogger, errorMsgSupplier);
 
     // Then:
@@ -102,7 +102,7 @@ public class ExpressionMetadataTest {
         0
     );
 
-    expressionMetadata = new ExpressionMetadata(
+    compiledExpression = new CompiledExpression(
         expressionEvaluator,
         spec.build(),
         EXPRESSION_TYPE,
@@ -110,7 +110,7 @@ public class ExpressionMetadataTest {
     );
 
     // When:
-    final Object result = expressionMetadata
+    final Object result = compiledExpression
         .evaluate(genericRow(123), DEFAULT_VAL, processingLogger, errorMsgSupplier);
 
     // Then:
@@ -143,7 +143,7 @@ public class ExpressionMetadataTest {
               return RETURN_VALUE;
             });
 
-    expressionMetadata = new ExpressionMetadata(
+    compiledExpression = new CompiledExpression(
         expressionEvaluator,
         spec.build(),
         EXPRESSION_TYPE,
@@ -151,7 +151,7 @@ public class ExpressionMetadataTest {
     );
 
     final Thread thread = new Thread(
-        () -> expressionMetadata
+        () -> compiledExpression
             .evaluate(genericRow(123, 456), DEFAULT_VAL, processingLogger, errorMsgSupplier)
     );
 
@@ -162,7 +162,7 @@ public class ExpressionMetadataTest {
     assertThat(threadLatch.await(10, TimeUnit.SECONDS), is(true));
 
     // When:
-    expressionMetadata
+    compiledExpression
         .evaluate(genericRow(100, 200), DEFAULT_VAL, processingLogger, errorMsgSupplier);
     mainLatch.countDown();
 
@@ -183,7 +183,7 @@ public class ExpressionMetadataTest {
         0
     );
 
-    expressionMetadata = new ExpressionMetadata(
+    compiledExpression = new CompiledExpression(
         expressionEvaluator,
         spec.build(),
         EXPRESSION_TYPE,
@@ -196,7 +196,7 @@ public class ExpressionMetadataTest {
     final GenericRow row = genericRow(123);
 
     // When:
-    expressionMetadata
+    compiledExpression
         .evaluate(row, DEFAULT_VAL, processingLogger, errorMsgSupplier);
 
     // Then:
@@ -213,7 +213,7 @@ public class ExpressionMetadataTest {
         0
     );
 
-    expressionMetadata = new ExpressionMetadata(
+    compiledExpression = new CompiledExpression(
         expressionEvaluator,
         spec.build(),
         EXPRESSION_TYPE,
@@ -224,7 +224,7 @@ public class ExpressionMetadataTest {
     when(expressionEvaluator.evaluate(any())).thenThrow(new InvocationTargetException(e));
 
     // When:
-    final Object result = expressionMetadata
+    final Object result = compiledExpression
         .evaluate(genericRow(123), DEFAULT_VAL, processingLogger, errorMsgSupplier);
 
     // Then:
@@ -240,7 +240,7 @@ public class ExpressionMetadataTest {
         0
     );
 
-    expressionMetadata = new ExpressionMetadata(
+    compiledExpression = new CompiledExpression(
         expressionEvaluator,
         spec.build(),
         EXPRESSION_TYPE,
@@ -248,7 +248,7 @@ public class ExpressionMetadataTest {
     );
 
     // When:
-    final Object result = expressionMetadata
+    final Object result = compiledExpression
         .evaluate(null, DEFAULT_VAL, processingLogger, errorMsgSupplier);
 
     // Then:
@@ -264,7 +264,7 @@ public class ExpressionMetadataTest {
         0
     );
 
-    expressionMetadata = new ExpressionMetadata(
+    compiledExpression = new CompiledExpression(
         expressionEvaluator,
         spec.build(),
         EXPRESSION_TYPE,
@@ -272,7 +272,7 @@ public class ExpressionMetadataTest {
     );
 
     // When:
-    expressionMetadata
+    compiledExpression
         .evaluate(null, DEFAULT_VAL, processingLogger, errorMsgSupplier);
 
     // Then:

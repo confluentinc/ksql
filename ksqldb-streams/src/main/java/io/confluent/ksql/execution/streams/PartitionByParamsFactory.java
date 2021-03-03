@@ -18,7 +18,7 @@ package io.confluent.ksql.execution.streams;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
@@ -247,14 +247,14 @@ public final class PartitionByParamsFactory {
         functionRegistry
     );
 
-    final ExpressionMetadata expressionMetadata = codeGen
+    final CompiledExpression compiledExpression = codeGen
         .buildCodeGenFromParseTree(partitionBy, "SelectKey");
 
     final String errorMsg = "Error computing new key from expression "
-        + expressionMetadata.getExpression();
+        + compiledExpression.getExpression();
 
     return new PartitionByExpressionEvaluator(
-        expressionMetadata,
+        compiledExpression,
         logger,
         () -> errorMsg,
         partitionByInvolvesKeyColsOnly
@@ -263,18 +263,18 @@ public final class PartitionByParamsFactory {
 
   private static class PartitionByExpressionEvaluator {
 
-    private final ExpressionMetadata expressionMetadata;
+    private final CompiledExpression compiledExpression;
     private final ProcessingLogger logger;
     private final Supplier<String> errorMsg;
     private final boolean evaluateOnKeyOnly;
 
     PartitionByExpressionEvaluator(
-        final ExpressionMetadata expressionMetadata,
+        final CompiledExpression compiledExpression,
         final ProcessingLogger logger,
         final Supplier<String> errorMsg,
         final boolean evaluateOnKeyOnly
     ) {
-      this.expressionMetadata = Objects.requireNonNull(expressionMetadata, "expressionMetadata");
+      this.compiledExpression = Objects.requireNonNull(compiledExpression, "compiledExpression");
       this.logger = Objects.requireNonNull(logger, "logger");
       this.errorMsg = Objects.requireNonNull(errorMsg, "errorMsg");
       this.evaluateOnKeyOnly = evaluateOnKeyOnly;
@@ -284,7 +284,7 @@ public final class PartitionByParamsFactory {
       final GenericRow row = evaluateOnKeyOnly
           ? GenericRow.fromList(KeyUtil.asList(key))
           : value;
-      return expressionMetadata.evaluate(row, null, logger, errorMsg);
+      return compiledExpression.evaluate(row, null, logger, errorMsg);
     }
   }
 

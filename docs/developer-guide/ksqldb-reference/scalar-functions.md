@@ -522,7 +522,7 @@ include both endpoints.
 
 ## Invocation Functions
 
-Used to apply lambda functions to collections.
+Apply lambda functions to collections.
 
 ### `TRANSFORM`
 
@@ -534,11 +534,11 @@ TRANSFORM(array, x => ...)
 TRANSFORM(map, (k,v) => ..., (k,v) => ...)
 ```
 
-Transform a collection with a lambda function.
+Transform a collection by using a lambda function.
 
-If the collection is an array,  the lambda function must have 1 input argument.
+If the collection is an array, the lambda function must have one input argument.
 
-If the collection is a map, two lambda functions must be provided and each lambda function must have 2 arguments (map entry key and map entry value).
+If the collection is a map, two lambda functions must be provided, and both lambdas must have two arguments: a map entry key and a map entry value.
 
 ### `Reduce`
 
@@ -552,11 +552,11 @@ REDUCE(map, state, (s, k, v) => ...)
 
 Reduce a collection starting from an initial state.
 
-If the collection is an array, the lambda function must have 2 input arguments.
+If the collection is an array, the lambda function must have two input arguments.
 
-If the collection is a map, the lambda function must have 3 input arguments.
+If the collection is a map, the lambda function must have three input arguments.
 
-If the state is `null` the result will be `null`.
+If the state is `null`, the result is `null`.
 
 ### `Filter`
 
@@ -570,9 +570,9 @@ FILTER(map, (k,v) => ...)
 
 Filter a collection with a lambda function.
 
-If the collection is an array, the lambda function must have 1 input argument.
+If the collection is an array, the lambda function must have one input argument.
 
-If the collection is a map, the lambda function must have 2 input arguments.
+If the collection is a map, the lambda function must have two input arguments.
 
 ## Strings
 

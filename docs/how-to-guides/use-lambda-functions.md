@@ -2,8 +2,8 @@
 
 ## Context
 
-There doesn't exist a built-in UDF that suits your needs and you're unable to implement and deploy a UDF.
-To get around this limitation, you use ksqlDB implemented lambda functions.
+There's no built-in UDF that suits your needs, and you can't implement and deploy a UDF.
+To get around this limitation, use ksqlDB lambda functions.
 
 ## In action
 ```sql
@@ -25,11 +25,11 @@ CREATE STREAM output AS
 
 ## Syntax
 
-The arguments for the lambda function are separated from the body of the lambda with a `=>`.
+The arguments for the lambda function are separated from the body of the lambda with the lambda operator, `=>`.
 
-When there are 2 or more arguments the arguments must be enclosed with parentheses. Parentheses are optional for lambda functions with 1 argument.
+When there are two or more arguments, you must enclose the arguments with parentheses. Parentheses are optional for lambda functions with one argument.
 
-Currently, ksqlDB only supports up to 3 arguments in a single lambda function.
+Currently, ksqlDB supports up to three arguments in a single lambda function.
 
 ```sql
 x => x + 5
@@ -41,15 +41,15 @@ x => x + 5
 
 ## Invocation UDFs
 
-Lambda functions can only be used inside designated invocation functions. Invocations available currently are:
+Lambda functions must be used inside designated invocation functions. These are the available Invocations:
 
 - [TRANSFORM](/developer-guide/ksqldb-reference/scalar-functions#TRANSFORM)
 - [REDUCE](/developer-guide/ksqldb-reference/scalar-functions#REDUCE)
 - [FILTER](/developer-guide/ksqldb-reference/scalar-functions#FILTER)
 
-## Create a Lambda Compatible Stream
-Invocation functions require either a map or array input. Here, we create a stream
-with a column type `MAP<STRING, INTEGER>`.
+## Create a lambda-compatible stream
+Invocation functions require either a map or array input. The following example creates a stream
+with a column type of `MAP<STRING, INTEGER>`.
 ```sql
 CREATE STREAM stream1 (
   id INT,
@@ -62,11 +62,11 @@ CREATE STREAM stream1 (
 ```
 
 ## Apply a lambda invocation function
-A lambda invocation function is a [scalar UDF](/developer-guide/ksqldb-reference/scalar-functions) and is used as such.
+A lambda invocation function is a [scalar UDF](/developer-guide/ksqldb-reference/scalar-functions), and you use it like other scalar functions.
 
-This lambda function transforms both the key and value of a map and produces a new map. The key is transformed
+The following example lambda function transforms both the key and value of a map and produces a new map. A built-in UDF transforms the key 
 into an uppercase string using a built in UDF, and the value is transformed through addition. The order of the variables
-matters, the first item in the arguments list, here `k`, is treated as the key and the second, here `v` is treated
+is important: the first item in the arguments list, named `k` this example, is treated as the key, and the second, named `v` this example, is treated
 as the value. Pay attention to this if your map has different types. Note that `transform` on
 a map requires two lambda functions, while `transform` on an array requires one.
 ```sql
@@ -90,7 +90,7 @@ Query the output.
 SELECT * FROM output AS final_output;
 ```
 
-You should see something similar to:
+Your output should resemble:
 ```sql
 +------------------------------+------------------------------+
 |id                            |final_output                  |
@@ -100,7 +100,7 @@ You should see something similar to:
 ```
 
 ## Use a reduce lambda invocation function
-Create a stream with a column type `ARRAY<INTEGER>` and apply the `reduce` lambda 
+The following example creates a stream with a column type `ARRAY<INTEGER>` and applies the `reduce` lambda 
 invocation function.
 ```sql
 CREATE STREAM stream1 (
@@ -173,7 +173,7 @@ Query the output.
 SELECT * FROM output AS final_output;
 ```
 
-You should see something similar to:
+Your output should resemble:
 ```sql
 +------------------------------+-----------------------------------------------+
 |id                            |final_output                                   |
@@ -182,7 +182,7 @@ You should see something similar to:
 ```
 
 ## Advanced lambda use cases
-Create a stream with a column type `MAP<STRING, ARRAY<DECIMAL(2,3)>` and apply the `transform` 
+the following example creates a stream with a column type `MAP<STRING, ARRAY<DECIMAL(2,3)>` and applies the `transform` 
 lambda invocation function with a nested `transform` lambda invocation function.
 ```sql
 CREATE STREAM stream1 (
@@ -214,7 +214,7 @@ Query the output.
 SELECT * FROM output AS final_output;
 ```
 
-You should see something similar to:
+Your output should resemble:
 ```sql
 +------------------------------+----------------------------------------------------------+
 |id                            |final_output                                              |

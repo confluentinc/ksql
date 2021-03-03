@@ -107,7 +107,7 @@ public class ApplyMigrationCommandTest {
     when(ksqlClient.executeQuery("SELECT VERSION FROM " + MIGRATIONS_TABLE + " WHERE version_key = 'CURRENT';"))
         .thenReturn(versionQueryResult);
     when(ksqlClient.executeQuery(
-        "SELECT checksum, previous, state, name, started_on, completed_on, error_reason FROM "
+        "SELECT version, checksum, previous, state, name, started_on, completed_on, error_reason FROM "
             + MIGRATIONS_TABLE + " WHERE version_key = '1';"))
         .thenReturn(infoQueryResult);
     when(ksqlClient.describeSource(MIGRATIONS_STREAM)).thenReturn(sourceDescriptionCf);
@@ -398,13 +398,14 @@ public class ApplyMigrationCommandTest {
     final String previous = version == 1 ? MetadataUtil.NONE_VERSION : Integer.toString(version - 1);
 
     final Row row = mock(Row.class);
-    when(row.getString(1)).thenReturn(checksum);
-    when(row.getString(2)).thenReturn(previous);
-    when(row.getString(3)).thenReturn(state.toString());
-    when(row.getString(4)).thenReturn("name");
-    when(row.getString(5)).thenReturn("start_timestamp");
-    when(row.getString(6)).thenReturn("stop_timestamp");
-    when(row.getString(7)).thenReturn("no_error");
+    when(row.getString(1)).thenReturn(String.valueOf(version));
+    when(row.getString(2)).thenReturn(checksum);
+    when(row.getString(3)).thenReturn(previous);
+    when(row.getString(4)).thenReturn(state.toString());
+    when(row.getString(5)).thenReturn("name");
+    when(row.getString(6)).thenReturn("start_timestamp");
+    when(row.getString(7)).thenReturn("stop_timestamp");
+    when(row.getString(8)).thenReturn("no_error");
 
     when(infoQueryResult.get()).thenReturn(ImmutableList.of(row));
   }

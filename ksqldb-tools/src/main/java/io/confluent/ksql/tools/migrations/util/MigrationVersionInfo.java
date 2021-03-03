@@ -15,11 +15,13 @@
 
 package io.confluent.ksql.tools.migrations.util;
 
+import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
 import java.util.Objects;
 
-public class MigrationVersionInfo {
+public final class MigrationVersionInfo {
 
+  private final int version;
   private final String expectedHash;
   private final String prevVersion;
   private final MigrationState state;
@@ -28,7 +30,21 @@ public class MigrationVersionInfo {
   private final String completedOn;
   private final String errorReason;
 
-  public MigrationVersionInfo(
+  public static MigrationVersionInfo fromResultRow(final Row row) {
+    return new MigrationVersionInfo(
+        Integer.parseInt(row.getString(1)),
+        row.getString(2),
+        row.getString(3),
+        row.getString(4),
+        row.getString(5),
+        row.getString(6),
+        row.getString(7),
+        row.getString(8)
+    );
+  }
+
+  private MigrationVersionInfo(
+      final int version,
       final String expectedHash,
       final String prevVersion,
       final String state,
@@ -37,6 +53,7 @@ public class MigrationVersionInfo {
       final String completedOn,
       final String errorReason
   ) {
+    this.version = version;
     this.expectedHash = Objects.requireNonNull(expectedHash, "expectedHash");
     this.prevVersion = Objects.requireNonNull(prevVersion, "prevVersion");
     this.state = MigrationState.valueOf(Objects.requireNonNull(state, "state"));
@@ -44,6 +61,10 @@ public class MigrationVersionInfo {
     this.startedOn = Objects.requireNonNull(startedOn, "startedOn");
     this.completedOn = Objects.requireNonNull(completedOn, "completedOn");
     this.errorReason = Objects.requireNonNull(errorReason, "errorReason");
+  }
+
+  public int getVersion() {
+    return version;
   }
 
   public String getExpectedHash() {

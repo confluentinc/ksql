@@ -27,6 +27,7 @@ import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -167,8 +168,8 @@ public final class MetadataUtil {
     final String migrationTableName = config
         .getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
     final BatchedQueryResult result = ksqlClient.executeQuery(
-        "SELECT checksum, previous, state, name, started_on, completed_on, error_reason FROM "
-            + migrationTableName + " WHERE version_key = '" + version + "';");
+        "SELECT version, checksum, previous, state, name, started_on, completed_on, error_reason "
+            + "FROM " + migrationTableName + " WHERE version_key = '" + version + "';");
 
     final Row resultRow;
     try {
@@ -182,15 +183,7 @@ public final class MetadataUtil {
           "Failed to query state for migration with version %s: %s", version, e.getMessage()));
     }
 
-    return Optional.of(new MigrationVersionInfo(
-        resultRow.getString(1),
-        resultRow.getString(2),
-        resultRow.getString(3),
-        resultRow.getString(4),
-        resultRow.getString(5),
-        resultRow.getString(6),
-        resultRow.getString(7)
-    ));
+    return Optional.of(MigrationVersionInfo.fromResultRow(resultRow));
   }
 
   public static List<MigrationVersionInfo> getOptionalInfoForVersions(
@@ -200,12 +193,29 @@ public final class MetadataUtil {
   ) {
     if (serverSupportsMultiKeyPullQuery(ksqlClient, config)) {
       // issue a single, multi-key pull query
-      // TODO
+      final String migrationTableName = config
+          .getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
+      final BatchedQueryResult result = ksqlClient.executeQuery(
+          "SELECT version, checksum, previous, state, name, started_on, completed_on, error_reason "
+              + "FROM " + migrationTableName + " WHERE version_key IN ('"
+              + versions.stream().map(String::valueOf).collect(Collectors.joining("', '"))
+              + "');");
+
+      try {
+        return result.get().stream()
+            .map(MigrationVersionInfo::fromResultRow)
+            .sorted(Comparator.comparingInt(MigrationVersionInfo::getVersion))
+            .collect(Collectors.toList());
+      } catch (InterruptedException | ExecutionException e) {
+        throw new MigrationException(String.format(
+            "Failed to query state for migration with versions %s: %s", versions, e.getMessage()));
+      }
     } else {
       // issue multiple, single-key pull queries
       return versions.stream()
-          .map(v -> getOptionalInfoForVersion(v, config, ksqlClient))
+          .map(v -> getOptionalInfoForVersion(String.valueOf(v), config, ksqlClient))
           .filter(Optional::isPresent)
+          .map(Optional::get)
           .collect(Collectors.toList());
     }
   }

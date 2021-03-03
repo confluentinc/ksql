@@ -17,6 +17,7 @@ package io.confluent.ksql.tools.migrations.util;
 
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ServerInfo;
+import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -82,6 +83,28 @@ public final class ServerVersionUtil {
     }
 
     return version.isAtLeast(6, 1, 0, 14);
+  }
+
+  public static boolean serverVersionCompatible(
+      final Client ksqlClient,
+      final MigrationConfig config
+  ) {
+    final String ksqlServerUrl = config.getString(MigrationConfig.KSQL_SERVER_URL);
+    final ServerInfo serverInfo;
+    try {
+      serverInfo = getServerInfo(ksqlClient, ksqlServerUrl);
+    } catch (MigrationException e) {
+      LOGGER.error("Failed to get server info to verify version compatibility: {}", e.getMessage());
+      return false;
+    }
+
+    final String serverVersion = serverInfo.getServerVersion();
+    try {
+      return isSupportedVersion(serverVersion);
+    } catch (MigrationException e) {
+      LOGGER.warn(e.getMessage() + ". Proceeding anyway.");
+      return true;
+    }
   }
 
   private static class KsqlServerVersion {

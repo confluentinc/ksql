@@ -29,9 +29,9 @@ public final class MigrationConfig extends AbstractConfig {
   public static final String KSQL_SERVER_URL = "ksql.server.url";
 
   public static final String KSQL_MIGRATIONS_STREAM_NAME = "ksql.migrations.stream.name";
-  public static final String KSQL_MIGRATIONS_STREAM_NAME_DEFAULT = "migration_events";
+  public static final String KSQL_MIGRATIONS_STREAM_NAME_DEFAULT = "MIGRATION_EVENTS";
   public static final String KSQL_MIGRATIONS_TABLE_NAME = "ksql.migrations.table.name";
-  public static final String KSQL_MIGRATIONS_TABLE_NAME_DEFAULT = "migration_schema_versions";
+  public static final String KSQL_MIGRATIONS_TABLE_NAME_DEFAULT = "MIGRATION_SCHEMA_VERSIONS";
   public static final String KSQL_MIGRATIONS_STREAM_TOPIC_NAME =
       "ksql.migrations.stream.topic.name";
   public static final String KSQL_MIGRATIONS_TABLE_TOPIC_NAME = "ksql.migrations.table.topic.name";
@@ -73,16 +73,16 @@ public final class MigrationConfig extends AbstractConfig {
             id + "ksql_" + configs
                 .getOrDefault(KSQL_MIGRATIONS_STREAM_NAME, KSQL_MIGRATIONS_STREAM_NAME_DEFAULT),
             Importance.MEDIUM,
-            "The name of the migration stream topic. It defaults to " + id + "ksql_" + configs
-                .getOrDefault(KSQL_MIGRATIONS_STREAM_NAME, KSQL_MIGRATIONS_STREAM_NAME_DEFAULT)
+            "The name of the migration stream topic. It defaults to "
+                + "'<ksql_service_id>ksql_<migrations_stream_name>'"
         ).define(
             KSQL_MIGRATIONS_TABLE_TOPIC_NAME,
             Type.STRING,
             id + "ksql_" + configs
                 .getOrDefault(KSQL_MIGRATIONS_TABLE_NAME, KSQL_MIGRATIONS_TABLE_NAME_DEFAULT),
             Importance.MEDIUM,
-            "The name of the migration table topic. It defaults to" + id + "ksql_" + configs
-                .getOrDefault(KSQL_MIGRATIONS_TABLE_NAME, KSQL_MIGRATIONS_TABLE_NAME_DEFAULT)
+            "The name of the migration table topic. It defaults to "
+                + "'<ksql_service_id>ksql_<migrations_table_name>'"
         ).define(
             KSQL_MIGRATIONS_TOPIC_REPLICAS,
             Type.INT,

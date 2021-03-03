@@ -77,7 +77,7 @@ public class InitializeMigrationCommandTest {
           + "    latest_by_offset(started_on) AS started_on, \n"
           + "    latest_by_offset(completed_on) AS completed_on, \n"
           + "    latest_by_offset(previous) AS previous\n"
-          + "  FROM migration_events \n"
+          + "  FROM " + MIGRATIONS_STREAM + " \n"
           + "  GROUP BY version_key;\n";
 
   @Mock

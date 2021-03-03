@@ -419,7 +419,8 @@ public class SecureIntegrationTest {
         ProcessingLogContext.create(),
         new InternalFunctionRegistry(),
         ServiceInfo.create(ksqlConfig),
-        new SequentialQueryIdGenerator());
+        new SequentialQueryIdGenerator(),
+        ksqlConfig);
 
     execInitCreateStreamQueries();
   }

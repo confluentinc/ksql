@@ -128,8 +128,7 @@ public class KsqlEngineTest {
 
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
-        metaStore,
-        KSQL_CONFIG
+        metaStore
     );
 
     sandbox = ksqlEngine.createSandbox(serviceContext);

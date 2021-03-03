@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.doThrow;
 
+import io.confluent.ksql.embedded.KsqlContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;

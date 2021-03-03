@@ -341,7 +341,8 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_LAMBDAS_ENABLED = "ksql.lambdas.enabled";
   public static final Boolean KSQL_LAMBDAS_ENABLED_DEFAULT = true;
   public static final String KSQL_LAMBDAS_ENABLED_DOC =
-      "Feature flag for lambdas";
+      "Feature flag for lambdas. Default is true. If true, lambdas are processed normally, "
+          + "if false, new lambda queries won't be processed but any existing lambda queries are unaffected.";
 
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES = "ksql.suppress.buffer.size.bytes";
   public static final Long KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT = -1L;

@@ -50,8 +50,7 @@ public final class KsqlEngineTestUtil {
 
   public static KsqlEngine createKsqlEngine(
       final ServiceContext serviceContext,
-      final MutableMetaStore metaStore,
-      KsqlConfig ksqlConfig
+      final MutableMetaStore metaStore
   ) {
     return new KsqlEngine(
         serviceContext,
@@ -60,7 +59,7 @@ public final class KsqlEngineTestUtil {
         metaStore,
         (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
         new SequentialQueryIdGenerator(),
-        ksqlConfig
+        new KsqlConfig(Collections.emptyMap())
     );
   }
 

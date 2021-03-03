@@ -157,6 +157,23 @@ public class AstSanitizerTest {
   }
 
   @Test
+  public void shouldThrowIfLambdasAreDisabled() {
+    // Given:
+    final Statement stmt =
+        givenQuery("SELECT transform(arr, x => x+1) FROM TEST1;");
+
+    // When:
+    final Exception e = assertThrows(
+        UnsupportedOperationException.class,
+        () -> AstSanitizer.sanitize(stmt, META_STORE, false)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Lambdas are not enabled at this time."));
+  }
+
+  @Test
   public void shouldAddQualifierForColumnReference() {
     // Given:
     final Statement stmt = givenQuery("SELECT COL0 FROM TEST1;");

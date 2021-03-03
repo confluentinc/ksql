@@ -15,18 +15,23 @@
 
 package io.confluent.ksql.tools.migrations.util;
 
+import static io.confluent.ksql.tools.migrations.util.ServerVersionUtil.getServerInfo;
+import static io.confluent.ksql.tools.migrations.util.ServerVersionUtil.versionSupportsMultiKeyPullQuery;
+
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.KsqlArray;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.Row;
+import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 public final class MetadataUtil {
 
@@ -147,6 +152,18 @@ public final class MetadataUtil {
       final MigrationConfig config,
       final Client ksqlClient
   ) {
+    final Optional<MigrationVersionInfo> maybeInfo =
+        getOptionalInfoForVersion(version, config, ksqlClient);
+    return maybeInfo.orElseThrow(() -> new MigrationException(
+        "Failed to query state for migration with version " + version
+            + ": no such migration is present in the migrations metadata table"));
+  }
+
+  public static Optional<MigrationVersionInfo> getOptionalInfoForVersion(
+      final String version,
+      final MigrationConfig config,
+      final Client ksqlClient
+  ) {
     final String migrationTableName = config
         .getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
     final BatchedQueryResult result = ksqlClient.executeQuery(
@@ -157,9 +174,7 @@ public final class MetadataUtil {
     try {
       final List<Row> resultRows = result.get();
       if (resultRows.size() == 0) {
-        throw new MigrationException(
-            "Failed to query state for migration with version " + version
-                + ": no such migration is present in the migrations metadata table");
+        return Optional.empty();
       }
       resultRow = resultRows.get(0);
     } catch (InterruptedException | ExecutionException e) {
@@ -167,7 +182,7 @@ public final class MetadataUtil {
           "Failed to query state for migration with version %s: %s", version, e.getMessage()));
     }
 
-    return new MigrationVersionInfo(
+    return Optional.of(new MigrationVersionInfo(
         resultRow.getString(1),
         resultRow.getString(2),
         resultRow.getString(3),
@@ -175,6 +190,32 @@ public final class MetadataUtil {
         resultRow.getString(5),
         resultRow.getString(6),
         resultRow.getString(7)
-    );
+    ));
+  }
+
+  public static List<MigrationVersionInfo> getOptionalInfoForVersions(
+      final List<Integer> versions,
+      final MigrationConfig config,
+      final Client ksqlClient
+  ) {
+    if (serverSupportsMultiKeyPullQuery(ksqlClient, config)) {
+      // issue a single, multi-key pull query
+      // TODO
+    } else {
+      // issue multiple, single-key pull queries
+      return versions.stream()
+          .map(v -> getOptionalInfoForVersion(v, config, ksqlClient))
+          .filter(Optional::isPresent)
+          .collect(Collectors.toList());
+    }
+  }
+
+  private static boolean serverSupportsMultiKeyPullQuery(
+      final Client ksqlClient,
+      final MigrationConfig config
+  ) {
+    final String ksqlServerUrl = config.getString(MigrationConfig.KSQL_SERVER_URL);
+    final ServerInfo serverInfo = getServerInfo(ksqlClient, ksqlServerUrl);
+    return versionSupportsMultiKeyPullQuery(serverInfo.getServerVersion());
   }
 }

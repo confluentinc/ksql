@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.tools.migrations.commands;
 
+import static io.confluent.ksql.tools.migrations.util.MetadataUtil.getOptionalInfoForVersions;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
 import static io.confluent.ksql.tools.migrations.util.ServerVersionUtil.getServerInfo;
 import static io.confluent.ksql.tools.migrations.util.ServerVersionUtil.versionSupportsMultiKeyPullQuery;
@@ -25,8 +26,11 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
+import io.confluent.ksql.tools.migrations.util.MigrationVersionInfo;
+import io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import io.confluent.ksql.util.KsqlException;
+import java.util.List;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,16 +85,10 @@ public class MigrationInfoCommand extends BaseCommand {
 
     boolean success;
     try {
-      // find all files
-
-      // issue either a single pull query or multiple pull queries to get status
-      if (serverSupportsMultiKeyPullQuery(ksqlClient, config)) {
-
-      } else {
-
-      }
-
-      // format into table and print
+      final List<Integer> versions = MigrationsDirectoryUtil.getAllVersions(migrationsDir);
+      final List<MigrationVersionInfo> versionInfo =
+          getOptionalInfoForVersions(versions, config, ksqlClient);
+      printAsTable(versions, versionInfo);
 
       success = true;
     } catch (MigrationException e) {
@@ -108,13 +106,10 @@ public class MigrationInfoCommand extends BaseCommand {
     return LOGGER;
   }
 
-  private static boolean serverSupportsMultiKeyPullQuery(
-      final Client ksqlClient,
-      final MigrationConfig config
+  private static void printAsTable(
+      final List<Integer> versions,
+      final List<MigrationVersionInfo> versionInfo
   ) {
-    final String ksqlServerUrl = config.getString(MigrationConfig.KSQL_SERVER_URL);
-    final ServerInfo serverInfo = getServerInfo(ksqlClient, ksqlServerUrl);
-    return versionSupportsMultiKeyPullQuery(serverInfo.getServerVersion());
+    // TODO
   }
-
 }

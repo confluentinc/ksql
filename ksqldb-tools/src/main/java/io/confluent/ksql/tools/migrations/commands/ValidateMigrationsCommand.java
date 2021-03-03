@@ -30,7 +30,7 @@ import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
-import io.confluent.ksql.tools.migrations.util.MetadataUtil.VersionInfo;
+import io.confluent.ksql.tools.migrations.util.MigrationVersionInfo;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.NoSuchElementException;
@@ -127,7 +127,7 @@ public class ValidateMigrationsCommand extends BaseCommand {
     String version = getLatestMigratedVersion(config, ksqlClient);
     String nextVersion = null;
     while (!version.equals(MetadataUtil.NONE_VERSION)) {
-      final VersionInfo versionInfo = getInfoForVersion(version, config, ksqlClient);
+      final MigrationVersionInfo versionInfo = getInfoForVersion(version, config, ksqlClient);
       if (nextVersion != null) {
         validateVersionIsMigrated(version, versionInfo, nextVersion);
       }

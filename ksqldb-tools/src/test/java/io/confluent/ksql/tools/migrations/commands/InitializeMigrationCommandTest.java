@@ -56,7 +56,8 @@ public class InitializeMigrationCommandTest {
           + "  checksum     STRING,\n"
           + "  started_on   STRING,\n"
           + "  completed_on STRING,\n"
-          + "  previous     STRING\n"
+          + "  previous     STRING,\n"
+          + "  error_reason STRING\n"
           + ") WITH (  \n"
           + "  KAFKA_TOPIC='" + MIGRATIONS_STREAM_TOPIC + "',\n"
           + "  VALUE_FORMAT='JSON',\n"
@@ -76,7 +77,8 @@ public class InitializeMigrationCommandTest {
           + "    latest_by_offset(checksum) AS checksum, \n"
           + "    latest_by_offset(started_on) AS started_on, \n"
           + "    latest_by_offset(completed_on) AS completed_on, \n"
-          + "    latest_by_offset(previous) AS previous\n"
+          + "    latest_by_offset(previous) AS previous, \n"
+          + "    latest_by_offset(error_reason) AS error_reason \n"
           + "  FROM migration_events \n"
           + "  GROUP BY version_key;\n";
 

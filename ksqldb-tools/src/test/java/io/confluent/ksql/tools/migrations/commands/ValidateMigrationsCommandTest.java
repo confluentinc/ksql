@@ -268,7 +268,7 @@ public class ValidateMigrationsCommandTest {
   /**
    * @param versions versions, in the order they were applied
    * @param checksums corresponding checksums (ordered according to {@code versions})
-   * @parma states corresponding migration states (ordered according to {@code versions})
+   * @param states corresponding migration states (ordered according to {@code versions})
    */
   private void givenAppliedMigrations(
       final List<String> versions,
@@ -293,13 +293,19 @@ public class ValidateMigrationsCommandTest {
 
       row = mock(Row.class);
       queryResult = mock(BatchedQueryResult.class);
-      when(ksqlClient.executeQuery("SELECT checksum, previous, state FROM " + MIGRATIONS_TABLE
-          + " WHERE version_key = '" + version + "';"))
+      when(ksqlClient.executeQuery(
+          "SELECT version, checksum, previous, state, name, started_on, completed_on, error_reason FROM "
+              + MIGRATIONS_TABLE + " WHERE version_key = '" + version + "';"))
           .thenReturn(queryResult);
       when(queryResult.get()).thenReturn(ImmutableList.of(row));
-      when(row.getString(1)).thenReturn(checksums.get(i));
-      when(row.getString(2)).thenReturn(prevVersion);
-      when(row.getString(3)).thenReturn(states.get(i).toString());
+      when(row.getString(1)).thenReturn(version);
+      when(row.getString(2)).thenReturn(checksums.get(i));
+      when(row.getString(3)).thenReturn(prevVersion);
+      when(row.getString(4)).thenReturn(states.get(i).toString());
+      when(row.getString(5)).thenReturn("name");
+      when(row.getString(6)).thenReturn("N/A");
+      when(row.getString(7)).thenReturn("N/A");
+      when(row.getString(8)).thenReturn("no_error");
     }
   }
 
@@ -331,8 +337,8 @@ public class ValidateMigrationsCommandTest {
     for (int i = versions.size() - 1; i >= 0; i--) {
       final int expectedTimes = versions.get(i).equals(latestMigratedVersion) ? 2 : 1;
       inOrder.verify(ksqlClient, times(expectedTimes)).executeQuery(
-          "SELECT checksum, previous, state FROM " + MIGRATIONS_TABLE
-              + " WHERE version_key = '" + versions.get(i) + "';");
+          "SELECT version, checksum, previous, state, name, started_on, completed_on, error_reason FROM "
+              + MIGRATIONS_TABLE + " WHERE version_key = '" + versions.get(i) + "';");
     }
 
     // close the client

@@ -13,16 +13,17 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.tools.migrations;
+package io.confluent.ksql.tools.migrations.util;
 
+import io.confluent.ksql.tools.migrations.MigrationException;
 import java.util.Objects;
 
-public class Migration {
+public class MigrationFile {
   private final int version;
   private final String name;
   private final String filepath;
 
-  public Migration(
+  public MigrationFile(
       final int version,
       final String name,
       final String filepath

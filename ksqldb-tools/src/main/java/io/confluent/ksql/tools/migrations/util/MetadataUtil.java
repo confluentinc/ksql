@@ -15,27 +15,33 @@
 
 package io.confluent.ksql.tools.migrations.util;
 
+import static io.confluent.ksql.tools.migrations.util.ServerVersionUtil.getServerInfo;
+import static io.confluent.ksql.tools.migrations.util.ServerVersionUtil.versionSupportsMultiKeyPullQuery;
+
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.KsqlArray;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.Row;
-import io.confluent.ksql.tools.migrations.Migration;
+import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 public final class MetadataUtil {
 
   public static final String NONE_VERSION = "<none>";
   public static final String CURRENT_VERSION_KEY = "CURRENT";
+  public static final String EMPTY_ERROR_REASON = "N/A";
   private static final List<String> KEYS = ImmutableList.of(
       "VERSION_KEY", "VERSION", "NAME", "STATE",
-      "CHECKSUM", "STARTED_ON", "COMPLETED_ON", "PREVIOUS"
+      "CHECKSUM", "STARTED_ON", "COMPLETED_ON", "PREVIOUS", "ERROR_REASON"
   );
 
   public enum MigrationState {
@@ -72,9 +78,10 @@ public final class MetadataUtil {
       final String state,
       final String startOn,
       final String completedOn,
-      final Migration migration,
+      final MigrationFile migration,
       final String previous,
-      final String checksum
+      final String checksum,
+      final Optional<String> errorReason
   ) {
     final String migrationStreamName =
         config.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME);
@@ -86,7 +93,8 @@ public final class MetadataUtil {
         checksum,
         startOn,
         completedOn,
-        previous
+        previous,
+        errorReason.orElse(EMPTY_ERROR_REASON)
     );
     return client.insertInto(
         migrationStreamName,
@@ -103,43 +111,56 @@ public final class MetadataUtil {
       return currentVersion;
     }
 
-    final VersionInfo currentVersionInfo = getInfoForVersion(currentVersion, config, ksqlClient);
-    if (currentVersionInfo.state == MigrationState.MIGRATED) {
+    final MigrationVersionInfo currentVersionInfo =
+        getInfoForVersion(currentVersion, config, ksqlClient);
+    if (currentVersionInfo.getState() == MigrationState.MIGRATED) {
       return currentVersion;
     }
 
-    if (currentVersionInfo.prevVersion.equals(MetadataUtil.NONE_VERSION)) {
+    if (currentVersionInfo.getPrevVersion().equals(MetadataUtil.NONE_VERSION)) {
       return MetadataUtil.NONE_VERSION;
     }
 
-    final VersionInfo prevVersionInfo = getInfoForVersion(
-        currentVersionInfo.prevVersion,
+    final MigrationVersionInfo prevVersionInfo = getInfoForVersion(
+        currentVersionInfo.getPrevVersion(),
         config,
         ksqlClient
     );
-    validateVersionIsMigrated(currentVersionInfo.prevVersion, prevVersionInfo, currentVersion);
+    validateVersionIsMigrated(currentVersionInfo.getPrevVersion(), prevVersionInfo, currentVersion);
 
-    return currentVersionInfo.prevVersion;
+    return currentVersionInfo.getPrevVersion();
   }
 
   public static void validateVersionIsMigrated(
       final String version,
-      final VersionInfo versionInfo,
+      final MigrationVersionInfo versionInfo,
       final String nextVersion
   ) {
-    if (versionInfo.state != MigrationState.MIGRATED) {
+    if (versionInfo.getState() != MigrationState.MIGRATED) {
       throw new MigrationException(String.format(
           "Discovered version with previous version that does not have status %s. "
               + "Version: %s. Previous version: %s. Previous version status: %s",
           MigrationState.MIGRATED,
           nextVersion,
           version,
-          versionInfo.state
+          versionInfo.getState()
       ));
     }
   }
 
-  public static VersionInfo getInfoForVersion(
+  public static MigrationVersionInfo getInfoForVersion(
+      final String version,
+      final MigrationConfig config,
+      final Client ksqlClient
+  ) {
+    final Optional<MigrationVersionInfo> maybeInfo =
+        getOptionalInfoForVersion(version, config, ksqlClient);
+    return maybeInfo.orElseThrow(() -> new MigrationException(
+        "Failed to query state for migration with version " + version
+            + ": no such migration is present in the migrations metadata table"));
+  }
+
+  public static Optional<MigrationVersionInfo> getOptionalInfoForVersion(
       final String version,
       final MigrationConfig config,
       final Client ksqlClient
@@ -147,51 +168,66 @@ public final class MetadataUtil {
     final String migrationTableName = config
         .getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
     final BatchedQueryResult result = ksqlClient.executeQuery(
-        "SELECT checksum, previous, state FROM " + migrationTableName
-            + " WHERE version_key = '" + version + "';");
+        "SELECT version, checksum, previous, state, name, started_on, completed_on, error_reason "
+            + "FROM " + migrationTableName + " WHERE version_key = '" + version + "';");
 
-    final String expectedHash;
-    final String prevVersion;
-    final String state;
+    final Row resultRow;
     try {
       final List<Row> resultRows = result.get();
       if (resultRows.size() == 0) {
-        throw new MigrationException(
-            "Failed to query state for migration with version " + version
-                + ": no such migration is present in the migrations metadata table");
+        return Optional.empty();
       }
-      expectedHash = resultRows.get(0).getString(1);
-      prevVersion = resultRows.get(0).getString(2);
-      state = resultRows.get(0).getString(3);
+      resultRow = resultRows.get(0);
     } catch (InterruptedException | ExecutionException e) {
       throw new MigrationException(String.format(
           "Failed to query state for migration with version %s: %s", version, e.getMessage()));
     }
 
-    return new VersionInfo(expectedHash, prevVersion, state);
+    return Optional.of(MigrationVersionInfo.fromResultRow(resultRow));
   }
 
-  public static class VersionInfo {
-    private final String expectedHash;
-    private final String prevVersion;
-    private final MigrationState state;
+  public static Map<Integer, Optional<MigrationVersionInfo>> getOptionalInfoForVersions(
+      final List<Integer> versions,
+      final MigrationConfig config,
+      final Client ksqlClient
+  ) {
+    if (serverSupportsMultiKeyPullQuery(ksqlClient, config)) {
+      // issue a single, multi-key pull query
+      final String migrationTableName = config
+          .getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
+      final BatchedQueryResult result = ksqlClient.executeQuery(
+          "SELECT version, checksum, previous, state, name, started_on, completed_on, error_reason "
+              + "FROM " + migrationTableName + " WHERE version_key IN ('"
+              + versions.stream().map(String::valueOf).collect(Collectors.joining("', '"))
+              + "');");
 
-    VersionInfo(final String expectedHash, final String prevVersion, final String state) {
-      this.expectedHash = Objects.requireNonNull(expectedHash, "expectedHash");
-      this.prevVersion = Objects.requireNonNull(prevVersion, "prevVersion");
-      this.state = MigrationState.valueOf(Objects.requireNonNull(state, "state"));
-    }
+      final Map<Integer, MigrationVersionInfo> resultSet;
+      try {
+        resultSet = result.get().stream()
+            .map(MigrationVersionInfo::fromResultRow)
+            .collect(Collectors.toMap(MigrationVersionInfo::getVersion, vInfo -> vInfo));
+      } catch (InterruptedException | ExecutionException e) {
+        throw new MigrationException(String.format(
+            "Failed to query state for migration with versions %s: %s", versions, e.getMessage()));
+      }
 
-    public String getExpectedHash() {
-      return expectedHash;
+      return versions.stream()
+          .collect(Collectors.toMap(v -> v, v -> Optional.ofNullable(resultSet.get(v))));
+    } else {
+      // issue multiple, single-key pull queries
+      return versions.stream()
+          .collect(Collectors.toMap(
+              v -> v,
+              v -> getOptionalInfoForVersion(String.valueOf(v), config, ksqlClient)));
     }
+  }
 
-    public String getPrevVersion() {
-      return prevVersion;
-    }
-
-    public MigrationState getState() {
-      return state;
-    }
+  private static boolean serverSupportsMultiKeyPullQuery(
+      final Client ksqlClient,
+      final MigrationConfig config
+  ) {
+    final String ksqlServerUrl = config.getString(MigrationConfig.KSQL_SERVER_URL);
+    final ServerInfo serverInfo = getServerInfo(ksqlClient, ksqlServerUrl);
+    return versionSupportsMultiKeyPullQuery(serverInfo.getServerVersion());
   }
 }

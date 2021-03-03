@@ -1,6 +1,13 @@
+---
+layout: page
+title: Metrics
+tagline: JMX metrics for monitoring ksqlDB
+description: ksqlDB has many JMX metrics to monitor what its servers are doing 
+keywords: metrics, jmx, monitor
+---
 # Metrics
 
-ksqlDB emits a variety of JMX metrics to help you understand
+ksqlDB emits a variety of JMX metrics to help you understand and
 [monitor](../operate-and-deploy/monitoring.md) what its servers are
 doing. This reference describes each metric and grouping.
 

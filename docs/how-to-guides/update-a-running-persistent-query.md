@@ -1,3 +1,11 @@
+---
+layout: page
+title: How to update a running persistent query
+tagline: Upgrade a ksqlDB query
+description: Change a running ksqlDB query and start processing rows where the old version left off
+keywords: persistent query, upgrade
+---
+
 # How to update a running persistent query
 
 ## Context

@@ -1,6 +1,9 @@
 ---
 layout: page
-title: ksqlDB - User-defined functions
+title: User-defined functions 
+tagline: Create custom ksqlDB functions 
+description: ksqlDB lets you add new functions using Java hooks
+keywords: function, user-defined function, aggregation, table  
 ---
 
 # User-defined functions

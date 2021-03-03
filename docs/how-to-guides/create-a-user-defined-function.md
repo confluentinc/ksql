@@ -1,3 +1,11 @@
+---
+layout: page
+title: How to create a user-defined function 
+tagline: Create a custom ksqlDB function
+description: Extend ksqlDB to apply custom logic in your queries
+keywords: function, scalar, tabular, aggregation
+---
+
 # How to create a user-defined function
 
 ## Context

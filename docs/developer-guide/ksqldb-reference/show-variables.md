@@ -1,9 +1,17 @@
+---
+layout: page
+title: SHOW VARIABLES 
+tagline: ksqlDB SHOW VARIABLES statement
+description: Syntax for the SHOW VARIABLES statement in ksqlDB
+keywords: variable, substitution, define
+---
+
 # SHOW VARIABLES
 
 ## Synopsis
 
 ```sql
-DEFINE VARIABLES;
+SHOW VARIABLES;
 ```
 
 ## Description

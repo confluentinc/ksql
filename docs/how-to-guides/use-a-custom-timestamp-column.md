@@ -1,3 +1,11 @@
+---
+layout: page
+title: How to use a custom timestamp column
+tagline: Tell ksqlDB where to find the timestamp attribute within events
+description: Use the timestamp attribute within events to do time-related processing with ksqlDB
+keywords: timestamp, event time
+---
+
 # How to use a custom timestamp column
 
 ## Context

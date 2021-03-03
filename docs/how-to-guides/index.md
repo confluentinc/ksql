@@ -1,3 +1,11 @@
+---
+layout: page
+title: How-to Guides 
+tagline: Frequently used ksqlDB patterns 
+description: Quick lessons that help you work with common ksqlDB functionality. 
+keywords: pattern, satructured data, changelog, connector, query, function, identifier, timestamp, variable
+---
+
 Follow compact lessons that help you work with common ksqlDB functionality.
 
 <div class="cards">

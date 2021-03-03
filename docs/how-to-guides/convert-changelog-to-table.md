@@ -1,3 +1,11 @@
+---
+layout: page
+title: How to convert a changelog to a table 
+tagline: Materialize a changelog stream into a table by using ksqlDB
+description: Use ksqlDB to create a view of a changelog that reflects only the last change for each key
+keywords: changelog, table, materialize
+---
+
 # How to convert a changelog to a table
 
 ## Context

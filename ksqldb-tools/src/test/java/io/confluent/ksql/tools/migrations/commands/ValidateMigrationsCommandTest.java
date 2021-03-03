@@ -343,7 +343,7 @@ public class ValidateMigrationsCommandTest {
 
   private String filePathForVersion(final String version) {
     final String prefix = getFilePrefixForVersion(version);
-    return Paths.get(migrationsDir, prefix + "_awesome_migration").toString();
+    return Paths.get(migrationsDir, prefix + "__awesome_migration.sql").toString();
   }
 
   private static String fileContentsForVersion(final String version) {

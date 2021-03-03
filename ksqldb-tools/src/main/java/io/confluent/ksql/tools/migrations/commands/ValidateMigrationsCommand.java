@@ -19,7 +19,7 @@ import static io.confluent.ksql.tools.migrations.util.MetadataUtil.getInfoForVer
 import static io.confluent.ksql.tools.migrations.util.MetadataUtil.getLatestMigratedVersion;
 import static io.confluent.ksql.tools.migrations.util.MetadataUtil.validateVersionIsMigrated;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.computeHashForFile;
-import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getFilePathForVersion;
+import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationForVersion;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
 
 import com.github.rvesse.airline.annotations.Command;
@@ -134,7 +134,7 @@ public class ValidateMigrationsCommand extends BaseCommand {
 
       final String filename;
       try {
-        filename = getFilePathForVersion(version, migrationsDir).get();
+        filename = getMigrationForVersion(version, migrationsDir).get().getFilepath();
       } catch (MigrationException | NoSuchElementException e) {
         LOGGER.error("No migrations file found for version with status {}. Version: {}",
             MigrationState.MIGRATED, version);

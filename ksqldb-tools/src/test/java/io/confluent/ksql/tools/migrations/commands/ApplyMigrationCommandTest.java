@@ -119,6 +119,8 @@ public class ApplyMigrationCommandTest {
     // Given:
     command = PARSER.parse("-n");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
+    // extra migration to ensure only the first is applied
+    createMigrationFile(3, NAME, migrationsDir, COMMAND);
     when(versionQueryResult.get()).thenReturn(ImmutableList.of());
 
     // When:
@@ -182,6 +184,8 @@ public class ApplyMigrationCommandTest {
     command = PARSER.parse("-u", "2");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
     createMigrationFile(2, NAME, migrationsDir, COMMAND);
+    // extra migration to ensure only the first two are applied
+    createMigrationFile(3, NAME, migrationsDir, COMMAND);
     when(versionQueryResult.get()).thenReturn(ImmutableList.of());
     when(infoQueryResult.get()).thenReturn(ImmutableList.of(createInfoRow(1, NAME, MigrationState.MIGRATED)));
 
@@ -194,6 +198,27 @@ public class ApplyMigrationCommandTest {
     final InOrder inOrder = inOrder(ksqlClient);
     verifyMigratedVersion(inOrder, 1, "<none>", MigrationState.MIGRATED);
     verifyMigratedVersion(inOrder, 2, "1", MigrationState.MIGRATED);
+    inOrder.verify(ksqlClient).close();
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void shouldApplySpecificMigration() throws Exception {
+    // Given:
+    command = PARSER.parse("-v", "3");
+    createMigrationFile(1, NAME, migrationsDir, COMMAND);
+    createMigrationFile(3, NAME, migrationsDir, COMMAND);
+    when(versionQueryResult.get()).thenReturn(ImmutableList.of(createVersionRow("1")));
+    when(infoQueryResult.get()).thenReturn(ImmutableList.of(createInfoRow(1, NAME, MigrationState.MIGRATED)));
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(0));
+    final InOrder inOrder = inOrder(ksqlClient);
+    verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED);
     inOrder.verify(ksqlClient).close();
     inOrder.verifyNoMoreInteractions();
   }
@@ -286,7 +311,6 @@ public class ApplyMigrationCommandTest {
     // Given:
     command = PARSER.parse("-n");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
-    when(versionQueryResult.get()).thenReturn(ImmutableList.of());
 
     when(sourceDescriptionCf.get())
         .thenThrow(new ExecutionException("Source not found", new RuntimeException()));

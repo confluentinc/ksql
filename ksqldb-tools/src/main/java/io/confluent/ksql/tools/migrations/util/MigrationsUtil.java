@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.tools.migrations.util;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Strings;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
@@ -55,7 +57,25 @@ public final class MigrationsUtil {
       final String sslKeyPassword,
       final String sslKeyAlias,
       final boolean sslAlpn
-  ) throws MigrationException {
+  ) {
+    return Client.create(createClientOptions(ksqlServerUrl, username, password,
+        sslTrustStoreLocation, sslTrustStorePassword, sslKeystoreLocation, sslKeystorePassword,
+        sslKeyPassword, sslKeyAlias, sslAlpn));
+  }
+
+  @VisibleForTesting
+  static ClientOptions createClientOptions(
+      final String ksqlServerUrl,
+      final String username,
+      final String password,
+      final String sslTrustStoreLocation,
+      final String sslTrustStorePassword,
+      final String sslKeystoreLocation,
+      final String sslKeystorePassword,
+      final String sslKeyPassword,
+      final String sslKeyAlias,
+      final boolean useAlpn
+  ) {
     final URL url;
     try {
       url = new URL(ksqlServerUrl);
@@ -72,22 +92,25 @@ public final class MigrationsUtil {
       options.setBasicAuthCredentials(username, password);
     }
 
-    if (sslTrustStoreLocation != null
-        || sslKeystoreLocation != null
-        || sslKeyPassword != null
-        || sslKeyAlias != null
-    ) {
-      options.setUseTls(true);
-    }
+    // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
+    final boolean useTls = !Strings.isNullOrEmpty(sslTrustStoreLocation)
+        || !Strings.isNullOrEmpty(sslTrustStorePassword)
+        || !Strings.isNullOrEmpty(sslKeystoreLocation)
+        || !Strings.isNullOrEmpty(sslKeystorePassword)
+        || !Strings.isNullOrEmpty(sslKeyPassword)
+        || !Strings.isNullOrEmpty(sslKeyAlias)
+        || useAlpn;
+    // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
 
+    options.setUseTls(useTls);
     options.setTrustStore(sslTrustStoreLocation);
     options.setTrustStorePassword(sslTrustStorePassword);
     options.setKeyStore(sslKeystoreLocation);
     options.setKeyStorePassword(sslKeystorePassword);
     options.setKeyPassword(sslKeyPassword);
     options.setKeyAlias(sslKeyAlias);
-    options.setUseAlpn(sslAlpn);
+    options.setUseAlpn(useAlpn);
 
-    return Client.create(options);
+    return options;
   }
 }

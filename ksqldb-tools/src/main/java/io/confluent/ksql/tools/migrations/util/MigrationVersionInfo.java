@@ -26,8 +26,7 @@ import java.util.Objects;
 
 public final class MigrationVersionInfo {
 
-  private static final SimpleDateFormat DATE_FORMAT =
-      new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z");
+  private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS z";
   private static final String EMPTY_MIGRATION_TIMESTAMP = "N/A";
 
   private final int version;
@@ -126,6 +125,6 @@ public final class MigrationVersionInfo {
       return epochTime;
     }
 
-    return DATE_FORMAT.format(new Date(Long.parseLong(epochTime)));
+    return new SimpleDateFormat(DATE_FORMAT).format(new Date(Long.parseLong(epochTime)));
   }
 }

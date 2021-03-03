@@ -19,9 +19,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
-
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.junit.Test;
@@ -29,6 +28,7 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
+@SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
 public class TypeContextTest {
 
   @Test

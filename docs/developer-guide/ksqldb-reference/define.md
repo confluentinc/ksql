@@ -1,3 +1,11 @@
+---
+layout: page
+title: DEFINE 
+tagline: ksqlDB DEFINE statement
+description: Syntax for the DEFINE statement in ksqlDB
+keywords: variable, substitution, define
+---
+
 # DEFINE
 
 ## Synopsis
@@ -22,6 +30,10 @@ Valid variable names start with a letter or underscore and are followed by zero 
 All variable values must be enclosed into single-quotes. Single-quotes are removed during variable substitution. To escape single-quotes, enclose the value with triple-quotes.
 
 There is no type declaration for a value.
+
+Use the [SHOW VARIABLES](/developer-guide/ksqldb-reference/show-variables) statement to see all variable definitions.
+
+Use the [UNDEFINE](/developer-guide/ksqldb-reference/undefine) statement to clear a variable definitions.
 
 ## Example
 

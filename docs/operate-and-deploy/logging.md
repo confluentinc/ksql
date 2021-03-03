@@ -1,3 +1,11 @@
+---
+layout: page
+title: Logging
+tagline: Log debug output from ksqlDB
+description: Get DEBUG and INFO output from ksqlDB Server
+keywords: log, logging, appender
+---
+
 # Logging
 
 To get `DEBUG` or `INFO` output from ksqlDB Server, configure a {{ site.ak }}

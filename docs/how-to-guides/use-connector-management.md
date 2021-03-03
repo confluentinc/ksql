@@ -1,3 +1,11 @@
+---
+layout: page
+title: How to use connector management
+tagline: Use connectors to get external data for ksqlDB apps
+description: Use SQL syntax to create connectors in your ksqlDB application 
+keywords: connector
+---
+
 # How to use connector management
 
 ## Context

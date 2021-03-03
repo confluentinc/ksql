@@ -20,7 +20,10 @@ import static io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationStat
 import static io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState.MIGRATED;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getFilePrefixForVersion;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -43,11 +46,17 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.log4j.AppenderSkeleton;
+import org.apache.log4j.Logger;
+import org.apache.log4j.spi.LoggingEvent;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -76,6 +85,11 @@ public class MigrationInfoCommandTest {
   @Mock
   private ServerInfo serverInfo;
 
+  @Mock
+  private AppenderSkeleton logAppender;
+  @Captor
+  private ArgumentCaptor<LoggingEvent> logCaptor;
+
   private String migrationsDir;
   private MigrationInfoCommand command;
 
@@ -92,6 +106,13 @@ public class MigrationInfoCommandTest {
 
     migrationsDir = folder.getRoot().getPath();
     command = PARSER.parse();
+
+    Logger.getRootLogger().addAppender(logAppender);
+  }
+
+  @After
+  public void tearDown() {
+    Logger.getRootLogger().removeAppender(logAppender);
   }
 
   @Test
@@ -108,6 +129,20 @@ public class MigrationInfoCommandTest {
 
     // Then:
     assertThat(result, is(0));
+
+    verify(logAppender, atLeastOnce()).doAppend(logCaptor.capture());
+    final List<String> logMessages = logCaptor.getAllValues().stream()
+        .map(LoggingEvent::getRenderedMessage)
+        .collect(Collectors.toList());
+    assertThat(logMessages, hasItem(containsString("Current migration version: 3")));
+    assertThat(logMessages, hasItem(containsString(
+        " Version | Name        | State    | Previous Version | Started On      | Completed On   | Error Reason \n" +
+            "-------------------------------------------------------------------------------------------------------\n" +
+            " 1       | some_name_1 | MIGRATED | <none>           | start_timestamp | stop_timestamp | N/A          \n" +
+            " 3       | some_name_3 | ERROR    | 1                | start_timestamp | stop_timestamp | error reason \n" +
+            " 4       | some name 4 | PENDING  | N/A              | N/A             | N/A            | N/A          \n" +
+            "-------------------------------------------------------------------------------------------------------"
+    )));
   }
 
   @Test
@@ -120,6 +155,13 @@ public class MigrationInfoCommandTest {
 
     // Then:
     assertThat(result, is(0));
+
+    verify(logAppender, atLeastOnce()).doAppend(logCaptor.capture());
+    final List<String> logMessages = logCaptor.getAllValues().stream()
+        .map(LoggingEvent::getRenderedMessage)
+        .collect(Collectors.toList());
+    assertThat(logMessages, hasItem(containsString("Current migration version: <none>")));
+    assertThat(logMessages, hasItem(containsString("No migrations files found")));
   }
 
   @Test

@@ -19,9 +19,13 @@ import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.verify;
 
 import com.github.rvesse.airline.Cli;
 import io.confluent.common.utils.IntegrationTest;
@@ -45,9 +49,13 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.TestUtils;
+import org.apache.log4j.AppenderSkeleton;
+import org.apache.log4j.Logger;
+import org.apache.log4j.spi.LoggingEvent;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
@@ -57,7 +65,13 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
+import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 @Category({IntegrationTest.class})
 public class MigrationsTest {
 
@@ -75,6 +89,11 @@ public class MigrationsTest {
       .around(REST_APP);
 
   private static final Cli<BaseCommand> MIGRATIONS_CLI = new Cli<>(Migrations.class);
+
+  @Mock
+  private AppenderSkeleton logAppender;
+  @Captor
+  private ArgumentCaptor<LoggingEvent> logCaptor;
 
   private static String configFilePath;
 
@@ -95,7 +114,12 @@ public class MigrationsTest {
   }
 
   @Test
-  public void shouldApplyMigrationsAndDisplayInfo() throws IOException {
+  public void shouldApplyMigrationsAndDisplayInfo() throws Exception {
+    shouldApplyMigrations();
+    shouldDisplayInfo();
+  }
+
+  private void shouldApplyMigrations() throws Exception {
     // Given:
     createMigrationFile(
         1,
@@ -111,11 +135,40 @@ public class MigrationsTest {
     );
 
     // When:
-    final int status = MIGRATIONS_CLI.parse("--config-file", configFilePath, "apply", "-a").run();
+    final int applyStatus = MIGRATIONS_CLI.parse("--config-file", configFilePath, "apply", "-a").run();
 
     // Then:
-    assertThat(status, is(0));
+    assertThat(applyStatus, is(0));
+
     verifyMigrationsApplied();
+  }
+
+  private void shouldDisplayInfo() {
+    // Given:
+    Logger.getRootLogger().addAppender(logAppender);
+
+    try {
+      // When:
+      final int infoStatus = MIGRATIONS_CLI.parse("--config-file", configFilePath, "info").run();
+
+      // Then:
+      assertThat(infoStatus, is(0));
+
+      verify(logAppender, atLeastOnce()).doAppend(logCaptor.capture());
+      final List<String> logMessages = logCaptor.getAllValues().stream()
+          .map(LoggingEvent::getRenderedMessage)
+          .collect(Collectors.toList());
+      assertThat(logMessages, hasItem(containsString("Current migration version: 2")));
+      assertThat(logMessages, hasItem(containsString(
+          " Version | Name        | State    | Previous Version | Started On    | Completed On  | Error Reason \n" +
+              "----------------------------------------------------------------------------------------------------\n" +
+              " 1       | foo FOO fO0 | MIGRATED | <none>           | 1614759217273 | 1614759217735 | N/A          \n" +
+              " 2       | bar bar BAR | MIGRATED | 1                | 1614759217878 | 1614759218170 | N/A          \n" +
+              "----------------------------------------------------------------------------------------------------"
+      )));
+    } finally {
+      Logger.getRootLogger().removeAppender(logAppender);
+    }
   }
 
   private static void verifyMigrationsApplied() {

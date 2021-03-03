@@ -1,9 +1,18 @@
+---
+layout: page
+title: How to transform columns with structured data.
+tagline: Transform columns of structured data without user-defined functions.
+description: ksqlDB can compose existing functions to create new expressions over structured data
+keywords: function, lambda, aggregation, user-defined function, ksqlDB  
+---
 # Use lambda functions
 
 ## Context
 
-There's no built-in UDF that suits your needs, and you can't implement and deploy a UDF.
-To get around this limitation, use ksqlDB lambda functions.
+You want to transform a column with structured data in a particular way, but there doesn't 
+exist a built-in function that suits your needs and you're unable to implement and deploy a 
+user-defined function. ksqlDB is capable of composing existing functions to create 
+new expressions over structured data. These are called lambda functions.
 
 ## In action
 ```sql
@@ -65,10 +74,10 @@ CREATE STREAM stream1 (
 A lambda invocation function is a [scalar UDF](/developer-guide/ksqldb-reference/scalar-functions), and you use it like other scalar functions.
 
 The following example lambda function transforms both the key and value of a map and produces a new map. A built-in UDF transforms the key 
-into an uppercase string using a built in UDF, and the value is transformed through addition. The order of the variables
-is important: the first item in the arguments list, named `k` in this example, is treated as the key, and the second, named `v` in this example, is treated
-as the value. Pay attention to this if your map has different types. Note that `transform` on
-a map requires two lambda functions, while `transform` on an array requires one.
+into an uppercase string using a built in UDF, and the value is transformed through addition. The order of the variables 
+is important: the first item in the arguments list, named `k` in this example, is treated as the key, and the second, 
+named `v` in this example, is treated as the value. Pay attention to this if your map has different types. 
+Note that `transform` on a map requires two lambda functions, while `transform` on an array requires one.
 ```sql
 CREATE STREAM output AS
   SELECT id, 

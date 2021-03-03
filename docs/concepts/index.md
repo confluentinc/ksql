@@ -76,7 +76,7 @@ Learn the core concepts that ksqlDB is built around.
     <span><a href="/concepts/connectors">Learn →</a></span>
   </div>
   <div class="card concepts">
-    <strong>Connectors</strong>
+    <strong>Lambda Functions</strong>
     <p class="card-body"><small>Lambda functions allow you to apply in-line functions without creating a full UDF.</small></p>
     <span><a href="/concepts/lambda-functions">Learn →</a></span>
   </div>

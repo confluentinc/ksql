@@ -62,9 +62,9 @@ Follow compact lessons that help you work with common ksqlDB functionality.
 
 <div class="cards">
   <div class="card how-to-guide">
-    <strong>Use a lambda function</strong>
-    <p class="card-body"><small>Apply lambda functions to the data in your ksqlDB application.</small></p>
-    <span><a href="/how-to-guides/substitute-variables">Learn →</a></span>
+    <strong>Transforming columns with structured data</strong>
+    <p class="card-body"><small>Transform columns of structured data without user-defined functions.</small></p>
+    <span><a href="/how-to-guides/use-lambda-functions">Learn →</a></span>
   </div>
   
   <div class="card how-to-guide contribute">

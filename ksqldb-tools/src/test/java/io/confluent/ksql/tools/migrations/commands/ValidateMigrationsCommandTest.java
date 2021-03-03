@@ -268,7 +268,7 @@ public class ValidateMigrationsCommandTest {
   /**
    * @param versions versions, in the order they were applied
    * @param checksums corresponding checksums (ordered according to {@code versions})
-   * @parma states corresponding migration states (ordered according to {@code versions})
+   * @param states corresponding migration states (ordered according to {@code versions})
    */
   private void givenAppliedMigrations(
       final List<String> versions,

@@ -43,7 +43,7 @@ public final class MigrationVersionInfo {
     );
   }
 
-  private MigrationVersionInfo(
+  public MigrationVersionInfo(
       final int version,
       final String expectedHash,
       final String prevVersion,

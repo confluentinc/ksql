@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.tools.migrations.commands;
 
+import static io.confluent.ksql.tools.migrations.util.MetadataUtil.EMPTY_ERROR_REASON;
 import static io.confluent.ksql.tools.migrations.util.MetadataUtil.getOptionalInfoForVersions;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
 
@@ -23,7 +24,10 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
+import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
+import io.confluent.ksql.tools.migrations.util.MigrationFile;
 import io.confluent.ksql.tools.migrations.util.MigrationVersionInfo;
+import io.confluent.ksql.tools.migrations.util.MigrationVersionInfoFormatter;
 import io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import io.confluent.ksql.util.KsqlException;
@@ -31,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,10 +89,22 @@ public class MigrationInfoCommand extends BaseCommand {
 
     boolean success;
     try {
-      final List<Integer> versions = MigrationsDirectoryUtil.getAllVersions(migrationsDir);
-      final Map<Integer, Optional<MigrationVersionInfo>> versionInfo =
-          getOptionalInfoForVersions(versions, config, ksqlClient);
-      printAsTable(versions, versionInfo);
+      // TODO: print current version
+
+      final List<MigrationFile> allMigrations =
+          MigrationsDirectoryUtil.getAllMigrations(migrationsDir);
+      final List<Integer> allVersions = allMigrations.stream()
+          .map(MigrationFile::getVersion)
+          .collect(Collectors.toList());
+
+      if (allMigrations.size() != 0) {
+        final Map<Integer, Optional<MigrationVersionInfo>> versionInfos =
+            getOptionalInfoForVersions(allVersions, config, ksqlClient);
+
+        printAsTable(allMigrations, versionInfos);
+      } else {
+        LOGGER.info("No migrations files found");
+      }
 
       success = true;
     } catch (MigrationException e) {
@@ -106,9 +123,26 @@ public class MigrationInfoCommand extends BaseCommand {
   }
 
   private static void printAsTable(
-      final List<Integer> versions,
-      final Map<Integer, Optional<MigrationVersionInfo>> versionInfo
+      final List<MigrationFile> allMigrations,
+      final Map<Integer, Optional<MigrationVersionInfo>> versionInfos
   ) {
-    // TODO
+    final MigrationVersionInfoFormatter formatter = new MigrationVersionInfoFormatter();
+
+    for (final MigrationFile migration : allMigrations) {
+      final MigrationVersionInfo versionInfo = versionInfos.get(migration.getVersion()).orElse(
+          new MigrationVersionInfo(
+              migration.getVersion(),
+              "N/A",
+              "N/A",
+              MigrationState.PENDING.toString(),
+              migration.getName(),
+              "N/A",
+              "N/A",
+              EMPTY_ERROR_REASON
+          ));
+      formatter.addVersionInfo(versionInfo);
+    }
+
+    LOGGER.info(formatter.getFormatted());
   }
 }

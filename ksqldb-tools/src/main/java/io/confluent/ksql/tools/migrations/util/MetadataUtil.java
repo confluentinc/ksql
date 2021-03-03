@@ -38,11 +38,11 @@ public final class MetadataUtil {
 
   public static final String NONE_VERSION = "<none>";
   public static final String CURRENT_VERSION_KEY = "CURRENT";
+  public static final String EMPTY_ERROR_REASON = "N/A";
   private static final List<String> KEYS = ImmutableList.of(
       "VERSION_KEY", "VERSION", "NAME", "STATE",
       "CHECKSUM", "STARTED_ON", "COMPLETED_ON", "PREVIOUS", "ERROR_REASON"
   );
-  private static final String EMPTY_ERROR_REASON = "N/A";
 
   public enum MigrationState {
     PENDING,

@@ -30,8 +30,8 @@ public final class MigrationConfig extends AbstractConfig {
 
   public static final String KSQL_SERVER_URL = "ksql.server.url";
 
-  public static final String KSQL_USERNAME = "ksql.username";
-  public static final String KSQL_PASSWORD = "ksql.password";
+  public static final String KSQL_BASIC_AUTH_USERNAME = "ksql.auth.basic.username";
+  public static final String KSQL_BASIC_AUTH_PASSWORD = "ksql.auth.basic.password";
 
   public static final String SSL_TRUSTSTORE_LOCATION = "ssl.truststore.location";
   public static final String SSL_TRUSTSTORE_PASSWORD = "ssl.truststore.password";
@@ -40,6 +40,7 @@ public final class MigrationConfig extends AbstractConfig {
   public static final String SSL_KEY_PASSWORD = "ssl.key.password";
   public static final String SSL_KEY_ALIAS = "ssl.key.alias";
   public static final String SSL_ALPN = "ssl.alpn";
+  public static final String SSL_VERIFY_HOST = "ssl.verify.host";
 
   public static final String KSQL_MIGRATIONS_STREAM_NAME = "ksql.migrations.stream.name";
   public static final String KSQL_MIGRATIONS_STREAM_NAME_DEFAULT = "migration_events";
@@ -66,13 +67,13 @@ public final class MigrationConfig extends AbstractConfig {
             Importance.HIGH,
             "The URL for the KSQL server"
         ).define(
-            KSQL_USERNAME,
+            KSQL_BASIC_AUTH_USERNAME,
             Type.STRING,
             null,
             Importance.MEDIUM,
             "The username for the KSQL server"
         ).define(
-            KSQL_PASSWORD,
+            KSQL_BASIC_AUTH_PASSWORD,
             Type.STRING,
             null,
             Importance.MEDIUM,
@@ -115,10 +116,16 @@ public final class MigrationConfig extends AbstractConfig {
             "The key alias"
         ).define(
             SSL_ALPN,
-            Type.STRING,
+            Type.BOOLEAN,
             false,
             Importance.MEDIUM,
             "Whether ALPN should be used. It defaults to false."
+        ).define(
+            SSL_VERIFY_HOST,
+            Type.BOOLEAN,
+            true,
+            Importance.MEDIUM,
+            "Whether hostname verification is enabled. It defaults to true."
         ).define(
             KSQL_MIGRATIONS_STREAM_NAME,
             Type.STRING,
@@ -167,17 +174,20 @@ public final class MigrationConfig extends AbstractConfig {
 
     final Client ksqlClient = MigrationsUtil.getKsqlClient(
         ksqlServerUrl,
-        configs.get(KSQL_USERNAME),
-        configs.get(KSQL_PASSWORD),
+        configs.get(KSQL_BASIC_AUTH_USERNAME),
+        configs.get(KSQL_BASIC_AUTH_PASSWORD),
         configs.get(SSL_TRUSTSTORE_LOCATION),
         configs.get(SSL_TRUSTSTORE_PASSWORD),
         configs.get(SSL_KEYSTORE_LOCATION),
         configs.get(SSL_KEYSTORE_PASSWORD),
         configs.get(SSL_KEY_ALIAS),
         configs.get(SSL_KEY_PASSWORD),
-        configs.get(SSL_ALPN).equals("true")
+        configs.getOrDefault(SSL_ALPN, "false").equals("true"),
+        configs.getOrDefault(SSL_VERIFY_HOST, "true").equals("true")
     );
-
-    return ServerVersionUtil.getServerInfo(ksqlClient, ksqlServerUrl).getKsqlServiceId();
+    final String serviceId;
+    serviceId = ServerVersionUtil.getServerInfo(ksqlClient, ksqlServerUrl).getKsqlServiceId();
+    ksqlClient.close();
+    return serviceId;
   }
 }

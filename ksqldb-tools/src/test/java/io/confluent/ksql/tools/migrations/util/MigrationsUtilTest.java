@@ -24,27 +24,48 @@ import org.junit.Test;
 
 public class MigrationsUtilTest {
 
-  private static final String URL = "http://localhost:8088";
+  private static final String NON_TLS_URL = "http://localhost:8088";
+  private static final String TLS_URL = "https://localhost:8088";
 
   @Test
   public void shouldCreateNonTlsClientOptions() {
     // Given:
-    final ClientOptions clientOptions = createClientOptions(URL, "user",
+    final ClientOptions clientOptions = createClientOptions(NON_TLS_URL, "user",
         "pass", null, "", null,
-        null, "", null, false);
+        null, "", "foo", false, true);
 
     // Then:
     assertThat(clientOptions.isUseTls(), is(false));
+    assertThat(clientOptions.getBasicAuthUsername(), is("user"));
+    assertThat(clientOptions.getBasicAuthPassword(), is("pass"));
+    assertThat(clientOptions.getTrustStore(), is(""));
+    assertThat(clientOptions.getTrustStorePassword(), is(""));
+    assertThat(clientOptions.getKeyStore(), is(""));
+    assertThat(clientOptions.getKeyStorePassword(), is(""));
+    assertThat(clientOptions.getKeyPassword(), is(""));
+    assertThat(clientOptions.getKeyAlias(), is(""));
+    assertThat(clientOptions.isUseAlpn(), is(false));
+    assertThat(clientOptions.isVerifyHost(), is(true));
   }
 
   @Test
   public void shouldCreateTlsClientOptions() {
     // Given:
-    final ClientOptions clientOptions = createClientOptions(URL, "user",
+    final ClientOptions clientOptions = createClientOptions(TLS_URL, "user",
         "pass", "abc", null, null,
-        null, null, null, true);
+        null, null, null, true, true);
 
     // Then:
     assertThat(clientOptions.isUseTls(), is(true));
+    assertThat(clientOptions.getBasicAuthUsername(), is("user"));
+    assertThat(clientOptions.getBasicAuthPassword(), is("pass"));
+    assertThat(clientOptions.getTrustStore(), is("abc"));
+    assertThat(clientOptions.getTrustStorePassword(), is(""));
+    assertThat(clientOptions.getKeyStore(), is(""));
+    assertThat(clientOptions.getKeyStorePassword(), is(""));
+    assertThat(clientOptions.getKeyPassword(), is(""));
+    assertThat(clientOptions.getKeyAlias(), is(""));
+    assertThat(clientOptions.isUseAlpn(), is(true));
+    assertThat(clientOptions.isVerifyHost(), is(true));
   }
 }

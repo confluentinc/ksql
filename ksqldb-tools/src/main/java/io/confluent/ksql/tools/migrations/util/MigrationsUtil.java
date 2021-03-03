@@ -16,7 +16,6 @@
 package io.confluent.ksql.tools.migrations.util;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Strings;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
@@ -34,19 +33,22 @@ public final class MigrationsUtil {
   public static Client getKsqlClient(final MigrationConfig config) throws MigrationException {
     return getKsqlClient(
         config.getString(MigrationConfig.KSQL_SERVER_URL),
-        config.getString(MigrationConfig.KSQL_USERNAME),
-        config.getString(MigrationConfig.KSQL_PASSWORD),
+        config.getString(MigrationConfig.KSQL_BASIC_AUTH_USERNAME),
+        config.getString(MigrationConfig.KSQL_BASIC_AUTH_PASSWORD),
         config.getString(MigrationConfig.SSL_TRUSTSTORE_LOCATION),
         config.getString(MigrationConfig.SSL_TRUSTSTORE_PASSWORD),
         config.getString(MigrationConfig.SSL_KEYSTORE_LOCATION),
         config.getString(MigrationConfig.SSL_KEYSTORE_PASSWORD),
         config.getString(MigrationConfig.SSL_KEY_PASSWORD),
         config.getString(MigrationConfig.SSL_KEY_ALIAS),
-        config.getBoolean(MigrationConfig.SSL_ALPN)
+        config.getBoolean(MigrationConfig.SSL_ALPN),
+        config.getBoolean(MigrationConfig.SSL_VERIFY_HOST)
     );
   }
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public static Client getKsqlClient(
+      // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       final String ksqlServerUrl,
       final String username,
       final String password,
@@ -56,15 +58,18 @@ public final class MigrationsUtil {
       final String sslKeystorePassword,
       final String sslKeyPassword,
       final String sslKeyAlias,
-      final boolean sslAlpn
+      final boolean sslAlpn,
+      final boolean sslVerifyHost
   ) {
     return Client.create(createClientOptions(ksqlServerUrl, username, password,
         sslTrustStoreLocation, sslTrustStorePassword, sslKeystoreLocation, sslKeystorePassword,
-        sslKeyPassword, sslKeyAlias, sslAlpn));
+        sslKeyPassword, sslKeyAlias, sslAlpn, sslVerifyHost));
   }
 
   @VisibleForTesting
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   static ClientOptions createClientOptions(
+      // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       final String ksqlServerUrl,
       final String username,
       final String password,
@@ -74,7 +79,8 @@ public final class MigrationsUtil {
       final String sslKeystorePassword,
       final String sslKeyPassword,
       final String sslKeyAlias,
-      final boolean useAlpn
+      final boolean useAlpn,
+      final boolean verifyHost
   ) {
     final URL url;
     try {
@@ -92,25 +98,19 @@ public final class MigrationsUtil {
       options.setBasicAuthCredentials(username, password);
     }
 
-    // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
-    final boolean useTls = !Strings.isNullOrEmpty(sslTrustStoreLocation)
-        || !Strings.isNullOrEmpty(sslTrustStorePassword)
-        || !Strings.isNullOrEmpty(sslKeystoreLocation)
-        || !Strings.isNullOrEmpty(sslKeystorePassword)
-        || !Strings.isNullOrEmpty(sslKeyPassword)
-        || !Strings.isNullOrEmpty(sslKeyAlias)
-        || useAlpn;
-    // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
-
+    final boolean useTls = ksqlServerUrl.trim().startsWith("https");
     options.setUseTls(useTls);
-    options.setTrustStore(sslTrustStoreLocation);
-    options.setTrustStorePassword(sslTrustStorePassword);
-    options.setKeyStore(sslKeystoreLocation);
-    options.setKeyStorePassword(sslKeystorePassword);
-    options.setKeyPassword(sslKeyPassword);
-    options.setKeyAlias(sslKeyAlias);
-    options.setUseAlpn(useAlpn);
 
+    if (useTls) {
+      options.setTrustStore(sslTrustStoreLocation);
+      options.setTrustStorePassword(sslTrustStorePassword);
+      options.setKeyStore(sslKeystoreLocation);
+      options.setKeyStorePassword(sslKeystorePassword);
+      options.setKeyPassword(sslKeyPassword);
+      options.setKeyAlias(sslKeyAlias);
+      options.setUseAlpn(useAlpn);
+      options.setVerifyHost(verifyHost);
+    }
     return options;
   }
 }

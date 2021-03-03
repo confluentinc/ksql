@@ -66,7 +66,7 @@ A lambda invocation function is a [scalar UDF](/developer-guide/ksqldb-reference
 
 The following example lambda function transforms both the key and value of a map and produces a new map. A built-in UDF transforms the key 
 into an uppercase string using a built in UDF, and the value is transformed through addition. The order of the variables
-is important: the first item in the arguments list, named `k` this example, is treated as the key, and the second, named `v` this example, is treated
+is important: the first item in the arguments list, named `k` in this example, is treated as the key, and the second, named `v` in this example, is treated
 as the value. Pay attention to this if your map has different types. Note that `transform` on
 a map requires two lambda functions, while `transform` on an array requires one.
 ```sql

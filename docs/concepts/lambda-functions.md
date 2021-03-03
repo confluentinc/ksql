@@ -1,6 +1,7 @@
 ---
 layout: page
 title: Lambda Functions
+keywords: ksqldb, function, udf, lambda
 ---
 
 # Lambda Functions

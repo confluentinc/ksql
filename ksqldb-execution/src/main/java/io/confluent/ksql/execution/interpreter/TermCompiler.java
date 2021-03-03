@@ -129,18 +129,18 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
 
   private Term visitIllegalState(final Expression expression) {
     throw new IllegalStateException(
-        format("Expression type %s should never be visited.\n"
+        format("Expression type %s should never be visited.%n"
                 + "Check if there's an existing issue: "
-                + "https://github.com/confluentinc/ksql/issues\n"
+                + "https://github.com/confluentinc/ksql/issues %n"
                 + "If not, please file a new one with your expression.",
             expression.getClass()));
   }
 
   private Term visitUnsupported(final Expression expression) {
     throw new UnsupportedOperationException(
-        format("Not yet implemented: %s.visit%s.\n"
+        format("Not yet implemented: %s.visit%s.%n"
                 + "Check if there's an existing issue: "
-                + "https://github.com/confluentinc/ksql/issues\n"
+                + "https://github.com/confluentinc/ksql/issues %n"
                 + "If not, please file a new one with your expression.",
             getClass().getName(),
             expression.getClass().getSimpleName()

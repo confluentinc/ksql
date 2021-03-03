@@ -39,12 +39,15 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
+import org.apache.kafka.streams.processor.TaskMetadata;
 import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -208,6 +211,13 @@ public abstract class QueryMetadata {
     }
     retryEvent.backOff();
     return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.REPLACE_THREAD;
+  }
+
+  public Set<TaskMetadata> getTaskMetadata() {
+    return kafkaStreams.localThreadsMetadata()
+                       .stream()
+                       .flatMap(t -> t.activeTasks().stream())
+                       .collect(Collectors.toSet());
   }
 
   public Map<String, Object> getOverriddenProperties() {

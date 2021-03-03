@@ -998,7 +998,7 @@ public class ClientTest extends BaseApiTest {
         new QueryDescription(new QueryId("id"), "sql", Optional.empty(),
             Collections.emptyList(), Collections.emptySet(), Collections.emptySet(), "topology",
             "executionPlan", Collections.emptyMap(), Collections.emptyMap(),
-            KsqlQueryType.PERSISTENT, Collections.emptyList()));
+            KsqlQueryType.PERSISTENT, Collections.emptyList(), Collections.emptySet()));
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When

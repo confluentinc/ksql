@@ -105,6 +105,7 @@ import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.TaskState;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
+import org.apache.kafka.streams.processor.TaskMetadata;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -398,22 +399,28 @@ public class ConsoleTest {
     final QueryDescriptionEntity queryEntity = new QueryDescriptionEntity(
         "statement",
         new QueryDescription(
-            new QueryId("id"),
-            "statement",
-            Optional.empty(),
-            ImmutableList.of(
-                new FieldInfo(
-                    "name",
-                    new SchemaInfo(SqlBaseType.STRING, ImmutableList.of(), null),
-                    Optional.empty())),
-            ImmutableSet.of("source"),
-            ImmutableSet.of("sink"),
-            "topology",
-            "executionPlan",
-            ImmutableMap.of("overridden.prop", 42),
-            ImmutableMap.of(new KsqlHostInfoEntity("foo", 123), KsqlQueryStatus.ERROR),
-            KsqlQueryType.PERSISTENT,
-            ImmutableList.of(new QueryError(timestamp, "error", Type.SYSTEM))
+          new QueryId("id"),
+          "statement",
+          Optional.empty(),
+          ImmutableList.of(
+              new FieldInfo(
+                  "name",
+                  new SchemaInfo(SqlBaseType.STRING, ImmutableList.of(), null),
+                  Optional.empty())),
+          ImmutableSet.of("source"),
+          ImmutableSet.of("sink"),
+          "topology",
+          "executionPlan",
+          ImmutableMap.of("overridden.prop", 42),
+          ImmutableMap.of(new KsqlHostInfoEntity("foo", 123), KsqlQueryStatus.ERROR),
+          KsqlQueryType.PERSISTENT,
+          ImmutableList.of(new QueryError(timestamp, "error", Type.SYSTEM)),
+          ImmutableSet.of(
+            new TaskMetadata(
+              "test",
+              Collections.emptySet()
+            )
+          )
         )
     );
 

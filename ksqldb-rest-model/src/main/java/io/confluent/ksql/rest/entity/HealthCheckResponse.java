@@ -22,8 +22,11 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+import org.apache.kafka.streams.processor.TaskMetadata;
+
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Immutable
@@ -31,14 +34,17 @@ public final class HealthCheckResponse {
 
   private final boolean isHealthy;
   private final ImmutableMap<String, HealthCheckResponseDetail> details;
+  private final ImmutableMap<String, Set<TaskMetadata>> metadata;
 
   @JsonCreator
   public HealthCheckResponse(
       @JsonProperty("isHealthy") final boolean isHealthy,
-      @JsonProperty("details") final Map<String, HealthCheckResponseDetail> details
+      @JsonProperty("details") final Map<String, HealthCheckResponseDetail> details,
+      @JsonProperty("taskMetadata") final Map<String, Set<TaskMetadata>> metadata
   ) {
     this.isHealthy = isHealthy;
     this.details = ImmutableMap.copyOf(requireNonNull(details, "details"));
+    this.metadata = ImmutableMap.copyOf(metadata);
   }
 
   public boolean getIsHealthy() {
@@ -47,6 +53,10 @@ public final class HealthCheckResponse {
 
   public Map<String, HealthCheckResponseDetail> getDetails() {
     return details;
+  }
+
+  public Map<String, Set<TaskMetadata>> getTaskMetadata() {
+    return metadata;
   }
 
   @Override

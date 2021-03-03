@@ -48,31 +48,6 @@
       ]
     },
     {
-      "name": "select * against mat table windowed table scan",
-      "statements": [
-        "CREATE TABLE users (ID BIGINT PRIMARY KEY, USERTIMESTAMP BIGINT,gender VARCHAR,region_id VARCHAR) WITH (KAFKA_TOPIC = 'users_topic',VALUE_FORMAT = 'JSON',PARTITIONS=1);",
-        "CREATE TABLE queriable_users AS SELECT ID, COUNT(*) AS COUNT from users GROUP BY ID;",
-        "SELECT * FROM queriable_users WHERE ID=2;",
-        "SELECT * FROM queriable_users WHERE ID=1234567;"
-      ],
-      "inputs": [
-        {"topic": "users_topic", "timestamp": 12345, "key": 1, "value": {"usertimestamp": 1000, "gender":  "m", "region_id": "w"}},
-        {"topic": "users_topic", "timestamp": 13345, "key": 2, "value": {"usertimestamp": 2000, "gender":  "f", "region_id": "e"}},
-        {"topic": "users_topic", "timestamp": 14345, "key": 3, "value": {"usertimestamp": 3000, "gender":  "f", "region_id": "n"}}
-      ],
-      "responses": [
-        {"admin": {"@type": "currentStatus"}},
-        {"admin": {"@type": "currentStatus"}},
-        {"query": [
-          {"header":{"schema":"`ID` BIGINT KEY, `COUNT` BIGINT"}},
-          {"row":{"columns":[2,1]}}
-        ]},
-        {"query": [
-          {"header":{"schema":"`ID` BIGINT KEY, `COUNT` BIGINT"}}
-        ]}
-      ]
-    },
-    {
       "name": "select star with projection",
       "statements": [
         "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -212,7 +187,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "The `INNER_JOIN` table isn't queriable. To derive a queriable table, you can do 'CREATE TABLE QUERIABLE_INNER_JOIN AS SELECT * FROM INNER_JOIN. See https://cnfl.io/queries for more info.",
+        "message": "The `INNER_JOIN` table isn't queryable. To derive a queryable table, you can do 'CREATE TABLE QUERYABLE_INNER_JOIN AS SELECT * FROM INNER_JOIN'. See https://cnfl.io/queries for more info.",
         "status": 400
       }
     },
@@ -227,7 +202,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "The `USERS` table isn't queriable. To derive a queriable table, you can do 'CREATE TABLE QUERIABLE_USERS AS SELECT * FROM USERS. See https://cnfl.io/queries for more info.",
+        "message": "The `USERS` table isn't queryable. To derive a queryable table, you can do 'CREATE TABLE QUERYABLE_USERS AS SELECT * FROM USERS'. See https://cnfl.io/queries for more info.",
         "status": 400
       }
     }

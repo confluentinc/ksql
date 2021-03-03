@@ -101,12 +101,12 @@ public final class PullQueryExecutionUtil {
   private static KsqlException notMaterializedException(final SourceName sourceTable) {
     final String tableName = sourceTable.toString().replaceAll("`", "");
     return new KsqlException(
-            "The " + sourceTable + " table isn't queriable. To derive a queriable table, "
-                    + "you can do 'CREATE TABLE QUERIABLE_"
+            "The " + sourceTable + " table isn't queryable. To derive a queryable table, "
+                    + "you can do 'CREATE TABLE QUERYABLE_"
                     + tableName
                     + " AS SELECT * FROM "
                     + tableName
-                    + "."
+                    + "'."
                     + PullQueryValidator.PULL_QUERY_SYNTAX_HELP
     );
   }

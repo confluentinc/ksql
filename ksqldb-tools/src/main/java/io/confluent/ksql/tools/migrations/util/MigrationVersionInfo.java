@@ -15,11 +15,20 @@
 
 package io.confluent.ksql.tools.migrations.util;
 
+import static io.confluent.ksql.tools.migrations.util.MetadataUtil.EMPTY_ERROR_REASON;
+
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Objects;
 
 public final class MigrationVersionInfo {
+
+  private static final SimpleDateFormat DATE_FORMAT =
+      new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z");
+  private static final String EMPTY_MIGRATION_TIMESTAMP = "N/A";
 
   private final int version;
   private final String expectedHash;
@@ -43,7 +52,21 @@ public final class MigrationVersionInfo {
     );
   }
 
-  public MigrationVersionInfo(
+  public static MigrationVersionInfo pendingMigration(final int version, final String name) {
+    return new MigrationVersionInfo(
+        version,
+        "N/A",
+        "N/A",
+        MigrationState.PENDING.toString(),
+        name,
+        EMPTY_MIGRATION_TIMESTAMP,
+        EMPTY_MIGRATION_TIMESTAMP,
+        EMPTY_ERROR_REASON
+    );
+  }
+
+  @VisibleForTesting
+  MigrationVersionInfo(
       final int version,
       final String expectedHash,
       final String prevVersion,
@@ -58,9 +81,12 @@ public final class MigrationVersionInfo {
     this.prevVersion = Objects.requireNonNull(prevVersion, "prevVersion");
     this.state = MigrationState.valueOf(Objects.requireNonNull(state, "state"));
     this.name = Objects.requireNonNull(name, "name");
-    this.startedOn = Objects.requireNonNull(startedOn, "startedOn");
-    this.completedOn = Objects.requireNonNull(completedOn, "completedOn");
     this.errorReason = Objects.requireNonNull(errorReason, "errorReason");
+
+    Objects.requireNonNull(startedOn, "startedOn");
+    Objects.requireNonNull(completedOn, "completedOn");
+    this.startedOn = formatTimestamp(startedOn);
+    this.completedOn = formatTimestamp(completedOn);
   }
 
   public int getVersion() {
@@ -95,4 +121,11 @@ public final class MigrationVersionInfo {
     return errorReason;
   }
 
+  private static String formatTimestamp(final String epochTime) {
+    if (epochTime.equals("") || epochTime.equals(EMPTY_MIGRATION_TIMESTAMP)) {
+      return epochTime;
+    }
+
+    return DATE_FORMAT.format(new Date(Long.parseLong(epochTime)));
+  }
 }

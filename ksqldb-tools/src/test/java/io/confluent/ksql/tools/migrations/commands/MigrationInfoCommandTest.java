@@ -136,12 +136,12 @@ public class MigrationInfoCommandTest {
         .collect(Collectors.toList());
     assertThat(logMessages, hasItem(containsString("Current migration version: 3")));
     assertThat(logMessages, hasItem(containsString(
-        " Version | Name        | State    | Previous Version | Started On      | Completed On   | Error Reason \n" +
-            "-------------------------------------------------------------------------------------------------------\n" +
-            " 1       | some_name_1 | MIGRATED | <none>           | start_timestamp | stop_timestamp | N/A          \n" +
-            " 3       | some_name_3 | ERROR    | 1                | start_timestamp | stop_timestamp | error reason \n" +
-            " 4       | some name 4 | PENDING  | N/A              | N/A             | N/A            | N/A          \n" +
-            "-------------------------------------------------------------------------------------------------------"
+        " Version | Name        | State    | Previous Version | Started On | Completed On | Error Reason \n" +
+            "------------------------------------------------------------------------------------------------\n" +
+            " 1       | some_name_1 | MIGRATED | <none>           | N/A        | N/A          | N/A          \n" +
+            " 3       | some_name_3 | ERROR    | 1                | N/A        | N/A          | error reason \n" +
+            " 4       | some name 4 | PENDING  | N/A              | N/A        | N/A          | N/A          \n" +
+            "------------------------------------------------------------------------------------------------"
     )));
   }
 
@@ -272,8 +272,8 @@ public class MigrationInfoCommandTest {
       when(row.getString(3)).thenReturn(prevVersion);
       when(row.getString(4)).thenReturn(states.get(i).toString());
       when(row.getString(5)).thenReturn(fileDescriptionForVersion(version));
-      when(row.getString(6)).thenReturn("start_timestamp");
-      when(row.getString(7)).thenReturn("stop_timestamp");
+      when(row.getString(6)).thenReturn("N/A");
+      when(row.getString(7)).thenReturn("N/A");
       when(row.getString(8)).thenReturn(errorReasons.get(i));
       appliedRows.add(row);
     }

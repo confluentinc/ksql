@@ -40,8 +40,8 @@ public class MigrationVersionInfoFormatter {
     versionInfos = new ArrayList<>();
   }
 
-  public void addVersionInfo(final MigrationVersionInfo vInfo) {
-    versionInfos.add(vInfo);
+  public void addVersionInfo(final MigrationVersionInfo versionInfo) {
+    versionInfos.add(versionInfo);
   }
 
   public String getFormatted() {

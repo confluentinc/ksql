@@ -35,7 +35,7 @@ public class MigrationVersionInfoFormatterTest {
     // Given:
     formatter.addVersionInfo(new MigrationVersionInfo(
         1, "hash", "<none>", "MIGRATED",
-        "name", "start", "end", "N/A"));
+        "name", "N/A", "N/A", "N/A"));
     formatter.addVersionInfo(new MigrationVersionInfo(
         2, "other_hash", "N/A", "PENDING",
         "other_name", "N/A", "N/A", "N/A"));
@@ -47,7 +47,7 @@ public class MigrationVersionInfoFormatterTest {
     assertThat(formatted, is(
         " Version | Name       | State    | Previous Version | Started On | Completed On | Error Reason \n" +
         "-----------------------------------------------------------------------------------------------\n" +
-        " 1       | name       | MIGRATED | <none>           | start      | end          | N/A          \n" +
+        " 1       | name       | MIGRATED | <none>           | N/A        | N/A          | N/A          \n" +
         " 2       | other_name | PENDING  | N/A              | N/A        | N/A          | N/A          \n" +
         "-----------------------------------------------------------------------------------------------\n"));
   }

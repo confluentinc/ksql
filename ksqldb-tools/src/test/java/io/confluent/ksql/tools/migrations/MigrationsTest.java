@@ -159,12 +159,12 @@ public class MigrationsTest {
           .map(LoggingEvent::getRenderedMessage)
           .collect(Collectors.toList());
       assertThat(logMessages, hasItem(containsString("Current migration version: 2")));
-      assertThat(logMessages, hasItem(containsString(
-          " Version | Name        | State    | Previous Version | Started On    | Completed On  | Error Reason \n" +
-              "----------------------------------------------------------------------------------------------------\n" +
-              " 1       | foo FOO fO0 | MIGRATED | <none>           | 1614759217273 | 1614759217735 | N/A          \n" +
-              " 2       | bar bar BAR | MIGRATED | 1                | 1614759217878 | 1614759218170 | N/A          \n" +
-              "----------------------------------------------------------------------------------------------------"
+      assertThat(logMessages, hasItem(matchesRegex(
+          " Version \\| Name        \\| State    \\| Previous Version \\| Started On\\s+\\| Completed On\\s+\\| Error Reason \n" +
+              "-+\n" +
+              " 1       \\| foo FOO fO0 \\| MIGRATED \\| <none>           \\| \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\S+ \\| \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\S+ \\| N/A          \n" +
+              " 2       \\| bar bar BAR \\| MIGRATED \\| 1                \\| \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\S+ \\| \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\S+ \\| N/A          \n" +
+              "-+\n"
       )));
     } finally {
       Logger.getRootLogger().removeAppender(logAppender);
@@ -293,6 +293,22 @@ public class MigrationsTest {
 
   private static List<StreamedRow> makeKsqlQuery(final String sql) {
     return RestIntegrationTestUtil.makeQueryRequest(REST_APP, sql, Optional.empty());
+  }
+
+  private static Matcher<? super String> matchesRegex(final String regex) {
+    return new TypeSafeDiagnosingMatcher<String>() {
+      @Override
+      protected boolean matchesSafely(
+          final String actual,
+          final Description mismatchDescription) {
+        return actual.matches(regex);
+      }
+
+      @Override
+      public void describeTo(final Description description) {
+        description.appendText("matches regex: " + regex);
+      }
+    };
   }
 
   private static Matcher<? super FieldInfo> fieldInfo(

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.tools.migrations.commands;
 
-import static io.confluent.ksql.tools.migrations.util.MetadataUtil.EMPTY_ERROR_REASON;
 import static io.confluent.ksql.tools.migrations.util.MetadataUtil.getOptionalInfoForVersions;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
 
@@ -25,7 +24,6 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil;
-import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
 import io.confluent.ksql.tools.migrations.util.MigrationFile;
 import io.confluent.ksql.tools.migrations.util.MigrationVersionInfo;
 import io.confluent.ksql.tools.migrations.util.MigrationVersionInfoFormatter;
@@ -146,16 +144,7 @@ public class MigrationInfoCommand extends BaseCommand {
 
     for (final MigrationFile migration : allMigrations) {
       final MigrationVersionInfo versionInfo = versionInfos.get(migration.getVersion()).orElse(
-          new MigrationVersionInfo(
-              migration.getVersion(),
-              "N/A",
-              "N/A",
-              MigrationState.PENDING.toString(),
-              migration.getName(),
-              "N/A",
-              "N/A",
-              EMPTY_ERROR_REASON
-          ));
+          MigrationVersionInfo.pendingMigration(migration.getVersion(), migration.getName()));
       formatter.addVersionInfo(versionInfo);
     }
 

@@ -403,8 +403,8 @@ public class ApplyMigrationCommandTest {
     when(row.getString(3)).thenReturn(previous);
     when(row.getString(4)).thenReturn(state.toString());
     when(row.getString(5)).thenReturn("name");
-    when(row.getString(6)).thenReturn("start_timestamp");
-    when(row.getString(7)).thenReturn("stop_timestamp");
+    when(row.getString(6)).thenReturn("N/A");
+    when(row.getString(7)).thenReturn("N/A");
     when(row.getString(8)).thenReturn("no_error");
 
     when(infoQueryResult.get()).thenReturn(ImmutableList.of(row));

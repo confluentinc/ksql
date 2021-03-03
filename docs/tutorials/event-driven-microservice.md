@@ -1,3 +1,11 @@
+---
+layout: page
+title: Event-driven microservice 
+tagline: Learn how to create an event-driven microservice by using ksqlDB
+description: Use ksqlDB to create an event-driven microservice that identifies suspicious activity and notifies customers
+keywords: microservice
+---
+
 # Event-driven microservice
 
 ## What is it?

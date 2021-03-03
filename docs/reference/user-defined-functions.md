@@ -1,8 +1,23 @@
-[User-defined functions](/concepts/functions) let you extend ksqlDB's suite of built-in functions using Java hooks. This section is a reference for how they work. Use [the how-to guide](/how-to-guides/create-a-user-defined-function) to learn how to use them.
+---
+layout: page
+title: User-defined functions (UDFs) 
+tagline: Custom ksqlDB functions
+description: Extend ksqlDB's suite of built-in functions using Java hooks
+keywords: function, aggregation, table 
+---
+
+[User-defined functions](/concepts/functions) enable you to extend ksqlDB's
+suite of built-in functions using Java hooks. This section is a reference for
+how they work. Use [the how-to guide](/how-to-guides/create-a-user-defined-function)
+to learn how to use them.
 
 ## Data type mapping
 
-Because SQL has a type system that is independent from Java’s, user-defined functions (UDFs) need to use specific Java types so that ksqlDB can manage the correspondence from SQL to Java. Below is the mapping to use for all UDF parameters and return types. Use boxed types when you want to tolerate null values.
+Because SQL has a type system that is independent from Java’s, user-defined
+functions (UDFs) need to use specific Java types so that ksqlDB can manage
+the correspondence from SQL to Java. Below is the mapping to use for all UDF
+parameters and return types. Use boxed types when you want to tolerate null
+values.
 
 | SQL Type  | Java Type                             |
 |-----------|---------------------------------------|
@@ -12,7 +27,7 @@ Because SQL has a type system that is independent from Java’s, user-defined fu
 | `DOUBLE`  | `double`, `java.lang.Double`          |
 | `DECIMAL` | `java.math.BigDecimal`                |
 | `VARCHAR` | `java.lang.String`                    |
-|`TIMESTAMP`| `java.sql.Timestamp`                |
+|`TIMESTAMP`| `java.sql.Timestamp`                  |
 | `ARRAY`   | `java.util.List`                      |
 | `MAP`     | `java.util.Map`                       |
 | `STRUCT`  | `org.apache.kafka.connect.data.Struct`|

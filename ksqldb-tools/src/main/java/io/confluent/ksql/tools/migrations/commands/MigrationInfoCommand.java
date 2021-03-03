@@ -15,22 +15,28 @@
 
 package io.confluent.ksql.tools.migrations.commands;
 
+import static io.confluent.ksql.tools.migrations.util.MetadataUtil.getOptionalInfoForVersions;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
-import static io.confluent.ksql.tools.migrations.util.ServerVersionUtil.getServerInfo;
-import static io.confluent.ksql.tools.migrations.util.ServerVersionUtil.versionSupportsMultiKeyPullQuery;
 
 import com.github.rvesse.airline.annotations.Command;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.Client;
-import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
+import io.confluent.ksql.tools.migrations.util.MetadataUtil;
+import io.confluent.ksql.tools.migrations.util.MigrationFile;
+import io.confluent.ksql.tools.migrations.util.MigrationVersionInfo;
+import io.confluent.ksql.tools.migrations.util.MigrationVersionInfoFormatter;
+import io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import io.confluent.ksql.util.KsqlException;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 @Command(
     name = "info",
@@ -80,7 +86,20 @@ public class MigrationInfoCommand extends BaseCommand {
       return 1;
     }
 
-    throw new NotImplementedException();
+    boolean success;
+    try {
+      printCurrentVersion(config, ksqlClient);
+      printVersionInfoTable(config, ksqlClient, migrationsDir);
+
+      success = true;
+    } catch (MigrationException e) {
+      LOGGER.error(e.getMessage());
+      success = false;
+    } finally {
+      ksqlClient.close();
+    }
+
+    return success ? 0 : 1;
   }
 
   @Override
@@ -88,13 +107,47 @@ public class MigrationInfoCommand extends BaseCommand {
     return LOGGER;
   }
 
-  private static boolean serverSupportsMultiKeyPullQuery(
-      final Client ksqlClient,
-      final MigrationConfig config
+  private void printCurrentVersion(
+      final MigrationConfig config,
+      final Client ksqlClient
   ) {
-    final String ksqlServerUrl = config.getString(MigrationConfig.KSQL_SERVER_URL);
-    final ServerInfo serverInfo = getServerInfo(ksqlClient, ksqlServerUrl);
-    return versionSupportsMultiKeyPullQuery(serverInfo.getServerVersion());
+    final String currentVersion = MetadataUtil.getCurrentVersion(config, ksqlClient);
+    LOGGER.info("Current migration version: {}", currentVersion);
   }
 
+  private void printVersionInfoTable(
+      final MigrationConfig config,
+      final Client ksqlClient,
+      final String migrationsDir
+  ) {
+    final List<MigrationFile> allMigrations =
+        MigrationsDirectoryUtil.getAllMigrations(migrationsDir);
+    final List<Integer> allVersions = allMigrations.stream()
+        .map(MigrationFile::getVersion)
+        .collect(Collectors.toList());
+
+    if (allMigrations.size() != 0) {
+      final Map<Integer, Optional<MigrationVersionInfo>> versionInfos =
+          getOptionalInfoForVersions(allVersions, config, ksqlClient);
+
+      printAsTable(allMigrations, versionInfos);
+    } else {
+      LOGGER.info("No migrations files found");
+    }
+  }
+
+  private static void printAsTable(
+      final List<MigrationFile> allMigrations,
+      final Map<Integer, Optional<MigrationVersionInfo>> versionInfos
+  ) {
+    final MigrationVersionInfoFormatter formatter = new MigrationVersionInfoFormatter();
+
+    for (final MigrationFile migration : allMigrations) {
+      final MigrationVersionInfo versionInfo = versionInfos.get(migration.getVersion()).orElse(
+          MigrationVersionInfo.pendingMigration(migration.getVersion(), migration.getName()));
+      formatter.addVersionInfo(versionInfo);
+    }
+
+    LOGGER.info(formatter.getFormatted());
+  }
 }

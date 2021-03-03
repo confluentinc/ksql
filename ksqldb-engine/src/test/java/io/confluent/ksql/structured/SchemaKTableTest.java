@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.structured;
 
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -160,6 +161,8 @@ public class SchemaKTableTest {
   private KsqlTopic topic;
   @Mock
   private PlanInfo planInfo;
+  @Mock
+  private MaterializationInfo.Builder materializationBuilder;
 
   @Before
   public void init() {
@@ -207,7 +210,7 @@ public class SchemaKTableTest {
   private ExecutionStep buildSourceStep(final LogicalSchema schema, final KTable kTable) {
     final ExecutionStep sourceStep = mock(ExecutionStep.class);
     when(sourceStep.build(any(), eq(planInfo))).thenReturn(
-        KTableHolder.unmaterialized(kTable, schema, executionKeyFactory));
+        KTableHolder.materialized(kTable, schema, executionKeyFactory, materializationBuilder));
     return sourceStep;
   }
 

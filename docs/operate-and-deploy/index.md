@@ -50,6 +50,13 @@ Capacity Planning
 The [Capacity Planning guide](capacity-planning.md)
 describes how to size your ksqlDB clusters.
 
+Managing metadata schemas
+-------------------------
+
+Use the [ksqlDB migrations tool](migrations-tool.md)
+to manage your ksqlDB clusters' metadata schemas, including
+the creation, deletion, and updating of streams, tables, and queries.
+
 Troubleshooting
 ---------------
 

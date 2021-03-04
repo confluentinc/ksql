@@ -38,6 +38,7 @@ import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
@@ -91,6 +92,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final Optional<LocalCommands> localCommands;
 
   private KsqlConfig ksqlConfig;
+  private KsqlRestConfig ksqlRestConfig;
 
   @SuppressWarnings("checkstyle:ParameterNumber")
   public StreamedQueryResource(
@@ -173,6 +175,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     }
 
     ksqlConfig = config;
+    ksqlRestConfig = new KsqlRestConfig(ksqlConfig.originals());
   }
 
   public EndpointResponse streamQuery(
@@ -354,10 +357,10 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, streamsProperties));
 
-    if (QueryCapacityUtil.exceedsPushQueryCapacity(ksqlEngine, ksqlConfig)) {
+    if (QueryCapacityUtil.exceedsPushQueryCapacity(ksqlEngine, ksqlRestConfig)) {
       QueryCapacityUtil.throwTooManyActivePushQueriesException(
               ksqlEngine,
-              ksqlConfig,
+              ksqlRestConfig,
               statement.getStatementText()
       );
     }

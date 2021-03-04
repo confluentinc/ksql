@@ -57,14 +57,14 @@ public final class QueryCapacityUtil {
 
   public static boolean exceedsPushQueryCapacity(
           final KsqlExecutionContext executionContext,
-          final KsqlConfig ksqlConfig
+          final KsqlRestConfig ksqlRestConfig
   ) {
-    return getNumLivePushQueries(executionContext) > getPushQueryLimit(ksqlConfig);
+    return getNumLivePushQueries(executionContext) >= getPushQueryLimit(ksqlRestConfig);
   }
 
   public static void throwTooManyActivePushQueriesException(
           final KsqlExecutionContext executionContext,
-          final KsqlConfig ksqlConfig,
+          final KsqlRestConfig ksqlRestConfig,
           final String statementStr
   ) {
     throw new KsqlException(
@@ -77,7 +77,7 @@ public final class QueryCapacityUtil {
                     statementStr,
                     KsqlRestConfig.MAX_PUSH_QUERIES,
                     getNumLivePushQueries(executionContext),
-                    getPushQueryLimit(ksqlConfig)
+                    getPushQueryLimit(ksqlRestConfig)
             )
     );
   }
@@ -86,8 +86,7 @@ public final class QueryCapacityUtil {
     return ctx.getAllLiveQueries().size() - ctx.getPersistentQueries().size();
   }
 
-  private static int getPushQueryLimit(final KsqlConfig ksqlConfig) {
-    KsqlRestConfig ksqlRestConfig = new KsqlRestConfig(ksqlConfig.originals());
+  private static int getPushQueryLimit(final KsqlRestConfig ksqlRestConfig) {
     return ksqlRestConfig.getInt(KsqlRestConfig.MAX_PUSH_QUERIES);
   }
 

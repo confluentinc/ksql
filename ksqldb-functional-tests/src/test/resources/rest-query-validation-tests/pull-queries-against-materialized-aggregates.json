@@ -2139,13 +2139,17 @@
       ]
     },
     {
-      "name": "non-windowed - Table Scan - non column ref is not literal",
+      "name": "non-windowed - Table Scan - non column ref is unresolvable or there is no column ref",
       "statements": [
         "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
         "SELECT * FROM AGGREGATE WHERE ID = 20 - 10;",
         "SELECT * FROM AGGREGATE WHERE ID < COUNT;",
-        "SELECT * FROM AGGREGATE WHERE ID = COUNT;"
+        "SELECT * FROM AGGREGATE WHERE ID = COUNT;",
+        "SELECT * FROM AGGREGATE WHERE ID + 1 = COUNT;",
+        "SELECT * FROM AGGREGATE WHERE ID + 1 = COUNT + 1;",
+        "SELECT * FROM AGGREGATE WHERE 2 < 5;",
+        "SELECT * FROM AGGREGATE WHERE 2 > 5;"
       ],
       "inputs": [
         {"topic": "test_topic", "timestamp": 12365, "key": 2, "value": {}},
@@ -2174,6 +2178,24 @@
         {"query": [
           {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
           {"row":{"columns":[3, 3]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[2, 3]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[3, 3]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 2]}},
+          {"row":{"columns":[2, 3]}},
+          {"row":{"columns":[3, 3]}},
+          {"row":{"columns":[11, 3]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}}
         ]}
       ]
     },

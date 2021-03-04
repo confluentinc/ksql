@@ -101,10 +101,10 @@
         "CREATE STREAM OUTPUT AS SELECT ID, TRANSFORM(times, x => timestampadd(milliseconds, 5, x)) AS c FROM test;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "one", "value": {"times": [3, 6]}}
+        {"topic": "test_topic", "key": "one", "value": {"times": [3, 6, null]}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "one", "value": {"C":[8, 11]}}
+        {"topic": "OUTPUT", "key": "one", "value": {"C":[8, 11, null]}}
       ]
     }
   ]

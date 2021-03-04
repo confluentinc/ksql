@@ -34,9 +34,13 @@ public class TimestampSub {
   @Udf(description = "Subtracts a duration from a timestamp")
   public Timestamp timestampSub(
       @UdfParameter(description = "A unit of time, for example DAY or HOUR") final TimeUnit unit,
-      @UdfParameter(description = "An integer number of intervals to subtract") final int interval,
+      @UdfParameter(
+          description = "An integer number of intervals to subtract")final Integer interval,
       @UdfParameter(description = "A TIMESTAMP value.") final Timestamp timestamp
   ) {
+    if (unit == null || interval == null || timestamp == null) {
+      return null;
+    }
     return new Timestamp(timestamp.getTime() - unit.toMillis(interval));
   }
 }

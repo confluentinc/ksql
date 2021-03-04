@@ -37,6 +37,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
@@ -501,6 +502,11 @@ public final class ExpressionTreeRewriter<C> {
 
     @Override
     public Expression visitLambdaVariable(final LambdaVariable node, final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
+    }
+
+    @Override
+    public Expression visitIntervalUnit(final IntervalUnit node, final C context) {
       return plugin.apply(node, new Context<>(context, this)).orElse(node);
     }
 

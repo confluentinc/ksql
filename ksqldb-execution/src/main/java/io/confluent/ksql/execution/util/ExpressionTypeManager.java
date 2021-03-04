@@ -36,6 +36,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
@@ -148,6 +149,11 @@ public class ExpressionTypeManager {
         final LambdaVariable node, final TypeContext expressionTypeContext
     ) {
       expressionTypeContext.setSqlType(expressionTypeContext.getLambdaType(node.getValue()));
+      return null;
+    }
+
+    @Override
+    public Void visitIntervalUnit(final IntervalUnit exp, final TypeContext expressionTypeContext) {
       return null;
     }
 

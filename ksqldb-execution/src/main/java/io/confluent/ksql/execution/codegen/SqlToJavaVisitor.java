@@ -54,6 +54,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
@@ -128,6 +129,7 @@ public class SqlToJavaVisitor {
       "io.confluent.ksql.execution.codegen.helpers.ArrayAccess",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction.LazyWhenClause",
+      "java.util.concurrent.TimeUnit",
       "java.sql.Timestamp",
       "java.util.Arrays",
       "java.util.HashMap",
@@ -388,6 +390,13 @@ public class SqlToJavaVisitor {
           lambdaVariable.getValue(),
           context.getLambdaType(lambdaVariable.getValue())
       );
+    }
+
+    @Override
+    public Pair<String, SqlType> visitIntervalUnit(
+        final IntervalUnit exp, final TypeContext context
+    ) {
+      return new Pair<>("TimeUnit." + exp.getUnit().toString(), null);
     }
 
     @Override

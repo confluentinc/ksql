@@ -209,6 +209,11 @@ public abstract class TraversalExpressionVisitor<C> implements ExpressionVisitor
   }
 
   @Override
+  public Void visitIntervalUnit(final IntervalUnit node, final C context) {
+    return null;
+  }
+
+  @Override
   public Void visitUnqualifiedColumnReference(
       final UnqualifiedColumnReferenceExp node,
       final C context

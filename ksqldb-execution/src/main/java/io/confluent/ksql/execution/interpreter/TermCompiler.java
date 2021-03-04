@@ -43,6 +43,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
@@ -246,6 +247,11 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
   public Term visitLambdaVariable(
       final LambdaVariable lambdaLiteral, final Void context) {
     return visitUnsupported(lambdaLiteral);
+  }
+
+  @Override
+  public Term visitIntervalUnit(final IntervalUnit exp, final Void context) {
+    return visitUnsupported(exp);
   }
 
   @Override

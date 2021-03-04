@@ -22,6 +22,7 @@ import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlIntervalUnit;
 import io.confluent.ksql.schema.ksql.types.SqlLambdaResolved;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -47,6 +48,7 @@ public class UdfIndexTest {
   private static final ParamType STRUCT2 = StructType.builder().field("b", INT).build();
   private static final ParamType MAP1 = MapType.of(STRING, STRING);
   private static final ParamType MAP2 = MapType.of(INT, INT);
+  private static final ParamType INTERVALUNIT = ParamTypes.INTERVALUNIT;
   private static final ParamType LAMBDA_KEY_FUNCTION = LambdaType.of(ImmutableList.of(GenericType.of("A")), GenericType.of("C"));
   private static final ParamType LAMBDA_VALUE_FUNCTION = LambdaType.of(ImmutableList.of(GenericType.of("B")), GenericType.of("D"));
   private static final ParamType LAMBDA_BI_FUNCTION = LambdaType.of(ImmutableList.of(GenericType.of("A"), GenericType.of("B")), GenericType.of("C"));
@@ -237,6 +239,21 @@ public class UdfIndexTest {
 
     // When:
     final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(SqlArgument.of(MAP1_ARG)));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseIntervalUnit() {
+    // Given:
+    givenFunctions(
+        function(EXPECTED, false, INTERVALUNIT)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(SqlArgument.of(
+        SqlIntervalUnit.INSTANCE)));
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));

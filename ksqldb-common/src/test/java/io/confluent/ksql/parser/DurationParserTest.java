@@ -135,4 +135,9 @@ public class DurationParserTest {
   public void shouldSupportDays() {
     assertThat(DurationParser.parse("98 Day"), is(Duration.ofDays(98)));
   }
+
+  @Test
+  public void shouldBuildDuration() {
+    assertThat(DurationParser.buildDuration(20, "DAYS"), is(Duration.ofDays(20)));
+  }
 }

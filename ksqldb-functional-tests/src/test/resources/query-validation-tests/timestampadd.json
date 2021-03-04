@@ -1,0 +1,46 @@
+{
+  "comments": ["tests for timestampadd"],
+  "tests": [
+    {
+      "name": "adds",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, time TIMESTAMP) WITH (kafka_topic='test', value_format='DELIMITED');",
+        "CREATE STREAM TEST2 AS SELECT id, timestampadd(MILLISECONDS, 10, time) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": "10"}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": "20"}
+      ]
+    },
+    {
+      "name": "throws on incorrect type",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, time TIMESTAMP) WITH (kafka_topic='test', value_format='DELIMITED');",
+        "CREATE STREAM TEST2 AS SELECT id, timestampadd(time, 5, time) FROM TEST;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Function 'timestampadd' does not accept parameters (TIMESTAMP, INTEGER, TIMESTAMP)."
+      }
+    },
+    {
+      "name": "adds negative intervals",
+      "statements": [
+        "CREATE STREAM TEST (ID INT KEY, time TIMESTAMP) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT id, timestampadd(MILLISECONDS, -5, time) AS VALUE FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "key": 0, "value": {"time": 5}},
+        {"topic": "test", "key": 0, "value": {"time": 10}},
+        {"topic": "test", "key": 0, "value": {"time": 2}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": 0}},
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": 5}},
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": -3}}
+      ]
+    }
+  ]
+}

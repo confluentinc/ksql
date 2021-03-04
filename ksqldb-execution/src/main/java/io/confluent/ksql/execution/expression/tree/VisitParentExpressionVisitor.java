@@ -223,4 +223,9 @@ public abstract class VisitParentExpressionVisitor<R, C> implements ExpressionVi
   public R visitLambdaVariable(final LambdaVariable node, final C context) {
     return visitLiteral(node, context);
   }
+
+  @Override
+  public R visitIntervalUnit(final IntervalUnit node, final C context) {
+    return visitExpression(node, context);
+  }
 }

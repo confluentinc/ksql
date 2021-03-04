@@ -1,0 +1,46 @@
+{
+  "comments": ["tests for timestampsub"],
+  "tests": [
+    {
+      "name": "subtracts",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, time TIMESTAMP) WITH (kafka_topic='test', value_format='DELIMITED');",
+        "CREATE STREAM TEST2 AS SELECT id, timestampsub(MILLISECONDS, 10, time) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": "20"}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": "10"}
+      ]
+    },
+    {
+      "name": "throws on incorrect type",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, time TIMESTAMP) WITH (kafka_topic='test', value_format='DELIMITED');",
+        "CREATE STREAM TEST2 AS SELECT id, timestampsub(time, 5, time) FROM TEST;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Function 'timestampsub' does not accept parameters (TIMESTAMP, INTEGER, TIMESTAMP)."
+      }
+    },
+    {
+      "name": "subtracts negative intervals",
+      "statements": [
+        "CREATE STREAM TEST (ID INT KEY, time TIMESTAMP) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT id, timestampsub(MILLISECONDS, -5, time) AS VALUE FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "key": 0, "value": {"time": 5}},
+        {"topic": "test", "key": 0, "value": {"time": 0}},
+        {"topic": "test", "key": 0, "value": {"time": -100}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": 10}},
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": 5}},
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": -95}}
+      ]
+    }
+  ]
+}

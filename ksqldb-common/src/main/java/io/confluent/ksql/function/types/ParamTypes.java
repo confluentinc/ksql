@@ -41,6 +41,7 @@ public final class ParamTypes {
   public static final LongType LONG = LongType.INSTANCE;
   public static final ParamType DECIMAL = DecimalType.INSTANCE;
   public static final TimestampType TIMESTAMP = TimestampType.INSTANCE;
+  public static final IntervalUnitType INTERVALUNIT = IntervalUnitType.INSTANCE;
 
   public static boolean areCompatible(final SqlArgument actual, final ParamType declared) {
     return areCompatible(actual, declared, false);
@@ -84,6 +85,12 @@ public final class ParamTypes {
       } else {
         return sqlLambda.getNumInputs() == declaredLambda.inputTypes().size();
       }
+    }
+
+    if (argument.getSqlIntervalUnit().isPresent() && declared instanceof IntervalUnitType) {
+      return true;
+    } else if (argument.getSqlIntervalUnit().isPresent() || declared instanceof IntervalUnitType) {
+      return false;
     }
 
     final SqlType argumentSqlType = argument.getSqlTypeOrThrow();

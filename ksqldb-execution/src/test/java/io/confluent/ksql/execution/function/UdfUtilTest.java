@@ -36,6 +36,7 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
@@ -160,6 +161,14 @@ public class UdfUtilTest {
     assertThat(
         UdfUtil.getSchemaFromType(Timestamp.class),
         is(ParamTypes.TIMESTAMP)
+    );
+  }
+
+  @Test
+  public void shouldGetIntervalUnitTypeForTimeUnitClass() {
+    assertThat(
+        UdfUtil.getSchemaFromType(TimeUnit.class),
+        is(ParamTypes.INTERVALUNIT)
     );
   }
 

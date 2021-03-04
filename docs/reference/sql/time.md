@@ -9,7 +9,7 @@ keywords: time, datetime, timestamp, format, window
 ### Time units
 
 The following list shows valid time units for the `SIZE`, `ADVANCE BY`,
-`SESSION`, and `WITHIN` clauses.
+`SESSION`, and `WITHIN` clauses, or to pass as time unit parameters in functions.
 
 -   `DAY`, `DAYS`
 -   `HOUR`, `HOURS`

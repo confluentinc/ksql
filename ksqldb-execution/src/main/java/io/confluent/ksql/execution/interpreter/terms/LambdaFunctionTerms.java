@@ -21,105 +21,97 @@ import io.confluent.ksql.execution.codegen.helpers.TriFunction;
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.Pair;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class LambdaFunctionTerms {
 
-  public static class LambdaFunction1Term implements Term {
+  public static abstract class LambdaFunctionBaseTerm implements Term {
+    protected final List<Pair<String, SqlType>> argNamesToTypes;
+    protected final Term body;
 
-    private final List<Pair<String, SqlType>> argNamesToTypes;
-    private final Term body;
-
-    public LambdaFunction1Term(final List<Pair<String, SqlType>> argNamesToTypes, final Term body) {
+    public LambdaFunctionBaseTerm(
+        final List<Pair<String, SqlType>> argNamesToTypes,
+        final Term body
+    ) {
       this.argNamesToTypes = argNamesToTypes;
       this.body = body;
+    }
 
+    @Override
+    public SqlType getSqlType() {
+      // A lambda isn't considered to have a type in our type system, so we return null.
+      return null;
+    }
+
+    protected Object getValueCommon(final TermEvaluationContext context, Object... args) {
+      context.pushVariableMappings(createVariableMap(argNamesToTypes, args));
+      try {
+        return body.getValue(context);
+      } finally {
+        context.popVariableMappings();
+      }
+    }
+  }
+
+  public static class LambdaFunction1Term extends LambdaFunctionBaseTerm {
+
+    public LambdaFunction1Term(final List<Pair<String, SqlType>> argNamesToTypes, final Term body) {
+      super(argNamesToTypes, body);
       Preconditions.checkState(argNamesToTypes.size() == 1);
     }
 
     @Override
     public Object getValue(final TermEvaluationContext context) {
-      return (Function<Object, Object>) arg0 -> {
-        final String name0 = argNamesToTypes.get(0).getLeft();
-        context.pushVariableMappings(ImmutableMap.of(name0, arg0));
-        try {
-          return body.getValue(context);
-        } finally {
-          context.popVariableMappings();
-        }
-      };
-    }
-
-    @Override
-    public SqlType getSqlType() {
-      return null;
+      return (Function<Object, Object>) arg0 -> getValueCommon(context, arg0);
     }
   }
 
-  public static class LambdaFunction2Term implements Term {
-
-    private final List<Pair<String, SqlType>> argNamesToTypes;
-    private final Term body;
+  public static class LambdaFunction2Term extends LambdaFunctionBaseTerm {
 
     public LambdaFunction2Term(final List<Pair<String, SqlType>> argNamesToTypes, final Term body) {
-      this.argNamesToTypes = argNamesToTypes;
-      this.body = body;
-
+      super(argNamesToTypes, body);
       Preconditions.checkState(argNamesToTypes.size() == 2);
     }
 
     @Override
     public Object getValue(final TermEvaluationContext context) {
-      return (BiFunction<Object, Object, Object>) (arg0, arg1) -> {
-        final String name0 = argNamesToTypes.get(0).getLeft();
-        final String name1 = argNamesToTypes.get(1).getLeft();
-        context.pushVariableMappings(ImmutableMap.of(name0, arg0, name1, arg1));
-        try {
-          return body.getValue(context);
-        } finally {
-          context.popVariableMappings();
-        }
-      };
-    }
-
-    @Override
-    public SqlType getSqlType() {
-      return null;
+      return (BiFunction<Object, Object, Object>) (arg0, arg1) ->
+          getValueCommon(context, arg0, arg1);
     }
   }
 
-  public static class LambdaFunction3Term implements Term {
-
-    private final List<Pair<String, SqlType>> argNamesToTypes;
-    private final Term body;
+  public static class LambdaFunction3Term extends LambdaFunctionBaseTerm {
 
     public LambdaFunction3Term(final List<Pair<String, SqlType>> argNamesToTypes, final Term body) {
-      this.argNamesToTypes = argNamesToTypes;
-      this.body = body;
-
+      super(argNamesToTypes, body);
       Preconditions.checkState(argNamesToTypes.size() == 3);
     }
 
     @Override
     public Object getValue(final TermEvaluationContext context) {
-      return (TriFunction<Object, Object, Object, Object>) (arg0, arg1, arg2) -> {
-        final String name0 = argNamesToTypes.get(0).getLeft();
-        final String name1 = argNamesToTypes.get(1).getLeft();
-        final String name2 = argNamesToTypes.get(2).getLeft();
-        context.pushVariableMappings(ImmutableMap.of(name0, arg0, name1, arg1, name2, arg2));
-        try {
-          return body.getValue(context);
-        } finally {
-          context.popVariableMappings();
-        }
-      };
+      return (TriFunction<Object, Object, Object, Object>) (arg0, arg1, arg3) ->
+          getValueCommon(context, arg0, arg1, arg3);
     }
+  }
 
-    @Override
-    public SqlType getSqlType() {
-      return null;
+  private static Map<String, Object> createVariableMap(
+      final List<Pair<String, SqlType>> argNamesToTypes,
+      final Object... args
+  ) {
+    Preconditions.checkArgument(argNamesToTypes.size() == args.length,
+        "Argument length should be the same");
+    Map<String, Object> variableMap = new HashMap<>();
+    int i = 0;
+    for (final Pair<String, SqlType> pair : argNamesToTypes) {
+      final String name = pair.getLeft();
+      variableMap.put(name, args[i]);
+      i++;
     }
+    return Collections.unmodifiableMap(variableMap);
   }
 }

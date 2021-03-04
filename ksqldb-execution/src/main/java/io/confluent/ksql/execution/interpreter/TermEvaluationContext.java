@@ -20,10 +20,15 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.Map;
 
+/**
+ * Holds all state associated with row-based evaluation of a {@code Term} tree. This for example
+ * consists of the current row itself and any lambda-created variables that are in the current
+ * call frame.
+ */
 public final class TermEvaluationContext {
 
   private final GenericRow row;
-  private final Deque<Map<String, Object>> deque = new LinkedList<>();
+  private final Deque<Map<String, Object>> variableMappingsStack = new LinkedList<>();
 
   public TermEvaluationContext(final GenericRow row) {
     this.row = row;
@@ -33,16 +38,32 @@ public final class TermEvaluationContext {
     return row;
   }
 
+  /**
+   * Used to push a set of variables and their object mappings into the evaluation context.  This is
+   * used for lambdas where such variables are created.
+   * @param mappings The new mappings
+   */
   public void pushVariableMappings(final Map<String, Object> mappings) {
-    deque.push(mappings);
+    variableMappingsStack.push(mappings);
   }
 
+  /**
+   * Used to pop the set of variables that were mapped by a previous call to
+   * {@code pushVariableMappings}. The calls to each of these methods is meant to be invoked
+   * alongside the start and completion of the calling stack of the lambda.
+   */
   public void popVariableMappings() {
-    deque.pop();
+    variableMappingsStack.pop();
   }
 
+  /**
+   * Looks up a variable from the mappings made with {@code pushVariableMappings} that have not yet
+   * been popped with {@code popVariableMappings}.
+   * @param name
+   * @return
+   */
   public Object lookupVariable(final String name) {
-    for (Map<String, Object> mappings : deque) {
+    for (Map<String, Object> mappings : variableMappingsStack) {
       if (mappings.containsKey(name)) {
         return mappings.get(name);
       }

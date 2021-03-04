@@ -17,6 +17,8 @@ package io.confluent.ksql.cli.console;
 
 import static io.confluent.ksql.util.CmdLineUtil.splitByUnquotedWhitespace;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -908,7 +910,10 @@ public class Console implements Closeable {
 
   private void printAsJson(final Object o) {
     try {
-      OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValue(writer(), o);
+      OBJECT_MAPPER
+        .setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY)
+        .writerWithDefaultPrettyPrinter()
+        .writeValue(writer(), o);
       writer().println();
       flush();
     } catch (final IOException e) {

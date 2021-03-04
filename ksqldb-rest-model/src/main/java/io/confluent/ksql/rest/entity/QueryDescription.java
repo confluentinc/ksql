@@ -27,6 +27,7 @@ import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
+import io.confluent.ksql.util.StreamsTaskMetadata;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,7 +38,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.kafka.streams.processor.TaskMetadata;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class QueryDescription {

@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 @Immutable
 public final class SqlLambdaResolved extends SqlLambda {
 
-  private final List<SqlType> inputTypes;
+  private final ImmutableList<SqlType> inputTypes;
   private final SqlType returnType;
 
   public static SqlLambdaResolved of(

@@ -182,12 +182,17 @@ public final class MigrationConfig extends AbstractConfig {
         configs.get(SSL_KEYSTORE_PASSWORD),
         configs.get(SSL_KEY_ALIAS),
         configs.get(SSL_KEY_PASSWORD),
-        configs.getOrDefault(SSL_ALPN, "false").equals("true"),
-        configs.getOrDefault(SSL_VERIFY_HOST, "true").equals("true")
+        configs.getOrDefault(SSL_ALPN, "false").toLowerCase().equals("true"),
+        configs.getOrDefault(SSL_VERIFY_HOST, "true").toLowerCase().equals("true")
     );
     final String serviceId;
-    serviceId = ServerVersionUtil.getServerInfo(ksqlClient, ksqlServerUrl).getKsqlServiceId();
-    ksqlClient.close();
-    return serviceId;
+    try {
+      serviceId = ServerVersionUtil.getServerInfo(ksqlClient, ksqlServerUrl).getKsqlServiceId();
+      ksqlClient.close();
+      return serviceId;
+    } catch(MigrationException e) {
+      ksqlClient.close();
+      throw e;
+    }
   }
 }

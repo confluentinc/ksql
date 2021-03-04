@@ -98,7 +98,7 @@ public final class MigrationsUtil {
       options.setBasicAuthCredentials(username, password);
     }
 
-    final boolean useTls = ksqlServerUrl.trim().startsWith("https");
+    final boolean useTls = ksqlServerUrl.trim().toLowerCase().startsWith("https://");
     options.setUseTls(useTls);
 
     if (useTls) {

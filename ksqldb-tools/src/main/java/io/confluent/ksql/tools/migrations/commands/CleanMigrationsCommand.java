@@ -16,11 +16,26 @@
 package io.confluent.ksql.tools.migrations.commands;
 
 import com.github.rvesse.airline.annotations.Command;
+import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.api.client.Client;
+import io.confluent.ksql.api.client.QueryInfo;
+import io.confluent.ksql.api.client.SourceDescription;
+import io.confluent.ksql.api.client.StreamInfo;
+import io.confluent.ksql.api.client.TableInfo;
+import io.confluent.ksql.tools.migrations.MigrationConfig;
+import io.confluent.ksql.tools.migrations.MigrationException;
+import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
+import io.confluent.ksql.tools.migrations.util.ServerVersionUtil;
+import io.confluent.ksql.util.KsqlException;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Command(
-    name = "new",
+    name = "clean",
     description = "Cleans all resources related to migrations. WARNING: this is not reversible!"
 )
 public class CleanMigrationsCommand extends BaseCommand {
@@ -29,7 +44,47 @@ public class CleanMigrationsCommand extends BaseCommand {
 
   @Override
   protected int command() {
-    throw new UnsupportedOperationException();
+    if (!validateConfigFilePresent()) {
+      return 1;
+    }
+
+    final MigrationConfig config;
+    try {
+      config = MigrationConfig.load(configFile);
+    } catch (KsqlException | MigrationException e) {
+      LOGGER.error(e.getMessage());
+      return 1;
+    }
+
+    return command(config, MigrationsUtil::getKsqlClient);
+  }
+
+  @VisibleForTesting
+  int command(
+      final MigrationConfig config,
+      final Function<MigrationConfig, Client> clientSupplier
+  ) {
+    final String streamName = config.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME);
+    final String tableName = config.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
+
+    final Client ksqlClient;
+    try {
+      ksqlClient = clientSupplier.apply(config);
+    } catch (MigrationException e) {
+      LOGGER.error(e.getMessage());
+      return 1;
+    }
+
+    if (ServerVersionUtil.serverVersionCompatible(ksqlClient, config)
+        && deleteMigrationsTable(ksqlClient, tableName)
+        && deleteMigrationsStream(ksqlClient, streamName)) {
+      LOGGER.info("Migrations metadata cleaned successfully");
+      ksqlClient.close();
+      return 0;
+    } else {
+      ksqlClient.close();
+      return 1;
+    }
   }
 
   @Override
@@ -37,4 +92,127 @@ public class CleanMigrationsCommand extends BaseCommand {
     return LOGGER;
   }
 
+  private boolean deleteMigrationsTable(final Client ksqlClient, final String tableName) {
+    try {
+      if (!sourceExists(ksqlClient, tableName, true)) {
+        // nothing to delete
+        return true;
+      }
+
+      final SourceDescription tableInfo = getSourceInfo(ksqlClient, tableName, true);
+      terminateQueryForTable(ksqlClient, tableInfo);
+      dropSource(ksqlClient, tableName, true);
+
+      return true;
+    } catch (MigrationException e) {
+      LOGGER.error(e.getMessage());
+      return false;
+    }
+  }
+
+  private boolean deleteMigrationsStream(final Client ksqlClient, final String streamName) {
+    try {
+      if (!sourceExists(ksqlClient, streamName, false)) {
+        // nothing to delete
+        return true;
+      }
+
+      dropSource(ksqlClient, streamName, false);
+      return true;
+    } catch (MigrationException e) {
+      LOGGER.error(e.getMessage());
+      return false;
+    }
+  }
+
+  private static boolean sourceExists(
+      final Client ksqlClient,
+      final String sourceName,
+      final boolean isTable
+  ) {
+    try {
+      if (isTable) {
+        final List<TableInfo> tables = ksqlClient.listTables().get();
+        return tables.stream()
+            .anyMatch(tableInfo -> tableInfo.getName().equalsIgnoreCase(sourceName));
+      } else {
+        final List<StreamInfo> streams = ksqlClient.listStreams().get();
+        return streams.stream()
+            .anyMatch(streamInfo -> streamInfo.getName().equalsIgnoreCase(sourceName));
+      }
+    } catch (InterruptedException | ExecutionException e) {
+      throw new MigrationException(String.format(
+          "Failed to check for presence of metadata %s '%s': %s",
+              isTable ? "table" : "stream",
+              sourceName,
+              e.getMessage()));
+    }
+  }
+
+  /**
+   * Returns the source description, assuming the source exists.
+   */
+  private static SourceDescription getSourceInfo(
+      final Client ksqlClient,
+      final String sourceName,
+      final boolean isTable
+  ) {
+    try {
+      return ksqlClient.describeSource(sourceName).get();
+    } catch (InterruptedException | ExecutionException e) {
+      throw new MigrationException(String.format("Failed to describe metadata %s '%s': %s",
+          isTable ? "table" : "stream",
+          sourceName,
+          e.getMessage()));
+    }
+  }
+
+  private static void terminateQueryForTable(
+      final Client ksqlClient,
+      final SourceDescription tableDesc
+  ) {
+    final List<QueryInfo> queries = tableDesc.writeQueries();
+    if (queries.size() == 0) {
+      LOGGER.info("Found 0 queries writing to metadata table");
+      return;
+    }
+
+    if (queries.size() > 1) {
+      throw new MigrationException("Found multiple queries writing to metadata table. Query IDs: "
+          + queries.stream()
+              .map(QueryInfo::getId)
+              .collect(Collectors.joining("', '", "'", "'.")));
+    }
+
+    final String queryId = queries.get(0).getId();
+    LOGGER.info("Found 1 query writing to metadata table. Query ID: {}", queryId);
+
+    LOGGER.info("Terminating query with ID: {}", queryId);
+    try {
+      ksqlClient.executeStatement("TERMINATE " + queryId + ";").get();
+    } catch (InterruptedException | ExecutionException e) {
+      throw new MigrationException(String.format(
+          "Failed to terminate query populating metadata table. Query ID: %s. Error: %s",
+              queryId, e.getMessage()));
+    }
+  }
+
+  private static void dropSource(
+      final Client ksqlClient,
+      final String sourceName,
+      final boolean isTable
+  ) {
+    final String sourceType = isTable ? "table" : "stream";
+    LOGGER.info("Dropping migrations metadata {}: {}", sourceType, sourceName);
+    try {
+      final String sql = String.format("DROP %s %s DELETE TOPIC;",
+          sourceType.toUpperCase(), sourceName);
+      ksqlClient.executeStatement(sql).get();
+    } catch (InterruptedException | ExecutionException e) {
+      throw new MigrationException(String.format("Failed to drop metadata %s '%s': %s",
+          sourceType,
+          sourceName,
+          e.getMessage()));
+    }
+  }
 }

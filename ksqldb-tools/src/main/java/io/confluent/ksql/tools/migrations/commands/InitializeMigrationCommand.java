@@ -18,7 +18,6 @@ package io.confluent.ksql.tools.migrations.commands;
 import com.github.rvesse.airline.annotations.Command;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.Client;
-import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
@@ -58,8 +57,12 @@ public class InitializeMigrationCommand extends BaseCommand {
         + ");\n";
   }
 
-  private String createVersionTable(final String name, final String topic) {
-    return "CREATE TABLE " + name + "\n"
+  private String createVersionTable(
+      final String tableName,
+      final String streamName,
+      final String topic
+  ) {
+    return "CREATE TABLE " + tableName + "\n"
         + "  WITH (\n"
         + "    KAFKA_TOPIC='" + topic + "'\n"
         + "  )\n"
@@ -73,7 +76,7 @@ public class InitializeMigrationCommand extends BaseCommand {
         + "    latest_by_offset(completed_on) AS completed_on, \n"
         + "    latest_by_offset(previous) AS previous, \n"
         + "    latest_by_offset(error_reason) AS error_reason \n"
-        + "  FROM migration_events \n"
+        + "  FROM " + streamName + " \n"
         + "  GROUP BY version_key;\n";
   }
 
@@ -108,6 +111,7 @@ public class InitializeMigrationCommand extends BaseCommand {
     );
     final String versionTableCommand = createVersionTable(
         tableName,
+        streamName,
         config.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_TOPIC_NAME)
     );
 
@@ -119,10 +123,10 @@ public class InitializeMigrationCommand extends BaseCommand {
       return 1;
     }
 
-    if (serverVersionCompatible(ksqlClient, config)
+    if (ServerVersionUtil.serverVersionCompatible(ksqlClient, config)
         && tryCreate(ksqlClient, eventStreamCommand, streamName, true)
         && tryCreate(ksqlClient, versionTableCommand, tableName, false)) {
-      LOGGER.info("Schema metadata initialized successfully");
+      LOGGER.info("Migrations metadata initialized successfully");
       ksqlClient.close();
     } else {
       ksqlClient.close();
@@ -130,28 +134,6 @@ public class InitializeMigrationCommand extends BaseCommand {
     }
 
     return 0;
-  }
-
-  private static boolean serverVersionCompatible(
-      final Client ksqlClient,
-      final MigrationConfig config
-  ) {
-    final String ksqlServerUrl = config.getString(MigrationConfig.KSQL_SERVER_URL);
-    final ServerInfo serverInfo;
-    try {
-      serverInfo = ServerVersionUtil.getServerInfo(ksqlClient, ksqlServerUrl);
-    } catch (MigrationException e) {
-      LOGGER.error("Failed to get server info to verify version compatibility: {}", e.getMessage());
-      return false;
-    }
-
-    final String serverVersion = serverInfo.getServerVersion();
-    try {
-      return ServerVersionUtil.isSupportedVersion(serverVersion);
-    } catch (MigrationException e) {
-      LOGGER.warn(e.getMessage() + ". Proceeding anyway.");
-      return true;
-    }
   }
 
   private static boolean tryCreate(

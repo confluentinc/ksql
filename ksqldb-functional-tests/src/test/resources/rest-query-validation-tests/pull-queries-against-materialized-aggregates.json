@@ -2139,6 +2139,93 @@
       ]
     },
     {
+      "name": "non-windowed - Table Scan - non column ref is not literal",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID = 20 - 10;",
+        "SELECT * FROM AGGREGATE WHERE ID < COUNT;",
+        "SELECT * FROM AGGREGATE WHERE ID = COUNT;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12365, "key": 2, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 2, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 2, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 3, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 3, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 3, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 10, "value": {}},
+        {"topic": "test_topic", "timestamp": 12375, "key": 10, "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 12355, "key": 11, "value": {}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 11, "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[2, 3]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[3, 3]}}
+        ]}
+      ]
+    },
+    {
+      "name": "fail on unsupported query feature: No column key",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID + 10 = 20;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "A comparison must reference a key column and literal.",
+        "status": 400
+      }
+    },
+    {
+      "name": "fail on unsupported query feature: Two columns in comparison",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID = COUNT;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "A comparison must reference a key column and literal.",
+        "status": 400
+      }
+    },
+    {
+      "name": "fail on unsupported query feature: Non column key is unresolvable",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID = COUNT - 1;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Non column reference must be resolvable.",
+        "status": 400
+      }
+    },
+    {
       "name": "multi-column aggregation",
       "statements": [
         "CREATE STREAM INPUT (ID1 STRING KEY, ID2 INT) WITH (kafka_topic='test_topic', format='JSON');",

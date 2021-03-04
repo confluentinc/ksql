@@ -31,6 +31,7 @@ import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -302,7 +303,17 @@ public class PullFilterNode extends SingleSourcePlanNode {
                 isWindowed));
         return null;
       }
+
       final UnqualifiedColumnReferenceExp column = getColumnRefSide(node);
+      final Expression other = getNonColumnRefSide(node);
+      final NonColumnRefValidator nonColumnRefValidator = new NonColumnRefValidator();
+      nonColumnRefValidator.process(other, null);
+
+      if (nonColumnRefValidator.isNonColumnRefUnresolvable()) {
+        setTableScanOrElseThrow(() ->
+            invalidWhereClauseException("Non column reference must be resolvable", isWindowed));
+        return null;
+      }
 
       final ColumnName columnName = column.getColumnName();
       if (columnName.equals(SystemColumns.WINDOWSTART_NAME)
@@ -349,6 +360,28 @@ public class PullFilterNode extends SingleSourcePlanNode {
       } else {
         throw exceptionSupplier.get();
       }
+    }
+  }
+
+  private final class NonColumnRefValidator extends TraversalExpressionVisitor<Object> {
+
+    private boolean nonColumnRefUnresolvable;
+
+    public NonColumnRefValidator() {
+      nonColumnRefUnresolvable = false;
+    }
+
+    @Override
+    public Void visitUnqualifiedColumnReference(
+        final UnqualifiedColumnReferenceExp node,
+        final Object context
+    ) {
+      nonColumnRefUnresolvable = true;
+      return null;
+    }
+
+    public boolean isNonColumnRefUnresolvable() {
+      return nonColumnRefUnresolvable;
     }
   }
 
@@ -438,7 +471,8 @@ public class PullFilterNode extends SingleSourcePlanNode {
             keyColumn.name(),
             metaStore,
             config,
-            "pull query"
+            "pull query",
+            ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)
         ).resolve(exp);
       }
 

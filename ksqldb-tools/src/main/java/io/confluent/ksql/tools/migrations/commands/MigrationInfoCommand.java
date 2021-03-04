@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
 
 @Command(
     name = "info",
-    description = "Displays information about the current and available migrations"
+    description = "Displays information about the current and available migrations."
 )
 public class MigrationInfoCommand extends BaseCommand {
 

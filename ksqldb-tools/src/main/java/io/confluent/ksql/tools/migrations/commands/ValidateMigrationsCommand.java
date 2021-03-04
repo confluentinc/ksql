@@ -40,13 +40,14 @@ import org.slf4j.LoggerFactory;
 
 @Command(
     name = "validate",
-    description = "Validate applied migrations against local files."
+    description = "Validates applied migrations against local files."
 )
 @Discussion(
     paragraphs = {
-      "Compares local files checksum against the current metadata checksums to check "
-          + "for migrations files that have changed."
-          + "This tells the user that their schema might be not valid against their local files."
+      "This command checks whether the migration files that have been applied are "
+          + "the same as the local migration files with the same version, by computing "
+          + "hashes for the local files and comparing them to the checksums saved with "
+          + "the applied migrations."
     }
 )
 public class ValidateMigrationsCommand extends BaseCommand {

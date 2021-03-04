@@ -36,7 +36,9 @@ import org.slf4j.LoggerFactory;
 
 @Command(
     name = "clean",
-    description = "Cleans all resources related to migrations. WARNING: this is not reversible!"
+    description = "Cleans all ksqlDB server resources related to migrations, including "
+        + "the migrations metadata stream and table and their underlying Kafka topics. "
+        + "WARNING: this is not reversible!"
 )
 public class CleanMigrationsCommand extends BaseCommand {
 

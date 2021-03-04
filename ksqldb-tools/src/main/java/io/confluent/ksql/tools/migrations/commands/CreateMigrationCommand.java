@@ -38,12 +38,12 @@ import org.slf4j.LoggerFactory;
 
 @Command(
     name = "create",
-    description = "Create a blank migration file with <description> as description, which "
-        + "can then be edited and applied as the next schema version."
+    description = "Creates a blank migration file with the specified description, which "
+        + "can then be populated with ksqlDB statements and applied as the next schema version."
 )
 @Examples(
-    examples = "$ ksql-migrations create Add_users",
-    descriptions = "Creates a new migrations file for adding a users table to ksqlDB "
+    examples = "$ ksql-migrations --config-file <config-file> create Add_users",
+    descriptions = "Creates a new migrations file with the next available version number "
         + "(e.g. V000002__Add_users.sql)"
 )
 public class CreateMigrationCommand extends BaseCommand {
@@ -54,7 +54,7 @@ public class CreateMigrationCommand extends BaseCommand {
 
   @Option(
       name = {"-v", "--version"},
-      description = "the schema version to initialize, defaults to the next"
+      description = "(Optional) The schema version to initialize. Defaults to the next"
           + " schema version based on existing migration files."
   )
   private int version;

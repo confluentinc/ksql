@@ -19,7 +19,6 @@ import static io.confluent.ksql.tools.migrations.commands.InitializeMigrationCom
 
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.OptionType;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
@@ -30,11 +29,7 @@ import org.slf4j.Logger;
  * Defines common options across all of the migration
  * tool commands.
  */
-@SuppressFBWarnings(
-    value = "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD",
-    justification = "code is skeleton only at the moment, used to generate HELP message"
-)
-public abstract class BaseCommand {
+public abstract class BaseCommand implements Runnable {
 
   private static final String CONFIG_FILE_OPTION = "--config-file";
   private static final String CONFIG_FILE_OPTION_SHORT = "-c";
@@ -42,23 +37,21 @@ public abstract class BaseCommand {
   @Option(
       name = {CONFIG_FILE_OPTION_SHORT, CONFIG_FILE_OPTION},
       title = "config-file",
-      description = "Specifies a configuration file",
+      description = "Path to migrations configuration file. Required for all commands "
+          + "with the exception of `" + NewMigrationCommand.NEW_COMMAND_NAME + "`.",
       type = OptionType.GLOBAL
   )
   protected String configFile;
 
-  @Option(
-      name = {"--dry-run"},
-      title = "dry-run",
-      description = "dry run the current command, no ksqlDB statements will be executed",
-      type = OptionType.GLOBAL
-  )
-  protected boolean dryRun = false;
+  @Override
+  public void run() {
+    runCommand();
+  }
 
   /**
    * @return exit status of the command
    */
-  public int run() {
+  public int runCommand() {
     final long startTime = System.nanoTime();
     final int status = command();
     getLogger().info("Execution time: " + (System.nanoTime() - startTime) / 1000000000);

@@ -30,7 +30,8 @@ import org.slf4j.LoggerFactory;
 
 @Command(
     name = InitializeMigrationCommand.INITIALIZE_COMMAND_NAME,
-    description = "Initializes the schema metadata (stream and table)."
+    description = "Initializes the migrations schema metadata (ksqlDB stream and table) "
+        + "on the ksqlDB server."
 )
 public class InitializeMigrationCommand extends BaseCommand {
 

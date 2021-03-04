@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 
 @Command(
     name = NewMigrationCommand.NEW_COMMAND_NAME,
-    description = "Creates a new migrations project, directory structure and config file."
+    description = "Creates a new migrations project directory structure and config file."
 )
 public class NewMigrationCommand extends BaseCommand {
 
@@ -48,16 +48,22 @@ public class NewMigrationCommand extends BaseCommand {
 
   @Required
   @Arguments(
-      description = "project-path: the project path to create the directory\n"
-          + "ksql-server-url: the address of the ksqlDB server to connect to",
+      description = "project-path: the path that will be used as the root directory for "
+          + "this migrations project.\n"
+          + "ksql-server-url: the address of the ksqlDB server to connect to.",
       title = {"project-path", "ksql-server-url"})
   private List<String> args;
 
   @Override
   protected int command() {
+    if (configFile != null && !configFile.equals("")) {
+      LOGGER.error("This command does not expect a config file to be passed. "
+          + "Rather, this command will create one as part of preparing the migrations directory.");
+      return 1;
+    }
     if (args.size() != 2) {
       LOGGER.error(
-          "Unexpected number of arguments to `{} {}}`. Expected: 2. Got: {}. "
+          "Unexpected number of arguments to `{} {}`. Expected: 2. Got: {}. "
               + "See `{} help {}` for usage.",
           MigrationsUtil.MIGRATIONS_COMMAND, NEW_COMMAND_NAME, args.size(),
           MigrationsUtil.MIGRATIONS_COMMAND, NEW_COMMAND_NAME);

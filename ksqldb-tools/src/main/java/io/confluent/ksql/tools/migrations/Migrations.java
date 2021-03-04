@@ -54,10 +54,16 @@ public final class Migrations {
   private Migrations() {}
 
   public static void main(final String[] args) {
-    // all Migrations commands must implement BaseCommand, so we
-    // are safe to assume that the type returned is Cli<BaseCommand>
-    final Cli<BaseCommand> cli = new Cli<>(Migrations.class);
-    System.exit(cli.parse(args).run());
+    // even though all migrations commands implement BaseCommand, the Help
+    // command does not so we infer the type as Runnable instead
+    final Cli<Runnable> cli = new Cli<>(Migrations.class);
+    final Runnable command = cli.parse(args);
+    if (command instanceof Help) {
+      command.run();
+      System.exit(0);
+    }
+
+    System.exit(((BaseCommand) command).runCommand());
   }
 
 }

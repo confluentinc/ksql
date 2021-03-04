@@ -190,7 +190,7 @@ public final class MigrationConfig extends AbstractConfig {
       serviceId = ServerVersionUtil.getServerInfo(ksqlClient, ksqlServerUrl).getKsqlServiceId();
       ksqlClient.close();
       return serviceId;
-    } catch(MigrationException e) {
+    } catch (MigrationException e) {
       ksqlClient.close();
       throw e;
     }

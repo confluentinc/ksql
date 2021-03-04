@@ -146,7 +146,7 @@ public class NewMigrationCommandTest {
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
   @Test
-  public void shouldNotFailIfConfigFileAlreadyExist() throws Exception {
+  public void shouldFailIfConfigFileAlreadyExists() throws Exception {
     // Given:
     Files.createDirectories(Paths.get(testDir));
     new File(Paths.get(testDir, MIGRATIONS_CONFIG_FILE).toString()).createNewFile();
@@ -155,9 +155,7 @@ public class NewMigrationCommandTest {
     final int status = command.runCommand();
 
     // Then:
-    assertThat(status, is(0));
-
-    assertThat(new File(Paths.get(testDir, MIGRATIONS_DIR).toString()).exists(), is(true));
+    assertThat(status, is(1));
   }
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")

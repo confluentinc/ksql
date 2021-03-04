@@ -29,37 +29,37 @@ import java.util.HashMap;
 import java.util.Map;
 
 @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED")
-public class TypeContextTest {
+public class LambdaMappingUtilTest {
 
   @Test
   public void shouldThrowOnMappingMismatch() {
     // Given
-    final TypeContext context = new TypeContext(ImmutableMap.of("x", SqlTypes.STRING, "y", SqlTypes.STRING));
-
+    final Map<String, SqlType> oldMapping = ImmutableMap.of("x", SqlTypes.BIGINT, "y", SqlTypes.STRING);
+    final Map<String, SqlType> newMapping = ImmutableMap.of("x", SqlTypes.STRING, "y", SqlTypes.STRING);
+    
     // When
     final Exception e =
         assertThrows(IllegalStateException.class, () ->
-            context.copyWithLambdaVariableTypeMapping(
-                ImmutableMap.of("x", SqlTypes.BIGINT, "y", SqlTypes.STRING))
+            LambdaMappingUtil.resolveOldAndNewLambdaMapping(newMapping, oldMapping)
         );
 
     // Then
     assertThat(e.getMessage(),
-        is("Could not resolve type for lambda variable x, cannot be both STRING and BIGINT"));
+        is("Could not map type STRING to lambda variable x, x was already mapped to BIGINT"));
   }
 
   @Test
   public void shouldCopyContextWithLambdaMapping() {
     // Given
-    final Map<String, SqlType> arguments = new HashMap<>(ImmutableMap.of("x", SqlTypes.STRING, "y", SqlTypes.BIGINT));
-    final TypeContext context = new TypeContext(arguments);
+    final Map<String, SqlType> oldMapping = new HashMap<>(ImmutableMap.of("x", SqlTypes.STRING, "y", SqlTypes.BIGINT));
+    final Map<String, SqlType> newMapping = new HashMap<>(ImmutableMap.of("x", SqlTypes.STRING, "z", SqlTypes.BOOLEAN));
 
     // When
-    final TypeContext copyContext = context.copyWithLambdaVariableTypeMapping(arguments);
+    final Map<String, SqlType> updatedMapping = LambdaMappingUtil.resolveOldAndNewLambdaMapping(oldMapping, newMapping);
 
     // Then
-    assertThat(copyContext.equals(context), is(true));
-    assertThat(context.getLambdaType("x"), is(copyContext.getLambdaType("x")));
-    assertThat(context.getLambdaType("y"), is(copyContext.getLambdaType("y")));
+    assertThat(updatedMapping.get("x"), is(SqlTypes.STRING));
+    assertThat(updatedMapping.get("y"), is(SqlTypes.BIGINT));
+    assertThat(updatedMapping.get("z"), is(SqlTypes.BOOLEAN));
   }
 }

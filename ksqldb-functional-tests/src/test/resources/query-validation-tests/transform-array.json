@@ -105,6 +105,23 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "one", "value": {"C":[8, 11, null]}}
+        ]
+      },
+      {
+      "name": "transform array of struct",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE ARRAY<STRUCT<c VARCHAR, d INT>>) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT as SELECT ID, TRANSFORM(VALUE, x => STRUCT(Q := x->d + 5, P := x->c + 'h')) as transformed_struct from TEST emit changes;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0,"value": {"value": [{"c": "ste", "d":  2}, {"c": "q", "d":  0}]}},
+        {"topic": "test_topic", "key": 1,"value": {"value": [{"c": "lea", "d":  1}, {"c": "pro", "d":  -1}]}},
+        {"topic": "test_topic", "key": 2,"value": {"value": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0,"value": {"TRANSFORMED_STRUCT": [{"P": "steh", "Q": 7}, {"P":  "qh", "Q": 5}]}},
+        {"topic": "OUTPUT", "key": 1,"value": {"TRANSFORMED_STRUCT": [{"P": "leah", "Q": 6}, {"P":  "proh", "Q": 4}]}},
+        {"topic": "OUTPUT", "key": 2,"value": {"TRANSFORMED_STRUCT": null}}
       ]
     }
   ]

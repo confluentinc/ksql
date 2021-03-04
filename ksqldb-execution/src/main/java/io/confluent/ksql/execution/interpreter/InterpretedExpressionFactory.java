@@ -23,6 +23,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.HashMap;
 
 public final class InterpretedExpressionFactory {
 
@@ -37,7 +38,8 @@ public final class InterpretedExpressionFactory {
     try {
       final ExpressionTypeManager expressionTypeManager
           = new ExpressionTypeManager(schema, functionRegistry);
-      final SqlType returnType = expressionTypeManager.getExpressionSqlType(expression);
+      final SqlType returnType = expressionTypeManager.getExpressionSqlType(
+          expression, new HashMap<>());
       if (returnType == null) {
         // This should only happen if the only thing in the expression is a null literal.  This
         // should fail the type checking well before making it here, so shouldn't happen in

@@ -102,6 +102,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -280,7 +281,8 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
   public Term visitDereferenceExpression(
       final DereferenceExpression node, final Void context
   ) {
-    final SqlType functionReturnSchema = expressionTypeManager.getExpressionSqlType(node);
+    final SqlType functionReturnSchema = expressionTypeManager.getExpressionSqlType(
+        node, new HashMap<>());
 
     final Term struct = process(node.getBase(), context);
 
@@ -309,7 +311,8 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
   public Term visitFunctionCall(final FunctionCall node, final Void context) {
     final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
     final List<SqlArgument> argumentSchemas = node.getArguments().stream()
-        .map(expressionTypeManager::getExpressionSqlType)
+        .map(argument -> expressionTypeManager.getExpressionSqlType(
+            argument, new HashMap<>()))
         .map(SqlArgument::of)
         .collect(Collectors.toList());
 
@@ -439,7 +442,8 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
     final Term left = process(node.getLeft(), context);
     final Term right = process(node.getRight(), context);
 
-    final SqlType schema = expressionTypeManager.getExpressionSqlType(node);
+    final SqlType schema = expressionTypeManager.getExpressionSqlType(
+        node, new HashMap<>());
 
     return ArithmeticInterpreter.doBinaryArithmetic(node.getOperator(), left, right, schema,
         ksqlConfig);
@@ -449,7 +453,8 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
   public Term visitSearchedCaseExpression(
       final SearchedCaseExpression node, final Void context
   ) {
-    final SqlType resultSchema = expressionTypeManager.getExpressionSqlType(node);
+    final SqlType resultSchema = expressionTypeManager.getExpressionSqlType(
+        node, new HashMap<>());
 
     final List<Pair<Term, Term>> operandResultTerms = node
         .getWhenClauses()
@@ -478,7 +483,8 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
       final SubscriptExpression node,
       final Void context
   ) {
-    final SqlType internalSchema = expressionTypeManager.getExpressionSqlType(node.getBase());
+    final SqlType internalSchema = expressionTypeManager.getExpressionSqlType(node.getBase(),
+        new HashMap<>());
     switch (internalSchema.baseType()) {
       case ARRAY:
         final SqlArray array = (SqlArray) internalSchema;
@@ -513,7 +519,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
         .map(value -> process(value, context))
         .collect(ImmutableList.toImmutableList());
 
-    final SqlType sqlType = expressionTypeManager.getExpressionSqlType(exp);
+    final SqlType sqlType = expressionTypeManager.getExpressionSqlType(exp, new HashMap<>());
     return new CreateArrayTerm(arrayTerms, sqlType);
   }
 
@@ -541,7 +547,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
           process(p.getRight(), context));
     }
 
-    final SqlType resultType = expressionTypeManager.getExpressionSqlType(exp);
+    final SqlType resultType = expressionTypeManager.getExpressionSqlType(exp, new HashMap<>());
     return new CreateMapTerm(mapTerms.build(), resultType);
   }
 
@@ -555,7 +561,8 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
     for (final Field field : node.getFields()) {
       nameToTerm.put(field.getName(), process(field.getValue(), context));
     }
-    final SqlType resultType = expressionTypeManager.getExpressionSqlType(node);
+    final SqlType resultType = expressionTypeManager.getExpressionSqlType(
+        node, new HashMap<>());
     return new StructTerm(nameToTerm.build(), resultType);
   }
 

@@ -121,6 +121,7 @@ public class ApplyMigrationCommand extends BaseCommand {
     );
   }
 
+  // CHECKSTYLE_RULES.OFF: NPathComplexity
   @VisibleForTesting
   int command(
       final MigrationConfig config,
@@ -128,6 +129,7 @@ public class ApplyMigrationCommand extends BaseCommand {
       final String migrationsDir,
       final Clock clock
   ) {
+    // CHECKSTYLE_RULES.ON: NPathComplexity
     if (untilVersion < 0) {
       LOGGER.error("'until' migration version must be positive. Got: {}", untilVersion);
       return 1;

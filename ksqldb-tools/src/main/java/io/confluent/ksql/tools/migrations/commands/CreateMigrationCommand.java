@@ -145,11 +145,12 @@ public class CreateMigrationCommand extends BaseCommand {
     final String filename = getNewFileName(newVersion, description);
     final String filePath = Paths.get(migrationsDir, filename).toString();
     try {
-      LOGGER.info("Creating file: " + filePath);
+      LOGGER.info("Creating migration file: " + filePath);
       final boolean result = new File(filePath).createNewFile();
       if (!result) {
         throw new IllegalStateException("File should not exist");
       }
+      LOGGER.info("Migration file successfully created");
     } catch (IOException | IllegalStateException e) {
       throw new MigrationException(String.format(
           "Failed to create file %s: %s", filePath, e.getMessage()));

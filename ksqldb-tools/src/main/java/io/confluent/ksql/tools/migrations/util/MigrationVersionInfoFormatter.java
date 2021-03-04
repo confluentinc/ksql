@@ -61,18 +61,22 @@ public class MigrationVersionInfoFormatter {
 
     final StringBuilder builder = new StringBuilder();
 
-    // format header
+    // format initial divider
+    final int totalColLength = columnLengths.stream()
+        .reduce(Integer::sum)
+        .orElseThrow(IllegalStateException::new);
+    final int dividerLength = totalColLength + 3 * VERSION_INFO_FIELDS.size() - 1;
+    final String divider = StringUtils.repeat("-", dividerLength);
+    builder.append(divider);
+    builder.append("\n");
+
+    // format header row
     builder.append(String.format(rowFormatString,
         VERSION_INFO_FIELDS.stream()
             .map(f -> f.header)
             .toArray()));
 
     // format divider
-    final int totalColLength = columnLengths.stream()
-        .reduce(Integer::sum)
-        .orElseThrow(IllegalStateException::new);
-    final int dividerLength = totalColLength + 3 * VERSION_INFO_FIELDS.size() - 1;
-    final String divider = StringUtils.repeat("-", dividerLength);
     builder.append(divider);
     builder.append("\n");
 
@@ -84,7 +88,7 @@ public class MigrationVersionInfoFormatter {
               .toArray()));
     }
 
-    // format footer
+    // format trailing divider
     builder.append(divider);
     builder.append("\n");
 

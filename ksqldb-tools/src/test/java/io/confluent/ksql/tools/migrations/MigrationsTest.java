@@ -186,12 +186,12 @@ public class MigrationsTest {
           .map(LoggingEvent::getRenderedMessage)
           .collect(Collectors.toList());
       assertThat(logMessages, hasItem(containsString("Current migration version: 2")));
-      assertThat(logMessages, hasItem(matchesRegex(
+      assertThat(logMessages, hasItem(matchesRegex("-+\n" +
           " Version \\| Name        \\| State    \\| Previous Version \\| Started On\\s+\\| Completed On\\s+\\| Error Reason \n" +
-              "-+\n" +
-              " 1       \\| foo FOO fO0 \\| MIGRATED \\| <none>           \\| \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\S+ \\| \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\S+ \\| N/A          \n" +
-              " 2       \\| bar bar BAR \\| MIGRATED \\| 1                \\| \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\S+ \\| \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\S+ \\| N/A          \n" +
-              "-+\n"
+          "-+\n" +
+          " 1       \\| foo FOO fO0 \\| MIGRATED \\| <none>           \\| \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\S+ \\| \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\S+ \\| N/A          \n" +
+          " 2       \\| bar bar BAR \\| MIGRATED \\| 1                \\| \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\S+ \\| \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\S+ \\| N/A          \n" +
+          "-+\n"
       )));
     } finally {
       Logger.getRootLogger().removeAppender(logAppender);

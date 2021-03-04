@@ -124,6 +124,7 @@ public class InitializeMigrationCommand extends BaseCommand {
       return 1;
     }
 
+    LOGGER.info("Initializing migrations metadata");
     if (ServerVersionUtil.serverVersionCompatible(ksqlClient, config)
         && tryCreate(ksqlClient, eventStreamCommand, streamName, true)
         && tryCreate(ksqlClient, versionTableCommand, tableName, false)) {

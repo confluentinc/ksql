@@ -150,6 +150,11 @@ public class ApplyMigrationCommand extends BaseCommand {
       return 1;
     }
 
+    if (dryRun) {
+      LOGGER.info("This is a dry run. No ksqlDB statements will be submitted "
+          + "to the ksqlDB server.");
+    }
+
     boolean success;
     try {
       success = validateCurrentState(config, ksqlClient, migrationsDir)

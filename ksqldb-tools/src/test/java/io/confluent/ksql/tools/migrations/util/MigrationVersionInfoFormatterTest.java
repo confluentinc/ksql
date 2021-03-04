@@ -45,6 +45,7 @@ public class MigrationVersionInfoFormatterTest {
 
     // Then:
     assertThat(formatted, is(
+        "-----------------------------------------------------------------------------------------------\n" +
         " Version | Name       | State    | Previous Version | Started On | Completed On | Error Reason \n" +
         "-----------------------------------------------------------------------------------------------\n" +
         " 1       | name       | MIGRATED | <none>           | N/A        | N/A          | N/A          \n" +

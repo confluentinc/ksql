@@ -52,9 +52,10 @@ public abstract class BaseCommand implements Runnable {
    * @return exit status of the command
    */
   public int runCommand() {
-    final long startTime = System.nanoTime();
+    final long startTime = System.currentTimeMillis();
     final int status = command();
-    getLogger().info("Execution time: " + (System.nanoTime() - startTime) / 1000000000);
+    getLogger().info(String.format("Execution time: %.4f seconds",
+        (System.currentTimeMillis() - startTime) / 1000.));
     return status;
   }
 

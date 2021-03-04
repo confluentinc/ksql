@@ -72,6 +72,7 @@ public class NewMigrationCommand extends BaseCommand {
 
     final String projectPath = args.get(0);
     final String ksqlServerUrl = args.get(1);
+    LOGGER.info("Creating new migrations project at {}", projectPath);
     if (tryCreateDirectory(projectPath)
         && tryCreateDirectory(Paths.get(projectPath, MIGRATIONS_DIR).toString())
         && tryCreatePropertiesFile(
@@ -116,9 +117,13 @@ public class NewMigrationCommand extends BaseCommand {
 
   private boolean tryCreatePropertiesFile(final String path, final String ksqlServerUrl) {
     try {
-      LOGGER.info("Creating file: " + path);
-      if (!new File(path).createNewFile()) {
-        LOGGER.warn(path + " already exists. Skipping file creation.");
+      final File file = new File(path);
+      if (!file.exists()) {
+        LOGGER.info("Creating file: " + path);
+      }
+      if (!file.createNewFile()) {
+        LOGGER.error("Failed to create file. File already exists: {}", path);
+        return false;
       }
     } catch (IOException e) {
       LOGGER.error(String.format("Failed to create file %s: %s", path, e.getMessage()));

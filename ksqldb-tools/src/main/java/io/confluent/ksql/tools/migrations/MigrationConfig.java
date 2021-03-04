@@ -163,7 +163,7 @@ public final class MigrationConfig extends AbstractConfig {
             Importance.MEDIUM,
             "The number of replicas for the migration stream topic. It defaults to "
                 + KSQL_MIGRATIONS_TOPIC_REPLICAS_DEFAULT
-        ), configs);
+        ), configs, false);
   }
 
   private static String getServiceId(final Map<String, String> configs) throws MigrationException {

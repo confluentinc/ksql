@@ -36,6 +36,7 @@ import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.resources.streaming.PullQueryConfigPlannerOptions;
 import io.confluent.ksql.rest.server.resources.streaming.PullQueryConfigRoutingOptions;
+import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.services.ServiceContext;
@@ -112,6 +113,14 @@ public class QueryEndpoint {
       final WorkerExecutor workerExecutor
   ) {
     final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
+
+    if (QueryCapacityUtil.exceedsPushQueryCapacity(ksqlEngine, ksqlConfig)) {
+      QueryCapacityUtil.throwTooManyActivePushQueriesException(
+              ksqlEngine,
+              ksqlConfig,
+              statement.getStatementText()
+      );
+    }
 
     final TransientQueryMetadata queryMetadata = ksqlEngine
         .executeQuery(serviceContext, statement, true);

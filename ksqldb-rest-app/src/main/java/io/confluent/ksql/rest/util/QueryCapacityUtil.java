@@ -55,10 +55,17 @@ public final class QueryCapacityUtil {
     return ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG);
   }
 
+  public static boolean exceedsPushQueryCapacity(
+          final KsqlExecutionContext executionContext,
+          final KsqlConfig ksqlConfig
+  ) {
+    return getNumLivePushQueries(executionContext) > getPushQueryLimit(ksqlConfig);
+  }
+
   public static void throwTooManyActivePushQueriesException(
-          final String statementStr,
-          final int numPushQueries,
-          final int pushQueryLimit
+          final KsqlExecutionContext executionContext,
+          final KsqlConfig ksqlConfig,
+          final String statementStr
   ) {
     throw new KsqlException(
             String.format(
@@ -69,21 +76,19 @@ public final class QueryCapacityUtil {
                             + "Current push query count: %d. Configured limit: %d.",
                     statementStr,
                     KsqlRestConfig.MAX_PUSH_QUERIES,
-                    numPushQueries,
-                    pushQueryLimit
+                    getNumLivePushQueries(executionContext),
+                    getPushQueryLimit(ksqlConfig)
             )
     );
   }
 
-  public static int getNumLivePushQueries(final KsqlExecutionContext ctx) {
+  private static int getNumLivePushQueries(final KsqlExecutionContext ctx) {
     return ctx.getAllLiveQueries().size() - ctx.getPersistentQueries().size();
   }
 
-  public static int getPushQueryLimit(final KsqlConfig ksqlConfig) {
-    return Integer.parseInt(ksqlConfig
-            .originals()
-            .getOrDefault(KsqlRestConfig.MAX_PUSH_QUERIES, String.valueOf(Integer.MAX_VALUE))
-            .toString());
+  private static int getPushQueryLimit(final KsqlConfig ksqlConfig) {
+    KsqlRestConfig ksqlRestConfig = new KsqlRestConfig(ksqlConfig.originals());
+    return ksqlRestConfig.getInt(KsqlRestConfig.MAX_PUSH_QUERIES);
   }
 
 }

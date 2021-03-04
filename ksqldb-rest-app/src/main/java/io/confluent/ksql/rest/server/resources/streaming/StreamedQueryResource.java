@@ -354,12 +354,12 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, streamsProperties));
 
-    final int numPushQueries = QueryCapacityUtil.getNumLivePushQueries(ksqlEngine);
-    final int pushQueryLimit = QueryCapacityUtil.getPushQueryLimit(ksqlConfig);
-
-    if (numPushQueries >= pushQueryLimit) {
-      QueryCapacityUtil.throwTooManyActivePushQueriesException(statement.getStatementText(),
-              numPushQueries, pushQueryLimit);
+    if (QueryCapacityUtil.exceedsPushQueryCapacity(ksqlEngine, ksqlConfig)) {
+      QueryCapacityUtil.throwTooManyActivePushQueriesException(
+              ksqlEngine,
+              ksqlConfig,
+              statement.getStatementText()
+      );
     }
 
     final TransientQueryMetadata query = ksqlEngine

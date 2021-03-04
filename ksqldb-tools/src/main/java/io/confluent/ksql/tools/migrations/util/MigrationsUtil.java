@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.tools.migrations.util;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
@@ -30,11 +31,57 @@ public final class MigrationsUtil {
   public static final String MIGRATIONS_COMMAND = "ksql-migrations";
 
   public static Client getKsqlClient(final MigrationConfig config) throws MigrationException {
-    final String ksqlServerUrl = config.getString(MigrationConfig.KSQL_SERVER_URL);
-    return getKsqlClient(ksqlServerUrl);
+    return getKsqlClient(
+        config.getString(MigrationConfig.KSQL_SERVER_URL),
+        config.getString(MigrationConfig.KSQL_BASIC_AUTH_USERNAME),
+        config.getString(MigrationConfig.KSQL_BASIC_AUTH_PASSWORD),
+        config.getString(MigrationConfig.SSL_TRUSTSTORE_LOCATION),
+        config.getString(MigrationConfig.SSL_TRUSTSTORE_PASSWORD),
+        config.getString(MigrationConfig.SSL_KEYSTORE_LOCATION),
+        config.getString(MigrationConfig.SSL_KEYSTORE_PASSWORD),
+        config.getString(MigrationConfig.SSL_KEY_PASSWORD),
+        config.getString(MigrationConfig.SSL_KEY_ALIAS),
+        config.getBoolean(MigrationConfig.SSL_ALPN),
+        config.getBoolean(MigrationConfig.SSL_VERIFY_HOST)
+    );
   }
 
-  public static Client getKsqlClient(final String ksqlServerUrl) throws MigrationException {
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  public static Client getKsqlClient(
+      // CHECKSTYLE_RULES.ON: ParameterNumberCheck
+      final String ksqlServerUrl,
+      final String username,
+      final String password,
+      final String sslTrustStoreLocation,
+      final String sslTrustStorePassword,
+      final String sslKeystoreLocation,
+      final String sslKeystorePassword,
+      final String sslKeyPassword,
+      final String sslKeyAlias,
+      final boolean sslAlpn,
+      final boolean sslVerifyHost
+  ) {
+    return Client.create(createClientOptions(ksqlServerUrl, username, password,
+        sslTrustStoreLocation, sslTrustStorePassword, sslKeystoreLocation, sslKeystorePassword,
+        sslKeyPassword, sslKeyAlias, sslAlpn, sslVerifyHost));
+  }
+
+  @VisibleForTesting
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  static ClientOptions createClientOptions(
+      // CHECKSTYLE_RULES.ON: ParameterNumberCheck
+      final String ksqlServerUrl,
+      final String username,
+      final String password,
+      final String sslTrustStoreLocation,
+      final String sslTrustStorePassword,
+      final String sslKeystoreLocation,
+      final String sslKeystorePassword,
+      final String sslKeyPassword,
+      final String sslKeyAlias,
+      final boolean useAlpn,
+      final boolean verifyHost
+  ) {
     final URL url;
     try {
       url = new URL(ksqlServerUrl);
@@ -47,6 +94,23 @@ public final class MigrationsUtil {
         .setHost(url.getHost())
         .setPort(url.getPort());
 
-    return Client.create(options);
+    if (username != null || password != null) {
+      options.setBasicAuthCredentials(username, password);
+    }
+
+    final boolean useTls = ksqlServerUrl.trim().toLowerCase().startsWith("https://");
+    options.setUseTls(useTls);
+
+    if (useTls) {
+      options.setTrustStore(sslTrustStoreLocation);
+      options.setTrustStorePassword(sslTrustStorePassword);
+      options.setKeyStore(sslKeystoreLocation);
+      options.setKeyStorePassword(sslKeystorePassword);
+      options.setKeyPassword(sslKeyPassword);
+      options.setKeyAlias(sslKeyAlias);
+      options.setUseAlpn(useAlpn);
+      options.setVerifyHost(verifyHost);
+    }
+    return options;
   }
 }

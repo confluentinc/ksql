@@ -114,7 +114,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
     this.isWindowed = isWindowed;
 
     // Basic validation of WHERE clause
-    this.requiresTableScan = validateWhereClause();
+    this.requiresTableScan = validateWhereClauseAndCheckTableScan();
 
     // Extraction of key and system columns
     extractKeysAndSystemCols();
@@ -165,15 +165,16 @@ public class PullFilterNode extends SingleSourcePlanNode {
     return intermediateSchema;
   }
 
-  private boolean validateWhereClause() {
-    boolean requiresTableScan = false;
+  private boolean validateWhereClauseAndCheckTableScan() {
     for (Expression disjunct : disjuncts) {
       final Validator validator = new Validator();
       validator.process(disjunct, null);
-      requiresTableScan = requiresTableScan || validator.requiresTableScan;
+      if (validator.requiresTableScan) {
+        return true;
+      };
       if (!validator.isKeyedQuery) {
         if (pullPlannerOptions.getTableScansEnabled()) {
-          requiresTableScan = true;
+          return true;
         } else {
           throw invalidWhereClauseException("WHERE clause missing key column for disjunct: "
               + disjunct.toString(), isWindowed);
@@ -182,22 +183,22 @@ public class PullFilterNode extends SingleSourcePlanNode {
 
       if (!validator.seenKeys.isEmpty()
           && validator.seenKeys.cardinality() != schema.key().size()) {
-        final List<ColumnName> seenKeyNames = validator.seenKeys
-            .stream()
-            .boxed()
-            .map(i -> schema.key().get(i))
-            .map(Column::name)
-            .collect(Collectors.toList());
         if (pullPlannerOptions.getTableScansEnabled()) {
-          requiresTableScan = true;
+          return true;
         } else {
+          final List<ColumnName> seenKeyNames = validator.seenKeys
+              .stream()
+              .boxed()
+              .map(i -> schema.key().get(i))
+              .map(Column::name)
+              .collect(Collectors.toList());
           throw invalidWhereClauseException(
               "Multi-column sources must specify every key in the WHERE clause. Specified: "
                   + seenKeyNames + " Expected: " + schema.key(), isWindowed);
         }
       }
     }
-    return requiresTableScan;
+    return false;
   }
 
   private void extractKeysAndSystemCols() {
@@ -295,6 +296,12 @@ public class PullFilterNode extends SingleSourcePlanNode {
         final ComparisonExpression node,
         final Object context
     ) {
+      if (!isSingleColumnReference(node)) {
+        setTableScanOrElseThrow(() ->
+            invalidWhereClauseException("A comparison must reference a key column and literal",
+                isWindowed));
+        return null;
+      }
       final UnqualifiedColumnReferenceExp column = getColumnRefSide(node);
 
       final ColumnName columnName = column.getColumnName();
@@ -355,6 +362,13 @@ public class PullFilterNode extends SingleSourcePlanNode {
     return comparison.getRight() instanceof UnqualifiedColumnReferenceExp
         ? comparison.getLeft()
         : comparison.getRight();
+  }
+
+  private boolean isSingleColumnReference(final ComparisonExpression comp) {
+    return (comp.getRight() instanceof UnqualifiedColumnReferenceExp
+        && !(comp.getLeft() instanceof UnqualifiedColumnReferenceExp))
+        || (comp.getLeft() instanceof UnqualifiedColumnReferenceExp
+        && !(comp.getRight() instanceof UnqualifiedColumnReferenceExp));
   }
 
   /**

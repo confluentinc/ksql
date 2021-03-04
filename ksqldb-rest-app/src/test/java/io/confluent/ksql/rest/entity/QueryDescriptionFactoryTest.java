@@ -119,6 +119,7 @@ public class QueryDescriptionFactoryTest {
   public void setUp() {
     when(topology.describe()).thenReturn(topologyDescription);
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(queryStreams);
+    when(queryStreams.localThreadsMetadata()).thenReturn(Collections.emptySet());
 
     when(sinkTopic.getKeyFormat()).thenReturn(
         KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()));
@@ -169,6 +170,7 @@ public class QueryDescriptionFactoryTest {
         0L,
         0L
     );
+    persistentQuery.initialize();
 
     persistentQueryDescription = QueryDescriptionFactory.forQueryMetadata(persistentQuery, STATUS_MAP);
   }

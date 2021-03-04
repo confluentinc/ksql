@@ -420,7 +420,7 @@ public class SqlToJavaVisitor {
 
     @Override
     public Pair<String, SqlType> visitIntervalUnit(
-        final IntervalUnit exp, final TypeContext context
+        final IntervalUnit exp, final Context context
     ) {
       return new Pair<>("TimeUnit." + exp.getUnit().toString(), null);
     }

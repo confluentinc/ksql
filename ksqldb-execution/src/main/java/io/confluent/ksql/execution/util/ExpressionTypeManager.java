@@ -195,7 +195,7 @@ public class ExpressionTypeManager {
     }
 
     @Override
-    public Void visitIntervalUnit(final IntervalUnit exp, final TypeContext expressionTypeContext) {
+    public Void visitIntervalUnit(final IntervalUnit exp, final Context expressionTypeContext) {
       return null;
     }
 

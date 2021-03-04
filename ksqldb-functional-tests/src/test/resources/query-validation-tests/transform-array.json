@@ -93,6 +93,19 @@
         {"topic": "OUTPUT", "key": 100,"value": {"MAX": [341, 865]}},
         {"topic": "OUTPUT", "key": 110,"value": {"MAX": null}}
       ]
+    },
+    {
+      "name": "apply transform lambda function to array of timestamps",
+      "statements": [
+        "CREATE STREAM test (ID STRING KEY, times ARRAY<TIMESTAMP>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, TRANSFORM(times, x => timestampadd(milliseconds, 5, x)) AS c FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "one", "value": {"times": [3, 6]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "one", "value": {"C":[8, 11]}}
+      ]
     }
   ]
 } 

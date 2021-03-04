@@ -2061,6 +2061,45 @@
       ]
     },
     {
+      "name": "windowed - Table Scan - missing key, windowed system columns only",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE WINDOWSTART > 12500;",
+        "SELECT * FROM AGGREGATE WHERE WINDOWEND < 13500;",
+        "SELECT * FROM AGGREGATE WHERE WINDOWSTART > 12500 AND WINDOWEND < 13500;",
+        "SELECT * FROM AGGREGATE WHERE WINDOWSTART > 11500 AND WINDOWEND < 13500;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 10, "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 12346, "key": 11, "value": {"val": 2}},
+        {"topic": "test_topic", "timestamp": 13346, "key": 11, "value": {"val": 3}},
+        {"topic": "test_topic", "timestamp": 13345, "key": 10, "value": {"val": 4}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 13000, 14000, 1]}},
+          {"row":{"columns":[11, 13000, 14000, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 12000, 13000, 1]}},
+          {"row":{"columns":[11, 12000, 13000, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 12000, 13000, 1]}},
+          {"row":{"columns":[11, 12000, 13000, 1]}}
+        ]}
+      ]
+    },
+    {
       "name": "non-windowed - Table Scan - indirect column reference",
       "statements": [
         "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -2138,6 +2177,46 @@
         ]}
       ]
     },
+    {
+      "name": "windowed - Resolving keys for key lookups",
+      "statements": [
+        "CREATE STREAM INPUT (ID INTEGER KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ID;",
+        "SELECT * FROM AGGREGATE WHERE ID = 10 AND WINDOWSTART > 12500 + 10;",
+        "SELECT * FROM AGGREGATE WHERE ID = 10 + 1 AND WINDOWSTART > 12500 + 10;",
+        "SELECT * FROM AGGREGATE WHERE ID = 10 + 1 AND WINDOWEND < 13500 + 10;",
+        "SELECT * FROM AGGREGATE WHERE ID = 11 - 1 AND WINDOWSTART > 11000 + 50 AND WINDOWEND < 13500 + 10;"
+      ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 10, "value": {"val": 1}},
+        {"topic": "test_topic", "timestamp": 12346, "key": 11, "value": {"val": 2}},
+        {"topic": "test_topic", "timestamp": 13346, "key": 11, "value": {"val": 3}},
+        {"topic": "test_topic", "timestamp": 13345, "key": 10, "value": {"val": 4}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 13000, 14000, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[11, 13000, 14000, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[11, 12000, 13000, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT"}},
+          {"row":{"columns":[10, 12000, 13000, 1]}}
+        ]}
+      ]
+    }x,
     {
       "name": "non-windowed - Table Scan - non column ref is unresolvable or there is no column ref",
       "statements": [

@@ -31,7 +31,6 @@ import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
-import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
@@ -45,6 +44,7 @@ import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
@@ -306,10 +306,10 @@ public class PullFilterNode extends SingleSourcePlanNode {
 
       final UnqualifiedColumnReferenceExp column = getColumnRefSide(node);
       final Expression other = getNonColumnRefSide(node);
-      final NonColumnRefValidator nonColumnRefValidator = new NonColumnRefValidator();
-      nonColumnRefValidator.process(other, null);
+      final HasColumnRef hasColumnRef = new HasColumnRef();
+      hasColumnRef.process(other, null);
 
-      if (nonColumnRefValidator.isNonColumnRefUnresolvable()) {
+      if (hasColumnRef.hasColumnRef()) {
         setTableScanOrElseThrow(() ->
             invalidWhereClauseException("Non column reference must be resolvable", isWindowed));
         return null;
@@ -363,12 +363,12 @@ public class PullFilterNode extends SingleSourcePlanNode {
     }
   }
 
-  private final class NonColumnRefValidator extends TraversalExpressionVisitor<Object> {
+  private final class HasColumnRef extends TraversalExpressionVisitor<Object> {
 
-    private boolean nonColumnRefUnresolvable;
+    private boolean hasColumnRef;
 
-    public NonColumnRefValidator() {
-      nonColumnRefUnresolvable = false;
+    public HasColumnRef() {
+      hasColumnRef = false;
     }
 
     @Override
@@ -376,12 +376,12 @@ public class PullFilterNode extends SingleSourcePlanNode {
         final UnqualifiedColumnReferenceExp node,
         final Object context
     ) {
-      nonColumnRefUnresolvable = true;
+      hasColumnRef = true;
       return null;
     }
 
-    public boolean isNonColumnRefUnresolvable() {
-      return nonColumnRefUnresolvable;
+    public boolean hasColumnRef() {
+      return hasColumnRef;
     }
   }
 
@@ -497,7 +497,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
    * 1. An equality bound cannot be combined with other bounds.
    * 2. No duplicate bounds are allowed, such as multiple greater than bounds.
    */
-  private static final class WindowBoundsExtractor
+  private final class WindowBoundsExtractor
       extends TraversalExpressionVisitor<WindowBounds> {
 
     @Override
@@ -520,17 +520,18 @@ public class PullFilterNode extends SingleSourcePlanNode {
       }
       boolean result = false;
       if (node.getType().equals(Type.EQUAL)) {
-        final Range<Instant> instant = Range.singleton(asInstant(getNonColumnRefSide(node)));
+        final Range<Instant> instant = Range.singleton(asInstant(getNonColumnRefSide(node),
+            column.getColumnName()));
         result = windowBounds.setEquality(column, instant);
       }
       final Type type = getSimplifiedBoundType(node);
 
       if (type.equals(Type.LESS_THAN)) {
-        final Instant upper = asInstant(getNonColumnRefSide(node));
+        final Instant upper = asInstant(getNonColumnRefSide(node), column.getColumnName());
         final BoundType upperType = getRangeBoundType(node);
         result = windowBounds.setUpper(column, Range.upTo(upper, upperType));
       } else if (type.equals(Type.GREATER_THAN)) {
-        final Instant lower = asInstant(getNonColumnRefSide(node));
+        final Instant lower = asInstant(getNonColumnRefSide(node), column.getColumnName());
         final BoundType lowerType = getRangeBoundType(node);
         result = windowBounds.setLower(column, Range.downTo(lower, lowerType));
       }
@@ -591,7 +592,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
           : comparison.getRight();
     }
 
-    private Instant asInstant(final Expression other) {
+    private Instant asInstant(final Expression other, final ColumnName name) {
       if (other instanceof IntegerLiteral) {
         return Instant.ofEpochMilli(((IntegerLiteral) other).getValue());
       }
@@ -612,8 +613,21 @@ public class PullFilterNode extends SingleSourcePlanNode {
         }
       }
 
+      final Object obj = new GenericExpressionResolver(
+          SqlTypes.BIGINT,
+          name,
+          metaStore,
+          ksqlConfig,
+          "pull query window bounds extractor",
+          ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)
+      ).resolve(other);
+
+      if (obj instanceof Integer || obj instanceof Long) {
+        return Instant.ofEpochMilli((long) obj);
+      }
+
       throw invalidWhereClauseException(
-          "Window bounds must be an INT, BIGINT or STRING containing a datetime.",
+          "Window bounds must resolve to an INT, BIGINT, or STRING containing a datetime.",
           true
       );
     }

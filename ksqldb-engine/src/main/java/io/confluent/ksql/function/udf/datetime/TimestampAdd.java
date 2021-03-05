@@ -34,9 +34,12 @@ public class TimestampAdd {
   @Udf(description = "Adds a duration to a timestamp")
   public Timestamp timestampAdd(
       @UdfParameter(description = "A unit of time, for example DAY or HOUR") final TimeUnit unit,
-      @UdfParameter(description = "An integer number of intervals to add") final int interval,
+      @UdfParameter(description = "An integer number of intervals to add") final Integer interval,
       @UdfParameter(description = "A TIMESTAMP value.") final Timestamp timestamp
   ) {
+    if (unit == null || interval == null || timestamp == null) {
+      return null;
+    }
     return new Timestamp(timestamp.getTime() + unit.toMillis(interval));
   }
 }

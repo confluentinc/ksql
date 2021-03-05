@@ -41,6 +41,23 @@
         {"topic": "TEST2", "key": 0, "value": {"VALUE": 5}},
         {"topic": "TEST2", "key": 0, "value": {"VALUE": -3}}
       ]
+    },
+    {
+      "name": "handles null values",
+      "statements": [
+        "CREATE STREAM TEST (ID INT KEY, time TIMESTAMP, num INTEGER) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT id, timestampadd(MILLISECONDS, num, time) AS VALUE FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "key": 0, "value": {"time": null, "num": 5}},
+        {"topic": "test", "key": 0, "value": {"time": 5, "num": null}},
+        {"topic": "test", "key": 0, "value": {"time": null, "num": null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": null}},
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": null}},
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": null}}
+      ]
     }
   ]
 }

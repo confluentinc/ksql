@@ -17,6 +17,7 @@ package io.confluent.ksql.function.udf.datetime;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertNull;
 
 import java.sql.Timestamp;
 import java.util.concurrent.TimeUnit;
@@ -49,5 +50,14 @@ public class TimestampAddTest {
     // Then:
     final Timestamp expectedResult = new Timestamp(-200);
     assertThat(result, is(expectedResult));
+  }
+
+  @Test
+  public void handleNullTimestamp() {
+    // When:
+    final Timestamp result = udf.timestampAdd(TimeUnit.MILLISECONDS, -300, null);
+
+    // Then:
+    assertNull(result);
   }
 }

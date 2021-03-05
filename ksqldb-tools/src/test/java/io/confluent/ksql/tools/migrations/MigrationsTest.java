@@ -158,7 +158,9 @@ public class MigrationsTest {
         2,
         "bar_bar_BAR",
         configFilePath,
-        "CREATE STREAM BAR (A STRING) WITH (KAFKA_TOPIC='BAR', PARTITIONS=1, VALUE_FORMAT='DELIMITED');"
+        "CREATE STREAM BAR (A STRING) WITH (KAFKA_TOPIC='BAR', PARTITIONS=1, VALUE_FORMAT='DELIMITED');" +
+            "INSERT INTO FOO VALUES ('HELLO');" +
+            "INSERT INTO FOO (A) VALUES ('GOODBYE');"
     );
 
     // When:
@@ -229,6 +231,13 @@ public class MigrationsTest {
     assertThat(current.get(1).getRow().get().getColumns().get(2), is("bar bar BAR"));
     assertThat(current.get(1).getRow().get().getColumns().get(3), is("MIGRATED"));
     assertThat(current.get(1).getRow().get().getColumns().get(7), is("1"));
+
+    // verify foo
+    final List<StreamedRow> foo = assertThatEventually(
+        () -> makeKsqlQuery("SELECT * FROM FOO EMIT CHANGES LIMIT 2;"),
+        hasSize(4));
+    assertThat(foo.get(1).getRow().get().getColumns().get(0), is("HELLO"));
+    assertThat(foo.get(2).getRow().get().getColumns().get(0), is("GOODBYE"));
   }
 
   private static void createAndVerifyDirectoryStructure(final String testDir) throws Exception {

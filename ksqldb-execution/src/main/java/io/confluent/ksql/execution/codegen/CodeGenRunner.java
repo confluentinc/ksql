@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.codegen;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
@@ -44,10 +45,13 @@ import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import jdk.nashorn.internal.ir.annotations.Immutable;
 import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
@@ -62,6 +66,24 @@ public class CodeGenRunner {
   private final FunctionRegistry functionRegistry;
   private final ExpressionTypeManager expressionTypeManager;
   private final KsqlConfig ksqlConfig;
+
+  @Immutable
+  private static final class Context {
+
+    private final ImmutableMap<String, SqlType> lambdaSqlTypeMapping;
+
+    private Context() {
+      this(new HashMap<>());
+    }
+
+    private Context(final Map<String, SqlType> mapping) {
+      lambdaSqlTypeMapping = ImmutableMap.copyOf(mapping);
+    }
+
+    Map<String, SqlType> getLambdaSqlTypeMapping() {
+      return lambdaSqlTypeMapping;
+    }
+  }
 
   public static List<CompiledExpression> compileExpressions(
       final Stream<Expression> expressions,
@@ -109,7 +131,7 @@ public class CodeGenRunner {
 
   public CodeGenSpec getCodeGenSpec(final Expression expression) {
     final Visitor visitor = new Visitor();
-    final TypeContext context = new TypeContext();
+    final Context context = new Context();
     visitor.process(expression, context);
     return visitor.spec.build();
   }
@@ -127,7 +149,8 @@ public class CodeGenRunner {
           ksqlConfig
       ).process(expression);
 
-      final SqlType returnType = expressionTypeManager.getExpressionSqlType(expression);
+      final SqlType returnType = expressionTypeManager.getExpressionSqlType(
+          expression, new HashMap<>());
       if (returnType == null) {
         // expressionType can be null if expression is NULL.
         throw new KsqlException("NULL expression not supported");
@@ -165,7 +188,7 @@ public class CodeGenRunner {
     return ee;
   }
 
-  private final class Visitor extends TraversalExpressionVisitor<TypeContext> {
+  private final class Visitor extends TraversalExpressionVisitor<Context> {
 
     private final CodeGenSpec.Builder spec;
 
@@ -174,27 +197,30 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Void visitLikePredicate(final LikePredicate node, final TypeContext context) {
+    public Void visitLikePredicate(
+        final LikePredicate node,
+        final Context context
+    ) {
       process(node.getValue(), context);
       process(node.getPattern(), context);
       return null;
     }
 
     @Override
-    public Void visitFunctionCall(final FunctionCall node, final TypeContext context) {
+    public Void visitFunctionCall(
+        final FunctionCall node,
+        final Context context
+    ) {
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
       final FunctionTypeInfo argumentsAndContext = FunctionArgumentsUtil
           .getFunctionTypeInfo(
               expressionTypeManager,
               node,
               udfFactory,
-              context);
+              context.getLambdaSqlTypeMapping());
 
       final List<Expression> arguments = node.getArguments();
-      final List<TypeContext> typeContextsForChildren =
-          argumentsAndContext.getArgumentInfos().stream()
-              .map(ArgumentInfo::getContext)
-              .collect(Collectors.toList());
+      final List<ArgumentInfo> argumentInfos = argumentsAndContext.getArgumentInfos();
       final KsqlScalarFunction function = argumentsAndContext.getFunction();
 
       spec.addFunction(
@@ -202,14 +228,15 @@ public class CodeGenRunner {
           function.newInstance(ksqlConfig)
       );
       for (int i = 0; i < arguments.size(); i++) {
-        process(arguments.get(i), typeContextsForChildren.get(i));
+        process(arguments.get(i), new Context(
+            argumentInfos.get(i).getLambdaSqlTypeMapping()));
       }
       return null;
     }
 
     @Override
     public Void visitSubscriptExpression(
-        final SubscriptExpression node, final TypeContext context
+        final SubscriptExpression node, final Context context
     ) {
       if (node.getBase() instanceof UnqualifiedColumnReferenceExp) {
         final UnqualifiedColumnReferenceExp arrayBaseName
@@ -224,14 +251,17 @@ public class CodeGenRunner {
 
     @Override
     public Void visitCreateArrayExpression(
-        final CreateArrayExpression exp, final TypeContext context
+        final CreateArrayExpression exp, final Context context
     ) {
       exp.getValues().forEach(val -> process(val, context));
       return null;
     }
 
     @Override
-    public Void visitCreateMapExpression(final CreateMapExpression exp, final TypeContext context) {
+    public Void visitCreateMapExpression(
+        final CreateMapExpression exp,
+        final Context context
+    ) {
       for (Entry<Expression, Expression> entry : exp.getMap().entrySet()) {
         process(entry.getKey(), context);
         process(entry.getValue(), context);
@@ -242,12 +272,13 @@ public class CodeGenRunner {
     @Override
     public Void visitStructExpression(
         final CreateStructExpression exp,
-        final TypeContext context
+        final Context context
     ) {
       exp.getFields().forEach(val -> process(val.getValue(), context));
       final Schema schema = SchemaConverters
           .sqlToConnectConverter()
-          .toConnectSchema(expressionTypeManager.getExpressionSqlType(exp));
+          .toConnectSchema(expressionTypeManager.getExpressionSqlType(
+              exp, context.getLambdaSqlTypeMapping()));
 
       spec.addStructSchema(exp, schema);
       return null;
@@ -256,7 +287,7 @@ public class CodeGenRunner {
     @Override
     public Void visitUnqualifiedColumnReference(
         final UnqualifiedColumnReferenceExp node,
-        final TypeContext context
+        final Context context
     ) {
       addRequiredColumn(node.getColumnName());
       return null;
@@ -264,14 +295,17 @@ public class CodeGenRunner {
 
     @Override
     public Void visitDereferenceExpression(
-        final DereferenceExpression node, final TypeContext context
+        final DereferenceExpression node, final Context context
     ) {
       process(node.getBase(), context);
       return null;
     }
 
     @Override
-    public Void visitLambdaExpression(final LambdaFunctionCall node, final TypeContext context) {
+    public Void visitLambdaExpression(
+        final LambdaFunctionCall node,
+        final Context context
+    ) {
       process(node.getBody(), context);
       return null;
     }

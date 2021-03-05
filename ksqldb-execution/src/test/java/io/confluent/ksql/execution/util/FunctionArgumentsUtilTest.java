@@ -27,7 +27,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.codegen.TypeContext;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
@@ -55,6 +54,7 @@ import io.confluent.ksql.schema.ksql.types.SqlLambda;
 import io.confluent.ksql.schema.ksql.types.SqlLambdaResolved;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.util.Collections;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
@@ -99,20 +99,20 @@ public class FunctionArgumentsUtilTest {
 
     // When:
     final FunctionTypeInfo argumentsAndContexts = 
-        FunctionArgumentsUtil.getFunctionTypeInfo(expressionTypeManager, expression, udfFactory, new TypeContext());
+        FunctionArgumentsUtil.getFunctionTypeInfo(expressionTypeManager, expression, udfFactory, Collections.emptyMap());
 
     // Then:
     assertThat(argumentsAndContexts.getReturnType(), is(SqlTypes.DOUBLE));
     assertThat(argumentsAndContexts.getArgumentInfos().size(), is(5));
 
     assertThat(argumentsAndContexts.getArgumentInfos().get(3).getSqlArgument(), is(SqlArgument.of(SqlLambdaResolved.of(ImmutableList.of(SqlTypes.BIGINT, SqlTypes.DOUBLE, SqlTypes.STRING), SqlTypes.BIGINT))));
-    assertThat(argumentsAndContexts.getArgumentInfos().get(3).getContext().getLambdaType("X"), is(SqlTypes.BIGINT));
-    assertThat(argumentsAndContexts.getArgumentInfos().get(3).getContext().getLambdaType("Y"), is(SqlTypes.DOUBLE));
-    assertThat(argumentsAndContexts.getArgumentInfos().get(3).getContext().getLambdaType("Z"), is(SqlTypes.STRING));
+    assertThat(argumentsAndContexts.getArgumentInfos().get(3).getLambdaSqlTypeMapping().get("X"), is(SqlTypes.BIGINT));
+    assertThat(argumentsAndContexts.getArgumentInfos().get(3).getLambdaSqlTypeMapping().get("Y"), is(SqlTypes.DOUBLE));
+    assertThat(argumentsAndContexts.getArgumentInfos().get(3).getLambdaSqlTypeMapping().get("Z"), is(SqlTypes.STRING));
 
     assertThat(argumentsAndContexts.getArgumentInfos().get(4).getSqlArgument(), is(SqlArgument.of(SqlLambdaResolved.of(ImmutableList.of(SqlTypes.STRING, SqlTypes.DOUBLE), SqlTypes.DOUBLE))));
-    assertThat(argumentsAndContexts.getArgumentInfos().get(4).getContext().getLambdaType("A"), is(SqlTypes.STRING));
-    assertThat(argumentsAndContexts.getArgumentInfos().get(4).getContext().getLambdaType("B"), is(SqlTypes.DOUBLE));
+    assertThat(argumentsAndContexts.getArgumentInfos().get(4).getLambdaSqlTypeMapping().get("A"), is(SqlTypes.STRING));
+    assertThat(argumentsAndContexts.getArgumentInfos().get(4).getLambdaSqlTypeMapping().get("B"), is(SqlTypes.DOUBLE));
 
     // in the first pass we should have
     verify(udfFactory).getFunction(
@@ -146,7 +146,7 @@ public class FunctionArgumentsUtilTest {
 
     // When:
     final FunctionTypeInfo argumentsAndContexts =
-        FunctionArgumentsUtil.getFunctionTypeInfo(expressionTypeManager, expression, udfFactory, new TypeContext());
+        FunctionArgumentsUtil.getFunctionTypeInfo(expressionTypeManager, expression, udfFactory, Collections.emptyMap());
 
     // Then:
     assertThat(argumentsAndContexts.getReturnType(), is(SqlTypes.STRING));
@@ -184,7 +184,8 @@ public class FunctionArgumentsUtilTest {
 
     // When:
     final FunctionTypeInfo argumentsAndContexts =
-        FunctionArgumentsUtil.getFunctionTypeInfo(expressionTypeManager, expression, udfFactory, new TypeContext());
+        FunctionArgumentsUtil.getFunctionTypeInfo(expressionTypeManager, expression, udfFactory,
+            Collections.emptyMap());
 
     // Then:
     assertThat(argumentsAndContexts.getReturnType(), is(SqlTypes.DOUBLE));

@@ -16,7 +16,6 @@
 package io.confluent.ksql.execution.interpreter.terms;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.codegen.helpers.TriFunction;
 import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -30,7 +29,7 @@ import java.util.function.Function;
 
 public class LambdaFunctionTerms {
 
-  public static abstract class LambdaFunctionBaseTerm implements Term {
+  public abstract static class LambdaFunctionBaseTerm implements Term {
     protected final List<Pair<String, SqlType>> argNamesToTypes;
     protected final Term body;
 
@@ -48,7 +47,7 @@ public class LambdaFunctionTerms {
       return null;
     }
 
-    protected Object getValueCommon(final TermEvaluationContext context, Object... args) {
+    protected Object getValueCommon(final TermEvaluationContext context, final Object... args) {
       context.pushVariableMappings(createVariableMap(argNamesToTypes, args));
       try {
         return body.getValue(context);
@@ -105,7 +104,7 @@ public class LambdaFunctionTerms {
   ) {
     Preconditions.checkArgument(argNamesToTypes.size() == args.length,
         "Argument length should be the same");
-    Map<String, Object> variableMap = new HashMap<>();
+    final Map<String, Object> variableMap = new HashMap<>();
     int i = 0;
     for (final Pair<String, SqlType> pair : argNamesToTypes) {
       final String name = pair.getLeft();

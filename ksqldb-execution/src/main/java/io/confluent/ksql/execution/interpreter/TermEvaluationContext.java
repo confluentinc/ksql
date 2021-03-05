@@ -59,7 +59,7 @@ public final class TermEvaluationContext {
   /**
    * Looks up a variable from the mappings made with {@code pushVariableMappings} that have not yet
    * been popped with {@code popVariableMappings}.
-   * @param name
+   * @param name The name of the variable to lookup
    * @return
    */
   public Object lookupVariable(final String name) {

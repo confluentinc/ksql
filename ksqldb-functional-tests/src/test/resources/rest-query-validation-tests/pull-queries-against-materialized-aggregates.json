@@ -2216,7 +2216,7 @@
           {"row":{"columns":[10, 12000, 13000, 1]}}
         ]}
       ]
-    }x,
+    },
     {
       "name": "non-windowed - Table Scan - non column ref is unresolvable or there is no column ref",
       "statements": [
@@ -2290,7 +2290,7 @@
       },
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "A comparison must reference a key column and literal.",
+        "message": "A comparison must directly reference a key column.",
         "status": 400
       }
     },
@@ -2306,7 +2306,7 @@
       },
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "A comparison must reference a key column and literal.",
+        "message": "A comparison must be between a key column and a resolvable expression.",
         "status": 400
       }
     },
@@ -2322,7 +2322,7 @@
       },
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Non column reference must be resolvable.",
+        "message": "A comparison must be between a key column and a resolvable expression.",
         "status": 400
       }
     },

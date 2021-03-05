@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.planner.plan;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -172,7 +173,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
       validator.process(disjunct, null);
       if (validator.requiresTableScan) {
         return true;
-      };
+      }
       if (!validator.isKeyedQuery) {
         if (pullPlannerOptions.getTableScansEnabled()) {
           return true;
@@ -297,21 +298,22 @@ public class PullFilterNode extends SingleSourcePlanNode {
         final ComparisonExpression node,
         final Object context
     ) {
-      if (!isSingleColumnReference(node)) {
+      final UnqualifiedColumnReferenceExp column = getColumnRefSideOrNull(node);
+      if (column != null) {
+        final Expression other = getNonColumnRefSide(node);
+        final HasColumnRef hasColumnRef = new HasColumnRef();
+        hasColumnRef.process(other, null);
+
+        if (hasColumnRef.hasColumnRef()) {
+          setTableScanOrElseThrow(() ->
+              invalidWhereClauseException("A comparison must be between a key column and a "
+                  + "resolvable expression", isWindowed));
+          return null;
+        }
+      } else {
         setTableScanOrElseThrow(() ->
-            invalidWhereClauseException("A comparison must reference a key column and literal",
+            invalidWhereClauseException("A comparison must directly reference a key column",
                 isWindowed));
-        return null;
-      }
-
-      final UnqualifiedColumnReferenceExp column = getColumnRefSide(node);
-      final Expression other = getNonColumnRefSide(node);
-      final HasColumnRef hasColumnRef = new HasColumnRef();
-      hasColumnRef.process(other, null);
-
-      if (hasColumnRef.hasColumnRef()) {
-        setTableScanOrElseThrow(() ->
-            invalidWhereClauseException("Non column reference must be resolvable", isWindowed));
         return null;
       }
 
@@ -367,7 +369,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
 
     private boolean hasColumnRef;
 
-    public HasColumnRef() {
+    HasColumnRef() {
       hasColumnRef = false;
     }
 
@@ -385,23 +387,17 @@ public class PullFilterNode extends SingleSourcePlanNode {
     }
   }
 
-  private UnqualifiedColumnReferenceExp getColumnRefSide(final ComparisonExpression comp) {
+  private UnqualifiedColumnReferenceExp getColumnRefSideOrNull(final ComparisonExpression comp) {
     return (UnqualifiedColumnReferenceExp)
         (comp.getRight() instanceof UnqualifiedColumnReferenceExp
-            ? comp.getRight() : comp.getLeft());
+            ? comp.getRight()
+            : (comp.getLeft() instanceof UnqualifiedColumnReferenceExp ? comp.getLeft() : null));
   }
 
   private Expression getNonColumnRefSide(final ComparisonExpression comparison) {
     return comparison.getRight() instanceof UnqualifiedColumnReferenceExp
         ? comparison.getLeft()
         : comparison.getRight();
-  }
-
-  private boolean isSingleColumnReference(final ComparisonExpression comp) {
-    return (comp.getRight() instanceof UnqualifiedColumnReferenceExp
-        && !(comp.getLeft() instanceof UnqualifiedColumnReferenceExp))
-        || (comp.getLeft() instanceof UnqualifiedColumnReferenceExp
-        && !(comp.getRight() instanceof UnqualifiedColumnReferenceExp));
   }
 
   /**
@@ -438,8 +434,9 @@ public class PullFilterNode extends SingleSourcePlanNode {
     @Override
     public Void visitComparisonExpression(
         final ComparisonExpression node, final Object context) {
-      final UnqualifiedColumnReferenceExp column = getColumnRefSide(node);
+      final UnqualifiedColumnReferenceExp column = getColumnRefSideOrNull(node);
       final Expression other = getNonColumnRefSide(node);
+      Preconditions.checkNotNull(column, "UnqualifiedColumnReferenceExp should be found");
       final ColumnName columnName = column.getColumnName();
 
       final Optional<Column> col = schema.findColumn(columnName);
@@ -622,7 +619,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
           ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)
       ).resolve(other);
 
-      if (obj instanceof Integer || obj instanceof Long) {
+      if (obj instanceof Long) {
         return Instant.ofEpochMilli((long) obj);
       }
 

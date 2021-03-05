@@ -20,7 +20,6 @@ import static io.confluent.ksql.schema.ksql.types.SqlTypes.TIMESTAMP;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;

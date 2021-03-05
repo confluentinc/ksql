@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.api.client.ColumnType.Type;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlConnectorStatement;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlInsertValues;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlStatement;
@@ -75,7 +76,7 @@ public class CommandParserTest {
         + "INSERT INTO riderLocations (profileId, latitude, longitude) VALUES ('4ddad000', 37.7857, -122.4011);");
     assertThat(commands.size(), is(7));
     assertThat(commands.get(0), instanceOf(SqlStatement.class));
-    assertThat(commands.get(0).getCommand(), is("CREATE STREAM RIDERLOCATIONS (PROFILEID VARCHAR, LATITUDE DOUBLE, LONGITUDE DOUBLE) WITH (KAFKA_TOPIC='locations', VALUE_FORMAT='json', PARTITIONS=1);"));
+    assertThat(commands.get(0).getCommand(), is("CREATE STREAM riderLocations (profileId VARCHAR, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='locations', value_format='json', partitions=1);"));
     assertThat(commands.get(1), instanceOf(SqlInsertValues.class));
     assertThat(((SqlInsertValues) commands.get(1)).getSourceName(), is("RIDERLOCATIONS"));
     assertThat(((SqlInsertValues) commands.get(1)).getColumns().size(), is(3));
@@ -86,5 +87,20 @@ public class CommandParserTest {
     assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(0), Type.STRING), is("c2309eec"));
     assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(1), Type.DECIMAL), is(new BigDecimal(37.7877).setScale(4, RoundingMode.DOWN)));
     assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(2), Type.DECIMAL), is(new BigDecimal(-122.4205).setScale(4, RoundingMode.DOWN)));
+  }
+
+  @Test
+  public void shouldParseCreateConnectorStatement() {
+    final String command = "CREATE SOURCE CONNECTOR `jdbc-connector` WITH(\n"
+        + "    \"connector.class\"='io.confluent.connect.jdbc.JdbcSourceConnector',\n"
+        + "    \"connection.url\"='jdbc:postgresql://localhost:5432/my.db',\n"
+        + "    \"mode\"='bulk',\n"
+        + "    \"topic.prefix\"='jdbc-',\n"
+        + "    \"table.whitelist\"='users',\n"
+        + "    \"key\"='username');";
+    List<SqlCommand> commands = CommandParser.parse(command);
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0), instanceOf(SqlConnectorStatement.class));
+    assertThat(commands.get(0).getCommand(), is(command));
   }
 }

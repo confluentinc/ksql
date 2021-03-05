@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.SourceDescription;
@@ -60,6 +61,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.TestUtils;
 import org.apache.log4j.AppenderSkeleton;
@@ -153,6 +155,7 @@ public class MigrationsTest {
         "foo FOO fO0",
         configFilePath,
         "CREATE STREAM FOO (A STRING) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='DELIMITED');"
+            + "CREATE SOURCE CONNECTOR C WITH ('connector.class'='org.apache.kafka.connect.tools.MockSourceConnector');"
     );
     createMigrationFile(
         2,
@@ -238,6 +241,9 @@ public class MigrationsTest {
         hasSize(4));
     assertThat(foo.get(1).getRow().get().getColumns().get(0), is("HELLO"));
     assertThat(foo.get(2).getRow().get().getColumns().get(0), is("GOODBYE"));
+
+    // verify connectors
+    verifyConnector("C", true);
   }
 
   private static void createAndVerifyDirectoryStructure(final String testDir) throws Exception {
@@ -350,6 +356,15 @@ public class MigrationsTest {
     }
 
     return names.anyMatch(n -> n.equalsIgnoreCase(sourceName));
+  }
+
+  private static void verifyConnector(final String connectorName, final boolean isSource) {
+    final List<KsqlEntity> entities = makeKsqlRequest("SHOW CONNECTORS;");
+    assertThat(entities, hasSize(1));
+    assertThat(entities.get(0), instanceOf(ConnectorList.class));
+    assertThat(((ConnectorList) entities.get(0)).getConnectors().size(), is(1));
+    assertThat(((ConnectorList) entities.get(0)).getConnectors().get(0).getName(), is(connectorName));
+    assertThat(((ConnectorList) entities.get(0)).getConnectors().get(0).getType() == ConnectorType.SOURCE, is(isSource));
   }
 
   private static SourceDescription describeSource(final String name) {

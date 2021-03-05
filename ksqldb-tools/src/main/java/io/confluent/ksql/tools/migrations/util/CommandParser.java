@@ -42,12 +42,17 @@ import java.util.stream.Collectors;
 import javax.ws.rs.NotSupportedException;
 
 public class CommandParser {
-  private static final Pattern STRING_WS_SEMICOLON = Pattern.compile("('([^']*|(''))*')|;|[\\s]+");
-  private static final String INSERT_VALUES_PATTERN =
-      "\\s*INSERT\\s+INTO\\s+[\\S]+(\\s+\\(.*\\))?\\s+VALUES\\s+\\(.*\\)\\s*;\\s*";
+  private static final Pattern STRING_WS_SEMICOLON =
+      Pattern.compile("('([^']*|(''))*')|;", Pattern.DOTALL);
+  private static final Pattern INSERT_VALUES_PATTERN = Pattern.compile(
+      "\\s*INSERT\\s+INTO\\s+[\\S]+(\\s+\\(.*\\))?\\s+VALUES\\s+\\(.*\\)\\s*;\\s*",
+      Pattern.DOTALL);
+  private static final Pattern CREATE_CONNECTOR_PATTERN =
+      Pattern.compile("\\s*CREATE\\s+(SOURCE|SINK)\\s+CONNECTOR\\s+.*;\\s*", Pattern.DOTALL);
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
 
   public static List<SqlCommand> parse(final String sql) {
+    sql.split("'");
     final List<String> commands = collectCommands(tokenize(sql));
 
     return commands.stream()
@@ -77,17 +82,11 @@ public class CommandParser {
         current += part;
         commands.add(current);
         current = "";
-      } else if (isSqlString(part)) {
-        current += part;
       } else {
-        current += part.toUpperCase();
+        current += part;
       }
     }
     return commands;
-  }
-
-  private static boolean isSqlString(final String string) {
-    return string.startsWith("'") && string.endsWith("'");
   }
 
   public static Object toFieldType(final Expression expressionValue, final Type type) {
@@ -138,7 +137,7 @@ public class CommandParser {
   }
 
   private static SqlCommand transformToSqlCommand(final String sql) {
-    if (sql.matches(INSERT_VALUES_PATTERN)) {
+    if (INSERT_VALUES_PATTERN.matcher(sql.toUpperCase()).matches()) {
       final InsertValues parsedStatement = (InsertValues) new AstBuilder(TypeRegistry.EMPTY)
           .buildStatement(KSQL_PARSER.parse(sql).get(0).getStatement());
       return new SqlInsertValues(
@@ -147,6 +146,8 @@ public class CommandParser {
           parsedStatement.getValues(),
           parsedStatement.getColumns().stream()
               .map(name -> name.text()).collect(Collectors.toList()));
+    } else if (CREATE_CONNECTOR_PATTERN.matcher(sql.toUpperCase()).matches()) {
+      return new SqlConnectorStatement(sql);
     } else {
       return new SqlStatement(sql);
     }
@@ -196,6 +197,12 @@ public class CommandParser {
 
   public static class SqlStatement extends SqlCommand {
     SqlStatement(final String command) {
+      super(command);
+    }
+  }
+
+  public static class SqlConnectorStatement extends SqlCommand {
+    SqlConnectorStatement(final String command) {
       super(command);
     }
   }

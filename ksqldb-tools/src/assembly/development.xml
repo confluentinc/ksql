@@ -58,9 +58,6 @@
                  dependencies happen to be missing in the assembly you may want to
                  disable transitive filtering. -->
             <useTransitiveFiltering>true</useTransitiveFiltering>
-            <excludes>
-                <exclude>org.slf4j:slf4j-log4j12</exclude> <!-- Already included by rest-app-->
-            </excludes>
         </dependencySet>
     </dependencySets>
 </assembly>

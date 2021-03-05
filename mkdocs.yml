@@ -205,7 +205,7 @@ plugins:
             developer-guide/implement-a-udf.md: how-to-guides/create-a-user-defined-function.md
             developer-guide/serialization.md: reference/serialization.md
             developer-guide/syntax-reference.md: reference/index.md
-            developer-guide/ksqldb-rest-api.md: developer-guide/api.md
+            developer-guide/index.md: reference/index.md
 
             operate-and-deploy/installation/server-config/config-reference.md: reference/server-configuration.md
 

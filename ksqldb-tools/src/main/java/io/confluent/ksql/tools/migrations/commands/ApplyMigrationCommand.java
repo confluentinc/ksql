@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
 
 @Command(
     name = "apply",
-    description = "Migrates a schema to new available schema versions"
+    description = "Migrates the metadata schema to a new schema version."
 )
 public class ApplyMigrationCommand extends BaseCommand {
 
@@ -57,7 +57,7 @@ public class ApplyMigrationCommand extends BaseCommand {
   @Option(
       title = "all",
       name = {"-a", "--all"},
-      description = "run all available migrations"
+      description = "Run all available migrations"
   )
   @RequireOnlyOne(tag = "target")
   private boolean all;
@@ -65,7 +65,7 @@ public class ApplyMigrationCommand extends BaseCommand {
   @Option(
       title = "next",
       name = {"-n", "--next"},
-      description = "migrate the next available version"
+      description = "Run the next available migration version"
   )
   @RequireOnlyOne(tag = "target")
   private boolean next;
@@ -74,19 +74,30 @@ public class ApplyMigrationCommand extends BaseCommand {
       title = "untilVersion",
       name = {"-u", "--until"},
       arity = 1,
-      description = "migrate until the specified version"
+      description = "Run all available migrations up through the specified version"
   )
   @RequireOnlyOne(tag = "target")
   private int untilVersion;
 
   @Option(
-      title = "untilVersion",
+      title = "version",
       name = {"-v", "--version"},
       arity = 1,
-      description = "apply the migration with the specified version"
+      description = "Run the migration with the specified version"
   )
   @RequireOnlyOne(tag = "target")
   private int version;
+
+  @Option(
+      name = {"--dry-run"},
+      title = "dry-run",
+      description = "Dry run the current command. No ksqlDB statements will be "
+          + "sent to the ksqlDB server. Note that this dry run is for purposes of "
+          + "displaying which migration files (and what ksqlDB statements) the command "
+          + "would run in non-dry-run mode, and does NOT attempt to validate whether "
+          + "the ksqlDB statements will be accepted by the ksqlDB server."
+  )
+  private boolean dryRun = false;
 
   @Override
   protected int command() {
@@ -110,6 +121,7 @@ public class ApplyMigrationCommand extends BaseCommand {
     );
   }
 
+  // CHECKSTYLE_RULES.OFF: NPathComplexity
   @VisibleForTesting
   int command(
       final MigrationConfig config,
@@ -117,12 +129,13 @@ public class ApplyMigrationCommand extends BaseCommand {
       final String migrationsDir,
       final Clock clock
   ) {
+    // CHECKSTYLE_RULES.ON: NPathComplexity
     if (untilVersion < 0) {
       LOGGER.error("'until' migration version must be positive. Got: {}", untilVersion);
       return 1;
     }
     if (version < 0) {
-      LOGGER.error("migration version to apply must be positive. Got: {}", version);
+      LOGGER.error("Migration version to apply must be positive. Got: {}", version);
       return 1;
     }
 
@@ -137,6 +150,11 @@ public class ApplyMigrationCommand extends BaseCommand {
     if (!validateMetadataInitialized(ksqlClient, config)) {
       ksqlClient.close();
       return 1;
+    }
+
+    if (dryRun) {
+      LOGGER.info("This is a dry run. No ksqlDB statements will be submitted "
+          + "to the ksqlDB server.");
     }
 
     boolean success;

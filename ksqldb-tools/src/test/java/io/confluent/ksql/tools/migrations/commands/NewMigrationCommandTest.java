@@ -55,7 +55,7 @@ public class NewMigrationCommandTest {
   @Test
   public void shouldCreateRootDirectory() {
     // When:
-    final int status = command.run();
+    final int status = command.runCommand();
 
     // Then:
     assertThat(status, is(0));
@@ -68,7 +68,7 @@ public class NewMigrationCommandTest {
   @Test
   public void shouldCreateMigrationsDirectory() {
     // When:
-    final int status = command.run();
+    final int status = command.runCommand();
 
     // Then:
     assertThat(status, is(0));
@@ -81,7 +81,7 @@ public class NewMigrationCommandTest {
   @Test
   public void shouldCreateAndWriteToConfigFile() throws Exception {
     // When:
-    final int status = command.run();
+    final int status = command.runCommand();
 
     // Then:
     assertThat(status, is(0));
@@ -102,7 +102,7 @@ public class NewMigrationCommandTest {
     command = PARSER.parse(testDir + "/", KSQL_SERVER_URL);
 
     // When:
-    final int status = command.run();
+    final int status = command.runCommand();
 
     // Then:
     assertThat(status, is(0));
@@ -119,7 +119,7 @@ public class NewMigrationCommandTest {
     command = PARSER.parse(testDir, KSQL_SERVER_URL);
 
     // When:
-    final int status = command.run();
+    final int status = command.runCommand();
 
     // Then:
     assertThat(status, is(0));
@@ -136,7 +136,7 @@ public class NewMigrationCommandTest {
     Files.createDirectories(Paths.get(testDir, MIGRATIONS_DIR));
 
     // When:
-    final int status = command.run();
+    final int status = command.runCommand();
 
     // Then:
     assertThat(status, is(0));
@@ -146,18 +146,16 @@ public class NewMigrationCommandTest {
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
   @Test
-  public void shouldNotFailIfConfigFileAlreadyExist() throws Exception {
+  public void shouldFailIfConfigFileAlreadyExists() throws Exception {
     // Given:
     Files.createDirectories(Paths.get(testDir));
     new File(Paths.get(testDir, MIGRATIONS_CONFIG_FILE).toString()).createNewFile();
 
     // When:
-    final int status = command.run();
+    final int status = command.runCommand();
 
     // Then:
-    assertThat(status, is(0));
-
-    assertThat(new File(Paths.get(testDir, MIGRATIONS_DIR).toString()).exists(), is(true));
+    assertThat(status, is(1));
   }
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
@@ -167,7 +165,7 @@ public class NewMigrationCommandTest {
     new File(testDir).createNewFile();
 
     // When:
-    final int status = command.run();
+    final int status = command.runCommand();
 
     // Then:
     assertThat(status, is(1));
@@ -179,7 +177,7 @@ public class NewMigrationCommandTest {
     command = PARSER.parse(testDir, KSQL_SERVER_URL, "other_arg");
 
     // When:
-    final int status = command.run();
+    final int status = command.runCommand();
 
     // Then:
     assertThat(status, is(1));
@@ -191,7 +189,7 @@ public class NewMigrationCommandTest {
     command = PARSER.parse(testDir);
 
     // When:
-    final int status = command.run();
+    final int status = command.runCommand();
 
     // Then:
     assertThat(status, is(1));

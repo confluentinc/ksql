@@ -36,7 +36,9 @@ import org.slf4j.LoggerFactory;
 
 @Command(
     name = "clean",
-    description = "Cleans all resources related to migrations. WARNING: this is not reversible!"
+    description = "Cleans all ksqlDB server resources related to migrations, including "
+        + "the migrations metadata stream and table and their underlying Kafka topics. "
+        + "WARNING: this is not reversible!"
 )
 public class CleanMigrationsCommand extends BaseCommand {
 
@@ -75,6 +77,7 @@ public class CleanMigrationsCommand extends BaseCommand {
       return 1;
     }
 
+    LOGGER.info("Cleaning migrations metadata stream and table from ksqlDB server");
     if (ServerVersionUtil.serverVersionCompatible(ksqlClient, config)
         && deleteMigrationsTable(ksqlClient, tableName)
         && deleteMigrationsStream(ksqlClient, streamName)) {
@@ -95,7 +98,7 @@ public class CleanMigrationsCommand extends BaseCommand {
   private boolean deleteMigrationsTable(final Client ksqlClient, final String tableName) {
     try {
       if (!sourceExists(ksqlClient, tableName, true)) {
-        // nothing to delete
+        LOGGER.info("Metadata table does not exist. Skipping cleanup.");
         return true;
       }
 
@@ -113,7 +116,7 @@ public class CleanMigrationsCommand extends BaseCommand {
   private boolean deleteMigrationsStream(final Client ksqlClient, final String streamName) {
     try {
       if (!sourceExists(ksqlClient, streamName, false)) {
-        // nothing to delete
+        LOGGER.info("Metadata stream does not exist. Skipping cleanup.");
         return true;
       }
 

@@ -24,8 +24,15 @@ import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.restrictions.RequireOnlyOne;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.Client;
+import io.confluent.ksql.api.client.FieldInfo;
+import io.confluent.ksql.api.client.KsqlObject;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
+import io.confluent.ksql.tools.migrations.util.CommandParser;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCommand;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlInsertValues;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlStatement;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
 import io.confluent.ksql.tools.migrations.util.MigrationFile;
@@ -34,9 +41,10 @@ import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.RetryUtil;
 import java.time.Clock;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -274,17 +282,31 @@ public class ApplyMigrationCommand extends BaseCommand {
       return false;
     }
 
-    final List<String> commands = Arrays.stream(migrationFileContent.split(";"))
-        .map(String::trim)
-        .filter(s -> !s.isEmpty())
-        .map(s -> s + ";")
-        .collect(Collectors.toList());
-    for (final String command : commands) {
+    final List<SqlCommand> commands;
+    try {
+      commands = CommandParser.parse(migrationFileContent);
+    } catch (MigrationException e) {
+      LOGGER.error(e.getMessage());
+      return false;
+    }
+
+    for (final SqlCommand command : commands) {
       try {
-        ksqlClient.executeStatement(command).get();
+        if (command instanceof SqlStatement) {
+          ksqlClient.executeStatement(command.getCommand()).get();
+        } else if (command instanceof SqlInsertValues) {
+          final List<FieldInfo> fields =
+              ksqlClient.describeSource(((SqlInsertValues) command).getSourceName()).get().fields();
+          ksqlClient.insertInto(
+              ((SqlInsertValues) command).getSourceName(),
+              getRow(
+                  fields,
+                  ((SqlInsertValues) command).getColumns(),
+                  ((SqlInsertValues) command).getValues())).get();
+        }
       } catch (InterruptedException | ExecutionException e) {
         final String errorMsg = String.format(
-            "Failed to execute sql: %s. Error: %s", command, e.getMessage());
+            "Failed to execute sql: %s. Error: %s", command.getCommand(), e.getMessage());
         LOGGER.error(errorMsg);
         updateState(config, ksqlClient, MigrationState.ERROR,
             executionStart, migration, clock, previous, Optional.of(errorMsg));
@@ -296,6 +318,44 @@ public class ApplyMigrationCommand extends BaseCommand {
         executionStart, migration, clock, previous, Optional.empty());
     LOGGER.info("Successfully migrated");
     return true;
+  }
+
+  private KsqlObject getRow(
+      final List<FieldInfo> sourceFields,
+      final List<String> insertColumns,
+      final List<Expression> insertValues
+  ) {
+    final Map<String, Object> row = new HashMap<>();
+    if (insertColumns.size() > 0) {
+      if (insertColumns.size() != insertValues.size()) {
+        throw new MigrationException("mismatch");
+      }
+      for (int i = 0 ; i < insertColumns.size(); i++) {
+        final String columnName = insertColumns.get(i);
+        final List<FieldInfo> matchingFields = sourceFields.stream()
+            .filter(f -> f.name().equals(columnName)).collect(Collectors.toList());
+        if (matchingFields.size() == 0) {
+          throw new MigrationException("Could not find column named " + columnName);
+        } else if (matchingFields.size() > 1) {
+          throw new MigrationException("Found multiple columns named " + columnName);
+        } else {
+          row.put(
+              columnName,
+              CommandParser.toFieldType(
+                  insertValues.get(i), matchingFields.get(0).type().getType())
+          );
+        }
+      }
+    } else {
+      for (int i = 0 ; i < sourceFields.size(); i++) {
+        row.put(
+            sourceFields.get(i).name(),
+            CommandParser.toFieldType(insertValues.get(i), sourceFields.get(i).type().getType())
+        );
+      }
+    }
+
+    return new KsqlObject(row);
   }
 
   private boolean verifyMigrated(

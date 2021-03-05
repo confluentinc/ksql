@@ -109,11 +109,15 @@ public final class RecordFormatter {
 
     final List<String> formatted = formatRecords(records);
 
-    final boolean sameKeyFormatChanged = activeKeyFormat
-        .equals(keyDeserializers.getPossibleFormats().get(0));
+    final boolean sameKeyFormatChanged = keyDeserializers.getPossibleFormats().stream()
+        .map(activeKeyFormat::equals)
+        .findFirst()
+        .orElse(false);
 
-    final boolean sameValueFormatChanged = activeValueFormat
-        .equals(valueDeserializers.getPossibleFormats().get(0));
+    final boolean sameValueFormatChanged = valueDeserializers.getPossibleFormats().stream()
+        .map(activeValueFormat::equals)
+        .findFirst()
+        .orElse(false);
 
     if (sameKeyFormatChanged && sameValueFormatChanged) {
       return formatted;

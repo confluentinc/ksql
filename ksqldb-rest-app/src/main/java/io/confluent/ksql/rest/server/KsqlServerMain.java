@@ -15,10 +15,15 @@
 
 package io.confluent.ksql.rest.server;
 
+import static io.confluent.ksql.serde.avro.AvroFormat.avroConfig;
+
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.connect.avro.AvroConverterConfig;
+import io.confluent.kafka.serializers.subject.strategy.SubjectNameStrategy;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import java.io.File;
@@ -54,6 +59,12 @@ public class KsqlServerMain {
       final String installDir = properties.getOrDefault("ksql.server.install.dir", "");
       final KsqlConfig ksqlConfig = new KsqlConfig(properties);
       validateConfig(ksqlConfig);
+
+      // For backward compatibility we can't rid io.confluent.ksql.util.KsqlConstants.getSRSubject
+      // because that public API. So we implement that via strategy and set it on early stage of
+      // application start
+      KsqlConstants.subjectNameStrategy = (SubjectNameStrategy)new AvroConverterConfig(
+          avroConfig(ksqlConfig)).valueSubjectNameStrategy();
 
       final Optional<String> queriesFile = serverOptions.getQueriesFile(properties);
       final Executable executable = createExecutable(

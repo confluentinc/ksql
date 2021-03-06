@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.util;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.kafka.serializers.subject.TopicNameStrategy;
+import io.confluent.kafka.serializers.subject.strategy.SubjectNameStrategy;
 import org.apache.kafka.streams.KafkaStreams;
 
 public final class KsqlConstants {
@@ -26,9 +29,6 @@ public final class KsqlConstants {
 
   public static final String STREAMS_CHANGELOG_TOPIC_SUFFIX = "-changelog";
   public static final String STREAMS_REPARTITION_TOPIC_SUFFIX = "-repartition";
-
-  private static final String SCHEMA_REGISTRY_KEY_SUFFIX = "-key";
-  private static final String SCHEMA_REGISTRY_VALUE_SUFFIX = "-value";
 
   public static final long defaultSinkWindowChangeLogAdditionalRetention = 1000000;
 
@@ -59,11 +59,13 @@ public final class KsqlConstants {
     return state == KafkaStreams.State.ERROR ? KsqlQueryStatus.ERROR : KsqlQueryStatus.RUNNING;
   }
 
+  @SuppressFBWarnings(
+      value = "MS_SHOULD_BE_FINAL",
+      justification = "Can't be final because set outside on application start")
+  public static SubjectNameStrategy subjectNameStrategy = new TopicNameStrategy();
+
   public static String getSRSubject(final String topicName, final boolean isKey) {
-    final String suffix = isKey
-        ? KsqlConstants.SCHEMA_REGISTRY_KEY_SUFFIX
-        : KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
-    return topicName + suffix;
+    return subjectNameStrategy.subjectName(topicName, isKey, null);
   }
 
   /**

@@ -338,6 +338,27 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SUPPRESS_ENABLED_DOC =
       "Feature flag for suppression, specifically EMIT FINAL";
 
+  public static final String KSQL_VALUE_SUBJECT_NAME_STRATEGY = "value.subject.name.strategy";
+  public static final String KSQL_VALUE_SUBJECT_NAME_STRATEGY_DEFAULT = "io.confluent.kafka."
+      + "serializers.subject.TopicNameStrategy";
+  public static final String KSQL_VALUE_SUBJECT_NAME_STRATEGY_DOC = "SubjectNameStrategy to "
+      + "register the values AVRO schema under just subject name equal to <topic> in schema "
+      + "registry."
+      + "\nDefault TopicNameStrategy register schemes under <topic>-key and <topic>-value subjects "
+      + "for key and value schemes respectively"
+      + "\nThere you may provide other strategies for that. One example is "
+      + "io.confluent.ksql.TopicNameStrategyPlain which assume subject name in schema registry "
+      + "equal to <topic> name is for values and schemes and <topic>-key for keys"
+      + "\nPlease refer to the documentation for the details: "
+      + "https://docs.confluent.io/platform/current/schema-registry/serdes-develop/index.html"
+      + "\nNote. If you use embedded connect, it also needs to be configured. And pay attention "
+      + "what Plugins#newConverter uses prefixed values like: `value.converter.`, "
+      + "`key.converter.`, `internal.key.converter.`, `internal.value.converter.`. So you may want "
+      + "have several configurations like:"
+      + "\nvalue.subject.name.strategy=io.confluent.ksql.serde.avro.subject.TopicNameStrategyPlain"
+      + "\nvalue.converter.value.subject.name.strategy=\\"
+      + "        io.confluent.ksql.serde.avro.subject.TopicNameStrategyPlain";
+
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES = "ksql.suppress.buffer.size.bytes";
   public static final Long KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT = -1L;
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DOC =
@@ -829,6 +850,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_SUPPRESS_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_SUPPRESS_ENABLED_DOC
+        )
+        .define(
+            KSQL_VALUE_SUBJECT_NAME_STRATEGY,
+            Type.STRING,
+            KSQL_VALUE_SUBJECT_NAME_STRATEGY_DEFAULT,
+            Importance.MEDIUM,
+            KSQL_VALUE_SUBJECT_NAME_STRATEGY_DOC
         )
         .define(
             KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS,

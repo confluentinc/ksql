@@ -109,6 +109,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -191,7 +192,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Context> {
       final Context context
   ) {
     final InPredicate preprocessed = InListEvaluator
-        .preprocess(inPredicate, expressionTypeManager);
+        .preprocess(inPredicate, expressionTypeManager, Collections.emptyMap());
 
     final Term value = process(preprocessed.getValue(), context);
 

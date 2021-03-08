@@ -189,13 +189,13 @@ public class ExpressionTypeManager {
         final LambdaVariable node, final Context context
     ) {
       context.setSqlType(
-          context.getLambdaSqlTypeMapping().get(node.getValue())
+          context.getLambdaSqlTypeMapping().get(node.getLambdaCharacter())
       );
       return null;
     }
 
     @Override
-    public Void visitIntervalUnit(final IntervalUnit exp, final Context expressionTypeContext) {
+    public Void visitIntervalUnit(final IntervalUnit exp, final Context context) {
       return null;
     }
 
@@ -427,7 +427,8 @@ public class ExpressionTypeManager {
       }
 
       final SqlType elementType = CoercionUtil
-          .coerceUserList(exp.getValues(), ExpressionTypeManager.this)
+          .coerceUserList(exp.getValues(), ExpressionTypeManager.this,
+              context.getLambdaSqlTypeMapping())
           .commonType()
           .orElseThrow(() -> new KsqlException("Cannot construct an array with all NULL elements "
               + "(see https://github.com/confluentinc/ksql/issues/4239). As a workaround, you may "
@@ -449,14 +450,16 @@ public class ExpressionTypeManager {
       }
 
       final SqlType keyType = CoercionUtil
-          .coerceUserList(map.keySet(), ExpressionTypeManager.this)
+          .coerceUserList(map.keySet(), ExpressionTypeManager.this,
+              context.getLambdaSqlTypeMapping())
           .commonType()
           .orElseThrow(() -> new KsqlException("Cannot construct a map with all NULL keys "
               + "(see https://github.com/confluentinc/ksql/issues/4239). As a workaround, you may "
               + "cast a NULL key to the desired type."));
 
       final SqlType valueType = CoercionUtil
-          .coerceUserList(map.values(), ExpressionTypeManager.this)
+          .coerceUserList(map.values(), ExpressionTypeManager.this,
+              context.getLambdaSqlTypeMapping())
           .commonType()
           .orElseThrow(() -> new KsqlException("Cannot construct a map with all NULL values "
               + "(see https://github.com/confluentinc/ksql/issues/4239). As a workaround, you may "

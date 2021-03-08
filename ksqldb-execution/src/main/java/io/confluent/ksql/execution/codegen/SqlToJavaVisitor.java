@@ -303,7 +303,10 @@ public class SqlToJavaVisitor {
         final Context context
     ) {
       final InPredicate preprocessed = InListEvaluator
-          .preprocess(inPredicate, expressionTypeManager);
+          .preprocess(
+              inPredicate,
+              expressionTypeManager,
+              context.getLambdaSqlTypeMapping());
 
       final Pair<String, SqlType> value = process(preprocessed.getValue(), context);
 
@@ -413,8 +416,8 @@ public class SqlToJavaVisitor {
         final LambdaVariable lambdaVariable, final Context context
     ) {
       return new Pair<>(
-          lambdaVariable.getValue(),
-          context.getLambdaSqlTypeMapping().get(lambdaVariable.getValue())
+          lambdaVariable.getLambdaCharacter(),
+          context.getLambdaSqlTypeMapping().get(lambdaVariable.getLambdaCharacter())
       );
     }
 
@@ -1018,7 +1021,10 @@ public class SqlToJavaVisitor {
         final Context context
     ) {
       final List<Expression> expressions = CoercionUtil
-          .coerceUserList(exp.getValues(), expressionTypeManager)
+          .coerceUserList(
+              exp.getValues(),
+              expressionTypeManager,
+              context.getLambdaSqlTypeMapping())
           .expressions();
 
       final StringBuilder array = new StringBuilder("new ArrayBuilder(");
@@ -1042,11 +1048,17 @@ public class SqlToJavaVisitor {
     ) {
       final ImmutableMap<Expression, Expression> map = exp.getMap();
       final List<Expression> keys = CoercionUtil
-          .coerceUserList(map.keySet(), expressionTypeManager)
+          .coerceUserList(
+              map.keySet(),
+              expressionTypeManager,
+              context.getLambdaSqlTypeMapping())
           .expressions();
 
       final List<Expression> values = CoercionUtil
-          .coerceUserList(map.values(), expressionTypeManager)
+          .coerceUserList(
+              map.values(),
+              expressionTypeManager,
+              context.getLambdaSqlTypeMapping())
           .expressions();
 
       final String entries = Streams.zip(

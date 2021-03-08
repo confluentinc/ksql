@@ -298,6 +298,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
         final ComparisonExpression node,
         final Object context
     ) {
+      // First see if we can find a direct column reference
       final UnqualifiedColumnReferenceExp column = getColumnRefSideOrNull(node);
       if (column != null) {
         final Expression other = getNonColumnRefSide(node);

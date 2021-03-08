@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.collect.ImmutableMap;
+
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.kafka.common.TopicPartition;
@@ -24,10 +27,16 @@ public class StreamsTaskMetadata {
 
   private final String taskId;
   private final Set<TopicPartition> topicPartitions;
+  private final ImmutableMap<TopicPartition, Long> endOffsets;
+  private final ImmutableMap<TopicPartition, Long> committedOffsets;
+  private final Optional<Long> timeCurrentIdlingStarted;
 
   StreamsTaskMetadata(final TaskMetadata taskMetadata) {
-    this.taskId = taskMetadata.taskId();
-    this.topicPartitions = taskMetadata.topicPartitions();
+    taskId = taskMetadata.taskId();
+    topicPartitions = taskMetadata.topicPartitions();
+    timeCurrentIdlingStarted = Optional.empty();
+    endOffsets = null;
+    committedOffsets = null;
   }
 
   public String getTaskId() {
@@ -36,5 +45,17 @@ public class StreamsTaskMetadata {
 
   public Set<TopicPartition> getTopicPartitions() {
     return topicPartitions;
+  }
+
+  public ImmutableMap<TopicPartition, Long> getEndOffsets() {
+    return endOffsets;
+  }
+
+  public ImmutableMap<TopicPartition, Long> getCommittedOffsets() {
+    return committedOffsets;
+  }
+
+  public Optional<Long> getTimeCurrentIdlingStarted() {
+    return timeCurrentIdlingStarted;
   }
 }

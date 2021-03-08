@@ -378,7 +378,7 @@ versions.
 | {{ site.aktm }} version | 0.11.0 and later         |
 | {{ site.cp }} version   | 5.5.0 and later          |
 
-ksqlDB only supports Java 8 and Java 11.
+ksqlDB supports Java 8 and Java 11.
 
 Scale your ksqlDB Server deployment
 -----------------------------------

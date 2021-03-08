@@ -19,7 +19,7 @@ What are the technical requirements of ksqlDB?
 
 ksqlDB requires only:
 
-1.  A Java runtime environment
+1.  A Java runtime environment.
 2.  Access to a {{ site.ak }} cluster for reading and writing data in
     real-time. The cluster can be on-premises or in the cloud. ksqlDB
     works with clusters running vanilla {{ site.ak }} as well as with
@@ -28,7 +28,7 @@ ksqlDB requires only:
 We recommend using [Confluent
 Platform](https://www.confluent.io/product/confluent-platform/) or
 [Confluent Cloud](https://www.confluent.io/confluent-cloud/) to run
-{{ site.ak }}.
+{{ site.ak }}. ksqlDB supports Java 8 and 11.
 
 Is ksqlDB owned by the Apache Software Foundation?
 --------------------------------------------------

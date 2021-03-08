@@ -213,8 +213,11 @@ final class EngineContext {
           parser.prepare(substituteVariables(stmt, variablesMap), metaStore);
       return PreparedStatement.of(
           preparedStatement.getStatementText(),
-          AstSanitizer.sanitize(preparedStatement.getStatement(), metaStore, ksqlConfig.getBoolean(KsqlConfig.KSQL_LAMBDAS_ENABLED))
-      );
+          AstSanitizer.sanitize(
+              preparedStatement.getStatement(),
+              metaStore,
+              ksqlConfig.getBoolean(KsqlConfig.KSQL_LAMBDAS_ENABLED)
+          ));
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final Exception e) {

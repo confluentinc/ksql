@@ -40,11 +40,9 @@ import io.confluent.ksql.schema.ksql.ColumnAliasGenerator;
 import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.AmbiguousColumnException;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.UnknownSourceException;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -179,7 +177,10 @@ public final class AstSanitizer {
     private final DataSourceExtractor dataSourceExtractor;
     private final Boolean lambdaEnabled;
 
-    ExpressionRewriterPlugin(final DataSourceExtractor dataSourceExtractor, final Boolean lambdaEnabled) {
+    ExpressionRewriterPlugin(
+        final DataSourceExtractor dataSourceExtractor,
+        final Boolean lambdaEnabled
+    ) {
       super(Optional.empty());
       this.dataSourceExtractor = requireNonNull(dataSourceExtractor, "dataSourceExtractor");
       this.lambdaEnabled = lambdaEnabled;

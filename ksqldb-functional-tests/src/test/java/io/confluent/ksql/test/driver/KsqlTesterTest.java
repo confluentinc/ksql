@@ -160,7 +160,8 @@ public class KsqlTesterTest {
         NoopProcessingLogContext.INSTANCE,
         metaStore,
         ServiceInfo.create(config),
-        new SequentialQueryIdGenerator()
+        new SequentialQueryIdGenerator(),
+        this.config
     );
 
     this.expectedException = null;

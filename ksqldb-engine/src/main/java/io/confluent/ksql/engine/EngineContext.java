@@ -45,6 +45,7 @@ import io.confluent.ksql.query.QueryValidator;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -91,13 +92,15 @@ final class EngineContext {
   private final QueryCleanupService cleanupService;
   private final Map<SourceName, QueryId> createAsQueries = new ConcurrentHashMap<>();
   private final Map<SourceName, Set<QueryId>> insertQueries = new ConcurrentHashMap<>();
+  private final KsqlConfig ksqlConfig;
 
   static EngineContext create(
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final MutableMetaStore metaStore,
       final QueryIdGenerator queryIdGenerator,
-      final QueryCleanupService cleanupService
+      final QueryCleanupService cleanupService,
+      final KsqlConfig ksqlConfig
   ) {
     return new EngineContext(
         serviceContext,
@@ -105,7 +108,8 @@ final class EngineContext {
         metaStore,
         queryIdGenerator,
         new DefaultKsqlParser(),
-        cleanupService
+        cleanupService,
+        ksqlConfig
     );
   }
 
@@ -115,7 +119,8 @@ final class EngineContext {
       final MutableMetaStore metaStore,
       final QueryIdGenerator queryIdGenerator,
       final KsqlParser parser,
-      final QueryCleanupService cleanupService
+      final QueryCleanupService cleanupService,
+      final KsqlConfig ksqlConfig
   ) {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.metaStore = requireNonNull(metaStore, "metaStore");
@@ -126,6 +131,7 @@ final class EngineContext {
     this.processingLogContext = requireNonNull(processingLogContext, "processingLogContext");
     this.parser = requireNonNull(parser, "parser");
     this.cleanupService = requireNonNull(cleanupService, "cleanupService");
+    this.ksqlConfig = requireNonNull(ksqlConfig);
   }
 
   EngineContext createSandbox(final ServiceContext serviceContext) {
@@ -134,7 +140,8 @@ final class EngineContext {
         processingLogContext,
         metaStore.copy(),
         queryIdGenerator.createSandbox(),
-        cleanupService
+        cleanupService,
+        ksqlConfig
     );
 
     persistentQueries.forEach((queryId, query) ->
@@ -206,8 +213,11 @@ final class EngineContext {
           parser.prepare(substituteVariables(stmt, variablesMap), metaStore);
       return PreparedStatement.of(
           preparedStatement.getStatementText(),
-          AstSanitizer.sanitize(preparedStatement.getStatement(), metaStore)
-      );
+          AstSanitizer.sanitize(
+              preparedStatement.getStatement(),
+              metaStore,
+              ksqlConfig.getBoolean(KsqlConfig.KSQL_LAMBDAS_ENABLED)
+          ));
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final Exception e) {

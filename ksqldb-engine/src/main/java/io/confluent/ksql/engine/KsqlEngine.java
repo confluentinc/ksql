@@ -42,6 +42,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -77,7 +78,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
       final ServiceInfo serviceInfo,
-      final QueryIdGenerator queryIdGenerator
+      final QueryIdGenerator queryIdGenerator,
+      final KsqlConfig ksqlConfig
   ) {
     this(
         serviceContext,
@@ -90,7 +92,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             serviceInfo.customMetricsTags(),
             serviceInfo.metricsExtension()
         ),
-        queryIdGenerator);
+        queryIdGenerator,
+        ksqlConfig);
   }
 
   public KsqlEngine(
@@ -99,7 +102,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final String serviceId,
       final MutableMetaStore metaStore,
       final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory,
-      final QueryIdGenerator queryIdGenerator
+      final QueryIdGenerator queryIdGenerator,
+      final KsqlConfig ksqlConfig
   ) {
     this.cleanupService = new QueryCleanupService();
     this.orphanedTransientQueryCleaner = new OrphanedTransientQueryCleaner(this.cleanupService);
@@ -108,7 +112,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         processingLogContext,
         metaStore,
         queryIdGenerator,
-        cleanupService
+        cleanupService,
+        ksqlConfig
     );
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.engineMetrics = engineMetricsFactory.apply(this);

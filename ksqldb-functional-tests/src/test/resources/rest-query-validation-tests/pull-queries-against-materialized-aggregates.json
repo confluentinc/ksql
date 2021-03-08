@@ -1914,9 +1914,12 @@
         "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ID;",
         "SELECT * FROM AGGREGATE WHERE ID IN (2, COUNT + 1, 3);"
       ],
+      "properties": {
+        "ksql.query.pull.table.scan.enabled":  false
+      },
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Unsupported column reference in pull query: (COUNT + 1)",
+        "message": "A comparison must be between a key column and a resolvable expression.",
         "status": 400
       }
     },

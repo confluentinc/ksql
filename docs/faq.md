@@ -28,7 +28,7 @@ ksqlDB requires only:
 We recommend using [Confluent
 Platform](https://www.confluent.io/product/confluent-platform/) or
 [Confluent Cloud](https://www.confluent.io/confluent-cloud/) to run
-{{ site.ak }}. ksqlDB only supports Java 8 and 11.
+{{ site.ak }}. ksqlDB supports Java 8 and 11.
 
 Is ksqlDB owned by the Apache Software Foundation?
 --------------------------------------------------

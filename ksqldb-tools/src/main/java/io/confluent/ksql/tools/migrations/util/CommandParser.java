@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 import javax.ws.rs.NotSupportedException;
 
 public class CommandParser {
-  private static final Pattern STRING_WS_SEMICOLON =
+  private static final Pattern QUOTED_STRING_OR_SEMICOLON_PATTERN =
       Pattern.compile("('([^']*|(''))*')|;", Pattern.DOTALL);
   private static final Pattern INSERT_VALUES_PATTERN = Pattern.compile(
       "\\s*INSERT\\s+INTO\\s+[\\S]+(\\s+\\(.*\\))?\\s+VALUES\\s+\\(.*\\)\\s*;\\s*",
@@ -52,7 +52,6 @@ public class CommandParser {
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
 
   public static List<SqlCommand> parse(final String sql) {
-    sql.split("'");
     final List<String> commands = collectCommands(tokenize(sql));
 
     return commands.stream()
@@ -60,9 +59,14 @@ public class CommandParser {
         .collect(Collectors.toList());
   }
 
+  /*
+  * Returns the string split up by semicolons and quoted strings.
+  *
+  * @return a list containing the parts of the chopped up string.
+  * */
   private static List<String> tokenize(final String sql) {
     final List<String> result = new ArrayList<>();
-    Matcher matcher = STRING_WS_SEMICOLON.matcher(sql);
+    Matcher matcher = QUOTED_STRING_OR_SEMICOLON_PATTERN.matcher(sql);
     int prev = 0;
     while (matcher.find()) {
       result.add(sql.substring(prev, matcher.start()));
@@ -74,6 +78,12 @@ public class CommandParser {
     return result;
   }
 
+   /*
+   * Combines the list of strings returned by the tokenize method into a list of strings split by
+   * semicolons.
+   *
+   * @return a list containing the recombined strings.
+   **/
   private static List<String> collectCommands(final List<String> parts) {
     final List<String> commands = new ArrayList<>();
     String current = "";
@@ -89,37 +99,10 @@ public class CommandParser {
     return commands;
   }
 
-  public static Object toFieldType(final Expression expressionValue, final Type type) {
-    switch (type) {
-      case STRING:
-      case INTEGER:
-      case BIGINT:
-      case DOUBLE:
-      case BOOLEAN:
-      case DECIMAL:
-        return getPrimitiveValue(expressionValue);
-      case ARRAY:
-        return ((CreateArrayExpression) expressionValue)
-            .getValues()
-            .stream()
-            .map(val -> getPrimitiveValue(val)).collect(Collectors.toList());
-      case MAP:
-        final Map<Object, Object> resolvedMap = new HashMap<>();
-        ((CreateMapExpression) expressionValue).getMap()
-            .forEach((k, v) -> resolvedMap.put(getPrimitiveValue(k), getPrimitiveValue(v)));
-        return resolvedMap;
-      case STRUCT:
-        final Map<Object, Object> resolvedStruct = new HashMap<>();
-        ((CreateStructExpression) expressionValue)
-            .getFields().stream().forEach(
-                field -> resolvedStruct.put(field.getName(), getPrimitiveValue(field.getValue())));
-        return resolvedStruct;
-      default:
-        throw new NotSupportedException();
-    }
-  }
-
-  private static Object getPrimitiveValue(final Expression expressionValue) {
+  /*
+  * Converts an expression into a Java object.
+  **/
+  public static Object toFieldType(final Expression expressionValue) {
     if (expressionValue instanceof StringLiteral) {
       return ((StringLiteral) expressionValue).getValue();
     } else if (expressionValue instanceof IntegerLiteral) {
@@ -132,10 +115,30 @@ public class CommandParser {
       return ((BooleanLiteral) expressionValue).getValue();
     } else if (expressionValue instanceof DecimalLiteral) {
       return ((DecimalLiteral) expressionValue).getValue();
+    } else if (expressionValue instanceof CreateArrayExpression) {
+      return ((CreateArrayExpression) expressionValue)
+          .getValues()
+          .stream()
+          .map(val -> toFieldType(val)).collect(Collectors.toList());
+    } else if (expressionValue instanceof CreateMapExpression) {
+      final Map<Object, Object> resolvedMap = new HashMap<>();
+      ((CreateMapExpression) expressionValue).getMap()
+          .forEach((k, v) -> resolvedMap.put(toFieldType(k), toFieldType(v)));
+      return resolvedMap;
+    } else if (expressionValue instanceof CreateStructExpression) {
+      final Map<Object, Object> resolvedStruct = new HashMap<>();
+      ((CreateStructExpression) expressionValue)
+          .getFields().stream().forEach(
+          field -> resolvedStruct.put(field.getName(), toFieldType(field.getValue())));
+      return resolvedStruct;
     }
-    throw new MigrationException("");
+    throw new IllegalStateException("Expression type not recognized: "
+        + expressionValue.toString());
   }
 
+  /*
+  * Determines the type of command a sql string is and returns a SqlCommand.
+  **/
   private static SqlCommand transformToSqlCommand(final String sql) {
     if (INSERT_VALUES_PATTERN.matcher(sql.toUpperCase()).matches()) {
       final InsertValues parsedStatement = (InsertValues) new AstBuilder(TypeRegistry.EMPTY)
@@ -165,6 +168,9 @@ public class CommandParser {
     }
   }
 
+  /*
+   * Represents ksqlDb `INSERT INTO ... VALUES ...;` statements
+   */
   public static class SqlInsertValues extends SqlCommand {
     private final String sourceName;
     private final List<String> columns;
@@ -195,12 +201,18 @@ public class CommandParser {
     }
   }
 
+  /*
+  * Represents commands that can be sent directly to the the Java client's `executeStatement` method
+  * */
   public static class SqlStatement extends SqlCommand {
     SqlStatement(final String command) {
       super(command);
     }
   }
 
+  /*
+   * Represents commands that deal with connectors.
+   * */
   public static class SqlConnectorStatement extends SqlCommand {
     SqlConnectorStatement(final String command) {
       super(command);

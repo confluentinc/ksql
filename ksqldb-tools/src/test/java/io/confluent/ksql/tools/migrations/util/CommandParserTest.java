@@ -39,7 +39,7 @@ public class CommandParserTest {
     assertThat(commands.get(0), instanceOf(SqlInsertValues.class));
     assertThat(((SqlInsertValues) commands.get(0)).getSourceName(), is("FOO"));
     assertThat(((SqlInsertValues) commands.get(0)).getValues().size(), is(1));
-    assertThat(toFieldType(((SqlInsertValues) commands.get(0)).getValues().get(0), Type.INTEGER), is(55));
+    assertThat(toFieldType(((SqlInsertValues) commands.get(0)).getValues().get(0)), is(55));
   }
 
   @Test
@@ -49,12 +49,12 @@ public class CommandParserTest {
     assertThat(commands.get(0), instanceOf(SqlInsertValues.class));
     assertThat(((SqlInsertValues) commands.get(0)).getSourceName(), is("FOO"));
     assertThat(((SqlInsertValues) commands.get(0)).getValues().size(), is(1));
-    assertThat(toFieldType(((SqlInsertValues) commands.get(0)).getValues().get(0), Type.INTEGER), is(32));
+    assertThat(toFieldType(((SqlInsertValues) commands.get(0)).getValues().get(0)), is(32));
     assertThat(commands.get(1), instanceOf(SqlInsertValues.class));
     assertThat(((SqlInsertValues) commands.get(1)).getSourceName(), is("FOO_2"));
-    assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(0), Type.STRING), is("wow"));
-    assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(1), Type.INTEGER), is(3));
-    assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(2), Type.STRING), is("hello 'world'!"));
+    assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(0)), is("wow"));
+    assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(1)), is(3));
+    assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(2)), is("hello 'world'!"));
   }
 
   @Test
@@ -69,9 +69,9 @@ public class CommandParserTest {
   public void shouldParseSeveralCommands() {
     List<SqlCommand> commands = CommandParser.parse("CREATE STREAM riderLocations (profileId VARCHAR, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='locations', value_format='json', partitions=1);\n"
         + "INSERT INTO riderLocations (profileId, latitude, longitude) VALUES ('c2309eec', 37.7877, -122.4205);\n"
-        + "INSERT INTO riderLocations (profileId, latitude, longitude) VALUES ('18f4ea86', 37.3903, -122.0643);\n"
-        + "INSERT INTO riderLocations (profileId, latitude, longitude) VALUES ('4ab5cbad', 37.3952, -122.0813);\n"
-        + "INSERT INTO riderLocations (profileId, latitude, longitude) VALUES ('8b6eae59', 37.3944, -122.0813);\n"
+        + "INSERT INTO `riderLocations` (profileId, latitude, longitude) VALUES ('18f4ea86', 37.3903, -122.0643);\n"
+        + "INSERT INTO \"riderLocations\" (profileId, latitude, longitude) VALUES ('4ab5cbad', 37.3952, -122.0813);\n"
+        + "INSERT INTO `values` (profileId, latitude, longitude) VALUES ('8b6eae59', 37.3944, -122.0813);\n"
         + "INSERT INTO riderLocations (profileId, latitude, longitude) VALUES ('4a7c7b41', 37.4049, -122.0822);\n"
         + "INSERT INTO riderLocations (profileId, latitude, longitude) VALUES ('4ddad000', 37.7857, -122.4011);");
     assertThat(commands.size(), is(7));
@@ -84,9 +84,15 @@ public class CommandParserTest {
     assertThat(((SqlInsertValues) commands.get(1)).getColumns().get(1), is("LATITUDE"));
     assertThat(((SqlInsertValues) commands.get(1)).getColumns().get(2), is("LONGITUDE"));
     assertThat(((SqlInsertValues) commands.get(1)).getValues().size(), is(3));
-    assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(0), Type.STRING), is("c2309eec"));
-    assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(1), Type.DECIMAL), is(new BigDecimal(37.7877).setScale(4, RoundingMode.DOWN)));
-    assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(2), Type.DECIMAL), is(new BigDecimal(-122.4205).setScale(4, RoundingMode.DOWN)));
+    assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(0)), is("c2309eec"));
+    assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(1)), is(new BigDecimal(37.7877).setScale(4, RoundingMode.DOWN)));
+    assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(2)), is(new BigDecimal(-122.4205).setScale(4, RoundingMode.DOWN)));
+    assertThat(commands.get(2), instanceOf(SqlInsertValues.class));
+    assertThat(((SqlInsertValues) commands.get(2)).getSourceName(), is("riderLocations"));
+    assertThat(commands.get(3), instanceOf(SqlInsertValues.class));
+    assertThat(((SqlInsertValues) commands.get(3)).getSourceName(), is("riderLocations"));
+    assertThat(commands.get(4), instanceOf(SqlInsertValues.class));
+    assertThat(((SqlInsertValues) commands.get(4)).getSourceName(), is("values"));
   }
 
   @Test

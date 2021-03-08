@@ -228,8 +228,9 @@ public class MigrationsTest {
 
     // verify current
     final List<StreamedRow> current =
-        makeKsqlQuery("SELECT * FROM " + MIGRATIONS_TABLE + " WHERE VERSION_KEY='CURRENT';");
-    assertThat(current.size(), is(2));
+        assertThatEventually(
+            () -> makeKsqlQuery("SELECT * FROM " + MIGRATIONS_TABLE + " WHERE VERSION_KEY='2';"),
+            hasSize(2));
     assertThat(current.get(1).getRow().get().getColumns().get(1), is("2"));
     assertThat(current.get(1).getRow().get().getColumns().get(2), is("bar bar BAR"));
     assertThat(current.get(1).getRow().get().getColumns().get(3), is("MIGRATED"));
@@ -238,7 +239,7 @@ public class MigrationsTest {
     // verify foo
     final List<StreamedRow> foo = assertThatEventually(
         () -> makeKsqlQuery("SELECT * FROM FOO EMIT CHANGES LIMIT 2;"),
-        hasSize(4));
+        hasSize(4)); // first row is a header, last row is a message saying "Limit Reached"
     assertThat(foo.get(1).getRow().get().getColumns().get(0), is("HELLO"));
     assertThat(foo.get(2).getRow().get().getColumns().get(0), is("GOODBYE"));
 

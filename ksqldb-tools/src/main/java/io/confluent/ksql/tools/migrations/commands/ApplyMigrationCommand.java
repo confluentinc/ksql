@@ -338,35 +338,27 @@ public class ApplyMigrationCommand extends BaseCommand {
   ) {
     final Map<String, Object> row = new HashMap<>();
     if (insertColumns.size() > 0) {
-      if (insertColumns.size() != insertValues.size()) {
-        throw new MigrationException("mismatch");
-      }
+      verifyColumnValuesMatch(insertColumns, insertValues);
       for (int i = 0 ; i < insertColumns.size(); i++) {
-        final String columnName = insertColumns.get(i);
-        final List<FieldInfo> matchingFields = sourceFields.stream()
-            .filter(f -> f.name().equals(columnName)).collect(Collectors.toList());
-        if (matchingFields.size() == 0) {
-          throw new MigrationException("Could not find column named " + columnName);
-        } else if (matchingFields.size() > 1) {
-          throw new MigrationException("Found multiple columns named " + columnName);
-        } else {
-          row.put(
-              columnName,
-              CommandParser.toFieldType(
-                  insertValues.get(i), matchingFields.get(0).type().getType())
-          );
-        }
+        row.put(insertColumns.get(i), CommandParser.toFieldType(insertValues.get(i)));
       }
     } else {
+      final List<String> columnNames = sourceFields.stream()
+          .map(FieldInfo::name).collect(Collectors.toList());
+      verifyColumnValuesMatch(columnNames, insertValues);
       for (int i = 0 ; i < sourceFields.size(); i++) {
-        row.put(
-            sourceFields.get(i).name(),
-            CommandParser.toFieldType(insertValues.get(i), sourceFields.get(i).type().getType())
-        );
+        row.put(sourceFields.get(i).name(), CommandParser.toFieldType(insertValues.get(i)));
       }
     }
 
     return new KsqlObject(row);
+  }
+
+  private void verifyColumnValuesMatch(final List<String> columns, final List<Expression> values) {
+    if (columns.size() != values.size()) {
+      throw new MigrationException("Expected number columns and values to match: "
+          + columns + ", " + values);
+    }
   }
 
   private boolean verifyMigrated(

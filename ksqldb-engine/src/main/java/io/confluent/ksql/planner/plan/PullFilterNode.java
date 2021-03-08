@@ -611,23 +611,23 @@ public class PullFilterNode extends SingleSourcePlanNode {
         }
       }
 
-      final Object obj = new GenericExpressionResolver(
-          SqlTypes.BIGINT,
-          name,
-          metaStore,
-          ksqlConfig,
-          "pull query window bounds extractor",
-          ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)
-      ).resolve(other);
+      try {
+        final Long value = (Long) new GenericExpressionResolver(
+            SqlTypes.BIGINT,
+            name,
+            metaStore,
+            ksqlConfig,
+            "pull query window bounds extractor",
+            ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)
+        ).resolve(other);
 
-      if (obj instanceof Long) {
-        return Instant.ofEpochMilli((long) obj);
+        return Instant.ofEpochMilli(value);
+      } catch (final KsqlException e) {
+        throw invalidWhereClauseException(
+            "Window bounds must resolve to an INT, BIGINT, or STRING containing a datetime.",
+            true
+        );
       }
-
-      throw invalidWhereClauseException(
-          "Window bounds must resolve to an INT, BIGINT, or STRING containing a datetime.",
-          true
-      );
     }
 
     private BoundType getRangeBoundType(final ComparisonExpression lowerComparison) {

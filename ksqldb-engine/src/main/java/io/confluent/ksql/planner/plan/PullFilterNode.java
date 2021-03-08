@@ -366,7 +366,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
     }
   }
 
-  private final class HasColumnRef extends TraversalExpressionVisitor<Object> {
+  private static final class HasColumnRef extends TraversalExpressionVisitor<Object> {
 
     private boolean hasColumnRef;
 

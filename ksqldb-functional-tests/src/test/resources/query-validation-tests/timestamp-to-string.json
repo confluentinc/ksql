@@ -38,10 +38,12 @@
         "CREATE STREAM OUTPUT AS SELECT K, FORMAT_TIMESTAMP(TIME, 'yyyy-MM-dd HH:mm:ss zzz','America/Los_Angeles') FROM input;"
       ],
       "inputs": [
-        {"topic": "input", "value": {"time": 1526075913000}, "timestamp": 1526075913000}
+        {"topic": "input", "value": {"time": 1526075913000}, "timestamp": 1526075913000},
+        {"topic": "input", "value": {"time": null}, "timestamp": 1526075913000}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"KSQL_COL_0":"2018-05-11 14:58:33 PDT"}, "timestamp": 1526075913000}
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0":"2018-05-11 14:58:33 PDT"}, "timestamp": 1526075913000},
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0":null}, "timestamp": 1526075913000}
       ]
     },
     {
@@ -51,10 +53,12 @@
         "CREATE STREAM OUTPUT AS SELECT K, FORMAT_TIMESTAMP(TIME, 'yyyy-MM-dd HH:mm:ss') FROM input;"
       ],
       "inputs": [
-        {"topic": "input", "value": {"time": 1526075913000}, "timestamp": 1526075913000}
+        {"topic": "input", "value": {"time": 1526075913000}, "timestamp": 1526075913000},
+        {"topic": "input", "value": {"time": null}, "timestamp": 1526075913000}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "value": {"KSQL_COL_0":"2018-05-11 21:58:33"}, "timestamp": 1526075913000}
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0":"2018-05-11 21:58:33"}, "timestamp": 1526075913000},
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0":null}, "timestamp": 1526075913000}
       ]
     }
   ]

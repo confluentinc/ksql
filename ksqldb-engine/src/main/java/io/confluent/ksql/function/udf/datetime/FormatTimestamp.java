@@ -70,6 +70,9 @@ public class FormatTimestamp {
       @UdfParameter(
           description =  " timeZone is a java.util.TimeZone ID format, for example: \"UTC\","
               + " \"America/Los_Angeles\", \"PST\", \"Europe/London\"") final String timeZone) {
+    if (timestamp == null) {
+      return null;
+    }
     try {
       final DateTimeFormatter formatter = formatters.get(formatPattern);
       final ZoneId zoneId = ZoneId.of(timeZone);

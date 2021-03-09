@@ -19,6 +19,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.either;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
@@ -125,6 +126,15 @@ public class FormatTimestampTest {
     sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
     final String expectedResult = sdf.format(new Date(1638360611123L));
     assertThat(result, is(expectedResult));
+  }
+
+  @Test
+  public void shoudlReturnNull() {
+    // When:
+    final Object result = udf.formatTimestamp(null, "yyyy-MM-dd'T'HH:mm:ss.SSS");
+
+    // Then:
+    assertNull(result);
   }
 
   @Test

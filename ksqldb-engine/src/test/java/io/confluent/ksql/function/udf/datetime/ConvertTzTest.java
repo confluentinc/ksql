@@ -17,6 +17,7 @@ package io.confluent.ksql.function.udf.datetime;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.function.KsqlFunctionException;
@@ -60,5 +61,14 @@ public class ConvertTzTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Invalid time zone"));
+  }
+
+  @Test
+  public void shouldReturnNull() {
+    // When:
+    final Object result = udf.convertTz(null, "America/Los_Angeles", "America/New_York");
+
+    // Then:
+    assertNull(result);
   }
 }

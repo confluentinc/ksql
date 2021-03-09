@@ -289,8 +289,8 @@ public class TermCompiler implements ExpressionVisitor<Term, Context> {
   public Term visitLambdaVariable(
       final LambdaVariable lambdaVariable, final Context context) {
     return new LambdaVariableTerm(
-        lambdaVariable.getValue(),
-        context.getLambdaSqlTypeMapping().get(lambdaVariable.getValue()));
+        lambdaVariable.getLambdaCharacter(),
+        context.getLambdaSqlTypeMapping().get(lambdaVariable.getLambdaCharacter()));
   }
 
   @Override
@@ -557,7 +557,10 @@ public class TermCompiler implements ExpressionVisitor<Term, Context> {
       final Context context
   ) {
     final List<Expression> expressions = CoercionUtil
-        .coerceUserList(exp.getValues(), expressionTypeManager)
+        .coerceUserList(
+            exp.getValues(),
+            expressionTypeManager,
+            context.getLambdaSqlTypeMapping())
         .expressions();
 
     final List<Term> arrayTerms = expressions
@@ -577,11 +580,17 @@ public class TermCompiler implements ExpressionVisitor<Term, Context> {
   ) {
     final ImmutableMap<Expression, Expression> map = exp.getMap();
     final List<Expression> keys = CoercionUtil
-        .coerceUserList(map.keySet(), expressionTypeManager)
+        .coerceUserList(
+            map.keySet(),
+            expressionTypeManager,
+            context.getLambdaSqlTypeMapping())
         .expressions();
 
     final List<Expression> values = CoercionUtil
-        .coerceUserList(map.values(), expressionTypeManager)
+        .coerceUserList(
+            map.values(),
+            expressionTypeManager,
+            context.getLambdaSqlTypeMapping())
         .expressions();
 
     final Iterable<Pair<Expression, Expression>> pairs = () -> Streams.zip(

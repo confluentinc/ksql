@@ -103,7 +103,7 @@ public final class CoercionUtil {
    * @param typeManager the type manager used to resolve expression types.
    * @return the coercion result.
    */
-  public static Result coerceUserList(
+  static Result coerceUserList(
       final Collection<Expression> expressions,
       final ExpressionTypeManager typeManager
   ) {

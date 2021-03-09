@@ -53,7 +53,7 @@ public final class MigrationConfig extends AbstractConfig {
   public static final String KSQL_MIGRATIONS_TOPIC_REPLICAS = "ksql.migrations.topic.replicas";
   public static final int KSQL_MIGRATIONS_TOPIC_REPLICAS_DEFAULT = 1;
 
-  public static MigrationConfig DEFAULT_CONFIG =
+  public static final MigrationConfig DEFAULT_CONFIG =
       new MigrationConfig(Collections.EMPTY_MAP, "ksql-service-id");
 
   public static MigrationConfig load(final String configFile) {

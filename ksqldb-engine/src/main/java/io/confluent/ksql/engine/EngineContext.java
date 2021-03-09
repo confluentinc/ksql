@@ -140,7 +140,7 @@ final class EngineContext {
 
     allLiveQueries.forEach(query -> {
       if (query instanceof PersistentQueryMetadata) {
-        final PersistentQueryMetadata sandboxed =SandboxedPersistentQueryMetadata.of(
+        final PersistentQueryMetadata sandboxed = SandboxedPersistentQueryMetadata.of(
             (PersistentQueryMetadata) query, sandBox::closeQuery);
         sandBox.persistentQueries.put(sandboxed.getQueryId(), sandboxed);
         sandBox.allLiveQueries.add(sandboxed);

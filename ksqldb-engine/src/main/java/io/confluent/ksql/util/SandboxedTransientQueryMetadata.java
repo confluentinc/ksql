@@ -24,7 +24,7 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-public class SandboxedTransientQueryMetadata extends TransientQueryMetadata {
+public final class SandboxedTransientQueryMetadata extends TransientQueryMetadata {
   private SandboxedTransientQueryMetadata(
       final TransientQueryMetadata actual,
       final Consumer<QueryMetadata> closeCallback
@@ -88,15 +88,15 @@ public class SandboxedTransientQueryMetadata extends TransientQueryMetadata {
       throw new IllegalStateException("SandboxedTransientQueryMetadata should never use queue");
     }
 
-    public void setLimitHandler(LimitHandler limitHandler) {
+    public void setLimitHandler(final LimitHandler limitHandler) {
       throwUseException();
     }
 
-    public void setQueuedCallback(Runnable callback) {
+    public void setQueuedCallback(final Runnable callback) {
       throwUseException();
     }
 
-    public KeyValue<List<?>, GenericRow> poll(long timeout, TimeUnit unit) {
+    public KeyValue<List<?>, GenericRow> poll(final long timeout, final TimeUnit unit) {
       throwUseException();
       return null;
     }
@@ -106,7 +106,7 @@ public class SandboxedTransientQueryMetadata extends TransientQueryMetadata {
       return null;
     }
 
-    public void drainTo(Collection<? super KeyValue<List<?>, GenericRow>> collection) {
+    public void drainTo(final Collection<? super KeyValue<List<?>, GenericRow>> collection) {
       throwUseException();
     }
 

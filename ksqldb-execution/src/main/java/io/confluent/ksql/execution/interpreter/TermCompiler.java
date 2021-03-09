@@ -63,6 +63,7 @@ import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
+import io.confluent.ksql.execution.interpreter.TermCompiler.Context;
 import io.confluent.ksql.execution.interpreter.terms.ColumnReferenceTerm;
 import io.confluent.ksql.execution.interpreter.terms.CreateArrayTerm;
 import io.confluent.ksql.execution.interpreter.terms.CreateMapTerm;
@@ -71,6 +72,10 @@ import io.confluent.ksql.execution.interpreter.terms.FunctionCallTerm;
 import io.confluent.ksql.execution.interpreter.terms.InPredicateTerm;
 import io.confluent.ksql.execution.interpreter.terms.IsNotNullTerm;
 import io.confluent.ksql.execution.interpreter.terms.IsNullTerm;
+import io.confluent.ksql.execution.interpreter.terms.LambdaFunctionTerms.LambdaFunction1Term;
+import io.confluent.ksql.execution.interpreter.terms.LambdaFunctionTerms.LambdaFunction2Term;
+import io.confluent.ksql.execution.interpreter.terms.LambdaFunctionTerms.LambdaFunction3Term;
+import io.confluent.ksql.execution.interpreter.terms.LambdaVariableTerm;
 import io.confluent.ksql.execution.interpreter.terms.LikeTerm;
 import io.confluent.ksql.execution.interpreter.terms.LiteralTerms;
 import io.confluent.ksql.execution.interpreter.terms.LogicalBinaryTerms;
@@ -81,6 +86,9 @@ import io.confluent.ksql.execution.interpreter.terms.SubscriptTerm;
 import io.confluent.ksql.execution.interpreter.terms.Term;
 import io.confluent.ksql.execution.util.CoercionUtil;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
+import io.confluent.ksql.execution.util.FunctionArgumentsUtil;
+import io.confluent.ksql.execution.util.FunctionArgumentsUtil.ArgumentInfo;
+import io.confluent.ksql.execution.util.FunctionArgumentsUtil.FunctionTypeInfo;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.GenericsUtil;
 import io.confluent.ksql.function.KsqlScalarFunction;
@@ -92,7 +100,6 @@ import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
@@ -106,10 +113,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import jdk.nashorn.internal.ir.annotations.Immutable;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-public class TermCompiler implements ExpressionVisitor<Term, Void> {
+public class TermCompiler implements ExpressionVisitor<Term, Context> {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final FunctionRegistry functionRegistry;
@@ -127,6 +134,24 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
     this.schema = schema;
     this.ksqlConfig = ksqlConfig;
     this.expressionTypeManager = expressionTypeManager;
+  }
+
+  @Immutable
+  static final class Context {
+
+    private final ImmutableMap<String, SqlType> lambdaSqlTypeMapping;
+
+    Context() {
+      this(new HashMap<>());
+    }
+
+    Context(final Map<String, SqlType> mapping) {
+      lambdaSqlTypeMapping = ImmutableMap.copyOf(mapping);
+    }
+
+    Map<String, SqlType> getLambdaSqlTypeMapping() {
+      return lambdaSqlTypeMapping;
+    }
   }
 
   private Term visitIllegalState(final Expression expression) {
@@ -151,19 +176,19 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
   }
 
   @Override
-  public Term visitType(final Type node, final Void context) {
+  public Term visitType(final Type node, final Context context) {
     return visitIllegalState(node);
   }
 
   @Override
-  public Term visitWhenClause(final WhenClause whenClause, final Void context) {
+  public Term visitWhenClause(final WhenClause whenClause, final Context context) {
     return visitIllegalState(whenClause);
   }
 
   @Override
   public Term visitInPredicate(
       final InPredicate inPredicate,
-      final Void context
+      final Context context
   ) {
     final InPredicate preprocessed = InListEvaluator
         .preprocess(inPredicate, expressionTypeManager);
@@ -179,14 +204,14 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
 
   @Override
   public Term visitInListExpression(
-      final InListExpression inListExpression, final Void context
+      final InListExpression inListExpression, final Context context
   ) {
     return visitUnsupported(inListExpression);
   }
 
   @Override
   public Term visitTimestampLiteral(
-      final TimestampLiteral node, final Void context
+      final TimestampLiteral node, final Context context
   ) {
     return LiteralTerms.of(node.getValue());
   }
@@ -194,14 +219,14 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
   @Override
   public Term visitTimeLiteral(
       final TimeLiteral timeLiteral,
-      final Void context
+      final Context context
   ) {
     return visitUnsupported(timeLiteral);
   }
 
   @Override
   public Term visitSimpleCaseExpression(
-      final SimpleCaseExpression simpleCaseExpression, final Void context
+      final SimpleCaseExpression simpleCaseExpression, final Context context
   ) {
     return visitUnsupported(simpleCaseExpression);
   }
@@ -209,56 +234,73 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
   @Override
   public Term visitBooleanLiteral(
       final BooleanLiteral node,
-      final Void context
+      final Context context
   ) {
     return LiteralTerms.of(node.getValue());
   }
 
   @Override
-  public Term visitStringLiteral(final StringLiteral node, final Void context) {
+  public Term visitStringLiteral(final StringLiteral node, final Context context) {
     return LiteralTerms.of(node.getValue());
   }
 
   @Override
-  public Term visitDoubleLiteral(final DoubleLiteral node, final Void context) {
+  public Term visitDoubleLiteral(final DoubleLiteral node, final Context context) {
     return LiteralTerms.of(node.getValue());
   }
 
   @Override
   public Term visitDecimalLiteral(
       final DecimalLiteral decimalLiteral,
-      final Void context
+      final Context context
   ) {
     final SqlType sqlType = DecimalUtil.fromValue(decimalLiteral.getValue());
     return LiteralTerms.of(decimalLiteral.getValue(), sqlType);
   }
 
   @Override
-  public Term visitNullLiteral(final NullLiteral node, final Void context) {
+  public Term visitNullLiteral(final NullLiteral node, final Context context) {
     return LiteralTerms.ofNull();
   }
 
   @Override
   public Term visitLambdaExpression(
-      final LambdaFunctionCall lambdaFunctionCall, final Void context) {
-    return visitUnsupported(lambdaFunctionCall);
+      final LambdaFunctionCall lambdaFunctionCall, final Context context) {
+    final Term lambdaBody = process(lambdaFunctionCall.getBody(), context);
+
+    final ImmutableList.Builder<Pair<String, SqlType>> nameToType = ImmutableList.builder();
+    for (final String lambdaArg: lambdaFunctionCall.getArguments()) {
+      nameToType.add(Pair.of(lambdaArg, context.getLambdaSqlTypeMapping().get((lambdaArg))));
+    }
+    switch (lambdaFunctionCall.getArguments().size()) {
+      case 1:
+        return new LambdaFunction1Term(nameToType.build(), lambdaBody);
+      case 2:
+        return new LambdaFunction2Term(nameToType.build(), lambdaBody);
+      case 3:
+        return new LambdaFunction3Term(nameToType.build(), lambdaBody);
+      default:
+        throw new KsqlException("Interpreter only supports lambdas up to three arguments");
+    }
   }
 
   @Override
   public Term visitLambdaVariable(
-      final LambdaVariable lambdaLiteral, final Void context) {
-    return visitUnsupported(lambdaLiteral);
+      final LambdaVariable lambdaVariable, final Context context) {
+    return new LambdaVariableTerm(
+        lambdaVariable.getValue(),
+        context.getLambdaSqlTypeMapping().get(lambdaVariable.getValue()));
   }
 
   @Override
-  public Term visitIntervalUnit(final IntervalUnit exp, final Void context) {
+  public Term visitIntervalUnit(final IntervalUnit exp, final Context context) {
     return visitUnsupported(exp);
   }
 
   @Override
   public Term visitUnqualifiedColumnReference(
       final UnqualifiedColumnReferenceExp node,
-      final Void context
+      final Context context
   ) {
     final Column schemaColumn = schema.findValueColumn(node.getColumnName())
         .orElseThrow(() ->
@@ -270,7 +312,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
   @Override
   public Term visitQualifiedColumnReference(
       final QualifiedColumnReferenceExp node,
-      final Void context
+      final Context context
   ) {
     throw new IllegalStateException(
         "Qualified column reference must be resolved to unqualified reference before interpreter"
@@ -279,10 +321,10 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
 
   @Override
   public Term visitDereferenceExpression(
-      final DereferenceExpression node, final Void context
+      final DereferenceExpression node, final Context context
   ) {
     final SqlType functionReturnSchema = expressionTypeManager.getExpressionSqlType(
-        node, new HashMap<>());
+        node, context.getLambdaSqlTypeMapping());
 
     final Term struct = process(node.getBase(), context);
 
@@ -295,30 +337,32 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
   }
 
   @Override
-  public Term visitLongLiteral(final LongLiteral node, final Void context) {
+  public Term visitLongLiteral(final LongLiteral node, final Context context) {
     return LiteralTerms.of(node.getValue());
   }
 
   @Override
   public Term visitIntegerLiteral(
       final IntegerLiteral node,
-      final Void context
+      final Context context
   ) {
     return LiteralTerms.of(node.getValue());
   }
 
   @Override
-  public Term visitFunctionCall(final FunctionCall node, final Void context) {
+  public Term visitFunctionCall(final FunctionCall node, final Context context) {
     final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName());
-    final List<SqlArgument> argumentSchemas = node.getArguments().stream()
-        .map(argument -> expressionTypeManager.getExpressionSqlType(
-            argument, new HashMap<>()))
-        .map(SqlArgument::of)
-        .collect(Collectors.toList());
+    final FunctionTypeInfo argumentsAndContext = FunctionArgumentsUtil
+        .getFunctionTypeInfo(
+            expressionTypeManager,
+            node,
+            udfFactory,
+            context.getLambdaSqlTypeMapping());
 
-    final KsqlScalarFunction function = udfFactory.getFunction(argumentSchemas);
+    final List<ArgumentInfo> argumentInfos = argumentsAndContext.getArgumentInfos();
+    final KsqlScalarFunction function = argumentsAndContext.getFunction();
 
-    final SqlType functionReturnSchema = function.getReturnType(argumentSchemas);
+    final SqlType functionReturnSchema = argumentsAndContext.getReturnType();
     final Class<?> javaClass =
         SchemaConverters.sqlToJavaConverter().toJavaType(functionReturnSchema);
 
@@ -328,7 +372,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
     for (int i = 0; i < arguments.size(); i++) {
       final Expression arg = arguments.get(i);
       // lambda arguments and null values are considered to have null type
-      final SqlType sqlType = argumentSchemas.get(i).getSqlType().orElse(null);;
+      final SqlType sqlType = argumentInfos.get(i).getSqlArgument().getSqlType().orElse(null);;
 
       final ParamType paramType;
       if (i >= function.parameters().size() - 1 && function.isVariadic()) {
@@ -339,7 +383,8 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
 
       // This will attempt to cast to the expected argument type and will throw an error if
       // it cannot be done.
-      final Term argTerm = process(convertArgument(arg, sqlType, paramType), context);
+      final Term argTerm = process(convertArgument(arg, sqlType, paramType),
+          new Context(argumentInfos.get(i).getLambdaSqlTypeMapping()));
       args.add(argTerm);
     }
 
@@ -366,7 +411,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
 
   @Override
   public Term visitLogicalBinaryExpression(
-      final LogicalBinaryExpression node, final Void context
+      final LogicalBinaryExpression node, final Context context
   ) {
     final Term left = process(node.getLeft(), context);
     final Term right = process(node.getRight(), context);
@@ -381,7 +426,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
   }
 
   @Override
-  public Term visitNotExpression(final NotExpression node, final Void context) {
+  public Term visitNotExpression(final NotExpression node, final Context context) {
     final Term term = process(node.getValue(), context);
     if (!(term.getSqlType().baseType() == SqlBaseType.BOOLEAN)) {
       throw new IllegalStateException(
@@ -393,7 +438,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
 
   @Override
   public Term visitComparisonExpression(
-      final ComparisonExpression node, final Void context
+      final ComparisonExpression node, final Context context
   ) {
     final Term left = process(node.getLeft(), context);
     final Term right = process(node.getRight(), context);
@@ -402,7 +447,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
   }
 
   @Override
-  public Term visitCast(final Cast node, final Void context) {
+  public Term visitCast(final Cast node, final Context context) {
     final Term term = process(node.getExpression(), context);
     final SqlType from = term.getSqlType();
     final SqlType to = node.getType().getSqlType();
@@ -412,7 +457,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
   @Override
   public Term visitIsNullPredicate(
       final IsNullPredicate node,
-      final Void context
+      final Context context
   ) {
     final Term value = process(node.getValue(), context);
     return new IsNullTerm(value);
@@ -421,7 +466,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
   @Override
   public Term visitIsNotNullPredicate(
       final IsNotNullPredicate node,
-      final Void context
+      final Context context
   ) {
     final Term value = process(node.getValue(), context);
     return new IsNotNullTerm(value);
@@ -429,7 +474,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
 
   @Override
   public Term visitArithmeticUnary(
-      final ArithmeticUnaryExpression node, final Void context
+      final ArithmeticUnaryExpression node, final Context context
   ) {
     final Term value = process(node.getValue(), context);
     return ArithmeticInterpreter.doUnaryArithmetic(node.getSign(), value);
@@ -437,13 +482,13 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
 
   @Override
   public Term visitArithmeticBinary(
-      final ArithmeticBinaryExpression node, final Void context
+      final ArithmeticBinaryExpression node, final Context context
   ) {
     final Term left = process(node.getLeft(), context);
     final Term right = process(node.getRight(), context);
 
-    final SqlType schema = expressionTypeManager.getExpressionSqlType(
-        node, new HashMap<>());
+    final SqlType schema = expressionTypeManager.getExpressionSqlType(node,
+        context.getLambdaSqlTypeMapping());
 
     return ArithmeticInterpreter.doBinaryArithmetic(node.getOperator(), left, right, schema,
         ksqlConfig);
@@ -451,10 +496,10 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
 
   @Override
   public Term visitSearchedCaseExpression(
-      final SearchedCaseExpression node, final Void context
+      final SearchedCaseExpression node, final Context context
   ) {
-    final SqlType resultSchema = expressionTypeManager.getExpressionSqlType(
-        node, new HashMap<>());
+    final SqlType resultSchema = expressionTypeManager.getExpressionSqlType(node,
+        context.getLambdaSqlTypeMapping());
 
     final List<Pair<Term, Term>> operandResultTerms = node
         .getWhenClauses()
@@ -471,7 +516,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
   }
 
   @Override
-  public Term visitLikePredicate(final LikePredicate node, final Void context) {
+  public Term visitLikePredicate(final LikePredicate node, final Context context) {
     final Term patternString = process(node.getPattern(), context);
     final Term valueString = process(node.getValue(), context);
 
@@ -481,10 +526,10 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
   @Override
   public Term visitSubscriptExpression(
       final SubscriptExpression node,
-      final Void context
+      final Context context
   ) {
     final SqlType internalSchema = expressionTypeManager.getExpressionSqlType(node.getBase(),
-        new HashMap<>());
+        context.getLambdaSqlTypeMapping());
     switch (internalSchema.baseType()) {
       case ARRAY:
         final SqlArray array = (SqlArray) internalSchema;
@@ -508,7 +553,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
   @Override
   public Term visitCreateArrayExpression(
       final CreateArrayExpression exp,
-      final Void context
+      final Context context
   ) {
     final List<Expression> expressions = CoercionUtil
         .coerceUserList(exp.getValues(), expressionTypeManager)
@@ -519,14 +564,15 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
         .map(value -> process(value, context))
         .collect(ImmutableList.toImmutableList());
 
-    final SqlType sqlType = expressionTypeManager.getExpressionSqlType(exp, new HashMap<>());
+    final SqlType sqlType = expressionTypeManager.getExpressionSqlType(exp,
+        context.getLambdaSqlTypeMapping());
     return new CreateArrayTerm(arrayTerms, sqlType);
   }
 
   @Override
   public Term visitCreateMapExpression(
       final CreateMapExpression exp,
-      final Void context
+      final Context context
   ) {
     final ImmutableMap<Expression, Expression> map = exp.getMap();
     final List<Expression> keys = CoercionUtil
@@ -547,14 +593,15 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
           process(p.getRight(), context));
     }
 
-    final SqlType resultType = expressionTypeManager.getExpressionSqlType(exp, new HashMap<>());
+    final SqlType resultType = expressionTypeManager.getExpressionSqlType(exp,
+        context.getLambdaSqlTypeMapping());
     return new CreateMapTerm(mapTerms.build(), resultType);
   }
 
   @Override
   public Term visitStructExpression(
       final CreateStructExpression node,
-      final Void context
+      final Context context
   ) {
 
     final ImmutableMap.Builder<String, Term> nameToTerm = ImmutableMap.builder();
@@ -562,14 +609,14 @@ public class TermCompiler implements ExpressionVisitor<Term, Void> {
       nameToTerm.put(field.getName(), process(field.getValue(), context));
     }
     final SqlType resultType = expressionTypeManager.getExpressionSqlType(
-        node, new HashMap<>());
+        node, context.getLambdaSqlTypeMapping());
     return new StructTerm(nameToTerm.build(), resultType);
   }
 
   @Override
   public Term visitBetweenPredicate(
       final BetweenPredicate node,
-      final Void context
+      final Context context
   ) {
     final Expression and = new LogicalBinaryExpression(LogicalBinaryExpression.Type.AND,
         new ComparisonExpression(

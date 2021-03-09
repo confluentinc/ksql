@@ -17,6 +17,7 @@ package io.confluent.ksql.properties;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 
 import java.util.Collection;
@@ -32,8 +33,8 @@ public class DenyListPropertyValidator {
   private final Set<String> immutableProps;
 
   public DenyListPropertyValidator(final Collection<String> immutableProps) {
-    this.immutableProps = ImmutableSet.copyOf(
-        Objects.requireNonNull(immutableProps, "immutableProps"));
+    this.immutableProps = ImmutableSet.<String>builder().addAll(
+        Objects.requireNonNull(immutableProps, "immutableProps")).add(KsqlConfig.KSQL_SERVICE_ID_CONFIG).build();
   }
 
   /**

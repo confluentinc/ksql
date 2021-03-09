@@ -395,13 +395,6 @@ public class PullFilterNode extends SingleSourcePlanNode {
             : (comp.getLeft() instanceof UnqualifiedColumnReferenceExp ? comp.getLeft() : null));
   }
 
-  private boolean isSingleColumnReference(final ComparisonExpression comp) {
-    return (comp.getRight() instanceof UnqualifiedColumnReferenceExp
-        && !(comp.getLeft() instanceof UnqualifiedColumnReferenceExp))
-            || (comp.getLeft() instanceof UnqualifiedColumnReferenceExp
-        && !(comp.getRight() instanceof UnqualifiedColumnReferenceExp));
-  }
-
   private Expression getNonColumnRefSide(final ComparisonExpression comparison) {
     return comparison.getRight() instanceof UnqualifiedColumnReferenceExp
         ? comparison.getLeft()

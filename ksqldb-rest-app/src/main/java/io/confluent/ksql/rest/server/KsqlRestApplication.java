@@ -359,7 +359,7 @@ public final class KsqlRestApplication implements Executable {
       apiServer.start();
 
       final KsqlConfig ksqlConfigWithPort = buildConfigWithPort();
-      configurables.forEach(c -> c.configure(ksqlConfigWithPort, restConfig));
+      configurables.forEach(c -> c.configure(ksqlConfigWithPort));
 
       startKsql(ksqlConfigWithPort);
       final Properties metricsProperties = new Properties();
@@ -748,6 +748,7 @@ public final class KsqlRestApplication implements Executable {
 
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
+        restConfig,
         commandStore,
         Duration.ofMillis(
             restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)),

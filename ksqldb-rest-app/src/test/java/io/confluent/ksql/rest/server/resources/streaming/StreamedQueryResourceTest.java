@@ -22,6 +22,7 @@ import static io.confluent.ksql.rest.Errors.badRequest;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
 import static io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers.statement;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatementErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
@@ -187,6 +188,8 @@ public class StreamedQueryResourceTest {
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
+  private KsqlRestConfig ksqlRestConfig;
+  @Mock
   private PullQueryResult pullQueryResult;
   @Mock
   private LogicalSchema schema;
@@ -218,6 +221,7 @@ public class StreamedQueryResourceTest {
 
     testResource =  new StreamedQueryResource(
         mockKsqlEngine,
+        ksqlRestConfig,
         mockStatementParser,
         commandQueue,
         DISCONNECT_CHECK_INTERVAL,
@@ -301,6 +305,7 @@ public class StreamedQueryResourceTest {
 
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
+        ksqlRestConfig,
         mockStatementParser,
         commandQueue,
         DISCONNECT_CHECK_INTERVAL,
@@ -347,6 +352,7 @@ public class StreamedQueryResourceTest {
     // Given:
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
+        ksqlRestConfig,
         mockStatementParser,
         commandQueue,
         DISCONNECT_CHECK_INTERVAL,
@@ -512,6 +518,7 @@ public class StreamedQueryResourceTest {
     when(mockStatementParser.<Query>parseSingleStatement(PULL_QUERY_STRING)).thenReturn(query);
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
+        ksqlRestConfig,
         mockStatementParser,
         commandQueue,
         DISCONNECT_CHECK_INTERVAL,

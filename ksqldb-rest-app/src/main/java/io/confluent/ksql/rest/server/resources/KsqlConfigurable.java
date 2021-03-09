@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.util.KsqlConfig;
 
 public interface KsqlConfigurable {
@@ -24,7 +23,6 @@ public interface KsqlConfigurable {
    * Called with the server config.
    *
    * @param config server config
-   * @param restConfig REST config
    */
-  void configure(KsqlConfig config, KsqlRestConfig restConfig);
+  void configure(KsqlConfig config);
 }

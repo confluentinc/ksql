@@ -97,6 +97,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   @SuppressWarnings("checkstyle:ParameterNumber")
   public StreamedQueryResource(
       final KsqlEngine ksqlEngine,
+      final KsqlRestConfig ksqlRestConfig,
       final CommandQueue commandQueue,
       final Duration disconnectCheckInterval,
       final Duration commandQueueCatchupTimeout,
@@ -112,6 +113,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   ) {
     this(
         ksqlEngine,
+        ksqlRestConfig,
         new StatementParser(ksqlEngine),
         commandQueue,
         disconnectCheckInterval,
@@ -133,6 +135,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   StreamedQueryResource(
       // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
       final KsqlEngine ksqlEngine,
+      final KsqlRestConfig ksqlRestConfig,
       final StatementParser statementParser,
       final CommandQueue commandQueue,
       final Duration disconnectCheckInterval,
@@ -148,6 +151,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Optional<LocalCommands> localCommands
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
+    this.ksqlRestConfig = Objects.requireNonNull(ksqlRestConfig, "ksqlRestConfig");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
     this.disconnectCheckInterval =
@@ -169,13 +173,12 @@ public class StreamedQueryResource implements KsqlConfigurable {
   }
 
   @Override
-  public void configure(final KsqlConfig config, final KsqlRestConfig restConfig) {
+  public void configure(final KsqlConfig config) {
     if (!config.getKsqlStreamConfigProps().containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
       throw new IllegalArgumentException("Need KS application server set");
     }
 
     ksqlConfig = config;
-    ksqlRestConfig = restConfig;
   }
 
   public EndpointResponse streamQuery(

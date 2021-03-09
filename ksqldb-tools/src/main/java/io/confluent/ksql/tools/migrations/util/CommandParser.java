@@ -38,8 +38,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class CommandParser {
-  private static final String QUOTED_STRING_OR_WHITESPACE ="('([^']*|(''))*')|\\s+";
+public final class CommandParser {
+  private static final String QUOTED_STRING_OR_WHITESPACE = "('([^']*|(''))*')|\\s+";
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
   private static final String INSERT = "INSERT";
   private static final String INTO = "INTO";

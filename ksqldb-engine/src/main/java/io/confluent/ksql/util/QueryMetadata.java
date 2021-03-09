@@ -28,6 +28,7 @@ import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.time.Duration;
@@ -213,10 +214,11 @@ public abstract class QueryMetadata {
     return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.REPLACE_THREAD;
   }
 
-  public Set<TaskMetadata> getTaskMetadata() {
+  public Set<StreamsTaskMetadata> getTaskMetadata() {
     return kafkaStreams.localThreadsMetadata()
                        .stream()
                        .flatMap(t -> t.activeTasks().stream())
+                       .map(StreamsTaskMetadata::fromStreamsTaskMetadata)
                        .collect(Collectors.toSet());
   }
 

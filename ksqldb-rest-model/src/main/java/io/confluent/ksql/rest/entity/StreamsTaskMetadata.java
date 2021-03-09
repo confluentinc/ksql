@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 
 import org.apache.kafka.streams.processor.TaskMetadata;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class StreamsTaskMetadata {
 
   private final String taskId;
@@ -51,7 +53,7 @@ public class StreamsTaskMetadata {
     this.timeCurrentIdlingStarted = timeCurrentIdlingStarted;
   }
 
-  static StreamsTaskMetadata fromStreamsTaskMetadata(final TaskMetadata taskMetadata) {
+  public static StreamsTaskMetadata fromStreamsTaskMetadata(final TaskMetadata taskMetadata) {
     return new StreamsTaskMetadata(
         taskMetadata.taskId(),
         taskMetadata
@@ -59,8 +61,8 @@ public class StreamsTaskMetadata {
             .stream()
             .map(t -> new TopicPartitionEntity(t.topic(), t.partition()))
             .collect(Collectors.toSet()),
-        null,
-        null,
+        ImmutableMap.of(),
+        ImmutableMap.of(),
         Optional.empty());
   }
 

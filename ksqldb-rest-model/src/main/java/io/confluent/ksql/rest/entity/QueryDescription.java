@@ -37,8 +37,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.kafka.streams.processor.TaskMetadata;
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class QueryDescription {
 
@@ -54,7 +52,7 @@ public class QueryDescription {
   private final Map<KsqlHostInfoEntity, KsqlQueryStatus> ksqlHostQueryStatus;
   private final KsqlQueryType queryType;
   private final List<QueryError> queryErrors;
-  private final Set<TaskMetadata> tasksMetadata;
+  private final Set<StreamsTaskMetadata> tasksMetadata;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @SuppressWarnings("WeakerAccess") // Invoked via reflection
@@ -73,7 +71,7 @@ public class QueryDescription {
           ksqlHostQueryStatus,
       @JsonProperty("queryType") final KsqlQueryType queryType,
       @JsonProperty("queryErrors") final List<QueryError> queryErrors,
-      @JsonProperty("tasksMetadata") final Set<TaskMetadata> tasksMetadata
+      @JsonProperty("tasksMetadata") final Set<StreamsTaskMetadata> tasksMetadata
   ) {
     this.id = Objects.requireNonNull(id, "id");
     this.statementText = Objects.requireNonNull(statementText, "statementText");
@@ -128,7 +126,7 @@ public class QueryDescription {
     return overriddenProperties;
   }
 
-  public Set<TaskMetadata> getTasksMetadata() {
+  public Set<StreamsTaskMetadata> getTasksMetadata() {
     return tasksMetadata;
   }
 

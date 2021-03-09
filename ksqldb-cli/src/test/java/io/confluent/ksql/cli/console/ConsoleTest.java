@@ -76,8 +76,10 @@ import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
+import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
+import io.confluent.ksql.rest.entity.TopicPartitionEntity;
 import io.confluent.ksql.rest.entity.TypeList;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -399,28 +401,31 @@ public class ConsoleTest {
     final QueryDescriptionEntity queryEntity = new QueryDescriptionEntity(
         "statement",
         new QueryDescription(
-          new QueryId("id"),
-          "statement",
-          Optional.empty(),
-          ImmutableList.of(
-              new FieldInfo(
-                  "name",
-                  new SchemaInfo(SqlBaseType.STRING, ImmutableList.of(), null),
-                  Optional.empty())),
-          ImmutableSet.of("source"),
-          ImmutableSet.of("sink"),
-          "topology",
-          "executionPlan",
-          ImmutableMap.of("overridden.prop", 42),
-          ImmutableMap.of(new KsqlHostInfoEntity("foo", 123), KsqlQueryStatus.ERROR),
-          KsqlQueryType.PERSISTENT,
-          ImmutableList.of(new QueryError(timestamp, "error", Type.SYSTEM)),
-          ImmutableSet.of(
-            new TaskMetadata(
-              "test",
-              Collections.emptySet()
+            new QueryId("id"),
+            "statement",
+            Optional.empty(),
+            ImmutableList.of(
+                new FieldInfo(
+                    "name",
+                    new SchemaInfo(SqlBaseType.STRING, ImmutableList.of(), null),
+                    Optional.empty())),
+            ImmutableSet.of("source"),
+            ImmutableSet.of("sink"),
+            "topology",
+            "executionPlan",
+            ImmutableMap.of("overridden.prop", 42),
+            ImmutableMap.of(new KsqlHostInfoEntity("foo", 123), KsqlQueryStatus.ERROR),
+            KsqlQueryType.PERSISTENT,
+            ImmutableList.of(new QueryError(timestamp, "error", Type.SYSTEM)),
+            ImmutableSet.of(
+                new StreamsTaskMetadata(
+                    "test",
+                    Collections.emptySet(),
+                    ImmutableMap.of(),
+                    ImmutableMap.of(),
+                    Optional.empty()
+                )
             )
-          )
         )
     );
 
@@ -465,7 +470,10 @@ public class ConsoleTest {
           "    } ],\n" +
           "    \"tasksMetadata\" : [ {\n" +
           "      \"taskId\" : \"test\",\n" +
-          "      \"topicPartitions\" : [ ]\n" +
+          "      \"topicPartitions\" : [ ],\n" +
+          "      \"endOffsets\" : { },\n" +
+          "      \"committedOffsets\" : { },\n" +
+          "      \"timeCurrentIdlingStarted\" : null\n" +
           "    } ],\n" +
           "    \"state\" : \"ERROR\"\n" +
           "  },\n" +

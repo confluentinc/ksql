@@ -72,6 +72,7 @@ public class QueryEndpoint {
   public QueryEndpoint(
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
+      final KsqlRestConfig ksqlRestConfig,
       final RoutingFilterFactory routingFilterFactory,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RateLimiter rateLimiter,
@@ -80,7 +81,7 @@ public class QueryEndpoint {
   ) {
     this.ksqlEngine = ksqlEngine;
     this.ksqlConfig = ksqlConfig;
-    this.ksqlRestConfig = new KsqlRestConfig(ksqlConfig.originals());
+    this.ksqlRestConfig = ksqlRestConfig;
     this.routingFilterFactory = routingFilterFactory;
     this.pullQueryMetrics = pullQueryMetrics;
     this.rateLimiter = rateLimiter;

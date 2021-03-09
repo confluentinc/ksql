@@ -169,13 +169,13 @@ public class StreamedQueryResource implements KsqlConfigurable {
   }
 
   @Override
-  public void configure(final KsqlConfig config) {
+  public void configure(final KsqlConfig config, final KsqlRestConfig restConfig) {
     if (!config.getKsqlStreamConfigProps().containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
       throw new IllegalArgumentException("Need KS application server set");
     }
 
     ksqlConfig = config;
-    ksqlRestConfig = new KsqlRestConfig(ksqlConfig.originals());
+    ksqlRestConfig = restConfig;
   }
 
   public EndpointResponse streamQuery(

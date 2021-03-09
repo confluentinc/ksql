@@ -336,6 +336,7 @@ public final class KsqlRestApplication implements Executable {
       final Endpoints endpoints = new KsqlServerEndpoints(
           ksqlEngine,
           ksqlConfigNoPort,
+          restConfig,
           routingFilterFactory,
           ksqlSecurityContextProvider,
           ksqlResource,
@@ -358,7 +359,7 @@ public final class KsqlRestApplication implements Executable {
       apiServer.start();
 
       final KsqlConfig ksqlConfigWithPort = buildConfigWithPort();
-      configurables.forEach(c -> c.configure(ksqlConfigWithPort));
+      configurables.forEach(c -> c.configure(ksqlConfigWithPort, restConfig));
 
       startKsql(ksqlConfigWithPort);
       final Properties metricsProperties = new Properties();

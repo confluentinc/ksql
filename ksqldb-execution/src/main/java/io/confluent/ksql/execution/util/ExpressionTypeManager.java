@@ -427,7 +427,9 @@ public class ExpressionTypeManager {
       }
 
       final SqlType elementType = CoercionUtil
-          .coerceUserList(exp.getValues(), ExpressionTypeManager.this,
+          .coerceUserList(
+              exp.getValues(),
+              ExpressionTypeManager.this,
               context.getLambdaSqlTypeMapping())
           .commonType()
           .orElseThrow(() -> new KsqlException("Cannot construct an array with all NULL elements "
@@ -450,7 +452,9 @@ public class ExpressionTypeManager {
       }
 
       final SqlType keyType = CoercionUtil
-          .coerceUserList(map.keySet(), ExpressionTypeManager.this,
+          .coerceUserList(
+              map.keySet(),
+              ExpressionTypeManager.this,
               context.getLambdaSqlTypeMapping())
           .commonType()
           .orElseThrow(() -> new KsqlException("Cannot construct a map with all NULL keys "
@@ -458,7 +462,9 @@ public class ExpressionTypeManager {
               + "cast a NULL key to the desired type."));
 
       final SqlType valueType = CoercionUtil
-          .coerceUserList(map.values(), ExpressionTypeManager.this,
+          .coerceUserList(
+              map.values(),
+              ExpressionTypeManager.this,
               context.getLambdaSqlTypeMapping())
           .commonType()
           .orElseThrow(() -> new KsqlException("Cannot construct a map with all NULL values "
@@ -495,7 +501,9 @@ public class ExpressionTypeManager {
       if (functionRegistry.isAggregate(node.getName())) {
         final SqlType schema = node.getArguments().isEmpty()
             ? FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA
-            : getExpressionSqlType(node.getArguments().get(0));
+            : getExpressionSqlType(
+                node.getArguments().get(0),
+                context.getLambdaSqlTypeMapping());
 
         // use an empty KsqlConfig here because the expression type
         // of an aggregate function does not depend on the configuration
@@ -515,7 +523,10 @@ public class ExpressionTypeManager {
                 SqlArgument.of(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA))
             : node.getArguments()
                 .stream()
-                .map(ExpressionTypeManager.this::getExpressionSqlType)
+                .map(expression ->
+                    ExpressionTypeManager.this.getExpressionSqlType(
+                        expression,
+                        context.getLambdaSqlTypeMapping()))
                 .map(SqlArgument::of)
                 .collect(Collectors.toList());
 

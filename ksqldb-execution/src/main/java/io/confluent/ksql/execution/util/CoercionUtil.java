@@ -66,6 +66,14 @@ public final class CoercionUtil {
   private CoercionUtil() {
   }
 
+  // test purposes only
+  static Result coerceUserList(
+      final Collection<Expression> expressions,
+      final ExpressionTypeManager typeManager
+  ) {
+    return coerceUserList(expressions, typeManager, Collections.emptyMap());
+  }
+
   /**
    * Coerce a list of user-supplied expressions.
    *
@@ -101,15 +109,9 @@ public final class CoercionUtil {
    *
    * @param expressions the expressions to coerce: the order matters!
    * @param typeManager the type manager used to resolve expression types.
+   * @param lambdaTypeMapping mapping of lambda variables to types.
    * @return the coercion result.
    */
-  static Result coerceUserList(
-      final Collection<Expression> expressions,
-      final ExpressionTypeManager typeManager
-  ) {
-    return coerceUserList(expressions, typeManager, Collections.emptyMap());
-  }
-
   public static Result coerceUserList(
       final Collection<Expression> expressions,
       final ExpressionTypeManager typeManager,

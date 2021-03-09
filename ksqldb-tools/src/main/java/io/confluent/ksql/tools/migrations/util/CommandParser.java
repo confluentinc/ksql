@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.tools.migrations.util;
 
-import io.confluent.ksql.api.client.ColumnType.Type;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -31,7 +30,6 @@ import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.InsertValues;
-import io.confluent.ksql.tools.migrations.MigrationException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,7 +37,6 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.ws.rs.NotSupportedException;
 
 public class CommandParser {
   private static final Pattern QUOTED_STRING_OR_SEMICOLON_PATTERN =
@@ -50,6 +47,9 @@ public class CommandParser {
   private static final Pattern CREATE_CONNECTOR_PATTERN =
       Pattern.compile("\\s*CREATE\\s+(SOURCE|SINK)\\s+CONNECTOR\\s+.*;\\s*", Pattern.DOTALL);
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
+
+  private CommandParser() {
+  }
 
   public static List<SqlCommand> parse(final String sql) {
     final List<String> commands = collectCommands(tokenize(sql));
@@ -66,7 +66,7 @@ public class CommandParser {
   * */
   private static List<String> tokenize(final String sql) {
     final List<String> result = new ArrayList<>();
-    Matcher matcher = QUOTED_STRING_OR_SEMICOLON_PATTERN.matcher(sql);
+    final Matcher matcher = QUOTED_STRING_OR_SEMICOLON_PATTERN.matcher(sql);
     int prev = 0;
     while (matcher.find()) {
       result.add(sql.substring(prev, matcher.start()));
@@ -78,12 +78,12 @@ public class CommandParser {
     return result;
   }
 
-   /*
-   * Combines the list of strings returned by the tokenize method into a list of strings split by
-   * semicolons.
-   *
-   * @return a list containing the recombined strings.
-   **/
+  /*
+  * Combines the list of strings returned by the tokenize method into a list of strings split by
+  * semicolons.
+  *
+  * @return a list containing the recombined strings.
+  **/
   private static List<String> collectCommands(final List<String> parts) {
     final List<String> commands = new ArrayList<>();
     String current = "";
@@ -129,7 +129,7 @@ public class CommandParser {
       final Map<Object, Object> resolvedStruct = new HashMap<>();
       ((CreateStructExpression) expressionValue)
           .getFields().stream().forEach(
-          field -> resolvedStruct.put(field.getName(), toFieldType(field.getValue())));
+              field -> resolvedStruct.put(field.getName(), toFieldType(field.getValue())));
       return resolvedStruct;
     }
     throw new IllegalStateException("Expression type not recognized: "

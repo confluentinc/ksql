@@ -291,44 +291,65 @@ public class ApplyMigrationCommand extends BaseCommand {
       return false;
     }
 
-    final List<SqlCommand> commands;
     try {
-      commands = CommandParser.parse(migrationFileContent);
+      executeCommands(migrationFileContent, ksqlClient, restClient, config,
+          executionStart, migration, clock, previous);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
       return false;
     }
 
+    if (!updateState(config, ksqlClient, MigrationState.MIGRATED,
+        executionStart, migration, clock, previous, Optional.empty())) {
+      return false;
+    }
+    LOGGER.info("Successfully migrated");
+    return true;
+  }
+
+  private void executeCommands(
+      final String migrationFileContent,
+      final Client ksqlClient,
+      final KsqlRestClient restClient,
+      final MigrationConfig config,
+      final String executionStart,
+      final MigrationFile migration,
+      final Clock clock,
+      final String previous
+  ) {
+    final List<SqlCommand> commands = CommandParser.parse(migrationFileContent);
     for (final SqlCommand command : commands) {
       try {
-        if (command instanceof SqlStatement) {
-          ksqlClient.executeStatement(command.getCommand()).get();
-        } else if (command instanceof SqlInsertValues) {
-          final List<FieldInfo> fields =
-              ksqlClient.describeSource(((SqlInsertValues) command).getSourceName()).get().fields();
-          ksqlClient.insertInto(
-              ((SqlInsertValues) command).getSourceName(),
-              getRow(
-                  fields,
-                  ((SqlInsertValues) command).getColumns(),
-                  ((SqlInsertValues) command).getValues())).get();
-        } else if (command instanceof SqlConnectorStatement) {
-          restClient.makeKsqlRequest(command.getCommand());
-        }
+        executeCommand(command, ksqlClient, restClient);
       } catch (InterruptedException | ExecutionException e) {
         final String errorMsg = String.format(
             "Failed to execute sql: %s. Error: %s", command.getCommand(), e.getMessage());
-        LOGGER.error(errorMsg);
         updateState(config, ksqlClient, MigrationState.ERROR,
             executionStart, migration, clock, previous, Optional.of(errorMsg));
-        return false;
+        throw new MigrationException(errorMsg);
       }
     }
+  }
 
-    updateState(config, ksqlClient, MigrationState.MIGRATED,
-        executionStart, migration, clock, previous, Optional.empty());
-    LOGGER.info("Successfully migrated");
-    return true;
+  private void executeCommand(
+      final SqlCommand command,
+      final Client ksqlClient,
+      final KsqlRestClient restClient
+  ) throws ExecutionException, InterruptedException {
+    if (command instanceof SqlStatement) {
+      ksqlClient.executeStatement(command.getCommand()).get();
+    } else if (command instanceof SqlInsertValues) {
+      final List<FieldInfo> fields =
+          ksqlClient.describeSource(((SqlInsertValues) command).getSourceName()).get().fields();
+      ksqlClient.insertInto(
+          ((SqlInsertValues) command).getSourceName(),
+          getRow(
+              fields,
+              ((SqlInsertValues) command).getColumns(),
+              ((SqlInsertValues) command).getValues())).get();
+    } else if (command instanceof SqlConnectorStatement) {
+      restClient.makeKsqlRequest(command.getCommand());
+    }
   }
 
   private KsqlObject getRow(

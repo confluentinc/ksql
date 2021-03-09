@@ -75,6 +75,22 @@
           {"row":{"columns":["one", 71]}}
         ]}
       ]
+    },
+    {
+      "name": "Lambdas disabled",
+      "statements": [
+        "CREATE TABLE TEST (ID STRING PRIMARY KEY, arraying ARRAY<INTEGER>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MAT_TABLE AS SELECT ID, arraying FROM TEST;",
+        "SELECT ID, reduce(arraying, 5, (s, a) => a) AS OUTPUT FROM MAT_TABLE;"
+      ],
+      "properties": {
+        "ksql.lambdas.enabled":  false
+      },
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Lambdas are currently disabled. ",
+        "status": 400
+      }
     }
   ]
 }

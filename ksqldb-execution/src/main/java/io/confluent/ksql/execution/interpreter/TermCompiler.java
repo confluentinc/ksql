@@ -266,6 +266,11 @@ public class TermCompiler implements ExpressionVisitor<Term, Context> {
   @Override
   public Term visitLambdaExpression(
       final LambdaFunctionCall lambdaFunctionCall, final Context context) {
+    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_LAMBDAS_ENABLED)) {
+      throw new KsqlException("Lambdas are currently disabled. "
+          + "Set ksql.lambdas.enabled=true to enable lambda functionality.");
+    }
+
     final Term lambdaBody = process(lambdaFunctionCall.getBody(), context);
 
     final ImmutableList.Builder<Pair<String, SqlType>> nameToType = ImmutableList.builder();

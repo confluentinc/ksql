@@ -17,7 +17,6 @@ package io.confluent.ksql.cli.console.cmd;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
-import static org.easymock.EasyMock.reset;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -44,7 +43,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -52,7 +50,7 @@ public class RemoteServerSpecificCommandTest {
 
   private static final String INITIAL_SERVER_ADDRESS = "http://192.168.0.1:8080";
   private static final String VALID_SERVER_ADDRESS = "http://localhost:8088";
-  private final ServerInfo serverInfo = mock(ServerInfo.class);
+  private static final ServerInfo SERVER_INFO = mock(ServerInfo.class);
 
   @Mock
   private KsqlRestClient restClient;
@@ -69,9 +67,7 @@ public class RemoteServerSpecificCommandTest {
     terminal = new PrintWriter(out);
     command = RemoteServerSpecificCommand.create(restClient, resetCliForNewServer);
 
-    when(serverInfo.getVersion()).thenReturn("100.0.0");
-
-    when(restClient.getServerInfo()).thenReturn(RestResponse.successful(OK.code(), serverInfo));
+    when(restClient.getServerInfo()).thenReturn(RestResponse.successful(OK.code(), SERVER_INFO));
     when(restClient.getServerAddress()).thenReturn(new URI(INITIAL_SERVER_ADDRESS));
   }
 
@@ -147,20 +143,6 @@ public class RemoteServerSpecificCommandTest {
 
     // Then:
     verify(resetCliForNewServer).fire();
-  }
-
-  @Test
-  public void shouldFailOnUnsupportedServerVersion() {
-    // Given:
-    //reset(serverInfo);
-    when(serverInfo.getVersion()).thenReturn("5.3.0");
-
-    // When:
-    command.execute(ImmutableList.of(VALID_SERVER_ADDRESS), terminal);
-
-    // Then:
-    System.out.println(out.toString());
-    assertThat(out.toString(), containsString("ERROR: Server version not supported."));
   }
 
   @Test

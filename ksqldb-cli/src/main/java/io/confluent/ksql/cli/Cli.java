@@ -38,6 +38,7 @@ import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
+import io.confluent.ksql.rest.client.KsqlUnsupportedServerException;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.StreamPublisher;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -53,6 +54,7 @@ import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
 import io.confluent.ksql.util.HandlerMaps.Handler2;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserUtil;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.vertx.core.Context;
@@ -86,6 +88,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
 
   private static final int MAX_RETRIES = 10;
+  private static final String NO_WARNING = "";
 
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
 
@@ -289,6 +292,8 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
     final String cliVersion = AppInfo.getVersion();
 
+    final String versionMismatchWarning = checkServerCompatibility(cliVersion, serverVersion);
+
     final String helpReminderMessage =
         "Having trouble? "
         + "Type 'help' (case-insensitive) for a rundown of how things work!";
@@ -305,16 +310,78 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     WelcomeMsgUtils.displayWelcomeMessage(consoleWidth, writer);
 
     writer.printf(
-        "CLI v%s, Server v%s located at %s%n",
+        "CLI v%s, Server v%s located at %s%n%s",
         cliVersion,
         serverVersion,
-        restClient.getServerAddress()
+        restClient.getServerAddress(),
+        versionMismatchWarning
     );
     writer.println("Server Status: " + serverStatus);
     writer.println();
     writer.println(helpReminderMessage);
     writer.println();
     terminal.flush();
+  }
+
+  private static String checkServerCompatibility(
+      final String cliVersion,
+      final String serverVersion) {
+
+    if ("<unknown>".equals(serverVersion)) {
+      return null;
+    }
+
+    final int[] cliVersionNumber = parseVersion(cliVersion);
+    if (cliVersionNumber == null) {
+      throw new KsqlException(
+          String.format("Could not verify CLI version: %s", cliVersion)
+      );
+    }
+
+    final int[] serverVersionNumber = parseVersion(serverVersion);
+    if (serverVersionNumber == null) {
+      throw new KsqlException(
+          String.format("Could not verify server version: %s", serverVersion)
+      );
+    }
+
+    if (serverVersionNumber[0] < 5
+        || (serverVersionNumber[0] == 5 && serverVersionNumber[1] < 4)) {
+      throw new KsqlUnsupportedServerException(cliVersion, serverVersion);
+    }
+
+    if (cliVersionNumber[0] != serverVersionNumber[0]
+        || cliVersionNumber[1] != serverVersionNumber[1]) {
+      return "\nWARNING: CLI and server version don't match. This may lead to unexpected errors.\n"
+          + "         It is recommended to use a CLI that matches the server version.\n\n";
+    }
+
+    return NO_WARNING;
+  }
+
+  private static int[] parseVersion(final String version) {
+    final String[] versionMainTokens = version.split("-");
+    if (versionMainTokens.length != 2) {
+      return null;
+    }
+
+    final String[] versionToken = versionMainTokens[0].split("\\.");
+    if (versionToken.length != 3) {
+      return null;
+    }
+
+    final int[] versionNumbers = new int[3];
+
+    int i = 0;
+    for (final String token : versionToken) {
+      try {
+        versionNumbers[i++] = Integer.parseInt(token);
+      } catch (final NumberFormatException fatal) {
+        return null;
+      }
+    }
+
+    return versionNumbers;
   }
 
   @Override
@@ -364,7 +431,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     final Object substitutionEnabled
         = restClient.getProperty(KsqlConfig.KSQL_VARIABLE_SUBSTITUTION_ENABLE);
 
-    if (substitutionEnabled != null && substitutionEnabled instanceof Boolean) {
+    if (substitutionEnabled instanceof Boolean) {
       return (boolean) substitutionEnabled;
     }
 

@@ -33,13 +33,20 @@ import org.junit.Test;
 public class CommandParserTest {
 
   @Test
-  public void shouldParseInsertStatement() {
+  public void shouldParseInsertValuesStatement() {
     List<SqlCommand> commands = CommandParser.parse("INSERT INTO FOO VALUES (55);");
     assertThat(commands.size(), is(1));
     assertThat(commands.get(0), instanceOf(SqlInsertValues.class));
     assertThat(((SqlInsertValues) commands.get(0)).getSourceName(), is("FOO"));
     assertThat(((SqlInsertValues) commands.get(0)).getValues().size(), is(1));
     assertThat(toFieldType(((SqlInsertValues) commands.get(0)).getValues().get(0)), is(55));
+  }
+
+  @Test
+  public void shouldParseInsertIntoStatement() {
+    List<SqlCommand> commands = CommandParser.parse("INSERT INTO FOO SELECT VALUES FROM BAR;");
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0), instanceOf(SqlStatement.class));
   }
 
   @Test
@@ -108,5 +115,30 @@ public class CommandParserTest {
     assertThat(commands.size(), is(1));
     assertThat(commands.get(0), instanceOf(SqlConnectorStatement.class));
     assertThat(commands.get(0).getCommand(), is(command));
+  }
+
+  @Test
+  public void testSplit() {
+    List<String> commands = CommandParser.splitSql("-- Before\n"
+        + "CREATE STREAM valid_purchases AS\n"
+        + "  SELECT *\n"
+        + "  FROM purchases\n"
+        + "  WHERE cost > 0.00 AND quantity > 0;\n"
+        + "-- After\n"
+        + "CREATE OR REPLACE STREAM valid_purchases AS\n"
+        + "  SELECT *\n"
+        + "  FROM purchases\n"
+        + "  WHERE quantity > 0;"
+        + "/* Let's insert some values now! -- it's fun! */\n"
+        + "INSERT INTO purchases VALUES ('c''ow', -90);\n"
+        + "INSERT INTO purchases VALUES ('/*she*/ep',     80);\n"
+        + "INSERT INTO purchases VALUES ('pol/*ar;;be--ar*/;', 200000);");
+
+    assertThat(commands.size(), is(5));
+    assertThat(commands.get(0), is("CREATE STREAM valid_purchases AS\n  SELECT *\n  FROM purchases\n  WHERE cost > 0.00 AND quantity > 0;"));
+    assertThat(commands.get(1), is("\nCREATE OR REPLACE STREAM valid_purchases AS\n  SELECT *\n  FROM purchases\n  WHERE quantity > 0;"));
+    assertThat(commands.get(2), is("\nINSERT INTO purchases VALUES ('c''ow', -90);"));
+    assertThat(commands.get(3), is("\nINSERT INTO purchases VALUES ('/*she*/ep',     80);"));
+    assertThat(commands.get(4), is("\nINSERT INTO purchases VALUES ('pol/*ar;;be--ar*/;', 200000);"));
   }
 }

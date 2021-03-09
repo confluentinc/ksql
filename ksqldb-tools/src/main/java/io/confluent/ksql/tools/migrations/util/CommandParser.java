@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.tools.migrations.util;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -31,71 +32,66 @@ import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.InsertValues;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class CommandParser {
-  private static final Pattern QUOTED_STRING_OR_SEMICOLON_PATTERN =
-      Pattern.compile("('([^']*|(''))*')|;", Pattern.DOTALL);
-  private static final Pattern INSERT_VALUES_PATTERN = Pattern.compile(
-      "\\s*INSERT\\s+INTO\\s+[\\S]+(\\s+\\(.*\\))?\\s+VALUES\\s+\\(.*\\)\\s*;\\s*",
-      Pattern.DOTALL);
-  private static final Pattern CREATE_CONNECTOR_PATTERN =
-      Pattern.compile("\\s*CREATE\\s+(SOURCE|SINK)\\s+CONNECTOR\\s+.*;\\s*", Pattern.DOTALL);
+  private static final String QUOTED_STRING_OR_WHITESPACE ="('([^']*|(''))*')|\\s+";
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
+  private static final String INSERT = "INSERT";
+  private static final String INTO = "INTO";
+  private static final String VALUES = "VALUES";
+  private static final String SELECT = "SELECT";
+  private static final String CREATE = "CREATE";
+  private static final String SINK = "SINK";
+  private static final String SOURCE = "SOURCE";
+  private static final String CONNECTOR = "CONNECTOR";
+  private static final String SHORT_COMMENT_OPENER = "--";
+  private static final String SHORT_COMMENT_CLOSER = "\n";
+  private static final String LONG_COMMENT_OPENER = "/*";
+  private static final String LONG_COMMENT_CLOSER = "*/";
+  private static final char SINGLE_QUOTE = '\'';
+  private static final char SEMICOLON = ';';
 
   private CommandParser() {
   }
 
   public static List<SqlCommand> parse(final String sql) {
-    final List<String> commands = collectCommands(tokenize(sql));
-
-    return commands.stream()
+    return splitSql(sql).stream()
         .map(CommandParser::transformToSqlCommand)
         .collect(Collectors.toList());
   }
 
   /*
-  * Returns the string split up by semicolons and quoted strings.
+  * Splits a string of sql commands into a list of commands and filters out the comments.
   *
-  * @return a list containing the parts of the chopped up string.
+  * @return a list of strings
   * */
-  private static List<String> tokenize(final String sql) {
-    final List<String> result = new ArrayList<>();
-    final Matcher matcher = QUOTED_STRING_OR_SEMICOLON_PATTERN.matcher(sql);
-    int prev = 0;
-    while (matcher.find()) {
-      result.add(sql.substring(prev, matcher.start()));
-      result.add(matcher.group());
-      prev = matcher.end();
-    }
-    result.add(sql.substring(prev));
-
-    return result;
-  }
-
-  /*
-  * Combines the list of strings returned by the tokenize method into a list of strings split by
-  * semicolons.
-  *
-  * @return a list containing the recombined strings.
-  **/
-  private static List<String> collectCommands(final List<String> parts) {
+  @VisibleForTesting
+  static List<String> splitSql(final String sql) {
     final List<String> commands = new ArrayList<>();
     String current = "";
-    for (String part : parts) {
-      if (part.equals(";")) {
-        current += part;
+    for (int i = 0; i < sql.length(); i++) {
+      if (sql.charAt(i) == SINGLE_QUOTE) {
+        final int closingToken = sql.indexOf(SINGLE_QUOTE, i + 1);
+        current += sql.substring(i, closingToken + 1);
+        i = closingToken;
+      } else if (i < sql.length() - 1 && sql.startsWith(SHORT_COMMENT_OPENER, i)) {
+        i = sql.indexOf(SHORT_COMMENT_CLOSER, i + 1);
+      } else if (i < sql.length() - 1 && sql.startsWith(LONG_COMMENT_OPENER, i)) {
+        i = sql.indexOf(LONG_COMMENT_CLOSER, i + 1) + 1;
+      } else if (sql.charAt(i) == SEMICOLON) {
+        current += ";";
         commands.add(current);
         current = "";
       } else {
-        current += part;
+        current += sql.charAt(i);
       }
     }
+
     return commands;
   }
 
@@ -140,7 +136,15 @@ public class CommandParser {
   * Determines the type of command a sql string is and returns a SqlCommand.
   **/
   private static SqlCommand transformToSqlCommand(final String sql) {
-    if (INSERT_VALUES_PATTERN.matcher(sql.toUpperCase()).matches()) {
+    final List<String> tokens = Arrays
+        .stream(sql.toUpperCase().split(QUOTED_STRING_OR_WHITESPACE))
+        .filter(s -> !s.isEmpty())
+        .collect(Collectors.toList());
+    if (tokens.get(0).equals(INSERT)
+        && tokens.get(1).equals(INTO)
+        && !tokens.get(3).equals(SELECT)
+        && tokens.contains(VALUES)
+    ) {
       final InsertValues parsedStatement = (InsertValues) new AstBuilder(TypeRegistry.EMPTY)
           .buildStatement(KSQL_PARSER.parse(sql).get(0).getStatement());
       return new SqlInsertValues(
@@ -149,7 +153,10 @@ public class CommandParser {
           parsedStatement.getValues(),
           parsedStatement.getColumns().stream()
               .map(name -> name.text()).collect(Collectors.toList()));
-    } else if (CREATE_CONNECTOR_PATTERN.matcher(sql.toUpperCase()).matches()) {
+    } else if (tokens.get(0).equals(CREATE)
+        && (tokens.get(1).equals(SINK) || tokens.get(1).equals(SOURCE))
+        && tokens.get(2).equals(CONNECTOR)
+    ) {
       return new SqlConnectorStatement(sql);
     } else {
       return new SqlStatement(sql);

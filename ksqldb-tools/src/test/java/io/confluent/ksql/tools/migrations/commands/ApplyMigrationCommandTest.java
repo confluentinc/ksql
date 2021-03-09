@@ -130,7 +130,6 @@ public class ApplyMigrationCommandTest {
     when(fooDescriptionCf.get()).thenReturn(fooDescription);
     when(fooDescription.fields()).thenReturn(Collections.singletonList(field));
     when(field.name()).thenReturn("A");
-    when(field.type()).thenReturn(new ColumnTypeImpl("STRING"));
 
     migrationsDir = folder.getRoot().getPath();
   }

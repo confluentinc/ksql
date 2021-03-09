@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Objects;
@@ -32,7 +33,9 @@ public class StreamsTaskMetadata {
 
   private final String taskId;
   private final Set<TopicPartitionEntity> topicPartitions;
+  @JsonDeserialize(keyUsing = TopicPartitionEntity.TopicPartitionEntityDeserializer.class)
   private final ImmutableMap<TopicPartitionEntity, Long> endOffsets;
+  @JsonDeserialize(keyUsing = TopicPartitionEntity.TopicPartitionEntityDeserializer.class)
   private final ImmutableMap<TopicPartitionEntity, Long> committedOffsets;
   private final Optional<Long> timeCurrentIdlingStarted;
 

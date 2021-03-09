@@ -50,6 +50,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SandboxedPersistentQueryMetadata;
+import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collections;
 import java.util.HashSet;
@@ -137,14 +138,20 @@ final class EngineContext {
         cleanupService
     );
 
-    persistentQueries.forEach((queryId, query) ->
-        sandBox.persistentQueries.put(
-            query.getQueryId(),
-            SandboxedPersistentQueryMetadata.of(query, sandBox::closeQuery)));
-
+    allLiveQueries.forEach(query -> {
+      if (query instanceof PersistentQueryMetadata) {
+        final PersistentQueryMetadata sandboxed =SandboxedPersistentQueryMetadata.of(
+            (PersistentQueryMetadata) query, sandBox::closeQuery);
+        sandBox.persistentQueries.put(sandboxed.getQueryId(), sandboxed);
+        sandBox.allLiveQueries.add(sandboxed);
+      } else {
+        final TransientQueryMetadata sandboxed = SandboxedTransientQueryMetadata.of(
+            (TransientQueryMetadata) query, sandBox::closeQuery);
+        sandBox.allLiveQueries.add(sandboxed);
+      }
+    });
     sandBox.createAsQueries.putAll(createAsQueries);
     sandBox.insertQueries.putAll(insertQueries);
-
     return sandBox;
   }
 

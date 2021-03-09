@@ -95,7 +95,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
 
   @Override
   public List<QueryMetadata> getAllLiveQueries() {
-    return ImmutableList.of();
+    return engineContext.getAllLiveQueries();
   }
 
   @Override

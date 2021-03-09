@@ -253,7 +253,7 @@ public class MigrationsTest {
 
     // verify config file contents
     final List<String> lines = Files.readAllLines(configFile.toPath());
-    assertThat(lines, hasSize(1));
+    assertThat(lines, hasSize(31));
     assertThat(lines.get(0), is(MigrationConfig.KSQL_SERVER_URL + "=" + REST_APP.getHttpListener().toString()));
   }
 

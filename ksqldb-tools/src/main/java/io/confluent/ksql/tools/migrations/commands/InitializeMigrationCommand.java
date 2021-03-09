@@ -18,6 +18,7 @@ package io.confluent.ksql.tools.migrations.commands;
 import com.github.rvesse.airline.annotations.Command;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.Client;
+import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
@@ -150,6 +151,11 @@ public class InitializeMigrationCommand extends BaseCommand {
       client.executeStatement(command).get();
     } catch (InterruptedException | ExecutionException e) {
       LOGGER.error(String.format("Failed to create %s %s: %s", type, name, e.getMessage()));
+      if (e.getCause() instanceof KsqlClientException
+          && e.getMessage().contains("Topic replication factor must be")) {
+        LOGGER.error("Update " + MigrationConfig.KSQL_MIGRATIONS_TOPIC_REPLICAS
+            + " in the migration file.");
+      }
       return false;
     }
     return true;

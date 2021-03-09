@@ -91,8 +91,11 @@ public class NewMigrationCommandTest {
     assertThat(expectedFile.isDirectory(), is(false));
 
     final List<String> lines = Files.readAllLines(expectedFile.toPath());
-    assertThat(lines, hasSize(1));
+    assertThat(lines, hasSize(31));
     assertThat(lines.get(0), is(MigrationConfig.KSQL_SERVER_URL + "=" + KSQL_SERVER_URL));
+    assertThat(lines.get(1), is("# The key store path"));
+    assertThat(lines.get(2), is("# ssl.keystore.location=null"));
+    assertThat(lines.get(30), is("# ssl.alpn=false"));
   }
 
   @Test

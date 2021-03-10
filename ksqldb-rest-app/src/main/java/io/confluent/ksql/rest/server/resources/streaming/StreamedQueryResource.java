@@ -38,12 +38,14 @@ import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
+import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -90,10 +92,12 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final Optional<LocalCommands> localCommands;
 
   private KsqlConfig ksqlConfig;
+  private KsqlRestConfig ksqlRestConfig;
 
   @SuppressWarnings("checkstyle:ParameterNumber")
   public StreamedQueryResource(
       final KsqlEngine ksqlEngine,
+      final KsqlRestConfig ksqlRestConfig,
       final CommandQueue commandQueue,
       final Duration disconnectCheckInterval,
       final Duration commandQueueCatchupTimeout,
@@ -109,6 +113,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   ) {
     this(
         ksqlEngine,
+        ksqlRestConfig,
         new StatementParser(ksqlEngine),
         commandQueue,
         disconnectCheckInterval,
@@ -130,6 +135,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   StreamedQueryResource(
       // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
       final KsqlEngine ksqlEngine,
+      final KsqlRestConfig ksqlRestConfig,
       final StatementParser statementParser,
       final CommandQueue commandQueue,
       final Duration disconnectCheckInterval,
@@ -145,6 +151,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Optional<LocalCommands> localCommands
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
+    this.ksqlRestConfig = Objects.requireNonNull(ksqlRestConfig, "ksqlRestConfig");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
     this.disconnectCheckInterval =
@@ -352,6 +359,14 @@ public class StreamedQueryResource implements KsqlConfigurable {
   ) {
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, streamsProperties));
+
+    if (QueryCapacityUtil.exceedsPushQueryCapacity(ksqlEngine, ksqlRestConfig)) {
+      QueryCapacityUtil.throwTooManyActivePushQueriesException(
+              ksqlEngine,
+              ksqlRestConfig,
+              statement.getStatementText()
+      );
+    }
 
     final TransientQueryMetadata query = ksqlEngine
         .executeQuery(serviceContext, configured, false);

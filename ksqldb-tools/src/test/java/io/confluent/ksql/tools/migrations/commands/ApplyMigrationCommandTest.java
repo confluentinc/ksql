@@ -24,17 +24,24 @@ import static org.mockito.Mockito.when;
 
 import com.github.rvesse.airline.SingleCommand;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ExecuteStatementResult;
+import io.confluent.ksql.api.client.FieldInfo;
 import io.confluent.ksql.api.client.KsqlArray;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.SourceDescription;
+import io.confluent.ksql.api.client.impl.ColumnTypeImpl;
+import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
 import io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil;
+import io.confluent.ksql.util.ExecutorUtil.Function;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -42,6 +49,7 @@ import java.nio.charset.Charset;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -67,6 +75,8 @@ public class ApplyMigrationCommandTest {
   private static final String MIGRATIONS_STREAM = "migrations_stream";
   private static final String NAME = "FOO";
   private static final String COMMAND = "CREATE STREAM FOO (A STRING) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='DELIMITED');";
+  private static final String INSERT = "INSERT INTO FOO VALUES ('abcd');";
+  private static final String CREATE_CONNECTOR = "CREATE SINK CONNECTOR WOOF WITH (WOOF);";
 
   @Rule
   public TemporaryFolder folder = new TemporaryFolder();
@@ -84,11 +94,21 @@ public class ApplyMigrationCommandTest {
   @Mock
   private SourceDescription sourceDescription;
   @Mock
+  private SourceDescription fooDescription;
+  @Mock
+  private CompletableFuture<SourceDescription> fooDescriptionCf;
+  @Mock
+  private FieldInfo field;
+  @Mock
   private CompletableFuture<Void> insertResult;
   @Mock
   private CompletableFuture<ExecuteStatementResult> statementResultCf;
   @Mock
   private CompletableFuture<SourceDescription> sourceDescriptionCf;
+  @Mock
+  private KsqlRestClient restClient;
+  @Mock
+  private RestResponse<KsqlEntityList> restClientResponse;
 
   private String migrationsDir;
   private ApplyMigrationCommand command;
@@ -108,8 +128,14 @@ public class ApplyMigrationCommandTest {
         .thenReturn(infoQueryResult);
     when(ksqlClient.describeSource(MIGRATIONS_STREAM)).thenReturn(sourceDescriptionCf);
     when(ksqlClient.describeSource(MIGRATIONS_TABLE)).thenReturn(sourceDescriptionCf);
+    when(ksqlClient.describeSource("FOO")).thenReturn(fooDescriptionCf);
     when(sourceDescriptionCf.get()).thenReturn(sourceDescription);
     when(statementResultCf.get()).thenReturn(statementResult);
+    when(fooDescriptionCf.get()).thenReturn(fooDescription);
+    when(fooDescription.fields()).thenReturn(Collections.singletonList(field));
+    when(field.name()).thenReturn("A");
+    when(restClient.makeKsqlRequest(any())).thenReturn(restClientResponse);
+    when(restClientResponse.isSuccessful()).thenReturn(true);
 
     migrationsDir = folder.getRoot().getPath();
   }
@@ -124,7 +150,7 @@ public class ApplyMigrationCommandTest {
     when(versionQueryResult.get()).thenReturn(ImmutableList.of());
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, cfg -> ksqlClient, cfg -> restClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -145,7 +171,7 @@ public class ApplyMigrationCommandTest {
     givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, cfg -> ksqlClient, cfg -> restClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -166,7 +192,7 @@ public class ApplyMigrationCommandTest {
     givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, cfg -> ksqlClient, cfg -> restClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -190,7 +216,7 @@ public class ApplyMigrationCommandTest {
     givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, cfg -> ksqlClient, cfg -> restClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -212,7 +238,7 @@ public class ApplyMigrationCommandTest {
     givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, cfg -> ksqlClient, cfg -> restClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -233,7 +259,7 @@ public class ApplyMigrationCommandTest {
     givenAppliedMigration(1, NAME, MigrationState.RUNNING);
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, cfg -> ksqlClient, cfg -> restClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -253,7 +279,7 @@ public class ApplyMigrationCommandTest {
     when(statementResultCf.get()).thenThrow(new ExecutionException("sql rejected", new RuntimeException()));
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, cfg -> ksqlClient, cfg -> restClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -276,7 +302,7 @@ public class ApplyMigrationCommandTest {
     givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, cfg -> ksqlClient, cfg -> restClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -297,7 +323,7 @@ public class ApplyMigrationCommandTest {
     assertThat(new File(migrationsDir + "/foo.sql").createNewFile(), is(true));
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, cfg -> ksqlClient, cfg -> restClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
@@ -318,13 +344,57 @@ public class ApplyMigrationCommandTest {
         .thenThrow(new ExecutionException("Source not found", new RuntimeException()));
 
     // When:
-    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+    final int result = command.command(config, cfg -> ksqlClient, cfg -> restClient, migrationsDir, Clock.fixed(
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
     assertThat(result, is(1));
     Mockito.verify(ksqlClient, Mockito.times(0)).executeStatement(any());
     Mockito.verify(ksqlClient, Mockito.times(0)).insertInto(any(), any());
+  }
+
+  @Test
+  public void shouldApplyInsertStatement() throws Exception {
+    // Given:
+    command = PARSER.parse("-v", "3");
+    createMigrationFile(1, NAME, migrationsDir, COMMAND);
+    createMigrationFile(3, NAME, migrationsDir, INSERT);
+    givenCurrentMigrationVersion("1");
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, cfg -> restClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(0));
+    final InOrder inOrder = inOrder(ksqlClient);
+    verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED,
+        () -> inOrder.verify(ksqlClient).insertInto("FOO", new KsqlObject(ImmutableMap.of("A", "abcd"))));
+    inOrder.verify(ksqlClient).close();
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void shouldApplyCreateConnectorStatement() throws Exception {
+    // Given:
+    command = PARSER.parse("-v", "3");
+    createMigrationFile(1, NAME, migrationsDir, COMMAND);
+    createMigrationFile(3, NAME, migrationsDir,CREATE_CONNECTOR );
+    givenCurrentMigrationVersion("1");
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, cfg -> restClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(0));
+    final InOrder inOrder = inOrder(ksqlClient);
+    verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED,
+        () -> Mockito.verify(restClient, Mockito.times(1)).makeKsqlRequest(CREATE_CONNECTOR));
+    inOrder.verify(ksqlClient).close();
+    inOrder.verifyNoMoreInteractions();
   }
 
   private void createMigrationFile(
@@ -410,9 +480,19 @@ public class ApplyMigrationCommandTest {
       final InOrder inOrder,
       final int version,
       final String previous,
+      final MigrationState finalState,
+      final Function testMigrationCommands
+  ) throws Exception {
+    verifyMigratedVersion(inOrder, version, previous, finalState, Optional.empty(), testMigrationCommands);
+  }
+
+  private void verifyMigratedVersion(
+      final InOrder inOrder,
+      final int version,
+      final String previous,
       final MigrationState finalState
-  ) {
-    verifyMigratedVersion(inOrder, version, previous, finalState, Optional.empty());
+  ) throws Exception {
+    verifyMigratedVersion(inOrder, version, previous, finalState, Optional.empty(), () -> {inOrder.verify(ksqlClient).executeStatement(COMMAND);});
   }
 
   private void verifyMigratedVersion(
@@ -421,7 +501,18 @@ public class ApplyMigrationCommandTest {
       final String previous,
       final MigrationState finalState,
       final Optional<String> errorReason
-  ) {
+  ) throws Exception {
+    verifyMigratedVersion(inOrder, version, previous, finalState, errorReason, () -> {inOrder.verify(ksqlClient).executeStatement(COMMAND);});
+  }
+
+  private void verifyMigratedVersion(
+      final InOrder inOrder,
+      final int version,
+      final String previous,
+      final MigrationState finalState,
+      final Optional<String> errorReason,
+      final Function testMigrationCommands
+  ) throws Exception {
     inOrder.verify(ksqlClient).insertInto(
         MIGRATIONS_STREAM,
         createKsqlObject(MetadataUtil.CURRENT_VERSION_KEY, version, NAME, MigrationState.RUNNING,
@@ -432,7 +523,9 @@ public class ApplyMigrationCommandTest {
         createKsqlObject(Integer.toString(version), version, NAME, MigrationState.RUNNING,
             "1000", "", previous, Optional.empty())
     );
-    inOrder.verify(ksqlClient).executeStatement(COMMAND);
+
+    testMigrationCommands.call();
+
     inOrder.verify(ksqlClient).insertInto(
         MIGRATIONS_STREAM,
         createKsqlObject(MetadataUtil.CURRENT_VERSION_KEY, version, NAME, finalState,

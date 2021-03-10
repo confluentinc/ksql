@@ -33,6 +33,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -77,6 +78,9 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
+import io.confluent.ksql.util.SandboxedPersistentQueryMetadata;
+import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -943,6 +947,43 @@ public class KsqlEngineTest {
 
     // Then:
     verify(topicClient).deleteInternalTopics(query.getQueryApplicationId());
+  }
+
+  @Test
+  public void shouldCreateSandboxWithSandboxedQueryMetadata() {
+    // Given:
+    final QueryMetadata transientQ = KsqlEngineTestUtil.executeQuery(
+        serviceContext,
+        ksqlEngine,
+        "select * from test1 EMIT CHANGES;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+    final QueryMetadata persistentQ = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream banana as select * from test1 EMIT CHANGES;",
+        KSQL_CONFIG, Collections.emptyMap()
+    ).get(0);
+
+    // When:
+    final KsqlExecutionContext sandbox = ksqlEngine.createSandbox(serviceContext);
+
+    // Then:
+    assertThat(sandbox.getAllLiveQueries().size(), is(2));
+    assertSandboxHasQuery(sandbox, transientQ);
+    assertSandboxHasQuery(sandbox, persistentQ);
+  }
+
+  private void assertSandboxHasQuery(final KsqlExecutionContext sandbox, final QueryMetadata q) {
+    for (final QueryMetadata sq : sandbox.getAllLiveQueries()) {
+      if (sq.getQueryId().equals(q.getQueryId())) {
+        if (q instanceof TransientQueryMetadata) {
+          assertTrue(sq instanceof SandboxedTransientQueryMetadata);
+        } else {
+          assertTrue(sq instanceof SandboxedPersistentQueryMetadata);
+        }
+      }
+    }
   }
 
   @Test

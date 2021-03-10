@@ -336,6 +336,7 @@ public final class KsqlRestApplication implements Executable {
       final Endpoints endpoints = new KsqlServerEndpoints(
           ksqlEngine,
           ksqlConfigNoPort,
+          restConfig,
           routingFilterFactory,
           ksqlSecurityContextProvider,
           ksqlResource,
@@ -748,6 +749,7 @@ public final class KsqlRestApplication implements Executable {
 
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
+        restConfig,
         commandStore,
         Duration.ofMillis(
             restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)),

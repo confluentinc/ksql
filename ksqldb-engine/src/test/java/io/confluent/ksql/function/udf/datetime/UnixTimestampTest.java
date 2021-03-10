@@ -20,6 +20,7 @@ import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class UnixTimestampTest {
@@ -51,5 +52,14 @@ public class UnixTimestampTest {
 
     // Then:
     assertThat(result, is(100L));
+  }
+
+  @Test
+  public void shouldReturnNull() {
+    // When:
+    final Long result = udf.unixTimestamp(null);
+
+    // Then:
+    assertNull(result);
   }
 }

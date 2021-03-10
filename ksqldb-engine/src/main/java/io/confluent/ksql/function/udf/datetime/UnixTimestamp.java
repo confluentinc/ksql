@@ -38,10 +38,13 @@ public class UnixTimestamp {
 
   @Udf(description = "Returns the number of milliseconds "
       + "since 1970-01-01 00:00:00 UTC/GMT represented by the given timestamp.")
-  public long unixTimestamp(
+  public Long unixTimestamp(
       @UdfParameter(
           description = "the TIMESTAMP value.") final Timestamp timestamp
   ) {
+    if (timestamp == null) {
+      return null;
+    }
     return timestamp.getTime();
   }
 }

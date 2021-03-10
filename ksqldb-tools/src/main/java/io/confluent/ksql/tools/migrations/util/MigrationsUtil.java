@@ -18,10 +18,13 @@ package io.confluent.ksql.tools.migrations.util;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
+import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Collections;
+import java.util.Optional;
 
 public final class MigrationsUtil {
 
@@ -112,5 +115,14 @@ public final class MigrationsUtil {
       options.setVerifyHost(verifyHost);
     }
     return options;
+  }
+
+  public static KsqlRestClient createRestClient(final MigrationConfig config) {
+    return KsqlRestClient.create(
+        config.getString(MigrationConfig.KSQL_SERVER_URL),
+        Collections.EMPTY_MAP,
+        Collections.EMPTY_MAP,
+        Optional.empty()
+    );
   }
 }

@@ -182,7 +182,6 @@ public class MigrationsTest {
         "foo FOO fO0",
         configFilePath,
         "CREATE STREAM FOO (A STRING) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='DELIMITED');"
-            + "CREATE SOURCE CONNECTOR C WITH ('connector.class'='org.apache.kafka.connect.tools.MockSourceConnector');"
     );
     createMigrationFile(
         2,
@@ -269,9 +268,6 @@ public class MigrationsTest {
         hasSize(4)); // first row is a header, last row is a message saying "Limit Reached"
     assertThat(foo.get(1).getRow().get().getColumns().get(0), is("HELLO"));
     assertThat(foo.get(2).getRow().get().getColumns().get(0), is("GOODBYE"));
-
-    // verify connectors
-    verifyConnector("C", true);
   }
 
   private static void createAndVerifyDirectoryStructure(final String testDir) throws Exception {

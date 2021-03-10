@@ -19,14 +19,14 @@ import static io.confluent.ksql.tools.migrations.util.CommandParser.toFieldType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
-import io.confluent.ksql.api.client.ColumnType.Type;
+import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlConnectorStatement;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlInsertValues;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlStatement;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 import org.junit.Test;
 
@@ -92,8 +92,8 @@ public class CommandParserTest {
     assertThat(((SqlInsertValues) commands.get(1)).getColumns().get(2), is("LONGITUDE"));
     assertThat(((SqlInsertValues) commands.get(1)).getValues().size(), is(3));
     assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(0)), is("c2309eec"));
-    assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(1)), is(new BigDecimal(37.7877).setScale(4, RoundingMode.DOWN)));
-    assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(2)), is(new BigDecimal(-122.4205).setScale(4, RoundingMode.DOWN)));
+    assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(1)), is(BigDecimal.valueOf(37.7877)));
+    assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(2)), is(BigDecimal.valueOf(-122.4205)));
     assertThat(commands.get(2), instanceOf(SqlInsertValues.class));
     assertThat(((SqlInsertValues) commands.get(2)).getSourceName(), is("riderLocations"));
     assertThat(commands.get(3), instanceOf(SqlInsertValues.class));
@@ -103,18 +103,21 @@ public class CommandParserTest {
   }
 
   @Test
-  public void shouldParseCreateConnectorStatement() {
-    final String command = "CREATE SOURCE CONNECTOR `jdbc-connector` WITH(\n"
+  public void shouldParseConnectorStatements() {
+    final String createConnector = "CREATE SOURCE CONNECTOR `jdbc-connector` WITH(\n"
         + "    \"connector.class\"='io.confluent.connect.jdbc.JdbcSourceConnector',\n"
         + "    \"connection.url\"='jdbc:postgresql://localhost:5432/my.db',\n"
         + "    \"mode\"='bulk',\n"
         + "    \"topic.prefix\"='jdbc-',\n"
         + "    \"table.whitelist\"='users',\n"
         + "    \"key\"='username');";
-    List<SqlCommand> commands = CommandParser.parse(command);
-    assertThat(commands.size(), is(1));
+    final String dropConnector = "DROP CONNECTOR `jdbc-connector`;";
+    List<SqlCommand> commands = CommandParser.parse(createConnector + dropConnector);
+    assertThat(commands.size(), is(2));
     assertThat(commands.get(0), instanceOf(SqlConnectorStatement.class));
-    assertThat(commands.get(0).getCommand(), is(command));
+    assertThat(commands.get(0).getCommand(), is(createConnector));
+    assertThat(commands.get(1), instanceOf(SqlConnectorStatement.class));
+    assertThat(commands.get(1).getCommand(), is(dropConnector));
   }
 
   @Test
@@ -140,5 +143,14 @@ public class CommandParserTest {
     assertThat(commands.get(2), is("\nINSERT INTO purchases VALUES ('c''ow', -90);"));
     assertThat(commands.get(3), is("\nINSERT INTO purchases VALUES ('/*she*/ep',     80);"));
     assertThat(commands.get(4), is("\nINSERT INTO purchases VALUES ('pol/*ar;;be--ar*/;', 200000);"));
+  }
+
+  @Test
+  public void shouldThowOnMalformedComment() throws Exception {
+    // When:
+    final MigrationException e = assertThrows(MigrationException.class,
+        () -> CommandParser.splitSql("/* Comment "));
+    // Then:
+    assertThat(e.getMessage(), is("Invalid sql - failed to find closing token '*/'"));
   }
 }

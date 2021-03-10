@@ -28,6 +28,8 @@ import io.confluent.ksql.api.client.FieldInfo;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.CommandParser;
@@ -321,7 +323,7 @@ public class ApplyMigrationCommand extends BaseCommand {
     for (final SqlCommand command : commands) {
       try {
         executeCommand(command, ksqlClient, restClient);
-      } catch (InterruptedException | ExecutionException e) {
+      } catch (InterruptedException | ExecutionException | MigrationException e) {
         final String errorMsg = String.format(
             "Failed to execute sql: %s. Error: %s", command.getCommand(), e.getMessage());
         updateState(config, ksqlClient, MigrationState.ERROR,
@@ -348,7 +350,10 @@ public class ApplyMigrationCommand extends BaseCommand {
               ((SqlInsertValues) command).getColumns(),
               ((SqlInsertValues) command).getValues())).get();
     } else if (command instanceof SqlConnectorStatement) {
-      restClient.makeKsqlRequest(command.getCommand());
+      final RestResponse<KsqlEntityList> respose = restClient.makeKsqlRequest(command.getCommand());
+      if (!respose.isSuccessful()) {
+        throw new MigrationException(respose.getErrorMessage().getMessage());
+      }
     }
   }
 
@@ -377,8 +382,9 @@ public class ApplyMigrationCommand extends BaseCommand {
 
   private void verifyColumnValuesMatch(final List<String> columns, final List<Expression> values) {
     if (columns.size() != values.size()) {
-      throw new MigrationException("Expected number columns and values to match: "
-          + columns + ", " + values);
+      throw new MigrationException(String.format("Invalid `INSERT VALUES` statement. Number of "
+          + "columns and values must match. Got: Columns: %d. Values: %d.",
+          columns.size(), values.size()));
     }
   }
 

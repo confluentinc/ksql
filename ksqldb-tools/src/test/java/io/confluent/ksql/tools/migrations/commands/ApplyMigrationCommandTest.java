@@ -34,6 +34,8 @@ import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.Row;
 import io.confluent.ksql.api.client.SourceDescription;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
@@ -104,6 +106,8 @@ public class ApplyMigrationCommandTest {
   private CompletableFuture<SourceDescription> sourceDescriptionCf;
   @Mock
   private KsqlRestClient restClient;
+  @Mock
+  private RestResponse<KsqlEntityList> restClientResponse;
 
   private String migrationsDir;
   private ApplyMigrationCommand command;
@@ -129,6 +133,8 @@ public class ApplyMigrationCommandTest {
     when(fooDescriptionCf.get()).thenReturn(fooDescription);
     when(fooDescription.fields()).thenReturn(Collections.singletonList(field));
     when(field.name()).thenReturn("A");
+    when(restClient.makeKsqlRequest(any())).thenReturn(restClientResponse);
+    when(restClientResponse.isSuccessful()).thenReturn(true);
 
     migrationsDir = folder.getRoot().getPath();
   }

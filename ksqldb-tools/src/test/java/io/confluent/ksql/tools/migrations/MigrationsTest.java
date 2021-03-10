@@ -42,6 +42,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
+import io.confluent.ksql.rest.server.ConnectExecutable;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.tools.migrations.commands.BaseCommand;
 import io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil;
@@ -57,11 +58,14 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
+import org.apache.kafka.connect.storage.StringConverter;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.TestUtils;
 import org.apache.log4j.AppenderSkeleton;
@@ -113,6 +117,8 @@ public class MigrationsTest {
 
   private static String configFilePath;
 
+  private static ConnectExecutable CONNECT;
+
   @BeforeClass
   public static void setUpClass() throws Exception {
     final String testDir = Paths.get(TestUtils.tempDirectory().getAbsolutePath(), "migrations_integ_test").toString();
@@ -120,14 +126,35 @@ public class MigrationsTest {
 
     configFilePath = Paths.get(testDir, MigrationsDirectoryUtil.MIGRATIONS_CONFIG_FILE).toString();
 
-    writeAdditionalConfigs(ImmutableMap.of(
+    writeAdditionalConfigs(configFilePath, ImmutableMap.of(
         MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME, MIGRATIONS_STREAM,
         MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME, MIGRATIONS_TABLE
     ));
+
+    final String connectFilePath = Paths.get(testDir, "connect.properties").toString();
+
+    writeAdditionalConfigs(connectFilePath, ImmutableMap.<String, String>builder()
+        .put("bootstrap.servers", TEST_HARNESS.kafkaBootstrapServers())
+        .put("group.id", UUID.randomUUID().toString())
+        .put("key.converter", StringConverter.class.getName())
+        .put("value.converter", JsonConverter.class.getName())
+        .put("offset.storage.topic", "connect-offsets")
+        .put("status.storage.topic", "connect-status")
+        .put("config.storage.topic", "connect-config")
+        .put("offset.storage.replication.factor", "1")
+        .put("status.storage.replication.factor", "1")
+        .put("config.storage.replication.factor", "1")
+        .put("value.converter.schemas.enable", "false")
+        .build()
+    );
+
+    CONNECT = ConnectExecutable.of(connectFilePath);
+    CONNECT.startAsync();
   }
 
   @AfterClass
   public static void classTearDown() {
+    CONNECT.shutdown();
     REST_APP.getPersistentQueries().forEach(str -> makeKsqlRequest("TERMINATE " + str + ";"));
   }
 
@@ -155,7 +182,6 @@ public class MigrationsTest {
         "foo FOO fO0",
         configFilePath,
         "CREATE STREAM FOO (A STRING) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='DELIMITED');"
-            + "CREATE SOURCE CONNECTOR C WITH ('connector.class'='org.apache.kafka.connect.tools.MockSourceConnector');"
     );
     createMigrationFile(
         2,
@@ -242,9 +268,6 @@ public class MigrationsTest {
         hasSize(4)); // first row is a header, last row is a message saying "Limit Reached"
     assertThat(foo.get(1).getRow().get().getColumns().get(0), is("HELLO"));
     assertThat(foo.get(2).getRow().get().getColumns().get(0), is("GOODBYE"));
-
-    // verify connectors
-    verifyConnector("C", true);
   }
 
   private static void createAndVerifyDirectoryStructure(final String testDir) throws Exception {
@@ -273,9 +296,9 @@ public class MigrationsTest {
     assertThat(lines.get(0), is(MigrationConfig.KSQL_SERVER_URL + "=" + REST_APP.getHttpListener().toString()));
   }
 
-  private static void writeAdditionalConfigs(final Map<String, String> additionalConfigs) throws Exception {
+  private static void writeAdditionalConfigs(final String path, final Map<String, String> additionalConfigs) throws Exception {
     try (PrintWriter out = new PrintWriter(new OutputStreamWriter(
-        new FileOutputStream(configFilePath, true), StandardCharsets.UTF_8))) {
+        new FileOutputStream(path, true), StandardCharsets.UTF_8))) {
       for (Map.Entry<String, String> entry : additionalConfigs.entrySet()) {
         out.println(entry.getKey() + "=" + entry.getValue());
       }

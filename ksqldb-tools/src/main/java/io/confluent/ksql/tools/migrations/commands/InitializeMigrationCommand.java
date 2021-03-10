@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 )
 public class InitializeMigrationCommand extends BaseCommand {
 
-  static final String INITIALIZE_COMMAND_NAME = "initialize";
+  static final String INITIALIZE_COMMAND_NAME = "initialize-metadata";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(InitializeMigrationCommand.class);
 
@@ -89,7 +89,7 @@ public class InitializeMigrationCommand extends BaseCommand {
 
     final MigrationConfig config;
     try {
-      config = MigrationConfig.load(configFile);
+      config = MigrationConfig.load(getConfigFile());
     } catch (KsqlException | MigrationException e) {
       LOGGER.error(e.getMessage());
       return 1;

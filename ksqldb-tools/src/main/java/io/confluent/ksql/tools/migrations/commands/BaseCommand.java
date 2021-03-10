@@ -17,12 +17,14 @@ package io.confluent.ksql.tools.migrations.commands;
 
 import static io.confluent.ksql.tools.migrations.commands.InitializeMigrationCommand.INITIALIZE_COMMAND_NAME;
 
+import com.github.rvesse.airline.HelpOption;
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.OptionType;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import java.util.concurrent.ExecutionException;
+import javax.inject.Inject;
 import org.slf4j.Logger;
 
 /**
@@ -34,14 +36,31 @@ public abstract class BaseCommand implements Runnable {
   private static final String CONFIG_FILE_OPTION = "--config-file";
   private static final String CONFIG_FILE_OPTION_SHORT = "-c";
 
+  @Inject
+  protected HelpOption<BaseCommand> help;
+
   @Option(
       name = {CONFIG_FILE_OPTION_SHORT, CONFIG_FILE_OPTION},
       title = "config-file",
       description = "Path to migrations configuration file. Required for all commands "
           + "with the exception of `" + NewMigrationCommand.NEW_COMMAND_NAME + "`.",
+      // allows users to specify config file before the name of the command
       type = OptionType.GLOBAL
   )
-  protected String configFile;
+  protected String configFileGlobal;
+
+  @Option(
+      name = {CONFIG_FILE_OPTION_SHORT, CONFIG_FILE_OPTION},
+      title = "config-file",
+      description = "Path to migrations configuration file. Required for all commands "
+          + "with the exception of `" + NewMigrationCommand.NEW_COMMAND_NAME + "`.",
+      // allows users to specify config file after the name of the command
+      type = OptionType.COMMAND,
+      // hide this version of the config file option so only the version above appears
+      // in help text, to avoid duplication
+      hidden = true
+  )
+  protected String configFileNonGlobal;
 
   @Override
   public void run() {
@@ -52,6 +71,10 @@ public abstract class BaseCommand implements Runnable {
    * @return exit status of the command
    */
   public int runCommand() {
+    if (help.showHelpIfRequested()) {
+      return 0;
+    }
+
     final long startTime = System.currentTimeMillis();
     final int status = command();
     getLogger().info(String.format("Execution time: %.4f seconds",
@@ -66,8 +89,18 @@ public abstract class BaseCommand implements Runnable {
 
   protected abstract Logger getLogger();
 
+  protected String getConfigFile() {
+    if (configFileGlobal != null) {
+      return configFileGlobal;
+    }
+    if (configFileNonGlobal != null) {
+      return configFileNonGlobal;
+    }
+    return null;
+  }
+
   protected boolean validateConfigFilePresent() {
-    if (configFile == null || configFile.equals("")) {
+    if (getConfigFile() == null || getConfigFile().trim().equals("")) {
       getLogger().error("Migrations config file required but not specified. "
           + "Specify with {} (or, equivalently, {}).",
           CONFIG_FILE_OPTION, CONFIG_FILE_OPTION_SHORT);

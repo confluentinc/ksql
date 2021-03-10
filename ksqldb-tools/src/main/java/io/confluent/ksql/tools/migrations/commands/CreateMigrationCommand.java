@@ -25,6 +25,7 @@ import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.help.Examples;
 import com.github.rvesse.airline.annotations.restrictions.Required;
+import com.github.rvesse.airline.annotations.restrictions.ranges.IntegerRange;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.MigrationFile;
@@ -57,6 +58,7 @@ public class CreateMigrationCommand extends BaseCommand {
       description = "(Optional) The schema version to initialize. Defaults to the next"
           + " schema version based on existing migration files."
   )
+  @IntegerRange(min = 1, max = 999999)
   private int version;
 
   @Required
@@ -68,7 +70,7 @@ public class CreateMigrationCommand extends BaseCommand {
 
   @Override
   protected int command() {
-    return command(getMigrationsDirFromConfigFile(configFile));
+    return command(getMigrationsDirFromConfigFile(getConfigFile()));
   }
 
   @VisibleForTesting
@@ -98,8 +100,6 @@ public class CreateMigrationCommand extends BaseCommand {
    */
   private boolean validateVersionDoesNotAlreadyExist(final String migrationsDir) {
     // no explicit version was specified, nothing to verify
-    // (airline actually can't distinguish between explicit 0 and nothing specified,
-    // but we won't worry about this edge case for now)
     if (version == 0) {
       return true;
     }

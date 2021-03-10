@@ -35,14 +35,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Command(
-    name = "clean",
-    description = "Cleans all ksqlDB server resources related to migrations, including "
+    name = "destroy-metadata",
+    description = "Destroys all ksqlDB server resources related to migrations, including "
         + "the migrations metadata stream and table and their underlying Kafka topics. "
         + "WARNING: this is not reversible!"
 )
-public class CleanMigrationsCommand extends BaseCommand {
+public class DestroyMigrationsCommand extends BaseCommand {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(CleanMigrationsCommand.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(DestroyMigrationsCommand.class);
 
   @Override
   protected int command() {
@@ -52,7 +52,7 @@ public class CleanMigrationsCommand extends BaseCommand {
 
     final MigrationConfig config;
     try {
-      config = MigrationConfig.load(configFile);
+      config = MigrationConfig.load(getConfigFile());
     } catch (KsqlException | MigrationException e) {
       LOGGER.error(e.getMessage());
       return 1;

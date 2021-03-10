@@ -62,7 +62,7 @@ public class ValidateMigrationsCommand extends BaseCommand {
 
     final MigrationConfig config;
     try {
-      config = MigrationConfig.load(configFile);
+      config = MigrationConfig.load(getConfigFile());
     } catch (KsqlException | MigrationException e) {
       LOGGER.error(e.getMessage());
       return 1;
@@ -71,7 +71,7 @@ public class ValidateMigrationsCommand extends BaseCommand {
     return command(
         config,
         MigrationsUtil::getKsqlClient,
-        getMigrationsDirFromConfigFile(configFile)
+        getMigrationsDirFromConfigFile(getConfigFile())
     );
   }
 

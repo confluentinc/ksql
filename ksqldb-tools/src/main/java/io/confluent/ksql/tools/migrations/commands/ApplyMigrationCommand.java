@@ -22,6 +22,7 @@ import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.ge
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.restrictions.RequireOnlyOne;
+import com.github.rvesse.airline.annotations.restrictions.ranges.IntegerRange;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.FieldInfo;
@@ -89,6 +90,7 @@ public class ApplyMigrationCommand extends BaseCommand {
       description = "Run all available migrations up through the specified version"
   )
   @RequireOnlyOne(tag = "target")
+  @IntegerRange(min = 1, max = 999999)
   private int untilVersion;
 
   @Option(
@@ -98,6 +100,7 @@ public class ApplyMigrationCommand extends BaseCommand {
       description = "Run the migration with the specified version"
   )
   @RequireOnlyOne(tag = "target")
+  @IntegerRange(min = 1, max = 999999)
   private int version;
 
   @Option(
@@ -119,7 +122,7 @@ public class ApplyMigrationCommand extends BaseCommand {
 
     final MigrationConfig config;
     try {
-      config = MigrationConfig.load(configFile);
+      config = MigrationConfig.load(getConfigFile());
     } catch (KsqlException | MigrationException e) {
       LOGGER.error(e.getMessage());
       return 1;
@@ -129,7 +132,7 @@ public class ApplyMigrationCommand extends BaseCommand {
         config,
         MigrationsUtil::getKsqlClient,
         MigrationsUtil::createRestClient,
-        getMigrationsDirFromConfigFile(configFile),
+        getMigrationsDirFromConfigFile(getConfigFile()),
         Clock.systemDefaultZone()
     );
   }
@@ -144,15 +147,6 @@ public class ApplyMigrationCommand extends BaseCommand {
       final Clock clock
   ) {
     // CHECKSTYLE_RULES.ON: NPathComplexity
-    if (untilVersion < 0) {
-      LOGGER.error("'until' migration version must be positive. Got: {}", untilVersion);
-      return 1;
-    }
-    if (version < 0) {
-      LOGGER.error("Migration version to apply must be positive. Got: {}", version);
-      return 1;
-    }
-
     final Client ksqlClient;
     final KsqlRestClient restClient;
     try {

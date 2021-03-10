@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.codegen.helpers.ArrayAccess;
 import io.confluent.ksql.execution.codegen.helpers.InListEvaluator;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
@@ -113,7 +114,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import jdk.nashorn.internal.ir.annotations.Immutable;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class TermCompiler implements ExpressionVisitor<Term, Context> {

@@ -340,9 +340,8 @@ public class ApplyMigrationCommand extends BaseCommand {
     } else if (command instanceof SqlInsertValues) {
       final List<FieldInfo> fields =
           ksqlClient.describeSource(((SqlInsertValues) command).getSourceName()).get().fields();
-      // TODO: fix case-sensitivity
       ksqlClient.insertInto(
-          ((SqlInsertValues) command).getSourceName(),
+          preserveCase(((SqlInsertValues) command).getSourceName()),
           getRow(
               fields,
               ((SqlInsertValues) command).getColumns(),
@@ -366,7 +365,7 @@ public class ApplyMigrationCommand extends BaseCommand {
     }
   }
 
-  private KsqlObject getRow(
+  private static KsqlObject getRow(
       final List<FieldInfo> sourceFields,
       final List<String> insertColumns,
       final List<Expression> insertValues
@@ -375,21 +374,25 @@ public class ApplyMigrationCommand extends BaseCommand {
     if (insertColumns.size() > 0) {
       verifyColumnValuesMatch(insertColumns, insertValues);
       for (int i = 0 ; i < insertColumns.size(); i++) {
-        row.put(insertColumns.get(i), CommandParser.toFieldType(insertValues.get(i)));
+        row.put(
+            preserveCase(insertColumns.get(i)),
+            CommandParser.toFieldType(insertValues.get(i)));
       }
     } else {
       final List<String> columnNames = sourceFields.stream()
           .map(FieldInfo::name).collect(Collectors.toList());
       verifyColumnValuesMatch(columnNames, insertValues);
       for (int i = 0 ; i < sourceFields.size(); i++) {
-        row.put(sourceFields.get(i).name(), CommandParser.toFieldType(insertValues.get(i)));
+        row.put(
+            preserveCase(sourceFields.get(i).name()),
+            CommandParser.toFieldType(insertValues.get(i)));
       }
     }
 
     return new KsqlObject(row);
   }
 
-  private void verifyColumnValuesMatch(final List<String> columns, final List<Expression> values) {
+  private static void verifyColumnValuesMatch(final List<String> columns, final List<Expression> values) {
     if (columns.size() != values.size()) {
       throw new MigrationException(String.format("Invalid `INSERT VALUES` statement. Number of "
           + "columns and values must match. Got: Columns: %d. Values: %d.",
@@ -397,7 +400,7 @@ public class ApplyMigrationCommand extends BaseCommand {
     }
   }
 
-  private boolean verifyMigrated(
+  private static boolean verifyMigrated(
       final MigrationConfig config,
       final Client ksqlClient,
       final String version,
@@ -428,7 +431,7 @@ public class ApplyMigrationCommand extends BaseCommand {
     return true;
   }
 
-  private boolean updateState(
+  private static boolean updateState(
       final MigrationConfig config,
       final Client ksqlClient,
       final MigrationState state,
@@ -486,5 +489,9 @@ public class ApplyMigrationCommand extends BaseCommand {
   ) {
     LOGGER.info("Validating current migration state before applying new migrations");
     return ValidateMigrationsCommand.validate(config, migrationsDir, ksqlClient);
+  }
+
+  private static String preserveCase(final String fieldOrSourceName) {
+    return "`" + fieldOrSourceName + "`";
   }
 }

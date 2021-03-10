@@ -79,7 +79,9 @@ public class ApplyMigrationCommandTest {
   private static final String MIGRATIONS_STREAM = "migrations_stream";
   private static final String NAME = "FOO";
   private static final String COMMAND = "CREATE STREAM FOO (A STRING) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='DELIMITED');";
-  private static final String INSERT = "INSERT INTO FOO VALUES ('abcd');";
+  private static final String INSERTS = "INSERT INTO FOO VALUES ('abcd'); "
+      + "insert into foo ( a ) values ( 'efgh' );"
+      + "INSERT INTO `FOO` ( `A` ) values ( 'ijkl' );";
   private static final String CREATE_CONNECTOR = "CREATE SINK CONNECTOR WOOF WITH (WOOF);";
   private static final String SET_COMMANDS = COMMAND
       + "SET 'auto.offset.reset' = 'earliest';"
@@ -397,7 +399,7 @@ public class ApplyMigrationCommandTest {
     // Given:
     command = PARSER.parse("-v", "3");
     createMigrationFile(1, NAME, migrationsDir, COMMAND);
-    createMigrationFile(3, NAME, migrationsDir, INSERT);
+    createMigrationFile(3, NAME, migrationsDir, INSERTS);
     givenCurrentMigrationVersion("1");
     givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
@@ -409,7 +411,11 @@ public class ApplyMigrationCommandTest {
     assertThat(result, is(0));
     final InOrder inOrder = inOrder(ksqlClient);
     verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED,
-        () -> inOrder.verify(ksqlClient).insertInto("FOO", new KsqlObject(ImmutableMap.of("A", "abcd"))));
+        () -> {
+          inOrder.verify(ksqlClient).insertInto("`FOO`", new KsqlObject(ImmutableMap.of("`A`", "abcd")));
+          inOrder.verify(ksqlClient).insertInto("`FOO`", new KsqlObject(ImmutableMap.of("`A`", "efgh")));
+          inOrder.verify(ksqlClient).insertInto("`FOO`", new KsqlObject(ImmutableMap.of("`A`", "ijkl")));
+        });
     inOrder.verify(ksqlClient).close();
     inOrder.verifyNoMoreInteractions();
   }

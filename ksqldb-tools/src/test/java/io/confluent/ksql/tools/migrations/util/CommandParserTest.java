@@ -70,6 +70,22 @@ public class CommandParserTest {
   }
 
   @Test
+  public void shouldParseInsertValuesStatementWithExplicitQuoting() {
+    // When:
+    List<SqlCommand> commands = CommandParser.parse("INSERT INTO `foo` (`col1`) VALUES (55);");
+
+    // Then:
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0), instanceOf(SqlInsertValues.class));
+    final SqlInsertValues insertValues = (SqlInsertValues) commands.get(0);
+
+    assertThat(insertValues.getSourceName(), is("foo"));
+    assertThat(insertValues.getColumns(), is(ImmutableList.of("col1")));
+    assertThat(insertValues.getValues().size(), is(1));
+    assertThat(toFieldType(insertValues.getValues().get(0)), is(55));
+  }
+
+  @Test
   public void shouldParseInsertIntoStatement() {
     // When:
     List<SqlCommand> commands = CommandParser.parse("INSERT INTO FOO SELECT VALUES FROM BAR;");

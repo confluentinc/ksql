@@ -253,7 +253,7 @@ public class MigrationsTest {
 
     // verify config file contents
     final List<String> lines = Files.readAllLines(configFile.toPath());
-    assertThat(lines, hasSize(1));
+    assertThat(lines, hasSize(31));
     assertThat(lines.get(0), is(MigrationConfig.KSQL_SERVER_URL + "=" + REST_APP.getHttpListener().toString()));
   }
 
@@ -420,8 +420,7 @@ public class MigrationsTest {
       final String content
   ) throws IOException {
     // use `create` to create empty file
-    final int status = MIGRATIONS_CLI.parse("--config-file", configFilePath,
-        "create", name, "-v", String.valueOf(version)).runCommand();
+    final int status = MIGRATIONS_CLI.parse("--config-file", configFilePath, "create", name, "-v", String.valueOf(version)).runCommand();
     assertThat(status, is(0));
 
     // validate file created

@@ -25,6 +25,7 @@ import com.github.rvesse.airline.SingleCommand;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
@@ -39,6 +40,38 @@ public class NewMigrationCommandTest {
       SingleCommand.singleCommand(NewMigrationCommand.class);
 
   private static final String KSQL_SERVER_URL = "http://localhost:8088";
+
+  private static final String DEFAULT_CONFIGS = "ksql.server.url=http://localhost:8088\n"
+      + "# The key store path\n"
+      + "# ssl.keystore.location=null\n"
+      + "# The name of the migration table. It defaults to MIGRATION_SCHEMA_VERSIONS\n"
+      + "# ksql.migrations.table.name=MIGRATION_SCHEMA_VERSIONS\n"
+      + "# The username for the KSQL server\n"
+      + "# ksql.auth.basic.username=null\n"
+      + "# The password for the KSQL server\n"
+      + "# ksql.auth.basic.password=null\n"
+      + "# The name of the migration stream topic. It defaults to '<ksql_service_id>ksql_<migrations_stream_name>'\n"
+      + "# ksql.migrations.stream.topic.name=ksql-service-idksql_MIGRATION_EVENTS\n"
+      + "# The name of the migration table topic. It defaults to '<ksql_service_id>ksql_<migrations_table_name>'\n"
+      + "# ksql.migrations.table.topic.name=ksql-service-idksql_MIGRATION_SCHEMA_VERSIONS\n"
+      + "# The trust store path\n"
+      + "# ssl.truststore.location=null\n"
+      + "# The key store password\n"
+      + "# ssl.keystore.password=null\n"
+      + "# The number of replicas for the migration stream topic. It defaults to 1\n"
+      + "# ksql.migrations.topic.replicas=1\n"
+      + "# The key password\n"
+      + "# ssl.key.password=null\n"
+      + "# Whether hostname verification is enabled. It defaults to true.\n"
+      + "# ssl.verify.host=true\n"
+      + "# The trust store password\n"
+      + "# ssl.truststore.password=null\n"
+      + "# The key alias\n"
+      + "# ssl.key.alias=null\n"
+      + "# The name of the migration stream. It defaults to MIGRATION_EVENTS\n"
+      + "# ksql.migrations.stream.name=MIGRATION_EVENTS\n"
+      + "# Whether ALPN should be used. It defaults to false.\n"
+      + "# ssl.alpn=false\n";
 
   @Rule
   public TemporaryFolder folder = new TemporaryFolder();
@@ -90,9 +123,9 @@ public class NewMigrationCommandTest {
     assertThat(expectedFile.exists(), is(true));
     assertThat(expectedFile.isDirectory(), is(false));
 
-    final List<String> lines = Files.readAllLines(expectedFile.toPath());
-    assertThat(lines, hasSize(1));
-    assertThat(lines.get(0), is(MigrationConfig.KSQL_SERVER_URL + "=" + KSQL_SERVER_URL));
+    final String configFile = new String(Files.readAllBytes(expectedFile.toPath()), StandardCharsets.UTF_8);
+
+    assertThat(configFile, is(DEFAULT_CONFIGS));
   }
 
   @Test

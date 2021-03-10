@@ -130,7 +130,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
         source.getSchema().withoutPseudoAndKeyColsInValue(),
         addAdditionalColumnsToIntermediateSchema, isWindowed);
     compiledWhereClause = getExpressionEvaluator(
-        rewrittenPredicate, intermediateSchema, metaStore, ksqlConfig);
+        rewrittenPredicate, intermediateSchema, metaStore, ksqlConfig, pullPlannerOptions);
   }
 
   public Expression getRewrittenPredicate() {
@@ -470,7 +470,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
             metaStore,
             config,
             "pull query",
-            ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)
+            pullPlannerOptions.getInterpreterEnabled()
         ).resolve(exp);
       }
 
@@ -618,7 +618,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
             metaStore,
             ksqlConfig,
             "pull query window bounds extractor",
-            ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)
+            pullPlannerOptions.getInterpreterEnabled()
         ).resolve(other);
 
         return Instant.ofEpochMilli(value);
@@ -882,9 +882,10 @@ public class PullFilterNode extends SingleSourcePlanNode {
       final Expression expression,
       final LogicalSchema schema,
       final MetaStore metaStore,
-      final KsqlConfig ksqlConfig) {
+      final KsqlConfig ksqlConfig,
+      final PullPlannerOptions pullPlannerOptions) {
 
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)) {
+    if (pullPlannerOptions.getInterpreterEnabled()) {
       return InterpretedExpressionFactory.create(
           expression,
           schema,

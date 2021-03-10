@@ -18,4 +18,6 @@ package io.confluent.ksql.planner;
 public interface PullPlannerOptions {
 
   boolean getTableScansEnabled();
+
+  boolean getInterpreterEnabled();
 }

@@ -217,7 +217,8 @@ public class LogicalPlanner {
         metaStore,
         ksqlConfig,
         analysis,
-        isWindowed);
+        isWindowed,
+        pullPlannerOptions);
 
     return buildOutputNode(currentNode);
   }

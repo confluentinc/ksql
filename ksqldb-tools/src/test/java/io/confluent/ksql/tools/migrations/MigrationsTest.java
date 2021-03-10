@@ -162,7 +162,7 @@ public class MigrationsTest {
     );
 
     // When:
-    final int applyStatus = MIGRATIONS_CLI.parse("apply", "--config-file", configFilePath, "-a").runCommand();
+    final int applyStatus = MIGRATIONS_CLI.parse("--config-file", configFilePath, "apply", "-a").runCommand();
 
     // Then:
     assertThat(applyStatus, is(0));
@@ -176,7 +176,7 @@ public class MigrationsTest {
 
     try {
       // When:
-      final int infoStatus = MIGRATIONS_CLI.parse("info", "--config-file", configFilePath).runCommand();
+      final int infoStatus = MIGRATIONS_CLI.parse("--config-file", configFilePath, "info").runCommand();
 
       // Then:
       assertThat(infoStatus, is(0));
@@ -268,7 +268,7 @@ public class MigrationsTest {
 
   private static void initializeAndVerifyMetadataStreamAndTable(final String configFile) {
     // use `initialize` to create metadata stream and table
-    final int status = MIGRATIONS_CLI.parse("initialize", "--config-file", configFile).runCommand();
+    final int status = MIGRATIONS_CLI.parse("--config-file", configFile, "initialize").runCommand();
     assertThat(status, is(0));
 
     // verify metadata stream
@@ -318,7 +318,7 @@ public class MigrationsTest {
     assertThat(sourceExists(MIGRATIONS_TABLE, true), is(true));
 
     // When: use `clean` to clean up metadata stream and table
-    final int status = MIGRATIONS_CLI.parse("clean", "--config-file", configFile).runCommand();
+    final int status = MIGRATIONS_CLI.parse("--config-file", configFile, "clean").runCommand();
     assertThat(status, is(0));
 
     // Then:
@@ -420,7 +420,7 @@ public class MigrationsTest {
       final String content
   ) throws IOException {
     // use `create` to create empty file
-    final int status = MIGRATIONS_CLI.parse("create", "--config-file", configFilePath, name, "-v", String.valueOf(version)).runCommand();
+    final int status = MIGRATIONS_CLI.parse("--config-file", configFilePath, "create", name, "-v", String.valueOf(version)).runCommand();
     assertThat(status, is(0));
 
     // validate file created

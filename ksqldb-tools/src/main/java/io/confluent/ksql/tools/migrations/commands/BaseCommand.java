@@ -39,7 +39,7 @@ public abstract class BaseCommand implements Runnable {
       title = "config-file",
       description = "Path to migrations configuration file. Required for all commands "
           + "with the exception of `" + NewMigrationCommand.NEW_COMMAND_NAME + "`.",
-      type = OptionType.COMMAND
+      type = OptionType.GLOBAL
   )
   protected String configFile;
 

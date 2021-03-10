@@ -15,12 +15,40 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import static io.confluent.ksql.GenericRow.genericRow;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS;
+import static io.confluent.ksql.rest.Errors.badRequest;
+import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
+import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
+import static io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers.statement;
+import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
+import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatementErrorMessage;
+import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
+import static io.netty.handler.codec.http.HttpResponseStatus.SERVICE_UNAVAILABLE;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.GenericRow;
-import static io.confluent.ksql.GenericRow.genericRow;
 import io.confluent.ksql.api.server.StreamingOutput;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -43,28 +71,20 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
-import static io.confluent.ksql.rest.Errors.ERROR_CODE_BAD_STATEMENT;
-import static io.confluent.ksql.rest.Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS;
-import static io.confluent.ksql.rest.Errors.badRequest;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
-import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
-import static io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers.statement;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamedRow.DataRow;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
-import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
-import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatementErrorMessage;
-import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
 import io.confluent.ksql.rest.server.validation.CustomValidators;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
@@ -79,9 +99,6 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
-import static io.netty.handler.codec.http.HttpResponseStatus.SERVICE_UNAVAILABLE;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.PipedInputStream;
@@ -109,26 +126,13 @@ import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.codehaus.plexus.util.StringUtils;
 import org.hamcrest.CoreMatchers;
-import static org.hamcrest.MatcherAssert.assertThat;
 import org.hamcrest.Matchers;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -185,6 +189,8 @@ public class StreamedQueryResourceTest {
   @Mock
   private RateLimiter rateLimiter;
   @Mock
+  private ConcurrencyLimiter concurrencyLimiter;
+  @Mock
   private KsqlConfig ksqlConfig;
   @Mock
   private KsqlRestConfig ksqlRestConfig;
@@ -196,6 +202,8 @@ public class StreamedQueryResourceTest {
   private HARouting haRouting;
   @Mock
   private PullQueryQueue pullQueryQueue;
+  @Captor
+  private ArgumentCaptor<Exception> exception;
 
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
@@ -215,6 +223,8 @@ public class StreamedQueryResourceTest {
     final PreparedStatement<Statement> pullQueryStatement = PreparedStatement.of(PULL_QUERY_STRING, pullQuery);
     when(mockStatementParser.parseSingleStatement(PULL_QUERY_STRING)).thenReturn(pullQueryStatement);
     when(errorsHandler.accessDeniedFromKafkaResponse(any(Exception.class))).thenReturn(AUTHORIZATION_ERROR_RESPONSE);
+    when(errorsHandler.generateResponse(exception.capture(), any()))
+        .thenReturn(EndpointResponse.failed(500));
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
@@ -232,6 +242,7 @@ public class StreamedQueryResourceTest {
         Optional.empty(),
         routingFilterFactory,
         rateLimiter,
+        concurrencyLimiter,
         haRouting,
         Optional.empty()
     );
@@ -316,6 +327,7 @@ public class StreamedQueryResourceTest {
         Optional.empty(),
         routingFilterFactory,
         pullQueryRateLimiter,
+        concurrencyLimiter,
         haRouting,
         Optional.empty()
     );
@@ -335,6 +347,29 @@ public class StreamedQueryResourceTest {
 
     // Then:
     assertThrows(KsqlException.class, () -> PullQueryExecutionUtil.checkRateLimit(pullQueryRateLimiter));
+  }
+
+  @Test
+  public void shouldReachConcurrentLimit() {
+    // Given:
+    when(mockKsqlEngine.executePullQuery(any(), any(), any(), any(), any(), any(), anyBoolean()))
+        .thenReturn(pullQueryResult);
+    when(pullQueryResult.getPullQueryQueue()).thenReturn(pullQueryQueue);
+    when(rateLimiter.tryAcquire()).thenReturn(true);
+    when(concurrencyLimiter.increment()).thenThrow(new KsqlException("concurrencyLimiter Error!"));
+
+    // When:
+    final EndpointResponse response =
+        testResource.streamQuery(
+            securityContext,
+            new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+            new CompletableFuture<>(),
+            Optional.empty(),
+            KsqlMediaType.LATEST_FORMAT);
+
+    // Then:
+    assertThat(response.getStatus(), is(500));
+    assertThat(exception.getValue().getMessage(), containsString("concurrencyLimiter Error!"));
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -363,6 +398,7 @@ public class StreamedQueryResourceTest {
         Optional.empty(),
         routingFilterFactory,
         rateLimiter,
+        concurrencyLimiter,
         haRouting,
         Optional.empty()
     );
@@ -529,6 +565,7 @@ public class StreamedQueryResourceTest {
         Optional.empty(),
         routingFilterFactory,
         rateLimiter,
+        concurrencyLimiter,
         haRouting,
         Optional.empty()
       );

@@ -42,6 +42,8 @@ import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -102,6 +104,10 @@ public class PullQueryPublisherTest {
   private KsqlConfig ksqlConfig;
   @Mock
   private HARouting haRouting;
+  @Mock
+  private ConcurrencyLimiter concurrencyLimiter;
+  @Mock
+  private Decrementer decrementer;
 
   @Captor
   private ArgumentCaptor<Subscription> subscriptionCaptor;
@@ -124,6 +130,7 @@ public class PullQueryPublisherTest {
         TIME_NANOS,
         routingFilterFactory,
         create(1),
+        concurrencyLimiter,
         haRouting);
 
     when(statement.getSessionConfig()).thenReturn(sessionConfig);
@@ -152,6 +159,7 @@ public class PullQueryPublisherTest {
       runnable.run();
       return null;
     });
+    when(concurrencyLimiter.increment()).thenReturn(decrementer);
   }
 
   @Test

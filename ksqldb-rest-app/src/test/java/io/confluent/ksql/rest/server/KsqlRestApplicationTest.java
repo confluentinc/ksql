@@ -54,6 +54,7 @@ import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlSecurityContext;
@@ -141,6 +142,8 @@ public class KsqlRestApplicationTest {
   private RoutingFilterFactory routingFilterFactory;
   @Mock
   private RateLimiter rateLimiter;
+  @Mock
+  private ConcurrencyLimiter concurrencyLimiter;
   @Mock
   private HARouting haRouting;
 
@@ -485,6 +488,7 @@ public class KsqlRestApplicationTest {
         Optional.empty(),
         routingFilterFactory,
         rateLimiter,
+        concurrencyLimiter,
         haRouting,
         Optional.empty()
     );

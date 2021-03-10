@@ -58,6 +58,12 @@ public final class CommandParser {
   private static final char SINGLE_QUOTE = '\'';
   private static final char SEMICOLON = ';';
 
+  private enum StatementType {
+    INSERT_VALUES,
+    CONNECTOR,
+    STATEMENT
+  }
+
   private CommandParser() {
   }
 
@@ -156,27 +162,42 @@ public final class CommandParser {
         .stream(sql.toUpperCase().split(QUOTED_STRING_OR_WHITESPACE))
         .filter(s -> !s.isEmpty())
         .collect(Collectors.toList());
+    switch (getStatementType(tokens)) {
+      case INSERT_VALUES:
+        final InsertValues parsedStatement = (InsertValues) new AstBuilder(TypeRegistry.EMPTY)
+            .buildStatement(KSQL_PARSER.parse(sql).get(0).getStatement());
+        return new SqlInsertValues(
+            sql,
+            parsedStatement.getTarget().text(),
+            parsedStatement.getValues(),
+            parsedStatement.getColumns().stream()
+                .map(name -> name.text()).collect(Collectors.toList()));
+      case CONNECTOR:
+        return new SqlConnectorStatement(sql);
+      case STATEMENT:
+        return new SqlStatement(sql);
+      default:
+        throw new IllegalStateException();
+    }
+  }
+
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
+  private static StatementType getStatementType(final List<String> tokens) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (tokens.get(0).equals(INSERT)
         && tokens.get(1).equals(INTO)
         && !tokens.get(3).equals(SELECT)
         && tokens.contains(VALUES)
     ) {
-      final InsertValues parsedStatement = (InsertValues) new AstBuilder(TypeRegistry.EMPTY)
-          .buildStatement(KSQL_PARSER.parse(sql).get(0).getStatement());
-      return new SqlInsertValues(
-          sql,
-          parsedStatement.getTarget().text(),
-          parsedStatement.getValues(),
-          parsedStatement.getColumns().stream()
-              .map(name -> name.text()).collect(Collectors.toList()));
+      return StatementType.INSERT_VALUES;
     } else if ((tokens.get(0).equals(CREATE)
         && (tokens.get(1).equals(SINK) || tokens.get(1).equals(SOURCE))
-        && tokens.get(2).equals(CONNECTOR))
-        || (tokens.get(0).equals(DROP) && tokens.get(1).equals(CONNECTOR))
-    ) {
-      return new SqlConnectorStatement(sql);
+        && tokens.get(2).equals(CONNECTOR))) {
+      return StatementType.CONNECTOR;
+    } else if (tokens.get(0).equals(DROP) && tokens.get(1).equals(CONNECTOR)) {
+      return StatementType.CONNECTOR;
     } else {
-      return new SqlStatement(sql);
+      return StatementType.STATEMENT;
     }
   }
 

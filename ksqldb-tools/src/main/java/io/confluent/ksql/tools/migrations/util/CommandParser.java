@@ -83,13 +83,13 @@ public final class CommandParser {
   @VisibleForTesting
   static List<String> splitSql(final String sql) {
     final List<String> commands = new ArrayList<>();
-    String current = "";
+    StringBuffer current = new StringBuffer();
     int index = 0;
     while (index < sql.length()) {
       if (sql.charAt(index) == SINGLE_QUOTE) {
         final int closingToken = sql.indexOf(SINGLE_QUOTE, index + 1);
         validateToken(String.valueOf(SINGLE_QUOTE), closingToken);
-        current += sql.substring(index, closingToken + 1);
+        current.append(sql.substring(index, closingToken + 1));
         index = closingToken + 1;
       } else if (index < sql.length() - 1 && sql.startsWith(SHORT_COMMENT_OPENER, index)) {
         index = sql.indexOf(SHORT_COMMENT_CLOSER, index + 1) + 1;
@@ -98,12 +98,12 @@ public final class CommandParser {
         index = sql.indexOf(LONG_COMMENT_CLOSER, index + 1) + 2;
         validateToken(LONG_COMMENT_CLOSER, index - 2);
       } else if (sql.charAt(index) == SEMICOLON) {
-        current += ";";
-        commands.add(current);
-        current = "";
+        current.append(';');
+        commands.add(current.toString());
+        current = new StringBuffer();
         index++;
       } else {
-        current += sql.charAt(index);
+        current.append(sql.charAt(index));
         index++;
       }
     }

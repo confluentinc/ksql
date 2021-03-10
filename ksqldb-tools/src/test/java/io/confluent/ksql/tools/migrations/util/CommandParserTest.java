@@ -164,11 +164,112 @@ public class CommandParserTest {
   }
 
   @Test
-  public void shouldThowOnMalformedComment() throws Exception {
+  public void shouldThrowOnMalformedComment() {
     // When:
     final MigrationException e = assertThrows(MigrationException.class,
         () -> CommandParser.splitSql("/* Comment "));
+
     // Then:
     assertThat(e.getMessage(), is("Invalid sql - failed to find closing token '*/'"));
+  }
+
+  @Test
+  public void shouldThrowOnMalformedQuote() {
+    // When:
+    final MigrationException e = assertThrows(MigrationException.class,
+        () -> CommandParser.splitSql("select 'unclosed quote;"));
+
+    // Then:
+    assertThat(e.getMessage(), is("Invalid sql - failed to find closing token '''"));
+  }
+
+  @Test
+  public void shouldThrowOnDefineStatement() {
+    // When:
+    final MigrationException e = assertThrows(MigrationException.class,
+        () -> CommandParser.parse("define var = 'value';"));
+
+    // Then:
+    assertThat(e.getMessage(), is("'DEFINE' statements are not supported."));
+  }
+
+  @Test
+  public void shouldThrowOnUndefineStatement() {
+    // When:
+    final MigrationException e = assertThrows(MigrationException.class,
+        () -> CommandParser.parse("undefine var;"));
+
+    // Then:
+    assertThat(e.getMessage(), is("'UNDEFINE' statements are not supported."));
+  }
+
+  @Test
+  public void shouldThrowOnDescribeStatement() {
+    // When:
+    final MigrationException e = assertThrows(MigrationException.class,
+        () -> CommandParser.parse("describe my_stream;"));
+
+    // Then:
+    assertThat(e.getMessage(), is("'DESCRIBE' statements are not supported."));
+  }
+
+  @Test
+  public void shouldThrowOnExplainStatement() {
+    // When:
+    final MigrationException e = assertThrows(MigrationException.class,
+        () -> CommandParser.parse("explain my_query_id;"));
+
+    // Then:
+    assertThat(e.getMessage(), is("'EXPLAIN' statements are not supported."));
+  }
+
+  @Test
+  public void shouldThrowOnSelectStatement() {
+    // When:
+    final MigrationException e = assertThrows(MigrationException.class,
+        () -> CommandParser.parse("select * from my_stream emit changes;"));
+
+    // Then:
+    assertThat(e.getMessage(), is("'SELECT' statements are not supported."));
+  }
+
+  @Test
+  public void shouldThrowOnPrintStatement() {
+    // When:
+    final MigrationException e = assertThrows(MigrationException.class,
+        () -> CommandParser.parse("print 'my_topic';"));
+
+    // Then:
+    assertThat(e.getMessage(), is("'PRINT' statements are not supported."));
+  }
+
+  @Test
+  public void shouldThrowOnShowStatement() {
+    // When:
+    final MigrationException e = assertThrows(MigrationException.class,
+        () -> CommandParser.parse("show connectors;"));
+
+    // Then:
+    assertThat(e.getMessage(), is("'SHOW' statements are not supported."));
+  }
+
+  @Test
+  public void shouldThrowOnListStatement() {
+    // When:
+    final MigrationException e = assertThrows(MigrationException.class,
+        () -> CommandParser.parse("list queries;"));
+
+    // Then:
+    assertThat(e.getMessage(), is("'LIST' statements are not supported."));
+  }
+
+  @Test
+  public void shouldThrowOnRunScriptStatement() {
+    // When:
+    final MigrationException e = assertThrows(MigrationException.class,
+        () -> CommandParser.parse("RUN SCRIPT 'my_script.sql';"));
+
+    // Then:
+    assertThat(e.getMessage(), is("'RUN SCRIPT' statements are not supported."));
   }
 }

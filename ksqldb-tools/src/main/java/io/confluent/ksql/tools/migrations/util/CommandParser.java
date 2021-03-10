@@ -16,6 +16,7 @@
 package io.confluent.ksql.tools.migrations.util;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -61,12 +62,24 @@ public final class CommandParser {
   private static final String CONNECTOR = "CONNECTOR";
   private static final String SET = "SET";
   private static final String UNSET = "UNSET";
+  private static final String DEFINE = "DEFINE";
+  private static final String UNDEFINE = "UNDEFINE";
+  private static final String DESCRIBE = "DESCRIBE";
+  private static final String EXPLAIN = "EXPLAIN";
+  private static final String PRINT = "PRINT";
+  private static final String SHOW = "SHOW";
+  private static final String LIST = "LIST";
+  private static final String RUN = "RUN";
+  private static final String SCRIPT = "SCRIPT";
   private static final String SHORT_COMMENT_OPENER = "--";
   private static final String SHORT_COMMENT_CLOSER = "\n";
   private static final String LONG_COMMENT_OPENER = "/*";
   private static final String LONG_COMMENT_CLOSER = "*/";
   private static final char SINGLE_QUOTE = '\'';
   private static final char SEMICOLON = ';';
+  private static final List<String> UNSUPPORTED_STATEMENTS = ImmutableList.of(
+      DEFINE, UNDEFINE, DESCRIBE, EXPLAIN, SELECT, PRINT, SHOW, LIST
+  );
 
   private enum StatementType {
     INSERT_VALUES,
@@ -85,13 +98,13 @@ public final class CommandParser {
         .collect(Collectors.toList());
   }
 
-  /*
+  /**
   * Splits a string of sql commands into a list of commands and filters out the comments.
   * Note that escaped strings are not handled, because they end up getting split into two adjacent
   * strings and are pieced back together afterwards.
   *
-  * @return a list of strings
-  * */
+  * @return list of commands with comments removed
+  */
   @VisibleForTesting
   static List<String> splitSql(final String sql) {
     final List<String> commands = new ArrayList<>();
@@ -132,9 +145,9 @@ public final class CommandParser {
     }
   }
 
-  /*
+  /**
   * Converts a generic expression into the proper Java type.
-  **/
+  */
   public static Object toFieldType(final Expression expressionValue) {
     if (expressionValue instanceof StringLiteral) {
       return ((StringLiteral) expressionValue).getValue();
@@ -169,9 +182,9 @@ public final class CommandParser {
         + expressionValue.toString());
   }
 
-  /*
+  /**
   * Determines the type of command a sql string is and returns a SqlCommand.
-  **/
+  */
   private static SqlCommand transformToSqlCommand(final String sql) {
     final List<String> tokens = Arrays
         .stream(sql.toUpperCase().split(QUOTED_STRING_OR_WHITESPACE))
@@ -230,7 +243,28 @@ public final class CommandParser {
     } else if (tokens.get(0).equals(UNSET)) {
       return StatementType.UNSET_PROPERTY;
     } else {
+      validateSupportedStatementType(tokens);
       return StatementType.STATEMENT;
+    }
+  }
+
+  /**
+   * Validates that the sql statement represented by the list of input tokens
+   * (keywords separated whitespace, or strings identified by single quotes)
+   * is not unsupported by the migrations tool. Assumes that tokens have already
+   * been upper-cased.
+   *
+   * @param tokens components that make up the sql statement. Each component is
+   *               either a keyword separated by whitespace or a string enclosed
+   *               in single quotes. Assumes that tokens have already been upper-cased.
+   */
+  private static void validateSupportedStatementType(final List<String> tokens) {
+    // TODO: check token size on other if-branches above as well (and refactor above)
+    if (tokens.size() > 0 && UNSUPPORTED_STATEMENTS.contains(tokens.get(0))) {
+      throw new MigrationException("'" + tokens.get(0) + "' statements are not supported.");
+    }
+    if (tokens.size() > 1 && tokens.get(0).equals(RUN) && tokens.get(1).equals(SCRIPT)) {
+      throw new MigrationException("'RUN SCRIPT' statements are not supported.");
     }
   }
 
@@ -246,7 +280,7 @@ public final class CommandParser {
     }
   }
 
-  /*
+  /**
    * Represents ksqlDB `INSERT INTO ... VALUES ...;` statements
    */
   public static class SqlInsertValues extends SqlCommand {
@@ -279,18 +313,18 @@ public final class CommandParser {
     }
   }
 
-  /*
+  /**
   * Represents commands that can be sent directly to the Java client's `executeStatement` method
-  * */
+  */
   public static class SqlStatement extends SqlCommand {
     SqlStatement(final String command) {
       super(command);
     }
   }
 
-  /*
+  /**
    * Represents commands that deal with connectors.
-   * */
+   */
   public static class SqlConnectorStatement extends SqlCommand {
     SqlConnectorStatement(final String command) {
       super(command);

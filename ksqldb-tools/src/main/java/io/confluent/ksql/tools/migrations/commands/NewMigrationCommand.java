@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
 )
 public class NewMigrationCommand extends BaseCommand {
 
-  static final String NEW_COMMAND_NAME = "new";
+  static final String NEW_COMMAND_NAME = "new-project";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(NewMigrationCommand.class);
 

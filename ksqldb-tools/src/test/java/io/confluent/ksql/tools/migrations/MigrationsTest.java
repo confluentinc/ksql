@@ -232,8 +232,8 @@ public class MigrationsTest {
   }
 
   private static void createAndVerifyDirectoryStructure(final String testDir) throws Exception {
-    // use `new` to create directory structure
-    final int status = MIGRATIONS_CLI.parse("new", testDir, REST_APP.getHttpListener().toString()).runCommand();
+    // use `new-project` to create directory structure
+    final int status = MIGRATIONS_CLI.parse("new-project", testDir, REST_APP.getHttpListener().toString()).runCommand();
     assertThat(status, is(0));
 
     // verify root directory

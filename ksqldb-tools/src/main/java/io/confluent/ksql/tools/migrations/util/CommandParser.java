@@ -37,13 +37,18 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public final class CommandParser {
   private static final String QUOTED_STRING_OR_WHITESPACE = "('([^']*|(''))*')|\\s+";
-  private static final Pattern STRING_PATTERN = Pattern.compile("'([^']*|(''))*'");
+  private static final Pattern SET_PROPERTY =
+      Pattern.compile("\\s*SET\\s+'((?:[^']*|(?:''))*)'\\s*=\\s*'((?:[^']*|(?:''))*)'\\s*;\\s*");
+  private static final Pattern UNSET_PROPERTY =
+      Pattern.compile("\\s*UNSET\\s+'((?:[^']*|(?:''))*)'\\s*;\\s*");
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
   private static final String INSERT = "INSERT";
   private static final String INTO = "INTO";
@@ -187,10 +192,19 @@ public final class CommandParser {
       case STATEMENT:
         return new SqlStatement(sql);
       case SET_PROPERTY:
-        final List<String> strings = getStringsInCommand(sql);
-        return new SqlPropertyCommand(sql, true, strings.get(0), strings.get(1));
+        final Matcher setPropertyMatcher = SET_PROPERTY.matcher(sql);
+        if (!setPropertyMatcher.matches()) {
+          throw new MigrationException("Invalid SET command: " + sql);
+        }
+        return new SqlPropertyCommand(
+            sql, true, setPropertyMatcher.group(1), Optional.of(setPropertyMatcher.group(2)));
       case UNSET_PROPERTY:
-        return new SqlPropertyCommand(sql, false, getStringsInCommand(sql).get(0), null);
+        final Matcher unsetPropertyMatcher = UNSET_PROPERTY.matcher(sql);
+        if (!unsetPropertyMatcher.matches()) {
+          throw new MigrationException("Invalid UNSET command: " + sql);
+        }
+        return new SqlPropertyCommand(
+            sql, false, unsetPropertyMatcher.group(1), Optional.empty());
       default:
         throw new IllegalStateException();
     }
@@ -218,17 +232,6 @@ public final class CommandParser {
     } else {
       return StatementType.STATEMENT;
     }
-  }
-
-  private static List<String> getStringsInCommand(final String sql) {
-    final Matcher stringMatcher = STRING_PATTERN.matcher(sql);
-    final List<String> strings = new ArrayList<>();
-    while (stringMatcher.find()) {
-      final String string = stringMatcher.group();
-      strings.add(string.substring(1, string.length() - 1));
-    }
-
-    return strings;
   }
 
   public abstract static class SqlCommand {
@@ -300,21 +303,21 @@ public final class CommandParser {
   public static class SqlPropertyCommand extends SqlCommand {
     private final boolean set;
     private final String property;
-    private final String value;
+    private final Optional<String> value;
 
     SqlPropertyCommand(
         final String command,
         final boolean set,
         final String property,
-        final String value
+        final Optional<String> value
     ) {
       super(command);
-      this.set = set;
-      this.property = property;
+      this.set = Objects.requireNonNull(set);
+      this.property = Objects.requireNonNull(property);
       this.value = value;
     }
 
-    public boolean isSet() {
+    public boolean isSetCommand() {
       return set;
     }
 
@@ -322,7 +325,7 @@ public final class CommandParser {
       return property;
     }
 
-    public String getValue() {
+    public Optional<String> getValue() {
       return value;
     }
   }

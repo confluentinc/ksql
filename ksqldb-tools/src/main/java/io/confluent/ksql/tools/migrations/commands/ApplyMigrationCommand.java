@@ -324,39 +324,49 @@ public class ApplyMigrationCommand extends BaseCommand {
     final List<SqlCommand> commands = CommandParser.parse(migrationFileContent);
     for (final SqlCommand command : commands) {
       try {
-        if (command instanceof SqlStatement) {
-          ksqlClient.executeStatement(command.getCommand(), new HashMap<>(properties)).get();
-        } else if (command instanceof SqlInsertValues) {
-          final List<FieldInfo> fields =
-              ksqlClient.describeSource(((SqlInsertValues) command).getSourceName()).get().fields();
-          ksqlClient.insertInto(
-              ((SqlInsertValues) command).getSourceName(),
-              getRow(
-                  fields,
-                  ((SqlInsertValues) command).getColumns(),
-                  ((SqlInsertValues) command).getValues())).get();
-        } else if (command instanceof SqlConnectorStatement) {
-          final RestResponse<KsqlEntityList> respose
-              = restClient.makeKsqlRequest(command.getCommand());
-          if (!respose.isSuccessful()) {
-            throw new MigrationException(respose.getErrorMessage().getMessage());
-          }
-        } else if (command instanceof SqlPropertyCommand) {
-          if (((SqlPropertyCommand) command).isSet()) {
-            properties.put(
-                ((SqlPropertyCommand) command).getProperty(),
-                ((SqlPropertyCommand) command).getValue()
-            );
-          } else {
-            properties.remove(((SqlPropertyCommand) command).getProperty());
-          }
-        }
+        executeCommand(command, ksqlClient, restClient, properties);
       } catch (InterruptedException | ExecutionException e) {
         final String errorMsg = String.format(
             "Failed to execute sql: %s. Error: %s", command.getCommand(), e.getMessage());
         updateState(config, ksqlClient, MigrationState.ERROR,
             executionStart, migration, clock, previous, Optional.of(errorMsg));
         throw new MigrationException(errorMsg);
+      }
+    }
+  }
+
+  private void executeCommand(
+      final SqlCommand command,
+      final Client ksqlClient,
+      final KsqlRestClient restClient,
+      final Map<String, Object> properties
+  ) throws ExecutionException, InterruptedException {
+    if (command instanceof SqlStatement) {
+      ksqlClient.executeStatement(command.getCommand(), new HashMap<>(properties)).get();
+    } else if (command instanceof SqlInsertValues) {
+      final List<FieldInfo> fields =
+          ksqlClient.describeSource(((SqlInsertValues) command).getSourceName()).get().fields();
+      ksqlClient.insertInto(
+          ((SqlInsertValues) command).getSourceName(),
+          getRow(
+              fields,
+              ((SqlInsertValues) command).getColumns(),
+              ((SqlInsertValues) command).getValues())).get();
+    } else if (command instanceof SqlConnectorStatement) {
+      final RestResponse<KsqlEntityList> respose
+          = restClient.makeKsqlRequest(command.getCommand());
+      if (!respose.isSuccessful()) {
+        throw new MigrationException(respose.getErrorMessage().getMessage());
+      }
+    } else if (command instanceof SqlPropertyCommand) {
+      if (((SqlPropertyCommand) command).isSetCommand()
+          && ((SqlPropertyCommand) command).getValue().isPresent()) {
+        properties.put(
+            ((SqlPropertyCommand) command).getProperty(),
+            ((SqlPropertyCommand) command).getValue().get()
+        );
+      } else {
+        properties.remove(((SqlPropertyCommand) command).getProperty());
       }
     }
   }

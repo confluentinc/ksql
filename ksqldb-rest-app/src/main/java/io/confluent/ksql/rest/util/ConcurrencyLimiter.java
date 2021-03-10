@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.util.KsqlException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Limits the concurrency of the caller by checking against a limit and if it's exceeded, throwing
@@ -45,7 +44,7 @@ public class ConcurrencyLimiter {
       throw new KsqlException(
           String.format("Host is at concurrency limit for %s. Currently set to %d maximum "
               + "concurrent operations.", operationType, limit));
-    };
+    }
     return new Decrementer();
   }
 

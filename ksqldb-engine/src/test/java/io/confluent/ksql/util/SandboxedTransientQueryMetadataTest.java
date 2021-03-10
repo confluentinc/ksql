@@ -56,7 +56,6 @@ public class SandboxedTransientQueryMetadataTest {
 
   @Before
   public void setup() {
-    sandboxed = SandboxedTransientQueryMetadata.of(original, closeCallback);
     when(original.getStatementString()).thenReturn(STATEMENT);
     when(original.getStreamsProperties()).thenReturn(PROPERTIES);
     when(original.getOverriddenProperties()).thenReturn(OVERRIDES);
@@ -66,6 +65,7 @@ public class SandboxedTransientQueryMetadataTest {
     when(original.getResultType()).thenReturn(RESULT_TYPE);
     when(original.getLogicalSchema()).thenReturn(schema);
     when(original.getTopology()).thenReturn(topology);
+    sandboxed = SandboxedTransientQueryMetadata.of(original, closeCallback);
   }
 
   @Test(expected = IllegalStateException.class)
@@ -73,12 +73,12 @@ public class SandboxedTransientQueryMetadataTest {
     sandboxed.getRowQueue().poll();
   }
 
-  @Test
+  @Test(expected = IllegalStateException.class)
   public void shouldThrowIfStarted() {
     sandboxed.start();
   }
 
-  @Test
+  @Test(expected = IllegalStateException.class)
   public void shouldThrowIfStopped() {
     sandboxed.stop();
   }

@@ -20,11 +20,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
-
+import static org.junit.Assert.assertNull;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlConnectorStatement;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlInsertValues;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCommand;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlPropertyCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlStatement;
 import java.math.BigDecimal;
 import java.util.List;
@@ -47,6 +48,22 @@ public class CommandParserTest {
     List<SqlCommand> commands = CommandParser.parse("INSERT INTO FOO SELECT VALUES FROM BAR;");
     assertThat(commands.size(), is(1));
     assertThat(commands.get(0), instanceOf(SqlStatement.class));
+  }
+
+  @Test
+  public void shouldParseSetUnsetStatements() {
+    List<SqlCommand> commands = CommandParser.parse("SET 'foo.property'='bar';UNSET 'foo.property';");
+    assertThat(commands.size(), is(2));
+    assertThat(commands.get(0), instanceOf(SqlPropertyCommand.class));
+    assertThat(commands.get(0).getCommand(), is("SET 'foo.property'='bar';"));
+    assertThat(((SqlPropertyCommand) commands.get(0)).isSet(), is(true));
+    assertThat(((SqlPropertyCommand) commands.get(0)).getProperty(), is("foo.property"));
+    assertThat(((SqlPropertyCommand) commands.get(0)).getValue(), is("bar"));
+    assertThat(commands.get(1), instanceOf(SqlPropertyCommand.class));
+    assertThat(commands.get(1).getCommand(), is("UNSET 'foo.property';"));
+    assertThat(((SqlPropertyCommand) commands.get(1)).isSet(), is(false));
+    assertThat(((SqlPropertyCommand) commands.get(1)).getProperty(), is("foo.property"));
+    assertNull(((SqlPropertyCommand) commands.get(1)).getValue());
   }
 
   @Test

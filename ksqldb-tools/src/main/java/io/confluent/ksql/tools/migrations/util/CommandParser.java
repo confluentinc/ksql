@@ -37,10 +37,13 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public final class CommandParser {
+public class CommandParser {
   private static final String QUOTED_STRING_OR_WHITESPACE = "('([^']*|(''))*')|\\s+";
+  private static final Pattern STRING_PATTERN = Pattern.compile("'([^']*|(''))*'");
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
   private static final String INSERT = "INSERT";
   private static final String INTO = "INTO";
@@ -51,6 +54,8 @@ public final class CommandParser {
   private static final String SOURCE = "SOURCE";
   private static final String DROP = "DROP";
   private static final String CONNECTOR = "CONNECTOR";
+  private static final String SET = "SET";
+  private static final String UNSET = "UNSET";
   private static final String SHORT_COMMENT_OPENER = "--";
   private static final String SHORT_COMMENT_CLOSER = "\n";
   private static final String LONG_COMMENT_OPENER = "/*";
@@ -61,7 +66,9 @@ public final class CommandParser {
   private enum StatementType {
     INSERT_VALUES,
     CONNECTOR,
-    STATEMENT
+    STATEMENT,
+    SET_PROPERTY,
+    UNSET_PROPERTY
   }
 
   private CommandParser() {
@@ -179,6 +186,11 @@ public final class CommandParser {
         return new SqlConnectorStatement(sql);
       case STATEMENT:
         return new SqlStatement(sql);
+      case SET_PROPERTY:
+        final List<String> strings = getStringsInCommand(sql);
+        return new SqlPropertyCommand(sql, true, strings.get(0), strings.get(1));
+      case UNSET_PROPERTY:
+        return new SqlPropertyCommand(sql, false, getStringsInCommand(sql).get(0), null);
       default:
         throw new IllegalStateException();
     }
@@ -199,9 +211,24 @@ public final class CommandParser {
       return StatementType.CONNECTOR;
     } else if (tokens.get(0).equals(DROP) && tokens.get(1).equals(CONNECTOR)) {
       return StatementType.CONNECTOR;
+    } else if (tokens.get(0).equals(SET)) {
+      return StatementType.SET_PROPERTY;
+    } else if (tokens.get(0).equals(UNSET)) {
+      return StatementType.UNSET_PROPERTY;
     } else {
       return StatementType.STATEMENT;
     }
+  }
+
+  private static List<String> getStringsInCommand(final String sql) {
+    final Matcher stringMatcher = STRING_PATTERN.matcher(sql);
+    final List<String> strings = new ArrayList<>();
+    while (stringMatcher.find()) {
+      final String string = stringMatcher.group();
+      strings.add(string.substring(1, string.length() - 1));
+    }
+
+    return strings;
   }
 
   public abstract static class SqlCommand {
@@ -217,11 +244,7 @@ public final class CommandParser {
   }
 
   /*
-<<<<<<< HEAD
-   * Represents ksqlDb `INSERT INTO ... VALUES ...;` statements
-=======
    * Represents ksqlDB `INSERT INTO ... VALUES ...;` statements
->>>>>>> 2c614cd80aeae81c71107de16fbf2649ce222b1c
    */
   public static class SqlInsertValues extends SqlCommand {
     private final String sourceName;
@@ -254,11 +277,7 @@ public final class CommandParser {
   }
 
   /*
-<<<<<<< HEAD
-  * Represents commands that can be sent directly to the the Java client's `executeStatement` method
-=======
   * Represents commands that can be sent directly to the Java client's `executeStatement` method
->>>>>>> 2c614cd80aeae81c71107de16fbf2649ce222b1c
   * */
   public static class SqlStatement extends SqlCommand {
     SqlStatement(final String command) {
@@ -272,6 +291,39 @@ public final class CommandParser {
   public static class SqlConnectorStatement extends SqlCommand {
     SqlConnectorStatement(final String command) {
       super(command);
+    }
+  }
+
+  /*
+   * Represents set/unset property commands.
+   * */
+  public static class SqlPropertyCommand extends SqlCommand {
+    private final boolean set;
+    private final String property;
+    private final String value;
+
+    SqlPropertyCommand(
+        final String command,
+        final boolean set,
+        final String property,
+        final String value
+    ) {
+      super(command);
+      this.set = set;
+      this.property = property;
+      this.value = value;
+    }
+
+    public boolean isSet() {
+      return set;
+    }
+
+    public String getProperty() {
+      return property;
+    }
+
+    public String getValue() {
+      return value;
     }
   }
 }

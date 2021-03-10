@@ -36,6 +36,7 @@ import io.confluent.ksql.tools.migrations.util.CommandParser;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlConnectorStatement;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlInsertValues;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlPropertyCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlStatement;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
@@ -319,40 +320,42 @@ public class ApplyMigrationCommand extends BaseCommand {
       final Clock clock,
       final String previous
   ) {
+    final Map<String, Object> properties = new HashMap<>();
     final List<SqlCommand> commands = CommandParser.parse(migrationFileContent);
     for (final SqlCommand command : commands) {
       try {
-        executeCommand(command, ksqlClient, restClient);
-      } catch (InterruptedException | ExecutionException | MigrationException e) {
+        if (command instanceof SqlStatement) {
+          ksqlClient.executeStatement(command.getCommand(), new HashMap<>(properties)).get();
+        } else if (command instanceof SqlInsertValues) {
+          final List<FieldInfo> fields =
+              ksqlClient.describeSource(((SqlInsertValues) command).getSourceName()).get().fields();
+          ksqlClient.insertInto(
+              ((SqlInsertValues) command).getSourceName(),
+              getRow(
+                  fields,
+                  ((SqlInsertValues) command).getColumns(),
+                  ((SqlInsertValues) command).getValues())).get();
+        } else if (command instanceof SqlConnectorStatement) {
+          final RestResponse<KsqlEntityList> respose = restClient.makeKsqlRequest(command.getCommand());
+          if (!respose.isSuccessful()) {
+            throw new MigrationException(respose.getErrorMessage().getMessage());
+          }
+        } else if (command instanceof SqlPropertyCommand) {
+          if (((SqlPropertyCommand) command).isSet()) {
+            properties.put(
+                ((SqlPropertyCommand) command).getProperty(),
+                ((SqlPropertyCommand) command).getValue()
+            );
+          } else {
+            properties.remove(((SqlPropertyCommand) command).getProperty());
+          }
+        }
+      } catch (InterruptedException | ExecutionException e) {
         final String errorMsg = String.format(
             "Failed to execute sql: %s. Error: %s", command.getCommand(), e.getMessage());
         updateState(config, ksqlClient, MigrationState.ERROR,
             executionStart, migration, clock, previous, Optional.of(errorMsg));
         throw new MigrationException(errorMsg);
-      }
-    }
-  }
-
-  private void executeCommand(
-      final SqlCommand command,
-      final Client ksqlClient,
-      final KsqlRestClient restClient
-  ) throws ExecutionException, InterruptedException {
-    if (command instanceof SqlStatement) {
-      ksqlClient.executeStatement(command.getCommand()).get();
-    } else if (command instanceof SqlInsertValues) {
-      final List<FieldInfo> fields =
-          ksqlClient.describeSource(((SqlInsertValues) command).getSourceName()).get().fields();
-      ksqlClient.insertInto(
-          ((SqlInsertValues) command).getSourceName(),
-          getRow(
-              fields,
-              ((SqlInsertValues) command).getColumns(),
-              ((SqlInsertValues) command).getValues())).get();
-    } else if (command instanceof SqlConnectorStatement) {
-      final RestResponse<KsqlEntityList> respose = restClient.makeKsqlRequest(command.getCommand());
-      if (!respose.isSuccessful()) {
-        throw new MigrationException(respose.getErrorMessage().getMessage());
       }
     }
   }

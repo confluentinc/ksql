@@ -531,14 +531,14 @@ is preferred.
 
 ## `ksql.query.pull.max.qps`
 
-Sets a query per second limit for pull queries. This limit is enforced per host (not per cluster).
-After hitting the limit, the host will fail pull query requests until it determines it's no longer
+Sets a rate limit for pull queries, in queries per second. This limit is enforced per host, not per cluster.
+After hitting the limit, the host will fail pull query requests until it determines that it's no longer
 at the limit.
 
 ## `ksql.query.pull.max.concurrent.requests`
 
-Sets a concurrent query limit for pull queries. This limit is enforced per host (not per cluster).
-After hitting the limit, the host will fail pull query requests until it determines it's no longer
+Sets the maximum number of concurrent pull queries. This limit is enforced per host, not per cluster.
+After hitting the limit, the host will fail pull query requests until it determines that it's no longer
 at the limit.
 
 ## `ksql.variable.substitution.enable`

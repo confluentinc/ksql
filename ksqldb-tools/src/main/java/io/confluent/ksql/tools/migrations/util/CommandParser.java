@@ -143,9 +143,9 @@ public final class CommandParser {
     return commands;
   }
 
-  /*
+  /**
   * Converts an expression into a Java object.
-  **/
+  */
   private static void validateToken(final String token, final int index) {
     if (index < 0) {
       throw new MigrationException("Invalid sql - failed to find closing token '" + token + "'");
@@ -237,29 +237,43 @@ public final class CommandParser {
     }
   }
 
-  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private static StatementType getStatementType(final List<String> tokens) {
-    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
-    if (tokens.get(0).equals(INSERT)
-        && tokens.get(1).equals(INTO)
-        && !tokens.get(3).equals(SELECT)
-        && tokens.contains(VALUES)
-    ) {
+    if (isInsertValuesStatement(tokens)) {
       return StatementType.INSERT_VALUES;
-    } else if ((tokens.get(0).equals(CREATE)
-        && (tokens.get(1).equals(SINK) || tokens.get(1).equals(SOURCE))
-        && tokens.get(2).equals(CONNECTOR))) {
+    } else if (isCreateConnectorStatement(tokens) || isDropConnectorStatement(tokens)) {
       return StatementType.CONNECTOR;
-    } else if (tokens.get(0).equals(DROP) && tokens.get(1).equals(CONNECTOR)) {
-      return StatementType.CONNECTOR;
-    } else if (tokens.get(0).equals(SET)) {
+    } else if (tokens.size() > 0 && tokens.get(0).equals(SET)) {
       return StatementType.SET_PROPERTY;
-    } else if (tokens.get(0).equals(UNSET)) {
+    } else if (tokens.size() > 0 && tokens.get(0).equals(UNSET)) {
       return StatementType.UNSET_PROPERTY;
     } else {
       validateSupportedStatementType(tokens);
       return StatementType.STATEMENT;
     }
+  }
+
+  private static boolean isInsertValuesStatement(final List<String> tokens) {
+    // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
+    return tokens.size() > 3
+        && tokens.get(0).equals(INSERT)
+        && tokens.get(1).equals(INTO)
+        && !tokens.get(3).equals(SELECT)
+        && tokens.contains(VALUES);
+    // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
+  }
+
+
+  private static boolean isCreateConnectorStatement(final List<String> tokens) {
+    // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
+    return tokens.size() > 2
+        && tokens.get(0).equals(CREATE)
+        && (tokens.get(1).equals(SINK) || tokens.get(1).equals(SOURCE))
+        && tokens.get(2).equals(CONNECTOR);
+    // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
+  }
+
+  private static boolean isDropConnectorStatement(final List<String> tokens) {
+    return tokens.size() > 1 && tokens.get(0).equals(DROP) && tokens.get(1).equals(CONNECTOR);
   }
 
   /**
@@ -273,7 +287,6 @@ public final class CommandParser {
    *               in single quotes. Assumes that tokens have already been upper-cased.
    */
   private static void validateSupportedStatementType(final List<String> tokens) {
-    // TODO: check token size on other if-branches above as well (and refactor above)
     if (tokens.size() > 0 && UNSUPPORTED_STATEMENTS.contains(tokens.get(0))) {
       throw new MigrationException("'" + tokens.get(0) + "' statements are not supported.");
     }
@@ -345,9 +358,9 @@ public final class CommandParser {
     }
   }
 
-  /*
+  /**
    * Represents set/unset property commands.
-   * */
+   */
   public static class SqlPropertyCommand extends SqlCommand {
     private final boolean set;
     private final String property;

@@ -392,7 +392,10 @@ public class ApplyMigrationCommand extends BaseCommand {
     return new KsqlObject(row);
   }
 
-  private static void verifyColumnValuesMatch(final List<String> columns, final List<Expression> values) {
+  private static void verifyColumnValuesMatch(
+      final List<String> columns,
+      final List<Expression> values
+  ) {
     if (columns.size() != values.size()) {
       throw new MigrationException(String.format("Invalid `INSERT VALUES` statement. Number of "
           + "columns and values must match. Got: Columns: %d. Values: %d.",

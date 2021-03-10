@@ -230,8 +230,6 @@ public class CommandParserTest {
     assertThat(commands.get(0).getCommand(), is("drop type address;"));
   }
 
-  // TODO: check we have unit tests for set and unset
-
   @Test
   public void shouldParseSeveralCommands() {
     // When:

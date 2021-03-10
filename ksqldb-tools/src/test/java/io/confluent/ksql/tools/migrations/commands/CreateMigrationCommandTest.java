@@ -22,6 +22,7 @@ import static org.junit.Assert.assertThrows;
 
 import com.github.rvesse.airline.SingleCommand;
 import com.github.rvesse.airline.parser.errors.ParseArgumentsMissingException;
+import com.github.rvesse.airline.parser.errors.ParseOptionOutOfRangeException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.nio.file.Paths;
@@ -115,26 +116,35 @@ public class CreateMigrationCommandTest {
 
   @Test
   public void shouldFailOnNegativeVersion() {
-    // Given:
-    command = PARSER.parse(DESCRIPTION, "-v", "-1");
-
     // When:
-    final int result = command.command(migrationsDir);
+    final Exception e = assertThrows(ParseOptionOutOfRangeException.class,
+        () -> PARSER.parse(DESCRIPTION, "-v", "-1"));
 
     // Then:
-    assertThat(result, is(1));
+    assertThat(e.getMessage(), is("Value for option 'version' was given as '-1' "
+        + "which is not in the acceptable range: 1 <= value <= 999999"));
+  }
+
+  @Test
+  public void shouldFailOnZeroVersion() {
+    // When:
+    final Exception e = assertThrows(ParseOptionOutOfRangeException.class,
+        () -> PARSER.parse(DESCRIPTION, "-v", "0"));
+
+    // Then:
+    assertThat(e.getMessage(), is("Value for option 'version' was given as '0' "
+        + "which is not in the acceptable range: 1 <= value <= 999999"));
   }
 
   @Test
   public void shouldFailIfVersionTooLarge() {
-    // Given:
-    command = PARSER.parse(DESCRIPTION, "-v", "10000000");
-
     // When:
-    final int result = command.command(migrationsDir);
+    final Exception e = assertThrows(ParseOptionOutOfRangeException.class,
+        () -> PARSER.parse(DESCRIPTION, "-v", "10000000"));
 
     // Then:
-    assertThat(result, is(1));
+    assertThat(e.getMessage(), is("Value for option 'version' was given as '10000000' "
+        + "which is not in the acceptable range: 1 <= value <= 999999"));
   }
 
   @Test

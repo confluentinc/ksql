@@ -46,6 +46,7 @@ import io.confluent.ksql.rest.server.resources.ServerMetadataResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
@@ -84,6 +85,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final WSQueryEndpoint wsQueryEndpoint;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RateLimiter rateLimiter;
+  private final ConcurrencyLimiter pullConcurrencyLimiter;
   private final HARouting routing;
   private final Optional<LocalCommands> localCommands;
 
@@ -106,6 +108,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final WSQueryEndpoint wsQueryEndpoint,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RateLimiter rateLimiter,
+      final ConcurrencyLimiter pullConcurrencyLimiter,
       final HARouting routing,
       final Optional<LocalCommands> localCommands
   ) {
@@ -129,6 +132,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.wsQueryEndpoint = Objects.requireNonNull(wsQueryEndpoint);
     this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
     this.rateLimiter = Objects.requireNonNull(rateLimiter);
+    this.pullConcurrencyLimiter = pullConcurrencyLimiter;
     this.routing = Objects.requireNonNull(routing);
     this.localCommands = Objects.requireNonNull(localCommands);
   }
@@ -145,7 +149,7 @@ public class KsqlServerEndpoints implements Endpoints {
       try {
         return new QueryEndpoint(
             ksqlEngine, ksqlConfig, ksqlRestConfig, routingFilterFactory, pullQueryMetrics,
-            rateLimiter, routing, localCommands)
+            rateLimiter, pullConcurrencyLimiter, routing, localCommands)
             .createQueryPublisher(
                 sql,
                 properties,

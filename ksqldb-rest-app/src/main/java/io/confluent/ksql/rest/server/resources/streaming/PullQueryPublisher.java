@@ -33,6 +33,8 @@ import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KeyValue;
@@ -51,6 +53,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   private final long startTimeNanos;
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
+  private final ConcurrencyLimiter concurrencyLimiter;
   private final HARouting routing;
 
   @VisibleForTesting
@@ -63,6 +66,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       final long startTimeNanos,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
+      final ConcurrencyLimiter concurrencyLimiter,
       final HARouting routing
   ) {
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
@@ -73,6 +77,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     this.startTimeNanos = startTimeNanos;
     this.routingFilterFactory = requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = requireNonNull(rateLimiter, "rateLimiter");
+    this.concurrencyLimiter = concurrencyLimiter;
     this.routing = requireNonNull(routing, "routing");
   }
 
@@ -90,25 +95,38 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     );
 
     PullQueryExecutionUtil.checkRateLimit(rateLimiter);
+    final Decrementer decrementer = concurrencyLimiter.increment();
 
-    final PullQueryResult result = ksqlEngine.executePullQuery(
-        serviceContext,
-        query,
-        routing,
-        routingOptions,
-        plannerOptions,
-        pullQueryMetrics,
-        true
-    );
+    try {
+      final PullQueryResult result = ksqlEngine.executePullQuery(
+          serviceContext,
+          query,
+          routing,
+          routingOptions,
+          plannerOptions,
+          pullQueryMetrics,
+          true
+      );
 
-    result.onCompletion(v -> {
-      pullQueryMetrics.ifPresent(p -> p.recordLatency(startTimeNanos));
-    });
+      result.onCompletionOrException((v, t) -> decrementer.decrementAtMostOnce());
+      result.onCompletion(v -> {
+        pullQueryMetrics.ifPresent(p -> p.recordLatency(startTimeNanos));
+      });
+      result.onCompletionOrException((v, throwable) -> {
+        decrementer.decrementAtMostOnce();
+        if (throwable == null) {
+          pullQueryMetrics.ifPresent(p -> p.recordLatency(startTimeNanos));
+        }
+      });
 
-    final PullQuerySubscription subscription = new PullQuerySubscription(
-        exec, subscriber, result);
+      final PullQuerySubscription subscription = new PullQuerySubscription(
+          exec, subscriber, result);
 
-    subscriber.onSubscribe(subscription);
+      subscriber.onSubscribe(subscription);
+    } catch (Throwable t) {
+      decrementer.decrementAtMostOnce();
+      throw t;
+    }
   }
 
   private static final class PullQuerySubscription

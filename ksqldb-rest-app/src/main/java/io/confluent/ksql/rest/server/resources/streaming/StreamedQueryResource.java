@@ -45,6 +45,8 @@ import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
@@ -88,6 +90,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
+  private final ConcurrencyLimiter concurrencyLimiter;
   private final HARouting routing;
   private final Optional<LocalCommands> localCommands;
 
@@ -108,6 +111,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
+      final ConcurrencyLimiter concurrencyLimiter,
       final HARouting routing,
       final Optional<LocalCommands> localCommands
   ) {
@@ -125,6 +129,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         pullQueryMetrics,
         routingFilterFactory,
         rateLimiter,
+        concurrencyLimiter,
         routing,
         localCommands
     );
@@ -147,6 +152,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
+      final ConcurrencyLimiter concurrencyLimiter,
       final HARouting routing,
       final Optional<LocalCommands> localCommands
   ) {
@@ -168,6 +174,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
+    this.concurrencyLimiter = Objects.requireNonNull(concurrencyLimiter, "concurrencyLimiter");
     this.routing = Objects.requireNonNull(routing, "routing");
     this.localCommands = Objects.requireNonNull(localCommands, "localCommands");
   }
@@ -325,29 +332,40 @@ public class StreamedQueryResource implements KsqlConfigurable {
         && isInternalRequest.orElse(true);
 
     // Only check the rate limit at the forwarding host
+    Decrementer decrementer = null;
     if (!isAlreadyForwarded) {
       PullQueryExecutionUtil.checkRateLimit(rateLimiter);
+      decrementer = concurrencyLimiter.increment();
     }
+    final Optional<Decrementer> optionalDecrementer = Optional.ofNullable(decrementer);
 
-    final PullQueryResult result = ksqlEngine.executePullQuery(
-        serviceContext,
-        configured,
-        routing,
-        routingOptions,
-        plannerOptions,
-        pullQueryMetrics,
-        true
-    );
+    try {
+      final PullQueryResult result = ksqlEngine.executePullQuery(
+          serviceContext,
+          configured,
+          routing,
+          routingOptions,
+          plannerOptions,
+          pullQueryMetrics,
+          true
+      );
+      result.onCompletionOrException((v, t) -> {
+        optionalDecrementer.ifPresent(Decrementer::decrementAtMostOnce);
+      });
 
-    final PullQueryStreamWriter pullQueryStreamWriter = new PullQueryStreamWriter(
-        result,
-        disconnectCheckInterval.toMillis(),
-        OBJECT_MAPPER,
-        result.getPullQueryQueue(),
-        Clock.systemUTC(),
-        connectionClosedFuture);
+      final PullQueryStreamWriter pullQueryStreamWriter = new PullQueryStreamWriter(
+          result,
+          disconnectCheckInterval.toMillis(),
+          OBJECT_MAPPER,
+          result.getPullQueryQueue(),
+          Clock.systemUTC(),
+          connectionClosedFuture);
 
-    return EndpointResponse.ok(pullQueryStreamWriter);
+      return EndpointResponse.ok(pullQueryStreamWriter);
+    } catch (Throwable t) {
+      optionalDecrementer.ifPresent(Decrementer::decrementAtMostOnce);
+      throw t;
+    }
   }
 
   private EndpointResponse handlePushQuery(

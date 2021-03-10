@@ -22,6 +22,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class PullQueryResult {
@@ -89,5 +90,12 @@ public class PullQueryResult {
 
   public void onCompletion(final Consumer<Void> consumer) {
     future.thenAccept(consumer::accept);
+  }
+
+  public void onCompletionOrException(final BiConsumer<Void, Throwable> biConsumer) {
+    future.handle((v, t) -> {
+      biConsumer.accept(v, t);
+      return null;
+    });
   }
 }

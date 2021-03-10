@@ -40,6 +40,7 @@ import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -78,6 +79,7 @@ public class WSQueryEndpoint {
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
+  private final ConcurrencyLimiter pullConcurrencyLimiter;
   private final HARouting routing;
   private final Optional<LocalCommands> localCommands;
 
@@ -97,6 +99,7 @@ public class WSQueryEndpoint {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
+      final ConcurrencyLimiter pullConcurrencyLimiter,
       final HARouting routing,
       final Optional<LocalCommands> localCommands
   ) {
@@ -117,6 +120,7 @@ public class WSQueryEndpoint {
         pullQueryMetrics,
         routingFilterFactory,
         rateLimiter,
+        pullConcurrencyLimiter,
         routing,
         localCommands
     );
@@ -141,6 +145,7 @@ public class WSQueryEndpoint {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
+      final ConcurrencyLimiter pullConcurrencyLimiter,
       final HARouting routing,
       final Optional<LocalCommands> localCommands
   ) {
@@ -166,6 +171,8 @@ public class WSQueryEndpoint {
     this.routingFilterFactory = Objects.requireNonNull(
         routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
+    this.pullConcurrencyLimiter =
+        Objects.requireNonNull(pullConcurrencyLimiter, "pullConcurrencyLimiter");
     this.routing = Objects.requireNonNull(routing, "routing");
     this.localCommands = Objects.requireNonNull(localCommands, "localCommands");
   }
@@ -310,6 +317,7 @@ public class WSQueryEndpoint {
           startTimeNanos,
           routingFilterFactory,
           rateLimiter,
+          pullConcurrencyLimiter,
           routing
       );
     } else {
@@ -358,7 +366,9 @@ public class WSQueryEndpoint {
         .subscribe(streamSubscriber);
   }
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   private static void startPullQueryPublisher(
+      // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
@@ -368,6 +378,7 @@ public class WSQueryEndpoint {
       final long startTimeNanos,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
+      final ConcurrencyLimiter pullConcurrencyLimiter,
       final HARouting routing
   ) {
     new PullQueryPublisher(
@@ -379,6 +390,7 @@ public class WSQueryEndpoint {
         startTimeNanos,
         routingFilterFactory,
         rateLimiter,
+        pullConcurrencyLimiter,
         routing
     ).subscribe(streamSubscriber);
   }
@@ -408,7 +420,9 @@ public class WSQueryEndpoint {
 
   interface IPullQueryPublisher {
 
+    // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
     void start(
+        // CHECKSTYLE_RULES.ON: ParameterNumberCheck
         KsqlEngine ksqlEngine,
         ServiceContext serviceContext,
         ListeningScheduledExecutorService exec,
@@ -418,6 +432,7 @@ public class WSQueryEndpoint {
         long startTimeNanos,
         RoutingFilterFactory routingFilterFactory,
         RateLimiter rateLimiter,
+        ConcurrencyLimiter pullConcurrencyLimiter,
         HARouting routing
         );
 

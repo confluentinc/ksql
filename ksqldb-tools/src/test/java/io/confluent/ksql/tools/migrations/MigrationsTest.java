@@ -306,8 +306,8 @@ public class MigrationsTest {
   }
 
   private static void initializeAndVerifyMetadataStreamAndTable(final String configFile) {
-    // use `initialize` to create metadata stream and table
-    final int status = MIGRATIONS_CLI.parse("--config-file", configFile, "initialize").runCommand();
+    // use `initialize-metadata` to create metadata stream and table
+    final int status = MIGRATIONS_CLI.parse("--config-file", configFile, "initialize-metadata").runCommand();
     assertThat(status, is(0));
 
     // verify metadata stream
@@ -356,8 +356,8 @@ public class MigrationsTest {
     assertThat(sourceExists(MIGRATIONS_STREAM, false), is(true));
     assertThat(sourceExists(MIGRATIONS_TABLE, true), is(true));
 
-    // When: use `clean` to clean up metadata stream and table
-    final int status = MIGRATIONS_CLI.parse("--config-file", configFile, "clean").runCommand();
+    // When: use `destroy-metadata` to clean up metadata stream and table
+    final int status = MIGRATIONS_CLI.parse("--config-file", configFile, "destroy-metadata").runCommand();
     assertThat(status, is(0));
 
     // Then:

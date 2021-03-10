@@ -41,10 +41,10 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class CleanMigrationsCommandTest {
+public class DestroyMigrationsCommandTest {
 
-  private static final SingleCommand<CleanMigrationsCommand> PARSER =
-      SingleCommand.singleCommand(CleanMigrationsCommand.class);
+  private static final SingleCommand<DestroyMigrationsCommand> PARSER =
+      SingleCommand.singleCommand(DestroyMigrationsCommand.class);
 
   private static final String MIGRATIONS_STREAM = "migrations_stream";
   private static final String MIGRATIONS_TABLE = "migrations_table";
@@ -79,7 +79,7 @@ public class CleanMigrationsCommandTest {
   @Mock
   private QueryInfo otherQueryInfo;
 
-  private CleanMigrationsCommand command;
+  private DestroyMigrationsCommand command;
 
   @Before
   public void setUp() throws Exception {

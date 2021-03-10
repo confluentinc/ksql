@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 )
 public class InitializeMigrationCommand extends BaseCommand {
 
-  static final String INITIALIZE_COMMAND_NAME = "initialize";
+  static final String INITIALIZE_COMMAND_NAME = "initialize-metadata";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(InitializeMigrationCommand.class);
 

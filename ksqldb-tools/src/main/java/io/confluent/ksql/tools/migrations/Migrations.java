@@ -29,8 +29,8 @@ import com.github.rvesse.airline.parser.errors.handlers.CollectAll;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.tools.migrations.commands.ApplyMigrationCommand;
 import io.confluent.ksql.tools.migrations.commands.BaseCommand;
-import io.confluent.ksql.tools.migrations.commands.CleanMigrationsCommand;
 import io.confluent.ksql.tools.migrations.commands.CreateMigrationCommand;
+import io.confluent.ksql.tools.migrations.commands.DestroyMigrationsCommand;
 import io.confluent.ksql.tools.migrations.commands.InitializeMigrationCommand;
 import io.confluent.ksql.tools.migrations.commands.MigrationInfoCommand;
 import io.confluent.ksql.tools.migrations.commands.NewMigrationCommand;
@@ -60,7 +60,7 @@ import org.slf4j.LoggerFactory;
         CreateMigrationCommand.class,
         ApplyMigrationCommand.class,
         MigrationInfoCommand.class,
-        CleanMigrationsCommand.class,
+        DestroyMigrationsCommand.class,
         ValidateMigrationsCommand.class,
         InitializeMigrationCommand.class,
         Help.class

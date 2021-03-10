@@ -340,6 +340,7 @@ public class ApplyMigrationCommand extends BaseCommand {
     } else if (command instanceof SqlInsertValues) {
       final List<FieldInfo> fields =
           ksqlClient.describeSource(((SqlInsertValues) command).getSourceName()).get().fields();
+      // TODO: fix case-sensitivity
       ksqlClient.insertInto(
           ((SqlInsertValues) command).getSourceName(),
           getRow(
@@ -347,10 +348,10 @@ public class ApplyMigrationCommand extends BaseCommand {
               ((SqlInsertValues) command).getColumns(),
               ((SqlInsertValues) command).getValues())).get();
     } else if (command instanceof SqlConnectorStatement) {
-      final RestResponse<KsqlEntityList> respose
-          = restClient.makeKsqlRequest(command.getCommand());
-      if (!respose.isSuccessful()) {
-        throw new MigrationException(respose.getErrorMessage().getMessage());
+      final RestResponse<KsqlEntityList> response =
+          restClient.makeKsqlRequest(command.getCommand());
+      if (!response.isSuccessful()) {
+        throw new MigrationException(response.getErrorMessage().getMessage());
       }
     } else if (command instanceof SqlPropertyCommand) {
       if (((SqlPropertyCommand) command).isSetCommand()

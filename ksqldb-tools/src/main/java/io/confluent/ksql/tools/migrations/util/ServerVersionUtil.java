@@ -19,10 +19,9 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
+import io.confluent.ksql.util.KsqlVersion;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,28 +51,28 @@ public final class ServerVersionUtil {
   }
 
   public static boolean isSupportedVersion(final String ksqlServerVersion) {
-    final KsqlServerVersion version;
+    final KsqlVersion version;
     try {
-      version = new KsqlServerVersion(ksqlServerVersion);
+      version = new KsqlVersion(ksqlServerVersion);
     } catch (IllegalArgumentException e) {
       throw new MigrationException("Could not parse ksqlDB server version to "
           + "verify compatibility. Version: " + ksqlServerVersion);
     }
 
-    return version.isAtLeast(6, 0, 0, 10);
+    return version.isAtLeast(new KsqlVersion("6.0."));
   }
 
   public static boolean versionSupportsMultiKeyPullQuery(final String ksqlServerVersion) {
-    final KsqlServerVersion version;
+    final KsqlVersion version;
     try {
-      version = new KsqlServerVersion(ksqlServerVersion);
+      version = new KsqlVersion(ksqlServerVersion);
     } catch (IllegalArgumentException e) {
       LOGGER.warn("Could not parse ksqlDB server version to verify whether multi-key pull queries "
           + "are supported. Falling back to single-key pull queries only.");
       return false;
     }
 
-    return version.isAtLeast(6, 1, 0, 14);
+    return version.isAtLeast(new KsqlVersion("6.1."));
   }
 
   public static boolean serverVersionCompatible(
@@ -98,51 +97,4 @@ public final class ServerVersionUtil {
     }
   }
 
-  private static class KsqlServerVersion {
-
-    private static final Pattern VERSION_PATTERN = Pattern.compile("v?([0-9]+)\\.([0-9]+)\\..*");
-
-    private enum VersionType {
-      CONFLUENT_PLATFORM,
-      KSQLDB_STANDALONE
-    }
-
-    private final VersionType versionType;
-    private final int majorVersion;
-    private final int minorVersion;
-
-    KsqlServerVersion(final String version) {
-      final Matcher matcher = VERSION_PATTERN.matcher(version);
-      if (!matcher.find()) {
-        throw new IllegalArgumentException("Unexpected ksqlDB server version: " + version);
-      }
-
-      majorVersion = Integer.parseInt(matcher.group(1));
-      minorVersion = Integer.parseInt(matcher.group(2));
-      versionType = majorVersion < 4
-          ? VersionType.KSQLDB_STANDALONE
-          : VersionType.CONFLUENT_PLATFORM;
-    }
-
-    boolean isAtLeast(
-        final int cpMajor,
-        final int cpMinor,
-        final int standaloneMajor,
-        final int standaloneMinor
-    ) {
-      return versionType == VersionType.CONFLUENT_PLATFORM
-          ? isAtLeastVersion(cpMajor, cpMinor)
-          : isAtLeastVersion(standaloneMajor, standaloneMinor);
-    }
-
-    private boolean isAtLeastVersion(final int major, final int minor) {
-      if (majorVersion > major) {
-        return true;
-      } else if (majorVersion < major) {
-        return false;
-      } else {
-        return minorVersion >= minor;
-      }
-    }
-  }
 }

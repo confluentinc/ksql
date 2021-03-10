@@ -54,7 +54,7 @@ import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
 import io.confluent.ksql.util.HandlerMaps.Handler2;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlVersion;
 import io.confluent.ksql.util.ParserUtil;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.vertx.core.Context;
@@ -83,11 +83,13 @@ import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 public class Cli implements KsqlRequestExecutor, Closeable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
 
   private static final int MAX_RETRIES = 10;
+  private static final String UNKNOWN_VERSION = "<unknown>";
   private static final String NO_WARNING = "";
 
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
@@ -285,10 +287,10 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       final ServerInfo serverInfo = restClient.getServerInfo().getResponse();
       serverVersion = serverInfo.getVersion();
       serverStatus = serverInfo.getServerStatus() == null
-          ? "<unknown>" : serverInfo.getServerStatus();
+          ? UNKNOWN_VERSION : serverInfo.getServerStatus();
     } catch (final Exception exception) {
-      serverVersion = "<unknown>";
-      serverStatus = "<unknown>";
+      serverVersion = UNKNOWN_VERSION;
+      serverStatus = UNKNOWN_VERSION;
     }
     final String cliVersion = AppInfo.getVersion();
 
@@ -324,64 +326,35 @@ public class Cli implements KsqlRequestExecutor, Closeable {
   }
 
   private static String checkServerCompatibility(
-      final String cliVersion,
-      final String serverVersion) {
+      final String cliVersionNumber,
+      final String serverVersionNumber) {
 
-    if ("<unknown>".equals(serverVersion)) {
-      return null;
+    final KsqlVersion cliVersion;
+    try {
+      cliVersion = new KsqlVersion(cliVersionNumber);
+    } catch (final IllegalArgumentException exception) {
+      return "\nWARNING: Could not identify CLI version.\n"
+          + "         Non-matching CLI and server versions may lead to unexpected errors.\n\n";
     }
 
-    final int[] cliVersionNumber = parseVersion(cliVersion);
-    if (cliVersionNumber == null) {
-      throw new KsqlException(
-          String.format("Could not verify CLI version: %s", cliVersion)
-      );
+    final KsqlVersion serverVersion;
+    try {
+      serverVersion = new KsqlVersion(serverVersionNumber);
+    } catch (final IllegalArgumentException exception) {
+      return "\nWARNING: Could not identify server version.\n"
+          + "         Non-matching CLI and server versions may lead to unexpected errors.\n\n";
     }
 
-    final int[] serverVersionNumber = parseVersion(serverVersion);
-    if (serverVersionNumber == null) {
-      throw new KsqlException(
-          String.format("Could not verify server version: %s", serverVersion)
-      );
+    if (!serverVersion.isAtLeast(new KsqlVersion("6.0."))) {
+      throw new KsqlUnsupportedServerException(cliVersionNumber, serverVersionNumber);
     }
 
-    if (serverVersionNumber[0] < 5
-        || (serverVersionNumber[0] == 5 && serverVersionNumber[1] < 4)) {
-      throw new KsqlUnsupportedServerException(cliVersion, serverVersion);
-    }
-
-    if (cliVersionNumber[0] != serverVersionNumber[0]
-        || cliVersionNumber[1] != serverVersionNumber[1]) {
+    if (!cliVersion.same(serverVersion)) {
       return "\nWARNING: CLI and server version don't match. This may lead to unexpected errors.\n"
           + "         It is recommended to use a CLI that matches the server version.\n\n";
     }
 
     return NO_WARNING;
-  }
-
-  private static int[] parseVersion(final String version) {
-    final String[] versionMainTokens = version.split("-");
-    if (versionMainTokens.length != 2) {
-      return null;
-    }
-
-    final String[] versionToken = versionMainTokens[0].split("\\.");
-    if (versionToken.length != 3) {
-      return null;
-    }
-
-    final int[] versionNumbers = new int[3];
-
-    int i = 0;
-    for (final String token : versionToken) {
-      try {
-        versionNumbers[i++] = Integer.parseInt(token);
-      } catch (final NumberFormatException fatal) {
-        return null;
-      }
-    }
-
-    return versionNumbers;
   }
 
   @Override

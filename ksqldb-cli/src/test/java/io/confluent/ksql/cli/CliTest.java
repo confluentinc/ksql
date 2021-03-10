@@ -910,10 +910,10 @@ public class CliTest {
   }
 
   @Test
-  public void shouldFailOnUnsupportedServerVersion() throws Exception {
+  public void shouldFailOnUnsupportedCpServerVersion() throws Exception {
     givenRunInteractivelyWillExit();
 
-    final KsqlRestClient mockRestClient = givenMockRestClient("5.3.0-0");
+    final KsqlRestClient mockRestClient = givenMockRestClient("5.5.0-0");
 
     assertThrows(
         KsqlUnsupportedServerException.class,
@@ -923,10 +923,23 @@ public class CliTest {
   }
 
   @Test
-  public void shouldPrintWarningOnDifferentServerVersion() throws Exception {
+  public void shouldFailOnUnsupportedStandaloneServerVersion() throws Exception {
     givenRunInteractivelyWillExit();
 
-    final KsqlRestClient mockRestClient = givenMockRestClient("5.4.0-0");
+    final KsqlRestClient mockRestClient = givenMockRestClient("0.9.0-0");
+
+    assertThrows(
+        KsqlUnsupportedServerException.class,
+        () -> new Cli(1L, 1L, mockRestClient, console)
+            .runInteractively()
+    );
+  }
+
+  @Test
+  public void shouldPrintWarningOnDifferentCpServerVersion() throws Exception {
+    givenRunInteractivelyWillExit();
+
+    final KsqlRestClient mockRestClient = givenMockRestClient("6.0.0-0");
 
     new Cli(1L, 1L, mockRestClient, console)
         .runInteractively();
@@ -939,22 +952,33 @@ public class CliTest {
   }
 
   @Test
-  public void shouldNotPrintWarningOnDifferentBugFixServerVersion() throws Exception {
+  public void shouldPrintWarningOnDifferentStandaloneServerVersion() throws Exception {
     givenRunInteractivelyWillExit();
 
-    final String cliVersion = AppInfo.getVersion();
-    final String[] tokens = cliVersion.split("-")[0].split("\\.");
-    final KsqlRestClient mockRestClient = givenMockRestClient(
-        tokens[0] + "." + tokens[1] + ".1" + tokens[2] + "-0"
-    );
+    final KsqlRestClient mockRestClient = givenMockRestClient("1.0.0-0");
 
     new Cli(1L, 1L, mockRestClient, console)
         .runInteractively();
 
     assertThat(
         terminal.getOutputString(),
-        not(containsString("WARNING: CLI and server version don't match."
-            + " This may lead to unexpected errors."))
+        containsString("WARNING: CLI and server version don't match."
+            + " This may lead to unexpected errors.")
+    );
+  }
+
+  @Test
+  public void shouldPrintWarningOnUnknownServerVersion() throws Exception {
+    givenRunInteractivelyWillExit();
+
+    final KsqlRestClient mockRestClient = givenMockRestClient("bad-version");
+
+    new Cli(1L, 1L, mockRestClient, console)
+        .runInteractively();
+
+    assertThat(
+        terminal.getOutputString(),
+        containsString("WARNING: Could not identify server version.")
     );
   }
 
@@ -1379,7 +1403,7 @@ public class CliTest {
     verify(mockRestClient).makeKsqlRequest(statementText, seqNum);
   }
 
-  @SuppressWarnings({"unchecked", "rawtypes"})
+  @SuppressWarnings("unchecked")
   private static Matcher<String>[] prependWithKey(final String key, final List<?> values) {
 
     final Matcher<String>[] allMatchers = new Matcher[values.size() + 1];

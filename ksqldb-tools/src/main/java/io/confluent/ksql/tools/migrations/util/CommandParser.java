@@ -31,6 +31,7 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import java.util.ArrayList;
@@ -133,6 +134,11 @@ public final class CommandParser {
       }
     }
 
+    if (!current.toString().trim().isEmpty()) {
+      throw new MigrationException("Unmatched command at end of file; missing semicolon: '"
+          + current.toString() + "'");
+    }
+
     return commands;
   }
 
@@ -192,8 +198,15 @@ public final class CommandParser {
         .collect(Collectors.toList());
     switch (getStatementType(tokens)) {
       case INSERT_VALUES:
-        final InsertValues parsedStatement = (InsertValues) new AstBuilder(TypeRegistry.EMPTY)
-            .buildStatement(KSQL_PARSER.parse(sql).get(0).getStatement());
+        final InsertValues parsedStatement;
+        try {
+          parsedStatement = (InsertValues) new AstBuilder(TypeRegistry.EMPTY)
+              .buildStatement(KSQL_PARSER.parse(sql).get(0).getStatement());
+        } catch (ParseFailedException e) {
+          throw new MigrationException(String.format(
+              "Failed to parse INSERT VALUES statement. Statement: %s. Reason: %s",
+              sql, e.getMessage()));
+        }
         return new SqlInsertValues(
             sql,
             parsedStatement.getTarget().text(),

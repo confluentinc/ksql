@@ -17,6 +17,7 @@ package io.confluent.ksql.tools.migrations.util;
 
 import static io.confluent.ksql.tools.migrations.util.CommandParser.toFieldType;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
@@ -83,6 +84,16 @@ public class CommandParserTest {
     assertThat(insertValues.getColumns(), is(ImmutableList.of("col1")));
     assertThat(insertValues.getValues().size(), is(1));
     assertThat(toFieldType(insertValues.getValues().get(0)), is(55));
+  }
+
+  @Test
+  public void shouldThrowOnInvalidInsertValues() {
+    // When:
+    final MigrationException e = assertThrows(MigrationException.class,
+        () -> CommandParser.parse("insert into foo values (this_should_not_here) ('val');"));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Failed to parse INSERT VALUES statement"));
   }
 
   @Test
@@ -322,6 +333,16 @@ public class CommandParserTest {
 
     // Then:
     assertThat(e.getMessage(), is("Invalid sql - failed to find closing token '''"));
+  }
+
+  @Test
+  public void shouldThrowOnMissingSemicolon() {
+    // When:
+    final MigrationException e = assertThrows(MigrationException.class,
+        () -> CommandParser.parse("create stream foo as select * from no_semicolon_after_this"));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Unmatched command at end of file; missing semicolon"));
   }
 
   @Test

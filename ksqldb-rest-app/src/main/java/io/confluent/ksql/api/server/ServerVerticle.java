@@ -21,7 +21,6 @@ import static io.netty.handler.codec.http.HttpResponseStatus.TEMPORARY_REDIRECT;
 
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
-import io.confluent.ksql.api.server.OldApiUtils.EndpointMetricsCallbacks;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
@@ -238,8 +237,9 @@ public class ServerVerticle extends AbstractVerticle {
 
     final CompletableFuture<Void> connectionClosedFuture = new CompletableFuture<>();
     routingContext.request().connection().closeHandler(v -> connectionClosedFuture.complete(null));
-    EndpointMetricsCallbacks metricsCallbacks = new EndpointMetricsCallbacks();
-    handleOldApiRequest(server, routingContext, KsqlRequest.class, Optional.of(metricsCallbacks),
+    final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();
+    handleOldApiRequest(server, routingContext, KsqlRequest.class,
+        Optional.of(metricsCallbackHolder),
         (request, apiSecurityContext) ->
             endpoints
                 .executeQueryRequest(
@@ -247,7 +247,7 @@ public class ServerVerticle extends AbstractVerticle {
                     DefaultApiSecurityContext.create(routingContext),
                     isInternalRequest(routingContext),
                     getContentType(routingContext),
-                    metricsCallbacks
+                    metricsCallbackHolder
                 )
 
     );

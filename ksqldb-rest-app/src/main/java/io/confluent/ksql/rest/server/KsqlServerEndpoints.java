@@ -24,7 +24,7 @@ import io.confluent.ksql.api.impl.KsqlSecurityContextProvider;
 import io.confluent.ksql.api.impl.QueryEndpoint;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
-import io.confluent.ksql.api.server.OldApiUtils.EndpointMetricsCallbacks;
+import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -143,7 +143,8 @@ public class KsqlServerEndpoints implements Endpoints {
       final JsonObject properties,
       final Context context,
       final WorkerExecutor workerExecutor,
-      final ApiSecurityContext apiSecurityContext) {
+      final ApiSecurityContext apiSecurityContext,
+      final MetricsCallbackHolder metricsCallbackHolder) {
     final KsqlSecurityContext ksqlSecurityContext = ksqlSecurityContextProvider
         .provide(apiSecurityContext);
     return executeOnWorker(() -> {
@@ -156,7 +157,8 @@ public class KsqlServerEndpoints implements Endpoints {
                 properties,
                 context,
                 workerExecutor,
-                ksqlSecurityContext.getServiceContext());
+                ksqlSecurityContext.getServiceContext(),
+                metricsCallbackHolder);
       } finally {
         ksqlSecurityContext.getServiceContext().close();
       }
@@ -196,7 +198,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final ApiSecurityContext apiSecurityContext,
       final Optional<Boolean> isInternalRequest,
       final KsqlMediaType mediaType,
-      final EndpointMetricsCallbacks metricsCallbacks
+      final MetricsCallbackHolder metricsCallbackHolder
   ) {
     return executeOldApiEndpointOnWorker(apiSecurityContext,
         ksqlSecurityContext -> streamedQueryResource.streamQuery(
@@ -205,7 +207,7 @@ public class KsqlServerEndpoints implements Endpoints {
             connectionClosedFuture,
             isInternalRequest,
             mediaType,
-            metricsCallbacks
+            metricsCallbackHolder
         ), workerExecutor);
   }
 

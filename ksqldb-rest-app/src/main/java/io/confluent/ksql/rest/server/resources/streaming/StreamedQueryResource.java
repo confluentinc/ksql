@@ -21,7 +21,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.PullQueryValidator;
-import io.confluent.ksql.api.server.OldApiUtils.EndpointMetricsCallbacks;
+import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.PullQueryExecutionUtil;
@@ -195,7 +195,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final CompletableFuture<Void> connectionClosedFuture,
       final Optional<Boolean> isInternalRequest,
       final KsqlMediaType mediaType,
-      final EndpointMetricsCallbacks metricsCallbacks
+      final MetricsCallbackHolder metricsCallbackHolder
   ) {
     throwIfNotConfigured();
     activenessRegistrar.updateLastRequestTime();
@@ -206,7 +206,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         commandQueue, request, commandQueueCatchupTimeout);
 
     return handleStatement(securityContext, request, statement, connectionClosedFuture,
-        isInternalRequest, mediaType, metricsCallbacks);
+        isInternalRequest, mediaType, metricsCallbackHolder);
   }
 
   private void throwIfNotConfigured() {
@@ -236,7 +236,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final CompletableFuture<Void> connectionClosedFuture,
       final Optional<Boolean> isInternalRequest,
       final KsqlMediaType mediaType,
-      final EndpointMetricsCallbacks metricsCallbacks
+      final MetricsCallbackHolder metricsCallbackHolder
   ) {
     try {
       authorizationValidator.ifPresent(validator ->
@@ -259,7 +259,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
               request.getRequestProperties(),
               isInternalRequest,
               connectionClosedFuture,
-              metricsCallbacks
+              metricsCallbackHolder
           );
         }
 
@@ -299,9 +299,16 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Map<String, Object> requestProperties,
       final Optional<Boolean> isInternalRequest,
       final CompletableFuture<Void> connectionClosedFuture,
-      final EndpointMetricsCallbacks metricsCallbacks
+      final MetricsCallbackHolder metricsCallbackHolder
   ) {
-    setupMetricsCallbackForPullQuery(metricsCallbacks);
+    // First thing, set the metrics callback so that it gets called, even if we hit an error
+    metricsCallbackHolder.setCallback((requestBytes, responseBytes, startTimeNanos) -> {
+      pullQueryMetrics.ifPresent(metrics -> {
+        metrics.recordRequestSize(requestBytes);
+        metrics.recordResponseSize(responseBytes);
+        metrics.recordLatency(startTimeNanos);
+      });
+    });
 
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, configOverrides));
@@ -371,16 +378,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
       optionalDecrementer.ifPresent(Decrementer::decrementAtMostOnce);
       throw t;
     }
-  }
-
-  private void setupMetricsCallbackForPullQuery(final EndpointMetricsCallbacks metricsCallbacks) {
-    metricsCallbacks.setCallback((requestBytes, responseBytes, startTimeNanos) -> {
-      pullQueryMetrics.ifPresent(metrics -> {
-        metrics.recordRequestSize(requestBytes);
-        metrics.recordResponseSize(responseBytes);
-        metrics.recordLatency(startTimeNanos);
-      });
-    });
   }
 
   private EndpointResponse handlePushQuery(

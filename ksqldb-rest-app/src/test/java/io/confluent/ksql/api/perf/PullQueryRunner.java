@@ -25,7 +25,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
-import io.confluent.ksql.api.server.OldApiUtils.EndpointMetricsCallbacks;
+import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.reactive.BufferedPublisher;
@@ -121,7 +121,8 @@ public class PullQueryRunner extends BasePerfRunner {
         final JsonObject properties,
         final Context context,
         final WorkerExecutor workerExecutor,
-        final ApiSecurityContext apiSecurityContext) {
+        final ApiSecurityContext apiSecurityContext,
+        final MetricsCallbackHolder metricsCallbackHolder) {
       PullQueryPublisher publisher = new PullQueryPublisher(context, DEFAULT_ROWS);
       publishers.add(publisher);
       return CompletableFuture.completedFuture(publisher);
@@ -153,7 +154,7 @@ public class PullQueryRunner extends BasePerfRunner {
     public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
         WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
         ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest,
-        KsqlMediaType mediaType, final EndpointMetricsCallbacks metricsCallbacks) {
+        KsqlMediaType mediaType, final MetricsCallbackHolder metricsCallbackHolder) {
       return null;
     }
 

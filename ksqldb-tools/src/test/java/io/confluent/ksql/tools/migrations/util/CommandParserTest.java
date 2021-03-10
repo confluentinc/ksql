@@ -95,8 +95,8 @@ public class CommandParserTest {
     assertThat(((SqlInsertValues) commands.get(1)).getColumns().get(2), is("LONGITUDE"));
     assertThat(((SqlInsertValues) commands.get(1)).getValues().size(), is(3));
     assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(0)), is("c2309eec"));
-    assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(1)), is(new BigDecimal(37.7877).setScale(4, RoundingMode.DOWN)));
-    assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(2)), is(new BigDecimal(-122.4205).setScale(4, RoundingMode.DOWN)));
+    assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(1)), is(BigDecimal.valueOf(37.7877)));
+    assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(2)), is(BigDecimal.valueOf(-122.4205)));
     assertThat(commands.get(2), instanceOf(SqlInsertValues.class));
     assertThat(((SqlInsertValues) commands.get(2)).getSourceName(), is("riderLocations"));
     assertThat(commands.get(3), instanceOf(SqlInsertValues.class));

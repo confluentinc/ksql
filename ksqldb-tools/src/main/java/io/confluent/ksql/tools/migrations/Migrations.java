@@ -85,7 +85,7 @@ public final class Migrations {
       System.exit(1);
       return;
     }
-    
+
     if (!command.isPresent()) {
       System.exit(0);
       return;

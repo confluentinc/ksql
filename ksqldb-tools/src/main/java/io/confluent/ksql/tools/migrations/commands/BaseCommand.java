@@ -44,9 +44,24 @@ public abstract class BaseCommand implements Runnable {
       title = "config-file",
       description = "Path to migrations configuration file. Required for all commands "
           + "with the exception of `" + NewMigrationCommand.NEW_COMMAND_NAME + "`.",
+      // allows users to specify config file before the name of the command
       type = OptionType.GLOBAL
   )
-  protected String configFile;
+  protected String configFileGlobal;
+
+  // TODO: add tests
+  @Option(
+      name = {CONFIG_FILE_OPTION_SHORT, CONFIG_FILE_OPTION},
+      title = "config-file",
+      description = "Path to migrations configuration file. Required for all commands "
+          + "with the exception of `" + NewMigrationCommand.NEW_COMMAND_NAME + "`.",
+      // allows users to specify config file after the name of the command
+      type = OptionType.COMMAND,
+      // hide this version of the config file option so only the version above appears
+      // in help text, to avoid duplication
+      hidden = true
+  )
+  protected String configFileNonGlobal;
 
   @Override
   public void run() {
@@ -75,8 +90,18 @@ public abstract class BaseCommand implements Runnable {
 
   protected abstract Logger getLogger();
 
+  protected String getConfigFile() {
+    if (configFileGlobal != null) {
+      return configFileGlobal;
+    }
+    if (configFileNonGlobal != null) {
+      return configFileNonGlobal;
+    }
+    return null;
+  }
+
   protected boolean validateConfigFilePresent() {
-    if (configFile == null || configFile.equals("")) {
+    if (getConfigFile() == null || getConfigFile().trim().equals("")) {
       getLogger().error("Migrations config file required but not specified. "
           + "Specify with {} (or, equivalently, {}).",
           CONFIG_FILE_OPTION, CONFIG_FILE_OPTION_SHORT);

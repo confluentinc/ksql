@@ -89,7 +89,7 @@ public class InitializeMigrationCommand extends BaseCommand {
 
     final MigrationConfig config;
     try {
-      config = MigrationConfig.load(configFile);
+      config = MigrationConfig.load(getConfigFile());
     } catch (KsqlException | MigrationException e) {
       LOGGER.error(e.getMessage());
       return 1;

@@ -37,7 +37,7 @@ import org.antlr.v4.runtime.misc.ParseCancellationException;
 public class DefaultKsqlParser implements KsqlParser {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final BaseErrorListener ERROR_VALIDATOR = new SyntaxErrorValidator();
+  public static final BaseErrorListener ERROR_VALIDATOR = new SyntaxErrorValidator();
 
   @Override
   public List<ParsedStatement> parse(final String sql) {

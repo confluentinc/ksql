@@ -24,6 +24,8 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 
@@ -187,9 +189,12 @@ public class MigrationsTest {
         2,
         "bar_bar_BAR",
         configFilePath,
-        "CREATE STREAM BAR (A STRING) WITH (KAFKA_TOPIC='BAR', PARTITIONS=1, VALUE_FORMAT='DELIMITED');" +
-            "INSERT INTO FOO VALUES ('HELLO');" +
-            "INSERT INTO FOO (A) VALUES ('GOODBYE');"
+        "INSERT INTO FOO VALUES ('HELLO');" +
+            "INSERT INTO FOO (A) VALUES ('GOODBYE');" +
+            "SET 'ksql.output.topic.name.prefix' = 'cool';" +
+            "CREATE STREAM BAR AS SELECT * FROM FOO;" +
+            "UNSET 'ksql.output.topic.name.prefix';" +
+            "CREATE STREAM CAR AS SELECT * FROM FOO;"
     );
 
     // When:
@@ -232,7 +237,12 @@ public class MigrationsTest {
   private static void verifyMigrationsApplied() {
     // verify FOO and BAR were registered
     describeSource("FOO");
-    describeSource("BAR");
+    final SourceDescription barDesc = describeSource("BAR");
+    final SourceDescription carDesc = describeSource("CAR");
+
+    // verify set/unset
+    assertTrue(barDesc.getTopic().startsWith("cool"));
+    assertFalse(carDesc.getTopic().startsWith("cool"));
 
     // verify version 1
     final List<StreamedRow> version1 = assertThatEventually(

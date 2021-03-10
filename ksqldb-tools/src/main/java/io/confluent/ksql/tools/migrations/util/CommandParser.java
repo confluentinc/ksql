@@ -37,10 +37,18 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public final class CommandParser {
   private static final String QUOTED_STRING_OR_WHITESPACE = "('([^']*|(''))*')|\\s+";
+  private static final Pattern SET_PROPERTY =
+      Pattern.compile("\\s*SET\\s+'((?:[^']*|(?:''))*)'\\s*=\\s*'((?:[^']*|(?:''))*)'\\s*;\\s*");
+  private static final Pattern UNSET_PROPERTY =
+      Pattern.compile("\\s*UNSET\\s+'((?:[^']*|(?:''))*)'\\s*;\\s*");
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
   private static final String INSERT = "INSERT";
   private static final String INTO = "INTO";
@@ -51,6 +59,8 @@ public final class CommandParser {
   private static final String SOURCE = "SOURCE";
   private static final String DROP = "DROP";
   private static final String CONNECTOR = "CONNECTOR";
+  private static final String SET = "SET";
+  private static final String UNSET = "UNSET";
   private static final String SHORT_COMMENT_OPENER = "--";
   private static final String SHORT_COMMENT_CLOSER = "\n";
   private static final String LONG_COMMENT_OPENER = "/*";
@@ -61,7 +71,9 @@ public final class CommandParser {
   private enum StatementType {
     INSERT_VALUES,
     CONNECTOR,
-    STATEMENT
+    STATEMENT,
+    SET_PROPERTY,
+    UNSET_PROPERTY
   }
 
   private CommandParser() {
@@ -111,6 +123,9 @@ public final class CommandParser {
     return commands;
   }
 
+  /*
+  * Converts an expression into a Java object.
+  **/
   private static void validateToken(final String token, final int index) {
     if (index < 0) {
       throw new MigrationException("Invalid sql - failed to find closing token '" + token + "'");
@@ -176,6 +191,20 @@ public final class CommandParser {
         return new SqlConnectorStatement(sql);
       case STATEMENT:
         return new SqlStatement(sql);
+      case SET_PROPERTY:
+        final Matcher setPropertyMatcher = SET_PROPERTY.matcher(sql);
+        if (!setPropertyMatcher.matches()) {
+          throw new MigrationException("Invalid SET command: " + sql);
+        }
+        return new SqlPropertyCommand(
+            sql, true, setPropertyMatcher.group(1), Optional.of(setPropertyMatcher.group(2)));
+      case UNSET_PROPERTY:
+        final Matcher unsetPropertyMatcher = UNSET_PROPERTY.matcher(sql);
+        if (!unsetPropertyMatcher.matches()) {
+          throw new MigrationException("Invalid UNSET command: " + sql);
+        }
+        return new SqlPropertyCommand(
+            sql, false, unsetPropertyMatcher.group(1), Optional.empty());
       default:
         throw new IllegalStateException();
     }
@@ -196,6 +225,10 @@ public final class CommandParser {
       return StatementType.CONNECTOR;
     } else if (tokens.get(0).equals(DROP) && tokens.get(1).equals(CONNECTOR)) {
       return StatementType.CONNECTOR;
+    } else if (tokens.get(0).equals(SET)) {
+      return StatementType.SET_PROPERTY;
+    } else if (tokens.get(0).equals(UNSET)) {
+      return StatementType.UNSET_PROPERTY;
     } else {
       return StatementType.STATEMENT;
     }
@@ -261,6 +294,39 @@ public final class CommandParser {
   public static class SqlConnectorStatement extends SqlCommand {
     SqlConnectorStatement(final String command) {
       super(command);
+    }
+  }
+
+  /*
+   * Represents set/unset property commands.
+   * */
+  public static class SqlPropertyCommand extends SqlCommand {
+    private final boolean set;
+    private final String property;
+    private final Optional<String> value;
+
+    SqlPropertyCommand(
+        final String command,
+        final boolean set,
+        final String property,
+        final Optional<String> value
+    ) {
+      super(command);
+      this.set = Objects.requireNonNull(set);
+      this.property = Objects.requireNonNull(property);
+      this.value = value;
+    }
+
+    public boolean isSetCommand() {
+      return set;
+    }
+
+    public String getProperty() {
+      return property;
+    }
+
+    public Optional<String> getValue() {
+      return value;
     }
   }
 }

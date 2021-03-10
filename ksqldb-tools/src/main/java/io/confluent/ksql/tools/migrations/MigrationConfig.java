@@ -20,6 +20,7 @@ import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import io.confluent.ksql.tools.migrations.util.ServerVersionUtil;
 import java.io.File;
+import java.util.Collections;
 import java.util.Map;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
@@ -51,6 +52,9 @@ public final class MigrationConfig extends AbstractConfig {
   public static final String KSQL_MIGRATIONS_TABLE_TOPIC_NAME = "ksql.migrations.table.topic.name";
   public static final String KSQL_MIGRATIONS_TOPIC_REPLICAS = "ksql.migrations.topic.replicas";
   public static final int KSQL_MIGRATIONS_TOPIC_REPLICAS_DEFAULT = 1;
+
+  public static final MigrationConfig DEFAULT_CONFIG =
+      new MigrationConfig(Collections.EMPTY_MAP, "ksql-service-id");
 
   public static MigrationConfig load(final String configFile) {
     final Map<String, String> configsMap =

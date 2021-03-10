@@ -68,6 +68,7 @@ public class KsqlServerEndpoints implements Endpoints {
 
   private final KsqlEngine ksqlEngine;
   private final KsqlConfig ksqlConfig;
+  private final KsqlRestConfig ksqlRestConfig;
   private final RoutingFilterFactory routingFilterFactory;
   private final ReservedInternalTopics reservedInternalTopics;
   private final KsqlSecurityContextProvider ksqlSecurityContextProvider;
@@ -90,6 +91,7 @@ public class KsqlServerEndpoints implements Endpoints {
   public KsqlServerEndpoints(
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
+      final KsqlRestConfig ksqlRestConfig,
       final RoutingFilterFactory routingFilterFactory,
       final KsqlSecurityContextProvider ksqlSecurityContextProvider,
       final KsqlResource ksqlResource,
@@ -111,6 +113,7 @@ public class KsqlServerEndpoints implements Endpoints {
     // CHECKSTYLE_RULES.ON: ParameterNumber
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine);
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig);
+    this.ksqlRestConfig = Objects.requireNonNull(ksqlRestConfig);
     this.routingFilterFactory = Objects.requireNonNull(routingFilterFactory);
     this.reservedInternalTopics = new ReservedInternalTopics(ksqlConfig);
     this.ksqlSecurityContextProvider = Objects.requireNonNull(ksqlSecurityContextProvider);
@@ -141,8 +144,8 @@ public class KsqlServerEndpoints implements Endpoints {
     return executeOnWorker(() -> {
       try {
         return new QueryEndpoint(
-            ksqlEngine, ksqlConfig, routingFilterFactory, pullQueryMetrics, rateLimiter, routing,
-            localCommands)
+            ksqlEngine, ksqlConfig, ksqlRestConfig, routingFilterFactory, pullQueryMetrics,
+            rateLimiter, routing, localCommands)
             .createQueryPublisher(
                 sql,
                 properties,

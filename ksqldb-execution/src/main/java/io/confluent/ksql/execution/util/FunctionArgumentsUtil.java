@@ -16,7 +16,7 @@
 package io.confluent.ksql.execution.util;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.execution.codegen.TypeContext;
+import io.confluent.ksql.execution.codegen.LambdaMappingUtil;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public final class FunctionArgumentsUtil {
 
@@ -86,29 +85,29 @@ public final class FunctionArgumentsUtil {
 
   public static final class ArgumentInfo {
     final SqlArgument sqlArgument;
-    final TypeContext context;
+    final Map<String,SqlType> lambdaSqlTypeMapping;
 
     private static ArgumentInfo of(
         final SqlArgument sqlArgument,
-        final TypeContext context
+        final Map<String,SqlType> lambdaSqlTypeMapping
     ) {
-      return new ArgumentInfo(sqlArgument, context);
+      return new ArgumentInfo(sqlArgument, lambdaSqlTypeMapping);
     }
 
     private ArgumentInfo(
         final SqlArgument sqlArgument,
-        final TypeContext context
+        final Map<String, SqlType> lambdaSqlTypeMapping
     ) {
       this.sqlArgument = sqlArgument;
-      this.context = context;
+      this.lambdaSqlTypeMapping = lambdaSqlTypeMapping;
     }
 
     public SqlArgument getSqlArgument() {
       return sqlArgument;
     }
 
-    public TypeContext getContext() {
-      return context;
+    public Map<String,SqlType> getLambdaSqlTypeMapping() {
+      return lambdaSqlTypeMapping;
     }
   }
 
@@ -128,12 +127,12 @@ public final class FunctionArgumentsUtil {
    *
    * <p>In the second pass, we use the LambdaType inputTypes field to construct SqlLambdaResolved
    * that has the proper input type list and return type. We also need to construct a list of
-   * contexts that should be used when processing each function argument subtree.</p>
+   * lambda type mapping that should be used when processing each function argument subtree.</p>
    *
    * @param expressionTypeManager an expression type manager
    * @param functionCall  the function expression
    * @param udfFactory  udf factory for the function in the expression
-   * @param context a type context
+   * @param lambdaMapping a type context
    *
    * @return a wrapper that contains a list of function arguments 
    *         (any lambdas are SqlLambdaResolved), the ksql function, 
@@ -145,25 +144,25 @@ public final class FunctionArgumentsUtil {
       final ExpressionTypeManager expressionTypeManager,
       final FunctionCall functionCall,
       final UdfFactory udfFactory,
-      final TypeContext context
+      final Map<String, SqlType> lambdaMapping
   ) {
     // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     final List<Expression> arguments = functionCall.getArguments();
     final List<SqlArgument> functionArgumentTypes = firstPassOverFunctionArguments(
         arguments,
         expressionTypeManager,
-        context
+        lambdaMapping
     );
 
     final KsqlScalarFunction function = udfFactory.getFunction(functionArgumentTypes);
     final SqlType returnSchema;
-    final List<TypeContext> typeContextsForChildren = new ArrayList<>();
+    final List<ArgumentInfo> argumentInfoForFunction = new ArrayList<>();
 
     if (!functionCall.hasLambdaFunctionCallArguments()) {
       returnSchema = function.getReturnType(functionArgumentTypes);
       return FunctionTypeInfo.of(
           functionArgumentTypes.stream()
-              .map(argument -> ArgumentInfo.of(argument, context.getCopy()))
+              .map(argument -> ArgumentInfo.of(argument, new HashMap<>(lambdaMapping)))
               .collect(Collectors.toList()),
           returnSchema,
           function
@@ -198,19 +197,25 @@ public final class FunctionArgumentsUtil {
               lambdaSqlTypes
           );
 
-          final TypeContext childContext =
-              context.copyWithLambdaVariableTypeMapping(variableTypeMapping);
+          final Map<String,SqlType> updateLambdaMapping =
+              LambdaMappingUtil.resolveOldAndNewLambdaMapping(variableTypeMapping, lambdaMapping);
 
           final SqlType resolvedLambdaReturnType =
-              expressionTypeManager.getExpressionSqlType(expression, childContext.getCopy());
+              expressionTypeManager.getExpressionSqlType(expression, updateLambdaMapping);
           final SqlArgument lambdaArgument = SqlArgument.of(
               SqlLambdaResolved.of(lambdaSqlTypes, resolvedLambdaReturnType));
 
           functionArgumentTypesWithResolvedLambdaType.add(lambdaArgument);
-          typeContextsForChildren.add(childContext);
+          argumentInfoForFunction.add(
+              ArgumentInfo.of(
+                  lambdaArgument,
+                  new HashMap<>(updateLambdaMapping)));
         } else {
           functionArgumentTypesWithResolvedLambdaType.add(functionArgumentTypes.get(i));
-          typeContextsForChildren.add(context.getCopy());
+          argumentInfoForFunction.add(
+              ArgumentInfo.of(
+                  functionArgumentTypes.get(i),
+                  new HashMap<>(lambdaMapping)));
         }
 
         if (GenericsUtil.hasGenerics(parameter)) {
@@ -227,11 +232,7 @@ public final class FunctionArgumentsUtil {
 
       returnSchema = function.getReturnType(functionArgumentTypesWithResolvedLambdaType);
       return new FunctionTypeInfo(
-          IntStream.range(0, functionArgumentTypesWithResolvedLambdaType.size())
-              .mapToObj(i -> ArgumentInfo.of(
-                  functionArgumentTypesWithResolvedLambdaType.get(i),
-                  typeContextsForChildren.get(i)))
-              .collect(Collectors.toList()),
+          argumentInfoForFunction,
           returnSchema,
           function
       );
@@ -241,7 +242,7 @@ public final class FunctionArgumentsUtil {
   private static List<SqlArgument> firstPassOverFunctionArguments(
       final List<Expression> arguments,
       final ExpressionTypeManager expressionTypeManager,
-      final TypeContext context
+      final Map<String, SqlType> lambdaMapping
   ) {
     final List<SqlArgument> functionArgumentTypes = new ArrayList<>();
     for (final Expression expression : arguments) {
@@ -250,9 +251,8 @@ public final class FunctionArgumentsUtil {
             SqlArgument.of(
                 SqlLambda.of(((LambdaFunctionCall) expression).getArguments().size())));
       } else {
-        final TypeContext childContext = context.getCopy();
-        expressionTypeManager.getExpressionSqlType(expression, childContext);
-        final SqlType resolvedArgType = childContext.getSqlType();
+        final SqlType resolvedArgType =
+            expressionTypeManager.getExpressionSqlType(expression, new HashMap<>(lambdaMapping));
         functionArgumentTypes.add(SqlArgument.of(resolvedArgType));
       }
     }

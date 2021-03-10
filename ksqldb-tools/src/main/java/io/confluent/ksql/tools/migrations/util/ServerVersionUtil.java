@@ -34,7 +34,14 @@ public final class ServerVersionUtil {
   }
 
   public static ServerInfo getServerInfo(final Client ksqlClient, final String ksqlServerUrl) {
-    final CompletableFuture<ServerInfo> response = ksqlClient.serverInfo();
+    final CompletableFuture<ServerInfo> response;
+
+    try {
+      response = ksqlClient.serverInfo();
+    } catch (IllegalArgumentException e) {
+      throw  new MigrationException(
+          String.format("Could not connect to %s/info: %s", ksqlServerUrl, e.getMessage()));
+    }
 
     try {
       return response.get();

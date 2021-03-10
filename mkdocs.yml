@@ -46,6 +46,7 @@ nav:
     - Time and Windows: concepts/time-and-windows-in-ksqldb-queries.md
     - User-defined functions: concepts/functions.md
     - Connectors: concepts/connectors.md
+    - Lambda Functions: concepts/lambda-functions.md
     - Apache Kafka primer: concepts/apache-kafka-primer.md
   - How-to guides:
       - Synopsis: how-to-guides/index.md
@@ -58,6 +59,7 @@ nav:
       - Use a custom timestamp column: how-to-guides/use-a-custom-timestamp-column.md
       - Test an application: how-to-guides/test-an-app.md
       - Substitute variables: how-to-guides/substitute-variables.md
+      - Transforming columns with structured data: how-to-guides/use-lambda-functions.md
   - Tutorials:
       - Synopsis: tutorials/index.md
       - Materialized cache: tutorials/materialized.md
@@ -206,6 +208,7 @@ plugins:
             developer-guide/serialization.md: reference/serialization.md
             developer-guide/syntax-reference.md: reference/index.md
             developer-guide/ksqldb-rest-api.md: developer-guide/api.md
+            developer-guide/index.md: reference/index.md
 
             operate-and-deploy/installation/server-config/config-reference.md: reference/server-configuration.md
 

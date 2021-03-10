@@ -270,7 +270,7 @@ public class ApplyMigrationCommand extends BaseCommand {
     LOGGER.info("Applying migration version {}: {}", migration.getVersion(), migration.getName());
     final String migrationFileContent =
         MigrationsDirectoryUtil.getFileContentsForName(migration.getFilepath());
-    LOGGER.info("MigrationFile file contents:\n{}", migrationFileContent);
+    LOGGER.info("{} contents:\n{}", migration.getFilepath(), migrationFileContent);
 
     if (dryRun) {
       LOGGER.info("Dry run complete. No migrations were actually applied.");

@@ -146,7 +146,8 @@ public class GenericRecordFactory {
           column,
           functionRegistry,
           config,
-          "insert value").resolve(valueExp);
+          "insert value",
+          false).resolve(valueExp);
 
       values.put(column, value);
     }

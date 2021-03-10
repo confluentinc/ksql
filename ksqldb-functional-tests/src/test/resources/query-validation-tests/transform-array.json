@@ -105,6 +105,36 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "one", "value": {"C":[8, 11, null]}}
+        ]
+      },
+      {
+      "name": "transform array of struct",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT KEY, VALUE ARRAY<STRUCT<c VARCHAR, d INT>>) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT as SELECT ID, TRANSFORM(VALUE, x => STRUCT(Q := x->d + 5, P := x->c + 'h')) as transformed_struct from TEST emit changes;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0,"value": {"value": [{"c": "ste", "d":  2}, {"c": "q", "d":  0}]}},
+        {"topic": "test_topic", "key": 1,"value": {"value": [{"c": "lea", "d":  1}, {"c": "pro", "d":  -1}]}},
+        {"topic": "test_topic", "key": 2,"value": {"value": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0,"value": {"TRANSFORMED_STRUCT": [{"P": "steh", "Q": 7}, {"P":  "qh", "Q": 5}]}},
+        {"topic": "OUTPUT", "key": 1,"value": {"TRANSFORMED_STRUCT": [{"P": "leah", "Q": 6}, {"P":  "proh", "Q": 4}]}},
+        {"topic": "OUTPUT", "key": 2,"value": {"TRANSFORMED_STRUCT": null}}
+      ]
+    },
+    {
+      "name": "transform a list into compatible mismatching struct elements",
+      "statements": [
+        "CREATE STREAM TEST (a INT, BIGINT_ARRAY Array<BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT TRANSFORM(BIGINT_ARRAY, x => ARRAY[null, struct(x := a, y := x), struct(y := a, z:= x)]) as transformed FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"a": 30, "BIGINT_ARRAY": [40, 50]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"TRANSFORMED": [[null, {"X": 30, "Y": 40, "Z": null}, {"X": null, "Y": 30, "Z": 40}], [null, {"X": 30, "Y": 50, "Z": null}, {"X": null, "Y": 30, "Z": 50}]]}}
       ]
     }
   ]

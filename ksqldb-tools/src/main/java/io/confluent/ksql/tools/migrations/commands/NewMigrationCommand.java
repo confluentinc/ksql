@@ -130,7 +130,7 @@ public class NewMigrationCommand extends BaseCommand {
       return false;
     }
 
-    final String initialConfig = MigrationConfig.KSQL_SERVER_URL + "=" + ksqlServerUrl;
+    final String initialConfig = createInitialConfig(ksqlServerUrl);
     LOGGER.info("Writing to config file: " + initialConfig);
     try (PrintWriter out = new PrintWriter(path, Charset.defaultCharset().name())) {
       out.println(initialConfig);
@@ -140,5 +140,17 @@ public class NewMigrationCommand extends BaseCommand {
     }
 
     return true;
+  }
+
+  private String createInitialConfig(final String ksqlServerUrl) {
+    final StringBuilder builder = new StringBuilder();
+    builder.append(MigrationConfig.KSQL_SERVER_URL + "=" + ksqlServerUrl);
+    MigrationConfig.DEFAULT_CONFIG.values().forEach((k, v) -> {
+      if (!k.equals(MigrationConfig.KSQL_SERVER_URL)) {
+        builder.append("\n# " + MigrationConfig.DEFAULT_CONFIG.documentationOf(k));
+        builder.append("\n# " + k + "=" + v);
+      }
+    });
+    return builder.toString();
   }
 }

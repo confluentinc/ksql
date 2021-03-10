@@ -33,9 +33,11 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.resources.streaming.PullQueryConfigPlannerOptions;
 import io.confluent.ksql.rest.server.resources.streaming.PullQueryConfigRoutingOptions;
+import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.services.ServiceContext;
@@ -60,6 +62,7 @@ public class QueryEndpoint {
 
   private final KsqlEngine ksqlEngine;
   private final KsqlConfig ksqlConfig;
+  private final KsqlRestConfig ksqlRestConfig;
   private final RoutingFilterFactory routingFilterFactory;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RateLimiter rateLimiter;
@@ -69,6 +72,7 @@ public class QueryEndpoint {
   public QueryEndpoint(
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
+      final KsqlRestConfig ksqlRestConfig,
       final RoutingFilterFactory routingFilterFactory,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RateLimiter rateLimiter,
@@ -77,6 +81,7 @@ public class QueryEndpoint {
   ) {
     this.ksqlEngine = ksqlEngine;
     this.ksqlConfig = ksqlConfig;
+    this.ksqlRestConfig = ksqlRestConfig;
     this.routingFilterFactory = routingFilterFactory;
     this.pullQueryMetrics = pullQueryMetrics;
     this.rateLimiter = rateLimiter;
@@ -112,6 +117,14 @@ public class QueryEndpoint {
       final WorkerExecutor workerExecutor
   ) {
     final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
+
+    if (QueryCapacityUtil.exceedsPushQueryCapacity(ksqlEngine, ksqlRestConfig)) {
+      QueryCapacityUtil.throwTooManyActivePushQueriesException(
+              ksqlEngine,
+              ksqlRestConfig,
+              statement.getStatementText()
+      );
+    }
 
     final TransientQueryMetadata queryMetadata = ksqlEngine
         .executeQuery(serviceContext, statement, true);

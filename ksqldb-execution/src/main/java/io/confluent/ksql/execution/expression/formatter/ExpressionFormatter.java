@@ -109,7 +109,7 @@ public final class ExpressionFormatter {
 
     @Override
     public String visitLambdaVariable(final LambdaVariable node, final Context context) {
-      return String.valueOf(node.getValue());
+      return String.valueOf(node.getLambdaCharacter());
     }
 
     @Override

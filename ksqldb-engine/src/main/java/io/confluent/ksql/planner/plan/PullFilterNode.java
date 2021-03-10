@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.planner.plan;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -44,6 +45,7 @@ import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
@@ -114,7 +116,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
     this.isWindowed = isWindowed;
 
     // Basic validation of WHERE clause
-    this.requiresTableScan = validateWhereClause();
+    this.requiresTableScan = validateWhereClauseAndCheckTableScan();
 
     // Extraction of key and system columns
     extractKeysAndSystemCols();
@@ -165,15 +167,16 @@ public class PullFilterNode extends SingleSourcePlanNode {
     return intermediateSchema;
   }
 
-  private boolean validateWhereClause() {
-    boolean requiresTableScan = false;
+  private boolean validateWhereClauseAndCheckTableScan() {
     for (Expression disjunct : disjuncts) {
       final Validator validator = new Validator();
       validator.process(disjunct, null);
-      requiresTableScan = requiresTableScan || validator.requiresTableScan;
+      if (validator.requiresTableScan) {
+        return true;
+      }
       if (!validator.isKeyedQuery) {
         if (pullPlannerOptions.getTableScansEnabled()) {
-          requiresTableScan = true;
+          return true;
         } else {
           throw invalidWhereClauseException("WHERE clause missing key column for disjunct: "
               + disjunct.toString(), isWindowed);
@@ -182,22 +185,22 @@ public class PullFilterNode extends SingleSourcePlanNode {
 
       if (!validator.seenKeys.isEmpty()
           && validator.seenKeys.cardinality() != schema.key().size()) {
-        final List<ColumnName> seenKeyNames = validator.seenKeys
-            .stream()
-            .boxed()
-            .map(i -> schema.key().get(i))
-            .map(Column::name)
-            .collect(Collectors.toList());
         if (pullPlannerOptions.getTableScansEnabled()) {
-          requiresTableScan = true;
+          return true;
         } else {
+          final List<ColumnName> seenKeyNames = validator.seenKeys
+              .stream()
+              .boxed()
+              .map(i -> schema.key().get(i))
+              .map(Column::name)
+              .collect(Collectors.toList());
           throw invalidWhereClauseException(
               "Multi-column sources must specify every key in the WHERE clause. Specified: "
                   + seenKeyNames + " Expected: " + schema.key(), isWindowed);
         }
       }
     }
-    return requiresTableScan;
+    return false;
   }
 
   private void extractKeysAndSystemCols() {
@@ -295,7 +298,25 @@ public class PullFilterNode extends SingleSourcePlanNode {
         final ComparisonExpression node,
         final Object context
     ) {
-      final UnqualifiedColumnReferenceExp column = getColumnRefSide(node);
+      // First see if we can find a direct column reference
+      final UnqualifiedColumnReferenceExp column = getColumnRefSideOrNull(node);
+      if (column != null) {
+        final Expression other = getNonColumnRefSide(node);
+        final HasColumnRef hasColumnRef = new HasColumnRef();
+        hasColumnRef.process(other, null);
+
+        if (hasColumnRef.hasColumnRef()) {
+          setTableScanOrElseThrow(() ->
+              invalidWhereClauseException("A comparison must be between a key column and a "
+                  + "resolvable expression", isWindowed));
+          return null;
+        }
+      } else {
+        setTableScanOrElseThrow(() ->
+            invalidWhereClauseException("A comparison must directly reference a key column",
+                isWindowed));
+        return null;
+      }
 
       final ColumnName columnName = column.getColumnName();
       if (columnName.equals(SystemColumns.WINDOWSTART_NAME)
@@ -345,10 +366,33 @@ public class PullFilterNode extends SingleSourcePlanNode {
     }
   }
 
-  private UnqualifiedColumnReferenceExp getColumnRefSide(final ComparisonExpression comp) {
+  private static final class HasColumnRef extends TraversalExpressionVisitor<Object> {
+
+    private boolean hasColumnRef;
+
+    HasColumnRef() {
+      hasColumnRef = false;
+    }
+
+    @Override
+    public Void visitUnqualifiedColumnReference(
+        final UnqualifiedColumnReferenceExp node,
+        final Object context
+    ) {
+      hasColumnRef = true;
+      return null;
+    }
+
+    public boolean hasColumnRef() {
+      return hasColumnRef;
+    }
+  }
+
+  private UnqualifiedColumnReferenceExp getColumnRefSideOrNull(final ComparisonExpression comp) {
     return (UnqualifiedColumnReferenceExp)
         (comp.getRight() instanceof UnqualifiedColumnReferenceExp
-            ? comp.getRight() : comp.getLeft());
+            ? comp.getRight()
+            : (comp.getLeft() instanceof UnqualifiedColumnReferenceExp ? comp.getLeft() : null));
   }
 
   private Expression getNonColumnRefSide(final ComparisonExpression comparison) {
@@ -391,8 +435,9 @@ public class PullFilterNode extends SingleSourcePlanNode {
     @Override
     public Void visitComparisonExpression(
         final ComparisonExpression node, final Object context) {
-      final UnqualifiedColumnReferenceExp column = getColumnRefSide(node);
+      final UnqualifiedColumnReferenceExp column = getColumnRefSideOrNull(node);
       final Expression other = getNonColumnRefSide(node);
+      Preconditions.checkNotNull(column, "UnqualifiedColumnReferenceExp should be found");
       final ColumnName columnName = column.getColumnName();
 
       final Optional<Column> col = schema.findColumn(columnName);
@@ -424,7 +469,8 @@ public class PullFilterNode extends SingleSourcePlanNode {
             keyColumn.name(),
             metaStore,
             config,
-            "pull query"
+            "pull query",
+            ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)
         ).resolve(exp);
       }
 
@@ -449,7 +495,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
    * 1. An equality bound cannot be combined with other bounds.
    * 2. No duplicate bounds are allowed, such as multiple greater than bounds.
    */
-  private static final class WindowBoundsExtractor
+  private final class WindowBoundsExtractor
       extends TraversalExpressionVisitor<WindowBounds> {
 
     @Override
@@ -472,17 +518,18 @@ public class PullFilterNode extends SingleSourcePlanNode {
       }
       boolean result = false;
       if (node.getType().equals(Type.EQUAL)) {
-        final Range<Instant> instant = Range.singleton(asInstant(getNonColumnRefSide(node)));
+        final Range<Instant> instant = Range.singleton(asInstant(getNonColumnRefSide(node),
+            column.getColumnName()));
         result = windowBounds.setEquality(column, instant);
       }
       final Type type = getSimplifiedBoundType(node);
 
       if (type.equals(Type.LESS_THAN)) {
-        final Instant upper = asInstant(getNonColumnRefSide(node));
+        final Instant upper = asInstant(getNonColumnRefSide(node), column.getColumnName());
         final BoundType upperType = getRangeBoundType(node);
         result = windowBounds.setUpper(column, Range.upTo(upper, upperType));
       } else if (type.equals(Type.GREATER_THAN)) {
-        final Instant lower = asInstant(getNonColumnRefSide(node));
+        final Instant lower = asInstant(getNonColumnRefSide(node), column.getColumnName());
         final BoundType lowerType = getRangeBoundType(node);
         result = windowBounds.setLower(column, Range.downTo(lower, lowerType));
       }
@@ -543,7 +590,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
           : comparison.getRight();
     }
 
-    private Instant asInstant(final Expression other) {
+    private Instant asInstant(final Expression other, final ColumnName name) {
       if (other instanceof IntegerLiteral) {
         return Instant.ofEpochMilli(((IntegerLiteral) other).getValue());
       }
@@ -564,10 +611,23 @@ public class PullFilterNode extends SingleSourcePlanNode {
         }
       }
 
-      throw invalidWhereClauseException(
-          "Window bounds must be an INT, BIGINT or STRING containing a datetime.",
-          true
-      );
+      try {
+        final Long value = (Long) new GenericExpressionResolver(
+            SqlTypes.BIGINT,
+            name,
+            metaStore,
+            ksqlConfig,
+            "pull query window bounds extractor",
+            ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)
+        ).resolve(other);
+
+        return Instant.ofEpochMilli(value);
+      } catch (final KsqlException e) {
+        throw invalidWhereClauseException(
+            "Window bounds must resolve to an INT, BIGINT, or STRING containing a datetime.",
+            true
+        );
+      }
     }
 
     private BoundType getRangeBoundType(final ComparisonExpression lowerComparison) {

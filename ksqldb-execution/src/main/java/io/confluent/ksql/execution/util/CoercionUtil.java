@@ -43,7 +43,9 @@ import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -62,6 +64,14 @@ public final class CoercionUtil {
   private static final BigInteger BIGINT_MIN = BigInteger.valueOf(Long.MIN_VALUE);
 
   private CoercionUtil() {
+  }
+
+  // test purposes only
+  static Result coerceUserList(
+      final Collection<Expression> expressions,
+      final ExpressionTypeManager typeManager
+  ) {
+    return coerceUserList(expressions, typeManager, Collections.emptyMap());
   }
 
   /**
@@ -99,13 +109,15 @@ public final class CoercionUtil {
    *
    * @param expressions the expressions to coerce: the order matters!
    * @param typeManager the type manager used to resolve expression types.
+   * @param lambdaTypeMapping mapping of lambda variables to types.
    * @return the coercion result.
    */
   public static Result coerceUserList(
       final Collection<Expression> expressions,
-      final ExpressionTypeManager typeManager
+      final ExpressionTypeManager typeManager,
+      final Map<String, SqlType> lambdaTypeMapping
   ) {
-    return new UserListCoercer(typeManager).coerce(expressions);
+    return new UserListCoercer(typeManager, lambdaTypeMapping).coerce(expressions);
   }
 
   public static final class Result {
@@ -134,9 +146,14 @@ public final class CoercionUtil {
   private static final class UserListCoercer {
 
     private final ExpressionTypeManager typeManager;
+    private final Map<String, SqlType> lambdaTypeMapping;
 
-    UserListCoercer(final ExpressionTypeManager typeManager) {
+    UserListCoercer(
+        final ExpressionTypeManager typeManager,
+        final Map<String, SqlType> lambdaTypeMapping
+    ) {
       this.typeManager = requireNonNull(typeManager, "typeManager");
+      this.lambdaTypeMapping = requireNonNull(lambdaTypeMapping, "lambdaTypeMapping");
     }
 
     Result coerce(final Collection<Expression> expressions) {
@@ -154,7 +171,8 @@ public final class CoercionUtil {
 
     private List<TypedExpression> typedExpressions(final Collection<Expression> expressions) {
       return expressions.stream()
-          .map(e -> new TypedExpression(typeManager.getExpressionSqlType(e), e))
+          .map(e ->
+              new TypedExpression(typeManager.getExpressionSqlType(e, lambdaTypeMapping), e))
           .collect(Collectors.toList());
     }
 
@@ -292,7 +310,8 @@ public final class CoercionUtil {
               .map(Field::getValue);
 
           final Optional<SqlType> sourceFieldType = sourceFieldValue
-              .map(typeManager::getExpressionSqlType);
+              .map(sourceExpression ->
+                  typeManager.getExpressionSqlType(sourceExpression, lambdaTypeMapping));
 
           final Optional<SqlType> targetFieldType = targetStruct.field(fieldName)
               .map(SqlStruct.Field::type);

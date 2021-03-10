@@ -74,7 +74,12 @@ Learn the core concepts that ksqlDB is built around.
     <p class="card-body"><small>Connectors source and sink data from external systems.</small></p>
     <span><a href="/concepts/connectors">Learn →</a></span>
   </div>
-
+  <div class="card concepts">
+    <strong>Lambda Functions</strong>
+    <p class="card-body"><small>Lambda functions allow you to apply in-line functions without creating a full UDF.</small></p>
+    <span><a href="/concepts/lambda-functions">Learn →</a></span>
+  </div>
+  
   <div class="card concepts">
     <a href="/overview/apache-kafka-primer"><strong>Apache Kafka primer</strong></a>
     <p class="card-body"><small>None of this making sense? Take a step back and learn the basics of Kafka first.</small></p>

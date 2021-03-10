@@ -32,6 +32,7 @@ import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -47,6 +48,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -784,6 +786,31 @@ public class CoercionUtilTest {
     // Then:
     assertThat(e.getMessage(),
         startsWith("operator does not exist: STRUCT<`a` INTEGER> = STRUCT<`a` STRING> (STRUCT(a:=STR))"));
+  }
+
+  @Test
+  public void shouldCoerceLambdaVariables() {
+    // Given:
+    final ImmutableList<Expression> expressions = ImmutableList.of(
+        BIGINT_EXPRESSION,
+        new LambdaVariable("X"),
+        INT_EXPRESSION
+    );
+
+    // When:
+    final Result result = CoercionUtil.coerceUserList(
+        expressions,
+        typeManager,
+        Collections.singletonMap("X", SqlTypes.INTEGER)
+    );
+
+    // Then:
+    assertThat(result.commonType(), is(Optional.of(SqlTypes.BIGINT)));
+    assertThat(result.expressions(), is(ImmutableList.of(
+        BIGINT_EXPRESSION,
+        cast(new LambdaVariable("X"), SqlTypes.BIGINT),
+        cast(INT_EXPRESSION, SqlTypes.BIGINT)
+    )));
   }
 
   private static Cast cast(final Expression expression, final SqlType sqlType) {

@@ -70,6 +70,10 @@ public class CreateMigrationCommand extends BaseCommand {
 
   @Override
   protected int command() {
+    if (!validateConfigFilePresent()) {
+      return 1;
+    }
+
     return command(getMigrationsDirFromConfigFile(getConfigFile()));
   }
 

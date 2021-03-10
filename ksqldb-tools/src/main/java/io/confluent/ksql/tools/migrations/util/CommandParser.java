@@ -41,7 +41,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class CommandParser {
+public final class CommandParser {
   private static final String QUOTED_STRING_OR_WHITESPACE = "('([^']*|(''))*')|\\s+";
   private static final Pattern STRING_PATTERN = Pattern.compile("'([^']*|(''))*'");
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();

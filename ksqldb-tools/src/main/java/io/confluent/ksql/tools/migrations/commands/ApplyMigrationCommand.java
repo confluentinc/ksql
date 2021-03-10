@@ -336,7 +336,8 @@ public class ApplyMigrationCommand extends BaseCommand {
                   ((SqlInsertValues) command).getColumns(),
                   ((SqlInsertValues) command).getValues())).get();
         } else if (command instanceof SqlConnectorStatement) {
-          final RestResponse<KsqlEntityList> respose = restClient.makeKsqlRequest(command.getCommand());
+          final RestResponse<KsqlEntityList> respose
+              = restClient.makeKsqlRequest(command.getCommand());
           if (!respose.isSuccessful()) {
             throw new MigrationException(respose.getErrorMessage().getMessage());
           }

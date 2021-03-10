@@ -529,6 +529,18 @@ for persistent and push queries, which are naturally longer-lived than pull quer
 interpreter gives significant performance gains. This can be disabled per query if the code compiler
 is preferred.
 
+## `ksql.query.pull.max.qps`
+
+Sets a query per second limit for pull queries. This limit is enforced per host (not per cluster).
+After hitting the limit, the host will fail pull query requests until it determines it's no longer
+at the limit.
+
+## `ksql.query.pull.max.concurrent.requests`
+
+Sets a concurrent query limit for pull queries. This limit is enforced per host (not per cluster).
+After hitting the limit, the host will fail pull query requests until it determines it's no longer
+at the limit.
+
 ## `ksql.variable.substitution.enable`
 
 Enables variable substitution through [`DEFINE`](../../../../developer-guide/ksqldb-reference/define) statements.

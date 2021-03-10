@@ -32,7 +32,7 @@ public class ConcurrencyLimiterTest {
   @Test
   public void shouldSucceedUnderLimit() {
     // Given:
-    ConcurrencyLimiter limiter = new ConcurrencyLimiter(1, "pull query");
+    ConcurrencyLimiter limiter = new ConcurrencyLimiter(1, "pull queries");
 
     // When:
     Decrementer decrementer = limiter.increment();
@@ -59,7 +59,6 @@ public class ConcurrencyLimiterTest {
     // Then:
     assertThat(e.getMessage(), containsString("Host is at concurrency limit for pull queries."));
     assertThat(limiter.getCount(), is(1));
-    decrementer.decrementAtMostOnce();
     decrementer.decrementAtMostOnce();
     assertThat(limiter.getCount(), is(0));
   }

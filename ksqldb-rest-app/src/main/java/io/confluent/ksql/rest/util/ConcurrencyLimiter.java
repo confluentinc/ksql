@@ -17,40 +17,45 @@ package io.confluent.ksql.rest.util;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.util.KsqlException;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Limits the concurrency of the caller by checking against a limit and if it's exceeded, throwing
+ * an exception. This wraps a semaphore, but provides some additional utilities such as a
+ * decrementer class that ensures it's decremented just once since there are often multiple code
+ * paths that can trigger it, such as an exception plus completion (if dealing with multiple
+ * threads).
+ */
 public class ConcurrencyLimiter {
 
+  private final Semaphore semaphore;
   private final int limit;
   private final String operationType;
 
-  private AtomicInteger count = new AtomicInteger(0);
-
   public ConcurrencyLimiter(final int limit, final String operationType) {
+    this.semaphore = new Semaphore(limit);
     this.limit = limit;
     this.operationType = operationType;
   }
 
   public Decrementer increment() {
-    count.updateAndGet(value -> {
-      if (value + 1 > limit) {
-        throw new KsqlException(
-            String.format("Host is at concurrency limit for %s. Currently set to %d maximum "
-                + "concurrent operations.", operationType, limit));
-      }
-      return value + 1;
-    });
+    if (!semaphore.tryAcquire()) {
+      throw new KsqlException(
+          String.format("Host is at concurrency limit for %s. Currently set to %d maximum "
+              + "concurrent operations.", operationType, limit));
+    };
     return new Decrementer();
   }
 
   private void decrement() {
-    count.decrementAndGet();
+    semaphore.release();
   }
 
   @VisibleForTesting
   int getCount() {
-    return count.get();
+    return limit - semaphore.availablePermits();
   }
 
   public class Decrementer {

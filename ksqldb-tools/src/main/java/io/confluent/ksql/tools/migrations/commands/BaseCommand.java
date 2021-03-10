@@ -49,7 +49,6 @@ public abstract class BaseCommand implements Runnable {
   )
   protected String configFileGlobal;
 
-  // TODO: add tests
   @Option(
       name = {CONFIG_FILE_OPTION_SHORT, CONFIG_FILE_OPTION},
       title = "config-file",

@@ -26,6 +26,7 @@ import com.github.rvesse.airline.parser.errors.ParseCommandMissingException;
 import com.github.rvesse.airline.parser.errors.ParseCommandUnrecognizedException;
 import com.github.rvesse.airline.parser.errors.ParseException;
 import com.github.rvesse.airline.parser.errors.handlers.CollectAll;
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.tools.migrations.commands.ApplyMigrationCommand;
 import io.confluent.ksql.tools.migrations.commands.BaseCommand;
 import io.confluent.ksql.tools.migrations.commands.CleanMigrationsCommand;
@@ -100,7 +101,8 @@ public final class Migrations {
     System.exit(((BaseCommand) command.get()).runCommand());
   }
 
-  private static Optional<Runnable> parseCommandFromArgs(
+  @VisibleForTesting
+  static Optional<Runnable> parseCommandFromArgs(
       final Cli<Runnable> cli,
       final String[] args
   ) {
@@ -136,7 +138,6 @@ public final class Migrations {
     }
   }
 
-  // TODO: add unit tests
   private static boolean isGlobalHelpMessageRequested(
       final Collection<ParseException> errors
   ) {
@@ -149,7 +150,6 @@ public final class Migrations {
         .anyMatch(inp -> inp.equals("--help") || inp.equals("-h"));
   }
 
-  // TODO: add unit test
   private static boolean isCommandSpecificHelpMessageRequested(
       final ParseState<Runnable> parseState
   ) {

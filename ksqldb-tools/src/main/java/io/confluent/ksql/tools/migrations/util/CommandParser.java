@@ -28,6 +28,7 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.metastore.TypeRegistry;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
@@ -171,7 +172,7 @@ public final class CommandParser {
       return ((CreateArrayExpression) expressionValue)
           .getValues()
           .stream()
-          .map(val -> toFieldType(val)).collect(Collectors.toList());
+          .map(CommandParser::toFieldType).collect(Collectors.toList());
     } else if (expressionValue instanceof CreateMapExpression) {
       final Map<Object, Object> resolvedMap = new HashMap<>();
       ((CreateMapExpression) expressionValue).getMap()
@@ -180,7 +181,7 @@ public final class CommandParser {
     } else if (expressionValue instanceof CreateStructExpression) {
       final Map<Object, Object> resolvedStruct = new HashMap<>();
       ((CreateStructExpression) expressionValue)
-          .getFields().stream().forEach(
+          .getFields().forEach(
               field -> resolvedStruct.put(field.getName(), toFieldType(field.getValue())));
       return resolvedStruct;
     }
@@ -212,7 +213,7 @@ public final class CommandParser {
             parsedStatement.getTarget().text(),
             parsedStatement.getValues(),
             parsedStatement.getColumns().stream()
-                .map(name -> name.text()).collect(Collectors.toList()));
+                .map(ColumnName::text).collect(Collectors.toList()));
       case CONNECTOR:
         return new SqlConnectorStatement(sql);
       case STATEMENT:

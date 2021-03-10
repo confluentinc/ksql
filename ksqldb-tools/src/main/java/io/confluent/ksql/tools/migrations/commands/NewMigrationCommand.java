@@ -21,6 +21,7 @@ import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.MI
 import com.github.rvesse.airline.annotations.Arguments;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.restrictions.Required;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import java.io.File;
@@ -142,15 +143,57 @@ public class NewMigrationCommand extends BaseCommand {
     return true;
   }
 
-  private String createInitialConfig(final String ksqlServerUrl) {
+  private static final List<String> METADATA_CONFIGS = ImmutableList.of(
+      MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME,
+      MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME,
+      MigrationConfig.KSQL_MIGRATIONS_STREAM_TOPIC_NAME,
+      MigrationConfig.KSQL_MIGRATIONS_TABLE_TOPIC_NAME,
+      MigrationConfig.KSQL_MIGRATIONS_TOPIC_REPLICAS
+  );
+
+  private static final List<String> TLS_CONFIGS = ImmutableList.of(
+      MigrationConfig.SSL_TRUSTSTORE_LOCATION,
+      MigrationConfig.SSL_TRUSTSTORE_PASSWORD,
+      MigrationConfig.SSL_KEYSTORE_LOCATION,
+      MigrationConfig.SSL_KEYSTORE_PASSWORD,
+      MigrationConfig.SSL_KEY_PASSWORD,
+      MigrationConfig.SSL_KEY_ALIAS,
+      MigrationConfig.SSL_ALPN,
+      MigrationConfig.SSL_VERIFY_HOST
+  );
+
+  private static final List<String> SERVER_AUTH_CONFIGS = ImmutableList.of(
+      MigrationConfig.KSQL_BASIC_AUTH_USERNAME,
+      MigrationConfig.KSQL_BASIC_AUTH_PASSWORD
+  );
+
+  private static String createInitialConfig(final String ksqlServerUrl) {
     final StringBuilder builder = new StringBuilder();
+
     builder.append(MigrationConfig.KSQL_SERVER_URL + "=" + ksqlServerUrl);
-    MigrationConfig.DEFAULT_CONFIG.values().forEach((k, v) -> {
-      if (!k.equals(MigrationConfig.KSQL_SERVER_URL)) {
-        builder.append("\n# " + MigrationConfig.DEFAULT_CONFIG.documentationOf(k));
-        builder.append("\n# " + k + "=" + v);
-      }
-    });
+
+    appendConfigs(builder, "Migrations metadata configs", METADATA_CONFIGS);
+    appendConfigs(builder, "TLS configs", TLS_CONFIGS);
+    appendConfigs(builder, "ksqlDB server authentication configs", SERVER_AUTH_CONFIGS);
+
     return builder.toString();
+  }
+
+  private static void appendConfigs(
+      final StringBuilder builder,
+      final String headerText,
+      final List<String> configs
+  ) {
+    builder.append("\n\n# ");
+    builder.append(headerText);
+    builder.append(":");
+
+    for (final String cfg : configs) {
+      final Object value = MigrationConfig.DEFAULT_CONFIG.values().get(cfg);
+      builder.append("\n# ");
+      builder.append(cfg);
+      builder.append("=");
+      builder.append(value == null ? "" : value);
+    }
   }
 }

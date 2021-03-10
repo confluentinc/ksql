@@ -129,16 +129,28 @@ public final class MigrationsUtil {
     final boolean useTls = ksqlServerUrl.trim().toLowerCase().startsWith("https://");
     final Map<String, String> clientProps = new HashMap<>();
     if (useTls) {
-      clientProps.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, config.getString(MigrationConfig.SSL_TRUSTSTORE_LOCATION));
-      clientProps.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, config.getString(MigrationConfig.SSL_TRUSTSTORE_PASSWORD));
-      clientProps.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, config.getString(MigrationConfig.SSL_KEYSTORE_LOCATION));
-      clientProps.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, config.getString(MigrationConfig.SSL_KEYSTORE_PASSWORD));
-      clientProps.put(SslConfigs.SSL_KEY_PASSWORD_CONFIG, config.getString(MigrationConfig.SSL_KEY_PASSWORD));
-      clientProps.put(KsqlClient.SSL_KEYSTORE_ALIAS_CONFIG, config.getString(MigrationConfig.SSL_KEY_ALIAS));
+      clientProps.put(
+          SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG,
+          config.getString(MigrationConfig.SSL_TRUSTSTORE_LOCATION));
+      clientProps.put(
+          SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,
+          config.getString(MigrationConfig.SSL_TRUSTSTORE_PASSWORD));
+      clientProps.put(
+          SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG,
+          config.getString(MigrationConfig.SSL_KEYSTORE_LOCATION));
+      clientProps.put(
+          SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG,
+          config.getString(MigrationConfig.SSL_KEYSTORE_PASSWORD));
+      clientProps.put(
+          SslConfigs.SSL_KEY_PASSWORD_CONFIG,
+          config.getString(MigrationConfig.SSL_KEY_PASSWORD));
+      clientProps.put(
+          KsqlClient.SSL_KEYSTORE_ALIAS_CONFIG,
+          config.getString(MigrationConfig.SSL_KEY_ALIAS));
       if (config.getBoolean(MigrationConfig.SSL_VERIFY_HOST)) {
         clientProps.put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "https");
       }
-      // rest client doesn't set alpn anywhere, so MigrationConfig.SSL_ALPN is ignored
+      // rest client doesn't set ALPN anywhere, so MigrationConfig.SSL_ALPN is ignored
     }
 
     final String username = config.getString(MigrationConfig.KSQL_BASIC_AUTH_USERNAME);

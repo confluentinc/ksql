@@ -17,12 +17,14 @@ package io.confluent.ksql.tools.migrations.commands;
 
 import static io.confluent.ksql.tools.migrations.commands.InitializeMigrationCommand.INITIALIZE_COMMAND_NAME;
 
+import com.github.rvesse.airline.HelpOption;
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.OptionType;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import java.util.concurrent.ExecutionException;
+import javax.inject.Inject;
 import org.slf4j.Logger;
 
 /**
@@ -33,6 +35,9 @@ public abstract class BaseCommand implements Runnable {
 
   private static final String CONFIG_FILE_OPTION = "--config-file";
   private static final String CONFIG_FILE_OPTION_SHORT = "-c";
+
+  @Inject
+  protected HelpOption<BaseCommand> help;
 
   @Option(
       name = {CONFIG_FILE_OPTION_SHORT, CONFIG_FILE_OPTION},
@@ -52,6 +57,10 @@ public abstract class BaseCommand implements Runnable {
    * @return exit status of the command
    */
   public int runCommand() {
+    if (help.showHelpIfRequested()) {
+      return 0;
+    }
+
     final long startTime = System.currentTimeMillis();
     final int status = command();
     getLogger().info(String.format("Execution time: %.4f seconds",

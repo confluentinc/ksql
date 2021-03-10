@@ -16,7 +16,12 @@
 package io.confluent.ksql.tools.migrations;
 
 import com.github.rvesse.airline.Cli;
+import com.github.rvesse.airline.annotations.Parser;
 import com.github.rvesse.airline.help.Help;
+import com.github.rvesse.airline.model.OptionMetadata;
+import com.github.rvesse.airline.parser.ParseResult;
+import com.github.rvesse.airline.parser.ParseState;
+import com.github.rvesse.airline.parser.errors.handlers.CollectAll;
 import io.confluent.ksql.tools.migrations.commands.ApplyMigrationCommand;
 import io.confluent.ksql.tools.migrations.commands.BaseCommand;
 import io.confluent.ksql.tools.migrations.commands.CleanMigrationsCommand;
@@ -26,6 +31,10 @@ import io.confluent.ksql.tools.migrations.commands.MigrationInfoCommand;
 import io.confluent.ksql.tools.migrations.commands.NewMigrationCommand;
 import io.confluent.ksql.tools.migrations.commands.ValidateMigrationsCommand;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Optional;
+import org.apache.commons.lang3.tuple.Pair;
 
 /**
  * This class is the entrypoint to all migration-related tooling. This
@@ -47,7 +56,8 @@ import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
         ValidateMigrationsCommand.class,
         InitializeMigrationCommand.class
     },
-    defaultCommand = Help.class
+    defaultCommand = Help.class,
+    parserConfiguration = @Parser(errorHandler = CollectAll.class)
 )
 public final class Migrations {
 
@@ -57,13 +67,53 @@ public final class Migrations {
     // even though all migrations commands implement BaseCommand, the Help
     // command does not so we infer the type as Runnable instead
     final Cli<Runnable> cli = new Cli<>(Migrations.class);
-    final Runnable command = cli.parse(args);
-    if (command instanceof Help) {
-      command.run();
+    final Optional<Runnable> command = parseCommandFromArgs(cli, args);
+    if (!command.isPresent()) {
       System.exit(0);
     }
 
-    System.exit(((BaseCommand) command).runCommand());
+    if (command.get() instanceof Help) {
+      command.get().run();
+      System.exit(0);
+    }
+
+    System.exit(((BaseCommand) command.get()).runCommand());
   }
 
+  private static Optional<Runnable> parseCommandFromArgs(
+      final Cli<Runnable> cli,
+      final String[] args
+  ) {
+    final ParseResult<Runnable> result = cli.parseWithResult(args);
+    if (result.wasSuccessful()) {
+      return Optional.of(result.getCommand());
+    } else {
+      if (isHelpOptionSet(result.getState())) {
+        final String commandName = result.getState().getCommand().getName();
+        try {
+          Help.help(cli.getMetadata(), Collections.singletonList(commandName), System.out);
+          return Optional.empty();
+        } catch (IOException e) {
+          throw new MigrationException("Failed to print help for command '" + commandName
+              + "': " + e.getMessage());
+        }
+      } else {
+        // throw original parse exception
+        throw result.getErrors().stream()
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException(
+                "Failed to parse statement yet no errors were collected"));
+      }
+    }
+  }
+
+  // TODO: add unit test
+  private static boolean isHelpOptionSet(final ParseState<Runnable> parseState) {
+    for (final Pair<OptionMetadata, Object> option : parseState.getParsedOptions()) {
+      if (option.getKey().getTitle().equals("help") && (boolean) option.getValue()) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

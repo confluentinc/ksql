@@ -30,12 +30,13 @@ public class MigrationsParsingTest {
   private static final Cli<Runnable> MIGRATIONS_CLI = new Cli<>(Migrations.class);
 
   private static final String CONFIG_FILE_PATH = "/path/to/ksql-migrations.properties";
+  private static final String UTF_8 = "UTF-8";
 
   private final ByteArrayOutputStream systemOut = new ByteArrayOutputStream();
 
   @Before
-  public void setUp() {
-    System.setOut(new PrintStream(systemOut));
+  public void setUp() throws Exception {
+    System.setOut(new PrintStream(systemOut, true, UTF_8));
   }
 
   @After
@@ -44,7 +45,7 @@ public class MigrationsParsingTest {
   }
 
   @Test
-  public void shouldPrintHelpIfNoArgs() {
+  public void shouldPrintHelpIfNoArgs() throws Exception {
     // When:
     Migrations.parseCommandFromArgs(MIGRATIONS_CLI, new String[]{});
 
@@ -53,7 +54,7 @@ public class MigrationsParsingTest {
   }
 
   @Test
-  public void shouldPrintHelpOnGlobalHelpOptionLong() {
+  public void shouldPrintHelpOnGlobalHelpOptionLong() throws Exception {
     // When:
     Migrations.parseCommandFromArgs(MIGRATIONS_CLI, new String[]{"--help"});
 
@@ -62,7 +63,7 @@ public class MigrationsParsingTest {
   }
 
   @Test
-  public void shouldPrintHelpOnGlobalHelpOptionShort() {
+  public void shouldPrintHelpOnGlobalHelpOptionShort() throws Exception {
     // When:
     Migrations.parseCommandFromArgs(MIGRATIONS_CLI, new String[]{"-h"});
 
@@ -71,7 +72,7 @@ public class MigrationsParsingTest {
   }
 
   @Test
-  public void shouldPrintHelpForSpecificCommandLong() {
+  public void shouldPrintHelpForSpecificCommandLong() throws Exception {
     // When:
     Migrations.parseCommandFromArgs(MIGRATIONS_CLI, new String[]{"apply", "--help"});
 
@@ -80,7 +81,7 @@ public class MigrationsParsingTest {
   }
 
   @Test
-  public void shouldPrintHelpForSpecificCommandShort() {
+  public void shouldPrintHelpForSpecificCommandShort() throws Exception {
     // When:
     Migrations.parseCommandFromArgs(MIGRATIONS_CLI, new String[]{"apply", "-h"});
 
@@ -104,13 +105,13 @@ public class MigrationsParsingTest {
     // Then: no exception
   }
 
-  private void validateGlobalHelpPrinted() {
-    assertThat(systemOut.toString(), containsString(
+  private void validateGlobalHelpPrinted() throws Exception {
+    assertThat(systemOut.toString(UTF_8), containsString(
         "ksql-migrations [ {-c | --config-file} <config-file> ] <command> [ <args> ]"));
   }
 
-  private void validateCommandHelpPrinted() {
-    assertThat(systemOut.toString(), containsString(
+  private void validateCommandHelpPrinted() throws Exception {
+    assertThat(systemOut.toString(UTF_8), containsString(
         "ksql-migrations apply - Migrates the metadata schema to a new schema"));
   }
 }

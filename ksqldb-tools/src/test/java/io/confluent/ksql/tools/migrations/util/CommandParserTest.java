@@ -19,8 +19,11 @@ import static io.confluent.ksql.tools.migrations.util.CommandParser.toFieldType;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.api.client.ColumnType.Type;
+import io.confluent.ksql.rest.server.computation.Command;
+import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlConnectorStatement;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlInsertValues;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCommand;
@@ -103,18 +106,21 @@ public class CommandParserTest {
   }
 
   @Test
-  public void shouldParseCreateConnectorStatement() {
-    final String command = "CREATE SOURCE CONNECTOR `jdbc-connector` WITH(\n"
+  public void shouldParseConnectorStatements() {
+    final String createConnector = "CREATE SOURCE CONNECTOR `jdbc-connector` WITH(\n"
         + "    \"connector.class\"='io.confluent.connect.jdbc.JdbcSourceConnector',\n"
         + "    \"connection.url\"='jdbc:postgresql://localhost:5432/my.db',\n"
         + "    \"mode\"='bulk',\n"
         + "    \"topic.prefix\"='jdbc-',\n"
         + "    \"table.whitelist\"='users',\n"
         + "    \"key\"='username');";
-    List<SqlCommand> commands = CommandParser.parse(command);
-    assertThat(commands.size(), is(1));
+    final String dropConnector = "DROP CONNECTOR `jdbc-connector`;";
+    List<SqlCommand> commands = CommandParser.parse(createConnector + dropConnector);
+    assertThat(commands.size(), is(2));
     assertThat(commands.get(0), instanceOf(SqlConnectorStatement.class));
-    assertThat(commands.get(0).getCommand(), is(command));
+    assertThat(commands.get(0).getCommand(), is(createConnector));
+    assertThat(commands.get(1), instanceOf(SqlConnectorStatement.class));
+    assertThat(commands.get(1).getCommand(), is(dropConnector));
   }
 
   @Test
@@ -140,5 +146,14 @@ public class CommandParserTest {
     assertThat(commands.get(2), is("\nINSERT INTO purchases VALUES ('c''ow', -90);"));
     assertThat(commands.get(3), is("\nINSERT INTO purchases VALUES ('/*she*/ep',     80);"));
     assertThat(commands.get(4), is("\nINSERT INTO purchases VALUES ('pol/*ar;;be--ar*/;', 200000);"));
+  }
+
+  @Test
+  public void shouldThowOnMalformedComment() throws Exception {
+    // When:
+    final MigrationException e = assertThrows(MigrationException.class,
+        () -> CommandParser.splitSql("/* Comment "));
+    // Then:
+    assertThat(e.getMessage(), is("Invalid sql - failed to find closing token '*/'"));
   }
 }

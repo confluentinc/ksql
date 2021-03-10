@@ -377,8 +377,9 @@ public class ApplyMigrationCommand extends BaseCommand {
 
   private void verifyColumnValuesMatch(final List<String> columns, final List<Expression> values) {
     if (columns.size() != values.size()) {
-      throw new MigrationException("Expected number columns and values to match: "
-          + columns + ", " + values);
+      throw new MigrationException(String.format("Invalid `INSERT VALUES` statement. Number of "
+          + "columns and values must match. Got: Columns: %d. Values: %d.",
+          columns.size(), values.size()));
     }
   }
 

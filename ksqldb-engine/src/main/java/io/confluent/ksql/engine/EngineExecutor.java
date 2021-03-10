@@ -163,7 +163,10 @@ final class EngineExecutor {
           queryAnalyzer.analyze(statement.getStatement(), Optional.empty()),
           new PullQueryExecutionUtil.ColumnReferenceRewriter()::process
       );
-      final KsqlConfig ksqlConfig = sessionConfig.getConfig(true);
+      // Do not set sessionConfig.getConfig to true! The copying is inefficient and slows down pull
+      // query performance significantly.  Instead use PullPlannerOptions which check overrides
+      // deliberately.
+      final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
       final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
           statement, analysis, ksqlConfig, pullPlannerOptions);
       final PullPhysicalPlan physicalPlan = buildPullPhysicalPlan(

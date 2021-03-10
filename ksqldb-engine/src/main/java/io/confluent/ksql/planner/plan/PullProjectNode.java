@@ -28,6 +28,7 @@ import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.planner.Projection;
+import io.confluent.ksql.planner.PullPlannerOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -69,6 +70,7 @@ public class PullProjectNode extends ProjectNode {
   private final LogicalSchema intermediateSchema;
   private final List<ExpressionEvaluator> compiledSelectExpressions;
   private final RewrittenAnalysis analysis;
+  private final PullPlannerOptions pullPlannerOptions;
   private final boolean isSelectStar;
   private final boolean addAdditionalColumnsToIntermediateSchema;
 
@@ -79,11 +81,13 @@ public class PullProjectNode extends ProjectNode {
       final MetaStore metaStore,
       final KsqlConfig ksqlConfig,
       final RewrittenAnalysis analysis,
-      final boolean isWindowed
+      final boolean isWindowed,
+      final PullPlannerOptions pullPlannerOptions
   ) {
     super(id, source);
     this.projection = Projection.of(selectItems);
     this.analysis = Objects.requireNonNull(analysis, "analysis");
+    this.pullPlannerOptions = Objects.requireNonNull(pullPlannerOptions, "pullPlannerOptions");
     this.selectExpressions = ImmutableList.copyOf(SelectionUtil
         .buildSelectExpressions(getSource(), projection.selectItems(), Optional.empty()));
     this.isSelectStar = isSelectStar();
@@ -100,7 +104,8 @@ public class PullProjectNode extends ProjectNode {
         .stream()
         .map(selectExpression ->
             getExpressionEvaluator(
-                selectExpression.getExpression(), intermediateSchema, metaStore, ksqlConfig)
+                selectExpression.getExpression(), intermediateSchema, metaStore, ksqlConfig,
+                pullPlannerOptions)
         )
         .collect(ImmutableList.toImmutableList());
   }
@@ -246,9 +251,10 @@ public class PullProjectNode extends ProjectNode {
       final Expression expression,
       final LogicalSchema schema,
       final MetaStore metaStore,
-      final KsqlConfig ksqlConfig) {
+      final KsqlConfig ksqlConfig,
+      final PullPlannerOptions pullPlannerOptions) {
 
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)) {
+    if (pullPlannerOptions.getInterpreterEnabled()) {
       return InterpretedExpressionFactory.create(
           expression,
           schema,

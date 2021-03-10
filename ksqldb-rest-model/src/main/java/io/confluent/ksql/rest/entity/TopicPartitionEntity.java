@@ -18,11 +18,8 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.KeyDeserializer;
 import com.google.errorprone.annotations.Immutable;
 
-import java.io.IOException;
 import java.util.Objects;
 
 @Immutable
@@ -76,19 +73,4 @@ public class TopicPartitionEntity {
         + ", partition=" + partition
         + '}';
   }
-
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  public static class TopicPartitionEntityDeserializer extends KeyDeserializer {
-    @Override
-    public TopicPartitionEntity deserializeKey(
-        final String key,
-        final DeserializationContext ctxt
-    ) throws IOException {
-      final String[] split = key.split("=");
-      final String topic = split[1].split(",")[0];
-      final String partition = split[2].substring(0, split[2].length() - 1);
-      return new TopicPartitionEntity(topic, Integer.parseInt(partition));
-    }
-  }
-
 }

@@ -18,9 +18,8 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.google.common.collect.ImmutableMap;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -33,10 +32,8 @@ public class StreamsTaskMetadata {
 
   private final String taskId;
   private final Set<TopicPartitionEntity> topicPartitions;
-  @JsonDeserialize(keyUsing = TopicPartitionEntity.TopicPartitionEntityDeserializer.class)
-  private final ImmutableMap<TopicPartitionEntity, Long> endOffsets;
-  @JsonDeserialize(keyUsing = TopicPartitionEntity.TopicPartitionEntityDeserializer.class)
-  private final ImmutableMap<TopicPartitionEntity, Long> committedOffsets;
+  private final Set<TopicOffset> endOffsets;
+  private final Set<TopicOffset> committedOffsets;
   private final Optional<Long> timeCurrentIdlingStarted;
 
   @SuppressWarnings("checkstyle:LineLength")
@@ -44,8 +41,8 @@ public class StreamsTaskMetadata {
   public StreamsTaskMetadata(
       @JsonProperty("taskId") final String taskId,
       @JsonProperty("topicPartitions") final Set<TopicPartitionEntity> topicPartitions,
-      @JsonProperty("endOffsets") final ImmutableMap<TopicPartitionEntity, Long> endOffsets,
-      @JsonProperty("committedOffsets") final ImmutableMap<TopicPartitionEntity, Long> committedOffsets,
+      @JsonProperty("endOffsets") final Set<TopicOffset> endOffsets,
+      @JsonProperty("committedOffsets") final Set<TopicOffset> committedOffsets,
       @JsonProperty("timeCurrentIdlingStarted") final Optional<Long> timeCurrentIdlingStarted
   ) {
 
@@ -64,8 +61,8 @@ public class StreamsTaskMetadata {
             .stream()
             .map(t -> new TopicPartitionEntity(t.topic(), t.partition()))
             .collect(Collectors.toSet()),
-        ImmutableMap.of(),
-        ImmutableMap.of(),
+        Collections.emptySet(),
+        Collections.emptySet(),
         Optional.empty());
   }
 
@@ -77,11 +74,11 @@ public class StreamsTaskMetadata {
     return topicPartitions;
   }
 
-  public ImmutableMap<TopicPartitionEntity, Long> getEndOffsets() {
+  public Set<TopicOffset> getEndOffsets() {
     return endOffsets;
   }
 
-  public ImmutableMap<TopicPartitionEntity, Long> getCommittedOffsets() {
+  public Set<TopicOffset> getCommittedOffsets() {
     return committedOffsets;
   }
 
@@ -111,4 +108,28 @@ public class StreamsTaskMetadata {
   public int hashCode() {
     return Objects.hash(taskId, topicPartitions, committedOffsets, endOffsets, topicPartitions);
   }
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  static class TopicOffset {
+    private final TopicPartitionEntity topicPartitionEntity;
+    private final Long offset;
+
+    @JsonCreator
+    TopicOffset(
+        @JsonProperty("topicPartitionEntity") final TopicPartitionEntity topicPartitionEntity,
+        @JsonProperty("offset") final Long offset
+    ) {
+      this.topicPartitionEntity = topicPartitionEntity;
+      this.offset = offset;
+    }
+
+    public TopicPartitionEntity getTopicPartitionEntity() {
+      return topicPartitionEntity;
+    }
+
+    public Long getOffset() {
+      return offset;
+    }
+  }
+
 }

@@ -16,6 +16,7 @@ package io.confluent.ksql.function.udf.datetime;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertNull;
 
 import java.sql.Timestamp;
 import org.junit.Before;
@@ -36,5 +37,14 @@ public class FromUnixTimeTest {
 
     // Then:
     assertThat(result, is(new Timestamp(100L)));
+  }
+
+  @Test
+  public void shouldReturnNull() {
+    // When:
+    final Object result = udf.fromUnixTime(null);
+
+    // Then:
+    assertNull(result);
   }
 }

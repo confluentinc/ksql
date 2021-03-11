@@ -520,6 +520,60 @@ SLICE(col1, from, to)
 Slices a list based on the supplied indices. The indices start at 1 and
 include both endpoints.
 
+## Invocation Functions
+
+Apply lambda functions to collections.
+
+### `TRANSFORM`
+
+Since: 0.17.0
+
+```sql
+TRANSFORM(array, x => ...)
+
+TRANSFORM(map, (k,v) => ..., (k,v) => ...)
+```
+
+Transform a collection by using a lambda function.
+
+If the collection is an array, the lambda function must have one input argument.
+
+If the collection is a map, two lambda functions must be provided, and both lambdas must have two arguments: a map entry key and a map entry value.
+
+### `Reduce`
+
+Since: 0.17.0
+
+```sql
+REDUCE(array, state, (s, x) => ...)
+
+REDUCE(map, state, (s, k, v) => ...)
+```
+
+Reduce a collection starting from an initial state.
+
+If the collection is an array, the lambda function must have two input arguments.
+
+If the collection is a map, the lambda function must have three input arguments.
+
+If the state is `null`, the result is `null`.
+
+### `Filter`
+
+Since: 0.17.0
+
+```sql
+FILTER(array, x => ...)
+
+FILTER(map, (k,v) => ...)
+```
+
+Filter a collection with a lambda function.
+
+If the collection is an array, the lambda function must have one input argument.
+
+If the collection is a map, the lambda function must have two input arguments.
+
 ## Strings
 
 ### `CHR`
@@ -1150,6 +1204,28 @@ FROM_UNIXTIME(milliseconds)
 ```
 
 Converts a BIGINT millisecond timestamp value into a TIMESTAMP value.
+
+### TIMESTAMPADD
+
+Since: 0.17
+
+```sql
+TIMESTAMPADD(unit, interval, COL0)
+```
+
+Adds an interval to a timestamp. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+### TIMESTAMPSUB
+
+Since: 0.17
+
+```sql
+TIMESTAMPSUB(unit, interval, COL0)
+```
+
+Subtracts an interval from a timestamp. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
 
 ## URLs
 

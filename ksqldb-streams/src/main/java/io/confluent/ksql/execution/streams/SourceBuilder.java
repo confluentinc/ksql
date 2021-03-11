@@ -20,6 +20,7 @@ import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.KStreamHolder;
@@ -201,10 +202,11 @@ public final class SourceBuilder {
         planInfo
     );
 
-    return KTableHolder.unmaterialized(
+    return KTableHolder.materialized(
         ktable,
         buildSchema(source, false),
-        ExecutionKeyFactory.unwindowed(buildContext)
+        ExecutionKeyFactory.unwindowed(buildContext),
+        MaterializationInfo.builder(stateStoreName, physicalSchema.logicalSchema())
     );
   }
 
@@ -255,10 +257,11 @@ public final class SourceBuilder {
         planInfo
     );
 
-    return KTableHolder.unmaterialized(
+    return KTableHolder.materialized(
         ktable,
         buildSchema(source, true),
-        ExecutionKeyFactory.windowed(buildContext, windowInfo)
+        ExecutionKeyFactory.windowed(buildContext, windowInfo),
+        MaterializationInfo.builder(stateStoreName, physicalSchema.logicalSchema())
     );
   }
 

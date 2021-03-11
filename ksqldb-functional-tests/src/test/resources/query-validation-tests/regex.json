@@ -90,6 +90,29 @@
         {"topic": "OUTPUT", "value": {"EXTRACTED": []}},
         {"topic": "OUTPUT", "value": {"EXTRACTED": null}}
       ]
+    },
+    {
+      "name": "should support nested regex functions with different signatures",
+      "statements": [
+        "CREATE STREAM TEST (K STRING KEY, input_string VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT K, REGEXP_EXTRACT('.*', REGEXP_EXTRACT('(.*) (.*)', input_string, 2)) AS EXTRACTED FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"input_string": "steven zhang"}},
+        {"topic": "test_topic", "value": {"input_string": "andy coates"}},
+        {"topic": "test_topic", "value": {"input_string": "victoria xia"}},
+        {"topic": "test_topic", "value": {"input_string": "apurva mehta"}},
+        {"topic": "test_topic", "value": {"input_string": "agavra"}},
+        {"topic": "test_topic", "value": {"input_string": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"EXTRACTED":"zhang"}},
+        {"topic": "OUTPUT", "value": {"EXTRACTED":"coates"}},
+        {"topic": "OUTPUT", "value": {"EXTRACTED":"xia"}},
+        {"topic": "OUTPUT", "value": {"EXTRACTED":"mehta"}},
+        {"topic": "OUTPUT", "value": {"EXTRACTED":null}},
+        {"topic": "OUTPUT", "value": {"EXTRACTED":null}}
+      ]
     }
   ]
 }

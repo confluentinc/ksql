@@ -35,7 +35,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.engine.QueryMonitor;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -55,6 +54,7 @@ import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlSecurityContext;
@@ -135,8 +135,6 @@ public class KsqlRestApplicationTest {
   @Mock
   private EndpointResponse response;
   @Mock
-  private QueryMonitor queryMonitor;
-  @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
   @Mock
   private SchemaRegistryClient schemaRegistryClient;
@@ -144,6 +142,8 @@ public class KsqlRestApplicationTest {
   private RoutingFilterFactory routingFilterFactory;
   @Mock
   private RateLimiter rateLimiter;
+  @Mock
+  private ConcurrencyLimiter concurrencyLimiter;
   @Mock
   private HARouting haRouting;
 
@@ -226,15 +226,6 @@ public class KsqlRestApplicationTest {
 
     // Then:
     verify(securityExtension).close();
-  }
-
-  @Test
-  public void shouldCloseQueryMonitorOnClose() {
-    // When:
-    app.shutdown();
-
-    // then:
-    verify(queryMonitor).close();
   }
 
   @Test
@@ -321,15 +312,6 @@ public class KsqlRestApplicationTest {
     );
     assertThat(securityContextArgumentCaptor.getValue().getUserPrincipal(), is(Optional.empty()));
     assertThat(securityContextArgumentCaptor.getValue().getServiceContext(), is(serviceContext));
-  }
-
-  @Test
-  public void shouldStartQueryMonitor() {
-    // When:
-    app.startKsql(ksqlConfig);
-
-    // Then:
-    verify(queryMonitor).start();
   }
 
   @Test
@@ -502,11 +484,11 @@ public class KsqlRestApplicationTest {
         Optional.of(heartbeatAgent),
         Optional.of(lagReportingAgent),
         vertx,
-        queryMonitor,
         denyListPropertyValidator,
         Optional.empty(),
         routingFilterFactory,
         rateLimiter,
+        concurrencyLimiter,
         haRouting,
         Optional.empty()
     );

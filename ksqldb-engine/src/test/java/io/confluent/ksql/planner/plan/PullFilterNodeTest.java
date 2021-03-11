@@ -1316,7 +1316,8 @@ public class PullFilterNodeTest {
         ));
 
     // Then:
-    assertThat(e.getMessage(), containsString("Window bounds must be an INT, BIGINT or STRING containing a datetime."));
+    assertThat(e.getMessage(), containsString("Window bounds must resolve to an INT, BIGINT, or "
+        + "STRING containing a datetime."));
   }
 
 

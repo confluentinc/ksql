@@ -45,11 +45,13 @@ import io.confluent.ksql.query.QueryValidator;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SandboxedPersistentQueryMetadata;
+import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collections;
 import java.util.HashSet;
@@ -91,13 +93,15 @@ final class EngineContext {
   private final QueryCleanupService cleanupService;
   private final Map<SourceName, QueryId> createAsQueries = new ConcurrentHashMap<>();
   private final Map<SourceName, Set<QueryId>> insertQueries = new ConcurrentHashMap<>();
+  private final KsqlConfig ksqlConfig;
 
   static EngineContext create(
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final MutableMetaStore metaStore,
       final QueryIdGenerator queryIdGenerator,
-      final QueryCleanupService cleanupService
+      final QueryCleanupService cleanupService,
+      final KsqlConfig ksqlConfig
   ) {
     return new EngineContext(
         serviceContext,
@@ -105,7 +109,8 @@ final class EngineContext {
         metaStore,
         queryIdGenerator,
         new DefaultKsqlParser(),
-        cleanupService
+        cleanupService,
+        ksqlConfig
     );
   }
 
@@ -115,7 +120,8 @@ final class EngineContext {
       final MutableMetaStore metaStore,
       final QueryIdGenerator queryIdGenerator,
       final KsqlParser parser,
-      final QueryCleanupService cleanupService
+      final QueryCleanupService cleanupService,
+      final KsqlConfig ksqlConfig
   ) {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.metaStore = requireNonNull(metaStore, "metaStore");
@@ -126,6 +132,7 @@ final class EngineContext {
     this.processingLogContext = requireNonNull(processingLogContext, "processingLogContext");
     this.parser = requireNonNull(parser, "parser");
     this.cleanupService = requireNonNull(cleanupService, "cleanupService");
+    this.ksqlConfig = requireNonNull(ksqlConfig);
   }
 
   EngineContext createSandbox(final ServiceContext serviceContext) {
@@ -134,17 +141,24 @@ final class EngineContext {
         processingLogContext,
         metaStore.copy(),
         queryIdGenerator.createSandbox(),
-        cleanupService
+        cleanupService,
+        ksqlConfig
     );
 
-    persistentQueries.forEach((queryId, query) ->
-        sandBox.persistentQueries.put(
-            query.getQueryId(),
-            SandboxedPersistentQueryMetadata.of(query, sandBox::closeQuery)));
-
+    allLiveQueries.forEach(query -> {
+      if (query instanceof PersistentQueryMetadata) {
+        final PersistentQueryMetadata sandboxed = SandboxedPersistentQueryMetadata.of(
+            (PersistentQueryMetadata) query, sandBox::closeQuery);
+        sandBox.persistentQueries.put(sandboxed.getQueryId(), sandboxed);
+        sandBox.allLiveQueries.add(sandboxed);
+      } else {
+        final TransientQueryMetadata sandboxed = SandboxedTransientQueryMetadata.of(
+            (TransientQueryMetadata) query, sandBox::closeQuery);
+        sandBox.allLiveQueries.add(sandboxed);
+      }
+    });
     sandBox.createAsQueries.putAll(createAsQueries);
     sandBox.insertQueries.putAll(insertQueries);
-
     return sandBox;
   }
 
@@ -206,8 +220,11 @@ final class EngineContext {
           parser.prepare(substituteVariables(stmt, variablesMap), metaStore);
       return PreparedStatement.of(
           preparedStatement.getStatementText(),
-          AstSanitizer.sanitize(preparedStatement.getStatement(), metaStore)
-      );
+          AstSanitizer.sanitize(
+              preparedStatement.getStatement(),
+              metaStore,
+              ksqlConfig.getBoolean(KsqlConfig.KSQL_LAMBDAS_ENABLED)
+          ));
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final Exception e) {

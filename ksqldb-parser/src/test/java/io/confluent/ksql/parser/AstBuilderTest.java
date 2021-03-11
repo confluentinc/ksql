@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
 import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
@@ -55,6 +56,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -394,6 +396,29 @@ public class AstBuilderTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("mismatched input '=>' expecting {',', ')'}"));
+  }
+
+  @Test
+  public void shouldBuildIntervalUnit() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("SELECT TIMESTAMPADD(MINUTES, 5, Col4) FROM TEST1;");
+
+    // When:
+    final Query result = (Query) builder.buildStatement(stmt);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new SingleColumn(
+            new FunctionCall(
+                FunctionName.of("TIMESTAMPADD"),
+                ImmutableList.of(
+                    new IntervalUnit(TimeUnit.MINUTES),
+                    new IntegerLiteral(5),
+                    column("COL4")
+                )
+            ),
+            Optional.empty())
+    ))));
   }
 
   @Test

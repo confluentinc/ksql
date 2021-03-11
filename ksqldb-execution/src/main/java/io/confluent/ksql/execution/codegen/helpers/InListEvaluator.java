@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.util.CoercionUtil;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.schema.ksql.SqlBooleans;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Iterator;
@@ -89,11 +90,13 @@ public final class InListEvaluator {
    *
    * @param predicate The predicate to process
    * @param typeManager the type manager for the predicate
+   * @param lambdaTypeMapping mapping of lambda variables to type
    * @return {@code predicate} after processing.
    */
   public static InPredicate preprocess(
       final InPredicate predicate,
-      final ExpressionTypeManager typeManager
+      final ExpressionTypeManager typeManager,
+      final Map<String, SqlType> lambdaTypeMapping
   ) {
     final List<Expression> nonNull = ImmutableList.<Expression>builder()
         .add(predicate.getValue())
@@ -103,7 +106,7 @@ public final class InListEvaluator {
         .build();
 
     final List<Expression> coerced = CoercionUtil
-        .coerceUserList(nonNull, typeManager)
+        .coerceUserList(nonNull, typeManager, lambdaTypeMapping)
         .expressions();
 
     return new InPredicate(

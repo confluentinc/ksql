@@ -44,6 +44,9 @@ public class ConvertTz {
           description =  "The toTimeZone in java.util.TimeZone ID format. For example: \"UTC\","
               + " \"America/Los_Angeles\", \"PST\", \"Europe/London\"") final String toTimeZone
   ) {
+    if (timestamp == null) {
+      return null;
+    }
     try {
       final long offset = TimeZone.getTimeZone(ZoneId.of(toTimeZone)).getOffset(timestamp.getTime())
           - TimeZone.getTimeZone(ZoneId.of(fromTimeZone)).getOffset(timestamp.getTime());

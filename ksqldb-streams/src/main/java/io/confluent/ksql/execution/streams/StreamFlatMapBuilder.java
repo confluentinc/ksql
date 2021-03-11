@@ -19,7 +19,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -61,12 +61,12 @@ public final class StreamFlatMapBuilder {
         new CodeGenRunner(schema, buildContext.getKsqlConfig(), buildContext.getFunctionRegistry());
 
     for (final FunctionCall functionCall: tableFunctions) {
-      final List<ExpressionMetadata> expressionMetadataList = new ArrayList<>(
+      final List<CompiledExpression> compiledExpressionList = new ArrayList<>(
           functionCall.getArguments().size());
       for (final Expression expression : functionCall.getArguments()) {
-        final ExpressionMetadata expressionMetadata =
+        final CompiledExpression compiledExpression =
             codeGenRunner.buildCodeGenFromParseTree(expression, "Table function");
-        expressionMetadataList.add(expressionMetadata);
+        compiledExpressionList.add(compiledExpression);
       }
       final KsqlTableFunction tableFunction = UdtfUtil.resolveTableFunction(
           buildContext.getFunctionRegistry(),
@@ -74,7 +74,7 @@ public final class StreamFlatMapBuilder {
           schema
       );
       final TableFunctionApplier tableFunctionApplier =
-          new TableFunctionApplier(tableFunction, expressionMetadataList);
+          new TableFunctionApplier(tableFunction, compiledExpressionList);
       tableFunctionAppliersBuilder.add(tableFunctionApplier);
     }
 

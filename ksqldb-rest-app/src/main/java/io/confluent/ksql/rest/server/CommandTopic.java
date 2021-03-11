@@ -104,14 +104,16 @@ public class CommandTopic {
   public List<QueuedCommand> getRestoreCommands(final Duration duration) {
     final List<QueuedCommand> restoreCommands = Lists.newArrayList();
 
+    final long endOffset = getEndOffset();
+
     commandConsumer.seekToBeginning(
         Collections.singletonList(commandTopicPartition));
 
-    log.debug("Reading prior command records");
-    ConsumerRecords<byte[], byte[]> records =
-        commandConsumer.poll(duration);
-    while (!records.isEmpty()) {
-      log.debug("Received {} records from poll", records.count());
+    log.info("Reading prior command records up to offset {}", endOffset);
+
+    while (commandConsumer.position(commandTopicPartition) < endOffset) {
+      final ConsumerRecords<byte[], byte[]> records = commandConsumer.poll(duration);
+      log.info("Received {} records from command topic restore poll", records.count());
       for (final ConsumerRecord<byte[], byte[]> record : records) {
         try {
           backupRecord(record);
@@ -132,7 +134,6 @@ public class CommandTopic {
                 Optional.empty(),
                 record.offset()));
       }
-      records = commandConsumer.poll(duration);
     }
     return restoreCommands;
   }

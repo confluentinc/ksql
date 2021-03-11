@@ -63,10 +63,13 @@ already contain a column named `ROWKEY`, the synthetic key column is named `ROWK
 ```sql
 -- given sources:
 CREATE STREAM S1 (ROWKEY INT KEY, V0 STRING) WITH (...);
-CREATE TABLE T1 (ID INT KEY, ROWKEY_1 INT) WITH (...);
+CREATE STREAM S2 (ID INT KEY, ROWKEY_1 INT) WITH (...);
 
 CREATE STREAM OUTPUT AS
-   SELECT * FROM S1 JOIN T1 ON ABS(S1.ROWKEY) = ABS(T1.ID);
+  SELECT * 
+  FROM S1 JOIN S2 
+  WITHIN 30 SECONDS 
+  ON ABS(S1.ROWKEY) = ABS(S2.ID);
 
 -- result in OUTPUT with synthetic key column name: ROWKEY_2
 ```

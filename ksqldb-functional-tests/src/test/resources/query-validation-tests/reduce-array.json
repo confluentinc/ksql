@@ -1,0 +1,56 @@
+{
+  "comments": [
+    "Tests covering the use of the REDUCE function with arrays."
+  ],
+  "tests": [
+    {
+      "name": "reduce an array",
+      "statements": [
+        "CREATE STREAM test (ID STRING KEY, numbers ARRAY<INTEGER>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, REDUCE(numbers, 2, (s, x) => s + x) AS reduce FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "one", "value": {"numbers": [3, 6]}},
+        {"topic": "test_topic", "key": "two", "value": {"numbers": [5, null]}},
+        {"topic": "test_topic", "key": "three", "value": {"numbers": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "one", "value": {"REDUCE": 11}},
+        {"topic": "OUTPUT", "key": "two", "value": {"REDUCE": null}},
+        {"topic": "OUTPUT", "key": "three", "value": {"REDUCE": 2}}
+      ]
+    },
+    {
+      "name": "reduce an array with null initial state",
+      "statements": [
+        "CREATE STREAM test (ID STRING KEY, numbers ARRAY<INTEGER>, state BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, REDUCE(numbers, state, (s, x) => s + x) AS reduce FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "one", "value": {"numbers": [1, 2], "state": null}},
+        {"topic": "test_topic", "key": "two", "value": {"numbers": null, "state": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "one", "value": {"REDUCE": null}},
+        {"topic": "OUTPUT", "key": "two", "value": {"REDUCE": null}}
+      ]
+    },
+    {
+      "name": "reduce a string array",
+      "statements": [
+        "CREATE STREAM test (ID STRING KEY, numbers ARRAY<STRING>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, REDUCE(numbers, '', (state, x) => concat(state, x)) AS reduce FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "one", "value": {"numbers": ["blah", "blah", "blaaah"]}},
+        {"topic": "test_topic", "key": "two", "value": {"numbers": ["to be or", null]}},
+        {"topic": "test_topic", "key": "three", "value": {"numbers": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "one", "value": {"REDUCE": "blahblahblaaah"}},
+        {"topic": "OUTPUT", "key": "two", "value": {"REDUCE": "to be or"}},
+        {"topic": "OUTPUT", "key": "three", "value": {"REDUCE": ""}}
+      ]
+    }
+  ]
+} 

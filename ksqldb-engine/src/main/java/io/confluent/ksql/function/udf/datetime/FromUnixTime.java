@@ -34,8 +34,11 @@ public class FromUnixTime {
   public Timestamp fromUnixTime(
       @UdfParameter(
           description = "Milliseconds since"
-              + " January 1, 1970, 00:00:00 GMT.") final long epochMilli
+              + " January 1, 1970, 00:00:00 GMT.") final Long epochMilli
   ) {
+    if (epochMilli == null) {
+      return null;
+    }
     return new Timestamp(epochMilli);
   }
 }

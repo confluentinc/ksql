@@ -24,6 +24,7 @@ import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.impl.BlockingQueryPublisher;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
@@ -99,7 +100,8 @@ public class QueryStreamRunner extends BasePerfRunner {
         final JsonObject properties,
         final Context context,
         final WorkerExecutor workerExecutor,
-        final ApiSecurityContext apiSecurityContext) {
+        final ApiSecurityContext apiSecurityContext,
+        final MetricsCallbackHolder metricsCallbackHolder) {
       QueryStreamPublisher publisher = new QueryStreamPublisher(context,
           server.getWorkerExecutor());
       publisher.setQueryHandle(new TestQueryHandle(), false);
@@ -138,7 +140,8 @@ public class QueryStreamRunner extends BasePerfRunner {
         CompletableFuture<Void> connectionClosedFuture,
         ApiSecurityContext apiSecurityContext,
         Optional<Boolean> isInternalRequest,
-        KsqlMediaType mediaType) {
+        KsqlMediaType mediaType,
+        final MetricsCallbackHolder metricsCallbackHolder) {
       return null;
     }
 

@@ -49,6 +49,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.StreamingOutput;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -79,10 +80,12 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamedRow.DataRow;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.server.validation.CustomValidators;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
@@ -121,12 +124,15 @@ import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.codehaus.plexus.util.StringUtils;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -184,7 +190,11 @@ public class StreamedQueryResourceTest {
   @Mock
   private RateLimiter rateLimiter;
   @Mock
+  private ConcurrencyLimiter concurrencyLimiter;
+  @Mock
   private KsqlConfig ksqlConfig;
+  @Mock
+  private KsqlRestConfig ksqlRestConfig;
   @Mock
   private PullQueryResult pullQueryResult;
   @Mock
@@ -193,6 +203,8 @@ public class StreamedQueryResourceTest {
   private HARouting haRouting;
   @Mock
   private PullQueryQueue pullQueryQueue;
+  @Captor
+  private ArgumentCaptor<Exception> exception;
 
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
@@ -212,11 +224,14 @@ public class StreamedQueryResourceTest {
     final PreparedStatement<Statement> pullQueryStatement = PreparedStatement.of(PULL_QUERY_STRING, pullQuery);
     when(mockStatementParser.parseSingleStatement(PULL_QUERY_STRING)).thenReturn(pullQueryStatement);
     when(errorsHandler.accessDeniedFromKafkaResponse(any(Exception.class))).thenReturn(AUTHORIZATION_ERROR_RESPONSE);
+    when(errorsHandler.generateResponse(exception.capture(), any()))
+        .thenReturn(EndpointResponse.failed(500));
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
     testResource =  new StreamedQueryResource(
         mockKsqlEngine,
+        ksqlRestConfig,
         mockStatementParser,
         commandQueue,
         DISCONNECT_CHECK_INTERVAL,
@@ -228,6 +243,7 @@ public class StreamedQueryResourceTest {
         Optional.empty(),
         routingFilterFactory,
         rateLimiter,
+        concurrencyLimiter,
         haRouting,
         Optional.empty()
     );
@@ -257,7 +273,8 @@ public class StreamedQueryResourceTest {
             new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
             new CompletableFuture<>(),
             Optional.empty(),
-            KsqlMediaType.LATEST_FORMAT
+            KsqlMediaType.LATEST_FORMAT,
+            new MetricsCallbackHolder()
         );
 
     // Then:
@@ -300,6 +317,7 @@ public class StreamedQueryResourceTest {
 
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
+        ksqlRestConfig,
         mockStatementParser,
         commandQueue,
         DISCONNECT_CHECK_INTERVAL,
@@ -311,6 +329,7 @@ public class StreamedQueryResourceTest {
         Optional.empty(),
         routingFilterFactory,
         pullQueryRateLimiter,
+        concurrencyLimiter,
         haRouting,
         Optional.empty()
     );
@@ -325,11 +344,33 @@ public class StreamedQueryResourceTest {
         new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
         new CompletableFuture<>(),
         Optional.empty(),
-        KsqlMediaType.LATEST_FORMAT
+        KsqlMediaType.LATEST_FORMAT,
+        new MetricsCallbackHolder()
     );
 
     // Then:
     assertThrows(KsqlException.class, () -> PullQueryExecutionUtil.checkRateLimit(pullQueryRateLimiter));
+  }
+
+  @Test
+  public void shouldReachConcurrentLimit() {
+    // Given:
+    when(rateLimiter.tryAcquire()).thenReturn(true);
+    when(concurrencyLimiter.increment()).thenThrow(new KsqlException("concurrencyLimiter Error!"));
+
+    // When:
+    final EndpointResponse response =
+        testResource.streamQuery(
+            securityContext,
+            new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+            new CompletableFuture<>(),
+            Optional.empty(),
+            KsqlMediaType.LATEST_FORMAT,
+            new MetricsCallbackHolder());
+
+    // Then:
+    assertThat(response.getStatus(), is(500));
+    assertThat(exception.getValue().getMessage(), containsString("concurrencyLimiter Error!"));
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -346,6 +387,7 @@ public class StreamedQueryResourceTest {
     // Given:
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
+        ksqlRestConfig,
         mockStatementParser,
         commandQueue,
         DISCONNECT_CHECK_INTERVAL,
@@ -357,6 +399,7 @@ public class StreamedQueryResourceTest {
         Optional.empty(),
         routingFilterFactory,
         rateLimiter,
+        concurrencyLimiter,
         haRouting,
         Optional.empty()
     );
@@ -369,7 +412,8 @@ public class StreamedQueryResourceTest {
             new KsqlRequest("query", Collections.emptyMap(), Collections.emptyMap(), null),
             new CompletableFuture<>(),
             Optional.empty(),
-            KsqlMediaType.LATEST_FORMAT
+            KsqlMediaType.LATEST_FORMAT,
+            new MetricsCallbackHolder()
         )
     );
 
@@ -392,7 +436,8 @@ public class StreamedQueryResourceTest {
             new KsqlRequest("query", Collections.emptyMap(), Collections.emptyMap(), null),
             new CompletableFuture<>(),
             Optional.empty(),
-            KsqlMediaType.LATEST_FORMAT
+            KsqlMediaType.LATEST_FORMAT,
+            new MetricsCallbackHolder()
         )
     );
 
@@ -410,7 +455,8 @@ public class StreamedQueryResourceTest {
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
         new CompletableFuture<>(),
         Optional.empty(),
-        KsqlMediaType.LATEST_FORMAT
+        KsqlMediaType.LATEST_FORMAT,
+        new MetricsCallbackHolder()
     );
 
     // Then:
@@ -425,7 +471,8 @@ public class StreamedQueryResourceTest {
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), 3L),
         new CompletableFuture<>(),
         Optional.empty(),
-        KsqlMediaType.LATEST_FORMAT
+        KsqlMediaType.LATEST_FORMAT,
+        new MetricsCallbackHolder()
     );
 
     // Then:
@@ -447,7 +494,8 @@ public class StreamedQueryResourceTest {
             new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), 3L),
             new CompletableFuture<>(),
             Optional.empty(),
-            KsqlMediaType.LATEST_FORMAT
+            KsqlMediaType.LATEST_FORMAT,
+            new MetricsCallbackHolder()
         )
     );
 
@@ -471,7 +519,8 @@ public class StreamedQueryResourceTest {
         new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
         new CompletableFuture<>(),
         Optional.empty(),
-        KsqlMediaType.LATEST_FORMAT
+        KsqlMediaType.LATEST_FORMAT,
+        new MetricsCallbackHolder()
     );
 
     // Then:
@@ -496,7 +545,8 @@ public class StreamedQueryResourceTest {
         new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
         new CompletableFuture<>(),
         Optional.empty(),
-        KsqlMediaType.LATEST_FORMAT
+        KsqlMediaType.LATEST_FORMAT,
+        new MetricsCallbackHolder()
     );
 
     final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
@@ -511,6 +561,7 @@ public class StreamedQueryResourceTest {
     when(mockStatementParser.<Query>parseSingleStatement(PULL_QUERY_STRING)).thenReturn(query);
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
+        ksqlRestConfig,
         mockStatementParser,
         commandQueue,
         DISCONNECT_CHECK_INTERVAL,
@@ -522,6 +573,7 @@ public class StreamedQueryResourceTest {
         Optional.empty(),
         routingFilterFactory,
         rateLimiter,
+        concurrencyLimiter,
         haRouting,
         Optional.empty()
       );
@@ -550,7 +602,8 @@ public class StreamedQueryResourceTest {
         ),
         new CompletableFuture<>(),
         Optional.empty(),
-        KsqlMediaType.LATEST_FORMAT
+        KsqlMediaType.LATEST_FORMAT,
+        new MetricsCallbackHolder()
     );
 
     // Then:
@@ -614,7 +667,9 @@ public class StreamedQueryResourceTest {
             queryCloseCallback,
             closeTimeout,
             10,
-            ResultType.STREAM
+            ResultType.STREAM,
+            0L,
+            0L
         );
 
     when(mockKsqlEngine.executeQuery(serviceContext,
@@ -622,13 +677,16 @@ public class StreamedQueryResourceTest {
             .of(query, SessionConfig.of(VALID_CONFIG, requestStreamsProperties)), false))
         .thenReturn(transientQueryMetadata);
 
+    when(ksqlRestConfig.getInt(KsqlRestConfig.MAX_PUSH_QUERIES)).thenReturn(Integer.MAX_VALUE);
+
     final EndpointResponse response =
         testResource.streamQuery(
             securityContext,
             new KsqlRequest(queryString, requestStreamsProperties, Collections.emptyMap(), null),
             new CompletableFuture<>(),
             Optional.empty(),
-            KsqlMediaType.LATEST_FORMAT
+            KsqlMediaType.LATEST_FORMAT,
+            new MetricsCallbackHolder()
         );
     final PipedOutputStream responseOutputStream = new EOFPipedOutputStream();
     final PipedInputStream responseInputStream = new PipedInputStream(responseOutputStream, 1);
@@ -692,7 +750,7 @@ public class StreamedQueryResourceTest {
     // Definitely want to make sure that the Kafka Streams instance has been closed and cleaned up
     verify(mockKafkaStreams).start();
     // called on init and when setting uncaught exception handler manually
-    verify(mockKafkaStreams, times(2)).setUncaughtExceptionHandler(any(Thread.UncaughtExceptionHandler.class));
+    verify(mockKafkaStreams, times(2)).setUncaughtExceptionHandler(any(StreamsUncaughtExceptionHandler.class));
     verify(mockKafkaStreams).cleanUp();
     verify(mockKafkaStreams).close(Duration.ofMillis(closeTimeout));
 
@@ -772,7 +830,8 @@ public class StreamedQueryResourceTest {
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
         new CompletableFuture<>(),
         Optional.empty(),
-        KsqlMediaType.LATEST_FORMAT
+        KsqlMediaType.LATEST_FORMAT,
+        new MetricsCallbackHolder()
     );
 
     // Then:
@@ -794,7 +853,8 @@ public class StreamedQueryResourceTest {
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
         new CompletableFuture<>(),
         Optional.empty(),
-        KsqlMediaType.LATEST_FORMAT
+        KsqlMediaType.LATEST_FORMAT,
+        new MetricsCallbackHolder()
     );
 
     final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
@@ -820,7 +880,8 @@ public class StreamedQueryResourceTest {
         new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), Collections.emptyMap(), null),
         new CompletableFuture<>(),
         Optional.empty(),
-        KsqlMediaType.LATEST_FORMAT
+        KsqlMediaType.LATEST_FORMAT,
+        new MetricsCallbackHolder()
     );
 
     assertEquals(response.getStatus(), AUTHORIZATION_ERROR_RESPONSE.getStatus());
@@ -851,7 +912,8 @@ public class StreamedQueryResourceTest {
             new KsqlRequest(PRINT_TOPIC, Collections.emptyMap(), Collections.emptyMap(), null),
             new CompletableFuture<>(),
             Optional.empty(),
-            KsqlMediaType.LATEST_FORMAT
+            KsqlMediaType.LATEST_FORMAT,
+            new MetricsCallbackHolder()
         )
     );
 

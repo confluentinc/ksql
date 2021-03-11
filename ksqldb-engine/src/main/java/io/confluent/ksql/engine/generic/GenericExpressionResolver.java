@@ -20,13 +20,14 @@ import static io.confluent.ksql.schema.ksql.types.SqlTypes.TIMESTAMP;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
+import io.confluent.ksql.execution.interpreter.InterpretedExpressionFactory;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
@@ -63,19 +64,22 @@ public class GenericExpressionResolver {
   private final FunctionRegistry functionRegistry;
   private final KsqlConfig config;
   private final String operation;
+  private final boolean shouldUseInterpreter;
 
   public GenericExpressionResolver(
       final SqlType fieldType,
       final ColumnName fieldName,
       final FunctionRegistry functionRegistry,
       final KsqlConfig config,
-      final String operation
+      final String operation,
+      final boolean shouldUseInterpreter
   ) {
     this.fieldType = Objects.requireNonNull(fieldType, "fieldType");
     this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.config = Objects.requireNonNull(config, "config");
     this.operation = Objects.requireNonNull(operation, "operation");
+    this.shouldUseInterpreter = shouldUseInterpreter;
   }
 
   public Object resolve(final Expression expression) {
@@ -87,17 +91,17 @@ public class GenericExpressionResolver {
     @Override
     protected Object visitExpression(final Expression expression, final Void context) {
       new EnsureNoColReferences(expression).process(expression, context);
-      final ExpressionMetadata metadata =
-          CodeGenRunner.compileExpression(
+      final ExpressionEvaluator evaluator = shouldUseInterpreter
+          ? InterpretedExpressionFactory.create(expression, NO_COLUMNS, functionRegistry, config)
+          : CodeGenRunner.compileExpression(
               expression,
               operation,
               NO_COLUMNS,
               config,
-              functionRegistry
-          );
+              functionRegistry);
 
       // we expect no column references, so we can pass in an empty generic row
-      final Object value = metadata.evaluate(new GenericRow(), null, THROWING_LOGGER, IGNORED_MSG);
+      final Object value = evaluator.evaluate(new GenericRow(), null, THROWING_LOGGER, IGNORED_MSG);
 
       return sqlValueCoercer.coerce(value, fieldType)
           .orElseThrow(() -> {

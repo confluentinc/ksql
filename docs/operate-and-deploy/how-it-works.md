@@ -89,7 +89,7 @@ object FraudFilteringApplication extends App {
 
   val builder: StreamsBuilder = new StreamsBuilder()
   val fraudulentPayments: KStream[String, Payment] = builder
-    .stream[String, Payment]("payments-kafka-topic")
+    .stream[String, Payment]("payments")
     .filter((_ ,payment) => payment.fraudProbability > 0.8)
   fraudulentPayments.to("fraudulent-payments-topic")
 

@@ -139,7 +139,9 @@ public class QueryDescriptionFactoryTest {
         queryCloseCallback,
         closeTimeout,
         10,
-        ResultType.STREAM
+        ResultType.STREAM,
+        0L,
+        0L
     );
 
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());
@@ -163,7 +165,9 @@ public class QueryDescriptionFactoryTest {
         QueryErrorClassifier.DEFAULT_CLASSIFIER,
         physicalPlan,
         10,
-        processingLogger
+        processingLogger,
+        0L,
+        0L
     );
 
     persistentQueryDescription = QueryDescriptionFactory.forQueryMetadata(persistentQuery, STATUS_MAP);
@@ -273,7 +277,9 @@ public class QueryDescriptionFactoryTest {
         queryCloseCallback,
         closeTimeout,
         10,
-        ResultType.STREAM
+        ResultType.STREAM,
+        0L,
+        0L
     );
 
     // When:
@@ -309,7 +315,9 @@ public class QueryDescriptionFactoryTest {
         queryCloseCallback,
         closeTimeout,
         10,
-        ResultType.STREAM
+        ResultType.STREAM,
+        0L,
+        0L
     );
 
     // When:

@@ -16,12 +16,12 @@
 package io.confluent.ksql.tools.migrations;
 
 import io.confluent.ksql.api.client.Client;
-import io.confluent.ksql.api.client.ServerInfo;
 import io.confluent.ksql.properties.PropertiesUtil;
+import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
+import io.confluent.ksql.tools.migrations.util.ServerVersionUtil;
 import java.io.File;
+import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
@@ -31,19 +31,34 @@ public final class MigrationConfig extends AbstractConfig {
 
   public static final String KSQL_SERVER_URL = "ksql.server.url";
 
+  public static final String KSQL_BASIC_AUTH_USERNAME = "ksql.auth.basic.username";
+  public static final String KSQL_BASIC_AUTH_PASSWORD = "ksql.auth.basic.password";
+
+  public static final String SSL_TRUSTSTORE_LOCATION = "ssl.truststore.location";
+  public static final String SSL_TRUSTSTORE_PASSWORD = "ssl.truststore.password";
+  public static final String SSL_KEYSTORE_LOCATION = "ssl.keystore.location";
+  public static final String SSL_KEYSTORE_PASSWORD = "ssl.keystore.password";
+  public static final String SSL_KEY_PASSWORD = "ssl.key.password";
+  public static final String SSL_KEY_ALIAS = "ssl.key.alias";
+  public static final String SSL_ALPN = "ssl.alpn";
+  public static final String SSL_VERIFY_HOST = "ssl.verify.host";
+
   public static final String KSQL_MIGRATIONS_STREAM_NAME = "ksql.migrations.stream.name";
-  public static final String KSQL_MIGRATIONS_STREAM_NAME_DEFAULT = "migration_events";
+  public static final String KSQL_MIGRATIONS_STREAM_NAME_DEFAULT = "MIGRATION_EVENTS";
   public static final String KSQL_MIGRATIONS_TABLE_NAME = "ksql.migrations.table.name";
-  public static final String KSQL_MIGRATIONS_TABLE_NAME_DEFAULT = "schema_version";
+  public static final String KSQL_MIGRATIONS_TABLE_NAME_DEFAULT = "MIGRATION_SCHEMA_VERSIONS";
   public static final String KSQL_MIGRATIONS_STREAM_TOPIC_NAME =
       "ksql.migrations.stream.topic.name";
   public static final String KSQL_MIGRATIONS_TABLE_TOPIC_NAME = "ksql.migrations.table.topic.name";
   public static final String KSQL_MIGRATIONS_TOPIC_REPLICAS = "ksql.migrations.topic.replicas";
   public static final int KSQL_MIGRATIONS_TOPIC_REPLICAS_DEFAULT = 1;
 
-  public static MigrationConfig load() {
+  public static final MigrationConfig DEFAULT_CONFIG =
+      new MigrationConfig(Collections.EMPTY_MAP, "ksql-service-id");
+
+  public static MigrationConfig load(final String configFile) {
     final Map<String, String> configsMap =
-        PropertiesUtil.loadProperties(new File("ksql-migrations.properties"));
+        PropertiesUtil.loadProperties(new File(configFile));
     return new MigrationConfig(configsMap, getServiceId(configsMap));
   }
 
@@ -55,8 +70,67 @@ public final class MigrationConfig extends AbstractConfig {
             "",
             Importance.HIGH,
             "The URL for the KSQL server"
-        )
-        .define(
+        ).define(
+            KSQL_BASIC_AUTH_USERNAME,
+            Type.STRING,
+            null,
+            Importance.MEDIUM,
+            "The username for the KSQL server"
+        ).define(
+            KSQL_BASIC_AUTH_PASSWORD,
+            Type.STRING,
+            null,
+            Importance.MEDIUM,
+            "The password for the KSQL server"
+        ).define(
+            SSL_TRUSTSTORE_LOCATION,
+            Type.STRING,
+            null,
+            Importance.MEDIUM,
+            "The trust store path"
+        ).define(
+            SSL_TRUSTSTORE_PASSWORD,
+            Type.STRING,
+            null,
+            Importance.MEDIUM,
+            "The trust store password"
+        ).define(
+            SSL_KEYSTORE_LOCATION,
+            Type.STRING,
+            null,
+            Importance.MEDIUM,
+            "The key store path"
+        ).define(
+            SSL_KEYSTORE_PASSWORD,
+            Type.STRING,
+            null,
+            Importance.MEDIUM,
+            "The key store password"
+        ).define(
+            SSL_KEY_PASSWORD,
+            Type.STRING,
+            null,
+            Importance.MEDIUM,
+            "The key password"
+        ).define(
+            SSL_KEY_ALIAS,
+            Type.STRING,
+            null,
+            Importance.MEDIUM,
+            "The key alias"
+        ).define(
+            SSL_ALPN,
+            Type.BOOLEAN,
+            false,
+            Importance.MEDIUM,
+            "Whether ALPN should be used. It defaults to false."
+        ).define(
+            SSL_VERIFY_HOST,
+            Type.BOOLEAN,
+            true,
+            Importance.MEDIUM,
+            "Whether hostname verification is enabled. It defaults to true."
+        ).define(
             KSQL_MIGRATIONS_STREAM_NAME,
             Type.STRING,
             KSQL_MIGRATIONS_STREAM_NAME_DEFAULT,
@@ -76,16 +150,16 @@ public final class MigrationConfig extends AbstractConfig {
             id + "ksql_" + configs
                 .getOrDefault(KSQL_MIGRATIONS_STREAM_NAME, KSQL_MIGRATIONS_STREAM_NAME_DEFAULT),
             Importance.MEDIUM,
-            "The name of the migration stream topic. It defaults to " + id + "ksql_" + configs
-                .getOrDefault(KSQL_MIGRATIONS_STREAM_NAME, KSQL_MIGRATIONS_STREAM_NAME_DEFAULT)
+            "The name of the migration stream topic. It defaults to "
+                + "'<ksql_service_id>ksql_<migrations_stream_name>'"
         ).define(
             KSQL_MIGRATIONS_TABLE_TOPIC_NAME,
             Type.STRING,
             id + "ksql_" + configs
                 .getOrDefault(KSQL_MIGRATIONS_TABLE_NAME, KSQL_MIGRATIONS_TABLE_NAME_DEFAULT),
             Importance.MEDIUM,
-            "The name of the migration table topic. It defaults to" + id + "ksql_" + configs
-                .getOrDefault(KSQL_MIGRATIONS_TABLE_NAME, KSQL_MIGRATIONS_TABLE_NAME_DEFAULT)
+            "The name of the migration table topic. It defaults to "
+                + "'<ksql_service_id>ksql_<migrations_table_name>'"
         ).define(
             KSQL_MIGRATIONS_TOPIC_REPLICAS,
             Type.INT,
@@ -93,33 +167,36 @@ public final class MigrationConfig extends AbstractConfig {
             Importance.MEDIUM,
             "The number of replicas for the migration stream topic. It defaults to "
                 + KSQL_MIGRATIONS_TOPIC_REPLICAS_DEFAULT
-        ), configs);
+        ), configs, false);
   }
 
   private static String getServiceId(final Map<String, String> configs) throws MigrationException {
-    final String ksqlServerUrl = configs.get(MigrationConfig.KSQL_SERVER_URL);
+    final String ksqlServerUrl = configs.get(KSQL_SERVER_URL);
     if (ksqlServerUrl == null) {
       throw new MigrationException("Missing required property: " + MigrationConfig.KSQL_SERVER_URL);
     }
 
-    final Client client = MigrationsUtil.getKsqlClient(ksqlServerUrl);
-    final CompletableFuture<ServerInfo> response = client.serverInfo();
-
+    final Client ksqlClient = MigrationsUtil.getKsqlClient(
+        ksqlServerUrl,
+        configs.get(KSQL_BASIC_AUTH_USERNAME),
+        configs.get(KSQL_BASIC_AUTH_PASSWORD),
+        configs.get(SSL_TRUSTSTORE_LOCATION),
+        configs.get(SSL_TRUSTSTORE_PASSWORD),
+        configs.get(SSL_KEYSTORE_LOCATION),
+        configs.get(SSL_KEYSTORE_PASSWORD),
+        configs.get(SSL_KEY_PASSWORD),
+        configs.get(SSL_KEY_ALIAS),
+        configs.getOrDefault(SSL_ALPN, "false").toLowerCase().equals("true"),
+        configs.getOrDefault(SSL_VERIFY_HOST, "true").toLowerCase().equals("true")
+    );
+    final String serviceId;
     try {
-      final String serviceId = response.get().getKsqlServiceId();
+      serviceId = ServerVersionUtil.getServerInfo(ksqlClient, ksqlServerUrl).getKsqlServiceId();
+      ksqlClient.close();
       return serviceId;
-    } catch (InterruptedException e) {
-      throw new MigrationException("Interrupted while attempting to connect to "
-          + ksqlServerUrl + "/info");
-    } catch (ExecutionException e) {
-      if (e.getCause() instanceof IllegalStateException) {
-        throw new MigrationException(e.getCause().getMessage()
-            + "\nPlease ensure that " + ksqlServerUrl + " is an active ksqlDB server and that the "
-            + "version of the migration tool is compatible with the version of the ksqlDB server.");
-      }
-      throw new MigrationException("Failed to query " + ksqlServerUrl + "/info: " + e.getMessage());
-    } finally {
-      client.close();
+    } catch (MigrationException e) {
+      ksqlClient.close();
+      throw e;
     }
   }
 }

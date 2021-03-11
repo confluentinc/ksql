@@ -192,7 +192,7 @@ public final class CastEvaluator {
       final Class<?> toJavaType = SchemaConverters.sqlToJavaConverter().toJavaType(to);
 
       final String lambdaBody = String.format(code, "val");
-      final String function = LambdaUtil.function("val", fromJavaType, lambdaBody);
+      final String function = LambdaUtil.toJavaCode("val", fromJavaType, lambdaBody);
       return NullSafe.generateApply(innerCode, function, toJavaType);
     };
   }
@@ -322,7 +322,7 @@ public final class CastEvaluator {
 
     final String lambdaBody = generateCode("val", fromItemType, toItemType, config);
 
-    return LambdaUtil.function("val", javaType, lambdaBody);
+    return LambdaUtil.toJavaCode("val", javaType, lambdaBody);
   }
 
   @FunctionalInterface

@@ -148,7 +148,8 @@ public class InteractiveStatementExecutorTest {
         serviceContext,
         new MetaStoreImpl(new InternalFunctionRegistry()),
         (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
-        hybridQueryIdGenerator
+        hybridQueryIdGenerator,
+        ksqlConfig
     );
 
     statementParser = new StatementParser(ksqlEngine);

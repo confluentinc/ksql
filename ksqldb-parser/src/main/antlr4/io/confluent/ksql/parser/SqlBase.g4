@@ -297,12 +297,17 @@ primaryExpression
     | MAP '(' (expression ASSIGN expression (',' expression ASSIGN expression)*)? ')'     #mapConstructor
     | STRUCT '(' (identifier ASSIGN expression (',' identifier ASSIGN expression)*)? ')'  #structConstructor
     | identifier '(' ASTERISK ')'                              		                        #functionCall
-    | identifier '(' (expression (',' expression)* (',' lambdaFunction)*)? ')'            #functionCall
+    | identifier '(' (functionArgument (',' functionArgument)* (',' lambdaFunction)*)? ')' #functionCall
     | value=primaryExpression '[' index=valueExpression ']'                               #subscript
     | identifier                                                                          #columnReference
     | identifier '.' identifier                                                           #qualifiedColumnReference
     | base=primaryExpression STRUCT_FIELD_REF fieldName=identifier                        #dereference
     | '(' expression ')'                                                                  #parenthesizedExpression
+    ;
+
+functionArgument
+    : expression
+    | windowUnit
     ;
 
 timeZoneSpecifier

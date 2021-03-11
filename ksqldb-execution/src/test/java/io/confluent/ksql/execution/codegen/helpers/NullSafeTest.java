@@ -14,7 +14,7 @@ public class NullSafeTest {
   public void shouldGenerateApply() {
     // Given:
     final String mapperCode = LambdaUtil
-        .function("val", Long.class, "val.longValue() + 1");
+        .toJavaCode("val", Long.class, "val.longValue() + 1");
 
     // When:
     final String javaCode = NullSafe
@@ -30,7 +30,7 @@ public class NullSafeTest {
   public void shouldGenerateApplyOrDefault() {
     // Given:
     final String mapperCode = LambdaUtil
-        .function("val", Long.class, "val.longValue() + 1");
+        .toJavaCode("val", Long.class, "val.longValue() + 1");
 
     // When:
     final String javaCode = NullSafe

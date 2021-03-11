@@ -96,6 +96,20 @@ to your ksqlDB Server properties file:
 ksql.fail.on.production.error=false
 ```
 
+## `ksql.functions.collect_list.limit`
+
+Limit the size of the resultant Array to N entries, beyond which
+any further values are silently ignored, by setting this configuration to N.
+
+Also see [aggregate-functions](/reference/aggregate-functions)
+
+## `ksql.functions.collect_set.limit`
+
+Limits the size of the resultant Set to N entries, beyond which
+any further values are silently ignored, by setting this configuration to N.
+
+Also see [aggregate-functions](/reference/aggregate-functions)
+
 ## `ksql.functions.substring.legacy.args`
 
 **Per query:** yes
@@ -504,6 +518,28 @@ SET 'ksql.query.pull.table.scan.enabled'='false';
 
 The server will reject requests that attempt to enable table scans. Disabling table scans per 
 request can be useful when throwing an error is preferable to doing the potentially expensive scan.
+
+## `ksql.query.pull.interpreter.enabled`
+
+**Per query:** yes
+
+Controls whether pull queries use the interpreter or the code compiler as their expression
+evaluator. The interpreter is the default. The code compiler is used
+for persistent and push queries, which are naturally longer-lived than pull queries. The overhead of compilation slows down pull queries significantly, so using an
+interpreter gives significant performance gains. This can be disabled per query if the code compiler
+is preferred.
+
+## `ksql.query.pull.max.qps`
+
+Sets a rate limit for pull queries, in queries per second. This limit is enforced per host, not per cluster.
+After hitting the limit, the host will fail pull query requests until it determines that it's no longer
+at the limit.
+
+## `ksql.query.pull.max.concurrent.requests`
+
+Sets the maximum number of concurrent pull queries. This limit is enforced per host, not per cluster.
+After hitting the limit, the host will fail pull query requests until it determines that it's no longer
+at the limit.
 
 ## `ksql.variable.substitution.enable`
 

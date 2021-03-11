@@ -52,6 +52,9 @@ public final class TableTableJoinBuilder {
         throw new IllegalStateException("invalid join type");
     }
 
-    return left.withTable(result, joinParams.getSchema());
+    return KTableHolder.unmaterialized(
+            result,
+            joinParams.getSchema(),
+            left.getExecutionKeyFactory());
   }
 }

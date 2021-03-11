@@ -13,6 +13,7 @@ import static org.junit.Assert.assertThrows;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.GenericType;
+import io.confluent.ksql.function.types.LambdaType;
 import io.confluent.ksql.function.types.MapType;
 import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.types.ParamTypes;
@@ -21,6 +22,8 @@ import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlIntervalUnit;
+import io.confluent.ksql.schema.ksql.types.SqlLambdaResolved;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -45,10 +48,18 @@ public class UdfIndexTest {
   private static final ParamType STRUCT2 = StructType.builder().field("b", INT).build();
   private static final ParamType MAP1 = MapType.of(STRING, STRING);
   private static final ParamType MAP2 = MapType.of(INT, INT);
+  private static final ParamType INTERVALUNIT = ParamTypes.INTERVALUNIT;
+  private static final ParamType LAMBDA_KEY_FUNCTION = LambdaType.of(ImmutableList.of(GenericType.of("A")), GenericType.of("C"));
+  private static final ParamType LAMBDA_VALUE_FUNCTION = LambdaType.of(ImmutableList.of(GenericType.of("B")), GenericType.of("D"));
+  private static final ParamType LAMBDA_BI_FUNCTION = LambdaType.of(ImmutableList.of(GenericType.of("A"), GenericType.of("B")), GenericType.of("C"));
+  private static final ParamType LAMBDA_BI_FUNCTION_STRING = LambdaType.of(ImmutableList.of(STRING, STRING), GenericType.of("A"));
 
   private static final ParamType GENERIC_LIST = ArrayType.of(GenericType.of("T"));
+  private static final ParamType GENERIC_MAP = MapType.of(GenericType.of("A"), GenericType.of("B"));
 
+  private static final SqlType ARRAY_ARG = SqlTypes.array(INTEGER);
   private static final SqlType MAP1_ARG = SqlTypes.map(SqlTypes.STRING, SqlTypes.STRING);
+  private static final SqlType MAP2_ARG = SqlTypes.map(SqlTypes.STRING, INTEGER);
   private static final SqlType DECIMAL1_ARG = SqlTypes.decimal(4, 2);
 
   private static final SqlType STRUCT1_ARG = SqlTypes.struct().field("a", SqlTypes.STRING).build();
@@ -56,6 +67,8 @@ public class UdfIndexTest {
 
   private static final FunctionName EXPECTED = FunctionName.of("expected");
   private static final FunctionName OTHER = FunctionName.of("other");
+  private static final FunctionName FIRST_FUNC = FunctionName.of("first_func");
+  private static final FunctionName SECOND_FUNC = FunctionName.of("second_func");
 
   private UdfIndex<KsqlScalarFunction> udfIndex;
 
@@ -229,6 +242,163 @@ public class UdfIndexTest {
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseIntervalUnit() {
+    // Given:
+    givenFunctions(
+        function(EXPECTED, false, INTERVALUNIT)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(SqlArgument.of(
+        SqlIntervalUnit.INSTANCE)));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseCorrectLambdaFunction() {
+    // Given:
+    givenFunctions(
+        function(FIRST_FUNC, false, GENERIC_MAP, LAMBDA_KEY_FUNCTION)
+    );
+    givenFunctions(
+        function(SECOND_FUNC, false, GENERIC_MAP, LAMBDA_VALUE_FUNCTION)
+    );
+
+    // When:
+    final KsqlScalarFunction first_fun = udfIndex.getFunction(
+        ImmutableList.of(
+            SqlArgument.of(MAP2_ARG),
+            SqlArgument.of(
+                SqlLambdaResolved.of(
+                    ImmutableList.of(SqlTypes.STRING),
+                    SqlTypes.STRING))));
+
+    final KsqlScalarFunction second_fun = udfIndex.getFunction(
+        ImmutableList.of(
+            SqlArgument.of(MAP2_ARG),
+            SqlArgument.of(
+                SqlLambdaResolved.of(
+                    ImmutableList.of(INTEGER),
+                    INTEGER))));
+
+    // Then:
+    assertThat(first_fun.name(), equalTo(FIRST_FUNC));
+    assertThat(second_fun.name(), equalTo(SECOND_FUNC));
+  }
+
+  @Test
+  public void shouldChooseCorrectLambdaBiFunction() {
+    // Given:
+    givenFunctions(
+        function(EXPECTED, false, GENERIC_MAP, LAMBDA_BI_FUNCTION)
+    );
+
+    // When:
+    final KsqlScalarFunction fun = udfIndex.getFunction(
+        ImmutableList.of(
+            SqlArgument.of(MAP1_ARG),
+            SqlArgument.of(
+                SqlLambdaResolved.of(
+                    ImmutableList.of(SqlTypes.STRING, SqlTypes.STRING),
+                    INTEGER))));
+
+    // Then:
+    assertThat(fun.name(), equalTo(EXPECTED));
+  }
+
+  @Test
+  public void shouldChooseCorrectLambdaForTypeSpecificCollections() {
+    // Given:
+    givenFunctions(
+        function(EXPECTED, false, MAP1, LAMBDA_BI_FUNCTION_STRING)
+    );
+
+    // When:
+    final KsqlScalarFunction fun1 = udfIndex.getFunction(
+        ImmutableList.of(
+            SqlArgument.of(MAP1_ARG),
+            SqlArgument.of(
+                SqlLambdaResolved.of(
+                    ImmutableList.of(SqlTypes.STRING, SqlTypes.STRING),
+                    SqlTypes.BOOLEAN))));
+
+    final KsqlScalarFunction fun2 = udfIndex.getFunction(
+        ImmutableList.of(
+            SqlArgument.of(MAP1_ARG),
+            SqlArgument.of(
+                SqlLambdaResolved.of(
+                    ImmutableList.of(SqlTypes.STRING, SqlTypes.STRING),
+                    INTEGER))));
+
+    final Exception e = assertThrows(
+        Exception.class,
+        () -> udfIndex.getFunction(
+            ImmutableList.of(
+                SqlArgument.of(MAP1_ARG),
+                SqlArgument.of(
+                    SqlLambdaResolved.of(
+                        ImmutableList.of(SqlTypes.BOOLEAN, INTEGER),
+                        INTEGER))))
+    );
+
+    // Then:
+    assertThat(fun1.name(), equalTo(EXPECTED));
+    assertThat(fun2.name(), equalTo(EXPECTED));
+    assertThat(e.getMessage(), containsString("does not accept parameters (" +
+        "MAP<STRING, STRING>, LAMBDA (BOOLEAN, INTEGER) => INTEGER)."));
+    assertThat(e.getMessage(), containsString("Valid alternatives are:"
+        + lineSeparator()
+        + "expected(MAP<VARCHAR, VARCHAR>, LAMBDA (VARCHAR, VARCHAR) => A)"));
+  }
+
+  @Test
+  public void shouldThrowOnInvalidLambdaMapping() {
+    // Given:
+    givenFunctions(
+        function(OTHER, false, GENERIC_MAP, LAMBDA_BI_FUNCTION)
+    );
+
+    // When:
+    final Exception e1 = assertThrows(
+        Exception.class,
+        () -> udfIndex.getFunction(
+            ImmutableList.of(
+                SqlArgument.of(MAP1_ARG),
+                SqlArgument.of(
+                    SqlLambdaResolved.of(
+                        ImmutableList.of(SqlTypes.BOOLEAN, SqlTypes.STRING),
+                        INTEGER))))
+    );
+
+    final Exception e2 = assertThrows(
+        Exception.class,
+        () -> udfIndex.getFunction(
+            ImmutableList.of(
+                SqlArgument.of(MAP1_ARG),
+                SqlArgument.of(
+                    SqlLambdaResolved.of(
+                        ImmutableList.of(SqlTypes.STRING, SqlTypes.STRING, SqlTypes.STRING),
+                        INTEGER)
+                )))
+    );
+
+    // Then:
+    assertThat(e1.getMessage(), containsString("does not accept parameters (" +
+        "MAP<STRING, STRING>, LAMBDA (BOOLEAN, STRING) => INTEGER)."));
+    assertThat(e1.getMessage(), containsString("Valid alternatives are:"
+        + lineSeparator()
+        + "other(MAP<A, B>, LAMBDA (A, B) => C)"));
+
+    assertThat(e2.getMessage(), containsString("does not accept parameters (" +
+        "MAP<STRING, STRING>, LAMBDA (STRING, STRING, STRING) => INTEGER)."));
+    assertThat(e2.getMessage(), containsString("Valid alternatives are:"
+        + lineSeparator()
+        + "other(MAP<A, B>, LAMBDA (A, B) => C)"));
   }
 
   @Test
@@ -459,7 +629,7 @@ public class UdfIndexTest {
     );
 
     // When:
-    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(SqlArgument.of(null), SqlArgument.of(null)));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(SqlArgument.of(null, null), SqlArgument.of(null, null)));
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));
@@ -474,7 +644,7 @@ public class UdfIndexTest {
     );
 
     // When:
-    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(SqlArgument.of(null), SqlArgument.of(null)));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(SqlArgument.of(null, null), SqlArgument.of(null, null)));
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));

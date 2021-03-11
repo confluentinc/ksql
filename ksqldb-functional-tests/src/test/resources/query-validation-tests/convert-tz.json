@@ -11,11 +11,13 @@
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": "100"},
-        {"topic": "test_topic", "key": "0", "value": "1589234313000"}
+        {"topic": "test_topic", "key": "0", "value": "1589234313000"},
+        {"topic": "test_topic", "key": "0", "value": null}
       ],
       "outputs": [
         {"topic": "TS", "key": "0", "value": "10800100"},
-        {"topic": "TS", "key": "0", "value": "1589245113000"}
+        {"topic": "TS", "key": "0", "value": "1589245113000"},
+        {"topic": "TS", "key": "0", "value": null}
       ]
     },
     {
@@ -26,11 +28,13 @@
       ],
       "inputs": [
         {"topic": "test_topic", "key": "0", "value": "100"},
-        {"topic": "test_topic", "key": "0", "value": "1589234313000"}
+        {"topic": "test_topic", "key": "0", "value": "1589234313000"},
+        {"topic": "test_topic", "key": "0", "value": null}
       ],
       "outputs": [
         {"topic": "TS", "key": "0", "value": "10800100"},
-        {"topic": "TS", "key": "0", "value": "1589245113000"}
+        {"topic": "TS", "key": "0", "value": "1589245113000"},
+        {"topic": "TS", "key": "0", "value": null}
       ]
     }
   ]

@@ -230,7 +230,14 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PULL_MAX_QPS_CONFIG = "ksql.query.pull.max.qps";
   public static final Integer KSQL_QUERY_PULL_MAX_QPS_DEFAULT = Integer.MAX_VALUE;
   public static final String KSQL_QUERY_PULL_MAX_QPS_DOC = "The maximum qps allowed for pull "
-      + "queries. Once the limit is hit, queries will fail immediately";
+      + "queries on this host. Once the limit is hit, queries will fail immediately";
+
+  public static final String KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_CONFIG
+      = "ksql.query.pull.max.concurrent.requests";
+  public static final Integer KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DEFAULT = Integer.MAX_VALUE;
+  public static final String KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DOC =
+      "The maximum number of concurrent requests allowed for pull "
+      + "queries on this host. Once the limit is hit, queries will fail immediately";
 
   public static final String KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG
       = "ksql.query.pull.thread.pool.size";
@@ -243,6 +250,14 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DOC =
       "Config to enable full table scans for pull queries";
   public static final boolean KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DEFAULT = false;
+
+  public static final String KSQL_QUERY_PULL_INTERPRETER_ENABLED
+      = "ksql.query.pull.interpreter.enabled";
+  public static final String KSQL_QUERY_PULL_INTERPRETER_ENABLED_DOC =
+      "Enables whether we use the interpreter for expression evaluation for pull queries, or the"
+          + "default code generator. They should produce the same results, but the interpreter is"
+          + " much faster for short-lived queries.";
+  public static final boolean KSQL_QUERY_PULL_INTERPRETER_ENABLED_DEFAULT = true;
 
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
@@ -329,6 +344,13 @@ public class KsqlConfig extends AbstractConfig {
   public static final Boolean KSQL_SUPPRESS_ENABLED_DEFAULT = false;
   public static final String KSQL_SUPPRESS_ENABLED_DOC =
       "Feature flag for suppression, specifically EMIT FINAL";
+
+  public static final String KSQL_LAMBDAS_ENABLED = "ksql.lambdas.enabled";
+  public static final Boolean KSQL_LAMBDAS_ENABLED_DEFAULT = true;
+  public static final String KSQL_LAMBDAS_ENABLED_DOC =
+      "Feature flag for lambdas. Default is true. If true, lambdas are processed normally, "
+          + "if false, new lambda queries won't be processed but any existing lambda "
+          + "queries are unaffected.";
 
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES = "ksql.suppress.buffer.size.bytes";
   public static final Long KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT = -1L;
@@ -774,6 +796,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_MAX_QPS_DOC
         )
         .define(
+            KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_CONFIG,
+            Type.INT,
+            KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DOC
+        )
+        .define(
             KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG,
             Type.INT,
             KSQL_QUERY_PULL_THREAD_POOL_SIZE_DEFAULT,
@@ -786,6 +815,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PULL_INTERPRETER_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PULL_INTERPRETER_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_INTERPRETER_ENABLED_DOC
         )
         .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,
@@ -877,6 +913,12 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT_DEFAULT,
             Importance.LOW,
             KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT_DOC
+        ).define(
+            KSQL_LAMBDAS_ENABLED,
+            Type.BOOLEAN,
+            KSQL_LAMBDAS_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_LAMBDAS_ENABLED_DOC
         )
         .withClientSslSupport();
 

@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 import io.confluent.ksql.planner.PullPlannerOptions;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 
 public class PullQueryConfigPlannerOptions implements PullPlannerOptions {
@@ -33,16 +32,17 @@ public class PullQueryConfigPlannerOptions implements PullPlannerOptions {
 
   @Override
   public boolean getTableScansEnabled() {
-    final boolean configured = ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED);
     if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED)) {
-      final boolean override
-          = (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED);
-      if (override && !configured) {
-        throw new KsqlException("You can only disable table scans with an override, "
-            + "not enable them.");
-      }
-      return override;
+      return (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED);
     }
-    return configured;
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED);
+  }
+
+  @Override
+  public boolean getInterpreterEnabled() {
+    if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)) {
+      return (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED);
+    }
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED);
   }
 }

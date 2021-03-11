@@ -22,7 +22,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
-public class LambdaVariable extends Literal {
+public class LambdaVariable extends Expression {
 
   private final String lambdaCharacter;
 
@@ -35,8 +35,7 @@ public class LambdaVariable extends Literal {
     this.lambdaCharacter = lambdaCharacter;
   }
 
-  @Override
-  public String getValue() {
+  public String getLambdaCharacter() {
     return lambdaCharacter;
   }
 

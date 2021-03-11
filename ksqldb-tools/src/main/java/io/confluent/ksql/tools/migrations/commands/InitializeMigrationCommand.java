@@ -16,20 +16,26 @@
 package io.confluent.ksql.tools.migrations.commands;
 
 import com.github.rvesse.airline.annotations.Command;
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
-import io.confluent.ksql.tools.migrations.MigrationsUtil;
+import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
+import io.confluent.ksql.tools.migrations.util.ServerVersionUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Command(
-    name = "initialize",
-    description = "Initializes the schema metadata (stream and table)."
+    name = InitializeMigrationCommand.INITIALIZE_COMMAND_NAME,
+    description = "Initializes the migrations schema metadata (ksqlDB stream and table) "
+        + "on the ksqlDB server."
 )
 public class InitializeMigrationCommand extends BaseCommand {
+
+  static final String INITIALIZE_COMMAND_NAME = "initialize-metadata";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(InitializeMigrationCommand.class);
 
@@ -42,7 +48,8 @@ public class InitializeMigrationCommand extends BaseCommand {
         + "  checksum     STRING,\n"
         + "  started_on   STRING,\n"
         + "  completed_on STRING,\n"
-        + "  previous     STRING\n"
+        + "  previous     STRING,\n"
+        + "  error_reason STRING\n"
         + ") WITH (  \n"
         + "  KAFKA_TOPIC='" + topic + "',\n"
         + "  VALUE_FORMAT='JSON',\n"
@@ -51,8 +58,12 @@ public class InitializeMigrationCommand extends BaseCommand {
         + ");\n";
   }
 
-  private String createVersionTable(final String name, final String topic) {
-    return "CREATE TABLE " + name + "\n"
+  private String createVersionTable(
+      final String tableName,
+      final String streamName,
+      final String topic
+  ) {
+    return "CREATE TABLE " + tableName + "\n"
         + "  WITH (\n"
         + "    KAFKA_TOPIC='" + topic + "'\n"
         + "  )\n"
@@ -64,45 +75,60 @@ public class InitializeMigrationCommand extends BaseCommand {
         + "    latest_by_offset(checksum) AS checksum, \n"
         + "    latest_by_offset(started_on) AS started_on, \n"
         + "    latest_by_offset(completed_on) AS completed_on, \n"
-        + "    latest_by_offset(previous) AS previous\n"
-        + "  FROM migration_events \n"
+        + "    latest_by_offset(previous) AS previous, \n"
+        + "    latest_by_offset(error_reason) AS error_reason \n"
+        + "  FROM " + streamName + " \n"
         + "  GROUP BY version_key;\n";
   }
 
   @Override
   protected int command() {
-    final MigrationConfig properties;
+    if (!validateConfigFilePresent()) {
+      return 1;
+    }
+
+    final MigrationConfig config;
     try {
-      properties = MigrationConfig.load();
+      config = MigrationConfig.load(getConfigFile());
     } catch (KsqlException | MigrationException e) {
       LOGGER.error(e.getMessage());
       return 1;
     }
 
-    final String streamName = properties.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME);
-    final String tableName = properties.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
+    return command(config, MigrationsUtil::getKsqlClient);
+  }
+
+  @VisibleForTesting
+  int command(
+      final MigrationConfig config,
+      final Function<MigrationConfig, Client> clientSupplier
+  ) {
+    final String streamName = config.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME);
+    final String tableName = config.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
     final String eventStreamCommand = createEventStream(
         streamName,
-        properties.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_TOPIC_NAME),
-        properties.getInt(MigrationConfig.KSQL_MIGRATIONS_TOPIC_REPLICAS)
+        config.getString(MigrationConfig.KSQL_MIGRATIONS_STREAM_TOPIC_NAME),
+        config.getInt(MigrationConfig.KSQL_MIGRATIONS_TOPIC_REPLICAS)
     );
     final String versionTableCommand = createVersionTable(
         tableName,
-        properties.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_TOPIC_NAME)
+        streamName,
+        config.getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_TOPIC_NAME)
     );
-    final String ksqlServerUrl = properties.getString(MigrationConfig.KSQL_SERVER_URL);
-    final Client ksqlClient;
 
+    final Client ksqlClient;
     try {
-      ksqlClient = MigrationsUtil.getKsqlClient(ksqlServerUrl);
+      ksqlClient = clientSupplier.apply(config);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
       return 1;
     }
 
-    if (tryCreate(ksqlClient, eventStreamCommand, streamName, true)
+    LOGGER.info("Initializing migrations metadata");
+    if (ServerVersionUtil.serverVersionCompatible(ksqlClient, config)
+        && tryCreate(ksqlClient, eventStreamCommand, streamName, true)
         && tryCreate(ksqlClient, versionTableCommand, tableName, false)) {
-      LOGGER.info("Schema metadata initialized successfully");
+      LOGGER.info("Migrations metadata initialized successfully");
       ksqlClient.close();
     } else {
       ksqlClient.close();
@@ -112,7 +138,7 @@ public class InitializeMigrationCommand extends BaseCommand {
     return 0;
   }
 
-  private boolean tryCreate(
+  private static boolean tryCreate(
       final Client client,
       final String command,
       final String name,

@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -57,6 +58,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
+import io.confluent.ksql.rest.client.KsqlUnsupportedServerException;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -73,6 +75,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
+import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.ItemDataProvider;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -907,6 +910,79 @@ public class CliTest {
   }
 
   @Test
+  public void shouldFailOnUnsupportedCpServerVersion() throws Exception {
+    givenRunInteractivelyWillExit();
+
+    final KsqlRestClient mockRestClient = givenMockRestClient("5.5.0-0");
+
+    assertThrows(
+        KsqlUnsupportedServerException.class,
+        () -> new Cli(1L, 1L, mockRestClient, console)
+            .runInteractively()
+    );
+  }
+
+  @Test
+  public void shouldFailOnUnsupportedStandaloneServerVersion() throws Exception {
+    givenRunInteractivelyWillExit();
+
+    final KsqlRestClient mockRestClient = givenMockRestClient("0.9.0-0");
+
+    assertThrows(
+        KsqlUnsupportedServerException.class,
+        () -> new Cli(1L, 1L, mockRestClient, console)
+            .runInteractively()
+    );
+  }
+
+  @Test
+  public void shouldPrintWarningOnDifferentCpServerVersion() throws Exception {
+    givenRunInteractivelyWillExit();
+
+    final KsqlRestClient mockRestClient = givenMockRestClient("6.0.0-0");
+
+    new Cli(1L, 1L, mockRestClient, console)
+        .runInteractively();
+
+    assertThat(
+        terminal.getOutputString(),
+        containsString("WARNING: CLI and server version don't match."
+            + " This may lead to unexpected errors.")
+    );
+  }
+
+  @Test
+  public void shouldPrintWarningOnDifferentStandaloneServerVersion() throws Exception {
+    givenRunInteractivelyWillExit();
+
+    final KsqlRestClient mockRestClient = givenMockRestClient("0.10.0-0");
+
+    new Cli(1L, 1L, mockRestClient, console)
+        .runInteractively();
+
+    assertThat(
+        terminal.getOutputString(),
+        containsString("WARNING: CLI and server version don't match."
+            + " This may lead to unexpected errors.")
+    );
+  }
+
+  @Test
+  public void shouldPrintWarningOnUnknownServerVersion() throws Exception {
+    givenRunInteractivelyWillExit();
+
+    final KsqlRestClient mockRestClient = givenMockRestClient("bad-version");
+
+    new Cli(1L, 1L, mockRestClient, console)
+        .runInteractively();
+
+    assertThat(
+        terminal.getOutputString(),
+        containsString("WARNING: Could not identify server version.")
+    );
+  }
+
+  @Test
   public void shouldListFunctions() {
     assertRunListCommand("functions", hasRows(
         row("TIMESTAMPTOSTRING", "DATE / TIME"),
@@ -1269,11 +1345,15 @@ public class CliTest {
   }
 
   private KsqlRestClient givenMockRestClient() throws Exception {
+    return givenMockRestClient("100.0.0-0");
+  }
+
+  private KsqlRestClient givenMockRestClient(final String serverVersion) throws Exception {
     final KsqlRestClient mockRestClient = mock(KsqlRestClient.class);
 
     when(mockRestClient.getServerInfo()).thenReturn(RestResponse.successful(
         OK.code(),
-        new ServerInfo("1.x", "testClusterId", "testServiceId", "status")
+        new ServerInfo(serverVersion, "testClusterId", "testServiceId", "status")
     ));
 
     when(mockRestClient.getServerAddress()).thenReturn(new URI("http://someserver:8008"));
@@ -1323,7 +1403,7 @@ public class CliTest {
     verify(mockRestClient).makeKsqlRequest(statementText, seqNum);
   }
 
-  @SuppressWarnings({"unchecked", "rawtypes"})
+  @SuppressWarnings("unchecked")
   private static Matcher<String>[] prependWithKey(final String key, final List<?> values) {
 
     final Matcher<String>[] allMatchers = new Matcher[values.size() + 1];

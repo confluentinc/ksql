@@ -198,7 +198,13 @@ public class UdfIndex<T extends FunctionSignature> {
     LOG.debug("Current UdfIndex:\n{}", describe());
 
     final String requiredTypes = paramTypes.stream()
-        .map(type -> type == null ? "null" : type.getSqlType().toString(FormatOptions.noEscape()))
+        .map(argument -> {
+          if (argument == null) {
+            return "null";
+          } else {
+            return argument.toString(FormatOptions.noEscape());
+          }
+        })
         .collect(Collectors.joining(", ", "(", ")"));
 
     final String acceptedTypes = allFunctions.values().stream()
@@ -351,38 +357,16 @@ public class UdfIndex<T extends FunctionSignature> {
     // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
     boolean accepts(final SqlArgument argument, final Map<GenericType, SqlType> reservedGenerics,
         final boolean allowCasts) {
-      if (argument == null || argument.getSqlType() == null) {
+      if (argument == null
+          || (!argument.getSqlLambda().isPresent() && !argument.getSqlType().isPresent())) {
         return true;
       }
 
       if (GenericsUtil.hasGenerics(type)) {
-        return reserveGenerics(type, argument, reservedGenerics);
+        return GenericsUtil.reserveGenerics(type, argument, reservedGenerics).getLeft();
       }
 
       return ParamTypes.areCompatible(argument, type, allowCasts);
-    }
-    // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
-
-    private static boolean reserveGenerics(
-        final ParamType schema,
-        final SqlArgument argument,
-        final Map<GenericType, SqlType> reservedGenerics
-    ) {
-      if (!GenericsUtil.instanceOf(schema, argument)) {
-        return false;
-      }
-
-      final Map<GenericType, SqlType> genericMapping = GenericsUtil
-          .resolveGenerics(schema, argument);
-
-      for (final Entry<GenericType, SqlType> entry : genericMapping.entrySet()) {
-        final SqlType old = reservedGenerics.putIfAbsent(entry.getKey(), entry.getValue());
-        if (old != null && !old.equals(entry.getValue())) {
-          return false;
-        }
-      }
-
-      return true;
     }
 
     @Override

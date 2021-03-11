@@ -69,6 +69,12 @@ Follow compact lessons that help you work with common ksqlDB functionality.
 </div>
 
 <div class="cards">
+  <div class="card how-to-guide">
+    <strong>Transforming columns with structured data</strong>
+    <p class="card-body"><small>Transform columns of structured data without user-defined functions.</small></p>
+    <span><a href="/how-to-guides/use-lambda-functions">Learn →</a></span>
+  </div>
+  
   <div class="card how-to-guide contribute">
     <a href="https://github.com/confluentinc/ksql"><strong>Help us write another?</strong></a>
     <p class="card-body"><small>We're always looking for more guides. Just send a pull request!</small></p>

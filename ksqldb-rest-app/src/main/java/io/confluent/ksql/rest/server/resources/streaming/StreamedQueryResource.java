@@ -21,6 +21,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.PullQueryValidator;
+import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.PullQueryExecutionUtil;
@@ -38,12 +39,16 @@ import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
+import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -86,14 +91,17 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
+  private final ConcurrencyLimiter concurrencyLimiter;
   private final HARouting routing;
   private final Optional<LocalCommands> localCommands;
 
   private KsqlConfig ksqlConfig;
+  private KsqlRestConfig ksqlRestConfig;
 
   @SuppressWarnings("checkstyle:ParameterNumber")
   public StreamedQueryResource(
       final KsqlEngine ksqlEngine,
+      final KsqlRestConfig ksqlRestConfig,
       final CommandQueue commandQueue,
       final Duration disconnectCheckInterval,
       final Duration commandQueueCatchupTimeout,
@@ -104,11 +112,13 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
+      final ConcurrencyLimiter concurrencyLimiter,
       final HARouting routing,
       final Optional<LocalCommands> localCommands
   ) {
     this(
         ksqlEngine,
+        ksqlRestConfig,
         new StatementParser(ksqlEngine),
         commandQueue,
         disconnectCheckInterval,
@@ -120,6 +130,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         pullQueryMetrics,
         routingFilterFactory,
         rateLimiter,
+        concurrencyLimiter,
         routing,
         localCommands
     );
@@ -130,6 +141,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   StreamedQueryResource(
       // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
       final KsqlEngine ksqlEngine,
+      final KsqlRestConfig ksqlRestConfig,
       final StatementParser statementParser,
       final CommandQueue commandQueue,
       final Duration disconnectCheckInterval,
@@ -141,10 +153,12 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
+      final ConcurrencyLimiter concurrencyLimiter,
       final HARouting routing,
       final Optional<LocalCommands> localCommands
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
+    this.ksqlRestConfig = Objects.requireNonNull(ksqlRestConfig, "ksqlRestConfig");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
     this.disconnectCheckInterval =
@@ -161,6 +175,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
+    this.concurrencyLimiter = Objects.requireNonNull(concurrencyLimiter, "concurrencyLimiter");
     this.routing = Objects.requireNonNull(routing, "routing");
     this.localCommands = Objects.requireNonNull(localCommands, "localCommands");
   }
@@ -179,7 +194,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final KsqlRequest request,
       final CompletableFuture<Void> connectionClosedFuture,
       final Optional<Boolean> isInternalRequest,
-      final KsqlMediaType mediaType
+      final KsqlMediaType mediaType,
+      final MetricsCallbackHolder metricsCallbackHolder
   ) {
     throwIfNotConfigured();
     activenessRegistrar.updateLastRequestTime();
@@ -190,7 +206,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         commandQueue, request, commandQueueCatchupTimeout);
 
     return handleStatement(securityContext, request, statement, connectionClosedFuture,
-        isInternalRequest, mediaType);
+        isInternalRequest, mediaType, metricsCallbackHolder);
   }
 
   private void throwIfNotConfigured() {
@@ -219,7 +235,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final PreparedStatement<?> statement,
       final CompletableFuture<Void> connectionClosedFuture,
       final Optional<Boolean> isInternalRequest,
-      final KsqlMediaType mediaType
+      final KsqlMediaType mediaType,
+      final MetricsCallbackHolder metricsCallbackHolder
   ) {
     try {
       authorizationValidator.ifPresent(validator ->
@@ -241,8 +258,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
               configProperties,
               request.getRequestProperties(),
               isInternalRequest,
-              pullQueryMetrics,
-              connectionClosedFuture
+              connectionClosedFuture,
+              metricsCallbackHolder
           );
         }
 
@@ -281,9 +298,18 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Map<String, Object> configOverrides,
       final Map<String, Object> requestProperties,
       final Optional<Boolean> isInternalRequest,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final CompletableFuture<Void> connectionClosedFuture
+      final CompletableFuture<Void> connectionClosedFuture,
+      final MetricsCallbackHolder metricsCallbackHolder
   ) {
+    // First thing, set the metrics callback so that it gets called, even if we hit an error
+    metricsCallbackHolder.setCallback((requestBytes, responseBytes, startTimeNanos) -> {
+      pullQueryMetrics.ifPresent(metrics -> {
+        metrics.recordRequestSize(requestBytes);
+        metrics.recordResponseSize(responseBytes);
+        metrics.recordLatency(startTimeNanos);
+      });
+    });
+
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, configOverrides));
 
@@ -318,29 +344,40 @@ public class StreamedQueryResource implements KsqlConfigurable {
         && isInternalRequest.orElse(true);
 
     // Only check the rate limit at the forwarding host
+    Decrementer decrementer = null;
     if (!isAlreadyForwarded) {
       PullQueryExecutionUtil.checkRateLimit(rateLimiter);
+      decrementer = concurrencyLimiter.increment();
     }
+    final Optional<Decrementer> optionalDecrementer = Optional.ofNullable(decrementer);
 
-    final PullQueryResult result = ksqlEngine.executePullQuery(
-        serviceContext,
-        configured,
-        routing,
-        routingOptions,
-        plannerOptions,
-        pullQueryMetrics,
-        true
-    );
+    try {
+      final PullQueryResult result = ksqlEngine.executePullQuery(
+          serviceContext,
+          configured,
+          routing,
+          routingOptions,
+          plannerOptions,
+          pullQueryMetrics,
+          true
+      );
+      result.onCompletionOrException((v, t) -> {
+        optionalDecrementer.ifPresent(Decrementer::decrementAtMostOnce);
+      });
 
-    final PullQueryStreamWriter pullQueryStreamWriter = new PullQueryStreamWriter(
-        result,
-        disconnectCheckInterval.toMillis(),
-        OBJECT_MAPPER,
-        result.getPullQueryQueue(),
-        Clock.systemUTC(),
-        connectionClosedFuture);
+      final PullQueryStreamWriter pullQueryStreamWriter = new PullQueryStreamWriter(
+          result,
+          disconnectCheckInterval.toMillis(),
+          OBJECT_MAPPER,
+          result.getPullQueryQueue(),
+          Clock.systemUTC(),
+          connectionClosedFuture);
 
-    return EndpointResponse.ok(pullQueryStreamWriter);
+      return EndpointResponse.ok(pullQueryStreamWriter);
+    } catch (Throwable t) {
+      optionalDecrementer.ifPresent(Decrementer::decrementAtMostOnce);
+      throw t;
+    }
   }
 
   private EndpointResponse handlePushQuery(
@@ -352,6 +389,14 @@ public class StreamedQueryResource implements KsqlConfigurable {
   ) {
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, streamsProperties));
+
+    if (QueryCapacityUtil.exceedsPushQueryCapacity(ksqlEngine, ksqlRestConfig)) {
+      QueryCapacityUtil.throwTooManyActivePushQueriesException(
+              ksqlEngine,
+              ksqlRestConfig,
+              statement.getStatementText()
+      );
+    }
 
     final TransientQueryMetadata query = ksqlEngine
         .executeQuery(serviceContext, configured, false);

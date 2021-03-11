@@ -56,7 +56,7 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
       throw new KsqlException("TOPKDISTINCT function should have two arguments.");
     }
     final int tkValFromArg = (Integer)(initArgs.arg(0));
-    final SqlType argSchema = argTypeList.get(0).getSqlType();
+    final SqlType argSchema = argTypeList.get(0).getSqlTypeOrThrow();
     switch (argSchema.baseType()) {
       case INTEGER:
       case BIGINT:

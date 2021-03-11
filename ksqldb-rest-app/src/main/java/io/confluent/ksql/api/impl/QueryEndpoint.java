@@ -17,6 +17,7 @@ package io.confluent.ksql.api.impl;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
+import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.config.SessionConfig;
@@ -58,7 +59,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.utils.Time;
 
 public class QueryEndpoint {
 
@@ -99,8 +99,8 @@ public class QueryEndpoint {
       final JsonObject properties,
       final Context context,
       final WorkerExecutor workerExecutor,
-      final ServiceContext serviceContext) {
-    final long startTimeNanos = Time.SYSTEM.nanoseconds();
+      final ServiceContext serviceContext,
+      final MetricsCallbackHolder metricsCallbackHolder) {
     // Must be run on worker as all this stuff is slow
     VertxUtils.checkIsWorker();
 
@@ -108,8 +108,8 @@ public class QueryEndpoint {
 
     if (statement.getStatement().isPullQuery()) {
       return createPullQueryPublisher(
-          context, serviceContext, statement, pullQueryMetrics,
-          startTimeNanos, workerExecutor);
+          context, serviceContext, statement, pullQueryMetrics, workerExecutor,
+          metricsCallbackHolder);
     } else {
       return createPushQueryPublisher(context, serviceContext, statement, workerExecutor);
     }
@@ -146,9 +146,17 @@ public class QueryEndpoint {
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final long startTimeNanos,
-      final WorkerExecutor workerExecutor
+      final WorkerExecutor workerExecutor,
+      final MetricsCallbackHolder metricsCallbackHolder
   ) {
+    // First thing, set the metrics callback so that it gets called, even if we hit an error
+    metricsCallbackHolder.setCallback((requestBytes, responseBytes, startTimeNanos) -> {
+      pullQueryMetrics.ifPresent(metrics -> {
+        metrics.recordRequestSize(requestBytes);
+        metrics.recordResponseSize(responseBytes);
+        metrics.recordLatency(startTimeNanos);
+      });
+    });
 
     final RoutingOptions routingOptions = new PullQueryConfigRoutingOptions(
         ksqlConfig,
@@ -177,9 +185,6 @@ public class QueryEndpoint {
 
       result.onCompletionOrException((v, throwable) -> {
         decrementer.decrementAtMostOnce();
-        if (throwable == null) {
-          pullQueryMetrics.ifPresent(p -> p.recordLatency(startTimeNanos));
-        }
       });
 
       final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);

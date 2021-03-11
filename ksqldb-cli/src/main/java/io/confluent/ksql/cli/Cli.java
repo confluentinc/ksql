@@ -521,7 +521,6 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
   private void setProperty(final String property, final String value) {
     final Object priorValue = restClient.setProperty(property, value);
-
     terminal.writer().printf(
         "Successfully changed local property '%s'%s to '%s'.%s%n",
         property,

@@ -41,37 +41,28 @@ public class NewMigrationCommandTest {
 
   private static final String KSQL_SERVER_URL = "http://localhost:8088";
 
-  private static final String DEFAULT_CONFIGS = "ksql.server.url=http://localhost:8088\n"
-      + "# The key store path\n"
-      + "# ssl.keystore.location=null\n"
-      + "# The name of the migration table. It defaults to MIGRATION_SCHEMA_VERSIONS\n"
-      + "# ksql.migrations.table.name=MIGRATION_SCHEMA_VERSIONS\n"
-      + "# The username for the KSQL server\n"
-      + "# ksql.auth.basic.username=null\n"
-      + "# The password for the KSQL server\n"
-      + "# ksql.auth.basic.password=null\n"
-      + "# The name of the migration stream topic. It defaults to '<ksql_service_id>ksql_<migrations_stream_name>'\n"
-      + "# ksql.migrations.stream.topic.name=ksql-service-idksql_MIGRATION_EVENTS\n"
-      + "# The name of the migration table topic. It defaults to '<ksql_service_id>ksql_<migrations_table_name>'\n"
-      + "# ksql.migrations.table.topic.name=ksql-service-idksql_MIGRATION_SCHEMA_VERSIONS\n"
-      + "# The trust store path\n"
-      + "# ssl.truststore.location=null\n"
-      + "# The key store password\n"
-      + "# ssl.keystore.password=null\n"
-      + "# The number of replicas for the migration stream topic. It defaults to 1\n"
-      + "# ksql.migrations.topic.replicas=1\n"
-      + "# The key password\n"
-      + "# ssl.key.password=null\n"
-      + "# Whether hostname verification is enabled. It defaults to true.\n"
-      + "# ssl.verify.host=true\n"
-      + "# The trust store password\n"
-      + "# ssl.truststore.password=null\n"
-      + "# The key alias\n"
-      + "# ssl.key.alias=null\n"
-      + "# The name of the migration stream. It defaults to MIGRATION_EVENTS\n"
-      + "# ksql.migrations.stream.name=MIGRATION_EVENTS\n"
-      + "# Whether ALPN should be used. It defaults to false.\n"
-      + "# ssl.alpn=false\n";
+  private static final String DEFAULT_CONFIGS = "ksql.server.url=" + KSQL_SERVER_URL + "\n" +
+      "\n" +
+      "# Migrations metadata configs:\n" +
+      "# ksql.migrations.stream.name=MIGRATION_EVENTS\n" +
+      "# ksql.migrations.table.name=MIGRATION_SCHEMA_VERSIONS\n" +
+      "# ksql.migrations.stream.topic.name=ksql-service-idksql_MIGRATION_EVENTS\n" +
+      "# ksql.migrations.table.topic.name=ksql-service-idksql_MIGRATION_SCHEMA_VERSIONS\n" +
+      "# ksql.migrations.topic.replicas=1\n" +
+      "\n" +
+      "# TLS configs:\n" +
+      "# ssl.truststore.location=\n" +
+      "# ssl.truststore.password=\n" +
+      "# ssl.keystore.location=\n" +
+      "# ssl.keystore.password=\n" +
+      "# ssl.key.password=\n" +
+      "# ssl.key.alias=\n" +
+      "# ssl.alpn=false\n" +
+      "# ssl.verify.host=true\n" +
+      "\n" +
+      "# ksqlDB server authentication configs:\n" +
+      "# ksql.auth.basic.username=\n" +
+      "# ksql.auth.basic.password=\n";
 
   @Rule
   public TemporaryFolder folder = new TemporaryFolder();

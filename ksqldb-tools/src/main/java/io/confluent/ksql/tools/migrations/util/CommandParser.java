@@ -16,6 +16,7 @@
 package io.confluent.ksql.tools.migrations.util;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
@@ -27,9 +28,11 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.metastore.TypeRegistry;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import java.util.ArrayList;
@@ -61,12 +64,24 @@ public final class CommandParser {
   private static final String CONNECTOR = "CONNECTOR";
   private static final String SET = "SET";
   private static final String UNSET = "UNSET";
+  private static final String DEFINE = "DEFINE";
+  private static final String UNDEFINE = "UNDEFINE";
+  private static final String DESCRIBE = "DESCRIBE";
+  private static final String EXPLAIN = "EXPLAIN";
+  private static final String PRINT = "PRINT";
+  private static final String SHOW = "SHOW";
+  private static final String LIST = "LIST";
+  private static final String RUN = "RUN";
+  private static final String SCRIPT = "SCRIPT";
   private static final String SHORT_COMMENT_OPENER = "--";
   private static final String SHORT_COMMENT_CLOSER = "\n";
   private static final String LONG_COMMENT_OPENER = "/*";
   private static final String LONG_COMMENT_CLOSER = "*/";
   private static final char SINGLE_QUOTE = '\'';
   private static final char SEMICOLON = ';';
+  private static final List<String> UNSUPPORTED_STATEMENTS = ImmutableList.of(
+      DEFINE, UNDEFINE, DESCRIBE, EXPLAIN, SELECT, PRINT, SHOW, LIST
+  );
 
   private enum StatementType {
     INSERT_VALUES,
@@ -85,13 +100,13 @@ public final class CommandParser {
         .collect(Collectors.toList());
   }
 
-  /*
+  /**
   * Splits a string of sql commands into a list of commands and filters out the comments.
   * Note that escaped strings are not handled, because they end up getting split into two adjacent
   * strings and are pieced back together afterwards.
   *
-  * @return a list of strings
-  * */
+  * @return list of commands with comments removed
+  */
   @VisibleForTesting
   static List<String> splitSql(final String sql) {
     final List<String> commands = new ArrayList<>();
@@ -120,21 +135,26 @@ public final class CommandParser {
       }
     }
 
+    if (!current.toString().trim().isEmpty()) {
+      throw new MigrationException("Unmatched command at end of file; missing semicolon: '"
+          + current.toString() + "'");
+    }
+
     return commands;
   }
 
-  /*
+  /**
   * Converts an expression into a Java object.
-  **/
+  */
   private static void validateToken(final String token, final int index) {
     if (index < 0) {
       throw new MigrationException("Invalid sql - failed to find closing token '" + token + "'");
     }
   }
 
-  /*
+  /**
   * Converts a generic expression into the proper Java type.
-  **/
+  */
   public static Object toFieldType(final Expression expressionValue) {
     if (expressionValue instanceof StringLiteral) {
       return ((StringLiteral) expressionValue).getValue();
@@ -152,7 +172,7 @@ public final class CommandParser {
       return ((CreateArrayExpression) expressionValue)
           .getValues()
           .stream()
-          .map(val -> toFieldType(val)).collect(Collectors.toList());
+          .map(CommandParser::toFieldType).collect(Collectors.toList());
     } else if (expressionValue instanceof CreateMapExpression) {
       final Map<Object, Object> resolvedMap = new HashMap<>();
       ((CreateMapExpression) expressionValue).getMap()
@@ -161,7 +181,7 @@ public final class CommandParser {
     } else if (expressionValue instanceof CreateStructExpression) {
       final Map<Object, Object> resolvedStruct = new HashMap<>();
       ((CreateStructExpression) expressionValue)
-          .getFields().stream().forEach(
+          .getFields().forEach(
               field -> resolvedStruct.put(field.getName(), toFieldType(field.getValue())));
       return resolvedStruct;
     }
@@ -169,9 +189,9 @@ public final class CommandParser {
         + expressionValue.toString());
   }
 
-  /*
+  /**
   * Determines the type of command a sql string is and returns a SqlCommand.
-  **/
+  */
   private static SqlCommand transformToSqlCommand(final String sql) {
     final List<String> tokens = Arrays
         .stream(sql.toUpperCase().split(QUOTED_STRING_OR_WHITESPACE))
@@ -179,14 +199,21 @@ public final class CommandParser {
         .collect(Collectors.toList());
     switch (getStatementType(tokens)) {
       case INSERT_VALUES:
-        final InsertValues parsedStatement = (InsertValues) new AstBuilder(TypeRegistry.EMPTY)
-            .buildStatement(KSQL_PARSER.parse(sql).get(0).getStatement());
+        final InsertValues parsedStatement;
+        try {
+          parsedStatement = (InsertValues) new AstBuilder(TypeRegistry.EMPTY)
+              .buildStatement(KSQL_PARSER.parse(sql).get(0).getStatement());
+        } catch (ParseFailedException e) {
+          throw new MigrationException(String.format(
+              "Failed to parse INSERT VALUES statement. Statement: %s. Reason: %s",
+              sql, e.getMessage()));
+        }
         return new SqlInsertValues(
             sql,
             parsedStatement.getTarget().text(),
             parsedStatement.getValues(),
             parsedStatement.getColumns().stream()
-                .map(name -> name.text()).collect(Collectors.toList()));
+                .map(ColumnName::text).collect(Collectors.toList()));
       case CONNECTOR:
         return new SqlConnectorStatement(sql);
       case STATEMENT:
@@ -210,27 +237,61 @@ public final class CommandParser {
     }
   }
 
-  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private static StatementType getStatementType(final List<String> tokens) {
-    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
-    if (tokens.get(0).equals(INSERT)
-        && tokens.get(1).equals(INTO)
-        && !tokens.get(3).equals(SELECT)
-        && tokens.contains(VALUES)
-    ) {
+    if (isInsertValuesStatement(tokens)) {
       return StatementType.INSERT_VALUES;
-    } else if ((tokens.get(0).equals(CREATE)
-        && (tokens.get(1).equals(SINK) || tokens.get(1).equals(SOURCE))
-        && tokens.get(2).equals(CONNECTOR))) {
+    } else if (isCreateConnectorStatement(tokens) || isDropConnectorStatement(tokens)) {
       return StatementType.CONNECTOR;
-    } else if (tokens.get(0).equals(DROP) && tokens.get(1).equals(CONNECTOR)) {
-      return StatementType.CONNECTOR;
-    } else if (tokens.get(0).equals(SET)) {
+    } else if (tokens.size() > 0 && tokens.get(0).equals(SET)) {
       return StatementType.SET_PROPERTY;
-    } else if (tokens.get(0).equals(UNSET)) {
+    } else if (tokens.size() > 0 && tokens.get(0).equals(UNSET)) {
       return StatementType.UNSET_PROPERTY;
     } else {
+      validateSupportedStatementType(tokens);
       return StatementType.STATEMENT;
+    }
+  }
+
+  private static boolean isInsertValuesStatement(final List<String> tokens) {
+    // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
+    return tokens.size() > 3
+        && tokens.get(0).equals(INSERT)
+        && tokens.get(1).equals(INTO)
+        && !tokens.get(3).equals(SELECT)
+        && tokens.contains(VALUES);
+    // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
+  }
+
+
+  private static boolean isCreateConnectorStatement(final List<String> tokens) {
+    // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
+    return tokens.size() > 2
+        && tokens.get(0).equals(CREATE)
+        && (tokens.get(1).equals(SINK) || tokens.get(1).equals(SOURCE))
+        && tokens.get(2).equals(CONNECTOR);
+    // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
+  }
+
+  private static boolean isDropConnectorStatement(final List<String> tokens) {
+    return tokens.size() > 1 && tokens.get(0).equals(DROP) && tokens.get(1).equals(CONNECTOR);
+  }
+
+  /**
+   * Validates that the sql statement represented by the list of input tokens
+   * (keywords separated whitespace, or strings identified by single quotes)
+   * is not unsupported by the migrations tool. Assumes that tokens have already
+   * been upper-cased.
+   *
+   * @param tokens components that make up the sql statement. Each component is
+   *               either a keyword separated by whitespace or a string enclosed
+   *               in single quotes. Assumes that tokens have already been upper-cased.
+   */
+  private static void validateSupportedStatementType(final List<String> tokens) {
+    if (tokens.size() > 0 && UNSUPPORTED_STATEMENTS.contains(tokens.get(0))) {
+      throw new MigrationException("'" + tokens.get(0) + "' statements are not supported.");
+    }
+    if (tokens.size() > 1 && tokens.get(0).equals(RUN) && tokens.get(1).equals(SCRIPT)) {
+      throw new MigrationException("'RUN SCRIPT' statements are not supported.");
     }
   }
 
@@ -246,7 +307,7 @@ public final class CommandParser {
     }
   }
 
-  /*
+  /**
    * Represents ksqlDB `INSERT INTO ... VALUES ...;` statements
    */
   public static class SqlInsertValues extends SqlCommand {
@@ -279,27 +340,27 @@ public final class CommandParser {
     }
   }
 
-  /*
+  /**
   * Represents commands that can be sent directly to the Java client's `executeStatement` method
-  * */
+  */
   public static class SqlStatement extends SqlCommand {
     SqlStatement(final String command) {
       super(command);
     }
   }
 
-  /*
+  /**
    * Represents commands that deal with connectors.
-   * */
+   */
   public static class SqlConnectorStatement extends SqlCommand {
     SqlConnectorStatement(final String command) {
       super(command);
     }
   }
 
-  /*
+  /**
    * Represents set/unset property commands.
-   * */
+   */
   public static class SqlPropertyCommand extends SqlCommand {
     private final boolean set;
     private final String property;

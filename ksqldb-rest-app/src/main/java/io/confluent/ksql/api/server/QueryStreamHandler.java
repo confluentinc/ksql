@@ -92,7 +92,13 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
                 queryPublisher.getColumnTypes());
 
             // When response is complete, publisher should be closed
-            routingContext.response().endHandler(v -> queryPublisher.close());
+            routingContext.response().endHandler(v -> {
+              queryPublisher.close();
+              metricsCallbackHolder.reportMetrics(
+                  routingContext.request().bytesRead(),
+                  routingContext.response().bytesWritten(),
+                  startTimeNanos);
+            });
           } else {
             final PushQueryHolder query = connectionQueryManager
                 .createApiQuery(queryPublisher, routingContext.request());
@@ -105,12 +111,6 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
             // When response is complete, publisher should be closed and query unregistered
             routingContext.response().endHandler(v -> query.close());
           }
-          routingContext.response().endHandler(v -> {
-            metricsCallbackHolder.reportMetrics(
-                routingContext.request().bytesRead(),
-                routingContext.response().bytesWritten(),
-                startTimeNanos);
-          });
 
           queryStreamResponseWriter.writeMetadata(metadata);
 

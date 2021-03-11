@@ -34,7 +34,9 @@ public class DenyListPropertyValidator {
 
   public DenyListPropertyValidator(final Collection<String> immutableProps) {
     this.immutableProps = ImmutableSet.<String>builder().addAll(
-        Objects.requireNonNull(immutableProps, "immutableProps")).add(KsqlConfig.KSQL_SERVICE_ID_CONFIG).build();
+        Objects.
+            requireNonNull(immutableProps, "immutableProps"))
+        .add(KsqlConfig.KSQL_SERVICE_ID_CONFIG).build();
   }
 
   /**

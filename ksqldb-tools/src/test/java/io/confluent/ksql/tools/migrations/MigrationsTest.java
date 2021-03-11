@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
@@ -43,9 +44,12 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
+import io.confluent.ksql.rest.entity.TypeList;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.ConnectExecutable;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.test.util.secure.ServerKeyStore;
 import io.confluent.ksql.tools.migrations.commands.BaseCommand;
 import io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil;
 import java.io.File;
@@ -65,6 +69,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.connect.json.JsonConverter;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.apache.kafka.connect.storage.StringConverter;
@@ -96,9 +101,20 @@ public class MigrationsTest {
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
+  private static final ServerKeyStore SERVER_KEY_STORE = new ServerKeyStore();
+
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+      .withBasicCredentials("username", "password")
+      .withProperty(KsqlRestConfig.LISTENERS_CONFIG, "https://localhost:0,http://localhost:0")
+      .withProperties(SERVER_KEY_STORE.keyStoreProps())
+      .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_EXTERNAL_CONFIG,
+          SERVER_KEY_STORE.getKeyAlias())
+      .withProperty(KsqlRestConfig.KSQL_SSL_KEYSTORE_ALIAS_INTERNAL_CONFIG,
+          SERVER_KEY_STORE.getKeyAlias())
+      .withProperty(KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_CONFIG,
+          KsqlRestConfig.SSL_CLIENT_AUTHENTICATION_REQUIRED)
       .build();
 
   @ClassRule
@@ -123,15 +139,38 @@ public class MigrationsTest {
 
   @BeforeClass
   public static void setUpClass() throws Exception {
+
     final String testDir = Paths.get(TestUtils.tempDirectory().getAbsolutePath(), "migrations_integ_test").toString();
     createAndVerifyDirectoryStructure(testDir);
 
     configFilePath = Paths.get(testDir, MigrationsDirectoryUtil.MIGRATIONS_CONFIG_FILE).toString();
 
-    writeAdditionalConfigs(configFilePath, ImmutableMap.of(
-        MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME, MIGRATIONS_STREAM,
-        MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME, MIGRATIONS_TABLE
-    ));
+    final String keyStorePath = SERVER_KEY_STORE.keyStoreProps()
+        .get(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG);
+    final String keyStorePassword = SERVER_KEY_STORE.keyStoreProps()
+        .get(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG);
+    final String keyPassword = SERVER_KEY_STORE.keyStoreProps()
+        .get(SslConfigs.SSL_KEY_PASSWORD_CONFIG);
+    final String keyAlias = SERVER_KEY_STORE.getKeyAlias();
+    final String trustStorePath = SERVER_KEY_STORE.keyStoreProps()
+        .get(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
+    final String trustStorePassword = SERVER_KEY_STORE.keyStoreProps()
+        .get(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG);
+
+    writeAdditionalConfigs(configFilePath, ImmutableMap.<String, String>builder()
+        .put(MigrationConfig.KSQL_MIGRATIONS_STREAM_NAME, MIGRATIONS_STREAM)
+        .put(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME, MIGRATIONS_TABLE)
+        .put(MigrationConfig.KSQL_BASIC_AUTH_USERNAME, "username")
+        .put(MigrationConfig.KSQL_BASIC_AUTH_PASSWORD, "password")
+        .put(MigrationConfig.SSL_ALPN, "true")
+        .put(MigrationConfig.SSL_KEYSTORE_LOCATION, keyStorePath)
+        .put(MigrationConfig.SSL_KEYSTORE_PASSWORD, keyStorePassword)
+        .put(MigrationConfig.SSL_KEY_PASSWORD, keyPassword)
+        .put(MigrationConfig.SSL_KEY_ALIAS, keyAlias)
+        .put(MigrationConfig.SSL_TRUSTSTORE_LOCATION, trustStorePath)
+        .put(MigrationConfig.SSL_TRUSTSTORE_PASSWORD, trustStorePassword)
+        .put(MigrationConfig.SSL_VERIFY_HOST, "true")
+        .build());
 
     final String connectFilePath = Paths.get(testDir, "connect.properties").toString();
 
@@ -183,18 +222,34 @@ public class MigrationsTest {
         1,
         "foo FOO fO0",
         configFilePath,
-        "CREATE STREAM FOO (A STRING) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='DELIMITED');"
+        "CREATE STREAM FOO (A STRING) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='JSON');\n" +
+            "-- let's create some connectors!!!\n" +
+            "CREATE SOURCE CONNECTOR C WITH ('connector.class'='org.apache.kafka.connect.tools.MockSourceConnector');\n" +
+            "CREATE SINK CONNECTOR D WITH ('connector.class'='org.apache.kafka.connect.tools.MockSinkConnector', 'topics'='d');\n" +
+            "CREATE TABLE blue (ID BIGINT PRIMARY KEY, A STRING) WITH (KAFKA_TOPIC='blue', PARTITIONS=1, VALUE_FORMAT='DELIMITED');" +
+            "DROP TABLE blue;"
     );
     createMigrationFile(
         2,
         "bar_bar_BAR",
         configFilePath,
-        "INSERT INTO FOO VALUES ('HELLO');" +
-            "INSERT INTO FOO (A) VALUES ('GOODBYE');" +
+        "CREATE OR REPLACE STREAM FOO (A STRING, B INT) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='JSON');"
+            + "ALTER STREAM FOO ADD COLUMN C BIGINT;" +
+            "/* add some '''data''' to FOO */" +
+            "INSERT INTO FOO VALUES ('HELLO', 50, -4325);" +
+            "INSERT INTO FOO (A) VALUES ('GOOD''BYE');" +
+            "INSERT INTO FOO (A) VALUES ('mua--ha\nha');" +
+            "INSERT INTO FOO (A) VALUES ('');" +
             "SET 'ksql.output.topic.name.prefix' = 'cool';" +
-            "CREATE STREAM BAR AS SELECT * FROM FOO;" +
+            "CREATE STREAM `bar` AS SELECT CONCAT(A, 'woo''hoo') AS A FROM FOO;" +
             "UNSET 'ksql.output.topic.name.prefix';" +
-            "CREATE STREAM CAR AS SELECT * FROM FOO;"
+            "CREATE STREAM CAR AS SELECT * FROM FOO;" +
+            "DROP CONNECTOR D;" +
+            "INSERT INTO `bar` SELECT A FROM CAR;" +
+            "CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;" +
+            "CREATE STREAM HOMES (ADDR ADDRESS) WITH (KAFKA_TOPIC='HOMES', PARTITIONS=1, VALUE_FORMAT='JSON');" +
+            "INSERT INTO HOMES VALUES (STRUCT(number := 123, street := 'sesame st', city := 'New York City'));" +
+            "DROP TYPE ADDRESS;"
     );
 
     // When:
@@ -235,10 +290,14 @@ public class MigrationsTest {
   }
 
   private static void verifyMigrationsApplied() {
-    // verify FOO and BAR were registered
+    // verify sources were registered
     describeSource("FOO");
-    final SourceDescription barDesc = describeSource("BAR");
+    final SourceDescription barDesc = describeSource("`bar`");
     final SourceDescription carDesc = describeSource("CAR");
+    describeSource("HOMES");
+
+    // verify that drop table worked
+    assertThat(tableCount(), is(1)); // this is the migration table
 
     // verify set/unset
     assertTrue(barDesc.getTopic().startsWith("cool"));
@@ -274,15 +333,44 @@ public class MigrationsTest {
 
     // verify foo
     final List<StreamedRow> foo = assertThatEventually(
-        () -> makeKsqlQuery("SELECT * FROM FOO EMIT CHANGES LIMIT 2;"),
-        hasSize(4)); // first row is a header, last row is a message saying "Limit Reached"
+        () -> makeKsqlQuery("SELECT * FROM FOO EMIT CHANGES LIMIT 4;"),
+        hasSize(6)); // first row is a header, last row is a message saying "Limit Reached"
+    assertThat(foo.get(1).getRow().get().getColumns().size(), is(3));
     assertThat(foo.get(1).getRow().get().getColumns().get(0), is("HELLO"));
-    assertThat(foo.get(2).getRow().get().getColumns().get(0), is("GOODBYE"));
+    assertThat(foo.get(1).getRow().get().getColumns().get(1), is(50));
+    assertThat(foo.get(1).getRow().get().getColumns().get(2), is(-4325));
+    assertThat(foo.get(2).getRow().get().getColumns().get(0), is("GOOD'BYE"));
+    assertNull(foo.get(2).getRow().get().getColumns().get(1));
+    assertNull(foo.get(2).getRow().get().getColumns().get(2));
+    assertThat(foo.get(3).getRow().get().getColumns().get(0), is("mua--ha\nha"));
+    assertThat(foo.get(4).getRow().get().getColumns().get(0), is(""));
+
+    // verify bar
+    final List<StreamedRow> bar = assertThatEventually(
+        () -> makeKsqlQuery("SELECT * FROM `bar` EMIT CHANGES LIMIT 4;"),
+        hasSize(6)); // first row is a header, last row is a message saying "Limit Reached"
+    assertThat(bar.get(1).getRow().get().getColumns().get(0), is("HELLOwoo'hoo"));
+    assertThat(bar.get(2).getRow().get().getColumns().get(0), is("GOOD'BYEwoo'hoo"));
+    assertThat(bar.get(3).getRow().get().getColumns().get(0), is("mua--ha\nhawoo'hoo"));
+    assertThat(bar.get(4).getRow().get().getColumns().get(0), is("woo'hoo"));
+
+    verifyConnector("C", true);
+    assertThat(connectorCount(), is(1)); // verify D got dropped
+
+    // verify homes
+    final List<StreamedRow> homes = assertThatEventually(
+        () -> makeKsqlQuery("SELECT * FROM HOMES EMIT CHANGES LIMIT 1;"),
+        hasSize(3)); // first row is a header, last row is a message saying "Limit Reached"
+    assertThat(homes.get(1).getRow().get().getColumns().size(), is(1));
+    assertThat(homes.get(1).getRow().get().getColumns().get(0).toString(), is("{NUMBER=123, STREET=sesame st, CITY=New York City}"));
+
+    // verify type was dropped:
+    assertThat(typeCount(), is(0));
   }
 
   private static void createAndVerifyDirectoryStructure(final String testDir) throws Exception {
     // use `new-project` to create directory structure
-    final int status = MIGRATIONS_CLI.parse("new-project", testDir, REST_APP.getHttpListener().toString()).runCommand();
+    final int status = MIGRATIONS_CLI.parse("new-project", testDir, REST_APP.getHttpsListener().toString()).runCommand();
     assertThat(status, is(0));
 
     // verify root directory
@@ -410,6 +498,39 @@ public class MigrationsTest {
     SourceDescriptionEntity entity = (SourceDescriptionEntity) entities.get(0);
 
     return entity.getSourceDescription();
+  }
+
+  private static int tableCount() {
+    final List<KsqlEntity> entities = assertThatEventually(
+        () -> makeKsqlRequest("LIST TABLES;"),
+        hasSize(1));
+
+    assertThat(entities.get(0), instanceOf(TablesList.class));
+    TablesList entity = (TablesList) entities.get(0);
+
+    return entity.getTables().size();
+  }
+
+  private static int connectorCount() {
+    final List<KsqlEntity> entities = assertThatEventually(
+        () -> makeKsqlRequest("LIST CONNECTORS;"),
+        hasSize(1));
+
+    assertThat(entities.get(0), instanceOf(ConnectorList.class));
+    ConnectorList entity = (ConnectorList) entities.get(0);
+
+    return entity.getConnectors().size();
+  }
+
+  private static int typeCount() {
+    final List<KsqlEntity> entities = assertThatEventually(
+        () -> makeKsqlRequest("LIST TYPES;"),
+        hasSize(1));
+
+    assertThat(entities.get(0), instanceOf(TypeList.class));
+    TypeList entity = (TypeList) entities.get(0);
+
+    return entity.getTypes().size();
   }
 
   private static List<KsqlEntity> makeKsqlRequest(final String sql) {

@@ -184,8 +184,8 @@ public final class MigrationConfig extends AbstractConfig {
         configs.get(SSL_TRUSTSTORE_PASSWORD),
         configs.get(SSL_KEYSTORE_LOCATION),
         configs.get(SSL_KEYSTORE_PASSWORD),
-        configs.get(SSL_KEY_ALIAS),
         configs.get(SSL_KEY_PASSWORD),
+        configs.get(SSL_KEY_ALIAS),
         configs.getOrDefault(SSL_ALPN, "false").toLowerCase().equals("true"),
         configs.getOrDefault(SSL_VERIFY_HOST, "true").toLowerCase().equals("true")
     );

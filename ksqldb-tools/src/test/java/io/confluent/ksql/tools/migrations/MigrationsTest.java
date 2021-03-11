@@ -297,7 +297,7 @@ public class MigrationsTest {
     describeSource("HOMES");
 
     // verify that drop table worked
-    assertThat(tableCount(), is(1)); // this is the migration table
+    assertTableCount(1); // this is the migration table
 
     // verify set/unset
     assertTrue(barDesc.getTopic().startsWith("cool"));
@@ -355,7 +355,7 @@ public class MigrationsTest {
     assertThat(bar.get(4).getRow().get().getColumns().get(0), is("woo'hoo"));
 
     verifyConnector("C", true);
-    assertThat(connectorCount(), is(1)); // verify D got dropped
+    assertConnectorCount(1); // verify D got dropped
 
     // verify homes
     final List<StreamedRow> homes = assertThatEventually(
@@ -365,7 +365,7 @@ public class MigrationsTest {
     assertThat(homes.get(1).getRow().get().getColumns().get(0).toString(), is("{NUMBER=123, STREET=sesame st, CITY=New York City}"));
 
     // verify type was dropped:
-    assertThat(typeCount(), is(0));
+    assertTypeCount(0);
   }
 
   private static void createAndVerifyDirectoryStructure(final String testDir) throws Exception {
@@ -391,7 +391,7 @@ public class MigrationsTest {
     // verify config file contents
     final List<String> lines = Files.readAllLines(configFile.toPath());
     assertThat(lines, hasSize(22));
-    assertThat(lines.get(0), is(MigrationConfig.KSQL_SERVER_URL + "=" + REST_APP.getHttpListener().toString()));
+    assertThat(lines.get(0), is(MigrationConfig.KSQL_SERVER_URL + "=" + REST_APP.getHttpsListener().toString()));
   }
 
   private static void writeAdditionalConfigs(final String path, final Map<String, String> additionalConfigs) throws Exception {
@@ -481,8 +481,8 @@ public class MigrationsTest {
   }
 
   private static void verifyConnector(final String connectorName, final boolean isSource) {
-    final List<KsqlEntity> entities = makeKsqlRequest("SHOW CONNECTORS;");
-    assertThat(entities, hasSize(1));
+    final List<KsqlEntity> entities = assertThatEventually(
+        () -> makeKsqlRequest("SHOW CONNECTORS;"), hasSize(1));
     assertThat(entities.get(0), instanceOf(ConnectorList.class));
     assertThat(((ConnectorList) entities.get(0)).getConnectors().size(), is(1));
     assertThat(((ConnectorList) entities.get(0)).getConnectors().get(0).getName(), is(connectorName));
@@ -500,37 +500,34 @@ public class MigrationsTest {
     return entity.getSourceDescription();
   }
 
-  private static int tableCount() {
+  private static void assertTableCount(final int count) {
     final List<KsqlEntity> entities = assertThatEventually(
         () -> makeKsqlRequest("LIST TABLES;"),
         hasSize(1));
 
     assertThat(entities.get(0), instanceOf(TablesList.class));
     TablesList entity = (TablesList) entities.get(0);
-
-    return entity.getTables().size();
+    assertThat(entity.getTables().size(), is(count));
   }
 
-  private static int connectorCount() {
+  private static void assertConnectorCount(final int count) {
     final List<KsqlEntity> entities = assertThatEventually(
         () -> makeKsqlRequest("LIST CONNECTORS;"),
         hasSize(1));
 
     assertThat(entities.get(0), instanceOf(ConnectorList.class));
     ConnectorList entity = (ConnectorList) entities.get(0);
-
-    return entity.getConnectors().size();
+    assertThat(entity.getConnectors().size(), is(count));
   }
 
-  private static int typeCount() {
+  private static void assertTypeCount(final int count) {
     final List<KsqlEntity> entities = assertThatEventually(
         () -> makeKsqlRequest("LIST TYPES;"),
         hasSize(1));
 
     assertThat(entities.get(0), instanceOf(TypeList.class));
     TypeList entity = (TypeList) entities.get(0);
-
-    return entity.getTypes().size();
+    assertThat(entity.getTypes().size(), is(count));
   }
 
   private static List<KsqlEntity> makeKsqlRequest(final String sql) {

@@ -112,7 +112,7 @@ public class PollableSubscriber extends BaseSubscriber<Row> {
   private void checkRequestTokens() {
     if (tokens == 0) {
       tokens += REQUEST_BATCH_SIZE;
-      makeRequest(REQUEST_BATCH_SIZE);
+      runOnRightContext(() -> makeRequest(REQUEST_BATCH_SIZE));
     }
   }
 }

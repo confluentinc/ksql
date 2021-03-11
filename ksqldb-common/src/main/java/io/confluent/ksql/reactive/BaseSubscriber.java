@@ -147,7 +147,7 @@ public class BaseSubscriber<T> implements Subscriber<T> {
     VertxUtils.checkContext(context);
   }
 
-  private void runOnRightContext(final Runnable runnable) {
+  protected void runOnRightContext(final Runnable runnable) {
     if (VertxUtils.isEventLoopAndSameContext(context)) {
       // Execute directly
       runnable.run();

@@ -178,11 +178,11 @@ public class CreateMigrationCommandTest {
     assertThat(e.getMessage(), is("At most 1 arguments may be specified but 2 were found"));
   }
 
-  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
   private void givenVersionsExist(final String... versions) throws Exception {
     for (final String version : versions) {
       final String prefix = getFilePrefixForVersion(version);
-      new File(Paths.get(migrationsDir, prefix + "__some_desc_" + version + ".sql").toString()).createNewFile();
+      final String filePath = Paths.get(migrationsDir, prefix + "__some_desc_" + version + ".sql").toString();
+      assertThat(new File(filePath).createNewFile(), is(true));
     }
   }
 }

@@ -21,6 +21,7 @@ import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.ge
 
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
+import com.github.rvesse.airline.annotations.restrictions.Once;
 import com.github.rvesse.airline.annotations.restrictions.RequireOnlyOne;
 import com.github.rvesse.airline.annotations.restrictions.ranges.IntegerRange;
 import com.google.common.annotations.VisibleForTesting;
@@ -74,6 +75,7 @@ public class ApplyMigrationCommand extends BaseCommand {
       description = "Run all available migrations"
   )
   @RequireOnlyOne(tag = "target")
+  @Once
   private boolean all;
 
   @Option(
@@ -82,6 +84,7 @@ public class ApplyMigrationCommand extends BaseCommand {
       description = "Run the next available migration version"
   )
   @RequireOnlyOne(tag = "target")
+  @Once
   private boolean next;
 
   @Option(
@@ -92,6 +95,7 @@ public class ApplyMigrationCommand extends BaseCommand {
   )
   @RequireOnlyOne(tag = "target")
   @IntegerRange(min = 1, max = 999999)
+  @Once
   private int untilVersion;
 
   @Option(
@@ -102,6 +106,7 @@ public class ApplyMigrationCommand extends BaseCommand {
   )
   @RequireOnlyOne(tag = "target")
   @IntegerRange(min = 1, max = 999999)
+  @Once
   private int version;
 
   @Option(
@@ -113,6 +118,7 @@ public class ApplyMigrationCommand extends BaseCommand {
           + "would run in non-dry-run mode, and does NOT attempt to validate whether "
           + "the ksqlDB statements will be accepted by the ksqlDB server."
   )
+  @Once
   private boolean dryRun = false;
 
   @Override

@@ -99,7 +99,13 @@ public final class MigrationsDirectoryUtil {
   public static String computeHashForFile(final String filename) {
     try {
       final byte[] bytes = Files.readAllBytes(Paths.get(filename));
-      return new String(MessageDigest.getInstance("MD5").digest(bytes), StandardCharsets.UTF_8);
+
+      final StringBuilder builder = new StringBuilder();
+      for (final byte b : MessageDigest.getInstance("MD5").digest(bytes)) {
+        builder.append(String.format("%02x", b));
+      }
+
+      return builder.toString();
     } catch (NoSuchAlgorithmException | IOException e) {
       throw new MigrationException(String.format(
           "Could not compute hash for file '%s': %s", filename, e.getMessage()));

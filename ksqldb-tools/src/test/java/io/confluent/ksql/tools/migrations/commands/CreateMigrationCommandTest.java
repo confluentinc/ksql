@@ -23,6 +23,7 @@ import static org.junit.Assert.assertThrows;
 import com.github.rvesse.airline.SingleCommand;
 import com.github.rvesse.airline.parser.errors.ParseArgumentsMissingException;
 import com.github.rvesse.airline.parser.errors.ParseOptionOutOfRangeException;
+import com.github.rvesse.airline.parser.errors.ParseTooManyArgumentsException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.nio.file.Paths;
@@ -168,11 +169,20 @@ public class CreateMigrationCommandTest {
     assertThat(result, is(1));
   }
 
-  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
+  @Test
+  public void shouldFailOnTooManyArguments() {
+    // When:
+    final Exception e = assertThrows(ParseTooManyArgumentsException.class, () -> PARSER.parse("arg1", "arg2"));
+
+    // Then:
+    assertThat(e.getMessage(), is("At most 1 arguments may be specified but 2 were found"));
+  }
+
   private void givenVersionsExist(final String... versions) throws Exception {
     for (final String version : versions) {
       final String prefix = getFilePrefixForVersion(version);
-      new File(Paths.get(migrationsDir, prefix + "__some_desc_" + version + ".sql").toString()).createNewFile();
+      final String filePath = Paths.get(migrationsDir, prefix + "__some_desc_" + version + ".sql").toString();
+      assertThat(new File(filePath).createNewFile(), is(true));
     }
   }
 }

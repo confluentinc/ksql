@@ -20,6 +20,8 @@ import static io.confluent.ksql.tools.migrations.commands.InitializeMigrationCom
 import com.github.rvesse.airline.HelpOption;
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.OptionType;
+import com.github.rvesse.airline.annotations.restrictions.MutuallyExclusiveWith;
+import com.github.rvesse.airline.annotations.restrictions.Once;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
@@ -47,6 +49,8 @@ public abstract class BaseCommand implements Runnable {
       // allows users to specify config file before the name of the command
       type = OptionType.GLOBAL
   )
+  @MutuallyExclusiveWith(tag = "config")
+  @Once
   protected String configFileGlobal;
 
   @Option(
@@ -60,6 +64,8 @@ public abstract class BaseCommand implements Runnable {
       // in help text, to avoid duplication
       hidden = true
   )
+  @MutuallyExclusiveWith(tag = "config")
+  @Once
   protected String configFileNonGlobal;
 
   @Override

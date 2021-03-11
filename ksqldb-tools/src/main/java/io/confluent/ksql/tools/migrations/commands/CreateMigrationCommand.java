@@ -24,6 +24,7 @@ import com.github.rvesse.airline.annotations.Arguments;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.help.Examples;
+import com.github.rvesse.airline.annotations.restrictions.Once;
 import com.github.rvesse.airline.annotations.restrictions.Required;
 import com.github.rvesse.airline.annotations.restrictions.ranges.IntegerRange;
 import com.google.common.annotations.VisibleForTesting;
@@ -59,9 +60,11 @@ public class CreateMigrationCommand extends BaseCommand {
           + " schema version based on existing migration files."
   )
   @IntegerRange(min = 1, max = 999999)
+  @Once
   private int version;
 
   @Required
+  @Once
   @Arguments(
       title = "description",
       description = "The description for the migration."

@@ -17,6 +17,7 @@ package io.confluent.ksql.tools.migrations;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThrows;
 
 import com.github.rvesse.airline.Cli;
 import java.io.ByteArrayOutputStream;
@@ -103,6 +104,17 @@ public class MigrationsParsingTest {
     Migrations.parseCommandFromArgs(MIGRATIONS_CLI, new String[]{"info", "--config-file", CONFIG_FILE_PATH});
 
     // Then: no exception
+  }
+
+  @Test
+  public void shouldNotAcceptConfigFileBothBeforeAndAfterCommand() {
+    // When:
+    final Exception e = assertThrows(MigrationException.class,
+        () -> Migrations.parseCommandFromArgs(MIGRATIONS_CLI,
+            new String[]{"--config-file", CONFIG_FILE_PATH, "info", "--config-file", CONFIG_FILE_PATH}));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Only one of the following options may be specified but 2 were found"));
   }
 
   private void validateGlobalHelpPrinted() throws Exception {

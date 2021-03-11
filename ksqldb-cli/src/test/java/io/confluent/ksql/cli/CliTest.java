@@ -955,7 +955,7 @@ public class CliTest {
   public void shouldPrintWarningOnDifferentStandaloneServerVersion() throws Exception {
     givenRunInteractivelyWillExit();
 
-    final KsqlRestClient mockRestClient = givenMockRestClient("1.0.0-0");
+    final KsqlRestClient mockRestClient = givenMockRestClient("0.10.0-0");
 
     new Cli(1L, 1L, mockRestClient, console)
         .runInteractively();

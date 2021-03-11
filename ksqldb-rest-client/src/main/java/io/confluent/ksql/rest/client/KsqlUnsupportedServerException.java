@@ -17,12 +17,17 @@ package io.confluent.ksql.rest.client;
 
 public class KsqlUnsupportedServerException extends RuntimeException {
 
-  public KsqlUnsupportedServerException(final String cliVersion, final String serverVersion) {
+  public KsqlUnsupportedServerException(
+      final String requiredVersion,
+      final String cliVersion,
+      final String serverVersion) {
+
     super(String.format(
         "Unsupported server version %s detected."
-        + " CLI version %s requires a minimum server version 5.4.x.",
+        + " CLI version %s requires a minimum server version %s.",
         serverVersion,
-        cliVersion
+        cliVersion,
+        requiredVersion
     ));
   }
 

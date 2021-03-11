@@ -55,6 +55,7 @@ import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
 import io.confluent.ksql.util.HandlerMaps.Handler2;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlVersion;
+import io.confluent.ksql.util.KsqlVersion.VersionType;
 import io.confluent.ksql.util.ParserUtil;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.vertx.core.Context;
@@ -346,7 +347,11 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
 
     if (!serverVersion.isAtLeast(new KsqlVersion("6.0."))) {
-      throw new KsqlUnsupportedServerException(cliVersionNumber, serverVersionNumber);
+      throw new KsqlUnsupportedServerException(
+          serverVersion.type() == VersionType.CONFLUENT_PLATFORM ? "6.0.0" : "0.10.0",
+          cliVersionNumber,
+          serverVersionNumber
+      );
     }
 
     if (!cliVersion.same(serverVersion)) {

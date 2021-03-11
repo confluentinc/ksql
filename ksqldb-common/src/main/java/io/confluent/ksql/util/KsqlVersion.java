@@ -37,7 +37,7 @@ public class KsqlVersion {
     versionMapping.put(CP_61, V_014);
   }
 
-  private enum VersionType {
+  public enum VersionType {
     CONFLUENT_PLATFORM,
     KSQLDB_STANDALONE
   }
@@ -63,6 +63,20 @@ public class KsqlVersion {
         : VersionType.CONFLUENT_PLATFORM;
   }
 
+  /**
+   * Returns {@code true} if this object is the same or a newer version than the provided version.
+   * If this version and the provided version are of different type (ie, CP vs standalone),
+   * we try to do a version mapping to make the comparison.
+   *
+   * <p>The comparison only take the major and minor version into account.
+   *
+   * <p><strong>If we cannot map the versions to each other,
+   *            this methods returns {@code false}.</strong>
+   *
+   * @param version the base version to compare to
+   * @return {@code false} if this version is older than the provided version,
+   *         or if both versions cannot be compared; {@code true} otherwise
+   */
   public boolean isAtLeast(final KsqlVersion version) {
     if (versionType == version.versionType) {
       return isAtLeastVersion(this, version.majorVersion, version.minorVersion);
@@ -83,7 +97,11 @@ public class KsqlVersion {
         && isAtLeastVersion(standalone, version.majorVersion, version.minorVersion);
   }
 
-  private boolean isAtLeastVersion(final KsqlVersion version, final int major, final int minor) {
+  private static boolean isAtLeastVersion(
+      final KsqlVersion version,
+      final int major,
+      final int minor) {
+
     if (version.majorVersion > major) {
       return true;
     } else if (version.majorVersion < major) {
@@ -93,22 +111,26 @@ public class KsqlVersion {
     }
   }
 
+  /**
+   * Returns {@code true} if this object is the same version than the provided version.
+   * If this version and the provided version are of different type (ie, CP vs standalone),
+   * we try to do a version mapping to make the comparison.
+   *
+   * <p>The comparison only take the major and minor version into account.
+   *
+   * <p><strong>If we cannot map the versions to each other,
+   *            this methods returns {@code false}.</strong>
+   *
+   * @param version the version to compare to
+   * @return {@code false} if this version is not the same as the provided version,
+   *         or if both versions cannot be compared; {@code true} otherwise
+   */
   public boolean same(final KsqlVersion version) {
-    if (versionType == version.versionType) {
-      return majorVersion == version.majorVersion && minorVersion == version.minorVersion;
-    }
+    return isAtLeast(version) && version.isAtLeast(this);
+  }
 
-    if (versionType == VersionType.KSQLDB_STANDALONE) {
-      final KsqlVersion otherStandalone = versionMapping.get(version);
-      return otherStandalone != null
-          && majorVersion == otherStandalone.majorVersion
-          && minorVersion == otherStandalone.minorVersion;
-    }
-
-    final KsqlVersion standalone = versionMapping.get(this);
-    return standalone != null
-        && standalone.majorVersion == version.majorVersion
-        && standalone.minorVersion == version.minorVersion;
+  public VersionType type() {
+    return versionType;
   }
 
   @Override

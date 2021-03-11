@@ -43,6 +43,9 @@ public class KsqlVersionTest {
     assertThat(new KsqlVersion("6.1.").same(new KsqlVersion("0.14.")), is(true));
     assertThat(new KsqlVersion("0.14.").same(new KsqlVersion("6.1.")), is(true));
 
+    assertThat(new KsqlVersion("6.0.").same(new KsqlVersion("0.14.")), is(false));
+    assertThat(new KsqlVersion("0.10.").same(new KsqlVersion("6.1.")), is(false));
+
     // unknown mappings
     assertThat(new KsqlVersion("5.0.").same(new KsqlVersion("0.10.")), is(false));
     assertThat(new KsqlVersion("6.0.").same(new KsqlVersion("0.11.")), is(false));
@@ -92,6 +95,9 @@ public class KsqlVersionTest {
     assertThat(new KsqlVersion("6.1.").isAtLeast(new KsqlVersion("0.14.")), is(true));
     assertThat(new KsqlVersion("0.14.").isAtLeast(new KsqlVersion("6.0.")), is(true));
     assertThat(new KsqlVersion("0.14.").isAtLeast(new KsqlVersion("6.1.")), is(true));
+
+    assertThat(new KsqlVersion("6.0.").isAtLeast(new KsqlVersion("0.14.")), is(false));
+    assertThat(new KsqlVersion("0.10.").isAtLeast(new KsqlVersion("6.1.")), is(false));
 
     // unknown mappings
     assertThat(new KsqlVersion("6.2.").isAtLeast(new KsqlVersion("0.10.")), is(false));

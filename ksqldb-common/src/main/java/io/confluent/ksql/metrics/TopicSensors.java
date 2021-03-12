@@ -40,7 +40,7 @@ import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Rate;
 
-public class TopicSensors<R> {
+public final class TopicSensors<R> {
 
   private final String topic;
   private final List<SensorMetric<R>> sensors;

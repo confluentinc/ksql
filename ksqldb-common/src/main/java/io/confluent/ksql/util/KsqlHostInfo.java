@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 import org.apache.kafka.streams.state.HostInfo;
@@ -26,13 +27,17 @@ import org.apache.kafka.streams.state.HostInfo;
  */
 @Immutable
 public class KsqlHostInfo {
-
   private final String host;
+
   private final int port;
 
   public KsqlHostInfo(final String host, final int port) {
     this.host = host;
     this.port = port;
+  }
+
+  public static KsqlHostInfo fromHostInfo(final HostInfo hostInfo) {
+    return new KsqlHostInfo(hostInfo.host(), hostInfo.port());
   }
 
   @Override
@@ -62,11 +67,8 @@ public class KsqlHostInfo {
   }
 
   @Override
+  @JsonValue
   public String toString() {
     return "KsqlHostInfo{host='" + this.host + '\'' + ", port=" + this.port + '}';
-  }
-
-  public static KsqlHostInfo fromHostInfo(HostInfo hostInfo) {
-    return new KsqlHostInfo(hostInfo.host(), hostInfo.port());
   }
 }

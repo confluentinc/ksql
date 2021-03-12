@@ -90,11 +90,13 @@ public class PollableSubscriberTest {
     publisher.subscribe(pollableSubscriber);
 
     Row row = pollableSubscriber.poll(POLL_DURATION);
-    for (int i = 0; row != null; i++) {
+    int i = 0;
+    for (; row != null; i++) {
       Long col1 = row.getLong(COLUMN_NAME);
       assertThat(col1, is((long) i));
       row = pollableSubscriber.poll(POLL_DURATION);
     }
+    assertThat(i, is(numRows));
     assertThat(throwable, is(nullValue()));
   }
 

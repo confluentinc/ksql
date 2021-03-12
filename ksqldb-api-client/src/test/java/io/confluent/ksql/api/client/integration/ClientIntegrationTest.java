@@ -34,6 +34,7 @@ import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericKey;
@@ -43,6 +44,10 @@ import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.api.client.ColumnType;
+import io.confluent.ksql.api.client.ConnectorDescription;
+import io.confluent.ksql.api.client.ConnectorInfo;
+import io.confluent.ksql.api.client.ConnectorType;
+import io.confluent.ksql.api.client.CreateConnectorResult;
 import io.confluent.ksql.api.client.ExecuteStatementResult;
 import io.confluent.ksql.api.client.InsertAck;
 import io.confluent.ksql.api.client.InsertsPublisher;
@@ -58,6 +63,7 @@ import io.confluent.ksql.api.client.StreamedQueryResult;
 import io.confluent.ksql.api.client.TableInfo;
 import io.confluent.ksql.api.client.TopicInfo;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
+import io.confluent.ksql.api.client.impl.ConnectorTypeImpl;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -65,6 +71,7 @@ import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
+import io.confluent.ksql.rest.server.ConnectExecutable;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -79,7 +86,13 @@ import io.confluent.ksql.util.TestDataProvider;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -87,13 +100,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.json.JsonConverter;
+import org.apache.kafka.connect.storage.StringConverter;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.test.TestUtils;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
@@ -179,6 +196,10 @@ public class ClientIntegrationTest {
       + "for 'CREATE', 'CREATE ... AS SELECT', 'DROP', 'TERMINATE', and 'INSERT INTO ... AS "
       + "SELECT' statements. ";
 
+  private static final String TEST_CONNECTOR = "TEST_CONNECTOR";
+  private static final String MOCK_SOURCE_CLASS = "org.apache.kafka.connect.tools.MockSourceConnector";
+  private static final ConnectorType SOURCE_TYPE = new ConnectorTypeImpl("SOURCE");
+
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
@@ -193,8 +214,10 @@ public class ClientIntegrationTest {
       .around(TEST_HARNESS)
       .around(REST_APP);
 
+  private static ConnectExecutable CONNECT;
+
   @BeforeClass
-  public static void setUpClass() {
+  public static void setUpClass() throws Exception {
     TEST_HARNESS.ensureTopics(TEST_TOPIC, EMPTY_TEST_TOPIC, EMPTY_TEST_TOPIC_2);
     TEST_HARNESS.produceRows(TEST_TOPIC, TEST_DATA_PROVIDER, KEY_FORMAT, VALUE_FORMAT);
     RestIntegrationTestUtil.createStream(REST_APP, TEST_DATA_PROVIDER);
@@ -212,10 +235,42 @@ public class ClientIntegrationTest {
         VALUE_FORMAT,
         AGG_SCHEMA
     );
+
+    final String testDir = Paths.get(TestUtils.tempDirectory().getAbsolutePath(), "client_integ_test").toString();
+    final String connectFilePath = Paths.get(testDir, "connect.properties").toString();
+    Files.createDirectories(Paths.get(testDir));
+
+    writeConnectConfigs(connectFilePath, ImmutableMap.<String, String>builder()
+        .put("bootstrap.servers", TEST_HARNESS.kafkaBootstrapServers())
+        .put("group.id", UUID.randomUUID().toString())
+        .put("key.converter", StringConverter.class.getName())
+        .put("value.converter", JsonConverter.class.getName())
+        .put("offset.storage.topic", "connect-offsets")
+        .put("status.storage.topic", "connect-status")
+        .put("config.storage.topic", "connect-config")
+        .put("offset.storage.replication.factor", "1")
+        .put("status.storage.replication.factor", "1")
+        .put("config.storage.replication.factor", "1")
+        .put("value.converter.schemas.enable", "false")
+        .build()
+    );
+
+    CONNECT = ConnectExecutable.of(connectFilePath);
+    CONNECT.startAsync();
+  }
+
+  private static void writeConnectConfigs(final String path, final Map<String, String> configs) throws Exception {
+    try (PrintWriter out = new PrintWriter(new OutputStreamWriter(
+        new FileOutputStream(path, true), StandardCharsets.UTF_8))) {
+      for (Map.Entry<String, String> entry : configs.entrySet()) {
+        out.println(entry.getKey() + "=" + entry.getValue());
+      }
+    }
   }
 
   @AfterClass
   public static void classTearDown() {
+    CONNECT.shutdown();
     REST_APP.getPersistentQueries().forEach(str -> makeKsqlRequest("TERMINATE " + str + ";"));
   }
 
@@ -870,7 +925,8 @@ public class ClientIntegrationTest {
         topicInfo(TEST_TOPIC),
         topicInfo(EMPTY_TEST_TOPIC),
         topicInfo(EMPTY_TEST_TOPIC_2),
-        topicInfo(AGG_TABLE)
+        topicInfo(AGG_TABLE),
+        topicInfo("connect-config")
     ));
   }
 
@@ -970,6 +1026,66 @@ public class ClientIntegrationTest {
     assertThat(serverInfo.getServerVersion(), is(AppInfo.getVersion()));
     assertThat(serverInfo.getKsqlServiceId(), is("default_"));
     assertThat(serverInfo.getKafkaClusterId(), is(expectedClusterId));
+  }
+
+  @Test
+  public void shouldListConnectors() throws Exception {
+    // Given:
+    makeKsqlRequest("CREATE SOURCE CONNECTOR " + TEST_CONNECTOR + " WITH ('connector.class'='" + MOCK_SOURCE_CLASS + "');");
+
+    // When:
+    final List<ConnectorInfo> connectors = client.listConnectors().get();
+
+    // Then:
+    assertThat(connectors.size(), is(1));
+    assertThat(connectors.get(0).name(), is(TEST_CONNECTOR));
+    assertThat(connectors.get(0).className(), is(MOCK_SOURCE_CLASS));
+    assertThat(connectors.get(0).state(), is("RUNNING (1/1 tasks RUNNING)"));
+    assertThat(connectors.get(0).type(), is(SOURCE_TYPE));
+  }
+
+  @Test
+  public void shouldDescribeConnector() throws Exception {
+    // Given:
+    makeKsqlRequest("CREATE SOURCE CONNECTOR " + TEST_CONNECTOR + " WITH ('connector.class'='" + MOCK_SOURCE_CLASS + "');");
+
+    // When:
+    final ConnectorDescription connector = client.describeConnector(TEST_CONNECTOR).get();
+
+    // Then:
+    assertThat(connector.type(), is(SOURCE_TYPE));
+    assertThat(connector.state(), is("RUNNING"));
+    assertThat(connector.topics().size(), is(0));
+    assertThat(connector.sources().size(), is(0));
+    assertThat(connector.connectorClass(), is(MOCK_SOURCE_CLASS));
+  }
+
+  @Test
+  public void shouldDropConnector() throws Exception {
+    // Given:
+    makeKsqlRequest("CREATE SOURCE CONNECTOR " + TEST_CONNECTOR + " WITH ('connector.class'='" + MOCK_SOURCE_CLASS + "');");
+
+    // When:
+    client.dropConnector(TEST_CONNECTOR).get();
+
+    // Then:
+    final List<ConnectorInfo> connectors = client.listConnectors().get();
+    assertThat(connectors.size(), is(0));
+  }
+
+  @Test
+  public void shouldCreateConnector() throws Exception {
+    // When:
+    final CreateConnectorResult response =
+        client.createConnector("FOO", true, ImmutableMap.of("connector.class", MOCK_SOURCE_CLASS)).get();
+    final ConnectorDescription connector = client.describeConnector("FOO").get();
+
+    // Then:
+    assertThat(response.name(), is("FOO"));
+    assertThat(response.type(), is(new ConnectorTypeImpl("SOURCE")));
+    assertThat(response.properties().size(), is(3)); // the other two are the name and default key converter
+    assertThat(response.properties().get("connector.class"), is(MOCK_SOURCE_CLASS));
+    assertThat(connector.state(), is("RUNNING"));
   }
 
   private Client createClient() {

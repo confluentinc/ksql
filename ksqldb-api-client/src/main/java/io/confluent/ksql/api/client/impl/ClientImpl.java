@@ -23,6 +23,9 @@ import io.confluent.ksql.api.client.AcksPublisher;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
+import io.confluent.ksql.api.client.ConnectorDescription;
+import io.confluent.ksql.api.client.ConnectorInfo;
+import io.confluent.ksql.api.client.CreateConnectorResult;
 import io.confluent.ksql.api.client.ExecuteStatementResult;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.QueryInfo;
@@ -58,6 +61,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.reactivestreams.Publisher;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -311,6 +315,76 @@ public class ClientImpl implements Client {
         cf,
         response -> handleObjectResponse(
             response, cf, AdminResponseHandlers::handleServerInfoResponse)
+    );
+
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<CreateConnectorResult> createConnector(
+      final String name,
+      final boolean isSource,
+      final Map<String, String> properties
+  ) {
+    final CompletableFuture<CreateConnectorResult> cf = new CompletableFuture<>();
+    final String connectorConfigs = String.join(",", properties.entrySet()
+                .stream()
+                .map(e -> String.format("'%s'='%s'", e.getKey(), e.getValue()))
+                .collect(Collectors.toList()));
+    final String type = isSource ? "SOURCE" : "SINK";
+
+    makePostRequest(
+        KSQL_ENDPOINT,
+        new JsonObject().put("ksql",
+            String.format("CREATE %s CONNECTOR %s WITH (%s);", type, name, connectorConfigs)),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, ConnectorCommandResponseHandler::handlerCreateConnectorResponse)
+    );
+
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<Void> dropConnector(String name) {
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
+
+    makePostRequest(
+        KSQL_ENDPOINT,
+        new JsonObject().put("ksql", "drop connector " + name + ";"),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, ConnectorCommandResponseHandler::handleDropConnectorResponse)
+    );
+
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<List<ConnectorInfo>> listConnectors() {
+    final CompletableFuture<List<ConnectorInfo>> cf = new CompletableFuture<>();
+
+    makePostRequest(
+        KSQL_ENDPOINT,
+        new JsonObject().put("ksql", "list connectors;"),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, ConnectorCommandResponseHandler::handleListConnectorsResponse)
+    );
+
+    return cf;
+  }
+
+  @Override
+  public CompletableFuture<ConnectorDescription> describeConnector(final String name) {
+    final CompletableFuture<ConnectorDescription> cf = new CompletableFuture<>();
+
+    makePostRequest(
+        KSQL_ENDPOINT,
+        new JsonObject().put("ksql", "describe connector " + name + ";"),
+        cf,
+        response -> handleSingleEntityResponse(
+            response, cf, ConnectorCommandResponseHandler::handleDescribeConnectorsResponse)
     );
 
     return cf;

@@ -27,10 +27,9 @@ import java.util.function.Consumer;
 import org.reactivestreams.Subscription;
 
 public class PollableSubscriber extends BaseSubscriber<Row> {
-
-  private static final int REQUEST_BATCH_SIZE = 100;
   // 100ms in ns
   private static final long MAX_POLL_NANOS = TimeUnit.MILLISECONDS.toNanos(100);
+  static final int REQUEST_BATCH_SIZE = 100;
 
   private final BlockingQueue<Row> queue = new LinkedBlockingQueue<>();
   private final Consumer<Throwable> errorHandler;
@@ -112,7 +111,7 @@ public class PollableSubscriber extends BaseSubscriber<Row> {
   private void checkRequestTokens() {
     if (tokens == 0) {
       tokens += REQUEST_BATCH_SIZE;
-      runOnRightContext(() -> makeRequest(REQUEST_BATCH_SIZE));
+      context.runOnContext(v -> makeRequest(REQUEST_BATCH_SIZE));
     }
   }
 }

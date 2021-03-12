@@ -23,6 +23,7 @@ import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import org.reactivestreams.Subscription;
 
@@ -33,7 +34,7 @@ public class PollableSubscriber extends BaseSubscriber<Row> {
 
   private final BlockingQueue<Row> queue = new LinkedBlockingQueue<>();
   private final Consumer<Throwable> errorHandler;
-  private int tokens;
+  private final AtomicInteger tokens = new AtomicInteger(0);
   private volatile boolean complete;
   private volatile boolean closed;
   private volatile boolean failed;
@@ -85,8 +86,8 @@ public class PollableSubscriber extends BaseSubscriber<Row> {
       try {
         final Row row = queue.poll(pollTime, TimeUnit.NANOSECONDS);
         if (row != null) {
-          tokens--;
-          checkRequestTokens();
+          tokens.decrementAndGet();
+          context.runOnContext(v -> checkRequestTokens());
           return row;
         } else if (complete) {
           // If complete, close once the queue has been emptied
@@ -109,9 +110,8 @@ public class PollableSubscriber extends BaseSubscriber<Row> {
   }
 
   private void checkRequestTokens() {
-    if (tokens == 0) {
-      tokens += REQUEST_BATCH_SIZE;
-      context.runOnContext(v -> makeRequest(REQUEST_BATCH_SIZE));
+    if (tokens.compareAndSet(0, REQUEST_BATCH_SIZE)) {
+      makeRequest(REQUEST_BATCH_SIZE);
     }
   }
 }

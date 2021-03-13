@@ -392,7 +392,7 @@ nonReserved
     | SET | RESET
     | IF
     | SOURCE | SINK
-    | PRIMARY | KEY
+    | PRIMARY
     | EMIT
     | CHANGES
     | FINAL

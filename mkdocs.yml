@@ -47,6 +47,7 @@ nav:
     - User-defined functions: concepts/functions.md
     - Connectors: concepts/connectors.md
     - Lambda Functions: concepts/lambda-functions.md
+    - Performance Guidelines: concepts/performance-guidelines.md
     - Apache Kafka primer: concepts/apache-kafka-primer.md
   - How-to guides:
       - Synopsis: how-to-guides/index.md

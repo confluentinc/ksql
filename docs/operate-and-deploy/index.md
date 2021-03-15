@@ -24,6 +24,13 @@ topics.
 - [Configure Security](installation/server-config/security.md)
 - [ksqlDB Configuration Parameter Reference](installation/server-config/config-reference.md)
 
+Performance guidelines
+----------------------
+
+Learn how to tune your ksqlDB applications for the best performance.
+
+- [Performance Guidelines](/operate-and-deploy/performance-guidelines)
+
 Health Checks
 -------------
 

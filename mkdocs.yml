@@ -46,7 +46,7 @@ nav:
     - Time and Windows: concepts/time-and-windows-in-ksqldb-queries.md
     - User-defined functions: concepts/functions.md
     - Connectors: concepts/connectors.md
-    - Performance Guidelines: concepts/performance-guidelines.md
+    - Lambda Functions: concepts/lambda-functions.md
     - Apache Kafka primer: concepts/apache-kafka-primer.md
   - How-to guides:
       - Synopsis: how-to-guides/index.md
@@ -82,6 +82,7 @@ nav:
       - Exactly once semantics: operate-and-deploy/exactly-once-semantics.md
       - Schema Registry integration: operate-and-deploy/schema-registry-integration.md
       - Plan Capacity: operate-and-deploy/capacity-planning.md
+      - Performance Guidelines: operate-and-deploy/performance-guidelines.md
       - KSQL and ksqlDB: operate-and-deploy/ksql-vs-ksqldb.md
       - Changelog: operate-and-deploy/changelog.md
   - Reference:
@@ -189,6 +190,7 @@ plugins:
             concepts/ksqldb-architecture.md: operate-and-deploy/how-it-works.md
             concepts/ksqldb-and-kafka-streams.md: operate-and-deploy/how-it-works.md
             concepts/upgrades.md: how-to-guides/update-a-running-persistent-query.md
+            concepts/performance-guidelines.md: operate-and-deploy/performance-guidelines.md
 
             tutorials/examples.md: how-to-guides/index.md
             tutorials/embedded-connect.md: how-to-guides/use-connector-management.md

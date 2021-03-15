@@ -46,7 +46,6 @@ nav:
     - Time and Windows: concepts/time-and-windows-in-ksqldb-queries.md
     - User-defined functions: concepts/functions.md
     - Connectors: concepts/connectors.md
-    - Lambda Functions: concepts/lambda-functions.md
     - Apache Kafka primer: concepts/apache-kafka-primer.md
   - How-to guides:
       - Synopsis: how-to-guides/index.md

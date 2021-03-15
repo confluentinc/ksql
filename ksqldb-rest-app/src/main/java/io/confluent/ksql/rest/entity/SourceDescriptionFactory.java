@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.entity;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
@@ -54,6 +55,10 @@ public final class SourceDescriptionFactory {
         (extended
             ? MetricCollectors.getAndFormatStatsFor(
             dataSource.getKafkaTopicName(), true) : ""),
+        ImmutableMap.copyOf(MetricCollectors.getStatsFor(
+            dataSource.getKafkaTopicName(), false)),
+        ImmutableMap.copyOf(MetricCollectors.getStatsFor(
+            dataSource.getKafkaTopicName(), true)),
         extended,
         dataSource.getKsqlTopic().getKeyFormat().getFormatInfo().getFormat(),
         dataSource.getKsqlTopic().getValueFormat().getFormatInfo().getFormat(),

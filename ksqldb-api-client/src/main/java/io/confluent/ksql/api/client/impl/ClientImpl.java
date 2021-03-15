@@ -346,7 +346,7 @@ public class ClientImpl implements Client {
   }
 
   @Override
-  public CompletableFuture<Void> dropConnector(String name) {
+  public CompletableFuture<Void> dropConnector(final String name) {
     final CompletableFuture<Void> cf = new CompletableFuture<>();
 
     makePostRequest(

@@ -28,6 +28,9 @@ import java.util.stream.Collectors;
 
 public class ConnectorCommandResponseHandler {
 
+  private ConnectorCommandResponseHandler() {
+  }
+
   static void handlerCreateConnectorResponse(
       final JsonObject connectorInfoEntity,
       final CompletableFuture<CreateConnectorResult> cf

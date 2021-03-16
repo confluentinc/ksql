@@ -2,7 +2,7 @@
 layout: page
 title: ksqlDB Server Configuration Parameter Reference
 tagline: Refer ksqlDB's server parameters
-description: Parameters for onfiguring ksqlDB Server
+description: Parameters for Configuring ksqlDB Server
 keywords: ksqldb, configure, server, setup, install
 ---
 

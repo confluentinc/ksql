@@ -31,9 +31,9 @@ public class CreateConnectorResultImpl implements CreateConnectorResult {
       final ConnectorType type,
       final Map<String, String> properties
   ) {
-    this.name = Objects.requireNonNull(name);
-    this.type = Objects.requireNonNull(type);
-    this.properties = Objects.requireNonNull(properties);
+    this.name = Objects.requireNonNull(name, "name");
+    this.type = Objects.requireNonNull(type, "type");
+    this.properties = Objects.requireNonNull(properties, "properties");
   }
 
   @Override

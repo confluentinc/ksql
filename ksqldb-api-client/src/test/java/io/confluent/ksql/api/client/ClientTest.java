@@ -1154,8 +1154,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
     assertThat(e.getCause().getMessage(),
-        containsString("does not currently support statements for creating, dropping, "
-            + "listing, or describing connectors"));
+        containsString("Use the createConnector, dropConnector, describeConnector or listConnectors methods instead"));
   }
 
   @Test
@@ -1438,7 +1437,7 @@ public class ClientTest extends BaseApiTest {
 
     // Then:
     assertThat(connector.state(), is("state"));
-    assertThat(connector.connectorClass(), is("connectorClass"));
+    assertThat(connector.className(), is("connectorClass"));
     assertThat(connector.type(), is(new ConnectorTypeImpl("SOURCE")));
     assertThat(connector.sources().size(), is(0));
     assertThat(connector.topics().size(), is(1));

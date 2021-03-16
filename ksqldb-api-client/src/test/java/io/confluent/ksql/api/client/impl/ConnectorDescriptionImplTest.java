@@ -25,23 +25,26 @@ public class ConnectorDescriptionImplTest {
   public void shouldImplementHashCodeAndEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new ConnectorDescriptionImpl("class", Collections.singletonList("source"), Collections.singletonList("topic"), new ConnectorTypeImpl("SOURCE"), "state"),
-            new ConnectorDescriptionImpl("class", Collections.singletonList("source"), Collections.singletonList("topic"), new ConnectorTypeImpl("SOURCE"), "state")
+            new ConnectorDescriptionImpl("name", "class", Collections.singletonList("source"), Collections.singletonList("topic"), new ConnectorTypeImpl("SOURCE"), "state"),
+            new ConnectorDescriptionImpl("name", "class", Collections.singletonList("source"), Collections.singletonList("topic"), new ConnectorTypeImpl("SOURCE"), "state")
         )
         .addEqualityGroup(
-            new ConnectorDescriptionImpl("class2", Collections.singletonList("source"), Collections.singletonList("topic"), new ConnectorTypeImpl("SOURCE"), "state")
+            new ConnectorDescriptionImpl("name2", "class", Collections.singletonList("source"), Collections.singletonList("topic"), new ConnectorTypeImpl("SOURCE"), "state")
         )
         .addEqualityGroup(
-            new ConnectorDescriptionImpl("class", Collections.EMPTY_LIST, Collections.singletonList("topic"), new ConnectorTypeImpl("SOURCE"), "state")
+            new ConnectorDescriptionImpl("name", "class2", Collections.singletonList("source"), Collections.singletonList("topic"), new ConnectorTypeImpl("SOURCE"), "state")
         )
         .addEqualityGroup(
-            new ConnectorDescriptionImpl("class", Collections.singletonList("source"), Collections.EMPTY_LIST, new ConnectorTypeImpl("SOURCE"), "state")
+            new ConnectorDescriptionImpl("name", "class", Collections.EMPTY_LIST, Collections.singletonList("topic"), new ConnectorTypeImpl("SOURCE"), "state")
         )
         .addEqualityGroup(
-            new ConnectorDescriptionImpl("class", Collections.singletonList("source"), Collections.singletonList("topic"), new ConnectorTypeImpl("SINK"), "state")
+            new ConnectorDescriptionImpl("name", "class", Collections.singletonList("source"), Collections.EMPTY_LIST, new ConnectorTypeImpl("SOURCE"), "state")
         )
         .addEqualityGroup(
-            new ConnectorDescriptionImpl("class", Collections.singletonList("source"), Collections.singletonList("topic"), new ConnectorTypeImpl("SOURCE"), "state2")
+            new ConnectorDescriptionImpl("name", "class", Collections.singletonList("source"), Collections.singletonList("topic"), new ConnectorTypeImpl("SINK"), "state")
+        )
+        .addEqualityGroup(
+            new ConnectorDescriptionImpl("name", "class", Collections.singletonList("source"), Collections.singletonList("topic"), new ConnectorTypeImpl("SOURCE"), "state2")
         )
         .testEquals();
   }

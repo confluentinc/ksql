@@ -70,6 +70,8 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.ConnectExecutable;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
@@ -113,6 +115,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.TestUtils;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -281,6 +284,12 @@ public class ClientIntegrationTest {
   public void setUp() {
     vertx = Vertx.vertx();
     client = createClient();
+    makeKsqlRequest("CREATE SOURCE CONNECTOR " + TEST_CONNECTOR + " WITH ('connector.class'='" + MOCK_SOURCE_CLASS + "');");
+    assertThatEventually(
+        () -> ((ConnectorList) makeKsqlRequest("SHOW CONNECTORS;")
+            .get(0)).getConnectors().size(),
+        is(1)
+    );
   }
 
   @After
@@ -292,6 +301,9 @@ public class ClientIntegrationTest {
       vertx.close();
     }
     REST_APP.getServiceContext().close();
+
+    ((ConnectorList) makeKsqlRequest("SHOW CONNECTORS;").get(0)).getConnectors()
+        .forEach(c -> makeKsqlRequest("DROP CONNECTOR " + c.getName() + ";"));
   }
 
   @Test
@@ -1030,9 +1042,6 @@ public class ClientIntegrationTest {
 
   @Test
   public void shouldListConnectors() throws Exception {
-    // Given:
-    makeKsqlRequest("CREATE SOURCE CONNECTOR " + TEST_CONNECTOR + " WITH ('connector.class'='" + MOCK_SOURCE_CLASS + "');");
-
     // When:
     final List<ConnectorInfo> connectors = client.listConnectors().get();
 
@@ -1046,9 +1055,6 @@ public class ClientIntegrationTest {
 
   @Test
   public void shouldDescribeConnector() throws Exception {
-    // Given:
-    makeKsqlRequest("CREATE SOURCE CONNECTOR " + TEST_CONNECTOR + " WITH ('connector.class'='" + MOCK_SOURCE_CLASS + "');");
-
     // When:
     final ConnectorDescription connector = client.describeConnector(TEST_CONNECTOR).get();
 
@@ -1057,14 +1063,11 @@ public class ClientIntegrationTest {
     assertThat(connector.state(), is("RUNNING"));
     assertThat(connector.topics().size(), is(0));
     assertThat(connector.sources().size(), is(0));
-    assertThat(connector.connectorClass(), is(MOCK_SOURCE_CLASS));
+    assertThat(connector.className(), is(MOCK_SOURCE_CLASS));
   }
 
   @Test
   public void shouldDropConnector() throws Exception {
-    // Given:
-    makeKsqlRequest("CREATE SOURCE CONNECTOR " + TEST_CONNECTOR + " WITH ('connector.class'='" + MOCK_SOURCE_CLASS + "');");
-
     // When:
     client.dropConnector(TEST_CONNECTOR).get();
 
@@ -1124,8 +1127,8 @@ public class ClientIntegrationTest {
     return queryIds.get(0);
   }
 
-  private static void makeKsqlRequest(final String sql) {
-    RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
+  private static List<KsqlEntity> makeKsqlRequest(final String sql) {
+    return RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
   }
 
   private static void verifyNumActiveQueries(final int numQueries) {

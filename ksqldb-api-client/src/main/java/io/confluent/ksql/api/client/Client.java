@@ -270,7 +270,7 @@ public interface Client {
   CompletableFuture<List<ConnectorInfo>> listConnectors();
 
   /**
-   * Returns metadata about a connector .
+   * Returns metadata about a connector.
    *
    * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
    * failed.

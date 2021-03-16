@@ -83,6 +83,7 @@ public class ConnectorCommandResponseHandler {
     try {
       final JsonObject status = connectorDescriptionEntity.getJsonObject("status");
       cf.complete(new ConnectorDescriptionImpl(
+          status.getString("name"),
           connectorDescriptionEntity.getString("connectorClass"),
           connectorDescriptionEntity.getJsonArray("sources").getList(),
           connectorDescriptionEntity.getJsonArray("topics").getList(),

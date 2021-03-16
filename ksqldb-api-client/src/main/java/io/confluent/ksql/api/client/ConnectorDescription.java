@@ -17,32 +17,18 @@ package io.confluent.ksql.api.client;
 
 import java.util.List;
 
-public interface ConnectorDescription {
-  /**
-   * @return class of this connector
-   */
-  String connectorClass();
+public interface ConnectorDescription extends ConnectorInfo {
 
   /**
    *
-   * @return a list of sources that this connector reads/writes to
+   * @return a list of ksqlDB streams and tables that this connector reads/writes to
    */
   List<String> sources();
 
   /**
    *
-   * @return a list of topics consumed by this connector
+   * @return a list of topics used by this connector
    */
   List<String> topics();
 
-  /**
-   * @return type of this connector
-   */
-  ConnectorType type();
-
-  /**
-   *
-   * @return state of this connector
-   */
-  String state();
 }

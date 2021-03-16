@@ -22,31 +22,28 @@ import java.util.Objects;
 
 public class ConnectorDescriptionImpl implements ConnectorDescription {
 
-  private final String connectorClass;
+  private final String name;
+  private final String className;
   private final List<String> sources;
   private final List<String> topics;
   private final ConnectorType type;
   private final String state;
 
   public ConnectorDescriptionImpl(
-      final String connectorClass,
+      final String name,
+      final String className,
       final List<String> sources,
       final List<String> topics,
       final ConnectorType type,
       final String state
 
   ) {
-    this.connectorClass = Objects.requireNonNull(connectorClass);
-    this.sources = Objects.requireNonNull(sources);
-    this.topics = Objects.requireNonNull(topics);
-    this.type = Objects.requireNonNull(type);
-    this.state = Objects.requireNonNull(state);
-  }
-
-
-  @Override
-  public String connectorClass() {
-    return connectorClass;
+    this.name = Objects.requireNonNull(name, "name");
+    this.className = Objects.requireNonNull(className, "className");
+    this.sources = Objects.requireNonNull(sources, "sources");
+    this.topics = Objects.requireNonNull(topics, "topics");
+    this.type = Objects.requireNonNull(type, "type");
+    this.state = Objects.requireNonNull(state, "state");
   }
 
   @Override
@@ -60,8 +57,18 @@ public class ConnectorDescriptionImpl implements ConnectorDescription {
   }
 
   @Override
+  public String name() {
+    return name;
+  }
+
+  @Override
   public ConnectorType type() {
     return type;
+  }
+
+  @Override
+  public String className() {
+    return className;
   }
 
   @Override
@@ -78,7 +85,8 @@ public class ConnectorDescriptionImpl implements ConnectorDescription {
       return false;
     }
     final ConnectorDescriptionImpl connectorDescription = (ConnectorDescriptionImpl) o;
-    return connectorClass.equals(connectorDescription.connectorClass)
+    return name.equals(connectorDescription.name)
+        && className.equals(connectorDescription.className)
         && sources.equals(connectorDescription.sources)
         && topics.equals(connectorDescription.topics)
         && type.equals(connectorDescription.type)
@@ -87,13 +95,14 @@ public class ConnectorDescriptionImpl implements ConnectorDescription {
 
   @Override
   public int hashCode() {
-    return Objects.hash(connectorClass, sources, topics, type, state);
+    return Objects.hash(className, sources, topics, type, state);
   }
 
   @Override
   public String toString() {
     return "ConnectorDescription{"
-        + "connectorClass='" + connectorClass + '\''
+        + "name='" + name + '\''
+        + "className='" + className + '\''
         + ", sources=" + sources
         + ", topics=" + topics
         + ", type=" + type

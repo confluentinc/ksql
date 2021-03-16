@@ -121,8 +121,8 @@ final class DdlDmlResponseHandlers {
               + "Use the dropConnector() method instead."));
     } else if (AdminResponseHandlers.isConnectErrorResponse(ksqlEntity)) {
       cf.completeExceptionally(new KsqlClientException(
-          EXECUTE_STATEMENT_USAGE_DOC + "Use createConnector, dropConnector, describeConnector or "
-              + "listConnectors methods instead."));
+          EXECUTE_STATEMENT_USAGE_DOC + "Use the createConnector, dropConnector, describeConnector "
+              + "or listConnectors methods instead."));
     } else {
       cf.completeExceptionally(new IllegalStateException(
           "Unexpected server response type. Response: " + ksqlEntity

@@ -32,10 +32,10 @@ public class ConnectorInfoImpl implements ConnectorInfo {
       final String className,
       final String state
   ) {
-    this.name = Objects.requireNonNull(name);
-    this.type = Objects.requireNonNull(type);
-    this.className = Objects.requireNonNull(className);
-    this.state = Objects.requireNonNull(state);
+    this.name = Objects.requireNonNull(name, "name");
+    this.type = Objects.requireNonNull(type, "type");
+    this.className = Objects.requireNonNull(className, "className");
+    this.state = Objects.requireNonNull(state, "state");
   }
 
   @Override

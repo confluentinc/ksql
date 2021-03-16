@@ -16,7 +16,14 @@
 package io.confluent.ksql.api.client;
 
 public interface ConnectorType {
-  enum Type { SOURCE, SINK, UNKNOWN }
+  enum Type {
+    SOURCE,
+    SINK,
+    /**
+     * Denotes an unknown connector type. This is used when there were errors in connector creation.
+     */
+    UNKNOWN
+  }
 
   /**
    * Returns the type.

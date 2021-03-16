@@ -79,6 +79,7 @@ nav:
               - Configure ksqlDB for Avro, Protobuf, and JSON schemas: operate-and-deploy/installation/server-config/avro-schema.md
               - Configure Security for ksqlDB: operate-and-deploy/installation/server-config/security.md
           - Upgrade ksqlDB: operate-and-deploy/installation/upgrading.md
+      - Manage metadata schemas: operate-and-deploy/migrations-tool.md
       - Logging: operate-and-deploy/logging.md
       - Monitoring: operate-and-deploy/monitoring.md
       - Exactly once semantics: operate-and-deploy/exactly-once-semantics.md
@@ -156,6 +157,7 @@ nav:
     - Processing log: reference/processing-log.md
     - Serialization: reference/serialization.md
     - User-defined functions: reference/user-defined-functions.md
+    - Migrations tool configuration: reference/migrations-tool-configuration.md
 
 markdown_extensions:
     - toc:

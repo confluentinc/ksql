@@ -9,6 +9,7 @@ def baseConfig = {
     packaging_build_number = "1"
     default_git_revision = 'refs/heads/master' 
     dockerRegistry = '368821881613.dkr.ecr.us-west-2.amazonaws.com/'
+    altDockerRegistry = 'confluent-docker.jfrog.io/'
     dockerArtifacts = ['confluentinc/ksqldb-docker', 'confluentinc/ksqldb-docker']
     dockerRepos = ['confluentinc/ksqldb-cli', 'confluentinc/ksqldb-server']
     nodeLabel = 'docker-oraclejdk8-compose-swarm'
@@ -240,6 +241,11 @@ def job = {
 
                             config.dockerPullDeps.each { dockerRepo ->
                                 sh "docker pull ${config.dockerRegistry}${dockerRepo}:${config.cp_version}-latest"
+                                
+                                // we want to make sure that any dependency we use to build an image is backed up 
+                                // the artifactory repo (which is not ephemeral, like ECR)
+                                sh "docker tag ${config.dockerRegistry}${dockerRepo}:${config.cp_version}-latest ${config.altDockerRegistry}${dockerRepo}:${config.cp_version}-latest"
+                                sh "docker push ${config.altDockerRegistry}${dockerRepo}:${config.cp_version}-latest"
                             }
 
                             // Install utilities required for building. XXX: Add to base image

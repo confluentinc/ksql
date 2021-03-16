@@ -330,6 +330,18 @@ statements.
     the default value you set, the format ignores the setting. For information on which formats
     support wrapping and unwrapping, see the [serialization docs](/reference/serialization).
 
+## ksql.plugins.rocksdb.total.memory
+  
+Sets the total memory, in bytes, to use across all RocksDB instances for all
+queries on a ksqlDB server, if the `ksql.streams.rocksdb.config.setter` plugin
+is enabled. This property has no effect if the plugin isn't enabled.
+ 
+## ksql.plugins.rocksdb.num.background.threads
+
+Sets the number of threads to use in the shared RocksDB thread pool, if the
+`ksql.streams.rocksdb.config.setter` plugin is enabled. This property
+has no effect if the plugin isn't enabled.
+
 ## `ksql.schema.registry.url`
 
 **Per query:** yes
@@ -438,6 +450,16 @@ The processing semantics to use for persistent queries. The default is
 `at_least_once`. To enable exactly-once semantics, use `exactly_once`. 
 
 For more information, see [Processing Guarantees](/operate-and-deploy/exactly-once-semantics).
+
+## ksql.streams.rocksdb.config.setter
+
+Assigns a plugin that helps to configure memory allocated to RocksDB across all
+queries on a server. Enable the plugin by assigning `KsqlBoundedMemoryRocksDBConfigSetter`
+to the `ksql.streams.rocksdb.config.setter` config. This setting has no effect
+if the plugin isn't assigned. 
+
+Configure the plugin by setting the `ksql.plugins.rocksdb.total.memory` and
+`ksql.plugins.rocksdb.num.background.threads` properties.
 
 ## `ksql.streams.state.dir`
 

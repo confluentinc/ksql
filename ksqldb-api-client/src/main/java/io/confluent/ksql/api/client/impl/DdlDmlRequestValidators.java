@@ -17,9 +17,12 @@ package io.confluent.ksql.api.client.impl;
 
 import io.confluent.ksql.api.client.ExecuteStatementResult;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
+import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 
 final class DdlDmlRequestValidators {
+
+  private static final String QUOTED_STRING_OR_SEMICOLON = "(`([^`]*|(``))*`)|('([^']*|(''))*')";
 
   private DdlDmlRequestValidators() {
   }
@@ -34,7 +37,10 @@ final class DdlDmlRequestValidators {
       return false;
     }
 
-    if (sql.indexOf(";") != sql.lastIndexOf(";")) {
+    if (Arrays.stream(sql.split(QUOTED_STRING_OR_SEMICOLON))
+        .mapToInt(part -> part.split(";", -1).length - 1)
+        .sum() > 1
+    ) {
       cf.completeExceptionally(new KsqlClientException(
           "executeStatement() may only be used to execute one statement at a time."));
       return false;

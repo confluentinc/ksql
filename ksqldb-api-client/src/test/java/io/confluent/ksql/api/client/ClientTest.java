@@ -783,6 +783,31 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
+  public void shouldHandleSingleWithStatementMultipleSemicolonsFromExecuteStatement() throws Exception {
+    // Given
+    final CommandStatusEntity entity = new CommandStatusEntity(
+        "C';'SAS;",
+        new CommandId("STREAM", "FOO", "CREATE"),
+        new CommandStatus(
+            CommandStatus.Status.SUCCESS,
+            "Success"
+        ),
+        0L
+    );
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    final Map<String, Object> properties = ImmutableMap.of("auto.offset.reset", "earliest");
+
+    // When
+    final ExecuteStatementResult result = javaClient.executeStatement("C';'SAS;", properties).get();
+
+    // Then
+    assertThat(testEndpoints.getLastSql(), is("C';'SAS;"));
+    assertThat(testEndpoints.getLastProperties(), is(new JsonObject().put("auto.offset.reset", "earliest")));
+    assertThat(result.queryId(), is(Optional.empty()));
+  }
+
+  @Test
   public void shouldRejectMultipleRequestsFromExecuteStatement() {
     // When
     final Exception e = assertThrows(

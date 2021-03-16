@@ -17,7 +17,6 @@ package io.confluent.ksql.api.client.impl;
 
 import io.confluent.ksql.api.client.ConnectorDescription;
 import io.confluent.ksql.api.client.ConnectorInfo;
-import io.confluent.ksql.api.client.CreateConnectorResult;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.util.List;
@@ -31,18 +30,13 @@ public class ConnectorCommandResponseHandler {
   private ConnectorCommandResponseHandler() {
   }
 
-  static void handlerCreateConnectorResponse(
+  static void handleCreateConnectorResponse(
       final JsonObject connectorInfoEntity,
-      final CompletableFuture<CreateConnectorResult> cf
+      final CompletableFuture<Void> cf
   ) {
-    try {
-      final JsonObject connectorInfoJson = connectorInfoEntity.getJsonObject("info");
-      cf.complete(new CreateConnectorResultImpl(
-          connectorInfoJson.getString("name"),
-          new ConnectorTypeImpl(connectorInfoJson.getString("type")),
-          connectorInfoJson.getJsonObject("config").mapTo(Map.class)
-      ));
-    } catch (Exception e) {
+    if (connectorInfoEntity.getString("@type").equals("connector_info")) {
+      cf.complete(null);
+    } else {
       cf.completeExceptionally(new IllegalStateException(
           "Unexpected server response format. Response: " + connectorInfoEntity
       ));

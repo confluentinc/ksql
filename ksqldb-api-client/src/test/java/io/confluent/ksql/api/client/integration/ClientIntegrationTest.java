@@ -47,7 +47,6 @@ import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.ConnectorDescription;
 import io.confluent.ksql.api.client.ConnectorInfo;
 import io.confluent.ksql.api.client.ConnectorType;
-import io.confluent.ksql.api.client.CreateConnectorResult;
 import io.confluent.ksql.api.client.ExecuteStatementResult;
 import io.confluent.ksql.api.client.InsertAck;
 import io.confluent.ksql.api.client.InsertsPublisher;
@@ -1079,15 +1078,10 @@ public class ClientIntegrationTest {
   @Test
   public void shouldCreateConnector() throws Exception {
     // When:
-    final CreateConnectorResult response =
-        client.createConnector("FOO", true, ImmutableMap.of("connector.class", MOCK_SOURCE_CLASS)).get();
+    client.createConnector("FOO", true, ImmutableMap.of("connector.class", MOCK_SOURCE_CLASS)).get();
     final ConnectorDescription connector = client.describeConnector("FOO").get();
 
     // Then:
-    assertThat(response.name(), is("FOO"));
-    assertThat(response.type(), is(new ConnectorTypeImpl("SOURCE")));
-    assertThat(response.properties().size(), is(3)); // the other two are the name and default key converter
-    assertThat(response.properties().get("connector.class"), is(MOCK_SOURCE_CLASS));
     assertThat(connector.state(), is("RUNNING"));
   }
 

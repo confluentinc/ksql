@@ -1445,23 +1445,21 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldCreateConnector() throws Exception {
+  public void shouldCreateConnector() {
     // Given
     final CreateConnectorEntity entity = new CreateConnectorEntity("create connector;",
         new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), SOURCE_TYPE));
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When:
-    final CreateConnectorResult result = (CreateConnectorResult) javaClient.createConnector("name", true, Collections.EMPTY_MAP).get();
+    final CompletableFuture<Void> result = javaClient.createConnector("name", true, Collections.EMPTY_MAP);
 
     // Then:
-    assertThat(result.name(), is("name"));
-    assertThat(result.properties().size(), is(0));
-    assertThat(result.type(), is(new ConnectorTypeImpl("SOURCE")));
+    assertTrue(result.complete(null));
   }
 
   @Test
-  public void shouldDropConnector() throws Exception {
+  public void shouldDropConnector() {
     // Given
     final DropConnectorEntity entity = new DropConnectorEntity("drop connector;", "name");
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));

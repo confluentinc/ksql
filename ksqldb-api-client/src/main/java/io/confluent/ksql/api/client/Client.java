@@ -245,7 +245,7 @@ public interface Client {
    * @param properties connector properties
    * @return result of connector creation
    */
-  CompletableFuture<CreateConnectorResult> createConnector(
+  CompletableFuture<Void> createConnector(
       String connectorName, boolean isSource, Map<String, String> properties);
 
   /**

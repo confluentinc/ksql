@@ -25,7 +25,6 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.ClientOptions;
 import io.confluent.ksql.api.client.ConnectorDescription;
 import io.confluent.ksql.api.client.ConnectorInfo;
-import io.confluent.ksql.api.client.CreateConnectorResult;
 import io.confluent.ksql.api.client.ExecuteStatementResult;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.QueryInfo;
@@ -321,12 +320,12 @@ public class ClientImpl implements Client {
   }
 
   @Override
-  public CompletableFuture<CreateConnectorResult> createConnector(
+  public CompletableFuture<Void> createConnector(
       final String name,
       final boolean isSource,
       final Map<String, String> properties
   ) {
-    final CompletableFuture<CreateConnectorResult> cf = new CompletableFuture<>();
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
     final String connectorConfigs = String.join(",", properties.entrySet()
                 .stream()
                 .map(e -> String.format("'%s'='%s'", e.getKey(), e.getValue()))
@@ -339,7 +338,7 @@ public class ClientImpl implements Client {
             String.format("CREATE %s CONNECTOR %s WITH (%s);", type, name, connectorConfigs)),
         cf,
         response -> handleSingleEntityResponse(
-            response, cf, ConnectorCommandResponseHandler::handlerCreateConnectorResponse)
+            response, cf, ConnectorCommandResponseHandler::handleCreateConnectorResponse)
     );
 
     return cf;

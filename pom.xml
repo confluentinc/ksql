@@ -599,7 +599,7 @@
                 <version>${spotbugs.maven.plugin.version}</version>
                 <configuration>
                     <xmlOutput>true</xmlOutput>
-                    <excludeFilterFile>findbugs/findbugs-exclude.xml</excludeFilterFile>
+                    <excludeFilterFile>${project.basedir}/../findbugs/findbugs-exclude.xml</excludeFilterFile>
                     <effort>Max</effort>
                     <threshold>Max</threshold>
                     <failOnError>true</failOnError>

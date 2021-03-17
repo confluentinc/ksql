@@ -85,7 +85,7 @@ public class QueryDescription {
         new HashMap<>(Objects.requireNonNull(ksqlHostQueryStatus, "ksqlHostQueryStatus"));
     this.queryType = Objects.requireNonNull(queryType, "queryType");
     this.queryErrors = new ArrayList<>(Objects.requireNonNull(queryErrors, "queryErrors"));
-    this.tasksMetadata = ImmutableSet.copyOf(tasksMetadata);
+    this.tasksMetadata = ImmutableSet.copyOf(Objects.requireNonNull(tasksMetadata));
   }
 
   public QueryId getId() {

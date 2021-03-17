@@ -420,8 +420,6 @@ public class ConsoleTest {
                 new StreamsTaskMetadata(
                     "test",
                     Collections.emptySet(),
-                    Collections.emptySet(),
-                    Collections.emptySet(),
                     Optional.empty()
                 )
             )
@@ -469,9 +467,7 @@ public class ConsoleTest {
           "    } ],\n" +
           "    \"tasksMetadata\" : [ {\n" +
           "      \"taskId\" : \"test\",\n" +
-          "      \"topicPartitions\" : [ ],\n" +
-          "      \"endOffsets\" : { },\n" +
-          "      \"committedOffsets\" : { },\n" +
+          "      \"topicOffsets\" : { },\n" +
           "      \"timeCurrentIdlingStarted\" : null\n" +
           "    } ],\n" +
           "    \"state\" : \"ERROR\"\n" +

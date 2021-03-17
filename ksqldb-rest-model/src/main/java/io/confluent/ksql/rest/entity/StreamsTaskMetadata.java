@@ -19,68 +19,59 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.Collections;
+import com.google.common.collect.ImmutableSet;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
-
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.streams.processor.TaskMetadata;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class StreamsTaskMetadata {
 
   private final String taskId;
-  private final Set<TopicPartitionEntity> topicPartitions;
-  private final Set<TopicOffset> endOffsets;
-  private final Set<TopicOffset> committedOffsets;
+  private final Set<TopicOffset> topicOffsets;
   private final Optional<Long> timeCurrentIdlingStarted;
 
   @SuppressWarnings("checkstyle:LineLength")
   @JsonCreator
   public StreamsTaskMetadata(
       @JsonProperty("taskId") final String taskId,
-      @JsonProperty("topicPartitions") final Set<TopicPartitionEntity> topicPartitions,
-      @JsonProperty("endOffsets") final Set<TopicOffset> endOffsets,
-      @JsonProperty("committedOffsets") final Set<TopicOffset> committedOffsets,
+      @JsonProperty("topicOffsets") final Set<TopicOffset> topicOffsets,
       @JsonProperty("timeCurrentIdlingStarted") final Optional<Long> timeCurrentIdlingStarted
   ) {
 
     this.taskId = taskId;
-    this.topicPartitions = topicPartitions;
-    this.endOffsets = endOffsets;
-    this.committedOffsets = committedOffsets;
+    this.topicOffsets = ImmutableSet.copyOf(topicOffsets);
     this.timeCurrentIdlingStarted = timeCurrentIdlingStarted;
   }
 
   public static StreamsTaskMetadata fromStreamsTaskMetadata(final TaskMetadata taskMetadata) {
+    final Set<TopicOffset> topicOffsets = new HashSet<>();
+    for (TopicPartition topicPartition: taskMetadata.topicPartitions()) {
+      topicOffsets.add(
+          new TopicOffset(
+              new TopicPartitionEntity(topicPartition.topic(), topicPartition.partition()),
+              taskMetadata.endOffsets().getOrDefault(topicPartition, 0L),
+              taskMetadata.committedOffsets().getOrDefault(topicPartition, 0L)
+          )
+      );
+    }
     return new StreamsTaskMetadata(
         taskMetadata.taskId(),
-        taskMetadata
-            .topicPartitions()
-            .stream()
-            .map(t -> new TopicPartitionEntity(t.topic(), t.partition()))
-            .collect(Collectors.toSet()),
-        Collections.emptySet(),
-        Collections.emptySet(),
-        Optional.empty());
+        topicOffsets,
+        taskMetadata.timeCurrentIdlingStarted());
   }
 
   public String getTaskId() {
     return taskId;
   }
 
-  public Set<TopicPartitionEntity> getTopicPartitions() {
-    return topicPartitions;
+  public Set<TopicOffset> getTopicOffsets() {
+    return topicOffsets;
   }
 
-  public Set<TopicOffset> getEndOffsets() {
-    return endOffsets;
-  }
-
-  public Set<TopicOffset> getCommittedOffsets() {
-    return committedOffsets;
-  }
 
   public Optional<Long> getTimeCurrentIdlingStarted() {
     return timeCurrentIdlingStarted;
@@ -98,37 +89,42 @@ public class StreamsTaskMetadata {
     }
     final StreamsTaskMetadata that = (StreamsTaskMetadata) o;
     return Objects.equals(taskId, that.taskId)
-        && Objects.equals(topicPartitions, that.topicPartitions)
-        && Objects.equals(committedOffsets, that.committedOffsets)
-        && Objects.equals(endOffsets, that.endOffsets)
+        && Objects.equals(topicOffsets, that.topicOffsets)
         && Objects.equals(timeCurrentIdlingStarted, that.timeCurrentIdlingStarted);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(taskId, topicPartitions, committedOffsets, endOffsets, topicPartitions);
+    return Objects.hash(taskId, topicOffsets, timeCurrentIdlingStarted);
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   static class TopicOffset {
     private final TopicPartitionEntity topicPartitionEntity;
-    private final Long offset;
+    private final Long endOffset;
+    private final Long committedOffset;
 
     @JsonCreator
     TopicOffset(
         @JsonProperty("topicPartitionEntity") final TopicPartitionEntity topicPartitionEntity,
-        @JsonProperty("offset") final Long offset
+        @JsonProperty("endOffset") final Long endOffset,
+        @JsonProperty("committedOffset") final Long committedOffset
     ) {
       this.topicPartitionEntity = topicPartitionEntity;
-      this.offset = offset;
+      this.endOffset = endOffset;
+      this.committedOffset = committedOffset;
     }
 
     public TopicPartitionEntity getTopicPartitionEntity() {
       return topicPartitionEntity;
     }
 
-    public Long getOffset() {
-      return offset;
+    public Long getCommittedOffset() {
+      return committedOffset;
+    }
+
+    public Long getEndOffset() {
+      return endOffset;
     }
   }
 

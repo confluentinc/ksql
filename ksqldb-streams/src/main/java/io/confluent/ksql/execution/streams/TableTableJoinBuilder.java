@@ -16,10 +16,12 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.Materialized;
 
 public final class TableTableJoinBuilder {
 
@@ -40,21 +42,31 @@ public final class TableTableJoinBuilder {
     final KTable<K, GenericRow> result;
     switch (join.getJoinType()) {
       case LEFT:
-        result = left.getTable().leftJoin(right.getTable(), joinParams.getJoiner());
+        result = left.getTable().leftJoin(
+                right.getTable(),
+                joinParams.getJoiner(),
+                Materialized.with(null, null));
         break;
       case INNER:
-        result = left.getTable().join(right.getTable(), joinParams.getJoiner());
+        result = left.getTable().join(
+                right.getTable(),
+                joinParams.getJoiner(),
+                Materialized.with(null, null));
         break;
       case OUTER:
-        result = left.getTable().outerJoin(right.getTable(), joinParams.getJoiner());
+        result = left.getTable().outerJoin(
+                right.getTable(),
+                joinParams.getJoiner(),
+                Materialized.with(null, null));
         break;
       default:
         throw new IllegalStateException("invalid join type");
     }
 
-    return KTableHolder.unmaterialized(
+    return KTableHolder.materialized(
             result,
             joinParams.getSchema(),
-            left.getExecutionKeyFactory());
+            left.getExecutionKeyFactory(),
+            MaterializationInfo.builder(result.queryableStoreName(), joinParams.getSchema()));
   }
 }

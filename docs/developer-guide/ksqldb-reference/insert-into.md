@@ -33,7 +33,7 @@ stream's schema and key, respectively. If the schema and partitioning
 column(s) are incompatible with the stream, then the statement will return
 an error.
 
-The `stream_name` and `from_item` parameters must both refer to a Stream.
+The `stream_name` and `from_stream` parameters must both refer to a Stream.
 Tables are not supported.
 
 If the PARTITION BY clause is present, it is applied to the source _after_ any JOIN or WHERE clauses, and

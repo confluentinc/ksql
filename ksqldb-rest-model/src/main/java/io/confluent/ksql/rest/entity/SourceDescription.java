@@ -21,6 +21,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.metrics.TopicSensors.Stat;
 import io.confluent.ksql.model.WindowType;
 import java.util.List;
 import java.util.Objects;
@@ -40,6 +42,8 @@ public class SourceDescription {
   private final String timestamp;
   private final String statistics;
   private final String errorStats;
+  private final ImmutableMap<String, Stat> statisticsMap;
+  private final ImmutableMap<String, Stat> errorStatsMap;
   private final boolean extended;
   private final String keyFormat;
   private final String valueFormat;
@@ -62,6 +66,8 @@ public class SourceDescription {
       @JsonProperty("timestamp") final String timestamp,
       @JsonProperty("statistics") final String statistics,
       @JsonProperty("errorStats") final String errorStats,
+      @JsonProperty("statisticsMap") final ImmutableMap<String, Stat> statisticsMap,
+      @JsonProperty("errorStatsMap") final ImmutableMap<String, Stat> errorStatsMap,
       @JsonProperty("extended") final boolean extended,
       @JsonProperty("keyFormat") final String keyFormat,
       @JsonProperty("valueFormat") final String valueFormat,
@@ -85,6 +91,8 @@ public class SourceDescription {
     this.timestamp = Objects.requireNonNull(timestamp, "timestamp");
     this.statistics = Objects.requireNonNull(statistics, "statistics");
     this.errorStats = Objects.requireNonNull(errorStats, "errorStats");
+    this.statisticsMap = Objects.requireNonNull(statisticsMap, "statisticsMap");
+    this.errorStatsMap = Objects.requireNonNull(errorStatsMap, "errorStatsMap");
     this.extended = extended;
     this.keyFormat = Objects.requireNonNull(keyFormat, "keyFormat");
     this.valueFormat = Objects.requireNonNull(valueFormat, "valueFormat");
@@ -155,11 +163,29 @@ public class SourceDescription {
   }
 
   public String getStatistics() {
-    return statistics;
+    if (statistics.length() > 0) {
+      return "The statistics field is deprecated and will be removed in a future version of ksql. "
+              + "Please update your client to the latest version and use statisticsMap instead.\n"
+              + statistics;
+    }
+    return "";
   }
 
   public String getErrorStats() {
-    return errorStats;
+    if (errorStats.length() > 0) {
+      return "The errorStats field is deprecated and will be removed in a future version of ksql. "
+              + "Please update your client to the latest version and use errorStatsMap instead.\n"
+              + errorStats + '\n';
+    }
+    return "";
+  }
+
+  public ImmutableMap<String, Stat> getStatisticsMap() {
+    return statisticsMap;
+  }
+
+  public ImmutableMap<String, Stat> getErrorStatsMap() {
+    return errorStatsMap;
   }
 
   public List<QueryOffsetSummary> getQueryOffsetSummaries() {

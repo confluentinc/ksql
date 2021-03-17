@@ -15,10 +15,13 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import static io.confluent.ksql.parser.DefaultKsqlParser.ERROR_VALIDATOR;
+
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.CaseInsensitiveStream;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.SqlBaseLexer;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.TypeContext;
@@ -49,8 +52,12 @@ public final class SqlTypeParser {
   }
 
   public Type parse(final String schema) {
-    final TypeContext typeContext = parseTypeContext(schema);
-    return getType(typeContext);
+    try {
+      final TypeContext typeContext = parseTypeContext(schema);
+      return getType(typeContext);
+    } catch (final ParsingException e) {
+      throw new KsqlException("Failed to parse: " + schema, e);
+    }
   }
 
   public Type getType(
@@ -108,6 +115,8 @@ public final class SqlTypeParser {
     final CommonTokenStream tokenStream = new CommonTokenStream(lexer);
     final SqlBaseParser parser = new SqlBaseParser(tokenStream);
     parser.getInterpreter().setPredictionMode(PredictionMode.LL);
+    parser.removeErrorListeners();
+    parser.addErrorListener(ERROR_VALIDATOR);
     return parser.type();
   }
 

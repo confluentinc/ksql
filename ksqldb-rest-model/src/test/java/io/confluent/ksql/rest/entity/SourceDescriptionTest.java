@@ -16,7 +16,9 @@
 package io.confluent.ksql.rest.entity;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.metrics.TopicSensors.Stat;
 import io.confluent.ksql.model.WindowType;
 import java.util.Collections;
 import java.util.List;
@@ -32,6 +34,8 @@ public class SourceDescriptionTest {
     private static final String SOME_STRING = "some string";
     private static final int SOME_INT = 3;
     private static final boolean SOME_BOOL = true;
+    private static final Stat STAT =  new Stat("TEST", 0, 0);
+    private static final ImmutableMap<String, Stat> IMMUTABLE_MAP = new ImmutableMap.Builder<String, Stat>().put("TEST", STAT).build();
 
     @Mock
     private RunningQuery query1;
@@ -56,138 +60,138 @@ public class SourceDescriptionTest {
             .addEqualityGroup(
                 new SourceDescription(
                     SOME_STRING, Optional.empty(), readQueries, writeQueries, fields, SOME_STRING,
-                    SOME_STRING, SOME_STRING, SOME_STRING,
+                    SOME_STRING, SOME_STRING, SOME_STRING, IMMUTABLE_MAP, IMMUTABLE_MAP,
                     SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT, SOME_INT,
                     SOME_STRING, summaries, sourceConstraints),
                 new SourceDescription(
                     SOME_STRING, Optional.empty(), readQueries, writeQueries, fields, SOME_STRING,
-                    SOME_STRING, SOME_STRING, SOME_STRING,
+                    SOME_STRING, SOME_STRING, SOME_STRING,IMMUTABLE_MAP, IMMUTABLE_MAP,
                     SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT, SOME_INT,
                     SOME_STRING, summaries, sourceConstraints)
             )
             .addEqualityGroup(
                 new SourceDescription(
                     "diff", Optional.of(WindowType.SESSION), readQueries, writeQueries, fields,
-                    SOME_STRING, SOME_STRING, SOME_STRING, SOME_STRING,
+                    SOME_STRING, SOME_STRING, SOME_STRING, SOME_STRING,IMMUTABLE_MAP, IMMUTABLE_MAP,
                     SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT, SOME_INT,
                     SOME_STRING, summaries, sourceConstraints)
             )
             .addEqualityGroup(
                 new SourceDescription(
                     "diff", Optional.of(WindowType.SESSION), readQueries, writeQueries, fields,
-                    SOME_STRING, SOME_STRING, SOME_STRING, SOME_STRING,
+                    SOME_STRING, SOME_STRING, SOME_STRING, SOME_STRING,IMMUTABLE_MAP, IMMUTABLE_MAP,
                     SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT, SOME_INT,
                     SOME_STRING, summaries, ImmutableList.of("s1"))
             )
             .addEqualityGroup(
                 new SourceDescription(
                     SOME_STRING, Optional.empty(), ImmutableList.of(), writeQueries, fields,
-                    SOME_STRING, SOME_STRING, SOME_STRING, SOME_STRING,
+                    SOME_STRING, SOME_STRING, SOME_STRING, SOME_STRING,IMMUTABLE_MAP, IMMUTABLE_MAP,
                     SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT, SOME_INT,
                     SOME_STRING, summaries, sourceConstraints)
             )
             .addEqualityGroup(
                 new SourceDescription(
                     SOME_STRING, Optional.empty(), readQueries, ImmutableList.of(), fields,
-                    SOME_STRING, SOME_STRING, SOME_STRING, SOME_STRING,
+                    SOME_STRING, SOME_STRING, SOME_STRING, SOME_STRING,IMMUTABLE_MAP, IMMUTABLE_MAP,
                     SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT, SOME_INT,
                     SOME_STRING, summaries, sourceConstraints)
             )
             .addEqualityGroup(
                 new SourceDescription(
                     SOME_STRING, Optional.empty(), readQueries, writeQueries, ImmutableList.of(),
-                    SOME_STRING, SOME_STRING, SOME_STRING, SOME_STRING,
+                    SOME_STRING, SOME_STRING, SOME_STRING, SOME_STRING,IMMUTABLE_MAP, IMMUTABLE_MAP,
                     SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT, SOME_INT,
                     SOME_STRING, summaries, sourceConstraints)
             )
             .addEqualityGroup(
                 new SourceDescription(
                     SOME_STRING, Optional.empty(), readQueries, writeQueries, fields,
-                    SOME_STRING, SOME_STRING, SOME_STRING, SOME_STRING,
+                    SOME_STRING, SOME_STRING, SOME_STRING, SOME_STRING,IMMUTABLE_MAP, IMMUTABLE_MAP,
                     SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT, SOME_INT,
                     SOME_STRING, ImmutableList.of(), sourceConstraints)
             )
             .addEqualityGroup(
                 new SourceDescription(
                     SOME_STRING, Optional.empty(), readQueries, writeQueries, fields, "diff",
-                    SOME_STRING, SOME_STRING, SOME_STRING,
+                    SOME_STRING, SOME_STRING, SOME_STRING,IMMUTABLE_MAP, IMMUTABLE_MAP,
                     SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT, SOME_INT,
                     SOME_STRING, summaries, sourceConstraints)
             )
             .addEqualityGroup(
                 new SourceDescription(
                     SOME_STRING, Optional.empty(), readQueries, writeQueries, fields, SOME_STRING,
-                     "diff", SOME_STRING, SOME_STRING,
+                     "diff", SOME_STRING, SOME_STRING,IMMUTABLE_MAP, IMMUTABLE_MAP,
                     SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT, SOME_INT,
                     SOME_STRING, summaries, sourceConstraints)
             )
             .addEqualityGroup(
                 new SourceDescription(
                     SOME_STRING, Optional.empty(), readQueries, writeQueries, fields, SOME_STRING,
-                    SOME_STRING, "diff", SOME_STRING,
+                    SOME_STRING, "diff", SOME_STRING,IMMUTABLE_MAP, IMMUTABLE_MAP,
                     SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT, SOME_INT,
                     SOME_STRING, summaries, sourceConstraints)
             )
             .addEqualityGroup(
                 new SourceDescription(
                     SOME_STRING, Optional.empty(), readQueries, writeQueries, fields, SOME_STRING,
-                    SOME_STRING, SOME_STRING, "diff",
+                    SOME_STRING, SOME_STRING, "diff",IMMUTABLE_MAP, IMMUTABLE_MAP,
                     SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT, SOME_INT,
                     SOME_STRING, summaries, sourceConstraints)
             )
             .addEqualityGroup(
                 new SourceDescription(
                     SOME_STRING, Optional.empty(), readQueries, writeQueries, fields, SOME_STRING,
-                    SOME_STRING, SOME_STRING, SOME_STRING,
+                    SOME_STRING, SOME_STRING, SOME_STRING,IMMUTABLE_MAP, IMMUTABLE_MAP,
                     SOME_BOOL, "diff", SOME_STRING, SOME_STRING, SOME_INT, SOME_INT,
                     SOME_STRING, summaries, sourceConstraints)
             )
             .addEqualityGroup(
                 new SourceDescription(
                     SOME_STRING, Optional.empty(), readQueries, writeQueries, fields, SOME_STRING,
-                    SOME_STRING, SOME_STRING, SOME_STRING,
+                    SOME_STRING, SOME_STRING, SOME_STRING,IMMUTABLE_MAP, IMMUTABLE_MAP,
                     !SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT, SOME_INT,
                     SOME_STRING, summaries, sourceConstraints)
             )
             .addEqualityGroup(
                 new SourceDescription(
                     SOME_STRING, Optional.empty(), readQueries, writeQueries, fields, SOME_STRING,
-                    SOME_STRING, SOME_STRING, SOME_STRING,
+                    SOME_STRING, SOME_STRING, SOME_STRING,IMMUTABLE_MAP, IMMUTABLE_MAP,
                     SOME_BOOL, SOME_STRING, "diff", SOME_STRING, SOME_INT, SOME_INT,
                     SOME_STRING, summaries, sourceConstraints)
             )
             .addEqualityGroup(
                 new SourceDescription(
                     SOME_STRING, Optional.empty(), readQueries, writeQueries, fields, SOME_STRING,
-                    SOME_STRING, SOME_STRING, SOME_STRING,
+                    SOME_STRING, SOME_STRING, SOME_STRING,IMMUTABLE_MAP, IMMUTABLE_MAP,
                     SOME_BOOL, SOME_STRING, SOME_STRING, "diff", SOME_INT, SOME_INT,
                     SOME_STRING, summaries, sourceConstraints)
             )
             .addEqualityGroup(
                 new SourceDescription(
                     SOME_STRING, Optional.empty(), readQueries, writeQueries, fields, SOME_STRING,
-                    SOME_STRING, SOME_STRING, SOME_STRING,
+                    SOME_STRING, SOME_STRING, SOME_STRING,IMMUTABLE_MAP, IMMUTABLE_MAP,
                     SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT + 1, SOME_INT,
                     SOME_STRING, summaries, sourceConstraints)
             )
             .addEqualityGroup(
                 new SourceDescription(
                     SOME_STRING, Optional.empty(), readQueries, writeQueries, fields, SOME_STRING,
-                    SOME_STRING, SOME_STRING, SOME_STRING,
+                    SOME_STRING, SOME_STRING, SOME_STRING,IMMUTABLE_MAP, IMMUTABLE_MAP,
                     SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT, SOME_INT + 1,
                     SOME_STRING, summaries, sourceConstraints)
             )
             .addEqualityGroup(
                 new SourceDescription(
                     SOME_STRING, Optional.empty(), readQueries, writeQueries, fields, SOME_STRING,
-                    SOME_STRING, SOME_STRING, SOME_STRING,
+                    SOME_STRING, SOME_STRING, SOME_STRING,IMMUTABLE_MAP, IMMUTABLE_MAP,
                     SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT, SOME_INT,
                     "diff", summaries, sourceConstraints)
             )
             .addEqualityGroup(
                 new SourceDescription(
                     SOME_STRING, Optional.empty(), readQueries, writeQueries, fields, SOME_STRING,
-                    SOME_STRING, SOME_STRING, SOME_STRING,
+                    SOME_STRING, SOME_STRING, SOME_STRING,IMMUTABLE_MAP, IMMUTABLE_MAP,
                     SOME_BOOL, SOME_STRING, SOME_STRING, SOME_STRING, SOME_INT, SOME_INT,
                     SOME_STRING,
                     ImmutableList.of(new QueryOffsetSummary("g1",

@@ -46,6 +46,7 @@ import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
+import io.confluent.ksql.metrics.TopicSensors.Stat;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.query.QueryId;
@@ -129,6 +130,10 @@ public class ClientTest extends BaseApiTest {
   protected static final String EXECUTE_STATEMENT_USAGE_DOC = "The executeStatement() method is only "
       + "for 'CREATE', 'CREATE ... AS SELECT', 'DROP', 'TERMINATE', and 'INSERT INTO ... AS "
       + "SELECT' statements. ";
+
+  protected static final Stat STAT =  new Stat("TEST", 0, 0);
+
+  protected static final ImmutableMap<String, Stat> IMMUTABLE_MAP = new ImmutableMap.Builder<String, Stat>().put("TEST", STAT).build();
 
   protected Client javaClient;
 
@@ -918,6 +923,8 @@ public class ClientTest extends BaseApiTest {
             "timestamp",
             "statistics",
             "errorStats",
+            IMMUTABLE_MAP,
+            IMMUTABLE_MAP,
             false,
             "keyFormat",
             "valueFormat",
@@ -1348,6 +1355,8 @@ public class ClientTest extends BaseApiTest {
             "",
             "",
             "",
+            IMMUTABLE_MAP,
+            IMMUTABLE_MAP,
             false,
             "KAFKA",
             "JSON",

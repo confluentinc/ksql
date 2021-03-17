@@ -156,7 +156,7 @@ public final class MetricCollectors {
     collectorMap.remove(id);
   }
 
-  static Map<String, TopicSensors.Stat> getStatsFor(
+  public static Map<String, TopicSensors.Stat> getStatsFor(
       final String topic, final boolean isError) {
     return getAggregateMetrics(
         collectorMap.values().stream()
@@ -185,7 +185,7 @@ public final class MetricCollectors {
     return results;
   }
 
-  private static String format(
+  public static String format(
       final Collection<TopicSensors.Stat> stats,
       final String lastEventTimestampMsg) {
     final StringBuilder results = new StringBuilder();

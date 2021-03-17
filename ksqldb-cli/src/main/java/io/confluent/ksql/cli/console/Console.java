@@ -44,6 +44,7 @@ import io.confluent.ksql.cli.console.table.builder.TablesListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TopicDescriptionTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TypeListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.WarningEntityTableBuilder;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.rest.ApiJsonMapper;
@@ -665,8 +666,8 @@ public class Console implements Closeable {
         "Local runtime statistics",
         "------------------------"
     ));
-    writer().println(source.getStatistics());
-    writer().println(source.getErrorStats());
+    writer().println(MetricCollectors.format(source.getStatisticsMap().values(), "last-message"));
+    writer().println(MetricCollectors.format(source.getErrorStatsMap().values(), "last-message"));
     writer().println(String.format(
         "(%s)",
         "Statistics of the local KSQL server interaction with the Kafka topic "

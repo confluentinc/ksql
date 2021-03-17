@@ -36,6 +36,7 @@ import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.cli.console.Console.NoOpRowCaptor;
 import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.metrics.TopicSensors.Stat;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryError.Type;
@@ -120,6 +121,8 @@ public class ConsoleTest {
   private static final String NEWLINE = System.lineSeparator();
   private static final String STATUS_COUNT_STRING = "RUNNING:1,ERROR:2";
   private static final String AGGREGATE_STATUS = "ERROR";
+  protected static final Stat STAT =  new Stat("TEST", 0, 0);
+  protected static final ImmutableMap<String, Stat> IMMUTABLE_MAP = new ImmutableMap.Builder<String, Stat>().put("TEST", STAT).build();
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("foo"), SqlTypes.INTEGER)
@@ -140,6 +143,8 @@ public class ConsoleTest {
       "2000-01-01",
       "stats",
       "errors",
+      IMMUTABLE_MAP,
+      IMMUTABLE_MAP,
       true,
       "kafka",
       "avro",
@@ -541,6 +546,8 @@ public class ConsoleTest {
                 "2000-01-01",
                 "stats",
                 "errors",
+                IMMUTABLE_MAP,
+                IMMUTABLE_MAP,
                 false,
                 "kafka",
                 "avro",
@@ -672,8 +679,10 @@ public class ConsoleTest {
           + "    } ]," + NEWLINE
           + "    \"type\" : \"TABLE\"," + NEWLINE
           + "    \"timestamp\" : \"2000-01-01\"," + NEWLINE
-          + "    \"statistics\" : \"stats\"," + NEWLINE
-          + "    \"errorStats\" : \"errors\"," + NEWLINE
+          + "    \"statistics\" : \"The statistics field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use statisticsMap instead.\\nstats\"," + NEWLINE
+          + "    \"errorStats\" : \"The errorStats field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use errorStatsMap instead.\\nerrors\\n\"," + NEWLINE
+          + "    \"statisticsMap\" : {" + NEWLINE + "      \"TEST\" : {" + NEWLINE + "        \"name\" : \"TEST\"," + NEWLINE + "        \"value\" : 0.0," + NEWLINE + "        \"timestamp\" : 0" + NEWLINE + "      }" + NEWLINE + "    }," + NEWLINE
+          + "    \"errorStatsMap\" : {" + NEWLINE + "      \"TEST\" : {" + NEWLINE + "        \"name\" : \"TEST\"," + NEWLINE + "        \"value\" : 0.0," + NEWLINE + "        \"timestamp\" : 0" + NEWLINE + "      }" + NEWLINE + "    }," + NEWLINE
           + "    \"extended\" : false," + NEWLINE
           + "    \"keyFormat\" : \"kafka\"," + NEWLINE
           + "    \"valueFormat\" : \"avro\"," + NEWLINE
@@ -812,8 +821,10 @@ public class ConsoleTest {
           + "    } ]," + NEWLINE
           + "    \"type\" : \"TABLE\"," + NEWLINE
           + "    \"timestamp\" : \"2000-01-01\"," + NEWLINE
-          + "    \"statistics\" : \"stats\"," + NEWLINE
-          + "    \"errorStats\" : \"errors\"," + NEWLINE
+          + "    \"statistics\" : \"The statistics field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use statisticsMap instead.\\nstats\"," + NEWLINE
+          + "    \"errorStats\" : \"The errorStats field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use errorStatsMap instead.\\nerrors\\n\"," + NEWLINE
+          + "    \"statisticsMap\" : {" + NEWLINE + "      \"TEST\" : {" + NEWLINE + "        \"name\" : \"TEST\"," + NEWLINE + "        \"value\" : 0.0," + NEWLINE + "        \"timestamp\" : 0" + NEWLINE + "      }" + NEWLINE + "    }," + NEWLINE
+          + "    \"errorStatsMap\" : {" + NEWLINE + "      \"TEST\" : {" + NEWLINE + "        \"name\" : \"TEST\"," + NEWLINE + "        \"value\" : 0.0," + NEWLINE + "        \"timestamp\" : 0" + NEWLINE + "      }" + NEWLINE + "    }," + NEWLINE
           + "    \"extended\" : true," + NEWLINE
           + "    \"keyFormat\" : \"kafka\"," + NEWLINE
           + "    \"valueFormat\" : \"avro\"," + NEWLINE
@@ -1116,6 +1127,8 @@ public class ConsoleTest {
                 "2000-01-01",
                 "stats",
                 "errors",
+                IMMUTABLE_MAP,
+                IMMUTABLE_MAP,
                 true,
                 "json",
                 "avro",
@@ -1202,8 +1215,10 @@ public class ConsoleTest {
           + "    } ]," + NEWLINE
           + "    \"type\" : \"TABLE\"," + NEWLINE
           + "    \"timestamp\" : \"2000-01-01\"," + NEWLINE
-          + "    \"statistics\" : \"stats\"," + NEWLINE
-          + "    \"errorStats\" : \"errors\"," + NEWLINE
+          + "    \"statistics\" : \"The statistics field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use statisticsMap instead.\\nstats\"," + NEWLINE
+          + "    \"errorStats\" : \"The errorStats field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use errorStatsMap instead.\\nerrors\\n\"," + NEWLINE
+          + "    \"statisticsMap\" : {" + NEWLINE + "      \"TEST\" : {" + NEWLINE + "        \"name\" : \"TEST\"," + NEWLINE + "        \"value\" : 0.0," + NEWLINE + "        \"timestamp\" : 0" + NEWLINE + "      }" + NEWLINE + "    }," + NEWLINE
+          + "    \"errorStatsMap\" : {" + NEWLINE + "      \"TEST\" : {" + NEWLINE + "        \"name\" : \"TEST\"," + NEWLINE + "        \"value\" : 0.0," + NEWLINE + "        \"timestamp\" : 0" + NEWLINE + "      }" + NEWLINE + "    }," + NEWLINE
           + "    \"extended\" : true," + NEWLINE
           + "    \"keyFormat\" : \"json\"," + NEWLINE
           + "    \"valueFormat\" : \"avro\"," + NEWLINE
@@ -1283,8 +1298,8 @@ public class ConsoleTest {
           + "" + NEWLINE
           + "Local runtime statistics" + NEWLINE
           + "------------------------" + NEWLINE
-          + "stats" + NEWLINE
-          + "errors" + NEWLINE
+          + "            TEST:         0     last-message:       n/a" + NEWLINE
+          + "            TEST:         0     last-message:       n/a" + NEWLINE
           + "(Statistics of the local KSQL server interaction with the Kafka topic kadka-topic)"
           + NEWLINE
           + NEWLINE

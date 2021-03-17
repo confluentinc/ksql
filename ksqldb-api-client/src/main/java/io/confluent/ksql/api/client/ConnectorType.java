@@ -20,7 +20,8 @@ public interface ConnectorType {
     SOURCE,
     SINK,
     /**
-     * Denotes an unknown connector type. This is used when there were errors in connector creation.
+     * Denotes an unknown connector type. This is used when the connector type cannot be determined,
+     * such as when there were errors in connector creation.
      */
     UNKNOWN
   }

@@ -272,6 +272,8 @@ public class ClientIntegrationTest {
 
   @AfterClass
   public static void classTearDown() {
+    ((ConnectorList) makeKsqlRequest("SHOW CONNECTORS;").get(0)).getConnectors()
+        .forEach(c -> makeKsqlRequest("DROP CONNECTOR " + c.getName() + ";"));
     CONNECT.shutdown();
     REST_APP.getPersistentQueries().forEach(str -> makeKsqlRequest("TERMINATE " + str + ";"));
   }
@@ -283,12 +285,6 @@ public class ClientIntegrationTest {
   public void setUp() {
     vertx = Vertx.vertx();
     client = createClient();
-    makeKsqlRequest("CREATE SOURCE CONNECTOR " + TEST_CONNECTOR + " WITH ('connector.class'='" + MOCK_SOURCE_CLASS + "');");
-    assertThatEventually(
-        () -> ((ConnectorList) makeKsqlRequest("SHOW CONNECTORS;")
-            .get(0)).getConnectors().size(),
-        is(1)
-    );
   }
 
   @After
@@ -300,9 +296,6 @@ public class ClientIntegrationTest {
       vertx.close();
     }
     REST_APP.getServiceContext().close();
-
-    ((ConnectorList) makeKsqlRequest("SHOW CONNECTORS;").get(0)).getConnectors()
-        .forEach(c -> makeKsqlRequest("DROP CONNECTOR " + c.getName() + ";"));
   }
 
   @Test
@@ -1041,6 +1034,9 @@ public class ClientIntegrationTest {
 
   @Test
   public void shouldListConnectors() throws Exception {
+    // Given:
+    givenConnectorExists();
+
     // When:
     final List<ConnectorInfo> connectors = client.listConnectors().get();
 
@@ -1054,6 +1050,9 @@ public class ClientIntegrationTest {
 
   @Test
   public void shouldDescribeConnector() throws Exception {
+    // Given:
+    givenConnectorExists();
+
     // When:
     final ConnectorDescription connector = client.describeConnector(TEST_CONNECTOR).get();
 
@@ -1067,6 +1066,9 @@ public class ClientIntegrationTest {
 
   @Test
   public void shouldDropConnector() throws Exception {
+    // Given:
+    givenConnectorExists();
+
     // When:
     client.dropConnector(TEST_CONNECTOR).get();
 
@@ -1079,10 +1081,18 @@ public class ClientIntegrationTest {
   public void shouldCreateConnector() throws Exception {
     // When:
     client.createConnector("FOO", true, ImmutableMap.of("connector.class", MOCK_SOURCE_CLASS)).get();
-    final ConnectorDescription connector = client.describeConnector("FOO").get();
 
     // Then:
-    assertThat(connector.state(), is("RUNNING"));
+    assertThatEventually(
+        () -> {
+          try {
+            return (client.describeConnector("FOO").get()).state();
+          } catch (InterruptedException | ExecutionException e) {
+            return null;
+          }
+        },
+        is("RUNNING")
+    );
   }
 
   private Client createClient() {
@@ -1110,6 +1120,15 @@ public class ClientIntegrationTest {
         return -1;
       }
     }, is(numQueries));
+  }
+
+  private void givenConnectorExists() {
+    makeKsqlRequest("CREATE SOURCE CONNECTOR " + TEST_CONNECTOR + " WITH ('connector.class'='" + MOCK_SOURCE_CLASS + "');");
+    assertThatEventually(
+        () -> ((ConnectorList) makeKsqlRequest("SHOW CONNECTORS;")
+            .get(0)).getConnectors().size(),
+        is(1)
+    );
   }
 
   private String findQueryIdForSink(final String sinkName) throws Exception {

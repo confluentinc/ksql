@@ -22,7 +22,7 @@ import java.util.concurrent.CompletableFuture;
 
 final class DdlDmlRequestValidators {
 
-  private static final String QUOTED_STRING_OR_SEMICOLON = "(`([^`]*|(``))*`)|('([^']*|(''))*')";
+  private static final String QUOTED_STRING = "(`([^`]*|(``))*`)|('([^']*|(''))*')";
 
   private DdlDmlRequestValidators() {
   }
@@ -37,15 +37,18 @@ final class DdlDmlRequestValidators {
       return false;
     }
 
-    if (Arrays.stream(sql.split(QUOTED_STRING_OR_SEMICOLON))
-        .mapToInt(part -> part.split(";", -1).length - 1)
-        .sum() > 1
-    ) {
+    if (countStatements(sql) > 1) {
       cf.completeExceptionally(new KsqlClientException(
           "executeStatement() may only be used to execute one statement at a time."));
       return false;
     }
 
     return true;
+  }
+
+  private static int countStatements(final String sql) {
+    return Arrays.stream(sql.split(QUOTED_STRING))
+        .mapToInt(part -> part.split(";", -1).length - 1)
+        .sum();
   }
 }

@@ -783,10 +783,10 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldHandleSingleWithStatementMultipleSemicolonsFromExecuteStatement() throws Exception {
+  public void shouldExecuteSingleStatementWithMultipleSemicolons() throws Exception {
     // Given
     final CommandStatusEntity entity = new CommandStatusEntity(
-        "C';'SAS;",
+        "CREATE STREAM FOO AS CONCAT(A, `wow;`) FROM `BAR`;  ",
         new CommandId("STREAM", "FOO", "CREATE"),
         new CommandStatus(
             CommandStatus.Status.SUCCESS,
@@ -799,10 +799,10 @@ public class ClientTest extends BaseApiTest {
     final Map<String, Object> properties = ImmutableMap.of("auto.offset.reset", "earliest");
 
     // When
-    final ExecuteStatementResult result = javaClient.executeStatement("C';'SAS;", properties).get();
+    final ExecuteStatementResult result = javaClient.executeStatement("CREATE STREAM FOO AS CONCAT(A, `wow;`) FROM `BAR`;  ", properties).get();
 
     // Then
-    assertThat(testEndpoints.getLastSql(), is("C';'SAS;"));
+    assertThat(testEndpoints.getLastSql(), is("CREATE STREAM FOO AS CONCAT(A, `wow;`) FROM `BAR`;  "));
     assertThat(testEndpoints.getLastProperties(), is(new JsonObject().put("auto.offset.reset", "earliest")));
     assertThat(result.queryId(), is(Optional.empty()));
   }

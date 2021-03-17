@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -22,21 +22,24 @@ import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
 import java.util.Optional;
 
-public class ListTopics extends StatementWithExtendedClause {
+public abstract class StatementWithExtendedClause extends Statement {
+  final boolean showExtended;
 
-  private final boolean showAll;
-
-  public ListTopics(
+  protected StatementWithExtendedClause(
       final Optional<NodeLocation> location,
-      final boolean showAll,
       final boolean showExtended
   ) {
-    super(location, showExtended);
-    this.showAll = showAll;
+    super(location);
+    this.showExtended = showExtended;
   }
 
-  public boolean getShowAll() {
-    return showAll;
+  public boolean getShowExtended() {
+    return showExtended;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(showExtended);
   }
 
   @Override
@@ -47,19 +50,13 @@ public class ListTopics extends StatementWithExtendedClause {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final ListTopics that = (ListTopics) o;
-    return showAll == that.showAll && showExtended == that.showExtended;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(showAll, showExtended);
+    final StatementWithExtendedClause that = (StatementWithExtendedClause) o;
+    return showExtended == that.showExtended;
   }
 
   @Override
   public String toString() {
     return toStringHelper(this)
-        .add("showAll", showAll)
         .add("showExtended", showExtended)
         .toString();
   }

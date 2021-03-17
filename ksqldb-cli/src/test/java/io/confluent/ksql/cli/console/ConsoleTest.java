@@ -467,7 +467,7 @@ public class ConsoleTest {
           "    } ],\n" +
           "    \"tasksMetadata\" : [ {\n" +
           "      \"taskId\" : \"test\",\n" +
-          "      \"topicOffsets\" : { },\n" +
+          "      \"topicOffsets\" : [ ],\n" +
           "      \"timeCurrentIdlingStarted\" : null\n" +
           "    } ],\n" +
           "    \"state\" : \"ERROR\"\n" +

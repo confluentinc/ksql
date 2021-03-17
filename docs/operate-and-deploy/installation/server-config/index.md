@@ -190,8 +190,13 @@ file) via the `--queries-file` command line argument, or the
 server is running a predefined script, it will automatically disable its
 REST endpoint and interactive use.
 
+!!! note
+    In headless mode, you must start all ksqlDB servers with the same queries
+    file. If the queries files differ across ksqlDB servers, the behavior is
+    undefined.
+
 !!! tip
-	When both the `ksql.queries.file` property and the `--queries-file`
+    When both the `ksql.queries.file` property and the `--queries-file`
     argument are present, the `--queries-file` argument takes
     precedence.
 

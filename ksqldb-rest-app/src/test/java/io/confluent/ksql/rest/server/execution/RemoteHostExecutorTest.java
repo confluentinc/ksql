@@ -2,13 +2,23 @@ package io.confluent.ksql.rest.server.execution;
 
 
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.parser.tree.DescribeStreams;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.rest.util.DiscoverRemoteHostsUtil;
 import io.confluent.ksql.services.SimpleKsqlClient;
+import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.Pair;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.kafka.streams.state.HostInfo;
 import org.junit.Before;
 import org.junit.Rule;
@@ -18,20 +28,11 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
+import static org.easymock.EasyMock.anyInt;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -40,13 +41,14 @@ import static org.mockito.Mockito.when;
 
 
 @RunWith(MockitoJUnitRunner.class)
-public class RemoteDataAugmenterTest {
+public class RemoteHostExecutorTest {
   @Mock
   public final KsqlEngine executionContext = mock(KsqlEngine.class);
   private final Set<HostInfo> hosts = Stream.of("otherhost:1234", "anotherhost:444")
       .map(HostInfo::buildFromEndpoint)
       .collect(Collectors.toSet());
-  private final Map<String, String> localData = Collections.singletonMap("cat", "cutest");
+  @Rule
+  public TemporaryEngine engine = new TemporaryEngine();
   @Mock
   private SimpleKsqlClient ksqlClient;
   @Mock
@@ -55,7 +57,7 @@ public class RemoteDataAugmenterTest {
   private RestResponse<KsqlEntityList> response;
   @Mock
   private KsqlEntityList ksqlEntityList;
-  private RemoteDataAugmenter augmenter;
+  private RemoteHostExecutor augmenter;
 
   @Before
   public void setup() throws MalformedURLException {
@@ -63,8 +65,8 @@ public class RemoteDataAugmenterTest {
     when(sessionProperties.getInternalRequest()).thenReturn(false);
     when(sessionProperties.getLocalUrl()).thenReturn(new URL("https://address"));
 
-    augmenter = RemoteDataAugmenter.create(
-        "describe streams;",
+    augmenter = RemoteHostExecutor.create(
+        (ConfiguredStatement<DescribeStreams>) engine.configure("describe streams;"),
         sessionProperties,
         executionContext,
         ksqlClient);
@@ -77,12 +79,18 @@ public class RemoteDataAugmenterTest {
     try (MockedStatic<DiscoverRemoteHostsUtil> hdu = mockStatic(DiscoverRemoteHostsUtil.class)) {
       hdu.when(() -> DiscoverRemoteHostsUtil.getRemoteHosts(any(), any())).thenReturn(hosts);
 
-      augmenter.augmentWithRemote(localData, (localResult, remoteResults) -> {
-        assertEquals( hosts, remoteResults.getRight());
-        assertThat(remoteResults.getLeft(), is(empty()));
-        return localResult;
-      });
+      Pair<Map<HostInfo, KsqlEntity>, Set<HostInfo>> remoteResults = augmenter.fetchAllRemoteResults();
+      assertEquals(hosts, remoteResults.getRight());
+      assertThat(remoteResults.getLeft().entrySet(), hasSize(0));
     }
+  }
+
+  @Test
+  public void testReturnsEmptyIfRequestIsInternal() {
+    when(sessionProperties.getInternalRequest()).thenReturn(true);
+    Pair<Map<HostInfo, KsqlEntity>, Set<HostInfo>> remoteResults = augmenter.fetchAllRemoteResults();
+    assertThat(remoteResults.getLeft().entrySet(), hasSize(0));
+    assertThat(remoteResults.getRight(), hasSize(0));
   }
 
   @Test
@@ -92,11 +100,9 @@ public class RemoteDataAugmenterTest {
     try (MockedStatic<DiscoverRemoteHostsUtil> hdu = mockStatic(DiscoverRemoteHostsUtil.class)) {
       hdu.when(() -> DiscoverRemoteHostsUtil.getRemoteHosts(any(), any())).thenReturn(hosts);
 
-      augmenter.augmentWithRemote(localData, (localResult, remoteResults) -> {
-        assertEquals( hosts, remoteResults.getRight());
-        assertThat(remoteResults.getLeft(), is(empty()));
-        return localResult;
-      });
+      Pair<Map<HostInfo, KsqlEntity>, Set<HostInfo>> remoteResults = augmenter.fetchAllRemoteResults();
+      assertEquals(hosts, remoteResults.getRight());
+      assertThat(remoteResults.getLeft().entrySet(), hasSize(0));
     }
   }
 
@@ -105,14 +111,14 @@ public class RemoteDataAugmenterTest {
     when(ksqlClient.makeKsqlRequest(any(), any(), any())).thenReturn(response);
     when(response.isErroneous()).thenReturn(false);
     when(response.getResponse()).thenReturn(ksqlEntityList);
+    when(ksqlEntityList.get(anyInt())).thenReturn(mock(KsqlEntity.class));
     try (MockedStatic<DiscoverRemoteHostsUtil> hdu = mockStatic(DiscoverRemoteHostsUtil.class)) {
       hdu.when(() -> DiscoverRemoteHostsUtil.getRemoteHosts(any(), any())).thenReturn(hosts);
 
-      augmenter.augmentWithRemote(localData, (localResult, remoteResults) -> {
-        assertThat(remoteResults.getRight(), is(empty()));
-        assertThat(remoteResults.getLeft(), hasSize(2));
-        return localResult;
-      });
+      Pair<Map<HostInfo, KsqlEntity>, Set<HostInfo>> remoteResults = augmenter.fetchAllRemoteResults();
+      assertThat(remoteResults.getRight(), is(empty()));
+      assertEquals(remoteResults.getLeft().keySet(), hosts);
+      assertThat(remoteResults.getLeft().entrySet(), hasSize(2));
     }
   }
 }

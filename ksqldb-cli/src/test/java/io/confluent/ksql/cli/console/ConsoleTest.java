@@ -76,8 +76,10 @@ import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
+import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
+import io.confluent.ksql.rest.entity.TopicPartitionEntity;
 import io.confluent.ksql.rest.entity.TypeList;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -413,7 +415,14 @@ public class ConsoleTest {
             ImmutableMap.of("overridden.prop", 42),
             ImmutableMap.of(new KsqlHostInfoEntity("foo", 123), KsqlQueryStatus.ERROR),
             KsqlQueryType.PERSISTENT,
-            ImmutableList.of(new QueryError(timestamp, "error", Type.SYSTEM))
+            ImmutableList.of(new QueryError(timestamp, "error", Type.SYSTEM)),
+            ImmutableSet.of(
+                new StreamsTaskMetadata(
+                    "test",
+                    Collections.emptySet(),
+                    Optional.empty()
+                )
+            )
         )
     );
 
@@ -455,6 +464,11 @@ public class ConsoleTest {
           "      \"timestamp\" : 1596644936314,\n" +
           "      \"errorMessage\" : \"error\",\n" +
           "      \"type\" : \"SYSTEM\"\n" +
+          "    } ],\n" +
+          "    \"tasksMetadata\" : [ {\n" +
+          "      \"taskId\" : \"test\",\n" +
+          "      \"topicOffsets\" : [ ],\n" +
+          "      \"timeCurrentIdlingStarted\" : null\n" +
           "    } ],\n" +
           "    \"state\" : \"ERROR\"\n" +
           "  },\n" +

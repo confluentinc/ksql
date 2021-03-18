@@ -97,6 +97,7 @@ public class QueryEndpoint {
   public QueryPublisher createQueryPublisher(
       final String sql,
       final JsonObject properties,
+      final JsonObject sessionVariables,
       final Context context,
       final WorkerExecutor workerExecutor,
       final ServiceContext serviceContext,
@@ -104,7 +105,7 @@ public class QueryEndpoint {
     // Must be run on worker as all this stuff is slow
     VertxUtils.checkIsWorker();
 
-    final ConfiguredStatement<Query> statement = createStatement(sql, properties.getMap());
+    final ConfiguredStatement<Query> statement = createStatement(sql, properties.getMap(), sessionVariables.getMap());
 
     if (statement.getStatement().isPullQuery()) {
       return createPullQueryPublisher(
@@ -199,7 +200,7 @@ public class QueryEndpoint {
   }
 
   private ConfiguredStatement<Query> createStatement(final String queryString,
-      final Map<String, Object> properties) {
+      final Map<String, Object> properties, final Map<String, Object> sessionVariables) {
     final List<ParsedStatement> statements = ksqlEngine.parse(queryString);
     if ((statements.size() != 1)) {
       throw new KsqlStatementException(
@@ -207,7 +208,12 @@ public class QueryEndpoint {
               .format("Expected exactly one KSQL statement; found %d instead", statements.size()),
           queryString);
     }
-    final PreparedStatement<?> ps = ksqlEngine.prepare(statements.get(0));
+    final PreparedStatement<?> ps = ksqlEngine.prepare(
+        statements.get(0),
+        sessionVariables.entrySet()
+            .stream()
+            .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toString()))
+    );
     final Statement statement = ps.getStatement();
     if (!(statement instanceof Query)) {
       throw new KsqlStatementException("Not a query", queryString);

@@ -51,7 +51,7 @@ public interface Endpoints {
    * @param workerExecutor The worker executor to use for blocking operations
    * @return A CompletableFuture representing the future result of the operation
    */
-  CompletableFuture<QueryPublisher> createQueryPublisher(String sql, JsonObject properties,
+  CompletableFuture<QueryPublisher> createQueryPublisher(String sql, JsonObject properties, JsonObject sessionVariables,
       Context context, WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext,
       MetricsCallbackHolder metricsCallbackHolder);
 

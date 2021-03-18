@@ -175,6 +175,22 @@ public class ApiIntegrationTest {
   }
 
   @Test
+  public void shouldExecutePushQueryWithVariableSubstitution() {
+
+    // Given:
+    String sql = "SELECT DEC AS ${name} from " + TEST_STREAM + " EMIT CHANGES LIMIT 2;";
+
+    // When:
+    QueryResponse response = executeQueryWithVariables(sql, new JsonObject().put("name", "COL"));
+
+    // Then:
+    assertThat(response.rows, hasSize(2));
+    assertThat(response.responseObject.getJsonArray("columnNames"), is(new JsonArray().add("COL")));
+    assertThat(response.responseObject.getJsonArray("columnTypes"), is(new JsonArray().add("DECIMAL(4, 2)")));
+    assertThat(response.responseObject.getString("queryId"), is(notNullValue()));
+  }
+
+  @Test
   public void shouldFailPushQueryWithInvalidSql() {
 
     // Given:
@@ -613,9 +629,13 @@ public class ApiIntegrationTest {
   }
 
   private QueryResponse executeQuery(final String sql) {
+    return executeQueryWithVariables(sql, new JsonObject());
+  }
+
+  private QueryResponse executeQueryWithVariables(final String sql, final JsonObject variables) {
     JsonObject properties = new JsonObject();
     JsonObject requestBody = new JsonObject()
-        .put("sql", sql).put("properties", properties);
+        .put("sql", sql).put("properties", properties).put("sessionVariables", variables);
     HttpResponse<Buffer> response = sendRequest("/query-stream", requestBody.toBuffer());
     return new QueryResponse(response.bodyAsString());
   }

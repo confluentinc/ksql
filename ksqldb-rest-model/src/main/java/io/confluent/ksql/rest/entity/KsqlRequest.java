@@ -39,13 +39,24 @@ public class KsqlRequest {
   private final String ksql;
   private final ImmutableMap<String, Object> configOverrides;
   private final ImmutableMap<String, Object> requestProperties;
+  private final ImmutableMap<String, Object> sessionVariables;
   private final Optional<Long> commandSequenceNumber;
+
+  public KsqlRequest(
+      @JsonProperty("ksql") final String ksql,
+      @JsonProperty("streamsProperties") final Map<String, ?> configOverrides,
+      @JsonProperty("requestProperties") final Map<String, ?> requestProperties,
+      @JsonProperty("commandSequenceNumber") final Long commandSequenceNumber
+  ) {
+    this(ksql, configOverrides, requestProperties, null, commandSequenceNumber);
+  }
 
   @JsonCreator
   public KsqlRequest(
       @JsonProperty("ksql") final String ksql,
       @JsonProperty("streamsProperties") final Map<String, ?> configOverrides,
       @JsonProperty("requestProperties") final Map<String, ?> requestProperties,
+      @JsonProperty("sessionVariables") final Map<String, ?> sessionVariables,
       @JsonProperty("commandSequenceNumber") final Long commandSequenceNumber
   ) {
     this.ksql = ksql == null ? "" : ksql;
@@ -55,6 +66,9 @@ public class KsqlRequest {
     this.requestProperties = requestProperties == null
         ? ImmutableMap.of()
         : ImmutableMap.copyOf(serializeClassValues(requestProperties));
+    this.sessionVariables = sessionVariables == null
+        ? ImmutableMap.of()
+        : ImmutableMap.copyOf(serializeClassValues(sessionVariables));
     this.commandSequenceNumber = Optional.ofNullable(commandSequenceNumber);
   }
 
@@ -69,6 +83,10 @@ public class KsqlRequest {
 
   public Map<String, Object> getRequestProperties() {
     return coerceTypes(requestProperties);
+  }
+
+  public Map<String, Object> getSessionVariables() {
+    return sessionVariables;
   }
 
   public Optional<Long> getCommandSequenceNumber() {
@@ -89,6 +107,7 @@ public class KsqlRequest {
     return Objects.equals(ksql, that.ksql)
         && Objects.equals(configOverrides, that.configOverrides)
         && Objects.equals(requestProperties, that.requestProperties)
+        && Objects.equals(sessionVariables, that.sessionVariables)
         && Objects.equals(commandSequenceNumber, that.commandSequenceNumber);
   }
 
@@ -103,6 +122,7 @@ public class KsqlRequest {
         + "ksql='" + ksql + '\''
         + ", configOverrides=" + configOverrides
         + ", requestProperties=" + requestProperties
+        + ", sessionVariables=" + sessionVariables
         + ", commandSequenceNumber=" + commandSequenceNumber
         + '}';
   }

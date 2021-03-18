@@ -141,6 +141,7 @@ public class KsqlServerEndpoints implements Endpoints {
   @Override
   public CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
       final JsonObject properties,
+      final JsonObject sessionVariables,
       final Context context,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext,
@@ -155,6 +156,7 @@ public class KsqlServerEndpoints implements Endpoints {
             .createQueryPublisher(
                 sql,
                 properties,
+                sessionVariables,
                 context,
                 workerExecutor,
                 ksqlSecurityContext.getServiceContext(),

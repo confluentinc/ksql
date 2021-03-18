@@ -54,6 +54,7 @@ public class TestEndpoints implements Endpoints {
   private List<KsqlEntity> ksqlEndpointResponse;
   private String lastSql;
   private JsonObject lastProperties;
+  private JsonObject lastSessionVariables;
   private String lastTarget;
   private Set<TestQueryPublisher> queryPublishers = new HashSet<>();
   private int acksBeforePublisherError = -1;
@@ -65,7 +66,7 @@ public class TestEndpoints implements Endpoints {
 
   @Override
   public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
-      final JsonObject properties, final Context context, final WorkerExecutor workerExecutor,
+      final JsonObject properties, JsonObject sessionVariables, final Context context, final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext,
       final MetricsCallbackHolder metricsCallbackHolder) {
     CompletableFuture<QueryPublisher> completableFuture = new CompletableFuture<>();
@@ -75,6 +76,7 @@ public class TestEndpoints implements Endpoints {
     } else {
       this.lastSql = sql;
       this.lastProperties = properties;
+      this.lastSessionVariables = sessionVariables;
       this.lastApiSecurityContext = apiSecurityContext;
       final boolean push = sql.toLowerCase().contains("emit changes");
       final int limit = extractLimit(sql);
@@ -232,6 +234,10 @@ public class TestEndpoints implements Endpoints {
 
   public synchronized JsonObject getLastProperties() {
     return lastProperties;
+  }
+
+  public synchronized JsonObject getLastSessionVariables() {
+    return lastSessionVariables;
   }
 
   public synchronized Set<TestQueryPublisher> getQueryPublishers() {

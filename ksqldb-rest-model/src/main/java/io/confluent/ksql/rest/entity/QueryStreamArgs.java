@@ -29,12 +29,16 @@ public class QueryStreamArgs {
 
   public final String sql;
   public final JsonObject properties;
+  public final JsonObject sessionVariables;
 
   public QueryStreamArgs(final @JsonProperty(value = "sql", required = true) String sql,
       final @JsonProperty(value = "properties")
-          Map<String, Object> properties) {
+          Map<String, Object> properties,
+      final @JsonProperty(value = "sessionVariables")
+          Map<String, Object> sessionVariables) {
     this.sql = Objects.requireNonNull(sql);
     this.properties = properties == null ? new JsonObject() : new JsonObject(properties);
+    this.sessionVariables = sessionVariables == null ? new JsonObject() : new JsonObject(sessionVariables);
   }
 
   @Override
@@ -42,6 +46,7 @@ public class QueryStreamArgs {
     return "QueryStreamArgs{"
         + "sql='" + sql + '\''
         + ", properties=" + properties
+        + ", sessionVariables=" + sessionVariables
         + '}';
   }
 }

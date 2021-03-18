@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 /**
  * Wraps the incoming {@link io.confluent.ksql.rest.entity.KsqlRequest} streamsProperties
@@ -35,6 +36,27 @@ public class SessionProperties {
   private final URL localUrl;
   private final boolean internalRequest;
   private final Map<String, String> sessionVariables;
+
+  /**
+   * @param mutableScopedProperties   The streamsProperties of the incoming request
+   * @param ksqlHostInfo              The ksqlHostInfo of the server that handles the request
+   * @param localUrl                  The url of the server that handles the request
+   * @param internalRequest           Flag indicating if request is from within the KSQL cluster
+   * @param sessionVariables          Initial session variables
+   */
+  public SessionProperties(
+      final Map<String, Object> mutableScopedProperties,
+      final KsqlHostInfo ksqlHostInfo,
+      final URL localUrl,
+      final boolean internalRequest,
+      final Map<String, Object> sessionVariables
+  ) {
+    this(mutableScopedProperties, ksqlHostInfo, localUrl, internalRequest);
+    if (sessionVariables != null) {
+      this.sessionVariables.putAll(sessionVariables.entrySet().stream()
+          .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toString())));
+    }
+  }
 
   /**
    * @param mutableScopedProperties   The streamsProperties of the incoming request

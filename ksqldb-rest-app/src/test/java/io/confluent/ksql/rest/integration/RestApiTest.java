@@ -614,7 +614,7 @@ public class RestApiTest {
   public void shouldExecutePullQueryOverHttp2QueryStream() {
       QueryStreamArgs queryStreamArgs = new QueryStreamArgs(
           "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-          Collections.emptyMap());
+          Collections.emptyMap(), Collections.emptyMap());
 
       QueryResponse[] queryResponse = new QueryResponse[1];
       assertThatEventually(() -> {
@@ -675,6 +675,22 @@ public class RestApiTest {
   }
 
   @Test
+  public void shouldCreateStreamWithVariableSubstitution() {
+    // Given:
+    // When:
+    makeKsqlRequestWithVariables(
+        "CREATE STREAM X AS SELECT * FROM " + PAGE_VIEW_STREAM + " WHERE USERID='${id}';",
+        ImmutableMap.of("id", "USER_1")
+    );
+
+    // Then:
+    final List<String> query = REST_APP.getPersistentQueries().stream()
+        .filter(q -> q.startsWith("CSAS_X_"))
+        .collect(Collectors.toList());
+    assertThat(query.size(), is(1));
+  }
+
+  @Test
   public void shouldFailToExecuteQueryUsingRestWithHttp2() {
     // Given:
     KsqlRequest ksqlRequest = new KsqlRequest("SELECT * from " + AGG_TABLE + " EMIT CHANGES;",
@@ -701,6 +717,10 @@ public class RestApiTest {
 
   private static void makeKsqlRequest(final String sql) {
     RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
+  }
+
+  private static void makeKsqlRequestWithVariables(final String sql, final Map<String, Object> variables) {
+    RestIntegrationTestUtil.makeKsqlRequestWithVariables(REST_APP, sql, variables);
   }
 
   private static String rawRestQueryRequest(final String sql, final String mediaType) {

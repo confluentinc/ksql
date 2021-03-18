@@ -48,7 +48,7 @@ final class DdlDmlRequestValidators {
 
   /**
    * Counts the number of sql statements in a string by
-   *  1. Removing all of the sql strings
+   *  1. Removing all of the sql strings and identifiers
    *  2. Splitting the remaining substrings by ';'. The -1 argument in the split
    *     function call ensures that each ';' will always have two partitions surrounding it, so that
    *     the number of partitions is the same whether or not the final ';' has whitespace after it.

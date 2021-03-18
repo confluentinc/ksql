@@ -788,6 +788,31 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
+  public void shouldExecuteSingleStatementWithMultipleSemicolons() throws Exception {
+    // Given
+    final CommandStatusEntity entity = new CommandStatusEntity(
+        "CREATE STREAM FOO AS CONCAT(A, 'wow;') FROM `BAR`;  ",
+        new CommandId("STREAM", "FOO", "CREATE"),
+        new CommandStatus(
+            CommandStatus.Status.SUCCESS,
+            "Success"
+        ),
+        0L
+    );
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    final Map<String, Object> properties = ImmutableMap.of("auto.offset.reset", "earliest");
+
+    // When
+    final ExecuteStatementResult result = javaClient.executeStatement("CREATE STREAM FOO AS CONCAT(A, `wow;`) FROM `BAR`;  ", properties).get();
+
+    // Then
+    assertThat(testEndpoints.getLastSql(), is("CREATE STREAM FOO AS CONCAT(A, `wow;`) FROM `BAR`;  "));
+    assertThat(testEndpoints.getLastProperties(), is(new JsonObject().put("auto.offset.reset", "earliest")));
+    assertThat(result.queryId(), is(Optional.empty()));
+  }
+
+  @Test
   public void shouldRejectMultipleRequestsFromExecuteStatement() {
     // When
     final Exception e = assertThrows(

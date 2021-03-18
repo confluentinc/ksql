@@ -334,13 +334,15 @@ statements.
   
 Sets the total memory, in bytes, to use across all RocksDB instances for all
 queries on a ksqlDB server, if the `ksql.streams.rocksdb.config.setter` plugin
-is enabled. This property has no effect if the plugin isn't enabled.
+is set to `KsqlBoundedMemoryRocksDBConfigSetter`. This property has no effect
+if a different `RocksDBConfigSetter` is assigned or if no plugin is assigned.
  
 ## ksql.plugins.rocksdb.num.background.threads
 
 Sets the number of threads to use in the shared RocksDB thread pool, if the
-`ksql.streams.rocksdb.config.setter` plugin is enabled. This property
-has no effect if the plugin isn't enabled.
+`ksql.streams.rocksdb.config.setter` plugin is set to
+`KsqlBoundedMemoryRocksDBConfigSetter`. This property has no effect if a
+different `RocksDBConfigSetter` is assigned or if no plugin is assigned.
 
 ## `ksql.schema.registry.url`
 

@@ -786,7 +786,7 @@ public class ClientTest extends BaseApiTest {
   public void shouldExecuteSingleStatementWithMultipleSemicolons() throws Exception {
     // Given
     final CommandStatusEntity entity = new CommandStatusEntity(
-        "CREATE STREAM FOO AS CONCAT(A, `wow;`) FROM `BAR`;  ",
+        "CREATE STREAM FOO AS CONCAT(A, 'wow;') FROM `BAR`;  ",
         new CommandId("STREAM", "FOO", "CREATE"),
         new CommandStatus(
             CommandStatus.Status.SUCCESS,

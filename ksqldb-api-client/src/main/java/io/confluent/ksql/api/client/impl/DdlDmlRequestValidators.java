@@ -22,7 +22,7 @@ import java.util.concurrent.CompletableFuture;
 
 final class DdlDmlRequestValidators {
 
-  private static final String QUOTED_STRING = "(`([^`]*|(``))*`)|('([^']*|(''))*')";
+  private static final String QUOTED_STRING_OR_IDENTIFIER = "(`([^`]*|(``))*`)|('([^']*|(''))*')";
 
   private DdlDmlRequestValidators() {
   }
@@ -57,7 +57,7 @@ final class DdlDmlRequestValidators {
    * @return the number of sql statements in the string
    */
   private static int countStatements(final String sql) {
-    return Arrays.stream(sql.split(QUOTED_STRING))
+    return Arrays.stream(sql.split(QUOTED_STRING_OR_IDENTIFIER))
         .mapToInt(part -> part.split(";", -1).length - 1)
         .sum();
   }

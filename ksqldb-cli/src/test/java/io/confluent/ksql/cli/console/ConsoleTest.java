@@ -148,7 +148,7 @@ public class ConsoleTest {
       true,
       "kafka",
       "avro",
-      "kadka-topic",
+      "kafka-topic",
       2,
       1,
       "statement",
@@ -551,7 +551,7 @@ public class ConsoleTest {
                 false,
                 "kafka",
                 "avro",
-                "kadka-topic",
+                "kafka-topic",
                 1,
                 1,
                 "sql statement",
@@ -686,7 +686,7 @@ public class ConsoleTest {
           + "    \"extended\" : false," + NEWLINE
           + "    \"keyFormat\" : \"kafka\"," + NEWLINE
           + "    \"valueFormat\" : \"avro\"," + NEWLINE
-          + "    \"topic\" : \"kadka-topic\"," + NEWLINE
+          + "    \"topic\" : \"kafka-topic\"," + NEWLINE
           + "    \"partitions\" : 1," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"sql statement\"," + NEWLINE
@@ -828,7 +828,7 @@ public class ConsoleTest {
           + "    \"extended\" : true," + NEWLINE
           + "    \"keyFormat\" : \"kafka\"," + NEWLINE
           + "    \"valueFormat\" : \"avro\"," + NEWLINE
-          + "    \"topic\" : \"kadka-topic\"," + NEWLINE
+          + "    \"topic\" : \"kafka-topic\"," + NEWLINE
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"statement\"," + NEWLINE
@@ -854,7 +854,7 @@ public class ConsoleTest {
           + "" + NEWLINE
           + " KSQL Source Name | Kafka Topic | Type  " + NEWLINE
           + "----------------------------------------" + NEWLINE
-          + " TestSource       | kadka-topic | TABLE " + NEWLINE
+          + " TestSource       | kafka-topic | TABLE " + NEWLINE
           + "----------------------------------------" + NEWLINE
           + "" + NEWLINE
           + " Related Topics " + NEWLINE
@@ -1132,7 +1132,7 @@ public class ConsoleTest {
                 true,
                 "json",
                 "avro",
-                "kadka-topic",
+                "kafka-topic",
                 2, 1,
                 "sql statement text",
                 ImmutableList.of(
@@ -1140,13 +1140,13 @@ public class ConsoleTest {
                         "consumer1",
                         ImmutableList.of(
                             new QueryTopicOffsetSummary(
-                                "kadka-topic",
+                                "kafka-topic",
                                 ImmutableList.of(
                                     new ConsumerPartitionOffsets(0, 100, 900, 800),
                                     new ConsumerPartitionOffsets(1, 50, 900, 900)
                                 )),
                             new QueryTopicOffsetSummary(
-                                "kadka-topic-2",
+                                "kafka-topic-2",
                                 ImmutableList.of(
                                     new ConsumerPartitionOffsets(0, 0, 90, 80),
                                     new ConsumerPartitionOffsets(1, 10, 90, 90)
@@ -1222,14 +1222,14 @@ public class ConsoleTest {
           + "    \"extended\" : true," + NEWLINE
           + "    \"keyFormat\" : \"json\"," + NEWLINE
           + "    \"valueFormat\" : \"avro\"," + NEWLINE
-          + "    \"topic\" : \"kadka-topic\"," + NEWLINE
+          + "    \"topic\" : \"kafka-topic\"," + NEWLINE
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"sql statement text\"," + NEWLINE
           + "    \"queryOffsetSummaries\" : [ {" + NEWLINE
           + "      \"groupId\" : \"consumer1\"," + NEWLINE
           + "      \"topicSummaries\" : [ {" + NEWLINE
-          + "        \"kafkaTopic\" : \"kadka-topic\"," + NEWLINE
+          + "        \"kafkaTopic\" : \"kafka-topic\"," + NEWLINE
           + "        \"offsets\" : [ {" + NEWLINE
           + "          \"partition\" : 0," + NEWLINE
           + "          \"logStartOffset\" : 100," + NEWLINE
@@ -1242,7 +1242,7 @@ public class ConsoleTest {
           + "          \"consumerOffset\" : 900" + NEWLINE
           + "        } ]" + NEWLINE
           + "      }, {" + NEWLINE
-          + "        \"kafkaTopic\" : \"kadka-topic-2\"," + NEWLINE
+          + "        \"kafkaTopic\" : \"kafka-topic-2\"," + NEWLINE
           + "        \"offsets\" : [ {" + NEWLINE
           + "          \"partition\" : 0," + NEWLINE
           + "          \"logStartOffset\" : 0," + NEWLINE
@@ -1270,7 +1270,7 @@ public class ConsoleTest {
           + "Timestamp field      : 2000-01-01" + NEWLINE
           + "Key format           : json" + NEWLINE
           + "Value format         : avro" + NEWLINE
-          + "Kafka topic          : kadka-topic (partitions: 2, replication: 1)" + NEWLINE
+          + "Kafka topic          : kafka-topic (partitions: 2, replication: 1)" + NEWLINE
           + "Statement            : sql statement text" + NEWLINE
           + "" + NEWLINE
           + " Field  | Type                           " + NEWLINE
@@ -1300,14 +1300,14 @@ public class ConsoleTest {
           + "------------------------" + NEWLINE
           + "            TEST:         0     last-message:       n/a" + NEWLINE
           + "            TEST:         0     last-message:       n/a" + NEWLINE
-          + "(Statistics of the local KSQL server interaction with the Kafka topic kadka-topic)"
+          + "(Statistics of the local KSQL server interaction with the Kafka topic kafka-topic)"
           + NEWLINE
           + NEWLINE
           + "Consumer Groups summary:" + NEWLINE
           + NEWLINE
           + "Consumer Group       : consumer1" + NEWLINE
           + NEWLINE
-          + "Kafka topic          : kadka-topic" + NEWLINE
+          + "Kafka topic          : kafka-topic" + NEWLINE
           + "Max lag              : 100" + NEWLINE
           + NEWLINE
           + " Partition | Start Offset | End Offset | Offset | Lag " + NEWLINE
@@ -1316,7 +1316,7 @@ public class ConsoleTest {
           + " 1         | 50           | 900        | 900    | 0   " + NEWLINE
           + "------------------------------------------------------" + NEWLINE
           + NEWLINE
-          + "Kafka topic          : kadka-topic-2" + NEWLINE
+          + "Kafka topic          : kafka-topic-2" + NEWLINE
           + "Max lag              : 10" + NEWLINE
           + NEWLINE
           + " Partition | Start Offset | End Offset | Offset | Lag " + NEWLINE

@@ -137,6 +137,7 @@
         <apache.io.version>2.6</apache.io.version>
         <io.confluent.ksql.version>7.0.0-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
+        <mockito.version>3.8.0</mockito.version>
     </properties>
 
     <dependencyManagement>
@@ -598,7 +599,7 @@
                 <version>${spotbugs.maven.plugin.version}</version>
                 <configuration>
                     <xmlOutput>true</xmlOutput>
-                    <excludeFilterFile>findbugs/findbugs-exclude.xml</excludeFilterFile>
+                    <excludeFilterFile>${project.basedir}/../findbugs/findbugs-exclude.xml</excludeFilterFile>
                     <effort>Max</effort>
                     <threshold>Max</threshold>
                     <failOnError>true</failOnError>

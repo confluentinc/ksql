@@ -28,7 +28,6 @@
     <artifactId>ksqldb-rocksdb-config-setter</artifactId>
     <name>ksqlDB RocksDB Config Setter</name>
     <packaging>jar</packaging>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.kafka</groupId>
@@ -53,7 +52,8 @@
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
+            <artifactId>mockito-inline</artifactId>
+            <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

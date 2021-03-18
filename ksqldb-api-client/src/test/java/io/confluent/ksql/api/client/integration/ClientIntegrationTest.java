@@ -70,6 +70,7 @@ import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.ConnectExecutable;
@@ -114,7 +115,6 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.TestUtils;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -272,8 +272,7 @@ public class ClientIntegrationTest {
 
   @AfterClass
   public static void classTearDown() {
-    ((ConnectorList) makeKsqlRequest("SHOW CONNECTORS;").get(0)).getConnectors()
-        .forEach(c -> makeKsqlRequest("DROP CONNECTOR " + c.getName() + ";"));
+    cleanupConnectors();
     CONNECT.shutdown();
     REST_APP.getPersistentQueries().forEach(str -> makeKsqlRequest("TERMINATE " + str + ";"));
   }
@@ -1073,8 +1072,13 @@ public class ClientIntegrationTest {
     client.dropConnector(TEST_CONNECTOR).get();
 
     // Then:
-    final List<ConnectorInfo> connectors = client.listConnectors().get();
-    assertThat(connectors.size(), is(0));
+    assertThatEventually(() -> {
+      try {
+        return client.listConnectors().get().size();
+      } catch (InterruptedException | ExecutionException e) {
+        return null;
+      }
+    }, is(0));
   }
 
   @Test
@@ -1123,11 +1127,29 @@ public class ClientIntegrationTest {
   }
 
   private void givenConnectorExists() {
+    // Make sure we are starting from a clean slate before creating a new connector.
+    cleanupConnectors();
+
     makeKsqlRequest("CREATE SOURCE CONNECTOR " + TEST_CONNECTOR + " WITH ('connector.class'='" + MOCK_SOURCE_CLASS + "');");
+
+    assertThatEventually(
+        () -> {
+          try {
+            return ((ConnectorList) makeKsqlRequest("SHOW CONNECTORS;").get(0)).getConnectors().size();
+          } catch (AssertionError e) {
+            return 0;
+          }},
+        is(1)
+    );
+  }
+
+  private static void cleanupConnectors() {
+    ((ConnectorList) makeKsqlRequest("SHOW CONNECTORS;").get(0)).getConnectors()
+        .forEach(c -> makeKsqlRequest("DROP CONNECTOR " + c.getName() + ";"));
     assertThatEventually(
         () -> ((ConnectorList) makeKsqlRequest("SHOW CONNECTORS;")
             .get(0)).getConnectors().size(),
-        is(1)
+        is(0)
     );
   }
 

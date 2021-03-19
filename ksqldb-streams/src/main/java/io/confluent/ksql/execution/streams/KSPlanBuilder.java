@@ -347,7 +347,8 @@ public final class KSPlanBuilder implements PlanBuilder {
       final TableSelect<K> tableSelect,
       final PlanInfo planInfo) {
     final KTableHolder<K> source = tableSelect.getSource().build(this, planInfo);
-    return TableSelectBuilder.build(source, tableSelect, buildContext);
+    return TableSelectBuilder.build(source, tableSelect, buildContext, true,
+            tableSelect.getInternalFormats());
   }
 
   @Override
@@ -366,7 +367,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   @Override
   public <K> KTableHolder<K> visitTableSink(
       final TableSink<K> tableSink,
-      final PlanInfo planInfo) {
+       final PlanInfo planInfo) {
     final KTableHolder<K> source = tableSink.getSource().build(this, planInfo);
     TableSinkBuilder.build(source, tableSink, buildContext);
     return source;

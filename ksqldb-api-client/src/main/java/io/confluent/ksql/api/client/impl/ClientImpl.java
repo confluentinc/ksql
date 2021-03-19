@@ -323,7 +323,7 @@ public class ClientImpl implements Client {
   public CompletableFuture<Void> createConnector(
       final String name,
       final boolean isSource,
-      final Map<String, String> properties
+      final Map<String, Object> properties
   ) {
     final CompletableFuture<Void> cf = new CompletableFuture<>();
     final String connectorConfigs = String.join(",", properties.entrySet()

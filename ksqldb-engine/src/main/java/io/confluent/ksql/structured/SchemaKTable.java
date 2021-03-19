@@ -121,13 +121,15 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final List<ColumnName> keyColumnNames,
       final List<SelectExpression> selectExpressions,
       final Stacker contextStacker,
-      final PlanBuildContext buildContext
+      final PlanBuildContext buildContext,
+      final FormatInfo valueFormat
   ) {
     final TableSelect<K> step = ExecutionStepFactory.tableMapValues(
         contextStacker,
         sourceTableStep,
         keyColumnNames,
-        selectExpressions
+        selectExpressions,
+        InternalFormats.of(keyFormat, valueFormat)
     );
 
     return new SchemaKTable<>(

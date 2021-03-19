@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.planner.plan;
 
+import io.confluent.ksql.serde.FormatInfo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -76,6 +77,8 @@ public class ProjectNodeTest {
   private PlanBuildContext planBuildContext;
   @Mock
   private Stacker stacker;
+  @Mock
+  private FormatInfo internalFormats;
 
   private ProjectNode projectNode;
 
@@ -85,7 +88,7 @@ public class ProjectNodeTest {
     when(source.buildStream(any())).thenReturn((SchemaKStream) stream);
     when(source.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(planBuildContext.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
-    when(stream.select(any(), any(), any(), any())).thenReturn((SchemaKStream) stream);
+    when(stream.select(any(), any(), any(), any(), any())).thenReturn((SchemaKStream) stream);
 
     projectNode = new TestProjectNode(
         NODE_ID,
@@ -114,7 +117,7 @@ public class ProjectNodeTest {
         ImmutableList.of(K),
         SELECTS,
         stacker,
-        planBuildContext
+        planBuildContext, internalFormats
     );
   }
 

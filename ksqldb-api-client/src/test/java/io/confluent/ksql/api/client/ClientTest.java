@@ -30,6 +30,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
@@ -40,6 +41,7 @@ import io.confluent.ksql.api.TestQueryPublisher;
 import io.confluent.ksql.api.client.QueryInfo.QueryType;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.exception.KsqlException;
+import io.confluent.ksql.api.client.impl.ConnectorTypeImpl;
 import io.confluent.ksql.api.client.impl.StreamedQueryResultImpl;
 import io.confluent.ksql.api.client.util.ClientTestUtil;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
@@ -74,6 +76,7 @@ import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
@@ -95,13 +98,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -130,6 +133,8 @@ public class ClientTest extends BaseApiTest {
   protected static final String EXECUTE_STATEMENT_USAGE_DOC = "The executeStatement() method is only "
       + "for 'CREATE', 'CREATE ... AS SELECT', 'DROP', 'TERMINATE', and 'INSERT INTO ... AS "
       + "SELECT' statements. ";
+  protected static final org.apache.kafka.connect.runtime.rest.entities.ConnectorType SOURCE_TYPE =
+      org.apache.kafka.connect.runtime.rest.entities.ConnectorType.SOURCE;
 
   protected static final Stat STAT =  new Stat("TEST", 0, 0);
 
@@ -1095,7 +1100,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
     assertThat(e.getCause().getMessage(),
-        containsString("does not currently support listing connectors"));
+        containsString("Use the listConnectors() method instead"));
   }
 
   @Test
@@ -1107,7 +1112,7 @@ public class ClientTest extends BaseApiTest {
             "name",
             new ConnectorState("state", "worker", "msg"),
             Collections.emptyList(),
-            ConnectorType.SOURCE),
+            SOURCE_TYPE),
         Collections.emptyList(), Collections.singletonList("topic"), Collections.emptyList());
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
@@ -1121,14 +1126,14 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
     assertThat(e.getCause().getMessage(),
-        containsString("does not currently support 'DESCRIBE <CONNECTOR>' statements"));
+        containsString("Use the describeConnector() method instead"));
   }
 
   @Test
   public void shouldFailToCreateConnectorViaExecuteStatement() {
     // Given
     final CreateConnectorEntity entity = new CreateConnectorEntity("create connector;",
-        new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), ConnectorType.SOURCE));
+        new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), SOURCE_TYPE));
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When
@@ -1142,7 +1147,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC));
     assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
     assertThat(e.getCause().getMessage(),
-        containsString("does not currently support 'CREATE CONNECTOR' statements"));
+        containsString("Use the createConnector() method instead"));
   }
 
   @Test
@@ -1162,7 +1167,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC));
     assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
     assertThat(e.getCause().getMessage(),
-        containsString("does not currently support 'DROP CONNECTOR' statements"));
+        containsString("Use the dropConnector() method instead"));
   }
 
   @Test
@@ -1181,8 +1186,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
     assertThat(e.getCause().getMessage(),
-        containsString("does not currently support statements for creating, dropping, "
-            + "listing, or describing connectors"));
+        containsString("Use the createConnector, dropConnector, describeConnector or listConnectors methods instead"));
   }
 
   @Test
@@ -1431,6 +1435,74 @@ public class ClientTest extends BaseApiTest {
     assertThat(serverInfo.getServerVersion(), is(AppInfo.getVersion()));
     assertThat(serverInfo.getKsqlServiceId(), is("ksql-service-id"));
     assertThat(serverInfo.getKafkaClusterId(), is("kafka-cluster-id"));
+  }
+
+  @Test
+  public void shouldListConnectors() throws Exception {
+    // Given:
+    final ConnectorList entity = new ConnectorList(
+        "list connectors;", Collections.emptyList(), Collections.singletonList(new SimpleConnectorInfo("name", SOURCE_TYPE, "class", "state")));
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    final List<io.confluent.ksql.api.client.ConnectorInfo> connectors = javaClient.listConnectors().get();
+    // Then:
+    assertThat(connectors.size(), is(1));
+    assertThat(connectors.get(0).state(), is("state"));
+    assertThat(connectors.get(0).name(), is("name"));
+    assertThat(connectors.get(0).type(), is(new ConnectorTypeImpl("SOURCE")));
+  }
+
+  @Test
+  public void shouldDescribeConnector() throws Exception {
+    // Given:
+    final ConnectorDescription entity = new ConnectorDescription("describe connector;",
+        "connectorClass",
+        new ConnectorStateInfo(
+            "name",
+            new ConnectorState("state", "worker", "msg"),
+            Collections.emptyList(),
+            SOURCE_TYPE),
+        Collections.emptyList(), Collections.singletonList("topic"), Collections.emptyList());
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    final io.confluent.ksql.api.client.ConnectorDescription connector = javaClient.describeConnector("name").get();
+
+    // Then:
+    assertThat(connector.state(), is("state"));
+    assertThat(connector.className(), is("connectorClass"));
+    assertThat(connector.type(), is(new ConnectorTypeImpl("SOURCE")));
+    assertThat(connector.sources().size(), is(0));
+    assertThat(connector.topics().size(), is(1));
+    assertThat(connector.topics().get(0), is("topic"));
+  }
+
+  @Test
+  public void shouldCreateConnector() {
+    // Given
+    final CreateConnectorEntity entity = new CreateConnectorEntity("create connector;",
+        new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), SOURCE_TYPE));
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    final CompletableFuture<Void> result = javaClient.createConnector("name", true, Collections.EMPTY_MAP);
+
+    // Then:
+    assertTrue(result.complete(null));
+  }
+
+  @Test
+  public void shouldDropConnector() {
+    // Given
+    final DropConnectorEntity entity = new DropConnectorEntity("drop connector;", "name");
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    final CompletableFuture<Void> result = javaClient.dropConnector("name");
+
+    // Then:
+    assertTrue(result.complete(null));
   }
 
   protected Client createJavaClient() {

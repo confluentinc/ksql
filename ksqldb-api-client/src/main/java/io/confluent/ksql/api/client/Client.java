@@ -235,6 +235,52 @@ public interface Client {
   CompletableFuture<ServerInfo> serverInfo();
 
   /**
+   * Creates a connector.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param connectorName name of the connector
+   * @param isSource true if the connector is a source connector, false if it is a sink connector
+   * @param properties connector properties
+   * @return result of connector creation
+   */
+  CompletableFuture<Void> createConnector(
+      String connectorName, boolean isSource, Map<String, Object> properties);
+
+  /**
+   * Drops a connector.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param connectorName name of the connector to drop
+   * @return a future that completes once the server response is received
+   */
+  CompletableFuture<Void> dropConnector(String connectorName);
+
+  /**
+   * Returns a list of connectors.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @return a list of connectors
+   */
+  CompletableFuture<List<ConnectorInfo>> listConnectors();
+
+  /**
+   * Returns metadata about a connector.
+   *
+   * <p>If a non-200 response is received from the server, the {@code CompletableFuture} will be
+   * failed.
+   *
+   * @param connectorName name of the connector to describe
+   * @return metadata about connector
+   */
+  CompletableFuture<ConnectorDescription> describeConnector(String connectorName);
+
+  /**
    * Closes the underlying HTTP client.
    */
   void close();

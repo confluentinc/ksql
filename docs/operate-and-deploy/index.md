@@ -24,6 +24,13 @@ topics.
 - [Configure Security](installation/server-config/security.md)
 - [ksqlDB Configuration Parameter Reference](/reference/server-configuration)
 
+Performance guidelines
+----------------------
+
+Learn how to tune your ksqlDB applications for the best performance.
+
+- [Performance Guidelines](/operate-and-deploy/performance-guidelines)
+
 Health Checks
 -------------
 
@@ -42,6 +49,13 @@ Capacity Planning
 
 The [Capacity Planning guide](capacity-planning.md)
 describes how to size your ksqlDB clusters.
+
+Managing metadata schemas
+-------------------------
+
+Use the [ksqlDB migrations tool](migrations-tool.md)
+to manage your ksqlDB clusters' metadata schemas, including
+the creation, deletion, and updating of streams, tables, and queries.
 
 Troubleshooting
 ---------------

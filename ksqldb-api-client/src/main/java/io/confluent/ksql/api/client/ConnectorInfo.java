@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,16 +13,27 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.parser.tree;
+package io.confluent.ksql.api.client;
 
-import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.parser.NodeLocation;
-import java.util.Optional;
+public interface ConnectorInfo {
 
-@Immutable
-public class ListQueries extends StatementWithExtendedClause {
+  /**
+   * @return name of this connector
+   */
+  String name();
 
-  public ListQueries(final Optional<NodeLocation> location, final boolean showExtended) {
-    super(location, showExtended);
-  }
+  /**
+   * @return type of this connector
+   */
+  ConnectorType type();
+
+  /**
+   * @return class of this connector
+   */
+  String className();
+
+  /**
+   * @return state of this connector
+   */
+  String state();
 }

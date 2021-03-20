@@ -61,6 +61,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -304,28 +305,27 @@ public class MigrationsTest {
     assertFalse(carDesc.getTopic().startsWith("cool"));
 
     // verify version 1
-    final List<StreamedRow> version1 = assertThatEventually(
-        () -> makeKsqlQuery("SELECT * FROM " + MIGRATIONS_TABLE + " WHERE VERSION_KEY='1';"),
-        hasSize(2));
+    final List<StreamedRow> version1 = waitForNumRows(
+        "SELECT * FROM " + MIGRATIONS_TABLE + " WHERE VERSION_KEY='1';",
+        2);
     assertThat(version1.get(1).getRow().get().getColumns().get(1), is("1"));
     assertThat(version1.get(1).getRow().get().getColumns().get(2), is("foo FOO fO0"));
     assertThat(version1.get(1).getRow().get().getColumns().get(3), is("MIGRATED"));
     assertThat(version1.get(1).getRow().get().getColumns().get(7), is("<none>"));
 
     // verify version 2
-    final List<StreamedRow> version2 = assertThatEventually(
-        () -> makeKsqlQuery("SELECT * FROM " + MIGRATIONS_TABLE + " WHERE VERSION_KEY='CURRENT';"),
-        hasSize(2));
+    final List<StreamedRow> version2 = waitForNumRows(
+        "SELECT * FROM " + MIGRATIONS_TABLE + " WHERE VERSION_KEY='CURRENT';",
+        2);
     assertThat(version2.get(1).getRow().get().getColumns().get(1), is("2"));
     assertThat(version2.get(1).getRow().get().getColumns().get(2), is("bar bar BAR"));
     assertThat(version2.get(1).getRow().get().getColumns().get(3), is("MIGRATED"));
     assertThat(version2.get(1).getRow().get().getColumns().get(7), is("1"));
 
     // verify current
-    final List<StreamedRow> current =
-        assertThatEventually(
-            () -> makeKsqlQuery("SELECT * FROM " + MIGRATIONS_TABLE + " WHERE VERSION_KEY='2';"),
-            hasSize(2));
+    final List<StreamedRow> current = waitForNumRows(
+        "SELECT * FROM " + MIGRATIONS_TABLE + " WHERE VERSION_KEY='2';",
+        2);
     assertThat(current.get(1).getRow().get().getColumns().get(1), is("2"));
     assertThat(current.get(1).getRow().get().getColumns().get(2), is("bar bar BAR"));
     assertThat(current.get(1).getRow().get().getColumns().get(3), is("MIGRATED"));
@@ -616,9 +616,25 @@ public class MigrationsTest {
   private static void waitForMetadataTableReady() {
     // This is needed to make sure that the table is fully done being created.
     // It's a similar situation to https://github.com/confluentinc/ksql/issues/6249
-    assertThatEventually(
-        () -> makeKsqlQuery("SELECT * FROM " + MIGRATIONS_TABLE + " WHERE VERSION_KEY='CURRENT';").size(),
-        is(1)
+    waitForNumRows("SELECT * FROM " + MIGRATIONS_TABLE + " WHERE VERSION_KEY='CURRENT';", 1);
+  }
+
+  private static List<StreamedRow> waitForNumRows(final String pullQuery, final int numRows) {
+    return assertThatEventually(
+        () -> {
+          try {
+            return makeKsqlQuery(pullQuery);
+          } catch (AssertionError e) {
+            // error thrown if table is unavailable for pull queries (e.g., materialized state
+            // is not yet ready). return dummy value that violates size assertion in order to retry
+            if (numRows > 0) {
+              return Collections.emptyList();
+            } else {
+              return Collections.singletonList(null);
+            }
+          }
+        },
+        hasSize(numRows)
     );
   }
 }

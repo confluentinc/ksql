@@ -47,7 +47,6 @@ nav:
     - User-defined functions: concepts/functions.md
     - Connectors: concepts/connectors.md
     - Lambda Functions: concepts/lambda-functions.md
-    - Performance Guidelines: concepts/performance-guidelines.md
     - Apache Kafka primer: concepts/apache-kafka-primer.md
   - How-to guides:
       - Synopsis: how-to-guides/index.md
@@ -80,11 +79,13 @@ nav:
               - Configure ksqlDB for Avro, Protobuf, and JSON schemas: operate-and-deploy/installation/server-config/avro-schema.md
               - Configure Security for ksqlDB: operate-and-deploy/installation/server-config/security.md
           - Upgrade ksqlDB: operate-and-deploy/installation/upgrading.md
+      - Manage metadata schemas: operate-and-deploy/migrations-tool.md
       - Logging: operate-and-deploy/logging.md
       - Monitoring: operate-and-deploy/monitoring.md
       - Exactly once semantics: operate-and-deploy/exactly-once-semantics.md
       - Schema Registry integration: operate-and-deploy/schema-registry-integration.md
       - Plan Capacity: operate-and-deploy/capacity-planning.md
+      - Performance Guidelines: operate-and-deploy/performance-guidelines.md
       - KSQL and ksqlDB: operate-and-deploy/ksql-vs-ksqldb.md
       - Changelog: operate-and-deploy/changelog.md
   - Reference:
@@ -156,6 +157,7 @@ nav:
     - Processing log: reference/processing-log.md
     - Serialization: reference/serialization.md
     - User-defined functions: reference/user-defined-functions.md
+    - Migrations tool configuration: reference/migrations-tool-configuration.md
 
 markdown_extensions:
     - toc:
@@ -192,6 +194,7 @@ plugins:
             concepts/ksqldb-architecture.md: operate-and-deploy/how-it-works.md
             concepts/ksqldb-and-kafka-streams.md: operate-and-deploy/how-it-works.md
             concepts/upgrades.md: how-to-guides/update-a-running-persistent-query.md
+            concepts/performance-guidelines.md: operate-and-deploy/performance-guidelines.md
 
             tutorials/examples.md: how-to-guides/index.md
             tutorials/embedded-connect.md: how-to-guides/use-connector-management.md

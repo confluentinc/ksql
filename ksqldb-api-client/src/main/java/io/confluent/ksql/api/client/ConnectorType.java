@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,16 +13,23 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.parser.tree;
+package io.confluent.ksql.api.client;
 
-import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.parser.NodeLocation;
-import java.util.Optional;
-
-@Immutable
-public class ListQueries extends StatementWithExtendedClause {
-
-  public ListQueries(final Optional<NodeLocation> location, final boolean showExtended) {
-    super(location, showExtended);
+public interface ConnectorType {
+  enum Type {
+    SOURCE,
+    SINK,
+    /**
+     * Denotes an unknown connector type. This is used when the connector type cannot be determined,
+     * such as when there were errors in connector creation.
+     */
+    UNKNOWN
   }
+
+  /**
+   * Returns the type.
+   *
+   * @return the type
+   */
+  Type getType();
 }

@@ -36,6 +36,7 @@ import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.cli.console.Console.NoOpRowCaptor;
 import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.metrics.TopicSensors.Stat;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryError.Type;
@@ -75,8 +76,10 @@ import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
+import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
+import io.confluent.ksql.rest.entity.TopicPartitionEntity;
 import io.confluent.ksql.rest.entity.TypeList;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -120,6 +123,8 @@ public class ConsoleTest {
   private static final String NEWLINE = System.lineSeparator();
   private static final String STATUS_COUNT_STRING = "RUNNING:1,ERROR:2";
   private static final String AGGREGATE_STATUS = "ERROR";
+  protected static final Stat STAT =  new Stat("TEST", 0, 0);
+  protected static final ImmutableMap<String, Stat> IMMUTABLE_MAP = new ImmutableMap.Builder<String, Stat>().put("TEST", STAT).build();
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("foo"), SqlTypes.INTEGER)
@@ -140,10 +145,12 @@ public class ConsoleTest {
       "2000-01-01",
       "stats",
       "errors",
+      IMMUTABLE_MAP,
+      IMMUTABLE_MAP,
       true,
       "kafka",
       "avro",
-      "kadka-topic",
+      "kafka-topic",
       2,
       1,
       "statement",
@@ -408,7 +415,14 @@ public class ConsoleTest {
             ImmutableMap.of("overridden.prop", 42),
             ImmutableMap.of(new KsqlHostInfoEntity("foo", 123), KsqlQueryStatus.ERROR),
             KsqlQueryType.PERSISTENT,
-            ImmutableList.of(new QueryError(timestamp, "error", Type.SYSTEM))
+            ImmutableList.of(new QueryError(timestamp, "error", Type.SYSTEM)),
+            ImmutableSet.of(
+                new StreamsTaskMetadata(
+                    "test",
+                    Collections.emptySet(),
+                    Optional.empty()
+                )
+            )
         )
     );
 
@@ -450,6 +464,11 @@ public class ConsoleTest {
           "      \"timestamp\" : 1596644936314,\n" +
           "      \"errorMessage\" : \"error\",\n" +
           "      \"type\" : \"SYSTEM\"\n" +
+          "    } ],\n" +
+          "    \"tasksMetadata\" : [ {\n" +
+          "      \"taskId\" : \"test\",\n" +
+          "      \"topicOffsets\" : [ ],\n" +
+          "      \"timeCurrentIdlingStarted\" : null\n" +
           "    } ],\n" +
           "    \"state\" : \"ERROR\"\n" +
           "  },\n" +
@@ -541,10 +560,12 @@ public class ConsoleTest {
                 "2000-01-01",
                 "stats",
                 "errors",
+                IMMUTABLE_MAP,
+                IMMUTABLE_MAP,
                 false,
                 "kafka",
                 "avro",
-                "kadka-topic",
+                "kafka-topic",
                 1,
                 1,
                 "sql statement",
@@ -672,12 +693,14 @@ public class ConsoleTest {
           + "    } ]," + NEWLINE
           + "    \"type\" : \"TABLE\"," + NEWLINE
           + "    \"timestamp\" : \"2000-01-01\"," + NEWLINE
-          + "    \"statistics\" : \"stats\"," + NEWLINE
-          + "    \"errorStats\" : \"errors\"," + NEWLINE
+          + "    \"statistics\" : \"The statistics field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use statisticsMap instead.\\nstats\"," + NEWLINE
+          + "    \"errorStats\" : \"The errorStats field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use errorStatsMap instead.\\nerrors\\n\"," + NEWLINE
+          + "    \"statisticsMap\" : {" + NEWLINE + "      \"TEST\" : {" + NEWLINE + "        \"name\" : \"TEST\"," + NEWLINE + "        \"value\" : 0.0," + NEWLINE + "        \"timestamp\" : 0" + NEWLINE + "      }" + NEWLINE + "    }," + NEWLINE
+          + "    \"errorStatsMap\" : {" + NEWLINE + "      \"TEST\" : {" + NEWLINE + "        \"name\" : \"TEST\"," + NEWLINE + "        \"value\" : 0.0," + NEWLINE + "        \"timestamp\" : 0" + NEWLINE + "      }" + NEWLINE + "    }," + NEWLINE
           + "    \"extended\" : false," + NEWLINE
           + "    \"keyFormat\" : \"kafka\"," + NEWLINE
           + "    \"valueFormat\" : \"avro\"," + NEWLINE
-          + "    \"topic\" : \"kadka-topic\"," + NEWLINE
+          + "    \"topic\" : \"kafka-topic\"," + NEWLINE
           + "    \"partitions\" : 1," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"sql statement\"," + NEWLINE
@@ -812,12 +835,14 @@ public class ConsoleTest {
           + "    } ]," + NEWLINE
           + "    \"type\" : \"TABLE\"," + NEWLINE
           + "    \"timestamp\" : \"2000-01-01\"," + NEWLINE
-          + "    \"statistics\" : \"stats\"," + NEWLINE
-          + "    \"errorStats\" : \"errors\"," + NEWLINE
+          + "    \"statistics\" : \"The statistics field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use statisticsMap instead.\\nstats\"," + NEWLINE
+          + "    \"errorStats\" : \"The errorStats field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use errorStatsMap instead.\\nerrors\\n\"," + NEWLINE
+          + "    \"statisticsMap\" : {" + NEWLINE + "      \"TEST\" : {" + NEWLINE + "        \"name\" : \"TEST\"," + NEWLINE + "        \"value\" : 0.0," + NEWLINE + "        \"timestamp\" : 0" + NEWLINE + "      }" + NEWLINE + "    }," + NEWLINE
+          + "    \"errorStatsMap\" : {" + NEWLINE + "      \"TEST\" : {" + NEWLINE + "        \"name\" : \"TEST\"," + NEWLINE + "        \"value\" : 0.0," + NEWLINE + "        \"timestamp\" : 0" + NEWLINE + "      }" + NEWLINE + "    }," + NEWLINE
           + "    \"extended\" : true," + NEWLINE
           + "    \"keyFormat\" : \"kafka\"," + NEWLINE
           + "    \"valueFormat\" : \"avro\"," + NEWLINE
-          + "    \"topic\" : \"kadka-topic\"," + NEWLINE
+          + "    \"topic\" : \"kafka-topic\"," + NEWLINE
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"statement\"," + NEWLINE
@@ -843,7 +868,7 @@ public class ConsoleTest {
           + "" + NEWLINE
           + " KSQL Source Name | Kafka Topic | Type  " + NEWLINE
           + "----------------------------------------" + NEWLINE
-          + " TestSource       | kadka-topic | TABLE " + NEWLINE
+          + " TestSource       | kafka-topic | TABLE " + NEWLINE
           + "----------------------------------------" + NEWLINE
           + "" + NEWLINE
           + " Related Topics " + NEWLINE
@@ -1116,10 +1141,12 @@ public class ConsoleTest {
                 "2000-01-01",
                 "stats",
                 "errors",
+                IMMUTABLE_MAP,
+                IMMUTABLE_MAP,
                 true,
                 "json",
                 "avro",
-                "kadka-topic",
+                "kafka-topic",
                 2, 1,
                 "sql statement text",
                 ImmutableList.of(
@@ -1127,13 +1154,13 @@ public class ConsoleTest {
                         "consumer1",
                         ImmutableList.of(
                             new QueryTopicOffsetSummary(
-                                "kadka-topic",
+                                "kafka-topic",
                                 ImmutableList.of(
                                     new ConsumerPartitionOffsets(0, 100, 900, 800),
                                     new ConsumerPartitionOffsets(1, 50, 900, 900)
                                 )),
                             new QueryTopicOffsetSummary(
-                                "kadka-topic-2",
+                                "kafka-topic-2",
                                 ImmutableList.of(
                                     new ConsumerPartitionOffsets(0, 0, 90, 80),
                                     new ConsumerPartitionOffsets(1, 10, 90, 90)
@@ -1202,19 +1229,21 @@ public class ConsoleTest {
           + "    } ]," + NEWLINE
           + "    \"type\" : \"TABLE\"," + NEWLINE
           + "    \"timestamp\" : \"2000-01-01\"," + NEWLINE
-          + "    \"statistics\" : \"stats\"," + NEWLINE
-          + "    \"errorStats\" : \"errors\"," + NEWLINE
+          + "    \"statistics\" : \"The statistics field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use statisticsMap instead.\\nstats\"," + NEWLINE
+          + "    \"errorStats\" : \"The errorStats field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use errorStatsMap instead.\\nerrors\\n\"," + NEWLINE
+          + "    \"statisticsMap\" : {" + NEWLINE + "      \"TEST\" : {" + NEWLINE + "        \"name\" : \"TEST\"," + NEWLINE + "        \"value\" : 0.0," + NEWLINE + "        \"timestamp\" : 0" + NEWLINE + "      }" + NEWLINE + "    }," + NEWLINE
+          + "    \"errorStatsMap\" : {" + NEWLINE + "      \"TEST\" : {" + NEWLINE + "        \"name\" : \"TEST\"," + NEWLINE + "        \"value\" : 0.0," + NEWLINE + "        \"timestamp\" : 0" + NEWLINE + "      }" + NEWLINE + "    }," + NEWLINE
           + "    \"extended\" : true," + NEWLINE
           + "    \"keyFormat\" : \"json\"," + NEWLINE
           + "    \"valueFormat\" : \"avro\"," + NEWLINE
-          + "    \"topic\" : \"kadka-topic\"," + NEWLINE
+          + "    \"topic\" : \"kafka-topic\"," + NEWLINE
           + "    \"partitions\" : 2," + NEWLINE
           + "    \"replication\" : 1," + NEWLINE
           + "    \"statement\" : \"sql statement text\"," + NEWLINE
           + "    \"queryOffsetSummaries\" : [ {" + NEWLINE
           + "      \"groupId\" : \"consumer1\"," + NEWLINE
           + "      \"topicSummaries\" : [ {" + NEWLINE
-          + "        \"kafkaTopic\" : \"kadka-topic\"," + NEWLINE
+          + "        \"kafkaTopic\" : \"kafka-topic\"," + NEWLINE
           + "        \"offsets\" : [ {" + NEWLINE
           + "          \"partition\" : 0," + NEWLINE
           + "          \"logStartOffset\" : 100," + NEWLINE
@@ -1227,7 +1256,7 @@ public class ConsoleTest {
           + "          \"consumerOffset\" : 900" + NEWLINE
           + "        } ]" + NEWLINE
           + "      }, {" + NEWLINE
-          + "        \"kafkaTopic\" : \"kadka-topic-2\"," + NEWLINE
+          + "        \"kafkaTopic\" : \"kafka-topic-2\"," + NEWLINE
           + "        \"offsets\" : [ {" + NEWLINE
           + "          \"partition\" : 0," + NEWLINE
           + "          \"logStartOffset\" : 0," + NEWLINE
@@ -1255,7 +1284,7 @@ public class ConsoleTest {
           + "Timestamp field      : 2000-01-01" + NEWLINE
           + "Key format           : json" + NEWLINE
           + "Value format         : avro" + NEWLINE
-          + "Kafka topic          : kadka-topic (partitions: 2, replication: 1)" + NEWLINE
+          + "Kafka topic          : kafka-topic (partitions: 2, replication: 1)" + NEWLINE
           + "Statement            : sql statement text" + NEWLINE
           + "" + NEWLINE
           + " Field  | Type                           " + NEWLINE
@@ -1283,16 +1312,16 @@ public class ConsoleTest {
           + "" + NEWLINE
           + "Local runtime statistics" + NEWLINE
           + "------------------------" + NEWLINE
-          + "stats" + NEWLINE
-          + "errors" + NEWLINE
-          + "(Statistics of the local KSQL server interaction with the Kafka topic kadka-topic)"
+          + "            TEST:         0     last-message:       n/a" + NEWLINE
+          + "            TEST:         0     last-message:       n/a" + NEWLINE
+          + "(Statistics of the local KSQL server interaction with the Kafka topic kafka-topic)"
           + NEWLINE
           + NEWLINE
           + "Consumer Groups summary:" + NEWLINE
           + NEWLINE
           + "Consumer Group       : consumer1" + NEWLINE
           + NEWLINE
-          + "Kafka topic          : kadka-topic" + NEWLINE
+          + "Kafka topic          : kafka-topic" + NEWLINE
           + "Max lag              : 100" + NEWLINE
           + NEWLINE
           + " Partition | Start Offset | End Offset | Offset | Lag " + NEWLINE
@@ -1301,7 +1330,7 @@ public class ConsoleTest {
           + " 1         | 50           | 900        | 900    | 0   " + NEWLINE
           + "------------------------------------------------------" + NEWLINE
           + NEWLINE
-          + "Kafka topic          : kadka-topic-2" + NEWLINE
+          + "Kafka topic          : kafka-topic-2" + NEWLINE
           + "Max lag              : 10" + NEWLINE
           + NEWLINE
           + " Partition | Start Offset | End Offset | Offset | Lag " + NEWLINE

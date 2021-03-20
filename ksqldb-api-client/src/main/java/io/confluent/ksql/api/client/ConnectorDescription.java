@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,16 +13,22 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.parser.tree;
+package io.confluent.ksql.api.client;
 
-import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.parser.NodeLocation;
-import java.util.Optional;
+import java.util.List;
 
-@Immutable
-public class ListQueries extends StatementWithExtendedClause {
+public interface ConnectorDescription extends ConnectorInfo {
 
-  public ListQueries(final Optional<NodeLocation> location, final boolean showExtended) {
-    super(location, showExtended);
-  }
+  /**
+   *
+   * @return a list of ksqlDB streams and tables that this connector reads/writes to
+   */
+  List<String> sources();
+
+  /**
+   *
+   * @return a list of topics used by this connector
+   */
+  List<String> topics();
+
 }

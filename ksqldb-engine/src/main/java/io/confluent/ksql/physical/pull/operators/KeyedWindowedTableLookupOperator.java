@@ -45,6 +45,7 @@ public class KeyedWindowedTableLookupOperator
   private Iterator<KsqlPartitionLocation> partitionLocationIterator;
   private KsqlPartitionLocation nextLocation;
   private KsqlKey nextKey;
+  private long returnedRows = 0;
 
 
   public KeyedWindowedTableLookupOperator(
@@ -102,8 +103,8 @@ public class KeyedWindowedTableLookupOperator
           windowBounds.getMergedEnd())
           .iterator();
     }
+    returnedRows++;
     return resultIterator.next();
-
   }
 
   private static WindowBounds getWindowBounds(final KsqlKey ksqlKey) {
@@ -158,5 +159,10 @@ public class KeyedWindowedTableLookupOperator
   public void setPartitionLocations(final List<KsqlPartitionLocation> locations) {
     Objects.requireNonNull(locations, "locations");
     partitionLocations = locations;
+  }
+
+  @Override
+  public long getReturnedRowCount() {
+    return returnedRows;
   }
 }

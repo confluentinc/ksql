@@ -39,6 +39,8 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlanBuilder;
 import io.confluent.ksql.physical.pull.PullQueryQueuePopulator;
 import io.confluent.ksql.physical.pull.PullQueryResult;
@@ -156,6 +158,8 @@ final class EngineExecutor {
       throw new IllegalArgumentException("Executor can only handle pull queries");
     }
     final SessionConfig sessionConfig = statement.getSessionConfig();
+    PullSourceType sourceType = null;
+    PullPhysicalPlanType planType = null;
 
     try {
       final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(engineContext.getMetaStore(), "");
@@ -173,19 +177,26 @@ final class EngineExecutor {
           logicalPlan,
           analysis
       );
+      sourceType = physicalPlan.getSourceType();
+      planType = physicalPlan.getPlanType();
       final PullQueryQueue pullQueryQueue = new PullQueryQueue();
       final PullQueryQueuePopulator populator = () -> routing.handlePullQuery(
           serviceContext,
           physicalPlan, statement, routingOptions, physicalPlan.getOutputSchema(),
           physicalPlan.getQueryId(), pullQueryQueue);
       final PullQueryResult result = new PullQueryResult(physicalPlan.getOutputSchema(), populator,
-          physicalPlan.getQueryId(), pullQueryQueue, pullQueryMetrics);
+          physicalPlan.getQueryId(), pullQueryQueue, pullQueryMetrics, physicalPlan.getSourceType(),
+          physicalPlan.getPlanType(), physicalPlan::getRowsReadFromDataSource);
       if (startImmediately) {
         result.start();
       }
       return result;
     } catch (final Exception e) {
-      pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
+      final PullSourceType finalSourceType = sourceType;
+      final PullPhysicalPlanType finalPlanType = planType;
+      pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1,
+          Optional.ofNullable(finalSourceType).orElse(PullSourceType.UNKNOWN),
+          Optional.ofNullable(finalPlanType).orElse(PullPhysicalPlanType.UNKNOWN)));
       throw new KsqlStatementException(
           e.getMessage() == null
               ? "Server Error" + Arrays.toString(e.getStackTrace())

@@ -25,6 +25,8 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
 import io.confluent.ksql.physical.pull.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.pull.operators.DataSourceOperator;
 import io.confluent.ksql.physical.pull.operators.KeyedTableLookupOperator;
@@ -66,6 +68,8 @@ public class PullPhysicalPlanBuilder {
   private final Materialization mat;
 
   private List<LookupConstraint> lookupConstraints;
+  private PullPhysicalPlanType pullPhysicalPlanType;
+  private PullSourceType pullSourceType;
   private boolean seenSelectOperator = false;
 
   public PullPhysicalPlanBuilder(
@@ -144,6 +148,8 @@ public class PullPhysicalPlanBuilder {
         (rootPhysicalOp).getLogicalNode().getSchema(),
         queryId,
         lookupConstraints,
+        pullPhysicalPlanType,
+        pullSourceType,
         mat,
         dataSourceOperator);
   }
@@ -184,13 +190,17 @@ public class PullPhysicalPlanBuilder {
     } else if (lookupConstraints.stream().anyMatch(lc -> lc instanceof NonKeyConstraint)) {
       isTableScan = true;
     }
+    pullSourceType = logicalNode.isWindowed()
+        ? PullSourceType.WINDOWED : PullSourceType.NON_WINDOWED;
     if (isTableScan) {
+      pullPhysicalPlanType = PullPhysicalPlanType.TABLE_SCAN;
       if (!logicalNode.isWindowed()) {
         return new TableScanOperator(mat, logicalNode);
       } else {
         return new WindowedTableScanOperator(mat, logicalNode);
       }
     }
+    pullPhysicalPlanType = PullPhysicalPlanType.KEY_LOOKUP;
     if (!logicalNode.isWindowed()) {
       return new KeyedTableLookupOperator(mat, logicalNode);
     } else {

@@ -32,6 +32,8 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.pull.HARouting;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
@@ -57,6 +59,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -150,11 +153,24 @@ public class QueryEndpoint {
       final MetricsCallbackHolder metricsCallbackHolder
   ) {
     // First thing, set the metrics callback so that it gets called, even if we hit an error
-    metricsCallbackHolder.setCallback((requestBytes, responseBytes, startTimeNanos) -> {
+    final AtomicReference<PullQueryResult> resultForMetrics = new AtomicReference<>(null);
+    metricsCallbackHolder.setCallback((statusCode, requestBytes, responseBytes, startTimeNanos) -> {
       pullQueryMetrics.ifPresent(metrics -> {
+        metrics.recordStatusCode(statusCode);
         metrics.recordRequestSize(requestBytes);
-        metrics.recordResponseSize(responseBytes);
-        metrics.recordLatency(startTimeNanos);
+        final PullQueryResult r = resultForMetrics.get();
+        final PullSourceType sourceType = Optional.ofNullable(r).map(
+            PullQueryResult::getSourceType).orElse(PullSourceType.UNKNOWN);
+        final PullPhysicalPlanType planType = Optional.ofNullable(r).map(
+            PullQueryResult::getPlanType).orElse(PullPhysicalPlanType.UNKNOWN);
+        metrics.recordResponseSize(responseBytes, sourceType, planType);
+        metrics.recordLatency(startTimeNanos, sourceType, planType);
+        metrics.recordRowsReturned(
+            Optional.ofNullable(r).map(PullQueryResult::getTotalRowsReturned).orElse(0L),
+            sourceType, planType);
+        metrics.recordRowsProcessed(
+            Optional.ofNullable(r).map(PullQueryResult::getTotalRowsProcessed).orElse(0L),
+            sourceType, planType);
       });
     });
 
@@ -183,6 +199,7 @@ public class QueryEndpoint {
           false
       );
 
+      resultForMetrics.set(result);
       result.onCompletionOrException((v, throwable) -> {
         decrementer.decrementAtMostOnce();
       });
@@ -300,7 +317,8 @@ public class QueryEndpoint {
         result.onException(future::completeExceptionally);
         result.onCompletion(future::complete);
       } catch (Exception e) {
-        pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
+        pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1, result.getSourceType(),
+            result.getPlanType()));
       }
     }
 

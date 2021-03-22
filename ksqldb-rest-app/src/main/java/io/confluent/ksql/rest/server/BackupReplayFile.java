@@ -84,6 +84,15 @@ public final class BackupReplayFile implements Closeable {
       throw new IOException("Write permission denied.");
     }
 
+    if (record == null) {
+      throw new IllegalArgumentException("Record is null");
+    }
+
+    if (record.key() == null || record.value() == null) {
+      throw new IllegalArgumentException(String.format(
+          "Record contain a null key/value: key=%s, value=%s", record.key(), record.value()));
+    }
+
     writer.write(record.key());
     writer.write(KEY_VALUE_SEPARATOR_BYTES);
     writer.write(record.value());

@@ -132,6 +132,17 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
           "Failed to write record due to out of sync command topic and backup file: " + record);
     }
 
+    if (record == null || record.key() == null || record.value() == null) {
+      String recordString = null;
+      if (record != null) {
+        recordString = String.format("key=%s, value=%s", record.key(), record.value());
+      }
+
+      LOG.warn("Cannot write a null record or null key/value to the backup file. This could be "
+          + "caused by an invalid record in the command topic. Record = {}", recordString);
+      return;
+    }
+
     if (isRestoring()) {
       if (isRecordInLatestReplay(record)) {
         // Ignore backup because record was already replayed
@@ -148,7 +159,7 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
 
     try {
       replayFile.write(record);
-    } catch (final IOException e) {
+    } catch (final Exception e) {
       LOG.warn("Failed to write to file {}. The command topic backup is not complete. "
               + "Make sure the file exists and has permissions to write. KSQL must be restarted "
               + "afterwards to complete the backup process. Error = {}",

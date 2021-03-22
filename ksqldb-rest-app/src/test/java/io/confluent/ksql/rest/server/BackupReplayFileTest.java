@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -59,6 +60,36 @@ public class BackupReplayFileTest {
     // Then
     assertThat(path, is(String.format(
         "%s/%s", backupLocation.getRoot().getAbsolutePath(), REPLAY_FILE_NAME)));
+  }
+
+  @Test
+  public void shouldThrowIllegalArgumentOnWriteIfRecordIsNull() {
+    // When
+    assertThrows(IllegalArgumentException.class, () -> replayFile.write(null));
+  }
+
+  @Test
+  public void shouldThrowIllegalArgumentOnWriteIfRecordKeyIsNull() {
+    // Given
+    final ConsumerRecord<byte[], byte[]> record =
+        (ConsumerRecord<byte[], byte[]>) mock(ConsumerRecord.class);
+    when(record.key()).thenReturn(null);
+    when(record.value()).thenReturn(new byte[]{});
+
+    // When
+    assertThrows(IllegalArgumentException.class, () -> replayFile.write(record));
+  }
+
+  @Test
+  public void shouldThrowIllegalArgumentOnWriteIfRecordValueIsNull() {
+    // Given
+    final ConsumerRecord<byte[], byte[]> record =
+        (ConsumerRecord<byte[], byte[]>) mock(ConsumerRecord.class);
+    when(record.key()).thenReturn(new byte[]{});
+    when(record.value()).thenReturn(null);
+
+    // When
+    assertThrows(IllegalArgumentException.class, () -> replayFile.write(record));
   }
 
   @Test

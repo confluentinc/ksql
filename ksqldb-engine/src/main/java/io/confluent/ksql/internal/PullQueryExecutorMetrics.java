@@ -29,8 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import org.apache.kafka.common.metrics.MeasurableStat;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
@@ -368,66 +366,17 @@ public class PullQueryExecutorMetrics implements Closeable {
   }
 
   private Map<Pair<PullSourceType, PullPhysicalPlanType>, Sensor> configureErrorSensorMap() {
-    ImmutableMap.Builder<Pair<PullSourceType, PullPhysicalPlanType>, Sensor> builder
-        = ImmutableMap.builder();
-
-    for (final PullSourceType sourceType : PullSourceType.values()) {
-      for (final PullPhysicalPlanType planType : PullPhysicalPlanType.values()) {
-        final String variantName = sourceType.name().toLowerCase() + "-"
-            + planType.name().toLowerCase();
-        final Sensor sensor = metrics.sensor(
-            PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-error-" + variantName);
-
-        ImmutableMap<String, String> tags = ImmutableMap.<String, String>builder()
-            .putAll(customMetricsTags)
-            .put(KsqlConstants.KSQL_PULL_QUERY_SOURCE_TAG, sourceType.name().toLowerCase())
-            .put(KsqlConstants.KSQL_PULL_QUERY_PLAN_TYPE_TAG, planType.name().toLowerCase())
-            .build();
-
-        addSensor(
-            sensor,
-            PULL_REQUESTS + "-detailed-error-total",
-            ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
-            "Total number of erroneous pull query requests",
-            tags,
-            new CumulativeCount()
-        );
-
-        builder.put(Pair.of(sourceType, planType), sensor);
-        sensors.add(sensor);
-      }
-    }
-
-    return builder.build();
+    return configureSensorMap("error", (sensor, tags, variantName) -> {
+      addSensor(
+          sensor,
+          PULL_REQUESTS + "-detailed-error-total",
+          ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+          "Total number of erroneous pull query requests - " + variantName,
+          tags,
+          new CumulativeCount()
+      );
+    });
   }
-
-//  private Map<Pair<PullSourceType, PullPhysicalPlanType>, Sensor> configureSensorMap(
-//      final String sensorBaseName, BiConsumer<Sensor, Map<String, String>> addMetricsToSensor) {
-//    ImmutableMap.Builder<Pair<PullSourceType, PullPhysicalPlanType>, Sensor> builder
-//        = ImmutableMap.builder();
-//
-//    for (final PullSourceType sourceType : PullSourceType.values()) {
-//      for (final PullPhysicalPlanType planType : PullPhysicalPlanType.values()) {
-//        final String variantName = sourceType.name().toLowerCase() + "-"
-//            + planType.name().toLowerCase();
-//        final Sensor sensor = metrics.sensor(
-//            PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-error-" + variantName);
-//
-//        ImmutableMap<String, String> tags = ImmutableMap.<String, String>builder()
-//            .putAll(customMetricsTags)
-//            .put(KsqlConstants.KSQL_PULL_QUERY_SOURCE_TAG, sourceType.name().toLowerCase())
-//            .put(KsqlConstants.KSQL_PULL_QUERY_PLAN_TYPE_TAG, planType.name().toLowerCase())
-//            .build();
-//
-//        addMetricsToSensor.accept(sensor, tags);
-//
-//        builder.put(Pair.of(sourceType, planType), sensor);
-//        sensors.add(sensor);
-//      }
-//    }
-//
-//    return builder.build();
-//  }
 
   private Sensor configureStatusCodeSensor(final String codeName) {
     final Sensor sensor = metrics.sensor(
@@ -461,30 +410,10 @@ public class PullQueryExecutorMetrics implements Closeable {
   }
 
   private Map<Pair<PullSourceType, PullPhysicalPlanType>, Sensor> configureRequestSensorMap() {
-    ImmutableMap.Builder<Pair<PullSourceType, PullPhysicalPlanType>, Sensor> builder
-        = ImmutableMap.builder();
-
-    for (final PullSourceType sourceType : PullSourceType.values()) {
-      for (final PullPhysicalPlanType planType : PullPhysicalPlanType.values()) {
-        final String variantName = sourceType.name().toLowerCase() + "-"
-            + planType.name().toLowerCase();
-        final Sensor sensor = metrics.sensor(
-            PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-latency-" + variantName);
-
-        ImmutableMap<String, String> tags = ImmutableMap.<String, String>builder()
-            .putAll(customMetricsTags)
-            .put(KsqlConstants.KSQL_PULL_QUERY_SOURCE_TAG, sourceType.name().toLowerCase())
-            .put(KsqlConstants.KSQL_PULL_QUERY_PLAN_TYPE_TAG, planType.name().toLowerCase())
-            .build();
-        addRequestMetricsToSensor(sensor, ksqlServicePrefix, PULL_REQUESTS + "-detailed",
-            tags, " -" + variantName);
-
-        builder.put(Pair.of(sourceType, planType), sensor);
-        sensors.add(sensor);
-      }
-    }
-
-    return builder.build();
+    return configureSensorMap("latency", (sensor, tags, variantName) -> {
+      addRequestMetricsToSensor(sensor, ksqlServicePrefix, PULL_REQUESTS + "-detailed",
+          tags, " - " + variantName);
+    });
   }
 
   private void addRequestMetricsToSensor(
@@ -614,105 +543,42 @@ public class PullQueryExecutorMetrics implements Closeable {
   }
 
   private Map<Pair<PullSourceType, PullPhysicalPlanType>, Sensor> configureResponseSizeSensorMap() {
-    ImmutableMap.Builder<Pair<PullSourceType, PullPhysicalPlanType>, Sensor> builder
-        = ImmutableMap.builder();
-
-    for (final PullSourceType sourceType : PullSourceType.values()) {
-      for (final PullPhysicalPlanType planType : PullPhysicalPlanType.values()) {
-        final String variantName = sourceType.name().toLowerCase() + "-"
-            + planType.name().toLowerCase();
-        final Sensor sensor = metrics.sensor(
-            PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-response-size-" + variantName);
-
-        ImmutableMap<String, String> tags = ImmutableMap.<String, String>builder()
-            .putAll(customMetricsTags)
-            .put(KsqlConstants.KSQL_PULL_QUERY_SOURCE_TAG, sourceType.name().toLowerCase())
-            .put(KsqlConstants.KSQL_PULL_QUERY_PLAN_TYPE_TAG, planType.name().toLowerCase())
-            .build();
-
-        addSensor(
-            sensor,
-            PULL_REQUESTS + "-detailed-response-size",
-            ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
-            "Size in bytes of pull query response -" + variantName,
-            tags,
-            new CumulativeSum()
-        );
-
-        builder.put(Pair.of(sourceType, planType), sensor);
-        sensors.add(sensor);
-      }
-    }
-
-    return builder.build();
+    return configureSensorMap("response-size", (sensor, tags, variantName) -> {
+      addSensor(
+          sensor,
+          PULL_REQUESTS + "-detailed-response-size",
+          ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+          "Size in bytes of pull query response - " + variantName,
+          tags,
+          new CumulativeSum()
+      );
+    });
   }
 
   private Map<Pair<PullSourceType, PullPhysicalPlanType>, Sensor> configureRowsReturnedSensorMap() {
-    ImmutableMap.Builder<Pair<PullSourceType, PullPhysicalPlanType>, Sensor> builder
-        = ImmutableMap.builder();
-
-    for (final PullSourceType sourceType : PullSourceType.values()) {
-      for (final PullPhysicalPlanType planType : PullPhysicalPlanType.values()) {
-        final String variantName = sourceType.name().toLowerCase() + "-"
-            + planType.name().toLowerCase();
-        final Sensor sensor = metrics.sensor(
-            PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-rows-returned-total" + variantName);
-
-        ImmutableMap<String, String> tags = ImmutableMap.<String, String>builder()
-            .putAll(customMetricsTags)
-            .put(KsqlConstants.KSQL_PULL_QUERY_SOURCE_TAG, sourceType.name().toLowerCase())
-            .put(KsqlConstants.KSQL_PULL_QUERY_PLAN_TYPE_TAG, planType.name().toLowerCase())
-            .build();
-
-        addSensor(
-            sensor,
-            PULL_REQUESTS + "-rows-returned-total",
-            ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
-            "Number of rows returned -" + variantName,
-            tags,
-            new CumulativeSum()
-        );
-
-        builder.put(Pair.of(sourceType, planType), sensor);
-        sensors.add(sensor);
-      }
-    }
-
-    return builder.build();
+    return configureSensorMap("rows-returned", (sensor, tags, variantName) -> {
+      addSensor(
+          sensor,
+          PULL_REQUESTS + "-rows-returned-total",
+          ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+          "Number of rows returned - " + variantName,
+          tags,
+          new CumulativeSum()
+      );
+    });
   }
 
   private Map<Pair<PullSourceType, PullPhysicalPlanType>, Sensor> configureRowsProcessedSensorMap() {
-    ImmutableMap.Builder<Pair<PullSourceType, PullPhysicalPlanType>, Sensor> builder
-        = ImmutableMap.builder();
-
-    for (final PullSourceType sourceType : PullSourceType.values()) {
-      for (final PullPhysicalPlanType planType : PullPhysicalPlanType.values()) {
-        final String variantName = sourceType.name().toLowerCase() + "-"
-            + planType.name().toLowerCase();
-        final Sensor sensor = metrics.sensor(
-            PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-rows-processed-total" + variantName);
-
-        ImmutableMap<String, String> tags = ImmutableMap.<String, String>builder()
-            .putAll(customMetricsTags)
-            .put(KsqlConstants.KSQL_PULL_QUERY_SOURCE_TAG, sourceType.name().toLowerCase())
-            .put(KsqlConstants.KSQL_PULL_QUERY_PLAN_TYPE_TAG, planType.name().toLowerCase())
-            .build();
-
-        addSensor(
-            sensor,
-            PULL_REQUESTS + "-rows-processed-total",
-            ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
-            "Number of rows processed -" + variantName,
-            tags,
-            new CumulativeSum()
-        );
-
-        builder.put(Pair.of(sourceType, planType), sensor);
-        sensors.add(sensor);
-      }
-    }
-
-    return builder.build();
+    return configureSensorMap("rows-processed", (sensor, tags, variantName) -> {
+      addSensor(
+          sensor,
+          PULL_REQUESTS + "-rows-processed-total",
+          ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
+          "Number of rows processed -" + variantName,
+          tags,
+          new CumulativeSum()
+      );
+    });
   }
 
   private void addSensor(
@@ -732,5 +598,38 @@ public class PullQueryExecutorMetrics implements Closeable {
         ),
         measureableStat
     );
+  }
+
+  private Map<Pair<PullSourceType, PullPhysicalPlanType>, Sensor> configureSensorMap(
+      final String sensorBaseName, MetricsAdder metricsAdder) {
+    ImmutableMap.Builder<Pair<PullSourceType, PullPhysicalPlanType>, Sensor> builder
+        = ImmutableMap.builder();
+
+    for (final PullSourceType sourceType : PullSourceType.values()) {
+      for (final PullPhysicalPlanType planType : PullPhysicalPlanType.values()) {
+        final String variantName = sourceType.name().toLowerCase() + "-"
+            + planType.name().toLowerCase();
+        final Sensor sensor = metrics.sensor(
+            PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-" + sensorBaseName + "-"
+                + variantName);
+
+        ImmutableMap<String, String> tags = ImmutableMap.<String, String>builder()
+            .putAll(customMetricsTags)
+            .put(KsqlConstants.KSQL_PULL_QUERY_SOURCE_TAG, sourceType.name().toLowerCase())
+            .put(KsqlConstants.KSQL_PULL_QUERY_PLAN_TYPE_TAG, planType.name().toLowerCase())
+            .build();
+
+        metricsAdder.addMetrics(sensor, tags, variantName);
+
+        builder.put(Pair.of(sourceType, planType), sensor);
+        sensors.add(sensor);
+      }
+    }
+
+    return builder.build();
+  }
+
+  private interface MetricsAdder {
+    void addMetrics(Sensor sensor, Map<String, String> tags, String variantName);
   }
 }

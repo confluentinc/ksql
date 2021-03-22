@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
+import org.apache.kafka.streams.state.HostInfo;
 
 
 /**
@@ -63,5 +64,9 @@ public class KsqlHostInfo {
   @Override
   public String toString() {
     return "KsqlHostInfo{host='" + this.host + '\'' + ", port=" + this.port + '}';
+  }
+
+  public static KsqlHostInfo fromHostInfo(HostInfo hostInfo) {
+    return new KsqlHostInfo(hostInfo.host(), hostInfo.port());
   }
 }

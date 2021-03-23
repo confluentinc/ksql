@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -46,6 +47,7 @@ import java.util.List;
     @JsonSubTypes.Type(value = CreateConnectorEntity.class, name = "connector_info"),
     @JsonSubTypes.Type(value = DropConnectorEntity.class, name = "drop_connector"),
     @JsonSubTypes.Type(value = ConnectorList.class, name = "connector_list"),
+    @JsonSubTypes.Type(value = ConnectorPluginsList.class, name = "connector_plugins_list"),
     @JsonSubTypes.Type(value = ConnectorDescription.class, name = "connector_description"),
     @JsonSubTypes.Type(value = TypeList.class, name = "type_list"),
     @JsonSubTypes.Type(value = ErrorEntity.class, name = "error_entity"),

@@ -222,7 +222,7 @@ directly. These metrics are omitted from this reference to avoid redundancy.
 Metrics that describe the activity of pull queries on each server.
 
 ```
-io.confluent.ksql.metrics:type=_confluent-ksql-default_pull-query
+io.confluent.ksql.metrics:type=_confluent-ksql-pull-query
 ```
 
 !!! info

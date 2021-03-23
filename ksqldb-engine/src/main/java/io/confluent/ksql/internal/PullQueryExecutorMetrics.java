@@ -71,7 +71,7 @@ public class PullQueryExecutorMetrics implements Closeable {
         + ksqlServiceId;
     this.legacyCustomMetricsTags = Objects.requireNonNull(customMetricsTags, "customMetricsTags");
 
-    this.ksqlServicePrefix = ReservedInternalTopics.CONFLUENT_PREFIX;
+    this.ksqlServicePrefix = ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX;
     final Map<String, String> metricsTags = new HashMap<>(customMetricsTags);
     metricsTags.put(KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, ksqlServiceId);
     this.customMetricsTags = ImmutableMap.copyOf(metricsTags);

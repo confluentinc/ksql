@@ -165,7 +165,7 @@ public class PullQueryExecutorMetrics implements Closeable {
     }
   }
 
-  public void recordStatusCode(int statusCode) {
+  public void recordStatusCode(final int statusCode) {
     if (statusCode >= 200 && statusCode < 300) {
       responseCode2XX.record(1);
     } else if (statusCode >= 300 && statusCode < 400) {
@@ -385,7 +385,7 @@ public class PullQueryExecutorMetrics implements Closeable {
         sensor,
         PULL_REQUESTS + "-" + codeName + "-total",
         ksqlServicePrefix + PULL_QUERY_METRIC_GROUP,
-        "Total number of status code "+ codeName + "responses",
+        "Total number of status code " + codeName + " responses",
         customMetricsTags,
         new CumulativeCount()
     );
@@ -568,7 +568,8 @@ public class PullQueryExecutorMetrics implements Closeable {
     });
   }
 
-  private Map<Pair<PullSourceType, PullPhysicalPlanType>, Sensor> configureRowsProcessedSensorMap() {
+  private Map<Pair<PullSourceType, PullPhysicalPlanType>, Sensor>
+      configureRowsProcessedSensorMap() {
     return configureSensorMap("rows-processed", (sensor, tags, variantName) -> {
       addSensor(
           sensor,
@@ -601,8 +602,8 @@ public class PullQueryExecutorMetrics implements Closeable {
   }
 
   private Map<Pair<PullSourceType, PullPhysicalPlanType>, Sensor> configureSensorMap(
-      final String sensorBaseName, MetricsAdder metricsAdder) {
-    ImmutableMap.Builder<Pair<PullSourceType, PullPhysicalPlanType>, Sensor> builder
+      final String sensorBaseName, final MetricsAdder metricsAdder) {
+    final ImmutableMap.Builder<Pair<PullSourceType, PullPhysicalPlanType>, Sensor> builder
         = ImmutableMap.builder();
 
     for (final PullSourceType sourceType : PullSourceType.values()) {
@@ -613,7 +614,7 @@ public class PullQueryExecutorMetrics implements Closeable {
             PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-" + sensorBaseName + "-"
                 + variantName);
 
-        ImmutableMap<String, String> tags = ImmutableMap.<String, String>builder()
+        final ImmutableMap<String, String> tags = ImmutableMap.<String, String>builder()
             .putAll(customMetricsTags)
             .put(KsqlConstants.KSQL_PULL_QUERY_SOURCE_TAG, sourceType.name().toLowerCase())
             .put(KsqlConstants.KSQL_PULL_QUERY_PLAN_TYPE_TAG, planType.name().toLowerCase())

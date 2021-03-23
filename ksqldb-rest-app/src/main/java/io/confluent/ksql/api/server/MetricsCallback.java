@@ -29,5 +29,6 @@ public interface MetricsCallback {
    * @param responseBytes The response bytes
    * @param startTimeNanos The start time of the request in nanos
    */
-  void reportMetricsOnCompletion(int statusCode, long requestBytes, long responseBytes, long startTimeNanos);
+  void reportMetricsOnCompletion(int statusCode, long requestBytes, long responseBytes,
+      long startTimeNanos);
 }

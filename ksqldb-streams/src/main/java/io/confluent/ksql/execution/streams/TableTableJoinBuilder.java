@@ -16,7 +16,6 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -37,8 +36,6 @@ public final class TableTableJoinBuilder {
 
     final JoinParams joinParams = JoinParamsFactory
         .create(join.getKeyColName(), leftSchema, rightSchema);
-
-    final QueryContext buildContext = join.getProperties().getQueryContext();
 
     final KTable<K, GenericRow> result;
     switch (join.getJoinType()) {

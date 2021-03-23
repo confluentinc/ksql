@@ -183,7 +183,7 @@ public class PullQueryMetricsTest {
         metrics.metric(
             metrics.metricName(
                 "pull-query-requests" + metricName,
-                ReservedInternalTopics.CONFLUENT_PREFIX + "pull-query",
+                ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + "pull-query",
                 CUSTOM_TAGS_WITH_SERVICE_ID)
         ).metricValue().toString()
     );

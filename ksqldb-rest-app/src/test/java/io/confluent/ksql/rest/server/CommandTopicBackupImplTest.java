@@ -163,19 +163,6 @@ public class CommandTopicBackupImplTest {
   }
 
   @Test
-  public void shouldNotFailIfRecordIsNull() throws IOException {
-    // Given
-    commandTopicBackup.initialize();
-
-    // When
-    commandTopicBackup.writeRecord(null);
-
-    // Then
-    final List<Pair<byte[], byte[]>> commands = commandTopicBackup.getReplayFile().readRecords();
-    assertThat(commands.size(), is(0));
-  }
-
-  @Test
   public void shouldNotFailIfRecordKeyIsNull() throws IOException {
     // Given
     commandTopicBackup.initialize();

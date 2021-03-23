@@ -132,14 +132,11 @@ public class CommandTopicBackupImpl implements CommandTopicBackup {
           "Failed to write record due to out of sync command topic and backup file: " + record);
     }
 
-    if (record == null || record.key() == null || record.value() == null) {
-      String recordString = null;
-      if (record != null) {
-        recordString = String.format("key=%s, value=%s", record.key(), record.value());
-      }
+    if (record.key() == null || record.value() == null) {
+      LOG.warn(String.format("Can't backup a command topic record with a null key/value:"
+              + " key=%s, value=%s, partition=%d, offset=%d",
+          record.key(), record.value(), record.partition(), record.offset()));
 
-      LOG.warn("Cannot write a null record or null key/value to the backup file. This could be "
-          + "caused by an invalid record in the command topic. Record = {}", recordString);
       return;
     }
 

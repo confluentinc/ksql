@@ -167,16 +167,13 @@ public final class HARouting implements AutoCloseable {
 
       // Make requests to each host, specifying the partitions we're interested in from
       // this host.
-      final Map<KsqlNode, Future<Void>> futures = new LinkedHashMap<>();
+      final Map<KsqlNode, Future<RoutingResult>> futures = new LinkedHashMap<>();
       for (Map.Entry<KsqlNode, List<KsqlPartitionLocation>> entry : groupedByHost.entrySet()) {
         final KsqlNode node = entry.getKey();
         futures.put(node, executorService.submit(
-            () -> {
-              routeQuery.routeQuery(
-                  node, entry.getValue(), statement, serviceContext, routingOptions,
-                  pullQueryMetrics, pullPhysicalPlan, outputSchema, queryId, pullQueryQueue);
-              return null;
-            }
+            () -> routeQuery.routeQuery(
+                node, entry.getValue(), statement, serviceContext, routingOptions,
+                pullQueryMetrics, pullPhysicalPlan, outputSchema, queryId, pullQueryQueue)
         ));
       }
 
@@ -184,20 +181,23 @@ public final class HARouting implements AutoCloseable {
       // the locations to the nextRoundRemaining list.
       final ImmutableList.Builder<KsqlPartitionLocation> nextRoundRemaining
           = ImmutableList.builder();
-      for (Map.Entry<KsqlNode, Future<Void>> entry : futures.entrySet()) {
-        final Future<Void> future = entry.getValue();
+      for (Map.Entry<KsqlNode, Future<RoutingResult>> entry : futures.entrySet()) {
+        final Future<RoutingResult> future = entry.getValue();
         final KsqlNode node = entry.getKey();
+        RoutingResult routingResult = null;
         try {
-          future.get();
+          routingResult = future.get();
         } catch (ExecutionException e) {
           LOG.warn("Error routing query {} to host {} at timestamp {} with exception {}",
               statement.getStatementText(), node, System.currentTimeMillis(), e.getCause());
-          if (!(e.getCause() instanceof StandbyFallbackException)) {
-            throw new MaterializationException(String.format(
-                "Unable to execute pull query \"%s\". %s",
-                statement.getStatementText(), e.getCause().getMessage()));
-          }
+          throw new MaterializationException(String.format(
+              "Unable to execute pull query \"%s\". %s",
+              statement.getStatementText(), e.getCause().getMessage()));
+        }
+        if (routingResult == RoutingResult.STANDBY_FALLBACK) {
           nextRoundRemaining.addAll(groupedByHost.get(node));
+        } else {
+          Preconditions.checkState(routingResult == RoutingResult.SUCCESS);
         }
       }
       remainingLocations = nextRoundRemaining.build();
@@ -239,7 +239,7 @@ public final class HARouting implements AutoCloseable {
 
   @VisibleForTesting
   interface RouteQuery {
-    void routeQuery(
+    RoutingResult routeQuery(
         KsqlNode node,
         List<KsqlPartitionLocation> locations,
         ConfiguredStatement<Query> statement,
@@ -254,7 +254,7 @@ public final class HARouting implements AutoCloseable {
   }
 
   @VisibleForTesting
-  static void executeOrRouteQuery(
+  static RoutingResult executeOrRouteQuery(
       final KsqlNode node,
       final List<KsqlPartitionLocation> locations,
       final ConfiguredStatement<Query> statement,
@@ -276,10 +276,12 @@ public final class HARouting implements AutoCloseable {
         pullQueryMetrics
             .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordLocalRequests(1));
         pullPhysicalPlan.execute(locations, pullQueryQueue,  rowFactory);
+        return RoutingResult.SUCCESS;
       } catch (StandbyFallbackException e) {
-        LOG.error("Standby Fallback: Error executing query {} locally at node {} with exception",
+        LOG.warn("Error executing query {} locally at node {}. Falling back to standby state which "
+                + "may return stale results",
             statement.getStatementText(), node, e.getCause());
-        throw e;
+        return RoutingResult.STANDBY_FALLBACK;
       } catch (Exception e) {
         LOG.error("Error executing query {} locally at node {}",
             statement.getStatementText(), node, e.getCause());
@@ -297,10 +299,12 @@ public final class HARouting implements AutoCloseable {
             .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordRemoteRequests(1));
         forwardTo(node, locations, statement, serviceContext, pullQueryQueue, rowFactory,
             outputSchema);
+        return RoutingResult.SUCCESS;
       } catch (StandbyFallbackException e) {
-        LOG.error("Standby Fallback: Error forwarding query {} to node {} with exception {}",
+        LOG.warn("Error forwarding query {} to node {}. Falling back to standby state which may "
+                + "return stale results",
             statement.getStatementText(), node, e.getCause());
-        throw e;
+        return RoutingResult.STANDBY_FALLBACK;
       } catch (Exception e) {
         LOG.error("Error forwarding query {} to node {}",
                   statement.getStatementText(), node, e.getCause());
@@ -432,5 +436,10 @@ public final class HARouting implements AutoCloseable {
           "Schemas %s from host %s differs from schema %s",
           forwardedSchema, forwardedNode, expectedSchema));
     }
+  }
+
+  private enum RoutingResult {
+    SUCCESS,
+    STANDBY_FALLBACK
   }
 }

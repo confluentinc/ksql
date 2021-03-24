@@ -19,6 +19,7 @@ import com.google.common.base.Preconditions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -37,6 +38,7 @@ public class PullQueryResult {
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final PullSourceType sourceType;
   private final PullPhysicalPlanType planType;
+  private final RoutingNodeType routingNodeType;
   private final Supplier<Long> rowsProcessedSupplier;
 
   // This future is used to keep track of all of the callbacks since we allow for adding them both
@@ -53,6 +55,7 @@ public class PullQueryResult {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final PullSourceType sourceType,
       final PullPhysicalPlanType planType,
+      final RoutingNodeType routingNodeType,
       final Supplier<Long> rowsProcessedSupplier
   ) {
     this.schema = schema;
@@ -62,6 +65,7 @@ public class PullQueryResult {
     this.pullQueryMetrics = pullQueryMetrics;
     this.sourceType = sourceType;
     this.planType = planType;
+    this.routingNodeType = routingNodeType;
     this.rowsProcessedSupplier = rowsProcessedSupplier;
   }
 
@@ -94,7 +98,8 @@ public class PullQueryResult {
 
   public void onException(final Consumer<Throwable> consumer) {
     future.exceptionally(t -> {
-      pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1, sourceType, planType));
+      pullQueryMetrics.ifPresent(metrics ->
+          metrics.recordErrorRate(1, sourceType, planType, routingNodeType));
       consumer.accept(t);
       return null;
     });
@@ -117,6 +122,10 @@ public class PullQueryResult {
 
   public PullPhysicalPlanType getPlanType() {
     return planType;
+  }
+
+  public RoutingNodeType getRoutingNodeType() {
+    return routingNodeType;
   }
 
   public long getTotalRowsReturned() {

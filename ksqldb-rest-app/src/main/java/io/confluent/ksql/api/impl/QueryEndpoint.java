@@ -34,6 +34,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
@@ -163,14 +164,16 @@ public class QueryEndpoint {
             PullQueryResult::getSourceType).orElse(PullSourceType.UNKNOWN);
         final PullPhysicalPlanType planType = Optional.ofNullable(r).map(
             PullQueryResult::getPlanType).orElse(PullPhysicalPlanType.UNKNOWN);
-        metrics.recordResponseSize(responseBytes, sourceType, planType);
-        metrics.recordLatency(startTimeNanos, sourceType, planType);
+        final RoutingNodeType routingNodeType = Optional.ofNullable(r).map(
+            PullQueryResult::getRoutingNodeType).orElse(RoutingNodeType.UNKNOWN);
+        metrics.recordResponseSize(responseBytes, sourceType, planType, routingNodeType);
+        metrics.recordLatency(startTimeNanos, sourceType, planType, routingNodeType);
         metrics.recordRowsReturned(
             Optional.ofNullable(r).map(PullQueryResult::getTotalRowsReturned).orElse(0L),
-            sourceType, planType);
+            sourceType, planType, routingNodeType);
         metrics.recordRowsProcessed(
             Optional.ofNullable(r).map(PullQueryResult::getTotalRowsProcessed).orElse(0L),
-            sourceType, planType);
+            sourceType, planType, routingNodeType);
       });
     });
 
@@ -318,7 +321,7 @@ public class QueryEndpoint {
         result.onCompletion(future::complete);
       } catch (Exception e) {
         pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1, result.getSourceType(),
-            result.getPlanType()));
+            result.getPlanType(), result.getRoutingNodeType()));
       }
     }
 

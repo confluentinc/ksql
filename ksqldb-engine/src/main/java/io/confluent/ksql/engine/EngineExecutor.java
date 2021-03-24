@@ -41,6 +41,7 @@ import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlanBuilder;
 import io.confluent.ksql.physical.pull.PullQueryQueuePopulator;
 import io.confluent.ksql.physical.pull.PullQueryResult;
@@ -160,6 +161,7 @@ final class EngineExecutor {
     final SessionConfig sessionConfig = statement.getSessionConfig();
     PullSourceType sourceType = null;
     PullPhysicalPlanType planType = null;
+    RoutingNodeType routingNodeType = null;
 
     try {
       final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(engineContext.getMetaStore(), "");
@@ -179,6 +181,8 @@ final class EngineExecutor {
       );
       sourceType = physicalPlan.getSourceType();
       planType = physicalPlan.getPlanType();
+      routingNodeType = routingOptions.getIsSkipForwardRequest()
+          ? RoutingNodeType.REMOTE_NODE : RoutingNodeType.SOURCE_NODE;
       final PullQueryQueue pullQueryQueue = new PullQueryQueue();
       final PullQueryQueuePopulator populator = () -> routing.handlePullQuery(
           serviceContext,
@@ -186,7 +190,7 @@ final class EngineExecutor {
           physicalPlan.getQueryId(), pullQueryQueue);
       final PullQueryResult result = new PullQueryResult(physicalPlan.getOutputSchema(), populator,
           physicalPlan.getQueryId(), pullQueryQueue, pullQueryMetrics, physicalPlan.getSourceType(),
-          physicalPlan.getPlanType(), physicalPlan::getRowsReadFromDataSource);
+          physicalPlan.getPlanType(), routingNodeType, physicalPlan::getRowsReadFromDataSource);
       if (startImmediately) {
         result.start();
       }
@@ -194,9 +198,11 @@ final class EngineExecutor {
     } catch (final Exception e) {
       final PullSourceType finalSourceType = sourceType;
       final PullPhysicalPlanType finalPlanType = planType;
+      final RoutingNodeType finalRoutingNodeType = routingNodeType;
       pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1,
           Optional.ofNullable(finalSourceType).orElse(PullSourceType.UNKNOWN),
-          Optional.ofNullable(finalPlanType).orElse(PullPhysicalPlanType.UNKNOWN)));
+          Optional.ofNullable(finalPlanType).orElse(PullPhysicalPlanType.UNKNOWN),
+          Optional.ofNullable(finalRoutingNodeType).orElse(RoutingNodeType.UNKNOWN)));
       throw new KsqlStatementException(
           e.getMessage() == null
               ? "Server Error" + Arrays.toString(e.getStackTrace())

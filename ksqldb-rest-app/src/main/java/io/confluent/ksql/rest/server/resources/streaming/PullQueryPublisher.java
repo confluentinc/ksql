@@ -111,7 +111,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       result.onCompletionOrException((v, throwable) -> {
         decrementer.decrementAtMostOnce();
         pullQueryMetrics.ifPresent(p -> p.recordLatency(startTimeNanos, result.getSourceType(),
-            result.getPlanType()));
+            result.getPlanType(), result.getRoutingNodeType()));
       });
 
       final PullQuerySubscription subscription = new PullQuerySubscription(

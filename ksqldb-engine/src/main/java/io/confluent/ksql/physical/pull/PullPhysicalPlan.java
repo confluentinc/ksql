@@ -183,4 +183,14 @@ public class PullPhysicalPlan {
     WINDOWED,
     UNKNOWN
   }
+
+  /**
+   * The types we consider for metrics purposes. These should only be added to. You can deprecate
+   * a field, but don't delete it or change its meaning
+   */
+  public enum RoutingNodeType {
+    SOURCE_NODE,
+    REMOTE_NODE,
+    UNKNOWN
+  }
 }

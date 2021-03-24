@@ -34,6 +34,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
@@ -315,14 +316,16 @@ public class StreamedQueryResource implements KsqlConfigurable {
             PullQueryResult::getSourceType).orElse(PullSourceType.UNKNOWN);
         final PullPhysicalPlanType planType = Optional.ofNullable(r).map(
             PullQueryResult::getPlanType).orElse(PullPhysicalPlanType.UNKNOWN);
-        metrics.recordResponseSize(responseBytes, sourceType, planType);
-        metrics.recordLatency(startTimeNanos, sourceType, planType);
+        final RoutingNodeType routingNodeType = Optional.ofNullable(r).map(
+            PullQueryResult::getRoutingNodeType).orElse(RoutingNodeType.UNKNOWN);
+        metrics.recordResponseSize(responseBytes, sourceType, planType, routingNodeType);
+        metrics.recordLatency(startTimeNanos, sourceType, planType, routingNodeType);
         metrics.recordRowsReturned(
             Optional.ofNullable(r).map(PullQueryResult::getTotalRowsReturned).orElse(0L),
-            sourceType, planType);
+            sourceType, planType, routingNodeType);
         metrics.recordRowsProcessed(
             Optional.ofNullable(r).map(PullQueryResult::getTotalRowsProcessed).orElse(0L),
-            sourceType, planType);
+            sourceType, planType, routingNodeType);
       });
     });
 

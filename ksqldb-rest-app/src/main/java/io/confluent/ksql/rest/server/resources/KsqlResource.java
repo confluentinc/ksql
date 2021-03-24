@@ -240,7 +240,7 @@ public class KsqlResource implements KsqlConfigurable {
 
   public EndpointResponse isValidProperty(final String property) {
     try {
-      Map<String, Object> properties = new HashMap<>();
+      final Map<String, Object> properties = new HashMap<>();
       properties.put(property, "");
       denyListPropertyValidator.validateAll(properties);
 

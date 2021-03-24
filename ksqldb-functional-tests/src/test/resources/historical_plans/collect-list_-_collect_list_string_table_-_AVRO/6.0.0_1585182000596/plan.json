@@ -154,7 +154,6 @@
     "ksql.streams.auto.offset.reset" : "earliest",
     "ksql.query.pull.enable.standby.reads" : "false",
     "ksql.connect.url" : "http://localhost:8083",
-    "ksql.service.id" : "some.ksql.service.id",
     "ksql.internal.topic.min.insync.replicas" : "1",
     "ksql.streams.shutdown.timeout.ms" : "300000",
     "ksql.streams.state.dir" : "/var/folders/2d/3pt97ylj3zngd51bwl91bl3r0000gp/T/confluent9005587274305409406",

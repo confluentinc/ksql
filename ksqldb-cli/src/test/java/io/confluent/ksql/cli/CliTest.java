@@ -18,6 +18,8 @@ package io.confluent.ksql.cli;
 import static io.confluent.ksql.GenericKey.genericKey;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_GATEWAY;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_ACCEPTABLE;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -520,7 +522,6 @@ public class CliTest {
     assertRunCommand("set 'ksql.streams.max.request.size' = '1048576';", is(EMPTY_RESULT));
     assertRunCommand("set 'ksql.streams.consumer.max.poll.records' = '500';", is(EMPTY_RESULT));
     assertRunCommand("set 'ksql.streams.enable.auto.commit' = 'true';", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.service.id' = 'assertPrint';", is(EMPTY_RESULT));
 
     assertRunCommand("unset 'application.id';", is(EMPTY_RESULT));
     assertRunCommand("unset 'producer.batch.size';", is(EMPTY_RESULT));
@@ -532,7 +533,6 @@ public class CliTest {
     assertRunCommand("unset 'ksql.streams.max.request.size';", is(EMPTY_RESULT));
     assertRunCommand("unset 'ksql.streams.consumer.max.poll.records';", is(EMPTY_RESULT));
     assertRunCommand("unset 'ksql.streams.enable.auto.commit';", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.service.id';", is(EMPTY_RESULT));
 
     assertRunListCommand("properties", hasRows(
         // SERVER OVERRIDES:
@@ -1163,6 +1163,21 @@ public class CliTest {
     // Then:
     assertThat(terminal.getOutputString(),
         containsString("Created query with ID CSAS_SHOULDRUNCOMMAND"));
+  }
+
+  @Test
+  public void shouldThrowWhenTryingToSetDeniedProperty() throws Exception {
+    // Given
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.makeIsValidRequest("ksql.service.id"))
+        .thenReturn(RestResponse.erroneous(
+            NOT_ACCEPTABLE.code(),
+            new KsqlErrorMessage(Errors.toErrorCode(NOT_ACCEPTABLE.code()),
+                "Property cannot be set")));
+
+    // When:
+    assertThrows(IllegalArgumentException.class, () ->
+        localCli.handleLine("set 'ksql.service.id'='test';"));
   }
 
   @Test

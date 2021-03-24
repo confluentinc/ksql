@@ -239,7 +239,6 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private void handleQueryRequest(final RoutingContext routingContext) {
-
     final CompletableFuture<Void> connectionClosedFuture = new CompletableFuture<>();
     routingContext.request().connection().closeHandler(v -> connectionClosedFuture.complete(null));
     final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();

@@ -242,7 +242,7 @@ The Compose file automatically runs a data generator that continuously
 produces data to two Kafka topics ``pageviews`` and ``users``. No
 further action is required if you want to use just the data available.
 You can return to the `main KSQL quick
-start <README.md#create-a-stream-and-table>`__ to start querying the
+start <https://ksqldb.io/quickstart.html>`__ to start querying the
 data in these two topics.
 
 However, if you want to produce additional data, you can use any of the

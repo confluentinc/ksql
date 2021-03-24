@@ -256,6 +256,15 @@ public class KsqlServerEndpoints implements Endpoints {
   }
 
   @Override
+  public CompletableFuture<EndpointResponse> executeIsValidProperty(final String property,
+      final WorkerExecutor workerExecutor,
+      final ApiSecurityContext apiSecurityContext) {
+    return executeOldApiEndpointOnWorker(apiSecurityContext,
+        ksqlSecurityContext -> ksqlResource.isValidProperty(
+            property), workerExecutor);
+  }
+
+  @Override
   public CompletableFuture<EndpointResponse> executeAllStatuses(
       final ApiSecurityContext apiSecurityContext) {
     return executeOldApiEndpoint(apiSecurityContext,

@@ -2421,6 +2421,23 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldReturnBadRequestWhenIsValidatorIsCalledWithProhibitedProps() {
+    final Map<String, Object> properties = new HashMap<>();
+    properties.put("ksql.service.id", "");
+
+    // Given:
+    doThrow(new KsqlException("deny override")).when(denyListPropertyValidator).validateAll(
+        properties
+    );
+
+    // When:
+    final EndpointResponse response = ksqlResource.isValidProperty("ksql.service.id");
+
+    // Then:
+    assertThat(response.getStatus(), equalTo(400));
+  }
+
+  @Test
   public void shouldThrowOnDenyListValidatorWhenTerminateCluster() {
     final Map<String, Object> terminateStreamProperties =
         ImmutableMap.of(DELETE_TOPIC_LIST_PROP, Collections.singletonList("Foo"));

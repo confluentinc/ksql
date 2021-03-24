@@ -11,6 +11,7 @@ description: Learn how to communicate with ksqlDB by using HTTP
 - [Run a query (/query endpoint)](ksqldb-rest-api/query-endpoint.md)
 - [Run push and pull queries (/query-stream endpoint)](ksqldb-rest-api/streaming-endpoint.md)
 - [Terminate a cluster (/ksql/terminate endpoint)](ksqldb-rest-api/terminate-endpoint.md)
+- [Terminate a cluster (/is_valid)](ksqldb-rest-api/is_valid-endpoint.md)
 
 REST Endpoint
 -------------

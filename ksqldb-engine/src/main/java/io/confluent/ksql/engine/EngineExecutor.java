@@ -181,6 +181,8 @@ final class EngineExecutor {
       );
       sourceType = physicalPlan.getSourceType();
       planType = physicalPlan.getPlanType();
+      // If we ever change how many hops a request can do, we'll need to update this for correct
+      // metrics.
       routingNodeType = routingOptions.getIsSkipForwardRequest()
           ? RoutingNodeType.REMOTE_NODE : RoutingNodeType.SOURCE_NODE;
       final PullQueryQueue pullQueryQueue = new PullQueryQueue();

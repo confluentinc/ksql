@@ -92,8 +92,8 @@ public class PullQueryExecutorMetrics implements Closeable {
     this.sensors = new ArrayList<>();
     this.localRequestsSensor = configureLocalRequestsSensor();
     this.remoteRequestsSensor = configureRemoteRequestsSensor();
-    this.latencySensor = configureRequestSensor();
-    this.latencySensorMap = configureRequestSensorMap();
+    this.latencySensor = configureLatencySensor();
+    this.latencySensorMap = configureLatencySensorMap();
     this.requestRateSensor = configureRateSensor();
     this.errorRateSensor = configureErrorRateSensor();
     this.errorRateSensorMap = configureErrorSensorMap();
@@ -135,6 +135,8 @@ public class PullQueryExecutorMetrics implements Closeable {
     final MetricsKey key = new MetricsKey(sourceType, planType, routingNodeType);
     if (latencySensorMap.containsKey(key)) {
       latencySensorMap.get(key).record(latency);
+    } else {
+      throw new IllegalStateException("Metrics not configured correctly, missing " + key);
     }
   }
 
@@ -148,6 +150,8 @@ public class PullQueryExecutorMetrics implements Closeable {
     final MetricsKey key = new MetricsKey(sourceType, planType, routingNodeType);
     if (errorRateSensorMap.containsKey(key)) {
       errorRateSensorMap.get(key).record(value);
+    } else {
+      throw new IllegalStateException("Metrics not configured correctly, missing " + key);
     }
   }
 
@@ -165,6 +169,8 @@ public class PullQueryExecutorMetrics implements Closeable {
     final MetricsKey key = new MetricsKey(sourceType, planType, routingNodeType);
     if (responseSizeSensorMap.containsKey(key)) {
       responseSizeSensorMap.get(key).record(value);
+    } else {
+      throw new IllegalStateException("Metrics not configured correctly, missing " + key);
     }
   }
 
@@ -189,6 +195,8 @@ public class PullQueryExecutorMetrics implements Closeable {
     final MetricsKey key = new MetricsKey(sourceType, planType, routingNodeType);
     if (rowsReturnedSensorMap.containsKey(key)) {
       rowsReturnedSensorMap.get(key).record(value);
+    } else {
+      throw new IllegalStateException("Metrics not configured correctly, missing " + key);
     }
   }
 
@@ -201,6 +209,8 @@ public class PullQueryExecutorMetrics implements Closeable {
     final MetricsKey key = new MetricsKey(sourceType, planType, routingNodeType);
     if (rowsProcessedSensorMap.containsKey(key)) {
       rowsProcessedSensorMap.get(key).record(value);
+    } else {
+      throw new IllegalStateException("Metrics not configured correctly, missing " + key);
     }
   }
 
@@ -399,7 +409,7 @@ public class PullQueryExecutorMetrics implements Closeable {
     return sensor;
   }
 
-  private Sensor configureRequestSensor() {
+  private Sensor configureLatencySensor() {
     final Sensor sensor = metrics.sensor(
         PULL_QUERY_METRIC_GROUP + "-" + PULL_REQUESTS + "-latency");
 
@@ -414,7 +424,7 @@ public class PullQueryExecutorMetrics implements Closeable {
     return sensor;
   }
 
-  private Map<MetricsKey, Sensor> configureRequestSensorMap() {
+  private Map<MetricsKey, Sensor> configureLatencySensorMap() {
     return configureSensorMap("latency", (sensor, tags, variantName) -> {
       addRequestMetricsToSensor(sensor, ksqlServicePrefix, PULL_REQUESTS + "-detailed",
           tags, " - " + variantName);
@@ -675,6 +685,15 @@ public class PullQueryExecutorMetrics implements Closeable {
     @Override
     public int hashCode() {
       return Objects.hash(sourceType, planType, routingNodeType);
+    }
+
+    @Override
+    public String toString() {
+      return "MetricsKey{"
+          + "sourceType=" + sourceType
+          + ", planType=" + planType
+          + ", routingNodeType=" + routingNodeType
+          + '}';
     }
   }
 }

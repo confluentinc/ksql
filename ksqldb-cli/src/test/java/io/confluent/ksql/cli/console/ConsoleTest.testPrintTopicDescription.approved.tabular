@@ -1,0 +1,5 @@
+
+ Table Name | Kafka Topic    | Type | Schema       
+---------------------------------------------------
+ TestTopic  | TestKafkaTopic | AVRO | schemaString 
+---------------------------------------------------

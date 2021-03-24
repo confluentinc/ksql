@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
@@ -53,6 +54,10 @@ public class SourceDescription {
   private final String statement;
   private final List<QueryOffsetSummary> queryOffsetSummaries;
   private final List<String> sourceConstraints;
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  private final ImmutableMap<KsqlHostInfoEntity, ImmutableMap<String, Stat>> clusterStatistics;
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  private final ImmutableMap<KsqlHostInfoEntity, ImmutableMap<String, Stat>> clusterErrorStats;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @JsonCreator
@@ -76,7 +81,11 @@ public class SourceDescription {
       @JsonProperty("replication") final int replication,
       @JsonProperty("statement") final String statement,
       @JsonProperty("queryOffsetSummaries") final List<QueryOffsetSummary> queryOffsetSummaries,
-      @JsonProperty("sourceConstraints") final List<String> sourceConstraints
+      @JsonProperty("sourceConstraints") final List<String> sourceConstraints,
+      @JsonProperty("clusterStatistics")
+      final ImmutableMap<KsqlHostInfoEntity, ImmutableMap<String, Stat>> clusterStats,
+      @JsonProperty("clusterErrorStats")
+      final ImmutableMap<KsqlHostInfoEntity, ImmutableMap<String, Stat>> clusterErrors
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.name = Objects.requireNonNull(name, "name");
@@ -104,7 +113,59 @@ public class SourceDescription {
         Objects.requireNonNull(queryOffsetSummaries, "queryOffsetSummaries"));
     this.sourceConstraints =
         ImmutableList.copyOf(Objects.requireNonNull(sourceConstraints, "sourceConstraints"));
+    this.clusterErrorStats = clusterErrors;
+    this.clusterStatistics = clusterStats;
   }
+
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  public SourceDescription(
+      @JsonProperty("name") final String name,
+      @JsonProperty("windowType") final Optional<WindowType> windowType,
+      @JsonProperty("readQueries") final List<RunningQuery> readQueries,
+      @JsonProperty("writeQueries") final List<RunningQuery> writeQueries,
+      @JsonProperty("fields") final List<FieldInfo> fields,
+      @JsonProperty("type") final String type,
+      @JsonProperty("timestamp") final String timestamp,
+      @JsonProperty("statistics") final String statistics,
+      @JsonProperty("errorStats") final String errorStats,
+      @JsonProperty("statisticsMap") final ImmutableMap<String, Stat> statisticsMap,
+      @JsonProperty("errorStatsMap") final ImmutableMap<String, Stat> errorStatsMap,
+      @JsonProperty("extended") final boolean extended,
+      @JsonProperty("keyFormat") final String keyFormat,
+      @JsonProperty("valueFormat") final String valueFormat,
+      @JsonProperty("topic") final String topic,
+      @JsonProperty("partitions") final int partitions,
+      @JsonProperty("replication") final int replication,
+      @JsonProperty("statement") final String statement,
+      @JsonProperty("queryOffsetSummaries") final List<QueryOffsetSummary> queryOffsetSummaries,
+      @JsonProperty("sourceConstraints") final List<String> sourceConstraints
+  ) {
+    this(
+        name,
+        windowType,
+        readQueries,
+        writeQueries,
+        fields,
+        type,
+        timestamp,
+        statistics,
+        errorStats,
+        statisticsMap,
+        errorStatsMap,
+        extended,
+        keyFormat,
+        valueFormat,
+        topic,
+        partitions,
+        replication,
+        statement,
+        queryOffsetSummaries,
+        sourceConstraints,
+        ImmutableMap.of(),
+        ImmutableMap.of()
+    );
+  }
+  // CHECKSTYLE_RULES.ON: ParameterNumberCheck
 
   public String getStatement() {
     return statement;
@@ -165,8 +226,8 @@ public class SourceDescription {
   public String getStatistics() {
     if (statistics.length() > 0) {
       return "The statistics field is deprecated and will be removed in a future version of ksql. "
-              + "Please update your client to the latest version and use statisticsMap instead.\n"
-              + statistics;
+          + "Please update your client to the latest version and use statisticsMap instead.\n"
+          + statistics;
     }
     return "";
   }
@@ -174,8 +235,8 @@ public class SourceDescription {
   public String getErrorStats() {
     if (errorStats.length() > 0) {
       return "The errorStats field is deprecated and will be removed in a future version of ksql. "
-              + "Please update your client to the latest version and use errorStatsMap instead.\n"
-              + errorStats + '\n';
+          + "Please update your client to the latest version and use errorStatsMap instead.\n"
+          + errorStats + '\n';
     }
     return "";
   }
@@ -194,6 +255,14 @@ public class SourceDescription {
 
   public List<String> getSourceConstraints() {
     return sourceConstraints;
+  }
+
+  public ImmutableMap<KsqlHostInfoEntity, ImmutableMap<String, Stat>> getClusterStatistics() {
+    return clusterStatistics;
+  }
+
+  public ImmutableMap<KsqlHostInfoEntity, ImmutableMap<String, Stat>> getClusterErrorStats() {
+    return clusterErrorStats;
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity

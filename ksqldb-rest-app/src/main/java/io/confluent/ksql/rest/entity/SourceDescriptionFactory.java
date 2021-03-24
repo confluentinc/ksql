@@ -15,13 +15,18 @@
 
 package io.confluent.ksql.rest.entity;
 
+import static com.google.common.collect.ImmutableMap.toImmutableMap;
+
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.metrics.TopicSensors;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.utils.FormatOptions;
+import io.confluent.ksql.util.KsqlHostInfo;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.clients.admin.TopicDescription;
 
@@ -36,8 +41,32 @@ public final class SourceDescriptionFactory {
       final List<RunningQuery> readQueries,
       final List<RunningQuery> writeQueries,
       final Optional<TopicDescription> topicDescription,
-      final List<QueryOffsetSummary> offsetSummaries,
+      final List<QueryOffsetSummary> queryOffsetSummaries,
       final List<String> sourceConstraints
+  ) {
+    return create(
+        dataSource,
+        extended,
+        readQueries,
+        writeQueries,
+        topicDescription,
+        queryOffsetSummaries,
+        sourceConstraints,
+        ImmutableMap.of(),
+        ImmutableMap.of()
+    );
+  }
+
+  public static SourceDescription create(
+      final DataSource dataSource,
+      final boolean extended,
+      final List<RunningQuery> readQueries,
+      final List<RunningQuery> writeQueries,
+      final Optional<TopicDescription> topicDescription,
+      final List<QueryOffsetSummary> queryOffsetSummaries,
+      final List<String> sourceConstraints,
+      final ImmutableMap<KsqlHostInfo, ImmutableMap<String, TopicSensors.Stat>> stats,
+      final ImmutableMap<KsqlHostInfo, ImmutableMap<String, TopicSensors.Stat>> errorStats
   ) {
     return new SourceDescription(
         dataSource.getName().toString(FormatOptions.noEscape()),
@@ -66,7 +95,19 @@ public final class SourceDescriptionFactory {
         topicDescription.map(td -> td.partitions().size()).orElse(0),
         topicDescription.map(td -> td.partitions().get(0).replicas().size()).orElse(0),
         dataSource.getSqlExpression(),
-        offsetSummaries,
-        sourceConstraints);
+        queryOffsetSummaries,
+        sourceConstraints,
+        stats.entrySet()
+            .stream()
+            .collect(toImmutableMap(
+                (e) -> new KsqlHostInfoEntity(e.getKey()),
+                Map.Entry::getValue
+            )),
+        errorStats.entrySet()
+            .stream()
+            .collect(toImmutableMap(
+                (e) -> new KsqlHostInfoEntity(e.getKey()),
+                Map.Entry::getValue
+            )));
   }
 }

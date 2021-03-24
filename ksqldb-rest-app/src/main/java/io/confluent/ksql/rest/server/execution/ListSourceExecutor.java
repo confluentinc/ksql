@@ -15,7 +15,10 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.metastore.MetaStore;
@@ -28,6 +31,7 @@ import io.confluent.ksql.parser.tree.DescribeTables;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ShowColumns;
+import io.confluent.ksql.parser.tree.StatementWithExtendedClause;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.ConsumerPartitionOffsets;
@@ -54,6 +58,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryApplicationId;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -79,13 +84,25 @@ public final class ListSourceExecutor {
   }
 
   private static Optional<KsqlEntity> sourceDescriptionList(
-      final ConfiguredStatement<?> statement,
+      final ConfiguredStatement<? extends StatementWithExtendedClause> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final List<? extends DataSource> sources,
       final boolean extended
   ) {
+    final RemoteHostExecutor remoteHostExecutor = RemoteHostExecutor.create(
+        statement,
+        sessionProperties,
+        executionContext,
+        serviceContext.getKsqlClient()
+    );
+
+    final Multimap<String, RemoteSourceDescription> remoteSourceDescriptions = extended
+        ? RemoteSourceDescriptionExecutor.fetchSourceDescriptions(remoteHostExecutor)
+        : ImmutableMultimap.of();
+
+
     final List<SourceDescriptionWithWarnings> descriptions = sources.stream()
         .map(
             s -> describeSource(
@@ -94,7 +111,10 @@ public final class ListSourceExecutor {
                 serviceContext,
                 s.getName(),
                 extended,
-                statement.getStatementText())
+                statement,
+                sessionProperties,
+                remoteSourceDescriptions.get(s.getName().toString())
+            )
         )
         .collect(Collectors.toList());
     return Optional.of(
@@ -208,7 +228,9 @@ public final class ListSourceExecutor {
         serviceContext,
         showColumns.getTable(),
         showColumns.isExtended(),
-        statement.getStatementText()
+        statement,
+        sessionProperties,
+        ImmutableList.of()
     );
     return Optional.of(
         new SourceDescriptionEntity(
@@ -247,13 +269,17 @@ public final class ListSourceExecutor {
       final ServiceContext serviceContext,
       final SourceName name,
       final boolean extended,
-      final String statementText) {
+      final ConfiguredStatement<? extends StatementWithExtendedClause> statement,
+      final SessionProperties sessionProperties,
+      final Collection<RemoteSourceDescription> remoteSourceDescriptions
+
+  ) {
     final DataSource dataSource = ksqlEngine.getMetaStore().getSource(name);
     if (dataSource == null) {
       throw new KsqlStatementException(String.format(
           "Could not find STREAM/TABLE '%s' in the Metastore",
           name.text()
-      ), statementText);
+      ), statement.getStatementText());
     }
 
     final List<RunningQuery> readQueries = getQueries(ksqlEngine,
@@ -261,7 +287,7 @@ public final class ListSourceExecutor {
     final List<RunningQuery> writeQueries = getQueries(ksqlEngine,
         q -> q.getSinkName().equals(dataSource.getName()));
 
-    Optional<org.apache.kafka.clients.admin.TopicDescription> topicDescription =
+    Optional<TopicDescription> topicDescription =
         Optional.empty();
     List<QueryOffsetSummary> queryOffsetSummaries = Collections.emptyList();
     List<String> sourceConstraints = Collections.emptyList();
@@ -275,22 +301,44 @@ public final class ListSourceExecutor {
     } catch (final KafkaException | KafkaResponseGetFailedException e) {
       warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
     }
+    final SourceDescription localSourceDescription = SourceDescriptionFactory.create(
+        dataSource,
+        extended,
+        readQueries,
+        writeQueries,
+        topicDescription,
+        queryOffsetSummaries,
+        sourceConstraints
+    );
 
     if (extended) {
       queryOffsetSummaries = queryOffsetSummaries(ksqlConfig, serviceContext, writeQueries);
+
+      final ClusterQueryStats clusterQueryStats = ClusterQueryStats.create(
+          sessionProperties.getKsqlHostInfo(),
+          localSourceDescription,
+          remoteSourceDescriptions
+      );
+
+      return new SourceDescriptionWithWarnings(
+          warnings,
+          SourceDescriptionFactory.create(
+              dataSource,
+              extended,
+              readQueries,
+              writeQueries,
+              topicDescription,
+              queryOffsetSummaries,
+              sourceConstraints,
+              clusterQueryStats.getStats(),
+              clusterQueryStats.getErrors()
+          )
+      );
     }
 
     return new SourceDescriptionWithWarnings(
         warnings,
-        SourceDescriptionFactory.create(
-            dataSource,
-            extended,
-            readQueries,
-            writeQueries,
-            topicDescription,
-            queryOffsetSummaries,
-            sourceConstraints
-        )
+        localSourceDescription
     );
   }
 

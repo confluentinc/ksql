@@ -19,7 +19,7 @@ import io.confluent.ksql.integration.IntegrationTestHarness;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-public class TestKsqlRestAppTest {
+public final class TestKsqlRestAppTest {
 
   @ClassRule
   public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();

@@ -56,25 +56,25 @@ public final class ListQueriesExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    final RemoteDataAugmenter remoteDataAugmenter = RemoteDataAugmenter.create(
-        statement.getStatementText(),
+    final RemoteHostExecutor remoteHostExecutor = RemoteHostExecutor.create(
+        statement,
         sessionProperties,
         executionContext,
         serviceContext.getKsqlClient()
     );
     return statement.getStatement().getShowExtended()
-        ? executeExtended(statement, sessionProperties, executionContext, remoteDataAugmenter)
-        : executeSimple(statement, executionContext, remoteDataAugmenter);
+        ? executeExtended(statement, sessionProperties, executionContext, remoteHostExecutor)
+        : executeSimple(statement, executionContext, remoteHostExecutor);
   }
 
   private static Optional<KsqlEntity> executeSimple(
       final ConfiguredStatement<ListQueries> statement,
       final KsqlExecutionContext executionContext,
-      final RemoteDataAugmenter remoteDataAugmenter
+      final RemoteHostExecutor remoteHostExecutor
   ) {
-    final Map<QueryId, RunningQuery> runningQueries = remoteDataAugmenter.augmentWithRemote(
+    final Map<QueryId, RunningQuery> runningQueries = mergeSimple(
         getLocalSimple(executionContext),
-        ListQueriesExecutor::mergeSimple
+        remoteHostExecutor.fetchAllRemoteResults()
     );
     return Optional.of(new Queries(
         statement.getStatementText(),
@@ -117,10 +117,11 @@ public final class ListQueriesExecutor {
 
   private static Map<QueryId, RunningQuery> mergeSimple(
       final Map<QueryId, RunningQuery> allResults,
-      final Pair<List<KsqlEntity>, Set<HostInfo>> remoteResults
+      final Pair<Map<HostInfo, KsqlEntity>, Set<HostInfo>> remoteResults
   ) {
-    final List<KsqlEntity> remoteQueries = remoteResults.getLeft();
-    final List<RunningQuery> remoteRunningQueries = remoteQueries.stream()
+    final List<RunningQuery> remoteRunningQueries = remoteResults.getLeft()
+        .values()
+        .stream()
         .map(Queries.class::cast)
         .map(Queries::getQueries)
         .flatMap(List::stream)
@@ -157,11 +158,11 @@ public final class ListQueriesExecutor {
       final ConfiguredStatement<ListQueries> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
-      final RemoteDataAugmenter remoteDataAugmenter
+      final RemoteHostExecutor remoteHostExecutor
   ) {
-    final Map<QueryId, QueryDescription> queryDescriptions = remoteDataAugmenter.augmentWithRemote(
+    final Map<QueryId, QueryDescription> queryDescriptions = mergeExtended(
         getLocalExtended(sessionProperties, executionContext),
-        ListQueriesExecutor::mergeExtended
+        remoteHostExecutor.fetchAllRemoteResults()
     );
 
     return Optional.of(new QueryDescriptionList(
@@ -189,10 +190,12 @@ public final class ListQueriesExecutor {
 
   private static Map<QueryId, QueryDescription> mergeExtended(
       final Map<QueryId, QueryDescription> allResults,
-      final Pair<List<KsqlEntity>, Set<HostInfo>> remoteResults
+      final Pair<Map<HostInfo, KsqlEntity>, Set<HostInfo>> remoteResults
   ) {
-    final List<KsqlEntity> remoteQueries = remoteResults.getLeft();
-    final List<QueryDescription> remoteQueryDescriptions = remoteQueries.stream()
+    final List<QueryDescription> remoteQueryDescriptions = remoteResults
+        .getLeft()
+        .values()
+        .stream()
         .map(QueryDescriptionList.class::cast)
         .map(QueryDescriptionList::getQueryDescriptions)
         .flatMap(List::stream)

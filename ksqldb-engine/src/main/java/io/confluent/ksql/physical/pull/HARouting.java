@@ -284,7 +284,7 @@ public final class HARouting implements AutoCloseable {
         return RoutingResult.STANDBY_FALLBACK;
       } catch (Exception e) {
         LOG.error("Error executing query {} locally at node {}",
-            statement.getStatementText(), node, e.getCause());
+            statement.getStatementText(), node.location(), e.getCause());
         throw new KsqlException(
             String.format("Error executing query locally at node %s: %s", node.location(),
                 e.getMessage()),
@@ -303,7 +303,7 @@ public final class HARouting implements AutoCloseable {
       } catch (StandbyFallbackException e) {
         LOG.warn("Error forwarding query {} to node {}. Falling back to standby state which may "
                 + "return stale results",
-            statement.getStatementText(), node, e.getCause());
+            statement.getStatementText(), node.location(), e.getCause());
         return RoutingResult.STANDBY_FALLBACK;
       } catch (Exception e) {
         LOG.error("Error forwarding query {} to node {}",
@@ -349,12 +349,15 @@ public final class HARouting implements AutoCloseable {
               requestProperties,
               streamedRowsHandler(owner, pullQueryQueue, rowFactory, outputSchema)
           );
-    } catch (KsqlException e) {
-      // If we threw some explicit exception, then let it bubble up.
-      throw e;
     } catch (Exception e) {
-      // If we get some kind of unknown error, we assume it's network or other error and try
-      // standbys
+      // If we threw some explicit exception, then let it bubble up. All of the row handling is
+      // wrapped in a KsqlException, so any intentional exception or bug will be surfaced.
+      final KsqlException ksqlException = causedByKsqlException(e);
+      if (ksqlException != null) {
+        throw ksqlException;
+      }
+      // If we get some kind of unknown error, we assume it's network or other error from the
+      // KsqlClient and try standbys
       throw new StandbyFallbackException(String.format(
           "Forwarding pull query request [%s, %s] failed with error %s ",
           statement.getSessionConfig().getOverrides(), requestProperties,
@@ -375,6 +378,17 @@ public final class HARouting implements AutoCloseable {
               + "empty response from forwarding call, expected a header row.",
           statement.getSessionConfig().getOverrides(), requestProperties));
     }
+  }
+
+  private static KsqlException causedByKsqlException(final Exception e) {
+    Throwable throwable = e;
+    while (throwable != null) {
+      if (throwable instanceof KsqlException) {
+        return (KsqlException) throwable;
+      }
+      throwable = throwable.getCause();
+    }
+    return null;
   }
 
   private static Consumer<List<StreamedRow>> streamedRowsHandler(

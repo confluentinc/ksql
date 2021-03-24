@@ -22,16 +22,13 @@
 
 * client/server SSL settings fail when 'ssl.key.password' is set ([#6763](https://github.com/confluentinc/ksql/pull/6763)) ([3e48540](https://github.com/confluentinc/ksql/commit/3e48540fbe1a02ed02faa667e424b225f9d7ba20))
 * do not log data on JSON deserialization errors (MINOR) ([#6930](https://github.com/confluentinc/ksql/pull/6930)) ([1834da6](https://github.com/confluentinc/ksql/commit/1834da678cf86e7cb333d57a9c97d1884d09d7af))
-* dont use the streamthread to construct the log-metric-and-continue logger ([#6909](https://github.com/confluentinc/ksql/pull/6909)) ([6af3bc6](https://github.com/confluentinc/ksql/commit/6af3bc6fc49de977c5571bb0af5188ac186516e9))
 * ff-4240-upgrade httpclient version ([#6935](https://github.com/confluentinc/ksql/pull/6935)) ([19f4d63](https://github.com/confluentinc/ksql/commit/19f4d632bc4c854904f366b359d4bf70a6f54d6d))
 * fix how the buffer limit check evaluates streams config ([#6876](https://github.com/confluentinc/ksql/pull/6876)) ([ad1cc2a](https://github.com/confluentinc/ksql/commit/ad1cc2aca3b3a51f6f9e3aee86b1f41de449ae15))
-* Fixes auth for forwarded requests for pull queries ([#6895](https://github.com/confluentinc/ksql/pull/6895)) ([c360c9c](https://github.com/confluentinc/ksql/commit/c360c9c389bff435c5727b2a1f0373f112cb0f68))
 * format cast arguments with passed context (6.0.x) ([#7032](https://github.com/confluentinc/ksql/pull/7032)) ([8c0d93d](https://github.com/confluentinc/ksql/commit/8c0d93db4ad94f820639ccb993dbc53a81175e53))
 * make formattimestamp and parsetimestamp default to utc ([#6954](https://github.com/confluentinc/ksql/pull/6954)) ([a5ea98a](https://github.com/confluentinc/ksql/commit/a5ea98affd13b99d17c21832c09394e45b1f86ac))
 * Make Select * avoid code gen for projections ([#6846](https://github.com/confluentinc/ksql/pull/6846)) ([0896b85](https://github.com/confluentinc/ksql/commit/0896b856a86c1f7b212d8b5ebe3f9140f5679cd6))
 * npe when getting topic configs ([#6946](https://github.com/confluentinc/ksql/pull/6946)) ([5e026d4](https://github.com/confluentinc/ksql/commit/5e026d4ad9d02629566593705e79d568296e96bd))
 * remove mutable subscriber field on an endpoint ([#6905](https://github.com/confluentinc/ksql/pull/6905)) ([98c7d73](https://github.com/confluentinc/ksql/commit/98c7d735c2506a0204ecce8d8861f07eb62d968d))
-* use internal format with multi-col support when needed ([#6933](https://github.com/confluentinc/ksql/pull/6933)) ([4bb15c4](https://github.com/confluentinc/ksql/commit/4bb15c421149686a176ef6bdd0ed1e0962f5305f))
 * use the right name for fallback subject for transient queries ([#6821](https://github.com/confluentinc/ksql/pull/6821)) ([d044d64](https://github.com/confluentinc/ksql/commit/d044d645cefe6aba9ae495a47b3051413e55ff29)), closes [#6817](https://github.com/confluentinc/ksql/issues/6817)
 
 

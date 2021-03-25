@@ -9,19 +9,19 @@
         "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='json');",
         "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='json');",
         "CREATE TABLE INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;",
-        "SELECT * FROM INNER_JOIN;"
+        "SELECT * FROM INNER_JOIN"
       ],
       "inputs": [
         {"topic": "left_topic", "key": 0, "value": {"NAME": "zero", "VALUE": 0}, "timestamp": 0},
+        {"topic": "left_topic", "key": 90, "value": {"NAME": "ninety", "VALUE": 90}, "timestamp": 17000},
+        {"topic": "left_topic", "key": 100, "value": {"NAME": "100", "VALUE": 5}, "timestamp": 11000},
         {"topic": "right_topic", "key": 0, "value": {"F1": "blah", "F2": 50}, "timestamp": 10000},
-        {"topic": "left_topic", "key": 10, "value": {"NAME": "100", "VALUE": 5}, "timestamp": 11000},
-        {"topic": "left_topic", "key": 0, "value": {"NAME": "foo", "VALUE": 100}, "timestamp": 13000},
-        {"topic": "right_topic", "key": 0, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "right_topic", "key": 15, "value": {"F1": "c", "F2": 20}, "timestamp": 15500},
-        {"topic": "left_topic", "key": 0, "value": {"NAME": "bar", "VALUE": 99}, "timestamp": 16000},
-        {"topic": "left_topic", "key": 90, "value": {"NAME": "ninety", "VALUE": 90}, "timestamp": 17000}
+        {"topic": "right_topic", "key": 90, "value": {"F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "right_topic", "key": 100, "value": {"F1": "c", "F2": 20}, "timestamp": 15500},
+        {"topic": "right_topic", "key": 500, "value": {"F1": "D", "F2": 500}, "timestamp": 15555}
       ],
       "responses": [
+        {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},

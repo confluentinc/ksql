@@ -265,15 +265,16 @@ In Java API client, the session is opened when `Client.create()` is called, and 
 may be defined using a client method instead of a new syntax. This is to ensure users know the scope starts after the `create()` call.
 
 Users will define variables using the functions, `define(variable_name, value)` and `undefine(variable_name)`.
-The client will keep track of the calls made in a map. Alternatively, the `executeStatement` and `executeQuery`
-functions could accept a third parameter, `sessionVariables` that is a map of variables to variable definitions.
+The client will keep track of the calls made in a map. Alternatively, the `executeStatement`, `executeQuery`, `streamQuery`
+`insertInto`, `streamInserts` and `createConnector` functions could accept a third parameter, `sessionVariables`
+that is a map of variables to variable definitions.
 
 There are two options for executing the variable execution. The first is to do it in the client by
 using the variable substitutor in `ksqldb-parser`. The disadvantages to this are that `ksqldb-parser`
 would be a dependancy of the Java client, and that the client and server versions would have
 to match in order for the parser to work.
 
-The other option is to update the endpoints, `/ksql` and `/query-streams` to accept `sessionVariables`
+The other option is to update the endpoints `/ksql`, `/inserts-stream` and `/query-streams` to accept `sessionVariables`
 as a parameter. The variable substitution would then be done on the server side. The disadvantage is
 that an API change would be required.
 

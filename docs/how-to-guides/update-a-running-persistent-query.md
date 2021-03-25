@@ -103,7 +103,7 @@ CREATE STREAM valid_purchases AS
 ### Data selection
 
 Over time, ksqlMart changes its return policy and begins issuing full refunds.
-These events have a negative `cost` column value. Since these events are now
+These records have a negative `cost` column value. Since these records are now
 valid, ksqlMart needs to update the query to remove the `cost > 0.00` clause:
 
 ```sql

@@ -183,13 +183,11 @@
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
-        {"admin": {"@type": "currentStatus"}}
-      ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "The `INNER_JOIN` table isn't queryable. To derive a queryable table, you can do 'CREATE TABLE QUERYABLE_INNER_JOIN AS SELECT * FROM INNER_JOIN'. See https://cnfl.io/queries for more info.",
-        "status": 400
-      }
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`T_ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT"}}
+        ]}
+      ]
     },
     {
       "name": "pull query on `CREATE TABLE` table should fail ",

@@ -56,11 +56,11 @@ public final class TableSelectBuilder {
     final QueryContext queryContext = step.getProperties().getQueryContext();
 
     final Selection<K> selection = Selection.of(
-            sourceSchema,
-            step.getKeyColumnNames(),
-            step.getSelectExpressions(),
-            buildContext.getKsqlConfig(),
-            buildContext.getFunctionRegistry()
+        sourceSchema,
+        step.getKeyColumnNames(),
+        step.getSelectExpressions(),
+        buildContext.getKsqlConfig(),
+        buildContext.getFunctionRegistry()
     );
 
     final SelectValueMapper<K> selectMapper = selection.getMapper();
@@ -76,8 +76,9 @@ public final class TableSelectBuilder {
             queryContext
         ));
 
-    final boolean decision = !matBuilder.isPresent();
-    if (decision) {
+    final boolean forceMaterialize = !matBuilder.isPresent();
+
+    if (forceMaterialize) {
       final PhysicalSchema physicalSchema = PhysicalSchema.from(
               selection.getSchema(),
               formats.getKeyFeatures(),
@@ -89,20 +90,25 @@ public final class TableSelectBuilder {
               physicalSchema,
               queryContext
       );
+
       final Serde<GenericRow> valSerde = buildContext.buildValueSerde(
               formats.getValueFormat(),
               physicalSchema,
               queryContext
       );
+
       final Stacker stacker = Stacker.of(step.getProperties().getQueryContext());
+
       final String stateStoreName = StreamsUtil.buildOpName(
               stacker.push(PROJECT_OP).getQueryContext());
+
       final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
               materializedFactory.create(
                       keySerde,
                       valSerde,
                       stateStoreName
               );
+
       final KTable<K, GenericRow> transFormedTable = table.getTable().transformValues(
           () -> new KsTransformer<>(selectMapper.getTransformer(logger)),
           materialized
@@ -127,6 +133,3 @@ public final class TableSelectBuilder {
             .withMaterialization(matBuilder);
   }
 }
-
-
-

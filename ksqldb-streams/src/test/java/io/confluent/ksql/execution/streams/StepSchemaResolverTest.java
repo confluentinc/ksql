@@ -441,7 +441,7 @@ public class StepSchemaResolverTest {
             add("JUICE", "ORANGE", "APPLE"),
             ref("PLANTAIN", "BANANA"),
             ref("CITRUS", "ORANGE")),
-        internalFormats
+            internalFormats
     );
 
     // When:
@@ -469,7 +469,7 @@ public class StepSchemaResolverTest {
             add("JUICE", "ORANGE", "APPLE"),
             ref("PLANTAIN", "BANANA"),
             ref("CITRUS", "ORANGE")),
-        internalFormats
+            internalFormats
     );
 
     // When:

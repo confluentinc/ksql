@@ -46,6 +46,7 @@ public abstract class ProjectNode extends SingleSourcePlanNode {
         getSelectExpressions(),
         buildContext.buildNodeContext(getId().toString()),
         buildContext,
-        getLeftmostSourceNode().getDataSource().getKsqlTopic().getValueFormat().getFormatInfo());
+        getLeftmostSourceNode().getDataSource().getKsqlTopic().getValueFormat().getFormatInfo()
+    );
   }
 }

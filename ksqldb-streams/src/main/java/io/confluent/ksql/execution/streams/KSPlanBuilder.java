@@ -353,7 +353,6 @@ public final class KSPlanBuilder implements PlanBuilder {
             tableSelect.getInternalFormats(),
             streamsFactories.getMaterializedFactory()
     );
-
   }
 
   @Override
@@ -372,7 +371,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   @Override
   public <K> KTableHolder<K> visitTableSink(
       final TableSink<K> tableSink,
-       final PlanInfo planInfo) {
+      final PlanInfo planInfo) {
     final KTableHolder<K> source = tableSink.getSource().build(this, planInfo);
     TableSinkBuilder.build(source, tableSink, buildContext);
     return source;

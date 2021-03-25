@@ -74,7 +74,7 @@ they contain. Smaller state stores reduce the amount of disk read-and-write
 throughput performed by ksqlDB, resulting in better overall workload throughput.
 Also, smaller state stores minimize local and {{ site.ak }} disk storage
 consumption. State store row sizes may be minimized by eliminating unused
-fields in your events.
+fields in your records.
 
 ### Reduce the number of state stores
 

@@ -115,7 +115,7 @@ CREATE OR REPLACE STREAM valid_purchases AS
 
 The `CREATE OR REPLACE` statement instructs ksqlDB to terminate the old query,
 and create a new one that will continue from the last
-event that the previous query processed. Note that this means any previously 
+record that the previous query processed. Note that this means any previously 
 processed data with negative cost will not be included, even if issuing the
 query with `SET 'auto.offset.reset'='earliest';`.
 

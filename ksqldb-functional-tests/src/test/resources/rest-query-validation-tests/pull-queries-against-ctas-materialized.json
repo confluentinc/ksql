@@ -179,13 +179,13 @@
         "SELECT * FROM USERS;"
       ],
       "responses": [
-        {"admin": {"@type": "currentStatus"}}
-      ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "The `USERS` table isn't queryable. To derive a queryable table, you can do 'CREATE TABLE QUERYABLE_USERS AS SELECT * FROM USERS'. See https://cnfl.io/queries for more info.",
-        "status": 400
-      }
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`T_ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT"}}
+        ]}
+      ]
     },
     {
       "name": "persistent query with KEY filter and projection +++ pull query table scan and single key lookup",

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.cli.console;
 
+import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -26,7 +27,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Functions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -101,6 +104,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.TimeZone;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
@@ -127,14 +131,14 @@ public class ConsoleTest {
   private static final String NEWLINE = System.lineSeparator();
   private static final String STATUS_COUNT_STRING = "RUNNING:1,ERROR:2";
   private static final String AGGREGATE_STATUS = "ERROR";
-  protected static final Stat STAT =  new Stat("TEST", 0, 0);
-  protected static final ImmutableMap<String, Stat> IMMUTABLE_MAP = new ImmutableMap.Builder<String, Stat>().put("TEST", STAT).build();
-
+  protected static final Stat STAT =  new Stat("TEST", 0, 1596644936314L);
+  protected static final Stat ERROR_STAT =  new Stat("ERROR", 0, 1596644936314L);
+  protected static final ImmutableMap<String, Stat> NODE_STATS = new ImmutableMap.Builder<String, Stat>().put("TEST", STAT).build();
+  protected static final ImmutableMap<String, Stat> NODE_ERRORS = new ImmutableMap.Builder<String, Stat>().put("ERROR", ERROR_STAT).build();
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("foo"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("bar"), SqlTypes.STRING)
       .build().withPseudoAndKeyColsInValue(false);
-
   private final TestTerminal terminal;
   private final Console console;
   private final Supplier<String> lineSupplier;
@@ -150,8 +154,8 @@ public class ConsoleTest {
       "2000-01-01",
       "stats",
       "errors",
-      IMMUTABLE_MAP,
-      IMMUTABLE_MAP,
+      NODE_STATS,
+      NODE_ERRORS,
       true,
       "kafka",
       "avro",
@@ -185,6 +189,7 @@ public class ConsoleTest {
     console.registerCliSpecificCommand(cliCommand);
 
   }
+
 
   @Before
   public void setUp() {
@@ -298,7 +303,7 @@ public class ConsoleTest {
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new PropertiesList("e", properties, Collections.emptyList(), Collections.emptyList())
-      ));
+    ));
 
     // When:
     console.printKsqlEntityList(entityList);
@@ -307,6 +312,7 @@ public class ConsoleTest {
     final String output = terminal.getOutputString();
     Approvals.verify(output, approvalOptions);
   }
+
   @Test
   public void testPrintQueries() {
     // Given:
@@ -371,6 +377,48 @@ public class ConsoleTest {
     Approvals.verify(output, approvalOptions);
   }
 
+  private SourceDescription buildSourceDescription(
+      final List<RunningQuery> readQueries,
+      final List<RunningQuery> writeQueries,
+      final List<FieldInfo> fields,
+      final boolean withClusterStats) {
+    final ImmutableMap<KsqlHostInfoEntity, ImmutableMap<String, Stat>> statistics = IntStream.range(1, 5)
+        .boxed()
+        .collect(toImmutableMap(
+            (Integer i) -> new KsqlHostInfoEntity("host" + i, 8000 + i),
+            Functions.constant(NODE_STATS)));
+    final ImmutableMap<KsqlHostInfoEntity, ImmutableMap<String, Stat>> errors = IntStream.range(1, 5)
+        .boxed()
+        .collect(toImmutableMap(
+            (Integer i) -> new KsqlHostInfoEntity("host" + i, 8000 + i),
+            Functions.constant(NODE_ERRORS)));
+
+    return new SourceDescription(
+        "TestSource",
+        Optional.empty(),
+        readQueries,
+        writeQueries,
+        fields,
+        DataSourceType.KTABLE.getKsqlType(),
+        "2000-01-01",
+        "stats",
+        "errors",
+        NODE_STATS,
+        NODE_ERRORS,
+        true,
+        "kafka",
+        "avro",
+        "kafka-topic",
+        1,
+        1,
+        "sql statement",
+        Collections.emptyList(),
+        Collections.emptyList(),
+        withClusterStats ? statistics : ImmutableMap.of(),
+        withClusterStats ? errors : ImmutableMap.of()
+    );
+  }
+
   @Test
   public void testPrintSourceDescription() {
     // Given:
@@ -397,27 +445,46 @@ public class ConsoleTest {
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new SourceDescriptionEntity(
             "some sql",
-            new SourceDescription(
-                "TestSource",
-                Optional.empty(),
-                readQueries,
-                writeQueries,
-                fields,
-                DataSourceType.KTABLE.getKsqlType(),
-                "2000-01-01",
-                "stats",
-                "errors",
-                IMMUTABLE_MAP,
-                IMMUTABLE_MAP,
-                false,
-                "kafka",
-                "avro",
-                "kafka-topic",
-                1,
-                1,
-                "sql statement",
-                Collections.emptyList(),
-                Collections.emptyList()),
+            buildSourceDescription( readQueries, writeQueries,fields, false),
+            Collections.emptyList()
+        )
+    ));
+
+    // When:
+    console.printKsqlEntityList(entityList);
+
+    // Then:
+    final String output = terminal.getOutputString();
+    Approvals.verify(output, approvalOptions);
+  }
+
+  @Test
+  public void testPrintSourceDescriptionWithClusterStats() {
+    // Given:
+    final List<FieldInfo> fields = buildTestSchema(
+        SqlTypes.BOOLEAN,
+        SqlTypes.INTEGER,
+        SqlTypes.BIGINT,
+        SqlTypes.DOUBLE,
+        SqlTypes.STRING,
+        SqlTypes.array(SqlTypes.STRING),
+        SqlTypes.map(SqlTypes.STRING, SqlTypes.BIGINT),
+        SqlTypes.struct()
+            .field("a", SqlTypes.DOUBLE)
+            .build()
+    );
+
+    final List<RunningQuery> readQueries = ImmutableList.of(
+        new RunningQuery("read query", ImmutableSet.of("sink1"), ImmutableSet.of("sink1 topic"), new QueryId("readId"), queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)
+    );
+    final List<RunningQuery> writeQueries = ImmutableList.of(
+        new RunningQuery("write query", ImmutableSet.of("sink2"), ImmutableSet.of("sink2 topic"), new QueryId("writeId"), queryStatusCount, KsqlConstants.KsqlQueryType.PERSISTENT)
+    );
+
+    final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
+        new SourceDescriptionEntity(
+            "some sql",
+            buildSourceDescription(readQueries, writeQueries,fields, true),
             Collections.emptyList()
         )
     ));
@@ -519,7 +586,7 @@ public class ConsoleTest {
             ImmutableList.of(
                 new SimpleConnectorInfo("foo", ConnectorType.SOURCE, "clazz", "STATUS"),
                 new SimpleConnectorInfo("bar", null, null, null)
-        ))
+            ))
     ));
 
     // When:
@@ -545,11 +612,11 @@ public class ConsoleTest {
                     new FieldInfo("f1", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.empty())),
                 null),
             "typeC", new SchemaInfo(
-                    SqlBaseType.DECIMAL,
-                    null,
-                    null,
-                    ImmutableMap.of("precision", 10, "scale", 9)
-                )
+                SqlBaseType.DECIMAL,
+                null,
+                null,
+                ImmutableMap.of("precision", 10, "scale", 9)
+            )
         ))
     ));
 
@@ -599,8 +666,8 @@ public class ConsoleTest {
                 "2000-01-01",
                 "stats",
                 "errors",
-                IMMUTABLE_MAP,
-                IMMUTABLE_MAP,
+                NODE_STATS,
+                NODE_ERRORS,
                 true,
                 "json",
                 "avro",
@@ -805,7 +872,7 @@ public class ConsoleTest {
   public void shouldSupportCmdBeingTerminatedWithSemiColon() {
     // Given:
     when(lineSupplier.get())
-        .thenReturn(CLI_CMD_NAME + WHITE_SPACE  + "Arg0;")
+        .thenReturn(CLI_CMD_NAME + WHITE_SPACE + "Arg0;")
         .thenReturn("not a CLI command;");
 
     // When:
@@ -833,7 +900,7 @@ public class ConsoleTest {
   public void shouldSupportCmdWithQuotedArgBeingTerminatedWithSemiColon() {
     // Given:
     when(lineSupplier.get())
-        .thenReturn(CLI_CMD_NAME + WHITE_SPACE  + "'Arg0';")
+        .thenReturn(CLI_CMD_NAME + WHITE_SPACE + "'Arg0';")
         .thenReturn("not a CLI command;");
 
     // When:

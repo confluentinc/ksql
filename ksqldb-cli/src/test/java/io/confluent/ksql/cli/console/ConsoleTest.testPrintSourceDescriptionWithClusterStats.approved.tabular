@@ -32,11 +32,17 @@ writeId (ERROR) : write query
 
 For query topology and execution plan please run: EXPLAIN <QueryId>
 
-Local runtime statistics
+Runtime statistics by host
 -------------------------
- Host | Metric | Value      | Last Message             
--------------------------------------------------------
- --   | ERROR  |          0 | 2020-08-05T16:28:56.314Z 
- --   | TEST   |          0 | 2020-08-05T16:28:56.314Z 
--------------------------------------------------------
+ Host       | Metric | Value      | Last Message             
+-------------------------------------------------------------
+ host1:8001 | ERROR  |          0 | 2020-08-05T16:28:56.314Z 
+ host1:8001 | TEST   |          0 | 2020-08-05T16:28:56.314Z 
+ host2:8002 | ERROR  |          0 | 2020-08-05T16:28:56.314Z 
+ host2:8002 | TEST   |          0 | 2020-08-05T16:28:56.314Z 
+ host3:8003 | ERROR  |          0 | 2020-08-05T16:28:56.314Z 
+ host3:8003 | TEST   |          0 | 2020-08-05T16:28:56.314Z 
+ host4:8004 | ERROR  |          0 | 2020-08-05T16:28:56.314Z 
+ host4:8004 | TEST   |          0 | 2020-08-05T16:28:56.314Z 
+-------------------------------------------------------------
 (Statistics of the local KSQL server interaction with the Kafka topic kafka-topic)

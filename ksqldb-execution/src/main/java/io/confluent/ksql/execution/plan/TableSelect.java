@@ -35,6 +35,7 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
   private final ImmutableList<ColumnName> keyColumnNames;
   private final ImmutableList<SelectExpression> selectExpressions;
   private final Formats internalFormats;
+  private boolean isLastSelect;
 
   public TableSelect(
       final ExecutionStepPropertiesV1 props,
@@ -48,6 +49,7 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
     this.keyColumnNames = ImmutableList.copyOf(keyColumnNames);
     this.selectExpressions = ImmutableList.copyOf(selectExpressions);
     this.internalFormats = requireNonNull(internalFormats, "internalFormats");
+    this.isLastSelect = false;
 
     if (selectExpressions.isEmpty()) {
       throw new IllegalArgumentException("Need at least one select expression");
@@ -141,5 +143,14 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
 
   public Formats getInternalFormats() {
     return internalFormats;
+  }
+
+  public void setIsLastSelectToTrue() {
+    isLastSelect = true;
+  }
+
+  @JsonIgnore
+  public boolean isTheLastSelect() {
+    return isLastSelect;
   }
 }

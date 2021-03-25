@@ -30,6 +30,7 @@ import io.confluent.ksql.execution.transform.select.Selection;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.kstream.KTable;
@@ -38,19 +39,18 @@ import org.apache.kafka.streams.kstream.Named;
 import org.apache.kafka.streams.state.KeyValueStore;
 
 public final class TableSelectBuilder {
-  private static final String PROJECT_OP = "Sta";
+  private static final String PROJECT_OP = "Last";
 
   private TableSelectBuilder() {
   }
 
   @SuppressWarnings("unchecked")
   public static <K> KTableHolder<K> build(
-      final KTableHolder<K> table,
-      final TableSelect<K> step,
-      final RuntimeBuildContext buildContext,
-      final boolean forceMaterialization,
-      final Formats formats,
-      final MaterializedFactory materializedFactory
+          final KTableHolder<K> table,
+          final TableSelect<K> step,
+          final RuntimeBuildContext buildContext,
+          final Formats formats,
+          final MaterializedFactory materializedFactory
   ) {
     final LogicalSchema sourceSchema = table.getSchema();
     final QueryContext queryContext = step.getProperties().getQueryContext();
@@ -69,7 +69,15 @@ public final class TableSelectBuilder {
 
     final Named selectName = Named.as(StreamsUtil.buildOpName(queryContext));
 
-    if (forceMaterialization) {
+    final Optional<MaterializationInfo.Builder> matBuilder =  table
+        .getMaterializationBuilder().map(b -> b.map(
+          pl -> (KsqlTransformer<Object, GenericRow>) selectMapper.getTransformer(pl),
+            selection.getSchema(),
+            queryContext
+        ));
+
+    final boolean decision = !matBuilder.isPresent();
+    if (decision) {
       final PhysicalSchema physicalSchema = PhysicalSchema.from(
               selection.getSchema(),
               formats.getKeyFeatures(),
@@ -97,7 +105,7 @@ public final class TableSelectBuilder {
               );
       final KTable<K, GenericRow> transFormedTable = table.getTable().transformValues(
           () -> new KsTransformer<>(selectMapper.getTransformer(logger)),
-          materialized, Named.as(stateStoreName + "johns")
+          materialized
       );
 
       return KTableHolder.materialized(
@@ -116,13 +124,7 @@ public final class TableSelectBuilder {
                     ),
                     selection.getSchema()
             )
-            .withMaterialization(
-                    table.getMaterializationBuilder().map(b -> b.map(
-                        pl -> (KsqlTransformer<Object, GenericRow>) selectMapper.getTransformer(pl),
-                        selection.getSchema(),
-                        queryContext
-                    ))
-            );
+            .withMaterialization(matBuilder);
   }
 }
 

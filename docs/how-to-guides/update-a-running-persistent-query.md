@@ -103,7 +103,7 @@ CREATE STREAM valid_purchases AS
 ### Data selection
 
 Over time, ksqlMart changes its return policy and begins issuing full refunds.
-These events have a negative `cost` column value. Since these events are now
+These records have a negative `cost` column value. Since these records are now
 valid, ksqlMart needs to update the query to remove the `cost > 0.00` clause:
 
 ```sql
@@ -115,7 +115,7 @@ CREATE OR REPLACE STREAM valid_purchases AS
 
 The `CREATE OR REPLACE` statement instructs ksqlDB to terminate the old query,
 and create a new one that will continue from the last
-event that the previous query processed. Note that this means any previously 
+record that the previous query processed. Note that this means any previously 
 processed data with negative cost will not be included, even if issuing the
 query with `SET 'auto.offset.reset'='earliest';`.
 

@@ -34,7 +34,7 @@ public interface ConnectorInfo {
 
   /**
    * @return state of this connector. The possible states are
-   * "UNASSIGNED", "RUNNING", "FAILED" or "PAUSED".
+   *     "UNASSIGNED", "RUNNING", "FAILED" or "PAUSED".
    */
   String state();
 }

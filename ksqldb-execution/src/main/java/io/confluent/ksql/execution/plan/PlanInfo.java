@@ -41,19 +41,16 @@ public class PlanInfo {
    * If so, this tracks the single source node. Else, empty.
    */
   private final Optional<SourceInfo> activeSource;
-  private final boolean isChildOfJoin;
 
   public PlanInfo(final ExecutionStep<?> sourceStep) {
     this.allSources = new Sources();
     final SourceInfo sourceInfo = allSources.addSource(sourceStep);
     this.activeSource = Optional.of(sourceInfo);
-    this.isChildOfJoin = false;
   }
 
   private PlanInfo(final Sources sources) {
     this.allSources = sources;
     this.activeSource = Optional.empty();
-    this.isChildOfJoin = false;
   }
 
   public boolean isRepartitionedInPlan(final ExecutionStep<?> sourceStep) {
@@ -73,9 +70,6 @@ public class PlanInfo {
     return new PlanInfo(allSources.merge(other.allSources));
   }
 
-  public boolean isChildOfJoin(ExecutionStep<?> step) {
-    return activeSource.isPresent();
-  }
 
   private static class SourceInfo {
     final ExecutionStep<?> sourceStep;

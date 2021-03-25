@@ -31,6 +31,7 @@ Use the Java client to:
 - [Create and manage new streams, tables, and persistent queries (executeStatement())](#execute-statement)
 - [List streams, tables, topics, and queries](#admin-operations)
 - [Describe specific streams and tables](#describe-source)
+- [Manage, list and describe connectors](#connector-operations)
 
 Get started below or skip to the end for full-fledged [examples](#tutorial-examples).
 
@@ -693,33 +694,14 @@ System.out.println(description.writeQueries().size() + " queries write to this s
 System.out.println(description.readQueries().size() + " queries read from this stream/table.");
 ``` 
 
-Get metadata about the ksqlDB cluster
-------------------------------------------------------------------
-
-Starting with ksqlDB 0.16.0, the `serverInfo()` method enables client apps to fetch metadata about
-the ksqlDB cluster. The metadata returned from this method includes the version of ksqlDB the server
-is running, the Kafka cluster id and the ksqlDB service id. For more details, see the 
-[API reference](api/io/confluent/ksql/api/client/Client.html#serverInfo()).
-
-### Example Usage ###
-
-Fetch server metadata:
-```java
-ServerInfo serverInfo = client.serverInfo().get();
-System.out.println("The ksqlDB version running on this server is " + serverInfo.getServerVersion());
-System.out.println("The Kafka cluster this server is using is " + serverInfo.getKafkaClusterId());
-System.out.println("The id of this ksqlDB service is " + serverInfo.getKsqlServiceId());
-``` 
-
-Manage, list and describe connectors
-------------------------------------------------------------------
+Manage, list and describe connectors<a name="connector-operations"></a>
+-----------------------------------------------------------------------
 
 Starting with ksqlDB 0.18.0, the Java client for ksqlDB supports the following connector operations:
-
-- Creating new connectors by using the `createConnector()` method
-- Dropping existing connectors by using the `dropConnector()` method
-- Listing connectors by using the `listConnectors()` method
-- Describing a specific connector by using the `describeConnector()` method
+- Creating new connectors by using the [`createConnector()`](/api/io/confluent/ksql/api/client/Client.html#createConnector(java.lang.String,boolean,java.util.Map)) method
+- Dropping existing connectors by using the [`dropConnector()`](/api/io/confluent/ksql/api/client/Client.html#dropConnector(java.lang.String)) method
+- Listing connectors by using the [`listConnectors()`](/api/io/confluent/ksql/api/client/Client.html#listConnectors()) method
+- Describing a specific connector by using the [`describeConnector()`](/api/io/confluent/ksql/api/client/Client.html#describeConnector(java.lang.String)) method
 
 ### Example Usage ###
 
@@ -728,38 +710,39 @@ Create a new connector:
 Map<String, String> connectorProperties = ImmutableMap.of(
   "connector.class", "io.confluent.connect.jdbc.JdbcSourceConnector",
   "connection.url", "jdbc:postgresql://localhost:5432/my.db",
-  "mode","bulk",
-  "topic.prefix","jdbc-",
-  "table.whitelist","users",
-  "key","username"
+  "mode", "bulk",
+  "topic.prefix", "jdbc-",
+  "table.whitelist", "users",
+  "key", "username"
 );
-client.createConnector("jdbc-connector", true, connectorProperties);
+client.createConnector("jdbc-connector", true, connectorProperties).get();
 ```
 
 Drop a connector:
 ```java
-client.dropConnector("jdbc-connector");
+client.dropConnector("jdbc-connector").get();
 ```
 
 List connectors:
 ```java
-List<ConnectorInfo> connectors = client.listConnectors();
+List<ConnectorInfo> connectors = client.listConnectors().get();
 for (ConnectorInfo connector : connectors) {
   System.out.println(connector.name()
     + " " + connector.type()
     + " " + connector.className()
     + " " + connector.state()
+    + "\n"
   );
 }
 ```
 
 Describe a connector:
 ```java
-ConnectorDescription description = client.describeConnector("jdbc-connector");
+ConnectorDescription description = client.describeConnector("jdbc-connector").get();
 System.out.println(description.name()
-  + " is a " + description.type() + " connector."
-  + " The connector's class is " + description.className() + "."
-  + " The connector is currently " + description.state() + "."
+  + " is a " + description.type() + " connector.\n"
+  + " The connector's class is " + description.className() + ".\n"
+  + " The connector is currently " + description.state() + ".\n"
   + " It reads/writes to " + description.sources().size() + " ksqlDB sources"
   + " and uses " + description.topics().size() + " topics."
 );

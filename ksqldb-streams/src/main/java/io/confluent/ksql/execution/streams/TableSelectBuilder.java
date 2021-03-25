@@ -69,12 +69,7 @@ public final class TableSelectBuilder {
 
     final Named selectName = Named.as(StreamsUtil.buildOpName(queryContext));
 
-    final Optional<MaterializationInfo.Builder> matBuilder =  table
-        .getMaterializationBuilder().map(b -> b.map(
-          pl -> (KsqlTransformer<Object, GenericRow>) selectMapper.getTransformer(pl),
-            selection.getSchema(),
-            queryContext
-        ));
+    final Optional<MaterializationInfo.Builder> matBuilder =  table.getMaterializationBuilder();
 
     final boolean forceMaterialize = !matBuilder.isPresent();
 
@@ -130,6 +125,12 @@ public final class TableSelectBuilder {
                     ),
                     selection.getSchema()
             )
-            .withMaterialization(matBuilder);
+            .withMaterialization(
+                    matBuilder.map(b -> b.map(
+                        pl -> (KsqlTransformer<Object, GenericRow>) selectMapper.getTransformer(pl),
+                        selection.getSchema(),
+                        queryContext)
+                    )
+            );
   }
 }

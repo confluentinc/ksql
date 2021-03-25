@@ -33,7 +33,8 @@ public interface ConnectorInfo {
   String className();
 
   /**
-   * @return state of this connector
+   * @return state of this connector. The possible states are
+   * "UNASSIGNED", "RUNNING", "FAILED" or "PAUSED".
    */
   String state();
 }

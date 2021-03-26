@@ -27,6 +27,7 @@ import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorPluginInfo;
@@ -52,8 +53,6 @@ public final class ListConnectorPluginsExecutor {
     }
 
     final List<SimpleConnectorPluginInfo> pluginInfos = new ArrayList<>();
-    final List<KsqlWarning> warnings = new ArrayList<>();
-
     for (final ConnectorPluginInfo info : plugins.datum().get()) {
       pluginInfos.add(new SimpleConnectorPluginInfo(
           info.className(),
@@ -65,7 +64,7 @@ public final class ListConnectorPluginsExecutor {
     return Optional.of(
       new ConnectorPluginsList(
         configuredStatement.getStatementText(),
-         warnings,
+        Collections.emptyList(),
         pluginInfos
       )
     );

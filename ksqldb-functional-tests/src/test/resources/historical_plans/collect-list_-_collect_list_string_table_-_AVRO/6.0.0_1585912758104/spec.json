@@ -118,6 +118,20 @@
       "key" : 100,
       "value" : {
         "ID" : 100,
+        "COLLECTED" : [ "baz" ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : {
+        "ID" : 100,
+        "COLLECTED" : [ ]
+      }
+    }, {
+      "topic" : "S2",
+      "key" : 100,
+      "value" : {
+        "ID" : 100,
         "COLLECTED" : [ "foo" ]
       }
     } ],

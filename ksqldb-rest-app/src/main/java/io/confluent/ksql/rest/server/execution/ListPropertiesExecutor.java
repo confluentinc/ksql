@@ -36,10 +36,15 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigDef.Type;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.runtime.distributed.DistributedConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ListPropertiesExecutor {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ListPropertiesExecutor.class);
 
   private ListPropertiesExecutor() {
   }
@@ -116,7 +121,17 @@ public final class ListPropertiesExecutor {
   private static Set<String> embeddedConnectWorkerPropertiesAllowList(
       final Map<String, String> workerProps
   ) {
-    final DistributedConfig config = new DistributedConfig(workerProps);
+    final DistributedConfig config;
+    try {
+      config = new DistributedConfig(workerProps);
+    } catch (ConfigException e) {
+      LOGGER.warn("Could not create Connect worker config to validate properties; "
+          + "not displaying Connect worker properties as a result. Note that "
+          + "this should not happen if ksqlDB was able to start with embedded Connect. "
+          + "Error: {}", e.getMessage());
+      return Collections.emptySet();
+    }
+    
     return config.values().keySet().stream()
         .filter(k -> config.typeOf(k) != Type.PASSWORD)
         .collect(Collectors.toSet());

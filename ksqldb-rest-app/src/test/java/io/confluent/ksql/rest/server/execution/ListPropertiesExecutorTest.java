@@ -133,7 +133,7 @@ public class ListPropertiesExecutorTest {
         engine.configure("LIST PROPERTIES;")
             .withConfig(new KsqlConfig(ImmutableMap.of(
                 "ksql.connect.worker.config", connectPropsFile))),
-        ImmutableMap.of(),
+        mock(SessionProperties.class),
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);

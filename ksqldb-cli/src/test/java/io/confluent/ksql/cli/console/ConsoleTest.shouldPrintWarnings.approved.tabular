@@ -15,9 +15,12 @@ Statement            : statement
 -----------------------------------------
 
 Local runtime statistics
-------------------------
-            TEST:         0     last-message:       n/a
-            TEST:         0     last-message:       n/a
+-------------------------
+ Host | Metric | Value      | Last Message             
+-------------------------------------------------------
+ --   | ERROR  |          0 | 2020-08-05T16:28:56.314Z 
+ --   | TEST   |          0 | 2020-08-05T16:28:56.314Z 
+-------------------------------------------------------
 (Statistics of the local KSQL server interaction with the Kafka topic kafka-topic)
 WARNING: oops
 WARNING: doh!

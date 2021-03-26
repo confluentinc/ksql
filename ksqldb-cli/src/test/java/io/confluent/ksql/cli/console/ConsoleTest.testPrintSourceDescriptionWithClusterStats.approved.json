@@ -134,7 +134,67 @@
     "replication" : 1,
     "statement" : "sql statement",
     "queryOffsetSummaries" : [ ],
-    "sourceConstraints" : [ ]
+    "sourceConstraints" : [ ],
+    "clusterStatistics" : {
+      "host1:8001" : {
+        "TEST" : {
+          "name" : "TEST",
+          "value" : 0.0,
+          "timestamp" : 1596644936314
+        }
+      },
+      "host2:8002" : {
+        "TEST" : {
+          "name" : "TEST",
+          "value" : 0.0,
+          "timestamp" : 1596644936314
+        }
+      },
+      "host3:8003" : {
+        "TEST" : {
+          "name" : "TEST",
+          "value" : 0.0,
+          "timestamp" : 1596644936314
+        }
+      },
+      "host4:8004" : {
+        "TEST" : {
+          "name" : "TEST",
+          "value" : 0.0,
+          "timestamp" : 1596644936314
+        }
+      }
+    },
+    "clusterErrorStats" : {
+      "host1:8001" : {
+        "ERROR" : {
+          "name" : "ERROR",
+          "value" : 0.0,
+          "timestamp" : 1596644936314
+        }
+      },
+      "host2:8002" : {
+        "ERROR" : {
+          "name" : "ERROR",
+          "value" : 0.0,
+          "timestamp" : 1596644936314
+        }
+      },
+      "host3:8003" : {
+        "ERROR" : {
+          "name" : "ERROR",
+          "value" : 0.0,
+          "timestamp" : 1596644936314
+        }
+      },
+      "host4:8004" : {
+        "ERROR" : {
+          "name" : "ERROR",
+          "value" : 0.0,
+          "timestamp" : 1596644936314
+        }
+      }
+    }
   },
   "warnings" : [ ]
 } ]

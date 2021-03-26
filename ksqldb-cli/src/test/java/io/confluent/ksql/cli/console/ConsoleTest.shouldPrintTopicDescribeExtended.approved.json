@@ -52,14 +52,14 @@
       "TEST" : {
         "name" : "TEST",
         "value" : 0.0,
-        "timestamp" : 0
+        "timestamp" : 1596644936314
       }
     },
     "errorStatsMap" : {
-      "TEST" : {
-        "name" : "TEST",
+      "ERROR" : {
+        "name" : "ERROR",
         "value" : 0.0,
-        "timestamp" : 0
+        "timestamp" : 1596644936314
       }
     },
     "extended" : true,

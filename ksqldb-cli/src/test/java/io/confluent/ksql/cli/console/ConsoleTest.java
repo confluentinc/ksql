@@ -69,6 +69,7 @@ import io.confluent.ksql.rest.entity.PropertiesList.Property;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
+import io.confluent.ksql.rest.entity.QueryHostStat;
 import io.confluent.ksql.rest.entity.QueryOffsetSummary;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.QueryTopicOffsetSummary;
@@ -104,7 +105,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.TimeZone;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
@@ -124,17 +127,14 @@ import org.mockito.MockitoAnnotations;
 @RunWith(Parameterized.class)
 public class ConsoleTest {
   @SuppressFBWarnings("URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD")
-  @ClassRule public static final TimezoneRule tzRule = new TimezoneRule(TimeZone.getTimeZone("UTC"));
+  @ClassRule
+  public static final TimezoneRule tzRule = new TimezoneRule(TimeZone.getTimeZone("UTC"));
 
   private static final String CLI_CMD_NAME = "some command";
   private static final String WHITE_SPACE = " \t ";
   private static final String NEWLINE = System.lineSeparator();
   private static final String STATUS_COUNT_STRING = "RUNNING:1,ERROR:2";
   private static final String AGGREGATE_STATUS = "ERROR";
-  protected static final Stat STAT =  new Stat("TEST", 0, 1596644936314L);
-  protected static final Stat ERROR_STAT =  new Stat("ERROR", 0, 1596644936314L);
-  protected static final ImmutableMap<String, Stat> NODE_STATS = new ImmutableMap.Builder<String, Stat>().put("TEST", STAT).build();
-  protected static final ImmutableMap<String, Stat> NODE_ERRORS = new ImmutableMap.Builder<String, Stat>().put("ERROR", ERROR_STAT).build();
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("foo"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("bar"), SqlTypes.STRING)
@@ -154,8 +154,6 @@ public class ConsoleTest {
       "2000-01-01",
       "stats",
       "errors",
-      NODE_STATS,
-      NODE_ERRORS,
       true,
       "kafka",
       "avro",
@@ -168,11 +166,6 @@ public class ConsoleTest {
 
   @Mock
   private QueryStatusCount queryStatusCount;
-
-  @Parameterized.Parameters(name = "{0}")
-  public static Collection<OutputFormat> data() {
-    return ImmutableList.of(OutputFormat.JSON, OutputFormat.TABULAR);
-  }
 
   @SuppressWarnings("unchecked")
   public ConsoleTest(final OutputFormat outputFormat) {
@@ -190,6 +183,23 @@ public class ConsoleTest {
 
   }
 
+  @Parameterized.Parameters(name = "{0}")
+  public static Collection<OutputFormat> data() {
+    return ImmutableList.of(OutputFormat.JSON, OutputFormat.TABULAR);
+  }
+
+  private static List<FieldInfo> buildTestSchema(final SqlType... fieldTypes) {
+    final Builder schemaBuilder = LogicalSchema.builder()
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING);
+
+    for (int idx = 0; idx < fieldTypes.length; idx++) {
+      schemaBuilder.valueColumn(ColumnName.of("f_" + idx), fieldTypes[idx]);
+    }
+
+    final LogicalSchema schema = schemaBuilder.build();
+
+    return EntityUtil.buildSourceSchemaEntity(schema);
+  }
 
   @Before
   public void setUp() {
@@ -382,16 +392,18 @@ public class ConsoleTest {
       final List<RunningQuery> writeQueries,
       final List<FieldInfo> fields,
       final boolean withClusterStats) {
-    final ImmutableMap<KsqlHostInfoEntity, ImmutableMap<String, Stat>> statistics = IntStream.range(1, 5)
+
+    final Stat STAT = new Stat("TEST", 0, 1596644936314L);
+    final Stat ERROR_STAT = new Stat("ERROR", 0, 1596644936314L);
+    List<QueryHostStat> statistics = IntStream.range(1, 5)
         .boxed()
-        .collect(toImmutableMap(
-            (Integer i) -> new KsqlHostInfoEntity("host" + i, 8000 + i),
-            Functions.constant(NODE_STATS)));
-    final ImmutableMap<KsqlHostInfoEntity, ImmutableMap<String, Stat>> errors = IntStream.range(1, 5)
+        .map((i) -> new KsqlHostInfoEntity("host" + i, 8000 + i))
+        .map((host) -> QueryHostStat.fromStat(STAT, host)).collect(Collectors.toList());
+    List<QueryHostStat> errors = IntStream.range(1, 5)
         .boxed()
-        .collect(toImmutableMap(
-            (Integer i) -> new KsqlHostInfoEntity("host" + i, 8000 + i),
-            Functions.constant(NODE_ERRORS)));
+        .map((i) -> new KsqlHostInfoEntity("host" + i, 8000 + i))
+        .map((host) -> QueryHostStat.fromStat(ERROR_STAT, host)).collect(Collectors.toList());
+
 
     return new SourceDescription(
         "TestSource",
@@ -403,8 +415,6 @@ public class ConsoleTest {
         "2000-01-01",
         "stats",
         "errors",
-        NODE_STATS,
-        NODE_ERRORS,
         true,
         "kafka",
         "avro",
@@ -414,8 +424,8 @@ public class ConsoleTest {
         "sql statement",
         Collections.emptyList(),
         Collections.emptyList(),
-        withClusterStats ? statistics : ImmutableMap.of(),
-        withClusterStats ? errors : ImmutableMap.of()
+        withClusterStats ? statistics : ImmutableList.of(),
+        withClusterStats ? errors : ImmutableList.of()
     );
   }
 
@@ -445,7 +455,7 @@ public class ConsoleTest {
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new SourceDescriptionEntity(
             "some sql",
-            buildSourceDescription( readQueries, writeQueries,fields, false),
+            buildSourceDescription(readQueries, writeQueries, fields, false),
             Collections.emptyList()
         )
     ));
@@ -484,7 +494,7 @@ public class ConsoleTest {
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new SourceDescriptionEntity(
             "some sql",
-            buildSourceDescription(readQueries, writeQueries,fields, true),
+            buildSourceDescription(readQueries, writeQueries, fields, true),
             Collections.emptyList()
         )
     ));
@@ -666,8 +676,6 @@ public class ConsoleTest {
                 "2000-01-01",
                 "stats",
                 "errors",
-                NODE_STATS,
-                NODE_ERRORS,
                 true,
                 "json",
                 "avro",
@@ -970,18 +978,5 @@ public class ConsoleTest {
     // Then:
     assertThat(terminal.getOutputString(),
         containsString("Invalid value BURRITO for configuration WRAP: String must be one of: ON, OFF, null"));
-  }
-
-  private static List<FieldInfo> buildTestSchema(final SqlType... fieldTypes) {
-    final Builder schemaBuilder = LogicalSchema.builder()
-        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING);
-
-    for (int idx = 0; idx < fieldTypes.length; idx++) {
-      schemaBuilder.valueColumn(ColumnName.of("f_" + idx), fieldTypes[idx]);
-    }
-
-    final LogicalSchema schema = schemaBuilder.build();
-
-    return EntityUtil.buildSourceSchemaEntity(schema);
   }
 }

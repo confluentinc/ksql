@@ -15,14 +15,10 @@
 
 package io.confluent.ksql.cli.console;
 
-import static com.google.common.collect.ImmutableListMultimap.flatteningToImmutableListMultimap;
-import static com.google.common.collect.ImmutableListMultimap.toImmutableListMultimap;
 import static io.confluent.ksql.util.CmdLineUtil.splitByUnquotedWhitespace;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
@@ -70,7 +66,6 @@ import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KafkaTopicsListExtended;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.PropertiesList;
@@ -78,6 +73,7 @@ import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
+import io.confluent.ksql.rest.entity.QueryHostStat;
 import io.confluent.ksql.rest.entity.QueryOffsetSummary;
 import io.confluent.ksql.rest.entity.QueryTopicOffsetSummary;
 import io.confluent.ksql.rest.entity.RunningQuery;
@@ -646,40 +642,10 @@ public class Console implements Closeable {
   }
 
   private void printStatistics(final SourceDescription source) {
-    final ImmutableListMultimap<KsqlHostInfoEntity, Stat> clusterStats = source
-        .getClusterStatistics()
-        .entrySet()
-        .stream()
-        .collect(flatteningToImmutableListMultimap(
-            Entry::getKey,
-            (e) -> e.getValue().values().stream()
-        ));
-    final ImmutableListMultimap<KsqlHostInfoEntity, Stat> clusterErrors = source
-        .getClusterErrorStats()
-        .entrySet()
-        .stream()
-        .collect(flatteningToImmutableListMultimap(
-            Entry::getKey,
-            (e) -> e.getValue().values().stream()
-        ));
+    final List<QueryHostStat> statistics = source.getClusterStatistics();
+    final List<QueryHostStat> errors = source.getClusterErrorStats();
 
-    final ImmutableListMultimap<KsqlHostInfoEntity, Stat> statisticsMap = source.getStatisticsMap()
-        .values()
-        .stream()
-        .collect(toImmutableListMultimap(
-            Functions.constant(new KsqlHostInfoEntity("", 0)),
-            Functions.identity()
-        ));
-    final ImmutableListMultimap<KsqlHostInfoEntity, Stat> errorStatsMap = source.getErrorStatsMap()
-        .values()
-        .stream()
-        .collect(toImmutableListMultimap(
-            Functions.constant(new KsqlHostInfoEntity("", 0)),
-            Functions.identity()
-        ));
-
-
-    if (statisticsMap.isEmpty() && errorStatsMap.isEmpty()) {
+    if (statistics.isEmpty() && errors.isEmpty()) {
       writer().println(String.format(
           "%n%-20s%n%s",
           "Local runtime statistics",
@@ -689,29 +655,23 @@ public class Console implements Closeable {
       writer().println(source.getErrorStats());
       return;
     }
-    final boolean printLocalOnly = clusterStats.isEmpty() && clusterErrors.isEmpty();
     final List<String> headers = ImmutableList.of("Host", "Metric", "Value", "Last Message");
-    final Stream<Entry<KsqlHostInfoEntity, Stat>> rows = printLocalOnly
-        ? Streams.concat(statisticsMap.entries().stream(), errorStatsMap.entries().stream())
-        : Streams.concat(clusterStats.entries().stream(), clusterErrors.entries().stream());
-
+    final Stream<QueryHostStat> rows = Streams.concat(statistics.stream(), errors.stream());
 
     writer().println(String.format(
         "%n%-20s%n%s",
-        printLocalOnly ? "Local runtime statistics" : "Runtime statistics by host",
+        "Runtime statistics by host",
         "-------------------------"
     ));
     final Table statsTable = new Table.Builder()
         .withColumnHeaders(headers)
         .withRows(rows
             .sorted(Comparator
-                .comparing((Map.Entry<KsqlHostInfoEntity, Stat> e) -> e.getKey().toString())
-                .thenComparing((Map.Entry<KsqlHostInfoEntity, Stat> e) -> e.getValue().name())
+                .comparing(QueryHostStat::host)
+                .thenComparing(Stat::name)
             )
-            .map((e) -> {
-              final KsqlHostInfoEntity host = e.getKey();
-              final Stat metric = e.getValue();
-              final String hostCell = host.getHost().equals("") ? "--" : host.toString();
+            .map((metric) -> {
+              final String hostCell = metric.host().toString();
               final String formattedValue = String.format("%10.0f", metric.getValue());
               return ImmutableList.of(hostCell, metric.name(), formattedValue, metric.timestamp());
             }))

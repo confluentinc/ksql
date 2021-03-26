@@ -31,12 +31,12 @@ writeId (ERROR) : write query
 For query topology and execution plan please run: EXPLAIN <QueryId>
 
 Local runtime statistics
--------------------------
- Host | Metric | Value      | Last Message             
--------------------------------------------------------
- --   | ERROR  |          0 | 2020-08-05T16:28:56.314Z 
- --   | TEST   |          0 | 2020-08-05T16:28:56.314Z 
--------------------------------------------------------
+------------------------
+The statistics field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use statisticsMap instead.
+stats
+The errorStats field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use errorStatsMap instead.
+errors
+
 (Statistics of the local KSQL server interaction with the Kafka topic kafka-topic)
 
 Consumer Groups summary:

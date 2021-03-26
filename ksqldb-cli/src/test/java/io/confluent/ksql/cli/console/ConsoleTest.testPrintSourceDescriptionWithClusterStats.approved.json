@@ -112,20 +112,6 @@
     "timestamp" : "2000-01-01",
     "statistics" : "The statistics field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use statisticsMap instead.\nstats",
     "errorStats" : "The errorStats field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use errorStatsMap instead.\nerrors\n",
-    "statisticsMap" : {
-      "TEST" : {
-        "name" : "TEST",
-        "value" : 0.0,
-        "timestamp" : 1596644936314
-      }
-    },
-    "errorStatsMap" : {
-      "ERROR" : {
-        "name" : "ERROR",
-        "value" : 0.0,
-        "timestamp" : 1596644936314
-      }
-    },
     "extended" : true,
     "keyFormat" : "kafka",
     "valueFormat" : "avro",
@@ -135,66 +121,48 @@
     "statement" : "sql statement",
     "queryOffsetSummaries" : [ ],
     "sourceConstraints" : [ ],
-    "clusterStatistics" : {
-      "host1:8001" : {
-        "TEST" : {
-          "name" : "TEST",
-          "value" : 0.0,
-          "timestamp" : 1596644936314
-        }
-      },
-      "host2:8002" : {
-        "TEST" : {
-          "name" : "TEST",
-          "value" : 0.0,
-          "timestamp" : 1596644936314
-        }
-      },
-      "host3:8003" : {
-        "TEST" : {
-          "name" : "TEST",
-          "value" : 0.0,
-          "timestamp" : 1596644936314
-        }
-      },
-      "host4:8004" : {
-        "TEST" : {
-          "name" : "TEST",
-          "value" : 0.0,
-          "timestamp" : 1596644936314
-        }
-      }
-    },
-    "clusterErrorStats" : {
-      "host1:8001" : {
-        "ERROR" : {
-          "name" : "ERROR",
-          "value" : 0.0,
-          "timestamp" : 1596644936314
-        }
-      },
-      "host2:8002" : {
-        "ERROR" : {
-          "name" : "ERROR",
-          "value" : 0.0,
-          "timestamp" : 1596644936314
-        }
-      },
-      "host3:8003" : {
-        "ERROR" : {
-          "name" : "ERROR",
-          "value" : 0.0,
-          "timestamp" : 1596644936314
-        }
-      },
-      "host4:8004" : {
-        "ERROR" : {
-          "name" : "ERROR",
-          "value" : 0.0,
-          "timestamp" : 1596644936314
-        }
-      }
-    }
+    "clusterStatistics" : [ {
+      "name" : "TEST",
+      "host" : "host1:8001",
+      "value" : 0.0,
+      "timestamp" : 1596644936314
+    }, {
+      "name" : "TEST",
+      "host" : "host2:8002",
+      "value" : 0.0,
+      "timestamp" : 1596644936314
+    }, {
+      "name" : "TEST",
+      "host" : "host3:8003",
+      "value" : 0.0,
+      "timestamp" : 1596644936314
+    }, {
+      "name" : "TEST",
+      "host" : "host4:8004",
+      "value" : 0.0,
+      "timestamp" : 1596644936314
+    } ],
+    "clusterErrorStats" : [ {
+      "name" : "ERROR",
+      "host" : "host1:8001",
+      "value" : 0.0,
+      "timestamp" : 1596644936314
+    }, {
+      "name" : "ERROR",
+      "host" : "host2:8002",
+      "value" : 0.0,
+      "timestamp" : 1596644936314
+    }, {
+      "name" : "ERROR",
+      "host" : "host3:8003",
+      "value" : 0.0,
+      "timestamp" : 1596644936314
+    }, {
+      "name" : "ERROR",
+      "host" : "host4:8004",
+      "value" : 0.0,
+      "timestamp" : 1596644936314
+    } ]
   },
   "warnings" : [ ]
 } ]

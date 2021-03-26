@@ -15,20 +15,20 @@
 
 package io.confluent.ksql.rest.entity;
 
-import static com.google.common.collect.ImmutableMap.toImmutableMap;
+import static org.glassfish.jersey.internal.util.collection.ImmutableCollectors.toImmutableList;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Streams;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
-import io.confluent.ksql.metrics.TopicSensors;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlHostInfo;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.apache.kafka.clients.admin.TopicDescription;
+
 
 public final class SourceDescriptionFactory {
 
@@ -52,11 +52,13 @@ public final class SourceDescriptionFactory {
         topicDescription,
         queryOffsetSummaries,
         sourceConstraints,
-        ImmutableMap.of(),
-        ImmutableMap.of()
+        Stream.empty(),
+        Stream.empty(),
+        new KsqlHostInfo("", 0)
     );
   }
 
+  @SuppressWarnings("checkstyle:ParameterNumber")
   public static SourceDescription create(
       final DataSource dataSource,
       final boolean extended,
@@ -65,9 +67,21 @@ public final class SourceDescriptionFactory {
       final Optional<TopicDescription> topicDescription,
       final List<QueryOffsetSummary> queryOffsetSummaries,
       final List<String> sourceConstraints,
-      final ImmutableMap<KsqlHostInfo, ImmutableMap<String, TopicSensors.Stat>> stats,
-      final ImmutableMap<KsqlHostInfo, ImmutableMap<String, TopicSensors.Stat>> errorStats
+      final Stream<QueryHostStat> stats,
+      final Stream<QueryHostStat> errorStats,
+      final KsqlHostInfo host
   ) {
+    final KsqlHostInfoEntity hostEntity = new KsqlHostInfoEntity(host);
+
+    final Stream<QueryHostStat> localStats = MetricCollectors
+        .getStatsFor(dataSource.getKafkaTopicName(), false)
+        .stream()
+        .map((stat) -> QueryHostStat.fromStat(stat, hostEntity));
+    final Stream<QueryHostStat> localErrorStats = MetricCollectors
+        .getStatsFor(dataSource.getKafkaTopicName(), true)
+        .stream()
+        .map((stat) -> QueryHostStat.fromStat(stat, hostEntity));
+
     return new SourceDescription(
         dataSource.getName().toString(FormatOptions.noEscape()),
         dataSource.getKsqlTopic().getKeyFormat().getWindowType(),
@@ -84,10 +98,6 @@ public final class SourceDescriptionFactory {
         (extended
             ? MetricCollectors.getAndFormatStatsFor(
             dataSource.getKafkaTopicName(), true) : ""),
-        ImmutableMap.copyOf(MetricCollectors.getStatsFor(
-            dataSource.getKafkaTopicName(), false)),
-        ImmutableMap.copyOf(MetricCollectors.getStatsFor(
-            dataSource.getKafkaTopicName(), true)),
         extended,
         dataSource.getKsqlTopic().getKeyFormat().getFormatInfo().getFormat(),
         dataSource.getKsqlTopic().getValueFormat().getFormatInfo().getFormat(),
@@ -97,17 +107,7 @@ public final class SourceDescriptionFactory {
         dataSource.getSqlExpression(),
         queryOffsetSummaries,
         sourceConstraints,
-        stats.entrySet()
-            .stream()
-            .collect(toImmutableMap(
-                (e) -> new KsqlHostInfoEntity(e.getKey()),
-                Map.Entry::getValue
-            )),
-        errorStats.entrySet()
-            .stream()
-            .collect(toImmutableMap(
-                (e) -> new KsqlHostInfoEntity(e.getKey()),
-                Map.Entry::getValue
-            )));
+        Streams.concat(localStats, stats).collect(toImmutableList()),
+        Streams.concat(localErrorStats, errorStats).collect(toImmutableList()));
   }
 }

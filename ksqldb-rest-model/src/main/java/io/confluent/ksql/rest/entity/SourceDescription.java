@@ -17,13 +17,10 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.metrics.TopicSensors.Stat;
 import io.confluent.ksql.model.WindowType;
 import java.util.List;
 import java.util.Objects;
@@ -43,8 +40,6 @@ public class SourceDescription {
   private final String timestamp;
   private final String statistics;
   private final String errorStats;
-  private final ImmutableMap<String, Stat> statisticsMap;
-  private final ImmutableMap<String, Stat> errorStatsMap;
   private final boolean extended;
   private final String keyFormat;
   private final String valueFormat;
@@ -54,10 +49,8 @@ public class SourceDescription {
   private final String statement;
   private final List<QueryOffsetSummary> queryOffsetSummaries;
   private final List<String> sourceConstraints;
-  @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  private final ImmutableMap<KsqlHostInfoEntity, ImmutableMap<String, Stat>> clusterStatistics;
-  @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  private final ImmutableMap<KsqlHostInfoEntity, ImmutableMap<String, Stat>> clusterErrorStats;
+  private final List<QueryHostStat> clusterStatistics;
+  private final List<QueryHostStat> clusterErrorStats;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @JsonCreator
@@ -71,8 +64,6 @@ public class SourceDescription {
       @JsonProperty("timestamp") final String timestamp,
       @JsonProperty("statistics") final String statistics,
       @JsonProperty("errorStats") final String errorStats,
-      @JsonProperty("statisticsMap") final ImmutableMap<String, Stat> statisticsMap,
-      @JsonProperty("errorStatsMap") final ImmutableMap<String, Stat> errorStatsMap,
       @JsonProperty("extended") final boolean extended,
       @JsonProperty("keyFormat") final String keyFormat,
       @JsonProperty("valueFormat") final String valueFormat,
@@ -82,10 +73,8 @@ public class SourceDescription {
       @JsonProperty("statement") final String statement,
       @JsonProperty("queryOffsetSummaries") final List<QueryOffsetSummary> queryOffsetSummaries,
       @JsonProperty("sourceConstraints") final List<String> sourceConstraints,
-      @JsonProperty("clusterStatistics")
-      final ImmutableMap<KsqlHostInfoEntity, ImmutableMap<String, Stat>> clusterStats,
-      @JsonProperty("clusterErrorStats")
-      final ImmutableMap<KsqlHostInfoEntity, ImmutableMap<String, Stat>> clusterErrors
+      @JsonProperty("clusterStatistics") final List<QueryHostStat> clusterStats,
+      @JsonProperty("clusterErrorStats") final List<QueryHostStat> clusterErrors
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.name = Objects.requireNonNull(name, "name");
@@ -100,8 +89,6 @@ public class SourceDescription {
     this.timestamp = Objects.requireNonNull(timestamp, "timestamp");
     this.statistics = Objects.requireNonNull(statistics, "statistics");
     this.errorStats = Objects.requireNonNull(errorStats, "errorStats");
-    this.statisticsMap = Objects.requireNonNull(statisticsMap, "statisticsMap");
-    this.errorStatsMap = Objects.requireNonNull(errorStatsMap, "errorStatsMap");
     this.extended = extended;
     this.keyFormat = Objects.requireNonNull(keyFormat, "keyFormat");
     this.valueFormat = Objects.requireNonNull(valueFormat, "valueFormat");
@@ -128,8 +115,6 @@ public class SourceDescription {
       @JsonProperty("timestamp") final String timestamp,
       @JsonProperty("statistics") final String statistics,
       @JsonProperty("errorStats") final String errorStats,
-      @JsonProperty("statisticsMap") final ImmutableMap<String, Stat> statisticsMap,
-      @JsonProperty("errorStatsMap") final ImmutableMap<String, Stat> errorStatsMap,
       @JsonProperty("extended") final boolean extended,
       @JsonProperty("keyFormat") final String keyFormat,
       @JsonProperty("valueFormat") final String valueFormat,
@@ -150,8 +135,6 @@ public class SourceDescription {
         timestamp,
         statistics,
         errorStats,
-        statisticsMap,
-        errorStatsMap,
         extended,
         keyFormat,
         valueFormat,
@@ -161,8 +144,8 @@ public class SourceDescription {
         statement,
         queryOffsetSummaries,
         sourceConstraints,
-        ImmutableMap.of(),
-        ImmutableMap.of()
+        ImmutableList.of(),
+        ImmutableList.of()
     );
   }
   // CHECKSTYLE_RULES.ON: ParameterNumberCheck
@@ -241,14 +224,6 @@ public class SourceDescription {
     return "";
   }
 
-  public ImmutableMap<String, Stat> getStatisticsMap() {
-    return statisticsMap;
-  }
-
-  public ImmutableMap<String, Stat> getErrorStatsMap() {
-    return errorStatsMap;
-  }
-
   public List<QueryOffsetSummary> getQueryOffsetSummaries() {
     return queryOffsetSummaries;
   }
@@ -257,11 +232,11 @@ public class SourceDescription {
     return sourceConstraints;
   }
 
-  public ImmutableMap<KsqlHostInfoEntity, ImmutableMap<String, Stat>> getClusterStatistics() {
+  public List<QueryHostStat> getClusterStatistics() {
     return clusterStatistics;
   }
 
-  public ImmutableMap<KsqlHostInfoEntity, ImmutableMap<String, Stat>> getClusterErrorStats() {
+  public List<QueryHostStat> getClusterErrorStats() {
     return clusterErrorStats;
   }
 
@@ -288,6 +263,8 @@ public class SourceDescription {
         && Objects.equals(timestamp, that.timestamp)
         && Objects.equals(statistics, that.statistics)
         && Objects.equals(errorStats, that.errorStats)
+        && Objects.equals(clusterStatistics, that.clusterStatistics)
+        && Objects.equals(clusterErrorStats, that.clusterErrorStats)
         && Objects.equals(keyFormat, that.keyFormat)
         && Objects.equals(valueFormat, that.valueFormat)
         && Objects.equals(topic, that.topic)

@@ -211,9 +211,14 @@ public class ServerVerticle extends AbstractVerticle {
         .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
         .produces(JSON_CONTENT_TYPE)
         .handler(this::handleWebsocket);
+    router.route(HttpMethod.GET, "/is_valid_property/:property")
+        .produces(KsqlMediaType.KSQL_V1_JSON.mediaType())
+        .produces(JSON_CONTENT_TYPE)
+        .handler(this::handleIsValidPropertyRequest);
 
     return router;
   }
+
 
   private void handleKsqlRequest(final RoutingContext routingContext) {
     handleOldApiRequest(server, routingContext, KsqlRequest.class, Optional.empty(),
@@ -234,7 +239,6 @@ public class ServerVerticle extends AbstractVerticle {
   }
 
   private void handleQueryRequest(final RoutingContext routingContext) {
-
     final CompletableFuture<Void> connectionClosedFuture = new CompletableFuture<>();
     routingContext.request().connection().closeHandler(v -> connectionClosedFuture.complete(null));
     final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();
@@ -283,6 +287,17 @@ public class ServerVerticle extends AbstractVerticle {
         (r, apiSecurityContext) ->
             endpoints.executeStatus(type, entity, action,
                 DefaultApiSecurityContext.create(routingContext))
+    );
+  }
+
+  private void handleIsValidPropertyRequest(final RoutingContext routingContext) {
+    final HttpServerRequest request = routingContext.request();
+    final String property = request.getParam("property");
+    handleOldApiRequest(server, routingContext, null, Optional.empty(),
+        (ksqlRequest, apiSecurityContext) ->
+            endpoints
+                .executeIsValidProperty(property, server.getWorkerExecutor(),
+                    DefaultApiSecurityContext.create(routingContext))
     );
   }
 

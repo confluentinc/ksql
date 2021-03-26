@@ -64,6 +64,7 @@ import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.net.URL;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -234,6 +235,22 @@ public class KsqlResource implements KsqlConfigurable {
     } catch (final Exception e) {
       return Errors.serverErrorForStatement(
           e, TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, new KsqlEntityList());
+    }
+  }
+
+  public EndpointResponse isValidProperty(final String property) {
+    try {
+      final Map<String, Object> properties = new HashMap<>();
+      properties.put(property, "");
+      denyListPropertyValidator.validateAll(properties);
+
+      return EndpointResponse.ok(true);
+    } catch (final KsqlException e) {
+      LOG.info("Processed unsuccessfully, reason: ", e);
+      return errorHandler.generateResponse(e, Errors.badRequest(e));
+    } catch (final Exception e) {
+      LOG.info("Processed unsuccessfully, reason: ", e);
+      throw e;
     }
   }
 

@@ -71,6 +71,7 @@ public final class KsqlTarget {
   private static final String LAG_REPORT_PATH = "/lag";
   private static final String SERVER_METADATA_PATH = "/v1/metadata";
   private static final String SERVER_METADATA_ID_PATH = "/v1/metadata/id";
+  private static final String IS_VALID_PATH = "/is_valid_property/";
 
   private final HttpClient httpClient;
   private final SocketAddress socketAddress;
@@ -160,6 +161,10 @@ public final class KsqlTarget {
 
   public RestResponse<ServerClusterId> getServerMetadataId() {
     return get(SERVER_METADATA_ID_PATH, ServerClusterId.class);
+  }
+
+  public RestResponse<Boolean> getIsValidRequest(final String propertyName) {
+    return get(IS_VALID_PATH + propertyName, Boolean.class);
   }
 
   public RestResponse<KsqlEntityList> postKsqlRequest(

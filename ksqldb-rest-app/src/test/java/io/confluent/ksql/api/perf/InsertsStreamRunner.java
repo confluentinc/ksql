@@ -222,6 +222,12 @@ public class InsertsStreamRunner extends BasePerfRunner {
     }
 
     @Override
+    public CompletableFuture<EndpointResponse> executeIsValidProperty(String property,
+        WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
     public CompletableFuture<EndpointResponse> executeAllStatuses(
         ApiSecurityContext apiSecurityContext) {
       return null;

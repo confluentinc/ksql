@@ -98,6 +98,9 @@ public interface Endpoints {
   CompletableFuture<EndpointResponse> executeStatus(String type, String entity, String action,
       ApiSecurityContext apiSecurityContext);
 
+  CompletableFuture<EndpointResponse> executeIsValidProperty(String property,
+      WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext);
+
   CompletableFuture<EndpointResponse> executeAllStatuses(ApiSecurityContext apiSecurityContext);
 
   CompletableFuture<EndpointResponse> executeLagReport(LagReportingMessage lagReportingMessage,

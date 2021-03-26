@@ -307,6 +307,35 @@ public class ApiIntegrationTest {
   }
 
   @Test
+  public void shouldExecutePullQueryWithVariableSubstitution() {
+
+    // Given:
+    String sql = "SELECT * from ${AGG_TABLE} WHERE K=" + AN_AGG_KEY + ";";
+    final JsonObject variables = new JsonObject().put("AGG_TABLE", AGG_TABLE);
+
+    // When:
+    // Maybe need to retry as populating agg table is async
+    AtomicReference<QueryResponse> atomicReference = new AtomicReference<>();
+    assertThatEventually(() -> {
+      QueryResponse queryResponse = executeQueryWithVariables(sql, variables);
+      atomicReference.set(queryResponse);
+      return queryResponse.rows;
+    }, hasSize(1));
+
+    QueryResponse response = atomicReference.get();
+
+    // Then:
+    JsonArray expectedColumnNames = new JsonArray().add("K").add("LONG");
+    JsonArray expectedColumnTypes = new JsonArray().add("STRUCT<`F1` ARRAY<STRING>>").add("BIGINT");
+    assertThat(response.rows, hasSize(1));
+    assertThat(response.responseObject.getJsonArray("columnNames"), is(expectedColumnNames));
+    assertThat(response.responseObject.getJsonArray("columnTypes"), is(expectedColumnTypes));
+    assertThat(response.responseObject.getString("queryId"), is(nullValue()));
+    assertThat(response.rows.get(0).getJsonObject(0).getJsonArray("F1").getString(0), is("a")); // rowkey
+    assertThat(response.rows.get(0).getLong(1), is(1L)); // latest_by_offset(long)
+  }
+
+  @Test
   public void shouldFailPullQueryWithInvalidSql() {
 
     // Given:

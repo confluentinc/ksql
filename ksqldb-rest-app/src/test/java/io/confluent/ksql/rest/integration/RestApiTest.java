@@ -55,8 +55,10 @@ import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryStreamArgs;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
@@ -684,8 +686,9 @@ public class RestApiTest {
     );
 
     // Then:
-    final List<String> query = REST_APP.getPersistentQueries().stream()
-        .filter(q -> q.startsWith("CSAS_X_"))
+    final List<String> query = ((Queries) makeKsqlRequest("SHOW QUERIES;").get(0))
+        .getQueries().stream().map(q -> q.getQueryString())
+        .filter(q -> q.contains("WHERE (PAGEVIEW_KSTREAM.USERID = 'USER_1')"))
         .collect(Collectors.toList());
     assertThat(query.size(), is(1));
   }
@@ -715,8 +718,8 @@ public class RestApiTest {
     return serviceContext;
   }
 
-  private static void makeKsqlRequest(final String sql) {
-    RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
+  private static List<KsqlEntity> makeKsqlRequest(final String sql) {
+    return RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
   }
 
   private static void makeKsqlRequestWithVariables(final String sql, final Map<String, Object> variables) {

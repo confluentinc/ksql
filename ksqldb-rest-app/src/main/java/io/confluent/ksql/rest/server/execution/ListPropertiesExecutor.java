@@ -35,6 +35,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.connect.runtime.distributed.DistributedConfig;
 
@@ -106,10 +107,19 @@ public final class ListPropertiesExecutor {
     final Map<String, String> workerProps = Utils.propsToStringMap(getWorkerProps(configFile));
     // only list known connect worker properties to avoid showing potentially sensitive data
     // in other configs
-    final Set<String> allowList = new DistributedConfig(workerProps).values().keySet();
+    final Set<String> allowList = embeddedConnectWorkerPropertiesAllowList(workerProps);
     return workerProps.keySet().stream()
         .filter(allowList::contains)
         .collect(Collectors.toMap(k -> k, workerProps::get));
+  }
+
+  private static Set<String> embeddedConnectWorkerPropertiesAllowList(
+      final Map<String, String> workerProps
+  ) {
+    final DistributedConfig config = new DistributedConfig(workerProps);
+    return config.values().keySet().stream()
+        .filter(k -> config.typeOf(k) != Type.PASSWORD)
+        .collect(Collectors.toSet());
   }
 
   private static Properties getWorkerProps(final String configFile) {

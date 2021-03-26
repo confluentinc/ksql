@@ -1,0 +1,15 @@
+
+Name                 : TestSource
+ Field  | Type                           
+-----------------------------------------
+ ROWKEY | VARCHAR(STRING)  (primary key) 
+ f_0    | BOOLEAN                        
+ f_1    | INTEGER                        
+ f_2    | BIGINT                         
+ f_3    | DOUBLE                         
+ f_4    | VARCHAR(STRING)                
+ f_5    | ARRAY<VARCHAR(STRING)>         
+ f_6    | MAP<STRING, BIGINT>            
+ f_7    | STRUCT<a DOUBLE>               
+-----------------------------------------
+For runtime statistics and query details run: DESCRIBE <Stream,Table> EXTENDED;

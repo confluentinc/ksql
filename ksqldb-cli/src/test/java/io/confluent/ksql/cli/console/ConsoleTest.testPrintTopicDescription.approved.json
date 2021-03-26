@@ -1,0 +1,9 @@
+[ {
+  "@type" : "topicDescription",
+  "statementText" : "e",
+  "name" : "TestTopic",
+  "format" : "AVRO",
+  "schemaString" : "schemaString",
+  "warnings" : [ ],
+  "kafkaTopic" : "TestKafkaTopic"
+} ]

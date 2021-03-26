@@ -1,0 +1,17 @@
+[ {
+  "@type" : "queries",
+  "statementText" : "e",
+  "queries" : [ {
+    "queryString" : "select * from t1 emit changes",
+    "sinks" : [ "Test" ],
+    "sinkKafkaTopics" : [ "Test topic" ],
+    "id" : "0",
+    "statusCount" : {
+      "RUNNING" : 1,
+      "ERROR" : 2
+    },
+    "queryType" : "PUSH",
+    "state" : "ERROR"
+  } ],
+  "warnings" : [ ]
+} ]

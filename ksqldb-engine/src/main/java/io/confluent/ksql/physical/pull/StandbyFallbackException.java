@@ -17,6 +17,10 @@ package io.confluent.ksql.physical.pull;
 
 import io.confluent.ksql.util.KsqlException;
 
+/**
+ * This exception is thrown to indicate that pull queries should fallback on the next standby in
+ * line.
+ */
 public class StandbyFallbackException extends KsqlException {
 
   public StandbyFallbackException(final Throwable cause) {

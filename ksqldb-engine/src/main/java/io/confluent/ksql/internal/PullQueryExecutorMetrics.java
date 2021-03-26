@@ -652,6 +652,7 @@ public class PullQueryExecutorMetrics implements Closeable {
     void addMetrics(Sensor sensor, Map<String, String> tags, String variantName);
   }
 
+  // Detailed metrics are broken down by multiple parameters represented by the following key.
   private static class MetricsKey {
 
     private final PullSourceType sourceType;

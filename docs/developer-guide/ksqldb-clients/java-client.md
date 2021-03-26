@@ -31,6 +31,7 @@ Use the Java client to:
 - [Create and manage new streams, tables, and persistent queries (executeStatement())](#execute-statement)
 - [List streams, tables, topics, and queries](#admin-operations)
 - [Describe specific streams and tables](#describe-source)
+- [Get metadata about the ksqlDB cluster](#server-info)
 - [Manage, list and describe connectors](#connector-operations)
 
 Get started below or skip to the end for full-fledged [examples](#tutorial-examples).
@@ -692,6 +693,24 @@ System.out.println("This source is a " + description.type());
 System.out.println("This stream/table has " + description.fields().size() + " columns.");
 System.out.println(description.writeQueries().size() + " queries write to this stream/table.");
 System.out.println(description.readQueries().size() + " queries read from this stream/table.");
+``` 
+
+Get metadata about the ksqlDB cluster<a name="server-info"></a>
+---------------------------------------------------------------
+
+Starting with ksqlDB 0.16.0, the `serverInfo()` method enables client apps to fetch metadata about
+the ksqlDB cluster. The metadata returned from this method includes the version of ksqlDB the server
+is running, the Kafka cluster id and the ksqlDB service id. For more details, see the 
+[API reference](api/io/confluent/ksql/api/client/Client.html#serverInfo()).
+
+### Example Usage ###
+
+Fetch server metadata:
+```java
+ServerInfo serverInfo = client.serverInfo().get();
+System.out.println("The ksqlDB version running on this server is " + serverInfo.getServerVersion());
+System.out.println("The Kafka cluster this server is using is " + serverInfo.getKafkaClusterId());
+System.out.println("The id of this ksqlDB service is " + serverInfo.getKsqlServiceId());
 ``` 
 
 Manage, list and describe connectors<a name="connector-operations"></a>

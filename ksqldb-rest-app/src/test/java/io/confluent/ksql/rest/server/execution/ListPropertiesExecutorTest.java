@@ -142,7 +142,8 @@ public class ListPropertiesExecutorTest {
             + "offset.storage.topic=topic1\n"
             + "config.storage.topic=topic2\n"
             + "status.storage.topic=topic3\n"
-            + "producer.sasl.jaas.config=<potentially sensitive data that should not be shown>\n"
+            + "other.config=<potentially sensitive data that should not be shown>\n"
+            + "sasl.jaas.config=<potentially sensitive data that should not be shown even though it's a recognized config>\n"
     );
 
     // When:
@@ -162,9 +163,8 @@ public class ListPropertiesExecutorTest {
     assertThat(
         properties.getProperties(),
         hasItem(new Property("value.converter", "EMBEDDED CONNECT WORKER", "io.confluent.connect.avro.AvroConverter")));
-    assertThat(
-        toMap(properties),
-        not(hasKey("producer.sasl.jaas.config")));
+    assertThat(toMap(properties), not(hasKey("other.config")));
+    assertThat(toMap(properties), not(hasKey("sasl.jaas.config")));
   }
 
   private void givenConnectWorkerProperties(final String contents) throws Exception {

@@ -38,7 +38,9 @@ public class QueryStreamArgs {
           Map<String, Object> sessionVariables) {
     this.sql = Objects.requireNonNull(sql);
     this.properties = properties == null ? new JsonObject() : new JsonObject(properties);
-    this.sessionVariables = sessionVariables == null ? new JsonObject() : new JsonObject(sessionVariables);
+    this.sessionVariables = sessionVariables == null
+        ? new JsonObject()
+        : new JsonObject(sessionVariables);
   }
 
   @Override

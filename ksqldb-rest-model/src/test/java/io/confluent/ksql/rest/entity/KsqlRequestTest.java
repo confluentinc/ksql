@@ -65,7 +65,8 @@ public class KsqlRequestTest {
       + "\"" + KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST + "\":true,"
       + "\"" + KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING + "\":true"
       + "},"
-      + "\"commandSequenceNumber\":2}";
+      + "\"commandSequenceNumber\":2,"
+      + "\"sessionVariables\":{}}";
   private static final String A_JSON_REQUEST_WITH_NULL_COMMAND_NUMBER = "{"
       + "\"ksql\":\"sql\","
       + "\"streamsProperties\":{"
@@ -77,7 +78,8 @@ public class KsqlRequestTest {
       + "\"" + KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST + "\":true,"
       + "\"" + KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING + "\":true"
       + "},"
-      + "\"commandSequenceNumber\":null}";
+      + "\"commandSequenceNumber\":null,"
+      + "\"sessionVariables\":{}}";
 
   private static final ImmutableMap<String, Object> SOME_PROPS = ImmutableMap.of(
       ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest",

@@ -113,7 +113,8 @@ public class KsqlRequest {
 
   @Override
   public int hashCode() {
-    return Objects.hash(ksql, configOverrides, requestProperties, commandSequenceNumber);
+    return Objects.hash(ksql, configOverrides, requestProperties,
+        sessionVariables, commandSequenceNumber);
   }
 
   @Override

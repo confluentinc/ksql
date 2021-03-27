@@ -51,11 +51,17 @@ public class SessionProperties {
       final boolean internalRequest,
       final Map<String, Object> sessionVariables
   ) {
-    this(mutableScopedProperties, ksqlHostInfo, localUrl, internalRequest);
-    if (sessionVariables != null) {
-      this.sessionVariables.putAll(sessionVariables.entrySet().stream()
-          .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toString())));
-    }
+    this.mutableScopedProperties =
+        new HashMap<>(Objects.requireNonNull(mutableScopedProperties, "mutableScopedProperties"));
+    this.ksqlHostInfo = Objects.requireNonNull(ksqlHostInfo, "ksqlHostInfo");
+    this.localUrl = Objects.requireNonNull(localUrl, "localUrl");
+    this.internalRequest = internalRequest;
+    this.sessionVariables = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    this.sessionVariables.putAll(
+        Objects.requireNonNull(sessionVariables, "sessionVariables")
+            .entrySet()
+            .stream()
+            .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toString())));
   }
 
   /**
@@ -70,12 +76,7 @@ public class SessionProperties {
       final URL localUrl,
       final boolean internalRequest
   ) {
-    this.mutableScopedProperties = 
-        new HashMap<>(Objects.requireNonNull(mutableScopedProperties, "mutableScopedProperties"));
-    this.ksqlHostInfo = Objects.requireNonNull(ksqlHostInfo, "ksqlHostInfo");
-    this.localUrl = Objects.requireNonNull(localUrl, "localUrl");
-    this.internalRequest = internalRequest;
-    this.sessionVariables = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    this(mutableScopedProperties, ksqlHostInfo, localUrl, internalRequest, Collections.EMPTY_MAP);
   }
 
   public Map<String, Object> getMutableScopedProperties() {

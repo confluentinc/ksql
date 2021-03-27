@@ -51,9 +51,9 @@ public interface Endpoints {
    * @param workerExecutor The worker executor to use for blocking operations
    * @return A CompletableFuture representing the future result of the operation
    */
-  CompletableFuture<QueryPublisher> createQueryPublisher(String sql, JsonObject properties, JsonObject sessionVariables,
-      Context context, WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext,
-      MetricsCallbackHolder metricsCallbackHolder);
+  CompletableFuture<QueryPublisher> createQueryPublisher(String sql, JsonObject properties,
+      JsonObject sessionVariables, Context context, WorkerExecutor workerExecutor,
+      ApiSecurityContext apiSecurityContext, MetricsCallbackHolder metricsCallbackHolder);
 
   /**
    * Create a subscriber which will receive a stream of inserts from the API server and process

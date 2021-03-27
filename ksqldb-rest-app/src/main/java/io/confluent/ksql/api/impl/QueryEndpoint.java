@@ -105,7 +105,8 @@ public class QueryEndpoint {
     // Must be run on worker as all this stuff is slow
     VertxUtils.checkIsWorker();
 
-    final ConfiguredStatement<Query> statement = createStatement(sql, properties.getMap(), sessionVariables.getMap());
+    final ConfiguredStatement<Query> statement = createStatement(
+        sql, properties.getMap(), sessionVariables.getMap());
 
     if (statement.getStatement().isPullQuery()) {
       return createPullQueryPublisher(

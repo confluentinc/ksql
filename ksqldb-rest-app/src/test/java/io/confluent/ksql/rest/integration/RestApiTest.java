@@ -155,6 +155,11 @@ public class RestApiTest {
               )
               .withAcl(
                   NORMAL_USER,
+                  resource(TOPIC, "Y"),
+                  ops(ALL)
+              )
+              .withAcl(
+                  NORMAL_USER,
                   resource(TOPIC, AGG_TABLE),
                   ops(ALL)
               )
@@ -681,7 +686,7 @@ public class RestApiTest {
     // Given:
     // When:
     makeKsqlRequestWithVariables(
-        "CREATE STREAM X AS SELECT * FROM " + PAGE_VIEW_STREAM + " WHERE USERID='${id}';",
+        "CREATE STREAM Y AS SELECT * FROM " + PAGE_VIEW_STREAM + " WHERE USERID='${id}';",
         ImmutableMap.of("id", "USER_1")
     );
 

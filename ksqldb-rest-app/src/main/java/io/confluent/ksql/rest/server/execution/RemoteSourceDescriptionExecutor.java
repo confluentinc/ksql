@@ -16,42 +16,32 @@
 
 package io.confluent.ksql.rest.server.execution;
 
-import static com.google.common.collect.ImmutableListMultimap.flatteningToImmutableListMultimap;
-import static com.google.common.collect.ImmutableListMultimap.toImmutableListMultimap;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionList;
-import io.confluent.ksql.util.KsqlHostInfo;
-import java.util.Map;
+import java.util.List;
 
 public final class RemoteSourceDescriptionExecutor {
   private RemoteSourceDescriptionExecutor() {
   }
 
-  public static Multimap<String, RemoteSourceDescription> fetchSourceDescriptions(
+  public static Multimap<String, SourceDescription> fetchSourceDescriptions(
       final RemoteHostExecutor remoteHostExecutor
   ) {
-    return Maps
+    final List<SourceDescription> sourceDescriptions = Maps
         .transformValues(
             remoteHostExecutor.fetchAllRemoteResults().getLeft(),
             SourceDescriptionList.class::cast)
-        .entrySet()
+        .values()
         .stream()
-        .collect(
-            flatteningToImmutableListMultimap(
-                Map.Entry::getKey,
-                (e) -> e.getValue().getSourceDescriptions().stream())
-        )
-        .entries()
-        .stream()
-        .collect(toImmutableListMultimap(
-            e -> e.getValue().getName(),
-            e -> new RemoteSourceDescription(
-                e.getValue().getName(),
-                e.getValue(),
-                KsqlHostInfo.fromHostInfo(e.getKey())
-            )
-        ));
+        .flatMap((rsl) -> rsl.getSourceDescriptions().stream())
+        .collect(toImmutableList());
+
+    return Multimaps.index(sourceDescriptions, SourceDescription::getName);
+
   }
 }

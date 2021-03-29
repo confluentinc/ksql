@@ -49,20 +49,6 @@
     "timestamp" : "2000-01-01",
     "statistics" : "The statistics field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use statisticsMap instead.\nstats",
     "errorStats" : "The errorStats field is deprecated and will be removed in a future version of ksql. Please update your client to the latest version and use errorStatsMap instead.\nerrors\n",
-    "statisticsMap" : {
-      "TEST" : {
-        "name" : "TEST",
-        "value" : 0.0,
-        "timestamp" : 1596644936314
-      }
-    },
-    "errorStatsMap" : {
-      "ERROR" : {
-        "name" : "ERROR",
-        "value" : 0.0,
-        "timestamp" : 1596644936314
-      }
-    },
     "extended" : true,
     "keyFormat" : "kafka",
     "valueFormat" : "avro",
@@ -71,7 +57,9 @@
     "replication" : 1,
     "statement" : "statement",
     "queryOffsetSummaries" : [ ],
-    "sourceConstraints" : [ ]
+    "sourceConstraints" : [ ],
+    "clusterStatistics" : [ ],
+    "clusterErrorStats" : [ ]
   } ],
   "topics" : [ "a-jdbc-topic" ],
   "warnings" : [ ]

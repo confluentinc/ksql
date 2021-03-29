@@ -18,7 +18,6 @@ package io.confluent.ksql.metrics;
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
 
 import com.google.common.base.Functions;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.Time;
 import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
@@ -157,7 +156,7 @@ public final class MetricCollectors {
     collectorMap.remove(id);
   }
 
-  public static ImmutableMap<String, TopicSensors.Stat> getStatsFor(
+  public static Collection<TopicSensors.Stat> getStatsFor(
       final String topic, final boolean isError) {
     return getAggregateMetrics(
         collectorMap.values().stream()
@@ -168,18 +167,18 @@ public final class MetricCollectors {
 
   public static String getAndFormatStatsFor(final String topic, final boolean isError) {
     return format(
-        getStatsFor(topic, isError).values(),
+        getStatsFor(topic, isError),
         isError ? "last-failed" : "last-message");
   }
 
-  static ImmutableMap<String, TopicSensors.Stat> getAggregateMetrics(
+  static Collection<TopicSensors.Stat> getAggregateMetrics(
       final List<TopicSensors.Stat> allStats
   ) {
     return allStats.stream().collect(toImmutableMap(
         TopicSensors.Stat::name,
         Functions.identity(),
         (first, other) -> first.aggregate(other.getValue())
-    ));
+    )).values();
   }
 
   public static String format(

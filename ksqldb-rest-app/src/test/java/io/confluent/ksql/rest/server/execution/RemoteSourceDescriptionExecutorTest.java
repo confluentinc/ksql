@@ -59,13 +59,13 @@ public class RemoteSourceDescriptionExecutorTest  {
     // Given
     when(augmenter.fetchAllRemoteResults()).thenReturn(new Pair(response, ImmutableSet.of()));
 
-    Multimap<String, RemoteSourceDescription> res = RemoteSourceDescriptionExecutor.fetchSourceDescriptions(augmenter);
+    Multimap<String, SourceDescription> res = RemoteSourceDescriptionExecutor.fetchSourceDescriptions(augmenter);
 
     Map<String, List<SourceDescription>> queryHostCounts = descriptionLists.stream()
         .flatMap((v) -> v.getSourceDescriptions().stream())
         .collect(Collectors.groupingBy(SourceDescription::getName));
 
-    assertThat(res.values(), everyItem(instanceOf(RemoteSourceDescription.class)));
+    assertThat(res.values(), everyItem(instanceOf(SourceDescription.class)));
     response.forEach((host, value) -> value.getSourceDescriptions().forEach((sd) -> {
       assertThat(res.get(sd.getName()), hasSize(queryHostCounts.get(sd.getName()).size()));
     }));
@@ -76,7 +76,7 @@ public class RemoteSourceDescriptionExecutorTest  {
     // Given
     when(augmenter.fetchAllRemoteResults()).thenReturn(new Pair(ImmutableMap.of(), response.keySet()));
 
-    Multimap<String, RemoteSourceDescription> res = RemoteSourceDescriptionExecutor.fetchSourceDescriptions(augmenter);
+    Multimap<String, SourceDescription> res = RemoteSourceDescriptionExecutor.fetchSourceDescriptions(augmenter);
     response.forEach((key, value) -> value.getSourceDescriptions().forEach((sd) -> {
       assertThat(res.get(sd.getName()), hasSize(0));
     }));

@@ -98,7 +98,7 @@ public final class ListSourceExecutor {
         serviceContext.getKsqlClient()
     );
 
-    final Multimap<String, RemoteSourceDescription> remoteSourceDescriptions = extended
+    final Multimap<String, SourceDescription> remoteSourceDescriptions = extended
         ? RemoteSourceDescriptionExecutor.fetchSourceDescriptions(remoteHostExecutor)
         : ImmutableMultimap.of();
 
@@ -271,7 +271,7 @@ public final class ListSourceExecutor {
       final boolean extended,
       final ConfiguredStatement<? extends StatementWithExtendedClause> statement,
       final SessionProperties sessionProperties,
-      final Collection<RemoteSourceDescription> remoteSourceDescriptions
+      final Collection<SourceDescription> remoteSourceDescriptions
 
   ) {
     final DataSource dataSource = ksqlEngine.getMetaStore().getSource(name);
@@ -301,24 +301,10 @@ public final class ListSourceExecutor {
     } catch (final KafkaException | KafkaResponseGetFailedException e) {
       warnings.add(new KsqlWarning("Error from Kafka: " + e.getMessage()));
     }
-    final SourceDescription localSourceDescription = SourceDescriptionFactory.create(
-        dataSource,
-        extended,
-        readQueries,
-        writeQueries,
-        topicDescription,
-        queryOffsetSummaries,
-        sourceConstraints
-    );
 
     if (extended) {
       queryOffsetSummaries = queryOffsetSummaries(ksqlConfig, serviceContext, writeQueries);
 
-      final ClusterQueryStats clusterQueryStats = ClusterQueryStats.create(
-          sessionProperties.getKsqlHostInfo(),
-          localSourceDescription,
-          remoteSourceDescriptions
-      );
 
       return new SourceDescriptionWithWarnings(
           warnings,
@@ -330,15 +316,28 @@ public final class ListSourceExecutor {
               topicDescription,
               queryOffsetSummaries,
               sourceConstraints,
-              clusterQueryStats.getStats(),
-              clusterQueryStats.getErrors()
+              remoteSourceDescriptions.stream().flatMap(sd -> sd.getClusterStatistics().stream()),
+              remoteSourceDescriptions.stream().flatMap(sd -> sd.getClusterErrorStats().stream()),
+              sessionProperties.getKsqlHostInfo()
+
           )
       );
     }
 
     return new SourceDescriptionWithWarnings(
         warnings,
-        localSourceDescription
+        SourceDescriptionFactory.create(
+            dataSource,
+            extended,
+            readQueries,
+            writeQueries,
+            topicDescription,
+            queryOffsetSummaries,
+            sourceConstraints,
+            java.util.stream.Stream.empty(),
+            java.util.stream.Stream.empty(),
+            sessionProperties.getKsqlHostInfo()
+        )
     );
   }
 

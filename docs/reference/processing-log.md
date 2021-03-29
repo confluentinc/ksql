@@ -342,37 +342,38 @@ You can query the stream just like you would any other ksqlDB stream.
 You can also create the stream yourself by issuing the following DDL statement:
 
 ```sql
-ksql> CREATE STREAM PROCESSING_LOG_STREAM (
-         LOGGER STRING,
-         LEVEL STRING,
-         `TIME` BIGINT,
-         MESSAGE STRUCT<
-             `TYPE` INTEGER,
-             deserializationError STRUCT<
-                 target STRING,
-                 errorMessage STRING,
-                 recordB64 STRING,
-                 cause ARRAY<STRING>,
-                `topic` STRING>,
-             recordProcessingError STRUCT<
-                 errorMessage STRING,
-                 record STRING,
-                 cause ARRAY<STRING>>,
-             productionError STRUCT<
-                 errorMessage STRING>,
-             serializationError STRUCT<
-                 target STRING,
-                 errorMessage STRING,
-                 record STRING,
-                 cause ARRAY<STRING>,
-                `topic` STRING>>,
-             kafkaStreamsError STRUCT<
-                 threadName STRING,
-                 errorMessage STRING,
-                 cause ARRAY<STRING>)
-         WITH (KAFKA_TOPIC='processing_log_topic', VALUE_FORMAT='JSON');
+CREATE STREAM PROCESSING_LOG_STREAM (
+   LOGGER STRING,
+   LEVEL STRING,
+   `TIME` BIGINT,
+   MESSAGE STRUCT<
+       `TYPE` INTEGER,
+       deserializationError STRUCT<
+           target STRING,
+           errorMessage STRING,
+           recordB64 STRING,
+           cause ARRAY<STRING>,
+          `topic` STRING>,
+       recordProcessingError STRUCT<
+           errorMessage STRING,
+           record STRING,
+           cause ARRAY<STRING>>,
+       productionError STRUCT<
+           errorMessage STRING>,
+       serializationError STRUCT<
+           target STRING,
+           errorMessage STRING,
+           record STRING,
+           cause ARRAY<STRING>,
+          `topic` STRING>>,
+       kafkaStreamsError STRUCT<
+           threadName STRING,
+           errorMessage STRING,
+           cause ARRAY<STRING>>)
+   WITH (KAFKA_TOPIC='processing_log_topic', VALUE_FORMAT='JSON');
 ```
 
->Note: Processing log stream auto-creation is supported for
-interactive mode only. Enabling this setting in headless mode causes
-a warning to be printed to the server log.
+!!! note
+    Processing log stream auto-creation is supported for
+    interactive mode only. Enabling this setting in headless mode causes
+    a warning to be printed to the server log.

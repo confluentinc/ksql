@@ -36,7 +36,6 @@ import io.confluent.ksql.schema.query.QuerySchemas;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
@@ -72,14 +71,14 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final QuerySchemas schemas,
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
-      final Consumer<QueryMetadata> closeCallback,
       final long closeTimeout,
       final QueryErrorClassifier errorClassifier,
       final ExecutionStep<?> physicalPlan,
       final int maxQueryErrorsQueueSize,
       final ProcessingLogger processingLogger,
       final long retryBackoffInitialMs,
-      final long retryBackoffMaxMs
+      final long retryBackoffMaxMs,
+      final Listener listener
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -92,15 +91,14 @@ public class PersistentQueryMetadata extends QueryMetadata {
         kafkaStreamsBuilder,
         streamsProperties,
         overriddenProperties,
-        closeCallback,
         closeTimeout,
         id,
         errorClassifier,
         maxQueryErrorsQueueSize,
         retryBackoffInitialMs,
-        retryBackoffMaxMs
+        retryBackoffMaxMs,
+        listener
     );
-
     this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");
     this.schemas = requireNonNull(schemas, "schemas");
     this.resultSchema = requireNonNull(schema, "schema");
@@ -110,18 +108,19 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.processingLogger = requireNonNull(processingLogger, "processingLogger");
   }
 
+  // for creating sandbox instances
   protected PersistentQueryMetadata(
-      final PersistentQueryMetadata other,
-      final Consumer<QueryMetadata> closeCallback
+      final PersistentQueryMetadata original,
+      final Listener listener
   ) {
-    super(other, closeCallback);
-    this.sinkDataSource = other.sinkDataSource;
-    this.schemas = other.schemas;
-    this.resultSchema = other.resultSchema;
-    this.materializationProvider = other.materializationProvider;
-    this.physicalPlan = other.physicalPlan;
-    this.materializationProviderBuilder = other.materializationProviderBuilder;
-    this.processingLogger = other.processingLogger;
+    super(original, listener);
+    this.sinkDataSource = original.getSink();
+    this.schemas = original.schemas;
+    this.resultSchema = original.resultSchema;
+    this.materializationProvider = original.materializationProvider;
+    this.physicalPlan = original.physicalPlan;
+    this.materializationProviderBuilder = original.materializationProviderBuilder;
+    this.processingLogger = original.processingLogger;
   }
 
   @Override
@@ -206,5 +205,19 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
     resetKafkaStreams(newKafkaStreams);
     start();
+  }
+
+  /**
+   * Stops the query without cleaning up the external resources
+   * so that it can be resumed when we call {@link #start()}.
+   *
+   * <p>NOTE: {@link TransientQueryMetadata} overrides this method
+   * since any time a transient query is stopped the external resources
+   * should be cleaned up.</p>
+   *
+   * @see #close()
+   */
+  public synchronized void stop() {
+    doClose(false);
   }
 }

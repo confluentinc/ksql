@@ -17,7 +17,11 @@ package io.confluent.ksql.internal;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.QueryEventListener;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.query.QueryError;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.ReservedInternalTopics;
@@ -148,18 +152,11 @@ public class KsqlEngineMetrics implements Closeable {
     return sensors;
   }
 
-  public void registerQuery(final QueryMetadata query) {
-    final String metricsPrefix = metricGroupPrefix.equals(DEFAULT_METRIC_GROUP_PREFIX)
-        ? ""
-        : metricGroupPrefix;
-
-    final QueryStateListener listener = new QueryStateListener(
-        metrics,
-        metricsPrefix,
-        query.getQueryApplicationId()
-    );
-
-    query.setQueryStateListener(listener);
+  public QueryEventListener getQueryEventListener() {
+    final String metricsPrefix
+        = metricGroupPrefix.equals(KsqlEngineMetrics.DEFAULT_METRIC_GROUP_PREFIX)
+        ? "" : metricGroupPrefix;
+    return new QueryStateListener(metrics, metricsPrefix);
   }
 
   private void recordMessageConsumptionByQueryStats(

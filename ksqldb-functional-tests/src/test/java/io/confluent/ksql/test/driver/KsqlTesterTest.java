@@ -66,6 +66,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -161,7 +162,8 @@ public class KsqlTesterTest {
         metaStore,
         ServiceInfo.create(config),
         new SequentialQueryIdGenerator(),
-        this.config
+        this.config,
+        Collections.emptyList()
     );
 
     this.expectedException = null;
@@ -235,7 +237,7 @@ public class KsqlTesterTest {
     properties.put(StreamsConfig.STATE_DIR_CONFIG, tmpFolder.getRoot().getAbsolutePath());
 
     final TopologyTestDriver driver = new TopologyTestDriver(topology, properties);
-    query.onStop(deleteState -> closeDriver(driver, properties, deleteState));
+    query.addStopListener(() -> closeDriver(driver, properties, false));
 
     final List<TopicInfo> inputTopics = query
         .getSourceNames()

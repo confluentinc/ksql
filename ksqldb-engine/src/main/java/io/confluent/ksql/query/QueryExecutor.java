@@ -86,7 +86,6 @@ public final class QueryExecutor {
   private final ServiceContext serviceContext;
   private final FunctionRegistry functionRegistry;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
-  private final Consumer<QueryMetadata> queryCloseCallback;
   private final StreamsBuilder streamsBuilder;
   private final MaterializationProviderBuilderFactory materializationProviderBuilderFactory;
 
@@ -94,14 +93,12 @@ public final class QueryExecutor {
       final SessionConfig config,
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
-      final FunctionRegistry functionRegistry,
-      final Consumer<QueryMetadata> queryCloseCallback) {
+      final FunctionRegistry functionRegistry) {
     this(
         config,
         processingLogContext,
         serviceContext,
         functionRegistry,
-        queryCloseCallback,
         new KafkaStreamsBuilderImpl(
             Objects.requireNonNull(serviceContext, "serviceContext").getKafkaClientSupplier()),
         new StreamsBuilder(),
@@ -119,7 +116,6 @@ public final class QueryExecutor {
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Consumer<QueryMetadata> queryCloseCallback,
       final KafkaStreamsBuilder kafkaStreamsBuilder,
       final StreamsBuilder streamsBuilder,
       final MaterializationProviderBuilderFactory materializationProviderBuilderFactory
@@ -131,10 +127,6 @@ public final class QueryExecutor {
     );
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
-    this.queryCloseCallback = Objects.requireNonNull(
-        queryCloseCallback,
-        "queryCloseCallback"
-    );
     this.kafkaStreamsBuilder = Objects.requireNonNull(kafkaStreamsBuilder, "kafkaStreamsBuilder");
     this.streamsBuilder = Objects.requireNonNull(streamsBuilder, "streamsBuilder");
     this.materializationProviderBuilderFactory = Objects.requireNonNull(
@@ -152,7 +144,8 @@ public final class QueryExecutor {
       final LogicalSchema schema,
       final OptionalInt limit,
       final Optional<WindowInfo> windowInfo,
-      final boolean excludeTombstones
+      final boolean excludeTombstones,
+      final QueryMetadata.Listener listener
   ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
     final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
@@ -178,12 +171,12 @@ public final class QueryExecutor {
         kafkaStreamsBuilder,
         streamsProperties,
         config.getOverrides(),
-        queryCloseCallback,
         ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
         resultType,
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
-        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS)
+        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
+        listener
     );
   }
 
@@ -200,7 +193,8 @@ public final class QueryExecutor {
       final DataSource sinkDataSource,
       final Set<SourceName> sources,
       final ExecutionStep<?> physicalPlan,
-      final String planSummary
+      final String planSummary,
+      final QueryMetadata.Listener listener
   ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
 
@@ -247,14 +241,14 @@ public final class QueryExecutor {
         runtimeBuildContext.getSchemas(),
         streamsProperties,
         config.getOverrides(),
-        queryCloseCallback,
         ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
         classifier,
         physicalPlan,
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
         getUncaughtExceptionProcessingLogger(queryId),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
-        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS)
+        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
+        listener
     );
   }
 

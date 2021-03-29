@@ -77,6 +77,25 @@ won't contain newlines.
 ]
 ```
 
+Starting from 0.18, variable substitution can be applied by passing a map of variables and
+definitions to the `sessionVariables` argument of the request body and referencing variables by
+enclosing them in `${}`. For example, the following requests are equivalent:
+
+```json
+{
+"sql": "select concat(A, '${fruit}') from foo", 
+"sessionVariables": {
+    "fruit": "orange"
+   }
+}
+```
+
+```json
+{
+"sql": "select concat(A, 'orange') from foo"
+}
+```
+
 ### Terminating queries
 
 You can terminate push queries explicitly in the client by making a request to this endpoint.

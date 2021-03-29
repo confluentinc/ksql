@@ -52,8 +52,8 @@ public interface Endpoints {
    * @return A CompletableFuture representing the future result of the operation
    */
   CompletableFuture<QueryPublisher> createQueryPublisher(String sql, JsonObject properties,
-      Context context, WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext,
-      MetricsCallbackHolder metricsCallbackHolder);
+      JsonObject sessionVariables, Context context, WorkerExecutor workerExecutor,
+      ApiSecurityContext apiSecurityContext, MetricsCallbackHolder metricsCallbackHolder);
 
   /**
    * Create a subscriber which will receive a stream of inserts from the API server and process

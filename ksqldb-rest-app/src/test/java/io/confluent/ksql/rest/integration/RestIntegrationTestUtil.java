@@ -35,6 +35,7 @@ import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
@@ -89,6 +90,15 @@ public final class RestIntegrationTestUtil {
 
   public static List<KsqlEntity> makeKsqlRequest(final TestKsqlRestApp restApp, final String sql) {
     return makeKsqlRequest(restApp, sql, Optional.empty());
+  }
+
+  public static String makeKsqlRequestWithVariables(
+      final TestKsqlRestApp restApp, final String sql, final Map<String, Object> variables) {
+    final KsqlRequest request =
+        new KsqlRequest(sql, ImmutableMap.of(), ImmutableMap.of(), variables, null);
+
+    return rawRestRequest(restApp, HTTP_1_1, POST, "/ksql", request, KsqlMediaType.KSQL_V1_JSON.mediaType(),
+        Optional.empty()).body().toString();
   }
 
   static List<KsqlEntity> makeKsqlRequest(

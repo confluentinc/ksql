@@ -55,8 +55,10 @@ import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryStreamArgs;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
@@ -149,6 +151,11 @@ public class RestApiTest {
               .withAcl(
                   NORMAL_USER,
                   resource(TOPIC, "X"),
+                  ops(ALL)
+              )
+              .withAcl(
+                  NORMAL_USER,
+                  resource(TOPIC, "Y"),
                   ops(ALL)
               )
               .withAcl(
@@ -614,7 +621,7 @@ public class RestApiTest {
   public void shouldExecutePullQueryOverHttp2QueryStream() {
       QueryStreamArgs queryStreamArgs = new QueryStreamArgs(
           "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-          Collections.emptyMap());
+          Collections.emptyMap(), Collections.emptyMap());
 
       QueryResponse[] queryResponse = new QueryResponse[1];
       assertThatEventually(() -> {
@@ -675,6 +682,23 @@ public class RestApiTest {
   }
 
   @Test
+  public void shouldCreateStreamWithVariableSubstitution() {
+    // Given:
+    // When:
+    makeKsqlRequestWithVariables(
+        "CREATE STREAM Y AS SELECT * FROM " + PAGE_VIEW_STREAM + " WHERE USERID='${id}';",
+        ImmutableMap.of("id", "USER_1")
+    );
+
+    // Then:
+    final List<String> query = ((Queries) makeKsqlRequest("SHOW QUERIES;").get(0))
+        .getQueries().stream().map(q -> q.getQueryString())
+        .filter(q -> q.contains("WHERE (PAGEVIEW_KSTREAM.USERID = 'USER_1')"))
+        .collect(Collectors.toList());
+    assertThat(query.size(), is(1));
+  }
+
+  @Test
   public void shouldFailToExecuteQueryUsingRestWithHttp2() {
     // Given:
     KsqlRequest ksqlRequest = new KsqlRequest("SELECT * from " + AGG_TABLE + " EMIT CHANGES;",
@@ -699,8 +723,12 @@ public class RestApiTest {
     return serviceContext;
   }
 
-  private static void makeKsqlRequest(final String sql) {
-    RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
+  private static List<KsqlEntity> makeKsqlRequest(final String sql) {
+    return RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
+  }
+
+  private static void makeKsqlRequestWithVariables(final String sql, final Map<String, Object> variables) {
+    RestIntegrationTestUtil.makeKsqlRequestWithVariables(REST_APP, sql, variables);
   }
 
   private static String rawRestQueryRequest(final String sql, final String mediaType) {

@@ -98,6 +98,7 @@ public class QueryStreamRunner extends BasePerfRunner {
     @Override
     public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
         final JsonObject properties,
+        final JsonObject sessionVariables,
         final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext,

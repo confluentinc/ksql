@@ -128,6 +128,7 @@ import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.JoinedSource;
+import io.confluent.ksql.parser.tree.ListConnectorPlugins;
 import io.confluent.ksql.parser.tree.ListConnectors;
 import io.confluent.ksql.parser.tree.ListConnectors.Scope;
 import io.confluent.ksql.parser.tree.ListFunctions;
@@ -700,6 +701,11 @@ public class AstBuilder {
       }
 
       return new ListConnectors(getLocation(ctx), scope);
+    }
+
+    @Override
+    public Node visitListConnectorPlugins(final SqlBaseParser.ListConnectorPluginsContext ctx) {
+      return new ListConnectorPlugins((getLocation(ctx)));
     }
 
     @Override

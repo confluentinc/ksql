@@ -52,6 +52,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.ConnectorPluginsList;
 import io.confluent.ksql.rest.entity.ConsumerPartitionOffsets;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
@@ -76,6 +77,7 @@ import io.confluent.ksql.rest.entity.QueryTopicOffsetSummary;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorPluginInfo;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
@@ -584,6 +586,50 @@ public class ConsoleTest {
     // Then:
     final String output = terminal.getOutputString();
     Approvals.verify(output, approvalOptions);
+  }
+
+  @Test
+  public void shouldPrintConnectorPluginsList() {
+    // Given:
+    final KsqlEntityList entities = new KsqlEntityList(ImmutableList.of(
+        new ConnectorPluginsList(
+            "statement",
+            ImmutableList.of(),
+            ImmutableList.of(
+                new SimpleConnectorPluginInfo("clazz1", ConnectorType.SOURCE, "v1"),
+                new SimpleConnectorPluginInfo("clazz2", ConnectorType.SINK, "v2")
+            ))
+    ));
+
+    // When:
+    console.printKsqlEntityList(entities);
+
+    // Then:
+    final String output = terminal.getOutputString();
+    if (console.getOutputFormat() == OutputFormat.JSON) {
+      assertThat(output, is(""
+          + "[ {" + NEWLINE
+          + "  \"@type\" : \"connector_plugins_list\"," + NEWLINE
+          + "  \"statementText\" : \"statement\"," + NEWLINE
+          + "  \"warnings\" : [ ]," + NEWLINE
+          + "  \"connectorsPlugins\" : [ {" + NEWLINE
+          + "    \"className\" : \"clazz1\"," + NEWLINE
+          + "    \"type\" : \"source\"," + NEWLINE
+          + "    \"version\" : \"v1\"" + NEWLINE
+          + "  }, {" + NEWLINE
+          + "    \"className\" : \"clazz2\"," + NEWLINE
+          + "    \"type\" : \"sink\"," + NEWLINE
+          + "    \"version\" : \"v2\"" + NEWLINE
+          + "  } ]" + NEWLINE
+          + "} ]" + NEWLINE));
+    } else {
+      assertThat(output, is("" + NEWLINE
+          + " Class  | Type   | Version " + NEWLINE
+          + "---------------------------" + NEWLINE
+          + " clazz1 | SOURCE | v1      " + NEWLINE
+          + " clazz2 | SINK   | v2      " + NEWLINE
+          + "---------------------------" + NEWLINE));
+    }
   }
 
   @Test

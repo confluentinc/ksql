@@ -31,6 +31,7 @@ import io.confluent.ksql.cli.console.table.Table.Builder;
 import io.confluent.ksql.cli.console.table.builder.CommandStatusTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.ConnectorInfoTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.ConnectorListTableBuilder;
+import io.confluent.ksql.cli.console.table.builder.ConnectorPluginsListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.DropConnectorTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.ErrorEntityTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.ExecutionPlanTableBuilder;
@@ -53,6 +54,7 @@ import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.ConnectorPluginsList;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
@@ -176,6 +178,8 @@ public class Console implements Closeable {
               tablePrinter(DropConnectorEntity.class, DropConnectorTableBuilder::new))
           .put(ConnectorList.class,
               tablePrinter(ConnectorList.class, ConnectorListTableBuilder::new))
+          .put(ConnectorPluginsList.class,
+              tablePrinter(ConnectorPluginsList.class, ConnectorPluginsListTableBuilder::new))
           .put(ConnectorDescription.class,
               Console::printConnectorDescription)
           .put(TypeList.class,

@@ -52,6 +52,7 @@ statement
     | (LIST | SHOW) TABLES EXTENDED?                                        #listTables
     | (LIST | SHOW) FUNCTIONS                                               #listFunctions
     | (LIST | SHOW) (SOURCE | SINK)? CONNECTORS                             #listConnectors
+    | (LIST | SHOW) CONNECTOR PLUGINS                                       #listConnectorPlugins
     | (LIST | SHOW) TYPES                                                   #listTypes
     | (LIST | SHOW) VARIABLES                                               #listVariables
     | DESCRIBE sourceName EXTENDED?                                         #showColumns
@@ -536,6 +537,7 @@ ASSERT: 'ASSERT';
 ADD: 'ADD';
 ALTER: 'ALTER';
 VARIABLES: 'VARIABLES';
+PLUGINS: 'PLUGINS';
 
 IF: 'IF';
 

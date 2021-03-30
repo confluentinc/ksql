@@ -83,16 +83,16 @@ enclosing them in `${}`. For example, the following requests are equivalent:
 
 ```json
 {
-"sql": "select concat(A, '${fruit}') from foo", 
+"sql": "SELECT profileId AS ${name} FROM riderLocations EMIT CHANGES;", 
 "sessionVariables": {
-    "fruit": "orange"
+    "name": "user"
    }
 }
 ```
 
 ```json
 {
-"sql": "select concat(A, 'orange') from foo"
+"sql": "SELECT profileId AS user FROM riderLocations EMIT CHANGES;"
 }
 ```
 

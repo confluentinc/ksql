@@ -85,7 +85,7 @@ public class SchemaKGroupedStream {
     } else {
       keyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
           this.keyFormat,
-          schema.key().size(),
+          schema.key(),
           false
       );
       step = ExecutionStepFactory.streamAggregate(

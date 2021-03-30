@@ -16,6 +16,9 @@
 package io.confluent.ksql.serde;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.function.udf.math.Exp;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.json.JsonFormat;
@@ -24,6 +27,7 @@ import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
+import java.util.Set;
 
 public final class SerdeFeaturesFactory {
 
@@ -112,7 +116,7 @@ public final class SerdeFeaturesFactory {
    * classes to ensure that anytime a key is changed we properly set the key format.
    *
    * @param keyFormat un-sanitized format
-   * @param numKeyColumns number of key columns for this stream/table
+   * @param expressions key expressions for this stream/table
    * @param allowKeyFormatChangeToSupportMultipleKeys safeguard to prevent changing key formats in
    *                                                  unexpected ways. if false, no format change
    *                                                  will take place
@@ -120,25 +124,25 @@ public final class SerdeFeaturesFactory {
    */
   public static KeyFormat sanitizeKeyFormat(
       final KeyFormat keyFormat,
-      final int numKeyColumns,
+      final Set<Expression> expressions,
       final boolean allowKeyFormatChangeToSupportMultipleKeys
   ) {
     return sanitizeKeyFormatWrapping(
         sanitizeKeyFormatForMultipleColumns(
             keyFormat,
-            numKeyColumns,
+            expressions,
             allowKeyFormatChangeToSupportMultipleKeys),
-        numKeyColumns == 1
+        expressions.size() == 1
     );
   }
 
   private static KeyFormat sanitizeKeyFormatForMultipleColumns(
       final KeyFormat keyFormat,
-      final int numKeyColumns,
+      final Set<Expression> expressions,
       final boolean allowKeyFormatChangeToSupportMultipleKeys
   ) {
     if (!allowKeyFormatChangeToSupportMultipleKeys
-        || numKeyColumns <= 1
+        || !needCompoundKeySupport(expressions)
         || formatSupportsMultipleColumns(keyFormat)) {
       return keyFormat;
     }
@@ -148,6 +152,20 @@ public final class SerdeFeaturesFactory {
     }
 
     return KeyFormat.nonWindowed(FormatInfo.of(JsonFormat.NAME), SerdeFeatures.of());
+  }
+
+  /**
+   * Check whether given expression set needs a compound key support. It returns true
+   * when one of the conditions is met:
+   * 1. given expressions have more than one entry
+   * 2. expression is a single key with struct type
+   *
+   * @param expressions the expressions to be tested
+   * @return true if given expressions do not need a compound key type support.
+   */
+  private static boolean needCompoundKeySupport(Set<Expression> expressions) {
+    return expressions.size() > 1 || (expressions.size() == 1 &&
+        (expressions.iterator().next() instanceof CreateStructExpression));
   }
 
   private static KeyFormat sanitizeKeyFormatWrapping(

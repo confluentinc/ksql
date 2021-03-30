@@ -31,7 +31,7 @@ SELECT statements use the `/query` endpoint.
 - named by ``property-name``. Both the value and ``property-name`` should be
   strings.
 - **sessionVariables** (map): Optional. Starting from 0.18, the parameter `sessionVariables` accepts
-  a map of variable names and values as initial variable substitution values. See
+  a map of string variable names and values of any type as initial variable substitution values. See
   [ksqlDB Variable Substitution](../../../how-to-guides/substitute-variables) for more information
   on variable substitution.
 - **commandSequenceNumber** (long): Optional. If specified, the statements will

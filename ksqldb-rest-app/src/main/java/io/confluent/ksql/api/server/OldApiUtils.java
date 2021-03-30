@@ -168,6 +168,7 @@ public final class OldApiUtils {
       final long startTimeNanos
   ) {
     metricsCallbackHolder.ifPresent(mc -> mc.reportMetrics(
+        routingContext.response().getStatusCode(),
         routingContext.request().bytesRead(),
         routingContext.response().bytesWritten(),
         startTimeNanos));

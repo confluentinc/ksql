@@ -44,6 +44,7 @@ public class KeyedTableLookupOperator
   private Iterator<KsqlPartitionLocation> partitionLocationIterator;
   private KsqlPartitionLocation nextLocation;
   private GenericKey nextKey;
+  private long returnedRows = 0;
 
   public KeyedTableLookupOperator(
       final Materialization mat,
@@ -95,6 +96,7 @@ public class KeyedTableLookupOperator
           .orElse(ImmutableList.of()).iterator();
     }
 
+    returnedRows++;
     return resultIterator.next();
   }
 
@@ -137,5 +139,10 @@ public class KeyedTableLookupOperator
   public void setPartitionLocations(final List<KsqlPartitionLocation> locations) {
     Objects.requireNonNull(locations, "locations");
     partitionLocations = locations;
+  }
+
+  @Override
+  public long getReturnedRowCount() {
+    return returnedRows;
   }
 }

@@ -95,6 +95,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
             routingContext.response().endHandler(v -> {
               queryPublisher.close();
               metricsCallbackHolder.reportMetrics(
+                  routingContext.response().getStatusCode(),
                   routingContext.request().bytesRead(),
                   routingContext.response().bytesWritten(),
                   startTimeNanos);

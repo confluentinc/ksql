@@ -115,6 +115,7 @@ public class KeyedTableLookupOperatorTest {
     assertThat(lookupOperator.next(), is(ROW3));
     assertThat(lookupOperator.next(), is(ROW4));
     assertThat(lookupOperator.next(), is(nullValue()));
+    assertThat(lookupOperator.getReturnedRowCount(), is(3L));
   }
 
   @Test
@@ -139,5 +140,6 @@ public class KeyedTableLookupOperatorTest {
     assertThat(lookupOperator.next(), is(ROW3));
     assertThat(lookupOperator.next(), is(ROW4));
     assertThat(lookupOperator.next(), is(nullValue()));
+    assertThat(lookupOperator.getReturnedRowCount(), is(3L));
   }
 }

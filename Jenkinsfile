@@ -263,7 +263,7 @@ def job = {
                                 ${env.WORKSPACE}/build-packages.sh --workspace . \
                                     --docker-registry ${config.dockerRegistry} \
                                     --project-version ${config.ksql_db_artifact_version} \
-                                    --upstream-version ${config.cp_version} --jar
+                                    --upstream-version ${config.cp_version} --jar --smoke-tests
                                 """
                             }
                             step([$class: 'hudson.plugins.findbugs.FindBugsPublisher', pattern: '**/*bugsXml.xml'])

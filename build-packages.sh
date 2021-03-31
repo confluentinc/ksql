@@ -13,6 +13,7 @@ FULL_VERSION=""
 UPSTREAM_VERSION=""
 DOCKER_REGISTRY=""
 BUILD_JAR="false"
+RUN_SMOKE_TESTS="false"
 while [[ "${#}" -gt 0 ]]; do
     arg="${1}"
     case "${arg}" in
@@ -36,6 +37,10 @@ while [[ "${#}" -gt 0 ]]; do
         -d|--docker-registry)
             DOCKER_REGISTRY="${2}"
             shift 2
+            ;;
+	-s|--smoke-tests)
+            RUN_SMOKE_TESTS="true"
+            shift
             ;;
         *)
             error "Unknown arg ${arg}"
@@ -160,4 +165,9 @@ if "${BUILD_JAR}"; then
         "-Ddocker.upstream-tag=${UPSTREAM_VERSION}-latest" \
         "-Dskip.docker.build=false"
 fi 
+
+if "${RUN_SMOKE_TESTS}"; then
+    DEBS=( $(find "${WORKSPACE}/output/" -name '*.deb' -print) )
+    ./smoke/run_smoke.sh "${DEBS[0]}"
+fi
 

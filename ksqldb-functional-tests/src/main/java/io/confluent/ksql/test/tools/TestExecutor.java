@@ -155,7 +155,7 @@ public class TestExecutor implements Closeable {
   public void buildAndExecuteQuery(
       final TestCase testCase,
       final TestExecutionListener listener
-  ) {
+  )  {
     topicInfoCache.clear();
 
     final KsqlConfig ksqlConfig = testCase.applyPersistedProperties(new KsqlConfig(config));

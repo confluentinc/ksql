@@ -30,6 +30,10 @@ import io.confluent.common.utils.TestUtils;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.MutableFunctionRegistry;
+import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -88,7 +92,7 @@ public class TestExecutor implements Closeable {
   private final TopologyBuilder topologyBuilder;
   private final TopicInfoCache topicInfoCache;
 
-  public static TestExecutor create() {
+  public static TestExecutor create(final Optional<String> extensionDir) {
     final StubKafkaService kafkaService = StubKafkaService.create();
     final StubKafkaClientSupplier kafkaClientSupplier = new StubKafkaClientSupplier();
     final ServiceContext serviceContext = getServiceContext(kafkaClientSupplier);
@@ -96,7 +100,7 @@ public class TestExecutor implements Closeable {
     return new TestExecutor(
         kafkaService,
         serviceContext,
-        getKsqlEngine(serviceContext),
+        getKsqlEngine(serviceContext, extensionDir),
         TestExecutorUtil::buildStreamsTopologyTestDrivers
     );
   }
@@ -118,7 +122,7 @@ public class TestExecutor implements Closeable {
   public void buildAndExecuteQuery(
       final TestCase testCase,
       final TestExecutionListener listener
-  ) {
+  )  {
     topicInfoCache.clear();
 
     final KsqlConfig currentConfigs = new KsqlConfig(config);
@@ -432,8 +436,17 @@ public class TestExecutor implements Closeable {
     );
   }
 
-  static KsqlEngine getKsqlEngine(final ServiceContext serviceContext) {
-    final MutableMetaStore metaStore = new MetaStoreImpl(TestFunctionRegistry.INSTANCE.get());
+  static KsqlEngine getKsqlEngine(final ServiceContext serviceContext,
+      final Optional<String> extensionDir) {
+    final FunctionRegistry functionRegistry;
+    if (extensionDir.isPresent()) {
+      final MutableFunctionRegistry mutable = new InternalFunctionRegistry();
+      UdfLoaderUtil.load(mutable, extensionDir.get());
+      functionRegistry = mutable;
+    } else {
+      functionRegistry = TestFunctionRegistry.INSTANCE.get();
+    }
+    final MutableMetaStore metaStore = new MetaStoreImpl(functionRegistry);
     return new KsqlEngine(
         serviceContext,
         ProcessingLogContext.create(),

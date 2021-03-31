@@ -1,0 +1,7 @@
+{
+  "inputs": [
+    {"topic": "test_topic", "key": 10,"value": {"NAME": "hat", "DESC": "cat"}, "timestamp": 0},
+    {"topic": "test_topic", "key": 20,"value": {"NAME": "pan", "DESC": "cake"}, "timestamp": 1},
+    {"topic": "test_topic", "key": 30,"value": {"NAME": "coffee", "DESC": "tea"}, "timestamp": 2}
+  ]
+}

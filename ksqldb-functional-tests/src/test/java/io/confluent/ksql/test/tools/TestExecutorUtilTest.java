@@ -62,7 +62,7 @@ public class TestExecutorUtilTest {
     ).get(0);
 
     serviceContext = TestExecutor.getServiceContext();
-    ksqlEngine = TestExecutor.getKsqlEngine(serviceContext);
+    ksqlEngine = TestExecutor.getKsqlEngine(serviceContext, Optional.empty());
     ksqlConfig = new KsqlConfig(TestExecutor.baseConfig());
     stubKafkaService = StubKafkaService.create();
   }

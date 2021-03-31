@@ -10,6 +10,7 @@ import io.confluent.ksql.test.planned.TestCasePlanLoader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.junit.Test;
 
@@ -84,7 +85,7 @@ public class HistoricalTestingFunctionalTest {
   }
 
   private static void execute(final TestCase testCase) {
-    try (final TestExecutor testExecutor = TestExecutor.create()) {
+    try (final TestExecutor testExecutor = TestExecutor.create(Optional.empty())) {
       testExecutor.buildAndExecuteQuery(testCase, TestExecutionListener.noOp());
     }
   }

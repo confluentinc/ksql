@@ -33,10 +33,12 @@ import io.confluent.ksql.execution.plan.TableSuppress;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
+import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
@@ -185,7 +187,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
     final KeyFormat newKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
         forceInternalKeyFormat.orElse(keyFormat),
-        keyExpression.size(),
+        toSqlTypes(keyExpression),
         false // logical schema changes are not supported
     );
 
@@ -225,7 +227,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     // the key format directly (as opposed to the logic in SchemaKStream)
     final KeyFormat groupedKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
         KeyFormat.nonWindowed(keyFormat.getFormatInfo(), keyFormat.getFeatures()),
-        groupByExpressions.size(),
+        toSqlTypes(groupByExpressions),
         true
     );
 

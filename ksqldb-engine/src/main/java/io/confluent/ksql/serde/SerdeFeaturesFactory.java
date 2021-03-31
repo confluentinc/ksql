@@ -20,12 +20,17 @@ import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.function.udf.math.Exp;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.json.JsonFormat;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -116,7 +121,7 @@ public final class SerdeFeaturesFactory {
    * classes to ensure that anytime a key is changed we properly set the key format.
    *
    * @param keyFormat un-sanitized format
-   * @param expressions key expressions for this stream/table
+   * @param newKeyColumns key expressions for this stream/table
    * @param allowKeyFormatChangeToSupportMultipleKeys safeguard to prevent changing key formats in
    *                                                  unexpected ways. if false, no format change
    *                                                  will take place
@@ -124,25 +129,25 @@ public final class SerdeFeaturesFactory {
    */
   public static KeyFormat sanitizeKeyFormat(
       final KeyFormat keyFormat,
-      final Set<Expression> expressions,
+      final List<SqlType> newKeyColumns,
       final boolean allowKeyFormatChangeToSupportMultipleKeys
   ) {
     return sanitizeKeyFormatWrapping(
         sanitizeKeyFormatForMultipleColumns(
             keyFormat,
-            expressions,
+            newKeyColumns,
             allowKeyFormatChangeToSupportMultipleKeys),
-        expressions.size() == 1
+        newKeyColumns.size() == 1
     );
   }
 
   private static KeyFormat sanitizeKeyFormatForMultipleColumns(
       final KeyFormat keyFormat,
-      final Set<Expression> expressions,
+      final List<SqlType> sqlTypes,
       final boolean allowKeyFormatChangeToSupportMultipleKeys
   ) {
     if (!allowKeyFormatChangeToSupportMultipleKeys
-        || !needCompoundKeySupport(expressions)
+        || !needCompoundKeySupport(sqlTypes)
         || formatSupportsMultipleColumns(keyFormat)) {
       return keyFormat;
     }
@@ -157,15 +162,15 @@ public final class SerdeFeaturesFactory {
   /**
    * Check whether given expression set needs a compound key support. It returns true
    * when one of the conditions is met:
-   * 1. given expressions have more than one entry
-   * 2. expression is a single key with struct type
+   * 1. given sql types have more than one entry
+   * 2. it is a singleton non-primitive sql type
    *
-   * @param expressions the expressions to be tested
+   * @param sqlTypes the sql types to be tested
    * @return true if given expressions do not need a compound key type support.
    */
-  private static boolean needCompoundKeySupport(Set<Expression> expressions) {
-    return expressions.size() > 1 || (expressions.size() == 1 &&
-        (expressions.iterator().next() instanceof CreateStructExpression));
+  private static boolean needCompoundKeySupport(List<SqlType> sqlTypes) {
+    return sqlTypes.size() > 1 || (sqlTypes.size() == 1 &&
+        !(sqlTypes.get(0) instanceof SqlPrimitiveType));
   }
 
   private static KeyFormat sanitizeKeyFormatWrapping(

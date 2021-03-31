@@ -25,7 +25,9 @@ import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
@@ -34,6 +36,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class SchemaKGroupedStream {
 
@@ -85,7 +88,7 @@ public class SchemaKGroupedStream {
     } else {
       keyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
           this.keyFormat,
-          schema.key(),
+          toSqlTypes(schema.key()),
           false
       );
       step = ExecutionStepFactory.streamAggregate(
@@ -112,9 +115,13 @@ public class SchemaKGroupedStream {
             keyFormat.getFormatInfo(),
             keyFormat.getFeatures(),
             windowExpression.getKsqlWindowExpression().getWindowInfo()),
-        schema.key().size(),
+        toSqlTypes(schema.key()),
         false
     );
+  }
+
+  protected List<SqlType> toSqlTypes(List<Column> columns) {
+    return columns.stream().map(Column::type).collect(Collectors.toList());
   }
 
   LogicalSchema resolveSchema(final ExecutionStep<?> step) {

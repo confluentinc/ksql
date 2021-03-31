@@ -29,6 +29,7 @@ import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -50,7 +51,7 @@ public class QueryDescription {
   private final Map<KsqlHostInfoEntity, KsqlQueryStatus> ksqlHostQueryStatus;
   private final KsqlQueryType queryType;
   private final List<QueryError> queryErrors;
-  private final Set<StreamsTaskMetadata> tasksMetadata;
+  private ImmutableSet<StreamsTaskMetadata> tasksMetadata;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @SuppressWarnings("WeakerAccess") // Invoked via reflection
@@ -124,7 +125,13 @@ public class QueryDescription {
     return overriddenProperties;
   }
 
-  public Set<StreamsTaskMetadata> getTasksMetadata() {
+  public void updateTaskMetadata(final Set<StreamsTaskMetadata> updatedMetadata) {
+    final Set<StreamsTaskMetadata> oldTaskMetadata = new HashSet<>(tasksMetadata);
+    oldTaskMetadata.addAll(updatedMetadata);
+    tasksMetadata = ImmutableSet.copyOf(oldTaskMetadata);
+  }
+
+  public ImmutableSet<StreamsTaskMetadata> getTasksMetadata() {
     return tasksMetadata;
   }
 

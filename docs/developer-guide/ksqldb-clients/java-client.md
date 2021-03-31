@@ -146,6 +146,10 @@ public class ExampleApp {
 
 For additional client options, see the [API reference](api/io/confluent/ksql/api/client/ClientOptions.html).
 
+You can use the `ClientOptions` class to connect your Java client to
+{{ site.ccloud }}. For more information, see
+[Connect to a {{ site.ccloud }} ksqlDB cluster](#connect-to-cloud).
+
 Receive query results one row at a time (streamQuery())<a name="stream-query"></a>
 ----------------------------------------------------------------------------------
 
@@ -679,26 +683,6 @@ The metadata returned from this method includes the stream or table's underlying
 topic name, column names and associated types, serialization formats, queries that
 read and write from the stream or table, and more. For more details, see the
 [API reference](api/io/confluent/ksql/api/client/Client.html#describeSource(java.lang.String)).
-
-Connect to a {{ site.ccloud }} ksqlDB cluster <a name="connect-to-cloud"></a>
------------------------------------------------------------------------------
-
-Use the following code snippet to connect your Java client to a hosted ksqlDB
-cluster in {{ site.ccloud }}.
-
-```java
-ClientOptions options = ClientOptions.create()
- .setBasicAuthCredentials("<ksqlDB-API-key>", "<ksqlDB-API-secret>")
- .setHost("<ksqlDB-endpoint>")
- .setPort(443)
- .setUseTls(true)
- .setUseAlpn(true);
-```
-
-Get the API key and endpoint details from your {{ site.ccloud }} cluster.
-For more information, see 
-[Connecting ksqlDB to Confluent Cloud](https://docs.confluent.io/cloud/current/cp-component/ksql-cloud-config.html#connecting-ksqldb-to-ccloud).
-
 ### Example Usage ###
 
 Fetch metadata for the stream or table with name `my_source`:
@@ -883,6 +867,25 @@ client.executeQuery(sql1).thenCombine(
       return null;
     });
 ```
+
+Connect to a {{ site.ccloud }} ksqlDB cluster <a name="connect-to-cloud"></a>
+-----------------------------------------------------------------------------
+
+Use the following code snippet to connect your Java client to a hosted ksqlDB
+cluster in {{ site.ccloud }}.
+
+```java
+ClientOptions options = ClientOptions.create()
+ .setBasicAuthCredentials("<ksqlDB-API-key>", "<ksqlDB-API-secret>")
+ .setHost("<ksqlDB-endpoint>")
+ .setPort(443)
+ .setUseTls(true)
+ .setUseAlpn(true);
+```
+
+Get the API key and endpoint details from your {{ site.ccloud }} cluster.
+For more information, see 
+[Connecting ksqlDB to Confluent Cloud](https://docs.confluent.io/cloud/current/cp-component/ksql-cloud-config.html#connecting-ksqldb-to-ccloud).
 
 ## Suggested Reading
 

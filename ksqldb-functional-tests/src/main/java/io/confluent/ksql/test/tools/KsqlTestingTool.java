@@ -55,7 +55,8 @@ public final class KsqlTestingTool {
         runWithTripleFiles(
             testOptions.getStatementsFile(),
             testOptions.getInputFile(),
-            testOptions.getOutputFile());
+            testOptions.getOutputFile(),
+            testOptions.getExtensionDir());
       }
     } catch (final Exception e) {
       System.err.println("Invalid arguments: " + e.getMessage());
@@ -90,7 +91,8 @@ public final class KsqlTestingTool {
   static void runWithTripleFiles(
       final String statementFile,
       final String inputFile,
-      final String outputFile) throws Exception {
+      final String outputFile,
+      final Optional<String> extensionDir) throws Exception {
     final InputRecordsNode inputRecordNodes;
     final OutputRecordsNode outRecordNodes;
     try {
@@ -129,8 +131,8 @@ public final class KsqlTestingTool {
 
     executeTestCase(
         testCase,
-        new TestExecutor());
-
+        new TestExecutor(extensionDir)
+    );
   }
 
   static void executeTestCase(

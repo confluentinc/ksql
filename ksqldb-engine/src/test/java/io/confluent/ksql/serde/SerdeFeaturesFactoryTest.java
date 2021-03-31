@@ -29,6 +29,9 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.avro.AvroFormat;
 import io.confluent.ksql.serde.json.JsonFormat;
@@ -36,6 +39,8 @@ import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
@@ -59,6 +64,9 @@ public class SerdeFeaturesFactoryTest {
 
   private static final List<ColumnName> SINGLE_COLUMN_NAME = ImmutableList.of(ColumnName.of("bob"));
   private static final List<ColumnName> MULTI_FIELD_NAMES = ImmutableList.of(ColumnName.of("bob"), ColumnName.of("vic"));
+
+  private static final List<SqlType> MULTI_SQL_TYPES = ImmutableList.of(SqlPrimitiveType.of(SqlBaseType.INTEGER),SqlPrimitiveType.of(SqlBaseType.BOOLEAN));
+  private static final List<SqlType> SINGLE_SQL_TYPE = ImmutableList.of(SqlPrimitiveType.of(SqlBaseType.BOOLEAN));
 
   private KsqlConfig ksqlConfig;
 
@@ -267,7 +275,7 @@ public class SerdeFeaturesFactoryTest {
         SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     // When:
-    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, 2, true);
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, MULTI_SQL_TYPES, true);
 
     // Then:
     assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(JsonFormat.NAME)));
@@ -282,7 +290,7 @@ public class SerdeFeaturesFactoryTest {
         SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES));
 
     // When:
-    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, 0, true);
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, Collections.emptyList(), true);
 
     // Then:
     assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(JsonFormat.NAME)));
@@ -297,7 +305,7 @@ public class SerdeFeaturesFactoryTest {
         SerdeFeatures.of());
 
     // When:
-    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, 1, true);
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, SINGLE_SQL_TYPE, true);
 
     // Then:
     assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(JsonFormat.NAME)));
@@ -312,7 +320,7 @@ public class SerdeFeaturesFactoryTest {
         SerdeFeatures.of(SerdeFeature.WRAP_SINGLES));
 
     // When:
-    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, 1, true);
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, SINGLE_SQL_TYPE, true);
 
     // Then:
     assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(JsonFormat.NAME)));
@@ -327,7 +335,7 @@ public class SerdeFeaturesFactoryTest {
         SerdeFeatures.of());
 
     // When:
-    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, 2, true);
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, MULTI_SQL_TYPES, true);
 
     // Then:
     assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(JsonFormat.NAME)));
@@ -342,7 +350,7 @@ public class SerdeFeaturesFactoryTest {
         SerdeFeatures.of());
 
     // When:
-    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, 2, true);
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, MULTI_SQL_TYPES, true);
 
     // Then:
     assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(JsonFormat.NAME)));
@@ -360,7 +368,7 @@ public class SerdeFeaturesFactoryTest {
         SerdeFeatures.of(SerdeFeature.WRAP_SINGLES));
 
     // When:
-    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, 2, true);
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, MULTI_SQL_TYPES, true);
 
     // Then:
     assertThat(sanitized.getFormatInfo(), equalTo(formatInfo));
@@ -375,7 +383,7 @@ public class SerdeFeaturesFactoryTest {
         SerdeFeatures.of());
 
     // When:
-    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, 1, true);
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, SINGLE_SQL_TYPE, true);
 
     // Then:
     assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(KafkaFormat.NAME)));
@@ -390,7 +398,7 @@ public class SerdeFeaturesFactoryTest {
         SerdeFeatures.of());
 
     // When:
-    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, 2, false);
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, MULTI_SQL_TYPES, false);
 
     // Then:
     assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(KafkaFormat.NAME)));

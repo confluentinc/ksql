@@ -589,17 +589,14 @@
         {"topic": "test_topic", "key": 2, "value": {"f2": "1"}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": {"F1": 1, "F2": 2}, "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 1}},
-        {"topic": "OUTPUT", "key": {"F1": 2, "F2": 4}, "value": {"KSQL_COL_0": 6, "KSQL_COL_1": 1}},
-        {"topic": "OUTPUT", "key": {"F1": 1, "F2": 2}, "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 2}},
-        {"topic": "OUTPUT", "key": {"F1": 2, "F2": 4}, "value": {"KSQL_COL_0": 6, "KSQL_COL_1": 2}},
-        {"topic": "OUTPUT", "key": {"F1": 2, "F2": 1}, "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 1}}
-      ],
-      "post": {
-        "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "F1 INT KEY, F2 INT KEY, KSQL_COL_0 INT, KSQL_COL_1 BIGINT"}
-        ]
-      }
+        {"topic": "OUTPUT", "key": {"F1": 1, "F2": 2}, "value": {"KEY": {"F1":1,"F2":2}, "TOTAL": 1}},
+        {"topic": "OUTPUT", "key": {"F1": 2, "F2": 4}, "value": {"KEY": {"F1":2,"F2":4}, "TOTAL": 1}},
+        {"topic": "OUTPUT", "key": {"F1": 1, "F2": null}, "value": {"KEY": {"F1":1,"F2":null}, "TOTAL": 1}},
+        {"topic": "OUTPUT", "key": {"F1": null, "F2": 1}, "value": {"KEY": {"F1":null,"F2":1}, "TOTAL": 1}},
+        {"topic": "OUTPUT", "key": {"F1": 1, "F2": 2}, "value": {"KEY": {"F1":1,"F2":2}, "TOTAL": 2}},
+        {"topic": "OUTPUT", "key": {"F1": 2, "F2": 4}, "value": {"KEY": {"F1":2,"F2":4}, "TOTAL": 2}},
+        {"topic": "OUTPUT", "key": {"F1": 2, "F2": 1}, "value": {"KEY": {"F1":2,"F2":1}, "TOTAL": 1}}
+      ]
     },
     {
       "name": "multiple expressions - windowed",

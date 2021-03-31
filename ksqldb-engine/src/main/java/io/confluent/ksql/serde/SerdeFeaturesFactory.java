@@ -121,7 +121,7 @@ public final class SerdeFeaturesFactory {
    * classes to ensure that anytime a key is changed we properly set the key format.
    *
    * @param keyFormat un-sanitized format
-   * @param newKeyColumns key expressions for this stream/table
+   * @param newKeyColumnSqlTypes sql types of key columns for this stream/table
    * @param allowKeyFormatChangeToSupportMultipleKeys safeguard to prevent changing key formats in
    *                                                  unexpected ways. if false, no format change
    *                                                  will take place
@@ -129,15 +129,15 @@ public final class SerdeFeaturesFactory {
    */
   public static KeyFormat sanitizeKeyFormat(
       final KeyFormat keyFormat,
-      final List<SqlType> newKeyColumns,
+      final List<SqlType> newKeyColumnSqlTypes,
       final boolean allowKeyFormatChangeToSupportMultipleKeys
   ) {
     return sanitizeKeyFormatWrapping(
         sanitizeKeyFormatForMultipleColumns(
             keyFormat,
-            newKeyColumns,
+            newKeyColumnSqlTypes,
             allowKeyFormatChangeToSupportMultipleKeys),
-        newKeyColumns.size() == 1
+        newKeyColumnSqlTypes.size() == 1
     );
   }
 

@@ -52,7 +52,6 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.properties.PropertiesUtil;
-import io.confluent.ksql.engine.KafkaStreamsQueryValidator;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.ErrorMessages;
 import io.confluent.ksql.rest.Errors;
@@ -683,7 +682,7 @@ public final class KsqlRestApplication implements Executable {
         ServiceInfo.create(ksqlConfig, metricsPrefix),
         specificQueryIdGenerator,
         new KsqlConfig(restConfig.getKsqlConfigProperties()),
-        ImmutableList.of(new KafkaStreamsQueryValidator(ksqlConfig))
+        Collections.emptyList()
     );
 
     UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();

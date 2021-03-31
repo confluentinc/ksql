@@ -108,6 +108,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         .collect(Collectors.toList());
   }
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @Override
   public TransientQueryMetadata createTransientQuery(
       final SessionConfig config,
@@ -123,6 +124,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       final OptionalInt limit,
       final Optional<WindowInfo> windowInfo,
       final boolean excludeTombstones) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     final QueryExecutor executor
         = executorFactory.create(config, processingLogContext, serviceContext, metaStore);
     final TransientQueryMetadata query = executor.buildTransientQuery(
@@ -141,6 +143,7 @@ public class QueryRegistryImpl implements QueryRegistry {
     return query;
   }
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @Override
   public PersistentQueryMetadata createOrReplacePersistentQuery(
       final SessionConfig config,
@@ -154,6 +157,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       final ExecutionStep<?> physicalPlan,
       final String planSummary,
       final boolean createAsQuery) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     final QueryExecutor executor =
         executorFactory.create(config, processingLogContext, serviceContext, metaStore);
     final PersistentQueryMetadata query = executor.buildPersistentQuery(
@@ -222,7 +226,7 @@ public class QueryRegistryImpl implements QueryRegistry {
   }
 
   @Override
-  public void close(boolean closePersistent) {
+  public void close(final boolean closePersistent) {
     for (final QueryMetadata queryMetadata : getAllLiveQueries()) {
       // only persistent queries can be stopped - transient queries must be closed (destroyed)
       if (closePersistent || queryMetadata instanceof TransientQueryMetadata) {

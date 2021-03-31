@@ -346,7 +346,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         || statement instanceof Query;
   }
 
-  private static class CleanupListener implements QueryEventListener {
+  private static final class CleanupListener implements QueryEventListener {
     final QueryCleanupService cleanupService;
     final ServiceContext serviceContext;
 

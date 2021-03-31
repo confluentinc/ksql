@@ -133,7 +133,6 @@ public abstract class QueryMetadata {
   QueryMetadata(final QueryMetadata other, final Listener listener) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementString = other.getStatementString();
-    // TODO: should be a dummy kafka streams
     this.kafkaStreams = other.getKafkaStreams();
     this.executionPlan = other.getExecutionPlan();
     this.queryApplicationId = other.getQueryApplicationId();
@@ -454,13 +453,13 @@ public abstract class QueryMetadata {
      *
      * @param error the error that occurred
      */
-    void onError(final QueryMetadata queryMetadata, final QueryError error);
+    void onError(QueryMetadata queryMetadata, QueryError error);
 
     void onStateChange(
-        final QueryMetadata queryMetadata,
-        final KafkaStreams.State var1,
-        final KafkaStreams.State var2);
+        QueryMetadata queryMetadata,
+        KafkaStreams.State var1,
+        KafkaStreams.State var2);
 
-    void onClose(final QueryMetadata queryMetadata);
+    void onClose(QueryMetadata queryMetadata);
   }
 }

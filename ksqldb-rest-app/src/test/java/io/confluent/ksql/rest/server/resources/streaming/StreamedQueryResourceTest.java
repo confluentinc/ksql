@@ -205,6 +205,8 @@ public class StreamedQueryResourceTest {
   private PullQueryQueue pullQueryQueue;
   @Captor
   private ArgumentCaptor<Exception> exception;
+  @Mock
+  private QueryMetadata.Listener listener;
 
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
@@ -664,12 +666,12 @@ public class StreamedQueryResourceTest {
             kafkaStreamsBuilder,
             Collections.emptyMap(),
             Collections.emptyMap(),
-            queryCloseCallback,
             closeTimeout,
             10,
             ResultType.STREAM,
             0L,
-            0L
+            0L,
+            listener
         );
 
     when(mockKsqlEngine.executeQuery(serviceContext,

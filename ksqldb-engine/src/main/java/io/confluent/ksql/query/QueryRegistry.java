@@ -36,26 +36,31 @@ import java.util.function.BiPredicate;
 
 /**
  * Interface for building and managing queries.
- *
+ * <p>
  * Callers can build transient and persistent queries. Once built, the queries are owned by the
  * implementation of this interface. The caller creating the query receives a handle to the created
  * query. The handle is a child class of {@link io.confluent.ksql.util.QueryMetadata}.
- *
+ * </p>
+ * <p>
  * Callers can also get a handle to to a query via the query ID, and list all queries managed by
  * a registry.
- *
+ * </p>
+ * <p>
  * QueryRegistry also supports tracking the sink data source for each query. In particular, callers
  * can ask for the query that was started by the C(S|T)AS statement that created a source, and can
  * get a list of all queries writing into a source.
- *
+ * </p>
+ * <p>
  * Finally, the implementation should support subscribing to events about queries by implementing
  * the {@link io.confluent.ksql.engine.QueryEventListener} interface.
+ * </p>
  */
 public interface QueryRegistry {
 
   /**
    * Create a transient query
    */
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   TransientQueryMetadata createTransientQuery(
       SessionConfig config,
       ServiceContext serviceContext,
@@ -71,12 +76,14 @@ public interface QueryRegistry {
       Optional<WindowInfo> windowInfo,
       boolean excludeTombstones
   );
+  // CHECKSTYLE_RULES.ON: ParameterNumberCheck
 
   /**
    * Create a persistent query, and possibly replace an existing query if one exists with the same
    * ID. Replacement will fail if migration from the current to the new physical plan is not
    * supported.
    */
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   PersistentQueryMetadata createOrReplacePersistentQuery(
       SessionConfig config,
       ServiceContext serviceContext,
@@ -90,13 +97,14 @@ public interface QueryRegistry {
       String planSummary,
       boolean createAsQuery
   );
+  // CHECKSTYLE_RULES.ON: ParameterNumberCheck
 
   /**
    * Get a persistent query by ID
    * @param queryId The ID of the persistent query to get
    * @return The query with ID queryID, if such a query is registered.
    */
-  Optional<PersistentQueryMetadata> getPersistentQuery(final QueryId queryId);
+  Optional<PersistentQueryMetadata> getPersistentQuery(QueryId queryId);
 
   /**
    * Get all persistent queries
@@ -109,7 +117,7 @@ public interface QueryRegistry {
    * @param sourceName The name of the source to list queries for
    * @return A set of query IDs that contains the IDs of queries writing into sourceName
    */
-  Set<QueryId> getQueriesWithSink(final SourceName sourceName);
+  Set<QueryId> getQueriesWithSink(SourceName sourceName);
 
   /**
    * Get all queries registered with the registry

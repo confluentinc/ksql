@@ -24,6 +24,7 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.QueryEventListener;
 import io.confluent.ksql.engine.generic.GenericRecordFactory;
 import io.confluent.ksql.engine.generic.KsqlGenericRecord;
 import io.confluent.ksql.format.DefaultFormatInjector;
@@ -43,6 +44,7 @@ import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.properties.PropertyOverrider;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.utils.FormatOptions;
@@ -62,6 +64,7 @@ import io.confluent.ksql.test.tools.TestFunctionRegistry;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadata;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -120,6 +123,7 @@ public class KsqlTesterTest {
 
   // populated during run
   private Map<String, Object> overrides;
+  private final Map<QueryId, DriverAndProperties> drivers = new HashMap<>();
 
   // populated during execution to handle the expected exception
   // scenario - don't use Matchers because they do not create very
@@ -163,7 +167,17 @@ public class KsqlTesterTest {
         ServiceInfo.create(config),
         new SequentialQueryIdGenerator(),
         this.config,
-        Collections.emptyList()
+        Collections.singletonList(
+            new QueryEventListener() {
+              @Override
+              public void onDeregister(QueryMetadata query) {
+                final DriverAndProperties driverAndProperties = drivers.get(
+                    query.getQueryId()
+                );
+                closeDriver(driverAndProperties.driver, driverAndProperties.properties, false);
+              }
+            }
+        )
     );
 
     this.expectedException = null;
@@ -237,7 +251,6 @@ public class KsqlTesterTest {
     properties.put(StreamsConfig.STATE_DIR_CONFIG, tmpFolder.getRoot().getAbsolutePath());
 
     final TopologyTestDriver driver = new TopologyTestDriver(topology, properties);
-    query.addStopListener(() -> closeDriver(driver, properties, false));
 
     final List<TopicInfo> inputTopics = query
         .getSourceNames()
@@ -254,6 +267,7 @@ public class KsqlTesterTest {
     );
 
     driverPipeline.addDriver(driver, inputTopics, outputInfo);
+    drivers.put(query.getQueryId(), new DriverAndProperties(driver, properties));
   }
 
   private void closeDriver(
@@ -418,5 +432,15 @@ public class KsqlTesterTest {
 
   private void handleExpectedMessage(final TestDirective directive) {
     expectedMessage = directive.getContents();
+  }
+
+  private static class DriverAndProperties {
+    final TopologyTestDriver driver;
+    final Properties properties;
+
+    private DriverAndProperties(final TopologyTestDriver driver, final Properties properties) {
+      this.driver = driver;
+      this.properties = properties;
+    }
   }
 }

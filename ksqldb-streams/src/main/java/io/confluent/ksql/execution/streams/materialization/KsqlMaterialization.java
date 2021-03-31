@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.streams.materialization;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Range;
@@ -28,12 +30,10 @@ import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import static java.util.Objects.requireNonNull;
 import java.util.Optional;
 
-
 /**
- * {@link Materialization} implementation responsible for handling HAVING and SELECT clauses.
+ * {@link Materialization} implementation responsible for handling HAVING, SELECT and WHERE clauses.
  *
  * <p>Underlying {@link Materialization} store data is not the same as the table it servers.
  * Specifically, it has not had:

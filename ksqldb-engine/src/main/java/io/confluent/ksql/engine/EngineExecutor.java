@@ -205,11 +205,6 @@ final class EngineExecutor {
     final ExecutorPlans plans = planQuery(statement, statement.getStatement(),
         Optional.empty(), Optional.empty());
     final KsqlBareOutputNode outputNode = (KsqlBareOutputNode) plans.logicalPlan.getNode().get();
-    engineContext.createQueryValidator().validateQuery(
-        config,
-        plans.physicalPlan,
-        engineContext.getQueryRegistry().getAllLiveQueries()
-    );
     final TransientQueryMetadata query = engineContext.getQueryRegistry().createTransientQuery(
         config,
         serviceContext,
@@ -269,12 +264,6 @@ final class EngineExecutor {
           outputNode.getIntoSourceName(),
           plans.physicalPlan.getPhysicalPlan(),
           plans.physicalPlan.getQueryId()
-      );
-
-      engineContext.createQueryValidator().validateQuery(
-          config,
-          plans.physicalPlan,
-          engineContext.getQueryRegistry().getAllLiveQueries()
       );
 
       return KsqlPlan.queryPlanCurrent(

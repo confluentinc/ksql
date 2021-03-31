@@ -34,11 +34,9 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
-import io.confluent.ksql.query.KafkaStreamsQueryValidator;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.QueryRegistry;
 import io.confluent.ksql.query.QueryRegistryImpl;
-import io.confluent.ksql.query.QueryValidator;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -191,10 +189,6 @@ final class EngineContext {
         serviceContext,
         processingLogContext
     );
-  }
-
-  QueryValidator createQueryValidator() {
-    return new KafkaStreamsQueryValidator();
   }
 
   DdlCommand createDdlCommand(

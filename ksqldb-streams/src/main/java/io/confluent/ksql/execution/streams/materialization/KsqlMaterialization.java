@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.execution.streams.materialization;
 
-import static java.util.Objects.requireNonNull;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Range;
@@ -30,6 +28,7 @@ import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 import java.util.Optional;
 
 /**
@@ -198,7 +197,7 @@ class KsqlMaterialization implements Materialization {
     }
   }
 
-  private static GenericRow getIntermediateRow(final TableRow row) {
+  public static GenericRow getIntermediateRow(final TableRow row) {
     final GenericKey key = row.key();
     final GenericRow value = row.value();
 

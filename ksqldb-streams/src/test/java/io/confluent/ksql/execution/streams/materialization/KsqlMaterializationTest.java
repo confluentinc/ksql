@@ -15,22 +15,7 @@
 
 package io.confluent.ksql.execution.streams.materialization;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Range;
 import com.google.common.collect.Streams;
@@ -53,11 +38,24 @@ import java.util.stream.Collectors;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.sameInstance;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import org.mockito.InOrder;
 import org.mockito.Mock;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -524,6 +522,45 @@ public class KsqlMaterializationTest {
     assertThat(result.get(0).windowedKey().window(), is(window1));
     assertThat(result.get(1).windowedKey().window(), is(window2));
     assertThat(result.get(2).windowedKey().window(), is(window3));
+  }
+
+  @Test
+  public void shouldReturnIntermediateRowNonWindowed() {
+    // Given:
+    final GenericRow intermediateRow1 = A_VALUE.append(A_ROWTIME).append(A_KEY);
+    final GenericRow intermediateRow2 = A_VALUE2.append(A_ROWTIME).append(A_KEY2);
+
+    // When:
+    final GenericRow genericRow1 = KsqlMaterialization.getIntermediateRow(ROW);
+    final GenericRow genericRow2 = KsqlMaterialization.getIntermediateRow(ROW2);
+
+    // Then:
+    assertThat(genericRow1, is(intermediateRow1));
+    assertThat(genericRow2, is(intermediateRow2));
+  }
+
+  @Test
+  public void shouldReturnIntermediateRowWindowed() {
+    // Given:
+    final GenericRow intermediateRow1 = A_VALUE
+            .append(A_ROWTIME)
+            .append(A_KEY)
+            .append(A_WINDOW.start().toEpochMilli())
+            .append(A_WINDOW.end().toEpochMilli());
+
+    final GenericRow intermediateRow2 = A_VALUE2
+            .append(A_ROWTIME)
+            .append(A_KEY2)
+            .append(A_WINDOW.start().toEpochMilli())
+            .append(A_WINDOW.end().toEpochMilli());
+
+    // When:
+    final GenericRow genericRow1 = KsqlMaterialization.getIntermediateRow(WINDOWED_ROW);
+    final GenericRow genericRow2 = KsqlMaterialization.getIntermediateRow(WINDOWED_ROW2);
+
+    // Then:
+    assertThat(genericRow1, is(intermediateRow1));
+    assertThat(genericRow2, is(intermediateRow2));
   }
 
   private void givenNoopFilter() {

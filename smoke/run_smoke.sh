@@ -10,7 +10,7 @@ run_package_test() {
     cp smoke/common/* "$tmp_dir"
     cp "$smoke_test_dir"/* "$tmp_dir"
     cp "$package_file" "$tmp_dir"
-    #docker build $tmp_dir
+    docker build $tmp_dir
 }
 
 run_package_test smoke/deb $1

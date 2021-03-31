@@ -99,7 +99,7 @@ public class StreamsTaskMetadata {
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
-  static class TopicOffset {
+  public static class TopicOffset {
     private final TopicPartitionEntity topicPartitionEntity;
     private final Long endOffset;
     private final Long committedOffset;

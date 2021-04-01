@@ -34,6 +34,7 @@ import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.avro.AvroFormat;
+import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.serde.json.JsonFormat;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.serde.none.NoneFormat;
@@ -355,6 +356,21 @@ public class SerdeFeaturesFactoryTest {
   }
 
   @Test
+  public void shouldConvertFormatForMulticolKeysWhenSanitizingFromDelimitedFormat() {
+    // Given:
+    final KeyFormat format = KeyFormat.nonWindowed(
+        FormatInfo.of(DelimitedFormat.NAME),
+        SerdeFeatures.of());
+
+    // When:
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, MULTI_SQL_TYPES, true);
+
+    // Then:
+    assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(JsonFormat.NAME)));
+    assertThat(sanitized.getFeatures(), equalTo(SerdeFeatures.of()));
+  }
+
+  @Test
   public void shouldNotConvertFormatWhenSanitizingFromOtherFormats() {
     // Given:
     final FormatInfo formatInfo = FormatInfo.of(
@@ -400,5 +416,50 @@ public class SerdeFeaturesFactoryTest {
     // Then:
     assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(KafkaFormat.NAME)));
     assertThat(sanitized.getFeatures(), equalTo(SerdeFeatures.of()));
+  }
+
+  @Test
+  public void shouldConvertKafkaFormatForSingleKeyWithNonPrimitiveType() {
+    // Given:
+    final KeyFormat format = KeyFormat.nonWindowed(
+        FormatInfo.of(KafkaFormat.NAME),
+        SerdeFeatures.of());
+
+    // When:
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, ImmutableList.of(SqlTypes.struct().build()), true);
+
+    // Then:
+    assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(JsonFormat.NAME)));
+    assertThat(sanitized.getFeatures(), equalTo(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)));
+  }
+
+  @Test
+  public void shouldConvertDelimitedFormatForSingleKeyWithNonPrimitiveType() {
+    // Given:
+    final KeyFormat format = KeyFormat.nonWindowed(
+        FormatInfo.of(DelimitedFormat.NAME),
+        SerdeFeatures.of());
+
+    // When:
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, ImmutableList.of(SqlTypes.struct().build()), true);
+
+    // Then:
+    assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(JsonFormat.NAME)));
+    assertThat(sanitized.getFeatures(), equalTo(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)));
+  }
+
+  @Test
+  public void shouldConvertNoneFormatForSingleKeyWithNonPrimitiveType() {
+    // Given:
+    final KeyFormat format = KeyFormat.nonWindowed(
+        FormatInfo.of(NoneFormat.NAME),
+        SerdeFeatures.of());
+
+    // When:
+    final KeyFormat sanitized = SerdeFeaturesFactory.sanitizeKeyFormat(format, ImmutableList.of(SqlTypes.struct().build()), true);
+
+    // Then:
+    assertThat(sanitized.getFormatInfo(), equalTo(FormatInfo.of(JsonFormat.NAME)));
+    assertThat(sanitized.getFeatures(), equalTo(SerdeFeatures.of(SerdeFeature.UNWRAP_SINGLES)));
   }
 }

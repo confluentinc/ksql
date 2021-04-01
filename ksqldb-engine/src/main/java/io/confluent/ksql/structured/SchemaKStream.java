@@ -76,7 +76,7 @@ public class SchemaKStream<K> {
   final FunctionRegistry functionRegistry;
   final LogicalSchema schema;
   private final ExecutionStep<KStreamHolder<K>> sourceStep;
-  protected final ExpressionTypeManager typeManager;
+  private final ExpressionTypeManager typeManager;
 
   SchemaKStream(
       final ExecutionStep<KStreamHolder<K>> sourceStep,

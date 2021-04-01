@@ -110,7 +110,8 @@ public final class SerdeFeaturesFactory {
   /**
    * Not all {@code KeyFormat}s are valid internal topic formats. Specifically,
    * we want to ensure that the key format explicitly sets the wrapping if it
-   * contains only a single column. This method ensures that key wrapping is eagerly set.
+   * contains only a single column and is primitive. This method ensures
+   * that key wrapping is eagerly set.
    *
    * <p>Additionally, internal topics with multiple key columns cannot use the NONE or KAFKA
    * key formats. In these cases, we switch to the JSON key format instead.
@@ -161,13 +162,13 @@ public final class SerdeFeaturesFactory {
   }
 
   /**
-   * Check whether given expression set needs a compound key support. It returns true
+   * Check whether given sql type set needs a compound key support. It returns true
    * when one of the conditions is met:
    * 1. given sql types have more than one entry
    * 2. it is a singleton non-primitive sql type
    *
    * @param sqlTypes the sql types to be tested
-   * @return true if given expressions do not need a compound key type support.
+   * @return true if given sql types do not need a compound key type support.
    */
   private static boolean needCompoundKeySupport(List<SqlType> sqlTypes) {
     return sqlTypes.size() > 1 || (sqlTypes.size() == 1 &&

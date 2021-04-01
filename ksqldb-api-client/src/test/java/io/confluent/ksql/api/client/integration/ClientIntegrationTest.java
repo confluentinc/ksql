@@ -953,7 +953,8 @@ public class ClientIntegrationTest {
         topicInfo(TEST_TOPIC),
         topicInfo(EMPTY_TEST_TOPIC),
         topicInfo(EMPTY_TEST_TOPIC_2),
-        topicInfo(AGG_TABLE)
+        topicInfo(AGG_TABLE),
+        topicInfo("connect-config")
     ));
   }
 

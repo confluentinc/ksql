@@ -13,4 +13,5 @@ run_package_test() {
     docker build $tmp_dir
 }
 
-run_package_test smoke/deb $1
+WORKINGS_DIR=$1
+run_package_test ${WORKINGS_DIR}/smoke/deb $2

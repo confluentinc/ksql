@@ -167,7 +167,8 @@ if "${BUILD_JAR}"; then
 fi 
 
 if "${RUN_SMOKE_TESTS}"; then
+    echo "Package Smoke tests"
     DEBS=( $(find "${WORKSPACE}/output/" -name '*.deb' -print) )
-    ./smoke/run_smoke.sh "${DEBS[0]}"
+    ${WORKSPACE}/smoke/run_smoke.sh "${WORKSPACE}" "${DEBS[0]}"
 fi
 

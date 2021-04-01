@@ -683,6 +683,7 @@ The metadata returned from this method includes the stream or table's underlying
 topic name, column names and associated types, serialization formats, queries that
 read and write from the stream or table, and more. For more details, see the
 [API reference](api/io/confluent/ksql/api/client/Client.html#describeSource(java.lang.String)).
+
 ### Example Usage ###
 
 Fetch metadata for the stream or table with name `my_source`:

@@ -54,6 +54,7 @@ import io.vertx.core.parsetools.RecordParser;
 import java.nio.charset.Charset;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -79,6 +80,7 @@ public class ClientImpl implements Client {
   private final SocketAddress serverSocketAddress;
   private final String basicAuthHeader;
   private final boolean ownedVertx;
+  private final Map<String, Object> sessionVariables;
 
   /**
    * {@code Client} instances should be created via {@link Client#create(ClientOptions)}, NOT via
@@ -105,6 +107,7 @@ public class ClientImpl implements Client {
     this.basicAuthHeader = createBasicAuthHeader(clientOptions);
     this.serverSocketAddress =
         SocketAddress.inetSocketAddress(clientOptions.getPort(), clientOptions.getHost());
+    this.sessionVariables = new HashMap<>();
   }
 
   @Override
@@ -217,7 +220,10 @@ public class ClientImpl implements Client {
 
     makePostRequest(
         KSQL_ENDPOINT,
-        new JsonObject().put("ksql", sql).put("streamsProperties", properties),
+        new JsonObject()
+            .put("ksql", sql)
+            .put("streamsProperties", properties)
+            .put("sessionVariables", sessionVariables),
         cf,
         response -> handleSingleEntityResponse(
             response,
@@ -334,8 +340,10 @@ public class ClientImpl implements Client {
 
     makePostRequest(
         KSQL_ENDPOINT,
-        new JsonObject().put("ksql",
-            String.format("CREATE %s CONNECTOR %s WITH (%s);", type, name, connectorConfigs)),
+        new JsonObject()
+            .put("ksql",
+                String.format("CREATE %s CONNECTOR %s WITH (%s);", type, name, connectorConfigs))
+            .put("sessionVariables", sessionVariables),
         cf,
         response -> handleSingleEntityResponse(
             response, cf, ConnectorCommandResponseHandler::handleCreateConnectorResponse)
@@ -390,6 +398,23 @@ public class ClientImpl implements Client {
   }
 
   @Override
+  public void define(final String variable, final Object value) {
+    sessionVariables.put(variable, value);
+  }
+
+  @Override
+  public void undefine(final String variable) {
+    if (sessionVariables.containsKey(variable)) {
+      sessionVariables.remove(variable);
+    }
+  }
+
+  @Override
+  public Map<String, Object> getVariables() {
+    return new HashMap<>(sessionVariables);
+  }
+
+  @Override
   public void close() {
     httpClient.close();
     if (ownedVertx) {
@@ -413,7 +438,10 @@ public class ClientImpl implements Client {
       final T cf,
       final StreamedResponseHandlerSupplier<T> responseHandlerSupplier
   ) {
-    final JsonObject requestBody = new JsonObject().put("sql", sql).put("properties", properties);
+    final JsonObject requestBody = new JsonObject()
+        .put("sql", sql)
+        .put("properties", properties)
+        .put("sessionVariables", sessionVariables);
 
     makePostRequest(
         QUERY_STREAM_ENDPOINT,

@@ -1501,6 +1501,45 @@ public class ClientTest extends BaseApiTest {
     assertTrue(result.complete(null));
   }
 
+  @Test
+  public void shouldStoreVariables() {
+    // When:
+    javaClient.define("a", "aaa");
+    javaClient.define("a", "a");
+    javaClient.define("b", 5);
+    javaClient.define("c", "c");
+    javaClient.undefine("c");
+    javaClient.undefine("d");
+
+    // Then:
+    assertThat(javaClient.getVariables().size(), is(2));
+    assertThat(javaClient.getVariables().get("a"), is("a"));
+    assertThat(javaClient.getVariables().get("b"), is(5));
+  }
+
+  @Test
+  public void shouldSendSessionVariablesToEndpoint() throws Exception {
+    // Given:
+    javaClient.define("a", "a");
+    final CommandStatusEntity entity = new CommandStatusEntity(
+        "CSAS;",
+        new CommandId("STREAM", "FOO", "CREATE"),
+        new CommandStatus(
+            CommandStatus.Status.SUCCESS,
+            "Success",
+            Optional.of(new QueryId("CSAS_0"))
+        ),
+        0L
+    );
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.executeStatement("CSAS;").get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("a", "a")));
+  }
+
   protected Client createJavaClient() {
     return Client.create(createJavaClientOptions(), vertx);
   }

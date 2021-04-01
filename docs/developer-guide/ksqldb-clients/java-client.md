@@ -33,6 +33,7 @@ Use the Java client to:
 - [Describe specific streams and tables](#describe-source)
 - [Get metadata about the ksqlDB cluster](#server-info)
 - [Manage, list and describe connectors](#connector-operations)
+- [Use variable substitution](#variable-substitution)
 
 Get started below or skip to the end for full-fledged [examples](#tutorial-examples).
 
@@ -765,6 +766,35 @@ System.out.println(description.name()
   + " It reads/writes to " + description.sources().size() + " ksqlDB sources"
   + " and uses " + description.topics().size() + " topics."
 );
+```
+
+Use variable substitution<a name="variable-substitution"></a>
+---------------------------------------------------------------
+
+Starting with ksqlDB 0.18.0, users can define session variables by calling the `define()` method and
+reference them in other fuctions by wrapping the variable name in `${}`. The `undefine()` method
+undefines a session variable, and `getVariables()` returns a map of the currently defined variables
+and their values.
+
+### Example Usage ###
+Define a new variable:
+```java
+client.define("topic", "stream-topic");
+```
+
+Use a variable in `executeStatement`:
+```java
+client.executeStatement("CREATE STREAM S (NAME STRING, AGE INTEGER) WITH (kafka_topic='${topic}', value_format='json');");
+```
+
+Undefine a variable:
+```java
+client.undefine("topic");
+```
+
+Get all variables:
+```java
+Map<String, Object> variables = client.getVariables();
 ```
 
 Tutorial Examples<a name="tutorial-examples"></a>

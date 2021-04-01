@@ -270,8 +270,8 @@ def job = {
                             // Run smoke tests for the packages produced above
                             sh """
                                 echo "Package Smoke tests"
-                                DEBS=( \\\$(find "${WORKSPACE}/output/" -name '*.deb' -print) )
-                                ${env.WORKSPACE}/smoke/run_smoke.sh "${env.WORKSPACE}" "${DEBS[0]}"    
+                                DEBS=( \$(find ./output/ -name '*.deb' -print) )
+                                ${env.WORKSPACE}/smoke/run_smoke.sh "${env.WORKSPACE}" "\${DEBS[0]}"    
                             """
                             step([$class: 'hudson.plugins.findbugs.FindBugsPublisher', pattern: '**/*bugsXml.xml'])
 

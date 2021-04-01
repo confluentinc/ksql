@@ -480,6 +480,10 @@ def post = {
             """
         }
     }
+    // Remove any images we created during a smoke test
+    sh '''
+        docker rmi --force ksqldb-package-test-deb || true
+    '''
     commonPost(config)
 }
 

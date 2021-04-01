@@ -263,9 +263,16 @@ def job = {
                                 ${env.WORKSPACE}/build-packages.sh --workspace . \
                                     --docker-registry ${config.dockerRegistry} \
                                     --project-version ${config.ksql_db_artifact_version} \
-                                    --upstream-version ${config.cp_version} --jar --smoke-tests
+                                    --upstream-version ${config.cp_version} --jar
+                                
                                 """
                             }
+                            // Run smoke tests for the packages produced above
+                            sh """
+                                echo "Package Smoke tests"
+                                DEBS=( \\\$(find "${WORKSPACE}/output/" -name '*.deb' -print) )
+                                ${env.WORKSPACE}/smoke/run_smoke.sh "${env.WORKSPACE}" "${DEBS[0]}"    
+                            """
                             step([$class: 'hudson.plugins.findbugs.FindBugsPublisher', pattern: '**/*bugsXml.xml'])
 
                             if (!config.isPrJob) {

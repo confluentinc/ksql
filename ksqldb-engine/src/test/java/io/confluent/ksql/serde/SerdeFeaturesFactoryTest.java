@@ -62,9 +62,6 @@ public class SerdeFeaturesFactoryTest {
       .valueColumn(ColumnName.of("f1"), SqlTypes.DOUBLE)
       .build();
 
-  private static final List<ColumnName> SINGLE_COLUMN_NAME = ImmutableList.of(ColumnName.of("bob"));
-  private static final List<ColumnName> MULTI_FIELD_NAMES = ImmutableList.of(ColumnName.of("bob"), ColumnName.of("vic"));
-
   private static final List<SqlType> MULTI_SQL_TYPES = ImmutableList.of(SqlPrimitiveType.of(SqlBaseType.INTEGER),SqlPrimitiveType.of(SqlBaseType.BOOLEAN));
   private static final List<SqlType> SINGLE_SQL_TYPE = ImmutableList.of(SqlPrimitiveType.of(SqlBaseType.BOOLEAN));
 

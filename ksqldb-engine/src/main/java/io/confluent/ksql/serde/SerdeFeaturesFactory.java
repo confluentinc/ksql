@@ -24,6 +24,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.serde.json.JsonFormat;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
 import io.confluent.ksql.serde.none.NoneFormat;
@@ -281,6 +282,7 @@ public final class SerdeFeaturesFactory {
 
   private static boolean formatSupportsMultipleColumns(final KeyFormat format) {
     return !format.getFormat().equals(KafkaFormat.NAME)
-        && !format.getFormat().equals(NoneFormat.NAME);
+        && !format.getFormat().equals(NoneFormat.NAME)
+        && !format.getFormat().equals(DelimitedFormat.NAME);
   }
 }

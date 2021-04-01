@@ -61,22 +61,22 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlMaterializationTest {
 
-  private static LogicalSchema SCHEMA;
-  private static GenericKey A_KEY;
-  private static GenericKey A_KEY2;
-  private static long A_ROWTIME;
-  private static Range<Instant> WINDOW_START_BOUNDS;
-  private static Range<Instant> WINDOW_END_BOUNDS;
-  private static int PARTITION;
-  private static GenericRow A_VALUE;
-  private static GenericRow A_VALUE2;
-  private static GenericRow TRANSFORMED;
-  private static Window A_WINDOW;
-  private static TimeWindow STREAM_WINDOW;
-  private static Row ROW;
-  private static Row ROW2;
-  private static WindowedRow WINDOWED_ROW;
-  private static WindowedRow WINDOWED_ROW2;
+  private LogicalSchema SCHEMA;
+  private GenericKey A_KEY;
+  private GenericKey A_KEY2;
+  private long A_ROWTIME;
+  private Range<Instant> WINDOW_START_BOUNDS;
+  private Range<Instant> WINDOW_END_BOUNDS;
+  private int PARTITION;
+  private GenericRow A_VALUE;
+  private GenericRow A_VALUE2;
+  private GenericRow TRANSFORMED;
+  private Window A_WINDOW;
+  private TimeWindow STREAM_WINDOW;
+  private Row ROW;
+  private Row ROW2;
+  private WindowedRow WINDOWED_ROW;
+  private WindowedRow WINDOWED_ROW2;
 
 
   @Mock

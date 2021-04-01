@@ -185,7 +185,6 @@ class KsqlMaterialization implements Materialization {
     public Iterator<WindowedRow> get(final int partition, final Range<Instant> windowStartBounds,
         final Range<Instant> windowEndBounds) {
       final Iterator<WindowedRow> result = table.get(partition, windowStartBounds, windowEndBounds);
-
       return Streams.stream(result)
           .map(row ->  {
             return filterAndTransform(row.windowedKey(), getIntermediateRow(row), row.rowTime())

@@ -781,6 +781,37 @@
           {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
         ]}
       ]
+    },
+    {
+      "name": "session windowed single key lookup with window start range",
+      "statements": [
+        "CREATE STREAM INPUT (ID STRING KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, COUNT(1) AS COUNT FROM INPUT WINDOW SESSION(5 SECOND) WHERE ID = '10' GROUP BY ID HAVING COUNT(1)<2;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE ID = '10' AND 10 <= WindowStart AND WindowStart < 200000;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE ID = '10' AND 8001 <= WindowStart AND WindowStart < 19444;",
+        "SELECT ID, WINDOWSTART, WINDOWEND, ROWTIME, COUNT FROM AGGREGATE WHERE ID = '10' AND 8001 < WindowStart AND WindowStart <= 19444;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 8001, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 10456, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 19444, "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 19444, 19444, 19444, 1]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `ROWTIME` BIGINT, `COUNT` BIGINT"}},
+          {"row":{"columns":["10", 19444, 19444, 19444, 1]}}
+        ]}
+      ]
     }
   ]
 }

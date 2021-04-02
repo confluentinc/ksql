@@ -61,22 +61,22 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlMaterializationTest {
 
-  private LogicalSchema SCHEMA;
-  private GenericKey A_KEY;
-  private GenericKey A_KEY2;
-  private long A_ROWTIME;
-  private Range<Instant> WINDOW_START_BOUNDS;
-  private Range<Instant> WINDOW_END_BOUNDS;
-  private int PARTITION;
-  private GenericRow A_VALUE;
-  private GenericRow A_VALUE2;
-  private GenericRow TRANSFORMED;
-  private Window A_WINDOW;
-  private TimeWindow STREAM_WINDOW;
-  private Row ROW;
-  private Row ROW2;
-  private WindowedRow WINDOWED_ROW;
-  private WindowedRow WINDOWED_ROW2;
+  private LogicalSchema schema;
+  private GenericKey aKey;
+  private GenericKey aKey2;
+  private long aRowtime;
+  private Range<Instant> windowStartBounds;
+  private Range<Instant> windowEndBounds;
+  private int partition;
+  private GenericRow aValue;
+  private GenericRow aValue2;
+  private GenericRow transformed;
+  private Window aWindow;
+  private TimeWindow streamWindow;
+  private Row row;
+  private Row row2;
+  private WindowedRow windowedRow;
+  private WindowedRow windowedRow2;
 
 
   @Mock
@@ -94,79 +94,79 @@ public class KsqlMaterializationTest {
 
   @Before
   public void setUp() {
-    SCHEMA = LogicalSchema.builder()
+    schema = LogicalSchema.builder()
             .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
             .build();
 
-    A_KEY = GenericKey.genericKey("k");
-    A_KEY2 = GenericKey.genericKey("k2");
+    aKey = GenericKey.genericKey("k");
+    aKey2 = GenericKey.genericKey("k2");
 
-    A_ROWTIME = 12335L;
+    aRowtime = 12335L;
 
-    WINDOW_START_BOUNDS = Range.closed(
+    windowStartBounds = Range.closed(
             Instant.now(),
             Instant.now().plusSeconds(10)
     );
 
-    WINDOW_END_BOUNDS = Range.closed(
+    windowEndBounds = Range.closed(
             Instant.now().plusSeconds(1),
             Instant.now().plusSeconds(11)
     );
-    PARTITION = 0;
+    partition = 0;
 
-    A_VALUE = GenericRow.genericRow("a", "b");
-    A_VALUE2 = GenericRow.genericRow("a2", "b2");
-    TRANSFORMED = GenericRow.genericRow("x", "y");
-    A_WINDOW = Window.of(Instant.now(), Instant.now().plusMillis(10));
-    STREAM_WINDOW = new TimeWindow(
-            A_WINDOW.start().toEpochMilli(),
-            A_WINDOW.end().toEpochMilli()
+    aValue = GenericRow.genericRow("a", "b");
+    aValue2 = GenericRow.genericRow("a2", "b2");
+    transformed = GenericRow.genericRow("x", "y");
+    aWindow = Window.of(Instant.now(), Instant.now().plusMillis(10));
+    streamWindow = new TimeWindow(
+            aWindow.start().toEpochMilli(),
+            aWindow.end().toEpochMilli()
     );
 
-    ROW = Row.of(
-            SCHEMA,
-            A_KEY,
-            A_VALUE,
-            A_ROWTIME
+    row = Row.of(
+            schema,
+            aKey,
+            aValue,
+            aRowtime
     );
 
-    ROW2 = Row.of(
-            SCHEMA,
-            A_KEY2,
-            A_VALUE2,
-            A_ROWTIME
+    row2 = Row.of(
+            schema,
+            aKey2,
+            aValue2,
+            aRowtime
     );
 
-    WINDOWED_ROW = WindowedRow.of(
-            SCHEMA,
-            new Windowed<>(A_KEY, STREAM_WINDOW),
-            A_VALUE,
-            A_ROWTIME
+    windowedRow = WindowedRow.of(
+            schema,
+            new Windowed<>(aKey, streamWindow),
+            aValue,
+            aRowtime
     );
 
-    WINDOWED_ROW2 = WindowedRow.of(
-            SCHEMA,
-            new Windowed<>(A_KEY2, STREAM_WINDOW),
-            A_VALUE2,
-            A_ROWTIME
+    windowedRow2 = WindowedRow.of(
+            schema,
+            new Windowed<>(aKey2, streamWindow),
+            aValue2,
+            aRowtime
     );
 
     materialization = new KsqlMaterialization(
         inner,
-        SCHEMA,
+            schema,
         ImmutableList.of(filter, project)
     );
 
     when(inner.nonWindowed()).thenReturn(innerNonWindowed);
     when(inner.windowed()).thenReturn(innerWindowed);
 
-    when(innerNonWindowed.get(any(), anyInt())).thenReturn(Optional.of(ROW));
-    when(innerNonWindowed.get(anyInt())).thenReturn(Iterators.forArray(ROW, ROW2));
-    when(innerWindowed.get(any(), anyInt(), any(), any())).thenReturn(ImmutableList.of(WINDOWED_ROW));
+    when(innerNonWindowed.get(any(), anyInt())).thenReturn(Optional.of(row));
+    when(innerNonWindowed.get(anyInt())).thenReturn(Iterators.forArray(row, row2));
+    when(innerWindowed.get(any(), anyInt(), any(), any())).thenReturn(ImmutableList.of(windowedRow));
     when(innerWindowed.get(anyInt(), any(), any()))
-        .thenReturn(ImmutableList.of(WINDOWED_ROW, WINDOWED_ROW2).iterator());
+        .thenReturn(ImmutableList.of(windowedRow, windowedRow2).iterator());
   }
 
   @SuppressWarnings("UnstableApiUsage")
@@ -174,7 +174,7 @@ public class KsqlMaterializationTest {
   public void shouldThrowNPEs() {
     new NullPointerTester()
         .setDefault(Materialization.class, inner)
-        .setDefault(LogicalSchema.class, SCHEMA)
+        .setDefault(LogicalSchema.class, schema)
         .testConstructors(KsqlMaterialization.class, Visibility.PACKAGE);
   }
 
@@ -234,13 +234,13 @@ public class KsqlMaterializationTest {
     // Given:
     final MaterializedTable table = materialization.nonWindowed();
     givenNoopFilter();
-    when(project.apply(any(), any(), any())).thenReturn(Optional.of(TRANSFORMED));
+    when(project.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
-    table.get(A_KEY, PARTITION);
+    table.get(aKey, partition);
 
     // Then:
-    verify(innerNonWindowed).get(A_KEY, PARTITION);
+    verify(innerNonWindowed).get(aKey, partition);
   }
 
   @Test
@@ -248,13 +248,13 @@ public class KsqlMaterializationTest {
     // Given:
     final MaterializedWindowedTable table = materialization.windowed();
     givenNoopFilter();
-    when(project.apply(any(), any(), any())).thenReturn(Optional.of(TRANSFORMED));
+    when(project.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
-    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    table.get(aKey, partition, windowStartBounds, windowEndBounds);
 
     // Then:
-    verify(innerWindowed).get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    verify(innerWindowed).get(aKey, partition, windowStartBounds, windowEndBounds);
   }
 
   @Test
@@ -262,14 +262,14 @@ public class KsqlMaterializationTest {
     // Given:
     final MaterializedTable table = materialization.nonWindowed();
     givenNoopFilter();
-    when(project.apply(any(), any(), any())).thenReturn(Optional.of(TRANSFORMED));
+    when(project.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
 
     // When:
-    table.get(A_KEY, PARTITION);
+    table.get(aKey, partition);
 
     // Then:
-    verify(filter).apply(A_KEY, A_VALUE, new PullProcessingContext(A_ROWTIME));
+    verify(filter).apply(aKey, aValue, new PullProcessingContext(aRowtime));
   }
 
   @Test
@@ -277,16 +277,16 @@ public class KsqlMaterializationTest {
     // Given:
     final MaterializedWindowedTable table = materialization.windowed();
     givenNoopFilter();
-    when(project.apply(any(), any(), any())).thenReturn(Optional.of(TRANSFORMED));
+    when(project.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
-    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    table.get(aKey, partition, windowStartBounds, windowEndBounds);
 
     // Then:
     verify(filter).apply(
-        new Windowed<>(A_KEY, STREAM_WINDOW),
-        A_VALUE,
-        new PullProcessingContext(A_ROWTIME)
+        new Windowed<>(aKey, streamWindow),
+            aValue,
+        new PullProcessingContext(aRowtime)
     );
   }
 
@@ -298,7 +298,7 @@ public class KsqlMaterializationTest {
     givenNoopTransforms();
 
     // When:
-    final Optional<?> result = table.get(A_KEY, PARTITION);
+    final Optional<?> result = table.get(aKey, partition);
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -312,7 +312,7 @@ public class KsqlMaterializationTest {
     givenNoopTransforms();
 
     // When:
-    final List<?> result = table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    final List<?> result = table.get(aKey, partition, windowStartBounds, windowEndBounds);
 
     // Then:
     assertThat(result, is(empty()));
@@ -326,7 +326,7 @@ public class KsqlMaterializationTest {
     when(filter.apply(any(), any(), any())).thenReturn(Optional.empty());
 
     // When:
-    final Optional<?> result = table.get(A_KEY, PARTITION);
+    final Optional<?> result = table.get(aKey, partition);
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -340,7 +340,7 @@ public class KsqlMaterializationTest {
     when(filter.apply(any(), any(), any())).thenReturn(Optional.empty());
 
     // When:
-    final List<?> result = table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    final List<?> result = table.get(aKey, partition, windowStartBounds, windowEndBounds);
 
     // Then:
     assertThat(result, is(empty()));
@@ -354,7 +354,7 @@ public class KsqlMaterializationTest {
     when(filter.apply(any(), any(), any())).thenReturn(Optional.empty());
 
     // When:
-    final Iterator<?> result = table.get(PARTITION);
+    final Iterator<?> result = table.get(partition);
 
     // Then:
     assertThat(result.hasNext(), is(false));
@@ -368,7 +368,7 @@ public class KsqlMaterializationTest {
     when(filter.apply(any(), any(), any())).thenReturn(Optional.empty());
 
     // When:
-    final Iterator<?> result = table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    final Iterator<?> result = table.get(partition, windowStartBounds, windowEndBounds);
 
     // Then:
     assertThat(result.hasNext(), is(false));
@@ -379,10 +379,10 @@ public class KsqlMaterializationTest {
     // Given:
     final MaterializedTable table = materialization.nonWindowed();
     givenNoopFilter();
-    when(project.apply(any(), any(), any())).thenReturn(Optional.of(TRANSFORMED));
+    when(project.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
-    table.get(A_KEY, PARTITION);
+    table.get(aKey, partition);
 
     // Then:
     final InOrder inOrder = inOrder(project, filter);
@@ -395,10 +395,10 @@ public class KsqlMaterializationTest {
     // Given:
     final MaterializedWindowedTable table = materialization.windowed();
     givenNoopFilter();
-    when(project.apply(any(), any(), any())).thenReturn(Optional.of(TRANSFORMED));
+    when(project.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
-    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    table.get(aKey, partition, windowStartBounds, windowEndBounds);
 
     // Then:
     final InOrder inOrder = inOrder(project, filter);
@@ -411,13 +411,13 @@ public class KsqlMaterializationTest {
     // Given:
     final MaterializedTable table = materialization.nonWindowed();
     givenNoopProject();
-    when(filter.apply(any(), any(), any())).thenReturn(Optional.of(TRANSFORMED));
+    when(filter.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
-    table.get(A_KEY, PARTITION);
+    table.get(aKey, partition);
 
     // Then:
-    verify(project).apply(A_KEY, TRANSFORMED, new PullProcessingContext(A_ROWTIME));
+    verify(project).apply(aKey, transformed, new PullProcessingContext(aRowtime));
   }
 
   @Test
@@ -425,16 +425,16 @@ public class KsqlMaterializationTest {
     // Given:
     final MaterializedWindowedTable table = materialization.windowed();
     givenNoopProject();
-    when(filter.apply(any(), any(), any())).thenReturn(Optional.of(TRANSFORMED));
+    when(filter.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
-    table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS);
+    table.get(aKey, partition, windowStartBounds, windowEndBounds);
 
     // Then:
     verify(project).apply(
-        new Windowed<>(A_KEY, STREAM_WINDOW),
-        TRANSFORMED,
-        new PullProcessingContext(A_ROWTIME)
+        new Windowed<>(aKey, streamWindow),
+            transformed,
+        new PullProcessingContext(aRowtime)
     );
   }
 
@@ -443,15 +443,15 @@ public class KsqlMaterializationTest {
     // Given:
     final MaterializedTable table = materialization.nonWindowed();
     givenNoopProject();
-    when(filter.apply(any(), any(), any())).thenReturn(Optional.of(TRANSFORMED));
+    when(filter.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
-    Streams.stream(table.get(PARTITION)).collect(Collectors.toList());
+    Streams.stream(table.get(partition)).collect(Collectors.toList());
 
 
     // Then:
-    verify(project).apply(A_KEY, TRANSFORMED, new PullProcessingContext(A_ROWTIME));
-    verify(project).apply(A_KEY2, TRANSFORMED, new PullProcessingContext(A_ROWTIME));
+    verify(project).apply(aKey, transformed, new PullProcessingContext(aRowtime));
+    verify(project).apply(aKey2, transformed, new PullProcessingContext(aRowtime));
   }
 
   @Test
@@ -459,22 +459,22 @@ public class KsqlMaterializationTest {
     // Given:
     final MaterializedWindowedTable table = materialization.windowed();
     givenNoopProject();
-    when(filter.apply(any(), any(), any())).thenReturn(Optional.of(TRANSFORMED));
+    when(filter.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
-    Streams.stream(table.get(PARTITION, WINDOW_START_BOUNDS, WINDOW_END_BOUNDS))
+    Streams.stream(table.get(partition, windowStartBounds, windowEndBounds))
         .collect(Collectors.toList());
 
     // Then:
     verify(project).apply(
-        new Windowed<>(A_KEY, STREAM_WINDOW),
-        TRANSFORMED,
-        new PullProcessingContext(A_ROWTIME)
+        new Windowed<>(aKey, streamWindow),
+            transformed,
+        new PullProcessingContext(aRowtime)
     );
     verify(project).apply(
-        new Windowed<>(A_KEY2, STREAM_WINDOW),
-        TRANSFORMED,
-        new PullProcessingContext(A_ROWTIME)
+        new Windowed<>(aKey2, streamWindow),
+            transformed,
+        new PullProcessingContext(aRowtime)
     );
   }
 
@@ -484,16 +484,16 @@ public class KsqlMaterializationTest {
     // Given:
     final MaterializedTable table = materialization.nonWindowed();
     givenNoopFilter();
-    when(project.apply(any(), any(), any())).thenReturn(Optional.of(TRANSFORMED));
+    when(project.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
-    final Optional<Row> result = table.get(A_KEY, PARTITION);
+    final Optional<Row> result = table.get(aKey, partition);
 
     // Then:
     assertThat(result, is(not(Optional.empty())));
-    assertThat(result.get().key(), is(A_KEY));
+    assertThat(result.get().key(), is(aKey));
     assertThat(result.get().window(), is(Optional.empty()));
-    assertThat(result.get().value(), is(TRANSFORMED));
+    assertThat(result.get().value(), is(transformed));
   }
 
   @Test
@@ -501,17 +501,17 @@ public class KsqlMaterializationTest {
     // Given:
     final MaterializedWindowedTable table = materialization.windowed();
     givenNoopFilter();
-    when(project.apply(any(), any(), any())).thenReturn(Optional.of(TRANSFORMED));
+    when(project.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS,
-        WINDOW_END_BOUNDS);
+    final List<WindowedRow> result = table.get(aKey, partition, windowStartBounds,
+            windowEndBounds);
 
     // Then:
     assertThat(result, hasSize(1));
-    assertThat(result.get(0).key(), is(A_KEY));
-    assertThat(result.get(0).window(), is(Optional.of(A_WINDOW)));
-    assertThat(result.get(0).value(), is(TRANSFORMED));
+    assertThat(result.get(0).key(), is(aKey));
+    assertThat(result.get(0).window(), is(Optional.of(aWindow)));
+    assertThat(result.get(0).value(), is(transformed));
   }
 
   @Test
@@ -519,7 +519,7 @@ public class KsqlMaterializationTest {
     // Given:
     final MaterializedWindowedTable table = materialization.windowed();
     givenNoopFilter();
-    when(project.apply(any(), any(), any())).thenReturn(Optional.of(TRANSFORMED));
+    when(project.apply(any(), any(), any())).thenReturn(Optional.of(transformed));
 
     final Instant now = Instant.now();
     final TimeWindow window1 =
@@ -532,16 +532,16 @@ public class KsqlMaterializationTest {
         new TimeWindow(now.toEpochMilli(), now.plusMillis(3).toEpochMilli());
 
     final ImmutableList<WindowedRow> rows = ImmutableList.of(
-        WindowedRow.of(SCHEMA, new Windowed<>(A_KEY, window1), A_VALUE, A_ROWTIME),
-        WindowedRow.of(SCHEMA, new Windowed<>(A_KEY, window2), A_VALUE, A_ROWTIME),
-        WindowedRow.of(SCHEMA, new Windowed<>(A_KEY, window3), A_VALUE, A_ROWTIME)
+        WindowedRow.of(schema, new Windowed<>(aKey, window1), aValue, aRowtime),
+        WindowedRow.of(schema, new Windowed<>(aKey, window2), aValue, aRowtime),
+        WindowedRow.of(schema, new Windowed<>(aKey, window3), aValue, aRowtime)
     );
 
     when(innerWindowed.get(any(), anyInt(), any(), any())).thenReturn(rows);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, PARTITION, WINDOW_START_BOUNDS,
-        WINDOW_END_BOUNDS);
+    final List<WindowedRow> result = table.get(aKey, partition, windowStartBounds,
+            windowEndBounds);
 
     // Then:
     assertThat(result, hasSize(rows.size()));
@@ -553,12 +553,12 @@ public class KsqlMaterializationTest {
   @Test
   public void shouldReturnIntermediateRowNonWindowed() {
     // Given:
-    final GenericRow intermediateRow1 = A_VALUE.append(A_ROWTIME).append(A_KEY);
-    final GenericRow intermediateRow2 = A_VALUE2.append(A_ROWTIME).append(A_KEY2);
+    final GenericRow intermediateRow1 = aValue.append(aRowtime).append(aKey);
+    final GenericRow intermediateRow2 = aValue2.append(aRowtime).append(aKey2);
 
     // When:
-    final GenericRow genericRow1 = KsqlMaterialization.getIntermediateRow(ROW);
-    final GenericRow genericRow2 = KsqlMaterialization.getIntermediateRow(ROW2);
+    final GenericRow genericRow1 = KsqlMaterialization.getIntermediateRow(row);
+    final GenericRow genericRow2 = KsqlMaterialization.getIntermediateRow(row2);
 
     // Then:
     assertThat(genericRow1, is(intermediateRow1));
@@ -568,21 +568,21 @@ public class KsqlMaterializationTest {
   @Test
   public void shouldReturnIntermediateRowWindowed() {
     // Given:
-    final GenericRow intermediateRow1 = A_VALUE
-            .append(A_ROWTIME)
-            .append(A_KEY)
-            .append(A_WINDOW.start().toEpochMilli())
-            .append(A_WINDOW.end().toEpochMilli());
+    final GenericRow intermediateRow1 = aValue
+            .append(aRowtime)
+            .append(aKey)
+            .append(aWindow.start().toEpochMilli())
+            .append(aWindow.end().toEpochMilli());
 
-    final GenericRow intermediateRow2 = A_VALUE2
-            .append(A_ROWTIME)
-            .append(A_KEY2)
-            .append(A_WINDOW.start().toEpochMilli())
-            .append(A_WINDOW.end().toEpochMilli());
+    final GenericRow intermediateRow2 = aValue2
+            .append(aRowtime)
+            .append(aKey2)
+            .append(aWindow.start().toEpochMilli())
+            .append(aWindow.end().toEpochMilli());
 
     // When:
-    final GenericRow genericRow1 = KsqlMaterialization.getIntermediateRow(WINDOWED_ROW);
-    final GenericRow genericRow2 = KsqlMaterialization.getIntermediateRow(WINDOWED_ROW2);
+    final GenericRow genericRow1 = KsqlMaterialization.getIntermediateRow(windowedRow);
+    final GenericRow genericRow2 = KsqlMaterialization.getIntermediateRow(windowedRow2);
 
     // Then:
     assertThat(genericRow1, is(intermediateRow1));

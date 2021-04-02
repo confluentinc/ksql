@@ -25,6 +25,7 @@ run_package_test() {
 DEB=$(find "$OUTPUT_DIR" -name '*.deb' -print | awk 'NR==1')
 if [ -z "$DEB" ]; then
   echo "Couldn't find file *.deb in $OUTPUT_DIR"
+  exit 1
 fi
 
 echo "Testing deb file $DEB"

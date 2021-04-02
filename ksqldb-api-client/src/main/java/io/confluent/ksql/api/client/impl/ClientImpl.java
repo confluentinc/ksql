@@ -196,7 +196,7 @@ public class ClientImpl implements Client {
 
     makePostRequest(
         CLOSE_QUERY_ENDPOINT,
-        new JsonObject().put("queryId", queryId),
+        new JsonObject().put("queryId", queryId).put("sessionVariables", sessionVariables),
         cf,
         response -> handleCloseQueryResponse(response, cf)
     );
@@ -301,7 +301,9 @@ public class ClientImpl implements Client {
 
     makePostRequest(
         KSQL_ENDPOINT,
-        new JsonObject().put("ksql", "describe " + sourceName + ";"),
+        new JsonObject()
+            .put("ksql", "describe " + sourceName + ";")
+            .put("sessionVariables", sessionVariables),
         cf,
         response -> handleSingleEntityResponse(
             response, cf, AdminResponseHandlers::handleDescribeSourceResponse)
@@ -358,7 +360,9 @@ public class ClientImpl implements Client {
 
     makePostRequest(
         KSQL_ENDPOINT,
-        new JsonObject().put("ksql", "drop connector " + name + ";"),
+        new JsonObject()
+            .put("ksql", "drop connector " + name + ";")
+            .put("sessionVariables", sessionVariables),
         cf,
         response -> handleSingleEntityResponse(
             response, cf, ConnectorCommandResponseHandler::handleDropConnectorResponse)
@@ -388,7 +392,9 @@ public class ClientImpl implements Client {
 
     makePostRequest(
         KSQL_ENDPOINT,
-        new JsonObject().put("ksql", "describe connector " + name + ";"),
+        new JsonObject()
+            .put("ksql", "describe connector " + name + ";")
+            .put("sessionVariables", sessionVariables),
         cf,
         response -> handleSingleEntityResponse(
             response, cf, ConnectorCommandResponseHandler::handleDescribeConnectorsResponse)

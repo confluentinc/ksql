@@ -455,13 +455,12 @@ public class ClientIntegrationTest {
   public void shouldExecutePullQueryWithVariables() throws Exception {
     // When
     client.define("AGG_TABLE", AGG_TABLE);
-    client.define("AN_AGG_KEY", AN_AGG_KEY);
-    final BatchedQueryResult batchedQueryResult = client.executeQuery("SELECT * from ${AGG_TABLE} WHERE K=STRUCT(F1 := ARRAY['a']);");
+    client.define("value", false);
+    final BatchedQueryResult batchedQueryResult = client.executeQuery("SELECT ${value} from ${AGG_TABLE} WHERE K=STRUCT(F1 := ARRAY['a']);");
 
     // Then
     assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
-
-    verifyPullQueryRows(batchedQueryResult.get());
+    assertThat(batchedQueryResult.get().get(0).getBoolean(1), is(false));
   }
 
   @Test
@@ -479,13 +478,13 @@ public class ClientIntegrationTest {
   public void shouldExecutePushQueryWithVariables() throws Exception {
     // When
     client.define("TEST_STREAM", TEST_STREAM);
+    client.define("number", 4567);
     final BatchedQueryResult batchedQueryResult =
-        client.executeQuery("SELECT * FROM ${TEST_STREAM} EMIT CHANGES LIMIT " + PUSH_QUERY_LIMIT_NUM_ROWS + ";");
+        client.executeQuery("SELECT ${number} FROM ${TEST_STREAM} EMIT CHANGES LIMIT " + PUSH_QUERY_LIMIT_NUM_ROWS + ";");
 
     // Then
     assertThat(batchedQueryResult.queryID().get(), is(notNullValue()));
-
-    verifyStreamRows(batchedQueryResult.get(), PUSH_QUERY_LIMIT_NUM_ROWS);
+    assertThat(batchedQueryResult.get().get(0).getInteger(1), is(4567));
   }
 
   @Test

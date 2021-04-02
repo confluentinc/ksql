@@ -33,7 +33,7 @@ Use the Java client to:
 - [Describe specific streams and tables](#describe-source)
 - [Get metadata about the ksqlDB cluster](#server-info)
 - [Manage, list and describe connectors](#connector-operations)
-- [Use variable substitution](#variable-substitution)
+- [Define variables for substitution](#variable-substitution)
 
 Get started below or skip to the end for full-fledged [examples](#tutorial-examples).
 
@@ -768,13 +768,21 @@ System.out.println(description.name()
 );
 ```
 
-Use variable substitution<a name="variable-substitution"></a>
+Define variables for substitution<a name="variable-substitution"></a>
 ---------------------------------------------------------------
 
-Starting with ksqlDB 0.18.0, users can define session variables by calling the `define()` method and
-reference them in other fuctions by wrapping the variable name in `${}`. The `undefine()` method
-undefines a session variable, and `getVariables()` returns a map of the currently defined variables
-and their values.
+Starting with ksqlDB 0.18.0, users can define session variables by calling the [`define()`](/api/io/confluent/ksql/api/client/Client.html#define(java.lang.String,boolean,java.lang.Object)) method and
+reference them in other functions by wrapping the variable name in `${}`. The [`undefine()`](/api/io/confluent/ksql/api/client/Client.html#undefine(java.lang.String)) method
+undefines a session variable, and [`getVariables()`](/api/io/confluent/ksql/api/client/Client.html#getVariables()) returns a map of the currently defined variables
+and their values. Substitution is supported for the following functions:
+* `streamQuery`
+* `executeQuery`
+* `terminatePushQuery`
+* `executeStatement`
+* `describeSource`
+* `createConnector`
+* `dropConnector`
+* `describeConnector`
 
 ### Example Usage ###
 Define a new variable:

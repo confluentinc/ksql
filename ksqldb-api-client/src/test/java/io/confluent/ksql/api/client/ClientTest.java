@@ -1518,7 +1518,7 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldSendSessionVariablesToEndpoint() throws Exception {
+  public void shouldSendSessionVariablesToKsqlEndpoint() throws Exception {
     // Given:
     javaClient.define("a", "a");
     final CommandStatusEntity entity = new CommandStatusEntity(
@@ -1537,6 +1537,30 @@ public class ClientTest extends BaseApiTest {
     javaClient.executeStatement("CSAS;").get();
 
     // Then:
+    assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("a", "a")));
+  }
+
+  @Test
+  public void shouldSendSessionVariablesWithExecuteQuery() throws Exception {
+    // Given
+    javaClient.define("a", "a");
+
+    // When
+    javaClient.executeQuery("query;").get();
+
+    // Then
+    assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("a", "a")));
+  }
+
+  @Test
+  public void shouldSendSessionVariablesWithStreamQuery() throws Exception {
+    // Given
+    javaClient.define("a", "a");
+
+    // When
+    javaClient.streamQuery("query;").get();
+
+    // Then
     assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("a", "a")));
   }
 

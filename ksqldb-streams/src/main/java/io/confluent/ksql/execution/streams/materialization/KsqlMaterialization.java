@@ -196,6 +196,11 @@ class KsqlMaterialization implements Materialization {
     }
   }
 
+  /*
+  Today, we are unconditionally adding the extra fields to windowed rows.
+  TODO: We should decide if we need these additional fields for the
+   Windowed Rows case and remove them if possible.
+   */
   public static GenericRow getIntermediateRow(final TableRow row) {
     final GenericKey key = row.key();
     final GenericRow value = row.value();

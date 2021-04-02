@@ -43,30 +43,30 @@ cluster on the new version, porting across your database schema, and finally thi
 Read on for details.
 
 
-## (1) In-Place upgrade
+### In-Place upgrade
 
-#### Steps :-
+#### Steps
 
 1. Download the [new ksqlDB version](https://docs.confluent.io/platform/current/installation/installing_cp/zip-tar.html#get-the-software) to upgrade to.
-2. Set it up with all required configs. In our case we mostly copied all configs from the current version(which is running) to the new version.
-3. Take Backup and then copy all UDF JAR to new version .(OPTIONAL STEP In case you don't have any UDF).
-4. Stop ksqlDB process of current version(5.5 in our case) and start newer version(6 in our case) with latest KsqlDB config file which you created in step2.
+2. Set it up with all required configs. For the vast majority of upgrades, you may simply copy existing configs over to the new version.
+3. Copy source UDFs and recompile against the new ksqlDB version, to accommodate any changes to the UDF framework.
+4. Stop ksqlDB process of current version and start newer version with latest ksqlDB config file which you created in step 2.
 5. KsqlDB will start executing queries and rebuild all states using command topic because the value of "ksql.service.id" is the same.
 6. Now KsqlDB Server with the latest version is up and running.
 
 #### Troubleshooting an Upgrade :-
 
 1. If the ksqlDB server fails to start with an error message such as "KsqlException: UdfFactory not compatible with existing factory. function: <FUNCTION_NAME> existing". 
-This error is because Confluent KsqlDB 6 has these functions as in built so it will create conflict with your UDFs. So to solve this you can create a new udf jar by eliminating those inbuilt functions and deploy it and then try to start KsqlDB again.
+This error is because the new ksqlDB version has introduced an in-built function of the same name, creating a conflict with your UDF. To solve this you can create a new UDF jar by renaming or eliminating the conflicting function(s), and restarting ksqlDB with the new UDF jar.
 
 2. "desribe extended" command not working :- This generally happens when ksqlCli and ksqlServer version is not same. Generally people create alias for ksqlCli so make sure to change it to newer version. So all an all, version of ksqlCli and ksqlServer should be same.
 
 
 
 
-## (2) Steps to follow when "In-Place" upgrade is not supported
+### Steps to follow when "In-Place" upgrade is not supported
 
-### Port the database schema
+#### Port the database schema
 
 To port your database schema from one cluster to another you need to recreate all the streams,
 tables and types in the source cluster.
@@ -107,7 +107,7 @@ If you prefer to recover the schema manually, use the following steps.
    [RUN SCRIPT](../../developer-guide/ksqldb-reference/run-script.md) command, which takes a SQL
    file as an input.
 
-### Rebuild state
+#### Rebuild state
 
 Porting the database schema to the new cluster will cause ksqlDB to start processing data. As this
 is a new cluster it will start processing all data from the start, i.e. it will likely be
@@ -126,7 +126,7 @@ It is possible to monitor how far behind the processing is through JMX. Monitor 
 `kafka.consumer/consumer-fetch-manager-metrics/<consumer-name>/records-lag-max` metrics to observe
 the new nodes processing the historic data.
 
-### Destroy the old cluster
+#### Destroy the old cluster
 
 Once you're happy with your new cluster you can destroy the old one using the
 [terminate endpoint](https://github.com/confluentinc/ksql/blob/master/docs/developer-guide/ksqldb-rest-api/terminate-endpoint.md).

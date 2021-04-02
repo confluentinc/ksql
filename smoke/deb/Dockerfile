@@ -1,5 +1,6 @@
 FROM ubuntu:bionic
 
+ARG CP_VERSION
 
 RUN mkdir ksql_test/ && cd ksql_test
 
@@ -9,9 +10,9 @@ RUN apt-get update && apt-get install -y wget gnupg software-properties-common o
 
 ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
 
-RUN wget -qO - https://packages.confluent.io/deb/6.1/archive.key | apt-key add -
+RUN wget -qO - https://packages.confluent.io/deb/${CP_VERSION}/archive.key | apt-key add -
 
-RUN add-apt-repository "deb [arch=amd64] https://packages.confluent.io/deb/6.1 stable main"
+RUN add-apt-repository "deb [arch=amd64] https://packages.confluent.io/deb/${CP_VERSION} stable main"
 
 RUN apt-get update && apt-get install -y confluent-kafka
 

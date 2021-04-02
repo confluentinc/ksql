@@ -12,10 +12,11 @@ increment_failures() {
 
   # http://wiki.bash-hackers.org/commands/builtin/caller
   local frame=0
+  # shellcheck disable=SC2207
   while caller_info=($(caller $frame)); do
     echo "* $frame) in ${caller_info[1]}; from ${caller_info[2]}:${caller_info[0]}"
 
-    ((frame = $frame + 1))
+    ((frame = frame + 1))
   done
 
   echo
@@ -84,7 +85,7 @@ CREATE STREAM reviews
 	partitions=1);
 EOM
 )
-CREATE_STREAM=$(echo '{"ksql": "'$CREATE_STREAM'", "streamsProperties": {"ksql.streams.auto.offset.reset": "earliest"}}' | tr '\n' ' ')
+CREATE_STREAM=$(echo '{"ksql": "'"$CREATE_STREAM"'", "streamsProperties": {"ksql.streams.auto.offset.reset": "earliest"}}' | tr '\n' ' ')
 
 curl -X "POST" "http://localhost:8088/ksql" \
      -H "Content-Type: application/vnd.ksql.v1+json; charset=utf-8" \
@@ -96,7 +97,7 @@ CREATE TABLE reviews_by_item AS
    SELECT item_id, latest_by_offset(comment) FROM reviews group by item_id;
 EOM
 )
-CREATE_TABLE=$(echo '{"ksql": "'$CREATE_TABLE'", "streamsProperties": {"ksql.streams.auto.offset.reset": "earliest"}}' | tr '\n' ' ')
+CREATE_TABLE=$(echo '{"ksql": "'"$CREATE_TABLE"'", "streamsProperties": {"ksql.streams.auto.offset.reset": "earliest"}}' | tr '\n' ' ')
 
 curl -X "POST" "http://localhost:8088/ksql" \
      -H "Content-Type: application/vnd.ksql.v1+json; charset=utf-8" \
@@ -110,7 +111,7 @@ INSERT INTO reviews VALUES (1, 101, 'Broke immediately!');
 INSERT INTO reviews VALUES (2, 101, 'Not bad');
 EOM
 )
-INSERT_DATA=$(echo '{"ksql": "'$INSERT_DATA'", "streamsProperties": {}}' | tr '\n' ' ')
+INSERT_DATA=$(echo '{"ksql": "'"$INSERT_DATA"'", "streamsProperties": {}}' | tr '\n' ' ')
 
 curl -X "POST" "http://localhost:8088/ksql" \
      -H "Content-Type: application/vnd.ksql.v1+json; charset=utf-8" \
@@ -122,9 +123,9 @@ RESULT=$(curl -X "POST" "http://localhost:8088/query" \
      -H "Content-Type: application/vnd.ksql.v1+json; charset=utf-8" \
      -d '{"ksql": "SELECT * FROM reviews EMIT CHANGES limit 4;", "streamsProperties": {"ksql.streams.auto.offset.reset": "earliest"}}' ||
     increment_failures "Unable do push query")
-NUM_ROWS=$(echo $RESULT | jq . | grep row | wc | awk '{print $1}')
+NUM_ROWS=$(echo "$RESULT" | jq . | grep row | wc | awk '{print $1}')
 
-if [ $NUM_ROWS -ne 4 ]; then
+if [ "$NUM_ROWS" -ne 4 ]; then
     increment_failures "Failed to find rows $RESULT"
 else
     echo "Found expected rows $RESULT"
@@ -135,9 +136,9 @@ do_pull_query() {
        -H "Content-Type: application/vnd.ksql.v1+json; charset=utf-8" \
        -d '{"ksql": "SELECT * FROM reviews_by_item where item_id = 1;", "streamsProperties": {}}' ||
       increment_failures "Unable do pull query")
-  NUM_ROWS=$(echo $RESULT | jq . | grep row | wc | awk '{print $1}')
+  NUM_ROWS=$(echo "$RESULT" | jq . | grep row | wc | awk '{print $1}')
 
-  if [ $NUM_ROWS -ne 1 ]; then
+  if [ "$NUM_ROWS" -ne 1 ]; then
       echo "Pull Query: Failed to find row $RESULT" 
       return 1
   else

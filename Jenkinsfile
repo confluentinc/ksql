@@ -267,10 +267,13 @@ def job = {
                                 
                                 """
                             }
-                            // Run smoke tests for the packages produced above
+                            // Run smoke tests for the packages produced above.  This utilizes
+                            // docker and must be wrapped in a withDockerServer
                             sh """
                                 echo "Package Smoke tests"
-                                ${env.WORKSPACE}/smoke/run_smoke.sh ${env.WORKSPACE} ./output/    
+                                # The last argument is the public CP version to use for dependencies
+                                # such as Zookeeper and Kafka when testing ksqlDB. 
+                                ${env.WORKSPACE}/smoke/run_smoke.sh ${env.WORKSPACE} ./output/ "6.1"
                             """
                             step([$class: 'hudson.plugins.findbugs.FindBugsPublisher', pattern: '**/*bugsXml.xml'])
 
@@ -479,11 +482,11 @@ def post = {
                 fi
             """
         }
+        // Remove any images we created during a smoke test
+        sh '''
+            docker rmi -f ksqldb-package-test-deb || true
+        '''
     }
-    // Remove any images we created during a smoke test
-    sh '''
-        docker rmi --force ksqldb-package-test-deb || true
-    '''
     commonPost(config)
 }
 

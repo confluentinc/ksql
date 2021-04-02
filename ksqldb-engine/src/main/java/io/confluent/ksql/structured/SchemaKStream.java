@@ -59,7 +59,6 @@ import io.confluent.ksql.util.Repartitioning;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.streams.kstream.JoinWindows;
@@ -399,7 +398,7 @@ public class SchemaKStream<K> {
     );
   }
 
-  protected List<SqlType> toSqlTypes(List<Expression> expressions) {
+  protected List<SqlType> toSqlTypes(final List<Expression> expressions) {
     return expressions.stream().map(typeManager::getExpressionSqlType).collect(Collectors.toList());
   }
 

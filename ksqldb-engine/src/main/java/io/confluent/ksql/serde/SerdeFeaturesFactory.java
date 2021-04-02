@@ -16,24 +16,22 @@
 package io.confluent.ksql.serde;
 
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
-import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.function.udf.math.Exp;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.serde.json.JsonFormat;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
+import io.confluent.ksql.serde.kafka.KafkaSerdeFactory;
 import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 public final class SerdeFeaturesFactory {
 
@@ -149,8 +147,7 @@ public final class SerdeFeaturesFactory {
       final boolean allowKeyFormatChangeToSupportMultipleKeys
   ) {
     if (!allowKeyFormatChangeToSupportMultipleKeys
-        || !needCompoundKeySupport(sqlTypes)
-        || formatSupportsMultipleColumns(keyFormat)) {
+        || keyFormatConversionSupported(keyFormat, sqlTypes)) {
       return keyFormat;
     }
 
@@ -162,17 +159,36 @@ public final class SerdeFeaturesFactory {
   }
 
   /**
-   * Check whether given sql type set needs a compound key support. It returns true
-   * when one of the conditions is met:
-   * 1. given sql types have more than one entry
-   * 2. it is a singleton non-primitive sql type
+   * Check whether given sql type set could be supported by given key format.
    *
+   * @param keyFormat the key format to be checked
    * @param sqlTypes the sql types to be tested
-   * @return true if given sql types do not need a compound key type support.
+   * @return true if the out sql types are supported by key format
    */
-  private static boolean needCompoundKeySupport(List<SqlType> sqlTypes) {
-    return sqlTypes.size() > 1 || (sqlTypes.size() == 1 &&
-        !(sqlTypes.get(0) instanceof SqlPrimitiveType));
+  private static boolean keyFormatConversionSupported(final KeyFormat keyFormat,
+                                                      final List<SqlType> sqlTypes) {
+    switch (keyFormat.getFormat()) {
+      case KafkaFormat.NAME:
+        return isSupportedByKafkaFormat(sqlTypes);
+      case DelimitedFormat.NAME:
+        return isSupportedByDelimitedFormat(sqlTypes);
+      case NoneFormat.NAME:
+        return false;
+      default:
+        return true;
+    }
+  }
+
+  private static boolean isSupportedByKafkaFormat(final List<SqlType> sqlTypes) {
+    return sqlTypes.size() <= 1
+        && sqlTypes.get(0) instanceof SqlPrimitiveType
+        && KafkaSerdeFactory.containsSerde(
+            SchemaConverters.sqlToJavaConverter().toJavaType(
+            sqlTypes.get(0).baseType()));
+  }
+
+  private static boolean isSupportedByDelimitedFormat(final List<SqlType> sqlTypes) {
+    return sqlTypes.stream().allMatch(sqlType -> sqlType instanceof SqlPrimitiveType);
   }
 
   private static KeyFormat sanitizeKeyFormatWrapping(
@@ -279,11 +295,5 @@ public final class SerdeFeaturesFactory {
     }
 
     return Optional.of(feature);
-  }
-
-  private static boolean formatSupportsMultipleColumns(final KeyFormat format) {
-    return !format.getFormat().equals(KafkaFormat.NAME)
-        && !format.getFormat().equals(NoneFormat.NAME)
-        && !format.getFormat().equals(DelimitedFormat.NAME);
   }
 }

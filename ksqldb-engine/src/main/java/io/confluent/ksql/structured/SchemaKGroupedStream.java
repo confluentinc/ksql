@@ -120,7 +120,7 @@ public class SchemaKGroupedStream {
     );
   }
 
-  protected List<SqlType> toSqlTypes(List<Column> columns) {
+  protected List<SqlType> toSqlTypes(final List<Column> columns) {
     return columns.stream().map(Column::type).collect(Collectors.toList());
   }
 

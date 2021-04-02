@@ -1033,7 +1033,7 @@ public class SqlToJavaVisitor {
 
       for (Expression value : expressions) {
         array.append(".add(");
-        array.append(process(value, context).getLeft());
+        array.append(evaluateOrReturnNull(process(value, context).getLeft()));
         array.append(")");
       }
       return new Pair<>(
@@ -1064,8 +1064,8 @@ public class SqlToJavaVisitor {
       final String entries = Streams.zip(
           keys.stream(),
           values.stream(),
-          (k, v) -> ".put(" + process(k, context).getLeft() + ", " + process(v, context).getLeft()
-              + ")"
+          (k, v) -> ".put(" + evaluateOrReturnNull(process(k, context).getLeft()) + ", "
+              + evaluateOrReturnNull(process(v, context).getLeft()) + ")"
       ).collect(Collectors.joining());
 
       return new Pair<>(
@@ -1086,13 +1086,24 @@ public class SqlToJavaVisitor {
             .append(field.getName())
             .append('"')
             .append(",")
-            .append(process(field.getValue(), context).getLeft())
+            .append(evaluateOrReturnNull(process(field.getValue(), context).getLeft()))
             .append(")");
       }
       return new Pair<>(
           "((Struct)" + struct.toString() + ")",
           expressionTypeManager.getExpressionSqlType(node, context.getLambdaSqlTypeMapping())
       );
+    }
+
+    private String evaluateOrReturnNull(final String s) {
+      return " (new " + Supplier.class.getSimpleName() + "<Object>() {"
+          + "@Override public Object get() {"
+          + " try {"
+          + "  return " + s + ";"
+          + " } catch (Exception e) {"
+          + "  return null;"
+          + " }"
+          + "}}).get()";
     }
 
     @Override

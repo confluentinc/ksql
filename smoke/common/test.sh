@@ -149,3 +149,5 @@ do_pull_query() {
 
 timed_wait $DEFAULT_TIMED_OUT "do_pull_query" ||
     increment_failures "Failed to find pull query row"
+
+increment_failures "Fake failure"

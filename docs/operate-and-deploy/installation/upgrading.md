@@ -45,22 +45,25 @@ Read on for details.
 
 ### In-Place upgrade
 
-#### Steps
+Follow these steps to do an in-place upgrade of ksqlDB.
 
 1. Download the [new ksqlDB version](https://docs.confluent.io/platform/current/installation/installing_cp/zip-tar.html#get-the-software) to upgrade to.
 2. Set it up with all required configs. For the vast majority of upgrades, you may simply copy existing configs over to the new version.
 3. Copy source UDFs and recompile against the new ksqlDB version, to accommodate any changes to the UDF framework.
-4. Stop ksqlDB process of current version and start newer version with latest ksqlDB config file which you created in step 2.
-5. KsqlDB will start executing queries and rebuild all states using command topic because the value of "ksql.service.id" is the same.
-6. Now KsqlDB Server with the latest version is up and running.
+4. Stop the ksqlDB process running the current version and start the newer version with the latest ksqlDB config file, which you created in Step 2.
+5. ksqlDB starts executing queries and rebuilds all states, using the command topic, because the value of `ksql.service.id` is the same as the previous version. ksqlDB Server with the latest version is up and running.
 
-#### Troubleshooting an Upgrade :-
 
-1. If the ksqlDB server fails to start with an error message such as "KsqlException: UdfFactory not compatible with existing factory. function: <FUNCTION_NAME> existing". 
-This error is because the new ksqlDB version has introduced an in-built function of the same name, creating a conflict with your UDF. To solve this you can create a new UDF jar by renaming or eliminating the conflicting function(s), and restarting ksqlDB with the new UDF jar.
+### Troubleshooting an Upgrade :-
 
-2. "desribe extended" command not working :- This generally happens when ksqlCli and ksqlServer version is not same. Generally people create alias for ksqlCli so make sure to change it to newer version. So all an all, version of ksqlCli and ksqlServer should be same.
+1. ksqlDB Server fails to start with an error message like "KsqlException: UdfFactory not compatible with existing factory. function: <FUNCTION_NAME> existing":  
+This error occurs when the new ksqlDB version introduces a built-in function that has the same name as yours, creating a conflict with your UDF. Create a new UDF jar by renaming or eliminating the conflicting function(s), and restart ksqlDB with the new UDF jar.
 
+2. DESCRIBE EXTENDED command doesn't work: 
+Usually, this happens when the ksqlDB CLI and ksqlDB Server versions are different. You can create an alias for ksqlDB CLI to make sure to change it to newer version. You should ensure that the ksqlDB CLI and Server versions are the same. In "<Home-Folder-Path>/.bashrc" file, you can create an alias for logging into ksqlDB cli. 
+Eg : 
+(i) Open .bashrc file
+(ii) Create alias using command : "alias ksqldb='cd <ksqlDB bin folder location> && ./ksql http://<host-ip>:8088'" and save the changes. Now you can type "ksqldb" on shell and can login into ksqlDB.
 
 
 

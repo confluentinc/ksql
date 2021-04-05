@@ -78,7 +78,8 @@ If no bounds are placed on `WINDOWSTART` or `WINDOWEND`, rows are returned for a
 in the windowed table.
 
 Pull queries can be issued against derived tables created using [CREATE TABLE AS SELECT](../../ksqldb-reference/create-table-as-select) statements. 
-Here is an example of that:
+
+
 ```sql
 CREATE TABLE GRADES (ID INT PRIMARY KEY, GRADE STRING, RANK INT) 
   WITH (kafka_topic = 'test_topic', value_format = 'JSON', partitions = 1);

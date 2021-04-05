@@ -94,7 +94,8 @@ CREATE TABLE TOP_TEN_RANKS
   FROM GRADES 
   WHERE RANK <= 10;
  ```
-We can fetch the current state of our materialized view 
+You can fetch the current state of your materialized view, which is
+
 (the derived table `TOP_TEN_RANKS`) with pull queries:
 ```sql
 SELECT * FROM TOP_TEN_RANKS;

@@ -102,7 +102,6 @@ SELECT * FROM TOP_TEN_RANKS
   WHERE ID = 5;
 ```
 !!! note
-	Tables derived using Table-Table joins aren't queryable directly. To derive a queryable table, you can do:  
-	`CREATE TABLE QUERYABLE_JOIN_TABLE AS SELECT * FROM JOIN_TABLE;`
-	and then issue pull queries against `QUERYABLE_JOIN_TABLE`
+	Currently, tables derived using Table-Table joins aren't queryable directly. To derive a queryable table, you can do:  
+	`CREATE TABLE QUERYABLE_JOIN_TABLE AS SELECT * FROM JOIN_TABLE;` and then issue pull queries against `QUERYABLE_JOIN_TABLE`.
 	

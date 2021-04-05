@@ -16,7 +16,7 @@ then also be returned with the response from the `/clusterStatus` endpoint.
 !!! note
       ksqlDB servers in a cluster discover each other through persistent queries.
       If you have no persistent queries running, then the `/clusterStatus` endpoint
-      will only contain info for the particular server that was queried, rather than
+      contains info for the particular server that was queried, rather than
       all servers in the cluster.  
 
 You can use the `curl` command to query the `/clusterStatus` endpoint

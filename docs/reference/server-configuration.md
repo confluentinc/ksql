@@ -120,10 +120,10 @@ guide for details.
 
 ## `ksql.heartbeat.enable`
 
-If enabled, ksqlDB servers in the same ksqlDB cluster will send heartbeats to each
+If enabled, ksqlDB servers in the same ksqlDB cluster send heartbeats to each
 other, to aid in faster failure detection for improved pull query routing.
 Also enables the [`/clusterStatus` endpoint](../developer-guide/ksqldb-rest-api/cluster-status-endpoint.md).
-Defaults to false.
+The default is `false`.
 
 ## `ksql.internal.listener`
 
@@ -146,10 +146,10 @@ configured separately. For more information, see
 
 ## `ksql.lag.reporting.enable`
 
-If enabled, ksqlDB servers in the same ksqlDB cluster will send state store 
+If enabled, ksqlDB servers in the same ksqlDB cluster sends state-store 
 lag information to each other as a form of heartbeat, for improved pull query routing.
 Only applicable if [`ksql.heartbeat.enable`](#ksqlheartbeatenable) is also set to `true`.
-Defaults to false.
+The default is `false`.
 
 ## `ksql.logging.processing.topic.auto.create`
 

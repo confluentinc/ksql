@@ -76,3 +76,33 @@ time zone.
 
 If no bounds are placed on `WINDOWSTART` or `WINDOWEND`, rows are returned for all windows
 in the windowed table.
+
+Pull queries can also be issued against derived tables created using [CREATE TABLE AS SELECT](../../ksqldb-reference/create-table-as-select) statements. 
+Here is an example of that:
+```sql
+CREATE TABLE GRADES (ID INT PRIMARY KEY, GRADE STRING, RANK INT) 
+  WITH (kafka_topic = 'test_topic', value_format = 'JSON', partitions = 1);
+```
+This creates a source table `GRADES`. Create a derived table
+`TOP_TEN_RANKS` with a [CREATE TABLE AS SELECT](../../ksqldb-reference/create-table-as-select) statement:
+ ```sql
+CREATE TABLE TOP_TEN_RANKS 
+  AS SELECT ID, RANK 
+  FROM GRADES 
+  WHERE RANK <= 10;
+ ```
+We can fetch the current state of our materialized view 
+(the derived table `TOP_TEN_RANKS`) with pull queries:
+```sql
+SELECT * FROM TOP_TEN_RANKS;
+```
+or, if you just want to just look up the student with `ID = 5` in the derived table:
+```sql
+SELECT * FROM TOP_TEN_RANKS
+  WHERE ID = 5;
+```
+!!! note
+	Tables derived using Table-Table joins aren't queryable directly. To derive a queryable table, you can do:  
+	`CREATE TABLE QUERYABLE_JOIN_TABLE AS SELECT * FROM JOIN_TABLE;`
+	and then issue pull queries against `QUERYABLE_JOIN_TABLE`
+	

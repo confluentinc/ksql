@@ -144,6 +144,7 @@ public class KeyedWindowedTableLookupOperatorTest {
     assertThat(lookupOperator.next(), is(WINDOWED_ROW2));
     assertThat(lookupOperator.next(), is(WINDOWED_ROW4));
     assertThat(lookupOperator.next(), is(nullValue()));
+    assertThat(lookupOperator.getReturnedRowCount(), is(5L));
   }
 
   @Test
@@ -178,6 +179,7 @@ public class KeyedWindowedTableLookupOperatorTest {
     assertThat(lookupOperator.next(), is(WINDOWED_ROW2));
     assertThat(lookupOperator.next(), is(WINDOWED_ROW4));
     assertThat(lookupOperator.next(), is(nullValue()));
+    assertThat(lookupOperator.getReturnedRowCount(), is(5L));
   }
 
   @Test
@@ -226,5 +228,6 @@ public class KeyedWindowedTableLookupOperatorTest {
     assertThat(lookupOperator.next(), is(WINDOWED_ROW2));
     assertThat(lookupOperator.next(), is(WINDOWED_ROW4));
     assertThat(lookupOperator.next(), is(nullValue()));
+    assertThat(lookupOperator.getReturnedRowCount(), is(5L));
   }
 }

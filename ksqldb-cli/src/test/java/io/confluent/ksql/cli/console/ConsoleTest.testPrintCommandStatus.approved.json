@@ -1,0 +1,12 @@
+[ {
+  "@type" : "currentStatus",
+  "statementText" : "e",
+  "commandId" : "topic/1/create",
+  "commandStatus" : {
+    "status" : "SUCCESS",
+    "message" : "Success Message",
+    "queryId" : "CSAS_0"
+  },
+  "commandSequenceNumber" : 0,
+  "warnings" : [ ]
+} ]

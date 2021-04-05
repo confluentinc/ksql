@@ -121,8 +121,10 @@ public class StreamTableJoinBuilderTest {
     when(right.build(any(), eq(planInfo))).thenReturn(
         KTableHolder.materialized(rightKTable, RIGHT_SCHEMA, executionKeyFactory, materializationBuilder));
 
-    when(leftKStream.leftJoin(any(KTable.class), any(), any())).thenReturn(resultStream);
-    when(leftKStream.join(any(KTable.class), any(), any())).thenReturn(resultStream);
+    when(leftKStream.leftJoin(any(KTable.class), any(KsqlValueJoiner.class), any()))
+        .thenReturn(resultStream);
+    when(leftKStream.join(any(KTable.class), any(KsqlValueJoiner.class), any()))
+        .thenReturn(resultStream);
 
     planBuilder = new KSPlanBuilder(
         buildContext,

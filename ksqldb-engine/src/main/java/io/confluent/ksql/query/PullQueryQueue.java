@@ -25,6 +25,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +52,7 @@ public class PullQueryQueue implements BlockingRowQueue {
   private final BlockingQueue<PullQueryRow> rowQueue;
   private final long offerTimeoutMs;
   private AtomicBoolean closed = new AtomicBoolean(false);
+  private AtomicLong totalRowsQueued = new AtomicLong(0);
 
   /**
    * The callback run when we've hit the end of the data. Specifically, this happens when
@@ -189,6 +191,7 @@ public class PullQueryQueue implements BlockingRowQueue {
 
       while (!closed.get()) {
         if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
+          totalRowsQueued.incrementAndGet();
           queuedCallback.run();
           return true;
         }
@@ -214,5 +217,9 @@ public class PullQueryQueue implements BlockingRowQueue {
       LOG.error("Interrupted while trying to put row into queue", e);
       Thread.currentThread().interrupt();
     }
+  }
+
+  public long getTotalRowsQueued() {
+    return totalRowsQueued.get();
   }
 }

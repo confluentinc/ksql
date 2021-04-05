@@ -31,6 +31,8 @@ Use the Java client to:
 - [Create and manage new streams, tables, and persistent queries (executeStatement())](#execute-statement)
 - [List streams, tables, topics, and queries](#admin-operations)
 - [Describe specific streams and tables](#describe-source)
+- [Get metadata about the ksqlDB cluster](#server-info)
+- [Manage, list and describe connectors](#connector-operations)
 
 Get started below or skip to the end for full-fledged [examples](#tutorial-examples).
 
@@ -145,6 +147,10 @@ public class ExampleApp {
 ```
 
 For additional client options, see the [API reference](api/io/confluent/ksql/api/client/ClientOptions.html).
+
+You can use the `ClientOptions` class to connect your Java client to
+{{ site.ccloud }}. For more information, see
+[Connect to a {{ site.ccloud }} ksqlDB cluster](#connect-to-cloud).
 
 Receive query results one row at a time (streamQuery())<a name="stream-query"></a>
 ----------------------------------------------------------------------------------
@@ -529,6 +535,7 @@ Create and manage new streams, tables, and persistent queries (executeStatement(
 ------------------------------------------------------------------------------------------------------------------
 
 Starting with ksqlDB 0.11.0, the `executeStatement()` method enables client apps to:
+
 - Create new ksqlDB streams and tables
 - Drop existing ksqlDB streams and tables
 - Create new persistent queries, i.e., `CREATE ... AS SELECT` and `INSERT INTO ... AS SELECT` statements
@@ -609,6 +616,7 @@ List streams, tables, topics, and queries<a name="admin-operations"></a>
 ------------------------------------------------------------------------
 
 Starting with ksqlDB 0.11.0, the Java client for ksqlDB supports the following admin operations:
+
 - Listing ksqlDB streams, by using the `listStreams()` method
 - Listing ksqlDB tables, by using the `listTables()` method
 - Listing Kafka topics available for use with ksqlDB, by using the `listTopics()` method
@@ -690,6 +698,78 @@ System.out.println("This stream/table has " + description.fields().size() + " co
 System.out.println(description.writeQueries().size() + " queries write to this stream/table.");
 System.out.println(description.readQueries().size() + " queries read from this stream/table.");
 ``` 
+
+Get metadata about the ksqlDB cluster<a name="server-info"></a>
+---------------------------------------------------------------
+
+Starting with ksqlDB 0.16.0, the `serverInfo()` method enables client apps to fetch metadata about
+the ksqlDB cluster. The metadata returned from this method includes the version of ksqlDB the server
+is running, the Kafka cluster id and the ksqlDB service id. For more details, see the 
+[API reference](api/io/confluent/ksql/api/client/Client.html#serverInfo()).
+
+### Example Usage ###
+
+Fetch server metadata:
+```java
+ServerInfo serverInfo = client.serverInfo().get();
+System.out.println("The ksqlDB version running on this server is " + serverInfo.getServerVersion());
+System.out.println("The Kafka cluster this server is using is " + serverInfo.getKafkaClusterId());
+System.out.println("The id of this ksqlDB service is " + serverInfo.getKsqlServiceId());
+``` 
+
+Manage, list and describe connectors<a name="connector-operations"></a>
+-----------------------------------------------------------------------
+
+Starting with ksqlDB 0.18.0, the Java client for ksqlDB supports the following connector operations:
+- Creating new connectors by using the [`createConnector()`](/api/io/confluent/ksql/api/client/Client.html#createConnector(java.lang.String,boolean,java.util.Map)) method
+- Dropping existing connectors by using the [`dropConnector()`](/api/io/confluent/ksql/api/client/Client.html#dropConnector(java.lang.String)) method
+- Listing connectors by using the [`listConnectors()`](/api/io/confluent/ksql/api/client/Client.html#listConnectors()) method
+- Describing a specific connector by using the [`describeConnector()`](/api/io/confluent/ksql/api/client/Client.html#describeConnector(java.lang.String)) method
+
+### Example Usage ###
+
+Create a new connector:
+```java
+Map<String, String> connectorProperties = ImmutableMap.of(
+  "connector.class", "io.confluent.connect.jdbc.JdbcSourceConnector",
+  "connection.url", "jdbc:postgresql://localhost:5432/my.db",
+  "mode", "bulk",
+  "topic.prefix", "jdbc-",
+  "table.whitelist", "users",
+  "key", "username"
+);
+client.createConnector("jdbc-connector", true, connectorProperties).get();
+```
+
+Drop a connector:
+```java
+client.dropConnector("jdbc-connector").get();
+```
+
+List connectors:
+```java
+List<ConnectorInfo> connectors = client.listConnectors().get();
+for (ConnectorInfo connector : connectors) {
+  System.out.println(connector.name()
+    + " " + connector.type()
+    + " " + connector.className()
+    + " " + connector.state()
+    + "\n"
+  );
+}
+```
+
+Describe a connector:
+```java
+ConnectorDescription description = client.describeConnector("jdbc-connector").get();
+System.out.println(description.name()
+  + " is a " + description.type() + " connector.\n"
+  + " The connector's class is " + description.className() + ".\n"
+  + " The connector is currently " + description.state() + ".\n"
+  + " It reads/writes to " + description.sources().size() + " ksqlDB sources"
+  + " and uses " + description.topics().size() + " topics."
+);
+```
 
 Tutorial Examples<a name="tutorial-examples"></a>
 -------------------------------------------------
@@ -864,6 +944,28 @@ client.executeQuery(sql1).thenCombine(
       return null;
     });
 ```
+
+Connect to a {{ site.ccloud }} ksqlDB cluster <a name="connect-to-cloud"></a>
+-----------------------------------------------------------------------------
+
+Use the following code snippet to connect your Java client to a hosted ksqlDB
+cluster in {{ site.ccloud }}.
+
+```java
+ClientOptions options = ClientOptions.create()
+ .setBasicAuthCredentials("<ksqlDB-API-key>", "<ksqlDB-API-secret>")
+ .setHost("<ksqlDB-endpoint>")
+ .setPort(443)
+ .setUseTls(true)
+ .setUseAlpn(true);
+```
+
+Get the API key and endpoint URL from your {{ site.ccloud }} cluster.
+
+- For the the API key, see 
+  [Create an API key for Confluent Cloud ksqlDB](https://docs.confluent.io/cloud/current/cp-component/ksqldb-ccloud-cli.html#create-an-api-key-for-ccloud-ksql-cloud-through-the-ccloud-cli).
+- For the endpoint, run the `ccloud ksql app list` command. For more information,
+  see [Access a ksqlDB application in Confluent Cloud with an API key](https://docs.confluent.io/cloud/current/cp-component/ksqldb-ccloud-cli.html#access-a-ksql-cloud-application-in-ccloud-with-an-api-key).
 
 ## Suggested Reading
 

@@ -21,8 +21,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.metrics.TopicSensors.Stat;
 import io.confluent.ksql.model.WindowType;
 import java.util.List;
 import java.util.Objects;
@@ -42,8 +40,6 @@ public class SourceDescription {
   private final String timestamp;
   private final String statistics;
   private final String errorStats;
-  private final ImmutableMap<String, Stat> statisticsMap;
-  private final ImmutableMap<String, Stat> errorStatsMap;
   private final boolean extended;
   private final String keyFormat;
   private final String valueFormat;
@@ -53,6 +49,8 @@ public class SourceDescription {
   private final String statement;
   private final List<QueryOffsetSummary> queryOffsetSummaries;
   private final List<String> sourceConstraints;
+  private final List<QueryHostStat> clusterStatistics;
+  private final List<QueryHostStat> clusterErrorStats;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @JsonCreator
@@ -66,8 +64,6 @@ public class SourceDescription {
       @JsonProperty("timestamp") final String timestamp,
       @JsonProperty("statistics") final String statistics,
       @JsonProperty("errorStats") final String errorStats,
-      @JsonProperty("statisticsMap") final ImmutableMap<String, Stat> statisticsMap,
-      @JsonProperty("errorStatsMap") final ImmutableMap<String, Stat> errorStatsMap,
       @JsonProperty("extended") final boolean extended,
       @JsonProperty("keyFormat") final String keyFormat,
       @JsonProperty("valueFormat") final String valueFormat,
@@ -76,7 +72,9 @@ public class SourceDescription {
       @JsonProperty("replication") final int replication,
       @JsonProperty("statement") final String statement,
       @JsonProperty("queryOffsetSummaries") final List<QueryOffsetSummary> queryOffsetSummaries,
-      @JsonProperty("sourceConstraints") final List<String> sourceConstraints
+      @JsonProperty("sourceConstraints") final List<String> sourceConstraints,
+      @JsonProperty("clusterStatistics") final List<QueryHostStat> clusterStats,
+      @JsonProperty("clusterErrorStats") final List<QueryHostStat> clusterErrors
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.name = Objects.requireNonNull(name, "name");
@@ -91,8 +89,6 @@ public class SourceDescription {
     this.timestamp = Objects.requireNonNull(timestamp, "timestamp");
     this.statistics = Objects.requireNonNull(statistics, "statistics");
     this.errorStats = Objects.requireNonNull(errorStats, "errorStats");
-    this.statisticsMap = Objects.requireNonNull(statisticsMap, "statisticsMap");
-    this.errorStatsMap = Objects.requireNonNull(errorStatsMap, "errorStatsMap");
     this.extended = extended;
     this.keyFormat = Objects.requireNonNull(keyFormat, "keyFormat");
     this.valueFormat = Objects.requireNonNull(valueFormat, "valueFormat");
@@ -104,7 +100,55 @@ public class SourceDescription {
         Objects.requireNonNull(queryOffsetSummaries, "queryOffsetSummaries"));
     this.sourceConstraints =
         ImmutableList.copyOf(Objects.requireNonNull(sourceConstraints, "sourceConstraints"));
+    this.clusterErrorStats = clusterErrors;
+    this.clusterStatistics = clusterStats;
   }
+
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  public SourceDescription(
+      @JsonProperty("name") final String name,
+      @JsonProperty("windowType") final Optional<WindowType> windowType,
+      @JsonProperty("readQueries") final List<RunningQuery> readQueries,
+      @JsonProperty("writeQueries") final List<RunningQuery> writeQueries,
+      @JsonProperty("fields") final List<FieldInfo> fields,
+      @JsonProperty("type") final String type,
+      @JsonProperty("timestamp") final String timestamp,
+      @JsonProperty("statistics") final String statistics,
+      @JsonProperty("errorStats") final String errorStats,
+      @JsonProperty("extended") final boolean extended,
+      @JsonProperty("keyFormat") final String keyFormat,
+      @JsonProperty("valueFormat") final String valueFormat,
+      @JsonProperty("topic") final String topic,
+      @JsonProperty("partitions") final int partitions,
+      @JsonProperty("replication") final int replication,
+      @JsonProperty("statement") final String statement,
+      @JsonProperty("queryOffsetSummaries") final List<QueryOffsetSummary> queryOffsetSummaries,
+      @JsonProperty("sourceConstraints") final List<String> sourceConstraints
+  ) {
+    this(
+        name,
+        windowType,
+        readQueries,
+        writeQueries,
+        fields,
+        type,
+        timestamp,
+        statistics,
+        errorStats,
+        extended,
+        keyFormat,
+        valueFormat,
+        topic,
+        partitions,
+        replication,
+        statement,
+        queryOffsetSummaries,
+        sourceConstraints,
+        ImmutableList.of(),
+        ImmutableList.of()
+    );
+  }
+  // CHECKSTYLE_RULES.ON: ParameterNumberCheck
 
   public String getStatement() {
     return statement;
@@ -165,8 +209,8 @@ public class SourceDescription {
   public String getStatistics() {
     if (statistics.length() > 0) {
       return "The statistics field is deprecated and will be removed in a future version of ksql. "
-              + "Please update your client to the latest version and use statisticsMap instead.\n"
-              + statistics;
+          + "Please update your client to the latest version and use statisticsMap instead.\n"
+          + statistics;
     }
     return "";
   }
@@ -174,18 +218,10 @@ public class SourceDescription {
   public String getErrorStats() {
     if (errorStats.length() > 0) {
       return "The errorStats field is deprecated and will be removed in a future version of ksql. "
-              + "Please update your client to the latest version and use errorStatsMap instead.\n"
-              + errorStats + '\n';
+          + "Please update your client to the latest version and use errorStatsMap instead.\n"
+          + errorStats + '\n';
     }
     return "";
-  }
-
-  public ImmutableMap<String, Stat> getStatisticsMap() {
-    return statisticsMap;
-  }
-
-  public ImmutableMap<String, Stat> getErrorStatsMap() {
-    return errorStatsMap;
   }
 
   public List<QueryOffsetSummary> getQueryOffsetSummaries() {
@@ -194,6 +230,14 @@ public class SourceDescription {
 
   public List<String> getSourceConstraints() {
     return sourceConstraints;
+  }
+
+  public List<QueryHostStat> getClusterStatistics() {
+    return clusterStatistics;
+  }
+
+  public List<QueryHostStat> getClusterErrorStats() {
+    return clusterErrorStats;
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
@@ -219,6 +263,8 @@ public class SourceDescription {
         && Objects.equals(timestamp, that.timestamp)
         && Objects.equals(statistics, that.statistics)
         && Objects.equals(errorStats, that.errorStats)
+        && Objects.equals(clusterStatistics, that.clusterStatistics)
+        && Objects.equals(clusterErrorStats, that.clusterErrorStats)
         && Objects.equals(keyFormat, that.keyFormat)
         && Objects.equals(valueFormat, that.valueFormat)
         && Objects.equals(topic, that.topic)

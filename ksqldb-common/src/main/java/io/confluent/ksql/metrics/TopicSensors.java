@@ -15,19 +15,9 @@
 
 package io.confluent.ksql.metrics;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.base.MoreObjects;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.utils.Time;
-import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -40,7 +30,7 @@ import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Rate;
 
-public class TopicSensors<R> {
+public final class TopicSensors<R> {
 
   private final String topic;
   private final List<SensorMetric<R>> sensors;
@@ -80,9 +70,7 @@ public class TopicSensors<R> {
         .map(SensorMetric::asStat)
         .collect(Collectors.toList());
   }
-  
-  @JsonDeserialize(using = StatDeserializer.class)
-  @JsonSerialize(using = StatSerializer.class)
+
   public static class Stat {
 
     private final String name;
@@ -172,40 +160,6 @@ public class TopicSensors<R> {
     public Stat aggregate(final double value) {
       this.value += value;
       return this;
-    }
-  }
-
-
-  public static class StatDeserializer extends JsonDeserializer<Stat> {
-
-    @Override
-    public Stat deserialize(
-        final JsonParser jp,
-        final DeserializationContext ctxt
-    ) throws IOException {
-      final JsonNode node = jp.getCodec().readTree(jp);
-
-      final String name = node.get("name").textValue();
-      final double value = node.get("value").numberValue().doubleValue();
-      final long timestamp = node.get("timestamp").numberValue().longValue();
-
-      return new Stat(name, value, timestamp);
-    }
-  }
-
-  public static class StatSerializer extends JsonSerializer<Stat> {
-
-    @Override
-    public void serialize(
-        final Stat stat,
-        final JsonGenerator jsonGenerator,
-        final SerializerProvider serializerProvider
-    ) throws IOException {
-      jsonGenerator.writeStartObject();
-      jsonGenerator.writeStringField("name", stat.name());
-      jsonGenerator.writeObjectField("value", stat.getValue());
-      jsonGenerator.writeNumberField("timestamp", stat.getTimestamp());
-      jsonGenerator.writeEndObject();
     }
   }
 

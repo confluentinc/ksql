@@ -81,7 +81,7 @@ CREATE TABLE possible_fraud AS
 
 ## Monitoring
 
-Kafka's ability to provide scalable ordered messages with stream processing make it a common solution for log data monitoring and alerting. ksqlDB lends a familiar syntax for tracking, understanding, and managing alerts.
+Kafka's ability to provide scalable ordered records with stream processing make it a common solution for log data monitoring and alerting. ksqlDB lends a familiar syntax for tracking, understanding, and managing alerts.
 
 ```sql
 CREATE TABLE error_counts AS

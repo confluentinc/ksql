@@ -80,8 +80,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();
     final long startTimeNanos = Time.SYSTEM.nanoseconds();
     endpoints.createQueryPublisher(queryStreamArgs.get().sql, queryStreamArgs.get().properties,
-        context, server.getWorkerExecutor(), DefaultApiSecurityContext.create(routingContext),
-        metricsCallbackHolder)
+        queryStreamArgs.get().sessionVariables, context, server.getWorkerExecutor(),
+        DefaultApiSecurityContext.create(routingContext), metricsCallbackHolder)
         .thenAccept(queryPublisher -> {
 
           final QueryResponseMetadata metadata;
@@ -95,6 +95,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
             routingContext.response().endHandler(v -> {
               queryPublisher.close();
               metricsCallbackHolder.reportMetrics(
+                  routingContext.response().getStatusCode(),
                   routingContext.request().bytesRead(),
                   routingContext.response().bytesWritten(),
                   startTimeNanos);

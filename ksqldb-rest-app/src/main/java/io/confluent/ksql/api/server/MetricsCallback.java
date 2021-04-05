@@ -24,9 +24,11 @@ public interface MetricsCallback {
 
   /**
    * Called to report metrics when the request is complete, error or success
+   * @param statusCode The status code of the response
    * @param requestBytes The request bytes
    * @param responseBytes The response bytes
    * @param startTimeNanos The start time of the request in nanos
    */
-  void reportMetricsOnCompletion(long requestBytes, long responseBytes, long startTimeNanos);
+  void reportMetricsOnCompletion(int statusCode, long requestBytes, long responseBytes,
+      long startTimeNanos);
 }

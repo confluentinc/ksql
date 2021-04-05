@@ -179,20 +179,25 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
             + "Possible causes include:"
             + System.lineSeparator()
             + "- The topic itself does not exist"
+            + System.lineSeparator()
             + "\t-> Use SHOW TOPICS; to check"
             + System.lineSeparator()
             + "- Messages on the topic are not serialized using a format Schema Registry supports"
+            + System.lineSeparator()
             + "\t-> Use PRINT '" + topicName + "' FROM BEGINNING; to verify"
             + System.lineSeparator()
             + "- Messages on the topic have not been serialized using a Confluent Schema "
             + "Registry supported serializer"
+            + System.lineSeparator()
             + "\t-> See " + DocumentationLinks.SR_SERIALISER_DOC_URL
             + System.lineSeparator()
             + "- The schema is registered on a different instance of the Schema Registry"
+            + System.lineSeparator()
             + "\t-> Use the REST API to list available subjects"
             + "\t" + DocumentationLinks.SR_REST_GETSUBJECTS_DOC_URL
             + System.lineSeparator()
             + "- You do not have permissions to access the Schema Registry.Subject: " + subject
+            + System.lineSeparator()
             + "\t-> See " + DocumentationLinks.SCHEMA_REGISTRY_SECURITY_DOC_URL));
   }
 

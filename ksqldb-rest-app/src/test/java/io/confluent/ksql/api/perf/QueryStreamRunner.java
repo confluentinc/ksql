@@ -98,6 +98,7 @@ public class QueryStreamRunner extends BasePerfRunner {
     @Override
     public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
         final JsonObject properties,
+        final JsonObject sessionVariables,
         final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext,
@@ -165,6 +166,12 @@ public class QueryStreamRunner extends BasePerfRunner {
     @Override
     public CompletableFuture<EndpointResponse> executeStatus(String type, String entity,
         String action, ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeIsValidProperty(String property,
+        WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext) {
       return null;
     }
 

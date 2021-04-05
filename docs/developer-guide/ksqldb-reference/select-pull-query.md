@@ -77,7 +77,7 @@ time zone.
 If no bounds are placed on `WINDOWSTART` or `WINDOWEND`, rows are returned for all windows
 in the windowed table.
 
-Pull queries can also be issued against derived tables created using [CREATE TABLE AS SELECT](../../ksqldb-reference/create-table-as-select) statements. 
+Pull queries can be issued against derived tables created using [CREATE TABLE AS SELECT](../../ksqldb-reference/create-table-as-select) statements. 
 Here is an example of that:
 ```sql
 CREATE TABLE GRADES (ID INT PRIMARY KEY, GRADE STRING, RANK INT) 

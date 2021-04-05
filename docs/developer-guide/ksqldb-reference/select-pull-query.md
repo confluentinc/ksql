@@ -86,7 +86,8 @@ CREATE TABLE GRADES (ID INT PRIMARY KEY, GRADE STRING, RANK INT)
 ```
 Create a derived table, named 
 
-`TOP_TEN_RANKS` with a [CREATE TABLE AS SELECT](../../ksqldb-reference/create-table-as-select) statement:
+`TOP_TEN_RANKS`, my using a [CREATE TABLE AS SELECT](../../ksqldb-reference/create-table-as-select) statement:
+
  ```sql
 CREATE TABLE TOP_TEN_RANKS 
   AS SELECT ID, RANK 

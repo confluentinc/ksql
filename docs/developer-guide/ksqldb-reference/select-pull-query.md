@@ -77,7 +77,7 @@ time zone.
 If no bounds are placed on `WINDOWSTART` or `WINDOWEND`, rows are returned for all windows
 in the windowed table.
 
-Pull queries can be issued against derived tables created using [CREATE TABLE AS SELECT](../../ksqldb-reference/create-table-as-select) statements. 
+Also, you can issue a pull query against a derived table that was created by using the [CREATE TABLE AS SELECT](../../ksqldb-reference/create-table-as-select) statement. 
 
 
 ```sql
@@ -85,8 +85,7 @@ CREATE TABLE GRADES (ID INT PRIMARY KEY, GRADE STRING, RANK INT)
   WITH (kafka_topic = 'test_topic', value_format = 'JSON', partitions = 1);
 ```
 Create a derived table, named 
-
-`TOP_TEN_RANKS`, my using a [CREATE TABLE AS SELECT](../../ksqldb-reference/create-table-as-select) statement:
+`TOP_TEN_RANKS`, by using a [CREATE TABLE AS SELECT](../../ksqldb-reference/create-table-as-select) statement:
 
  ```sql
 CREATE TABLE TOP_TEN_RANKS 

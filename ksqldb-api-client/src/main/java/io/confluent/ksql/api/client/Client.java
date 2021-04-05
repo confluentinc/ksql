@@ -284,7 +284,7 @@ public interface Client {
    * Define a session variable which can be referenced in sql commands by wrapping the variable name
    * with {@code ${}}.
    *
-   * If the variable is already defined, the value will be overridden.
+   * If the variable is already defined, the existing value will be overridden.
    *
    * @param variable the name of the variable
    * @param value the value represented by the variable
@@ -295,7 +295,7 @@ public interface Client {
    * Undefine a session variable. {@code '${<variable name>}'} will no longer be replaced in other
    * functions.
    *
-   * If the variable is not defined, nothing will happen.
+   * If the variable is not defined, then this method call is a no-op.
    *
    * @param variable the name of the variable to undefine
    */

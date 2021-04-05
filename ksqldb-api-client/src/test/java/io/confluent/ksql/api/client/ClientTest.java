@@ -30,7 +30,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
@@ -1475,30 +1474,30 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
-  public void shouldCreateConnector() {
+  public void shouldCreateConnector() throws Exception {
     // Given
     final CreateConnectorEntity entity = new CreateConnectorEntity("create connector;",
         new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), SOURCE_TYPE));
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When:
-    final CompletableFuture<Void> result = javaClient.createConnector("name", true, Collections.EMPTY_MAP);
+    javaClient.createConnector("name", true, Collections.EMPTY_MAP).get();
 
     // Then:
-    assertTrue(result.complete(null));
+    assertThat(testEndpoints.getLastSql(), is("CREATE SOURCE CONNECTOR name WITH ();"));
   }
 
   @Test
-  public void shouldDropConnector() {
+  public void shouldDropConnector() throws Exception {
     // Given
     final DropConnectorEntity entity = new DropConnectorEntity("drop connector;", "name");
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When:
-    final CompletableFuture<Void> result = javaClient.dropConnector("name");
+    javaClient.dropConnector("name").get();
 
     // Then:
-    assertTrue(result.complete(null));
+    assertThat(testEndpoints.getLastSql(), is("drop connector name;"));
   }
 
   @Test
@@ -1561,6 +1560,92 @@ public class ClientTest extends BaseApiTest {
     javaClient.streamQuery("query;").get();
 
     // Then
+    assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("a", "a")));
+  }
+
+  @Test
+  public void shouldSendSessionVariablesWithDescribeSource() throws Exception {
+    // Given
+    javaClient.define("a", "a");
+    final io.confluent.ksql.rest.entity.SourceDescription sd =
+        new io.confluent.ksql.rest.entity.SourceDescription(
+            "name",
+            Optional.of(WindowType.TUMBLING),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            "TABLE",
+            "",
+            "",
+            "",
+            false,
+            "KAFKA",
+            "JSON",
+            "topic",
+            4,
+            1,
+            "sql",
+            Collections.emptyList(),
+            ImmutableList.of("s1", "s2")
+        );
+    final SourceDescriptionEntity entity = new SourceDescriptionEntity(
+        "describe source;", sd, Collections.emptyList());
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    javaClient.describeSource("source").get();
+
+    // Then
+    assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("a", "a")));
+  }
+
+  @Test
+  public void shouldSendSessionVariablesWithCreateConnector() throws Exception {
+    // Given
+    javaClient.define("a", "a");
+    final CreateConnectorEntity entity = new CreateConnectorEntity("create connector;",
+        new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), SOURCE_TYPE));
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.createConnector("name", true, Collections.EMPTY_MAP).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("a", "a")));
+  }
+
+  @Test
+  public void shouldSendSessionVariablesWithDescribeConnector() throws Exception {
+    // Given:
+    javaClient.define("a", "a");
+    final ConnectorDescription entity = new ConnectorDescription("describe connector;",
+        "connectorClass",
+        new ConnectorStateInfo(
+            "name",
+            new ConnectorState("state", "worker", "msg"),
+            Collections.emptyList(),
+            SOURCE_TYPE),
+        Collections.emptyList(), Collections.singletonList("topic"), Collections.emptyList());
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.describeConnector("name").get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("a", "a")));
+  }
+
+  @Test
+  public void shouldSendSessionVariablesWithDropConnector() throws Exception {
+    // Given:
+    javaClient.define("a", "a");
+    final DropConnectorEntity entity = new DropConnectorEntity("drop connector;", "name");
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.dropConnector("name").get();
+
+    // Then:
     assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("a", "a")));
   }
 

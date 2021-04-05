@@ -777,7 +777,6 @@ undefines a session variable, and [`getVariables()`](/api/io/confluent/ksql/api/
 and their values. Substitution is supported for the following functions:
 * `streamQuery`
 * `executeQuery`
-* `terminatePushQuery`
 * `executeStatement`
 * `describeSource`
 * `createConnector`

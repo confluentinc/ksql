@@ -33,7 +33,8 @@ public final class ConnectorCommandResponseHandler {
       final JsonObject connectorInfoEntity,
       final CompletableFuture<Void> cf
   ) {
-    if (connectorInfoEntity.getString("@type").equals("connector_info")) {
+    if (connectorInfoEntity.containsKey("statementText")
+        && connectorInfoEntity.containsKey("info")) {
       cf.complete(null);
     } else {
       cf.completeExceptionally(new IllegalStateException(
@@ -46,7 +47,8 @@ public final class ConnectorCommandResponseHandler {
       final JsonObject dropConnectorResponseEntity,
       final CompletableFuture<Void> cf
   ) {
-    if (dropConnectorResponseEntity.getString("@type").equals("drop_connector")) {
+    if (dropConnectorResponseEntity.containsKey("statementText")
+        && dropConnectorResponseEntity.containsKey("connectorName")) {
       cf.complete(null);
     } else {
       cf.completeExceptionally(new IllegalStateException(

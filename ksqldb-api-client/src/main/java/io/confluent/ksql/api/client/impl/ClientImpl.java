@@ -196,7 +196,7 @@ public class ClientImpl implements Client {
 
     makePostRequest(
         CLOSE_QUERY_ENDPOINT,
-        new JsonObject().put("queryId", queryId).put("sessionVariables", sessionVariables),
+        new JsonObject().put("queryId", queryId),
         cf,
         response -> handleCloseQueryResponse(response, cf)
     );

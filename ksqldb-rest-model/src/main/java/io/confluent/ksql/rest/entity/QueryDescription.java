@@ -51,7 +51,7 @@ public class QueryDescription {
   private final Map<KsqlHostInfoEntity, KsqlQueryStatus> ksqlHostQueryStatus;
   private final KsqlQueryType queryType;
   private final List<QueryError> queryErrors;
-  private ImmutableSet<StreamsTaskMetadata> tasksMetadata;
+  private final Set<StreamsTaskMetadata> tasksMetadata;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @SuppressWarnings("WeakerAccess") // Invoked via reflection
@@ -86,7 +86,7 @@ public class QueryDescription {
         new HashMap<>(Objects.requireNonNull(ksqlHostQueryStatus, "ksqlHostQueryStatus"));
     this.queryType = Objects.requireNonNull(queryType, "queryType");
     this.queryErrors = new ArrayList<>(Objects.requireNonNull(queryErrors, "queryErrors"));
-    this.tasksMetadata = ImmutableSet.copyOf(Objects.requireNonNull(tasksMetadata));
+    this.tasksMetadata = new HashSet<>(Objects.requireNonNull(tasksMetadata));
   }
 
   public QueryId getId() {
@@ -126,13 +126,11 @@ public class QueryDescription {
   }
 
   public void updateTaskMetadata(final Set<StreamsTaskMetadata> updatedMetadata) {
-    final Set<StreamsTaskMetadata> oldTaskMetadata = new HashSet<>(tasksMetadata);
-    oldTaskMetadata.addAll(updatedMetadata);
-    tasksMetadata = ImmutableSet.copyOf(oldTaskMetadata);
+    tasksMetadata.addAll(updatedMetadata);
   }
 
   public ImmutableSet<StreamsTaskMetadata> getTasksMetadata() {
-    return tasksMetadata;
+    return ImmutableSet.copyOf(tasksMetadata);
   }
 
   // kept for backwards compatibility

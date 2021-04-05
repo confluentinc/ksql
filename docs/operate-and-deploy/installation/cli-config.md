@@ -45,8 +45,8 @@ and password when starting the ksqlDB CLI:
 /bin/ksql -u <username> -p <password> <ksql-server-URL>
 ```
 
-If you don't wish to supply your password as part of the command, you can
-instead supply just the username, and you will be prompted for your password
+If you don't want to supply your password as part of the command,
+supply just the username, and you'll be prompted for your password
 when the command executes:
 
 ```bash

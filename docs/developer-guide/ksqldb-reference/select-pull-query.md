@@ -100,7 +100,8 @@ You can fetch the current state of your materialized view, which is
 ```sql
 SELECT * FROM TOP_TEN_RANKS;
 ```
-or, if you just want to just look up the student with `ID = 5` in the derived table:
+The following statement looks up only the student with `ID = 5` in the derived table:
+
 ```sql
 SELECT * FROM TOP_TEN_RANKS
   WHERE ID = 5;

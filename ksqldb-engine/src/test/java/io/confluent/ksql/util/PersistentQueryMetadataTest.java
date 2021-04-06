@@ -27,6 +27,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -132,6 +133,7 @@ public class PersistentQueryMetadataTest {
   }
 
   @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldCloseKafkaStreamsOnStop() {
     // When:
     query.stop();

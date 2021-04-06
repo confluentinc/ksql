@@ -54,7 +54,7 @@ Follow these steps to do an in-place upgrade of ksqlDB.
 5. ksqlDB starts executing queries and rebuilds all states, using the command topic, because the value of `ksql.service.id` is the same as the previous version. ksqlDB Server with the latest version is up and running.
 
 
-### Troubleshooting an Upgrade :-
+### Troubleshooting an Upgrade
 
 1. ksqlDB Server fails to start with an error message like "KsqlException: UdfFactory not compatible with existing factory. function: <FUNCTION_NAME> existing":  
 This error occurs when the new ksqlDB version introduces a built-in function that has the same name as yours, creating a conflict with your UDF. Create a new UDF jar by renaming or eliminating the conflicting function(s), and restart ksqlDB with the new UDF jar.

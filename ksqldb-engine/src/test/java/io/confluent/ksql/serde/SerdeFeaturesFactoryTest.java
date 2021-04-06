@@ -45,7 +45,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import kafka.utils.Json;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -406,7 +405,7 @@ public class SerdeFeaturesFactoryTest {
   }
 
   @Test
-  public void shouldConvertKafkaFormatForSingleKeyWithPrimitiveType() {
+  public void shouldConvertKafkaFormatForSingleKeyWithNonPrimitiveType() {
     // Given:
     final KeyFormat format = KeyFormat.nonWindowed(
         FormatInfo.of(KafkaFormat.NAME),

@@ -18,14 +18,9 @@ package io.confluent.ksql.serde;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.types.SqlBaseType;
-import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.serde.delimited.DelimitedFormat;
 import io.confluent.ksql.serde.json.JsonFormat;
 import io.confluent.ksql.serde.kafka.KafkaFormat;
-import io.confluent.ksql.serde.kafka.KafkaSerdeFactory;
 import io.confluent.ksql.serde.none.NoneFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -133,29 +128,32 @@ public final class SerdeFeaturesFactory {
       final boolean allowKeyFormatChangeToSupportMultipleKeys
   ) {
     return sanitizeKeyFormatWrapping(
-        sanitizeKeyFormatForMultipleColumns(
-            keyFormat,
-            newKeyColumnSqlTypes,
-            allowKeyFormatChangeToSupportMultipleKeys),
+        !allowKeyFormatChangeToSupportMultipleKeys ? keyFormat :
+        sanitizeKeyFormatForTypeCompatibility(
+            sanitizeKeyFormatForMultipleColumns(
+                keyFormat,
+                newKeyColumnSqlTypes.size()),
+            newKeyColumnSqlTypes
+        ),
         newKeyColumnSqlTypes.size() == 1
     );
   }
 
+  /**
+   * Check whether given key format supports multiple columns.
+   *
+   * @param keyFormat the key format to be checked
+   * @param numKeyColumns number of output key columns
+   * @return true if multiple column key types are supported by key format
+   */
   private static KeyFormat sanitizeKeyFormatForMultipleColumns(
       final KeyFormat keyFormat,
-      final List<SqlType> sqlTypes,
-      final boolean allowKeyFormatChangeToSupportMultipleKeys
+      final int numKeyColumns
   ) {
-    if (!allowKeyFormatChangeToSupportMultipleKeys
-        || keyFormatConversionSupported(keyFormat, sqlTypes)) {
+    if (numKeyColumns <= 1 || formatSupportsMultipleColumns(keyFormat)) {
       return keyFormat;
     }
-
-    if (keyFormat.isWindowed()) {
-      throw new IllegalStateException("Should not convert format of windowed key");
-    }
-
-    return KeyFormat.nonWindowed(FormatInfo.of(JsonFormat.NAME), SerdeFeatures.of());
+    return convertToJsonFormat(keyFormat);
   }
 
   /**
@@ -165,30 +163,17 @@ public final class SerdeFeaturesFactory {
    * @param sqlTypes the sql types to be tested
    * @return true if the out sql types are supported by key format
    */
-  private static boolean keyFormatConversionSupported(final KeyFormat keyFormat,
-                                                      final List<SqlType> sqlTypes) {
-    switch (keyFormat.getFormat()) {
-      case KafkaFormat.NAME:
-        return isSupportedByKafkaFormat(sqlTypes);
-      case DelimitedFormat.NAME:
-        return isSupportedByDelimitedFormat(sqlTypes);
-      case NoneFormat.NAME:
-        return false;
-      default:
-        return true;
+  private static KeyFormat sanitizeKeyFormatForTypeCompatibility(final KeyFormat keyFormat,
+                                                                 final List<SqlType> sqlTypes) {
+    return keyFormat.supportKeyTypes(sqlTypes) ? keyFormat : convertToJsonFormat(keyFormat);
+  }
+
+  private static KeyFormat convertToJsonFormat(final KeyFormat keyFormat) {
+    if (keyFormat.isWindowed()) {
+      throw new IllegalStateException("Should not convert format of windowed key");
     }
-  }
 
-  private static boolean isSupportedByKafkaFormat(final List<SqlType> sqlTypes) {
-    return sqlTypes.size() <= 1
-        && sqlTypes.get(0) instanceof SqlPrimitiveType
-        && KafkaSerdeFactory.containsSerde(
-            SchemaConverters.sqlToJavaConverter().toJavaType(
-            sqlTypes.get(0).baseType()));
-  }
-
-  private static boolean isSupportedByDelimitedFormat(final List<SqlType> sqlTypes) {
-    return sqlTypes.stream().allMatch(sqlType -> sqlType instanceof SqlPrimitiveType);
+    return KeyFormat.nonWindowed(FormatInfo.of(JsonFormat.NAME), SerdeFeatures.of());
   }
 
   private static KeyFormat sanitizeKeyFormatWrapping(
@@ -295,5 +280,10 @@ public final class SerdeFeaturesFactory {
     }
 
     return Optional.of(feature);
+  }
+
+  private static boolean formatSupportsMultipleColumns(final KeyFormat format) {
+    return !format.getFormat().equals(KafkaFormat.NAME)
+        && !format.getFormat().equals(NoneFormat.NAME);
   }
 }

@@ -24,8 +24,17 @@ import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.serde.delimited.DelimitedFormat;
+import io.confluent.ksql.serde.kafka.KafkaFormat;
+import io.confluent.ksql.serde.kafka.KafkaSerdeFactory;
+import io.confluent.ksql.serde.none.NoneFormat;
+
 import java.time.Duration;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -95,6 +104,30 @@ public final class KeyFormat {
 
   public Map<String, String> getProperties() {
     return format.getProperties();
+  }
+
+  @JsonIgnore
+  public boolean supportKeyTypes(final List<SqlType> sqlTypes) {
+    switch (getFormat()) {
+      case KafkaFormat.NAME:
+        return isSupportedByKafkaFormat(sqlTypes);
+      case DelimitedFormat.NAME:
+        return isSupportedByDelimitedFormat(sqlTypes);
+      case NoneFormat.NAME:
+        return false;
+      default:
+        return true;
+    }
+  }
+
+  private static boolean isSupportedByKafkaFormat(final List<SqlType> sqlTypes) {
+    return sqlTypes.stream().allMatch(sqlType -> sqlType instanceof SqlPrimitiveType
+                                                     && KafkaSerdeFactory.containsSerde(
+        SchemaConverters.sqlToJavaConverter().toJavaType(sqlType.baseType())));
+  }
+
+  private static boolean isSupportedByDelimitedFormat(final List<SqlType> sqlTypes) {
+    return sqlTypes.stream().allMatch(sqlType -> sqlType instanceof SqlPrimitiveType);
   }
 
   @JsonIgnore

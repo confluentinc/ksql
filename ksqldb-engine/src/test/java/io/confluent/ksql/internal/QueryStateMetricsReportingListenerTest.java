@@ -47,7 +47,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class QueryStateListenerTest {
+public class QueryStateMetricsReportingListenerTest {
   private static final MetricName METRIC_NAME_1 =
       new MetricName("bob", "g1", "d1", ImmutableMap.of());
   private static final MetricName METRIC_NAME_2 =
@@ -64,7 +64,7 @@ public class QueryStateListenerTest {
   private MetaStore metaStore;
   @Captor
   private ArgumentCaptor<Gauge<String>> gaugeCaptor;
-  private QueryStateListener listener;
+  private QueryStateMetricsReportingListener listener;
 
   @Before
   public void setUp() {
@@ -74,12 +74,12 @@ public class QueryStateListenerTest {
     when(query.getQueryApplicationId()).thenReturn("app-id");
     when(query.getQueryId()).thenReturn(QUERY_ID);
 
-    listener = new QueryStateListener(metrics, "");
+    listener = new QueryStateMetricsReportingListener(metrics, "");
   }
 
   @Test
   public void shouldThrowOnNullParams() {
-    new NullPointerTester().testConstructors(QueryStateListener.class, PACKAGE);
+    new NullPointerTester().testConstructors(QueryStateMetricsReportingListener.class, PACKAGE);
   }
 
   @Test
@@ -107,7 +107,7 @@ public class QueryStateListenerTest {
     clearInvocations(metrics);
 
     // When:
-    listener = new QueryStateListener(metrics, groupPrefix);
+    listener = new QueryStateMetricsReportingListener(metrics, groupPrefix);
     listener.onCreate(serviceContext, metaStore, query);
 
     // Then:

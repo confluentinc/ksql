@@ -31,7 +31,7 @@ import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.streams.KafkaStreams.State;
 
-public class QueryStateListener implements QueryEventListener {
+public class QueryStateMetricsReportingListener implements QueryEventListener {
 
   public static final Ticker CURRENT_TIME_MILLIS_TICKER = new Ticker() {
     @Override
@@ -44,7 +44,7 @@ public class QueryStateListener implements QueryEventListener {
   private final String metricsPrefix;
   private final ConcurrentMap<QueryId, PerQueryListener> perQuery = new ConcurrentHashMap<>();
 
-  QueryStateListener(final Metrics metrics, final String metricsPrefix) {
+  QueryStateMetricsReportingListener(final Metrics metrics, final String metricsPrefix) {
     this.metrics = Objects.requireNonNull(metrics, "metrics");
     this.metricsPrefix
         = Objects.requireNonNull(metricsPrefix, "metricGroupPrefix");

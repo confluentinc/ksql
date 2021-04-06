@@ -152,7 +152,7 @@ public class KsqlEngineMetrics implements Closeable {
     final String metricsPrefix
         = metricGroupPrefix.equals(KsqlEngineMetrics.DEFAULT_METRIC_GROUP_PREFIX)
         ? "" : metricGroupPrefix;
-    return new QueryStateListener(metrics, metricsPrefix);
+    return new QueryStateMetricsReportingListener(metrics, metricsPrefix);
   }
 
   private void recordMessageConsumptionByQueryStats(

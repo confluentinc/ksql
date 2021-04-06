@@ -27,8 +27,7 @@
 * Make pull query metrics apply only to pull and not also push ([#6944](https://github.com/confluentinc/ksql/pull/6944)) ([1db18b3](https://github.com/confluentinc/ksql/commit/1db18b3e8b161ae7315db67917bb1f5d89da8c2a))
 * prevent IOB when printing topics with a key/value with an empty string ([#7162](https://github.com/confluentinc/ksql/pull/7162)) ([177d0db](https://github.com/confluentinc/ksql/commit/177d0dbff72adcded82f9da9f9637b23fc6ffa3c))
 * Pull Queries: Avoids KsqlConfig copy with overrides since this is very inefficient ([#7193](https://github.com/confluentinc/ksql/pull/7193)) ([b36a3ce](https://github.com/confluentinc/ksql/commit/b36a3ce7d02dbeec7740d32801d443c4d7bca1e2))
-* quick fix for appender ([#7078](https://github.com/confluentinc/ksql/pull/7078)) ([8bc16b3](https://github.com/confluentinc/ksql/commit/8bc16b3f8b6d6a785f65c73c510180db443ef4aa))
-* script used in kci-170 is now exporting an array instead of string ([#7134](https://github.com/confluentinc/ksql/pull/7134)) ([986cbe3](https://github.com/confluentinc/ksql/commit/986cbe38238f05af11eb841801eb715088328496))
+* update default kafka log4j appender configs for sync sends ([#7078](https://github.com/confluentinc/ksql/pull/7078)) ([8bc16b3](https://github.com/confluentinc/ksql/commit/8bc16b3f8b6d6a785f65c73c510180db443ef4aa))
 
 
 ## [0.16.0](https://github.com/confluentinc/ksql/releases/tag/v0.16.0-ksqldb) (2021-03-15)

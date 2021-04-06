@@ -144,6 +144,7 @@ public class QueryDescriptionFactoryTest {
         0L,
         listener
     );
+    transientQuery.initialize();
 
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());
 
@@ -283,6 +284,7 @@ public class QueryDescriptionFactoryTest {
         0L,
         listener
     );
+    transientQuery.initialize();
 
     // When:
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());
@@ -321,6 +323,7 @@ public class QueryDescriptionFactoryTest {
         0L,
         listener
     );
+    transientQuery.initialize();
 
     // When:
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());

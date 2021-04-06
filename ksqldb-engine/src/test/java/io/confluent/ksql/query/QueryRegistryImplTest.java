@@ -93,10 +93,8 @@ public class QueryRegistryImplTest {
   @Test
   public void shouldGetAllLiveQueriesSandbox() {
     // Given:
-    final Set<QueryMetadata> queries = ImmutableSet.of(
-        givenCreate(registry, "q1", "source", "sink", true),
-        givenCreateTransient(registry, "transient1")
-    );
+    givenCreate(registry, "q1", "source", "sink", true);
+    givenCreateTransient(registry, "transient1");
     final QueryRegistry sandbox = registry.createSandbox();
 
     // When:
@@ -171,7 +169,7 @@ public class QueryRegistryImplTest {
   @Test
   public void shouldGetQueryThatCreatedSourceOnSandbox() {
     // Given:
-    final QueryMetadata query = givenCreate(registry, "q1", "source", "sink1", true);
+    givenCreate(registry, "q1", "source", "sink1", true);
     givenCreate(registry, "q2", "source", "sink1", false);
     givenCreate(registry, "q3", "source", "sink2", false);
     final QueryRegistry sandbox = registry.createSandbox();
@@ -206,7 +204,7 @@ public class QueryRegistryImplTest {
     final QueryRegistry sandbox = registry.createSandbox();
 
     // When:
-    final Set<QueryId> queries = registry.getInsertQueries(SourceName.of("sink1"), (n, q) -> true);
+    final Set<QueryId> queries = sandbox.getInsertQueries(SourceName.of("sink1"), (n, q) -> true);
 
     // Then:
     assertThat(queries, contains(new QueryId("q2"), new QueryId("q3")));

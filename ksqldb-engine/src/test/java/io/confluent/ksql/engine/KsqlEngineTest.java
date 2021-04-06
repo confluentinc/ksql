@@ -1183,7 +1183,7 @@ public class KsqlEngineTest {
         ksqlEngine,
         "create stream s1 with (value_format = 'avro') as select * from test1;",
         KSQL_CONFIG, Collections.emptyMap()
-    ).get(0);
+    );
 
     // When:
     KsqlEngineTestUtil.execute(
@@ -1191,7 +1191,7 @@ public class KsqlEngineTest {
         ksqlEngine,
         "create or replace stream s1 with (value_format = 'avro') as select *, 'foo' from test1;",
         KSQL_CONFIG, Collections.emptyMap()
-    ).get(0);
+    );
 
 
     // Then:
@@ -1207,7 +1207,7 @@ public class KsqlEngineTest {
         ksqlEngine,
         "create stream s1 with (value_format = 'avro') as select * from test1;",
         KSQL_CONFIG, Collections.emptyMap()
-    ).get(0);
+    );
     final KsqlExecutionContext sandbox = ksqlEngine.createSandbox(serviceContext);
 
     // When:

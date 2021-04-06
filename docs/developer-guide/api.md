@@ -5,12 +5,14 @@ tagline: Run queries over HTTP
 description: Learn how to communicate with ksqlDB by using HTTP
 ---
 
-- [Introspect query status (/status endpoint)](ksqldb-rest-api/status-endpoint.md)
-- [Introspect server status (/info endpoint)](ksqldb-rest-api/info-endpoint.md)
 - [Execute a statement (/ksql endpoint)](ksqldb-rest-api/ksql-endpoint.md)
 - [Run a query (/query endpoint)](ksqldb-rest-api/query-endpoint.md)
 - [Run push and pull queries (/query-stream endpoint)](ksqldb-rest-api/streaming-endpoint.md)
 - [Terminate a cluster (/ksql/terminate endpoint)](ksqldb-rest-api/terminate-endpoint.md)
+- [Introspect query status (/status endpoint)](ksqldb-rest-api/status-endpoint.md)
+- [Introspect server status (/info endpoint)](ksqldb-rest-api/info-endpoint.md)
+- [Introspect cluster status (/clusterStatus endpoint)](ksqldb-rest-api/cluster-status-endpoint.md)
+- [Terminate a cluster (/is_valid_property)](ksqldb-rest-api/is_valid_property-endpoint.md)
 
 REST Endpoint
 -------------
@@ -19,7 +21,7 @@ The default HTTP API endpoint is `http://0.0.0.0:8088/`.
 
 Change the server configuration that controls the HTTP API endpoint by
 setting the `listeners` parameter in the ksqlDB server config file. For
-more info, see [listeners](/reference/server-configuration#listeners).
+more info, see [listeners](../reference/server-configuration.md#listeners).
 To configure the endpoint to use HTTPS, see
 [Configure ksqlDB for HTTPS](../operate-and-deploy/installation/server-config/security.md#configure-ksqldb-for-https).
 

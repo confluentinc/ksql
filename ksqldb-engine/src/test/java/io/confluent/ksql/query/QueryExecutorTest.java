@@ -177,6 +177,8 @@ public class QueryExecutorTest {
   private KStreamHolder<Struct> streamHolder;
   @Mock
   private SessionConfig config;
+  @Mock
+  private QueryMetadata.Listener queryListener;
   @Captor
   private ArgumentCaptor<Map<String, Object>> propertyCaptor;
 
@@ -217,7 +219,6 @@ public class QueryExecutorTest {
         processingLogContext,
         serviceContext,
         functionRegistry,
-        closeCallback,
         kafkaStreamsBuilder,
         streamsBuilder,
         new MaterializationProviderBuilderFactory(
@@ -243,8 +244,10 @@ public class QueryExecutorTest {
         TRANSIENT_SINK_SCHEMA,
         LIMIT,
         Optional.empty(),
-        false
+        false,
+        queryListener
     );
+    queryMetadata.initialize();
 
     // Then:
     assertThat(queryMetadata.getStatementString(), equalTo(STATEMENT_TEXT));
@@ -272,7 +275,8 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
+        SUMMARY,
+        queryListener
     );
     queryMetadata.initialize();
 
@@ -300,7 +304,8 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
+        SUMMARY,
+        queryListener
     );
     queryMetadata.initialize();
     queryMetadata.start();
@@ -318,7 +323,8 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
+        SUMMARY,
+        queryListener
     );
     queryMetadata.initialize();
     queryMetadata.start();
@@ -339,7 +345,8 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
+        SUMMARY,
+        queryListener
     ).initialize();
 
     // Then:
@@ -366,7 +373,8 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
+        SUMMARY,
+        queryListener
     );
     queryMetadata.initialize();
     queryMetadata.start();
@@ -394,7 +402,8 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
+        SUMMARY,
+        queryListener
     );
     queryMetadata.initialize();
 
@@ -414,7 +423,8 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
+        SUMMARY,
+        queryListener
     ).initialize();
 
     // Then:
@@ -434,7 +444,8 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
+        SUMMARY,
+        queryListener
     ).initialize();
 
     // Then:
@@ -463,7 +474,8 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
+        SUMMARY,
+        queryListener
     );
     queryMetadata.initialize();
     queryMetadata.start();
@@ -523,7 +535,8 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
+        SUMMARY,
+        queryListener
     ).initialize();
 
     // Then:
@@ -547,7 +560,8 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
+        SUMMARY,
+        queryListener
     ).initialize();
 
     // Then:
@@ -572,7 +586,8 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
+        SUMMARY,
+        queryListener
     ).initialize();
 
     // Then:
@@ -601,7 +616,8 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
+        SUMMARY,
+        queryListener
     ).initialize();
 
     // Then:

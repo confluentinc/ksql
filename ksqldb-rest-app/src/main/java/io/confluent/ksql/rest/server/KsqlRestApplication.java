@@ -82,6 +82,7 @@ import io.confluent.ksql.rest.server.services.InternalKsqlClientFactory;
 import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
 import io.confluent.ksql.rest.server.services.ServerInternalKsqlClient;
 import io.confluent.ksql.rest.server.state.ServerState;
+import io.confluent.ksql.rest.server.validation.streams.KafkaStreamsQueryValidator;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
@@ -681,7 +682,8 @@ public final class KsqlRestApplication implements Executable {
         functionRegistry,
         ServiceInfo.create(ksqlConfig, metricsPrefix),
         specificQueryIdGenerator,
-        new KsqlConfig(restConfig.getKsqlConfigProperties())
+        new KsqlConfig(restConfig.getKsqlConfigProperties()),
+        ImmutableList.of(new KafkaStreamsQueryValidator(ksqlConfig))
     );
 
     UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();

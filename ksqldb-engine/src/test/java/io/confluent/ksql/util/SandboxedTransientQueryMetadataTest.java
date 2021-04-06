@@ -21,7 +21,11 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.KafkaStreamsBuilder;
+import io.confluent.ksql.query.QueryErrorClassifier;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.QueryMetadata.Listener;
 import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
 import java.util.Map;
 import java.util.Set;
@@ -46,11 +50,11 @@ public class SandboxedTransientQueryMetadataTest {
   @Mock
   private TransientQueryMetadata original;
   @Mock
-  private Consumer<QueryMetadata> closeCallback;
-  @Mock
   private LogicalSchema schema;
   @Mock
   private Topology topology;
+  @Mock
+  private Listener listener;
 
   SandboxedTransientQueryMetadata sandboxed;
 
@@ -65,7 +69,7 @@ public class SandboxedTransientQueryMetadataTest {
     when(original.getResultType()).thenReturn(RESULT_TYPE);
     when(original.getLogicalSchema()).thenReturn(schema);
     when(original.getTopology()).thenReturn(topology);
-    sandboxed = SandboxedTransientQueryMetadata.of(original, closeCallback);
+    sandboxed = SandboxedTransientQueryMetadata.of(original, listener);
   }
 
   @Test(expected = IllegalStateException.class)
@@ -78,17 +82,12 @@ public class SandboxedTransientQueryMetadataTest {
     sandboxed.start();
   }
 
-  @Test(expected = IllegalStateException.class)
-  public void shouldThrowIfStopped() {
-    sandboxed.stop();
-  }
-
   @Test
   public void shouldCallbackOnClose() {
     // when:
     sandboxed.close();
 
     // then:
-    verify(closeCallback).accept(sandboxed);
+    verify(listener).onClose(sandboxed);
   }
 }

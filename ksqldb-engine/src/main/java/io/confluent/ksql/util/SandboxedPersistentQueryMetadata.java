@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.util;
 
-import java.util.function.Consumer;
-
 /**
  * Sandboxed {@link PersistentQueryMetadata} that prevents to modify the state of the internal
  * {@link org.apache.kafka.streams.KafkaStreams}.
@@ -24,22 +22,22 @@ import java.util.function.Consumer;
 public final class SandboxedPersistentQueryMetadata extends PersistentQueryMetadata {
   public static SandboxedPersistentQueryMetadata of(
       final PersistentQueryMetadata queryMetadata,
-      final Consumer<QueryMetadata> closeCallback
+      final Listener listener
   ) {
-    return new SandboxedPersistentQueryMetadata(queryMetadata, closeCallback);
+    return new SandboxedPersistentQueryMetadata(queryMetadata, listener);
   }
 
   private SandboxedPersistentQueryMetadata(
       final PersistentQueryMetadata queryMetadata,
-      final Consumer<QueryMetadata> closeCallback
+      final Listener listener
   ) {
-    super(queryMetadata, closeCallback);
+    super(queryMetadata, listener);
   }
 
   @Override
   public void close() {
     closed = true;
-    closeCallback.accept(this);
+    listener.onClose(this);
   }
 
   @Override

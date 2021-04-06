@@ -109,7 +109,7 @@ public final class QueryIdUtil {
     }
 
     final SourceName sink = outputNode.getSinkName().get();
-    final Set<QueryId> queriesForSink = engineContext.getQueriesWithSink(sink);
+    final Set<QueryId> queriesForSink = engineContext.getQueryRegistry().getQueriesWithSink(sink);
     if (queriesForSink.size() > 1) {
       throw new KsqlException("REPLACE for sink " + sink + " is not supported because there are "
           + "multiple queries writing into it: " + queriesForSink);

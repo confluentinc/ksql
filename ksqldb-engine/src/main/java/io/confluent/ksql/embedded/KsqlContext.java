@@ -88,7 +88,8 @@ public class KsqlContext implements AutoCloseable {
         functionRegistry,
         serviceInfo,
         new SequentialQueryIdGenerator(),
-        ksqlConfig);
+        ksqlConfig,
+        Collections.emptyList());
 
     return new KsqlContext(
         serviceContext,

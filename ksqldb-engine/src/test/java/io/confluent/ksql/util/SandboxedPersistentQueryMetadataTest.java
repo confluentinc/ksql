@@ -32,6 +32,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
+import io.confluent.ksql.util.QueryMetadata.Listener;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -81,6 +82,10 @@ public class SandboxedPersistentQueryMetadataTest {
   private ExecutionStep<?> physicalPlan;
   @Mock
   private ProcessingLogger processingLogger;
+  @Mock
+  private Listener listener;
+  @Mock
+  private Listener sandboxListener;
 
   private PersistentQueryMetadata query;
   private SandboxedPersistentQueryMetadata sandbox;
@@ -106,19 +111,19 @@ public class SandboxedPersistentQueryMetadataTest {
         schemas,
         props,
         overrides,
-        closeCallback,
         CLOSE_TIMEOUT,
         queryErrorClassifier,
         physicalPlan,
         10,
         processingLogger,
         0L,
-        0L
+        0L,
+        listener
     );
 
     query.initialize();
 
-    sandbox = SandboxedPersistentQueryMetadata.of(query, closeCallback);
+    sandbox = SandboxedPersistentQueryMetadata.of(query, sandboxListener);
     reset(kafkaStreams);
   }
 

@@ -90,8 +90,6 @@ public class QueryDescriptionFactoryTest {
   private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
 
   @Mock
-  private Consumer<QueryMetadata> queryCloseCallback;
-  @Mock
   private KafkaStreamsBuilder kafkaStreamsBuilder;
   @Mock
   private KafkaStreams queryStreams;
@@ -109,6 +107,8 @@ public class QueryDescriptionFactoryTest {
   private DataSource sinkDataSource;
   @Mock
   private ProcessingLogger processingLogger;
+  @Mock
+  private QueryMetadata.Listener listener;
 
   private QueryMetadata transientQuery;
   private PersistentQueryMetadata persistentQuery;
@@ -137,12 +137,12 @@ public class QueryDescriptionFactoryTest {
         kafkaStreamsBuilder,
         STREAMS_PROPS,
         PROP_OVERRIDES,
-        queryCloseCallback,
         closeTimeout,
         10,
         ResultType.STREAM,
         0L,
-        0L
+        0L,
+        listener
     );
 
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());
@@ -161,14 +161,14 @@ public class QueryDescriptionFactoryTest {
         new QuerySchemas(),
         STREAMS_PROPS,
         PROP_OVERRIDES,
-        queryCloseCallback,
         closeTimeout,
         QueryErrorClassifier.DEFAULT_CLASSIFIER,
         physicalPlan,
         10,
         processingLogger,
         0L,
-        0L
+        0L,
+        listener
     );
     persistentQuery.initialize();
 
@@ -276,12 +276,12 @@ public class QueryDescriptionFactoryTest {
         kafkaStreamsBuilder,
         STREAMS_PROPS,
         PROP_OVERRIDES,
-        queryCloseCallback,
         closeTimeout,
         10,
         ResultType.STREAM,
         0L,
-        0L
+        0L,
+        listener
     );
 
     // When:
@@ -314,12 +314,12 @@ public class QueryDescriptionFactoryTest {
         kafkaStreamsBuilder,
         STREAMS_PROPS,
         PROP_OVERRIDES,
-        queryCloseCallback,
         closeTimeout,
         10,
         ResultType.STREAM,
         0L,
-        0L
+        0L,
+        listener
     );
 
     // When:

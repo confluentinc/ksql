@@ -593,7 +593,8 @@ public class TestExecutor implements Closeable {
             Collections.emptyMap(),
             Optional.empty()),
         new SequentialQueryIdGenerator(),
-        KsqlConfig.empty()
+        KsqlConfig.empty(),
+        Collections.emptyList()
     );
   }
 

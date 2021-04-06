@@ -404,6 +404,11 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_VARIABLE_SUBSTITUTION_ENABLE_DOC
       = "Enable variable substitution on SQL statements.";
 
+  public static final String KSQL_STATE_STORE_MAX = "ksql.query.persistent.stores.max";
+  private static final int KSQL_STATE_STORE_MAX_DEFAULT = -1;
+  private static final String KSQL_STATE_STORE_MAX_DOC = "Limit on the total number of state "
+      + "store instances across all persistent queries";
+
   private enum ConfigGeneration {
     LEGACY,
     CURRENT
@@ -919,6 +924,12 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_LAMBDAS_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_LAMBDAS_ENABLED_DOC
+        ).define(
+            KSQL_STATE_STORE_MAX,
+            Type.INT,
+            KSQL_STATE_STORE_MAX_DEFAULT,
+            Importance.LOW,
+            KSQL_STATE_STORE_MAX_DOC
         )
         .withClientSslSupport();
 

@@ -420,7 +420,9 @@ public class SecureIntegrationTest {
         new InternalFunctionRegistry(),
         ServiceInfo.create(ksqlConfig),
         new SequentialQueryIdGenerator(),
-        ksqlConfig);
+        ksqlConfig,
+        Collections.emptyList()
+    );
 
     execInitCreateStreamQueries();
   }

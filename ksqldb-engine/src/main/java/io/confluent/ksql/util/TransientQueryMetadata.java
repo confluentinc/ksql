@@ -86,13 +86,11 @@ public class TransientQueryMetadata extends QueryMetadata {
     this.resultType = Objects.requireNonNull(resultType, "resultType");
   }
 
-  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public TransientQueryMetadata(
       final TransientQueryMetadata original,
       final BlockingRowQueue rowQueue,
       final Listener listener
   ) {
-    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(original, listener);
     this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
     this.resultType = original.resultType;
@@ -139,12 +137,12 @@ public class TransientQueryMetadata extends QueryMetadata {
 
   @Override
   public void close() {
-    this.isRunning.set(false);
     // To avoid deadlock, close the queue first to ensure producer side isn't blocked trying to
     // write to the blocking queue, otherwise super.close call can deadlock:
     rowQueue.close();
 
     // Now safe to close:
     super.close();
+    this.isRunning.set(false);
   }
 }

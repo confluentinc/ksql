@@ -46,7 +46,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
-import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 
 public class QueryRegistryImpl implements QueryRegistry {
@@ -87,14 +86,14 @@ public class QueryRegistryImpl implements QueryRegistry {
       if (query instanceof PersistentQueryMetadata) {
         final PersistentQueryMetadata sandboxed = SandboxedPersistentQueryMetadata.of(
             (PersistentQueryMetadata) query,
-            new PerQueryListener()
+            new ListenerImpl()
         );
         persistentQueries.put(sandboxed.getQueryId(), sandboxed);
         allLiveQueries.add(sandboxed);
       } else {
         final TransientQueryMetadata sandboxed = SandboxedTransientQueryMetadata.of(
             (TransientQueryMetadata) query,
-            new PerQueryListener()
+            new ListenerImpl()
         );
         allLiveQueries.add(sandboxed);
       }
@@ -137,7 +136,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         limit,
         windowInfo,
         excludeTombstones,
-        new PerQueryListener()
+        new ListenerImpl()
     );
     registerQuery(serviceContext, metaStore, query, false);
     return query;
@@ -167,7 +166,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         sources,
         physicalPlan,
         planSummary,
-        new PerQueryListener()
+        new ListenerImpl()
     );
     registerQuery(serviceContext, metaStore, query, createAsQuery);
     return query;
@@ -308,22 +307,6 @@ public class QueryRegistryImpl implements QueryRegistry {
     this.eventListeners.forEach(l -> l.onCreate(serviceContext, metaStore, queryMetadata));
   }
 
-  private void notifyStateChange(
-      final QueryMetadata queryMetadata,
-      final KafkaStreams.State before,
-      final KafkaStreams.State after
-  ) {
-    this.eventListeners.forEach(l -> l.onStateChange(queryMetadata, before, after));
-  }
-
-  private void notifyError(final QueryMetadata queryMetadata, final QueryError error) {
-    this.eventListeners.forEach(l -> l.onError(queryMetadata, error));
-  }
-
-  private void notifyClose(final QueryMetadata queryMetadata) {
-    this.eventListeners.forEach(l -> l.onClose(queryMetadata));
-  }
-
   private void notifyDeregister(final QueryMetadata queryMetadata) {
     this.eventListeners.forEach(l -> l.onDeregister(queryMetadata));
   }
@@ -345,22 +328,22 @@ public class QueryRegistryImpl implements QueryRegistry {
     );
   }
 
-  private class PerQueryListener implements QueryMetadata.Listener {
+  private class ListenerImpl implements QueryMetadata.Listener {
     @Override
     public void onError(final QueryMetadata queryMetadata, final QueryError error) {
-      notifyError(queryMetadata, error);
+      eventListeners.forEach(l -> l.onError(queryMetadata, error));
     }
 
     @Override
     public void onStateChange(
         final QueryMetadata queryMetadata, final State before, final State after) {
-      notifyStateChange(queryMetadata, before, after);
+      eventListeners.forEach(l -> l.onStateChange(queryMetadata, before, after));
     }
 
     @Override
     public void onClose(final QueryMetadata queryMetadata) {
       unregisterQuery(queryMetadata);
-      notifyClose(queryMetadata);
+      eventListeners.forEach(l -> l.onClose(queryMetadata));
     }
   }
 }

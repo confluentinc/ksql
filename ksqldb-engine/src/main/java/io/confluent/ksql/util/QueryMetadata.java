@@ -67,7 +67,7 @@ public abstract class QueryMetadata {
   private final QueryErrorClassifier errorClassifier;
   private final TimeBoundedQueue queryErrors;
   private final RetryEvent retryEvent;
-  final Listener listener;
+  private final Listener listener;
 
   private boolean everStarted = false;
   protected boolean closed = false;
@@ -301,6 +301,10 @@ public abstract class QueryMetadata {
     return kafkaStreams;
   }
 
+  Listener getListener() {
+    return listener;
+  }
+
   protected void resetKafkaStreams(final KafkaStreams kafkaStreams) {
     this.kafkaStreams = kafkaStreams;
     setUncaughtExceptionHandler(uncaughtExceptionHandler);
@@ -457,8 +461,8 @@ public abstract class QueryMetadata {
 
     void onStateChange(
         QueryMetadata queryMetadata,
-        KafkaStreams.State var1,
-        KafkaStreams.State var2);
+        KafkaStreams.State before,
+        KafkaStreams.State after);
 
     void onClose(QueryMetadata queryMetadata);
   }

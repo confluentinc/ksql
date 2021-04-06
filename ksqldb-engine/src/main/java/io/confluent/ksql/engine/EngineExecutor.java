@@ -210,7 +210,7 @@ final class EngineExecutor {
         plans.physicalPlan,
         engineContext.getQueryRegistry().getAllLiveQueries()
     );
-    final TransientQueryMetadata query = engineContext.getQueryRegistry().createTransientQuery(
+    return engineContext.getQueryRegistry().createTransientQuery(
         config,
         serviceContext,
         engineContext.getProcessingLogContext(),
@@ -227,7 +227,6 @@ final class EngineExecutor {
         outputNode.getWindowInfo(),
         excludeTombstones
     );
-    return query;
   }
 
   // Known to be non-empty
@@ -486,7 +485,7 @@ final class EngineExecutor {
       final boolean createAsQuery
   ) {
     final QueryRegistry queryRegistry = engineContext.getQueryRegistry();
-    final PersistentQueryMetadata queryMetadata = queryRegistry.createOrReplacePersistentQuery(
+    return queryRegistry.createOrReplacePersistentQuery(
         config,
         serviceContext,
         engineContext.getProcessingLogContext(),
@@ -499,7 +498,6 @@ final class EngineExecutor {
         buildPlanSummary(queryPlan.getQueryId(), queryPlan.getPhysicalPlan()),
         createAsQuery
     );
-    return queryMetadata;
   }
 
   private String buildPlanSummary(final QueryId queryId, final ExecutionStep<?> plan) {

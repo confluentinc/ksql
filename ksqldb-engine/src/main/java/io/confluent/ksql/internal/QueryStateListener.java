@@ -82,7 +82,7 @@ public class QueryStateListener implements QueryEventListener {
 
   private static final String NO_ERROR = "NO_ERROR";
 
-  static class PerQueryListener {
+  private static class PerQueryListener {
     private final Metrics metrics;
     private final MetricName stateMetricName;
     private final MetricName errorMetricName;

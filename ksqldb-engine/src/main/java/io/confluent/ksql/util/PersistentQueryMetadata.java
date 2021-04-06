@@ -211,10 +211,6 @@ public class PersistentQueryMetadata extends QueryMetadata {
    * Stops the query without cleaning up the external resources
    * so that it can be resumed when we call {@link #start()}.
    *
-   * <p>NOTE: {@link TransientQueryMetadata} overrides this method
-   * since any time a transient query is stopped the external resources
-   * should be cleaned up.</p>
-   *
    * @see #close()
    */
   public synchronized void stop() {

@@ -55,7 +55,7 @@ public final class SandboxedTransientQueryMetadata extends TransientQueryMetadat
   public void close() {
     closed = true;
     isRunning.set(false);
-    listener.onClose(this);
+    getListener().onClose(this);
   }
 
   private static class SandboxQueue implements BlockingRowQueue {

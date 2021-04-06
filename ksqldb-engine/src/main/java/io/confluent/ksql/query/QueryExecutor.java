@@ -74,7 +74,7 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-public final class QueryExecutor {
+final class QueryExecutor {
 
   private static final String KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER
       = "ksql.logger.thread.exception.uncaught";
@@ -88,7 +88,7 @@ public final class QueryExecutor {
   private final StreamsBuilder streamsBuilder;
   private final MaterializationProviderBuilderFactory materializationProviderBuilderFactory;
 
-  public QueryExecutor(
+  QueryExecutor(
       final SessionConfig config,
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
@@ -106,7 +106,8 @@ public final class QueryExecutor {
             serviceContext,
             new KsMaterializationFactory(),
             new KsqlMaterializationFactory(processingLogContext)
-        ));
+        )
+    );
   }
 
   @VisibleForTesting
@@ -134,7 +135,7 @@ public final class QueryExecutor {
     );
   }
 
-  public TransientQueryMetadata buildTransientQuery(
+  TransientQueryMetadata buildTransientQuery(
       final String statementText,
       final QueryId queryId,
       final Set<SourceName> sources,
@@ -186,7 +187,7 @@ public final class QueryExecutor {
     return Optional.empty();
   }
 
-  public PersistentQueryMetadata buildPersistentQuery(
+  PersistentQueryMetadata buildPersistentQuery(
       final String statementText,
       final QueryId queryId,
       final DataSource sinkDataSource,

@@ -142,11 +142,12 @@ nav:
     - Metrics: reference/metrics.md
     - REST API:
       - REST API Index: developer-guide/api.md # old reference topic, rename file to index.md
-      - Introspect query status: developer-guide/ksqldb-rest-api/status-endpoint.md
-      - Introspect server status: developer-guide/ksqldb-rest-api/info-endpoint.md
       - Execute a statement: developer-guide/ksqldb-rest-api/ksql-endpoint.md
       - Run a query: developer-guide/ksqldb-rest-api/query-endpoint.md
       - Run push and pull queries: developer-guide/ksqldb-rest-api/streaming-endpoint.md
+      - Introspect query status: developer-guide/ksqldb-rest-api/status-endpoint.md
+      - Introspect server status: developer-guide/ksqldb-rest-api/info-endpoint.md
+      - Introspect cluster status: developer-guide/ksqldb-rest-api/cluster-status-endpoint.md
       - Terminate a cluster: developer-guide/ksqldb-rest-api/terminate-endpoint.md
     - Clients:
       - Synopsis: developer-guide/ksqldb-clients/index.md

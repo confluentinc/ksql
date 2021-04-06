@@ -104,6 +104,13 @@ Controls the semantics of the SUBSTRING UDF. Refer to the SUBSTRING
 documentation in the [function](/developer-guide/ksqldb-reference/scalar-functions)
 guide for details.
 
+## `ksql.heartbeat.enable`
+
+If enabled, ksqlDB servers in the same ksqlDB cluster send heartbeats to each
+other, to aid in faster failure detection for improved pull query routing.
+Also enables the [`/clusterStatus` endpoint](../developer-guide/ksqldb-rest-api/cluster-status-endpoint.md).
+The default is `false`.
+
 ## `ksql.internal.listener`
 
 The `ksql.internal.listener` setting controls the address bound for use by internal,
@@ -122,6 +129,13 @@ The number of replicas for the internal topics created by ksqlDB Server.
 The default is 1. Replicas for the record processing log topic should be
 configured separately. For more information, see
 [Processing Log](/reference/processing-log).
+
+## `ksql.lag.reporting.enable`
+
+If enabled, ksqlDB servers in the same ksqlDB cluster sends state-store 
+lag information to each other as a form of heartbeat, for improved pull query routing.
+Only applicable if [`ksql.heartbeat.enable`](#ksqlheartbeatenable) is also set to `true`.
+The default is `false`.
 
 ## `ksql.logging.processing.topic.auto.create`
 

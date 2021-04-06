@@ -204,6 +204,7 @@ public final class ListQueriesExecutor {
       final QueryId queryId = q.getId();
 
       // If the query has already been discovered, add to the ksqlQueryHostStatus mapping
+      // and the streams metadata task set
       if (allResults.containsKey(queryId)) {
         for (Map.Entry<KsqlHostInfoEntity, KsqlQueryStatus> entry :
             q.getKsqlHostQueryStatus().entrySet()) {
@@ -211,6 +212,8 @@ public final class ListQueriesExecutor {
               .get(queryId)
               .updateKsqlHostQueryStatus(entry.getKey(), entry.getValue());
         }
+        
+        allResults.get(queryId).updateTaskMetadata(q.getTasksMetadata());
       } else {
         allResults.put(queryId, q);
       }

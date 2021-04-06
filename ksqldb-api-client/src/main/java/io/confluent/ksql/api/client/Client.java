@@ -281,6 +281,32 @@ public interface Client {
   CompletableFuture<ConnectorDescription> describeConnector(String connectorName);
 
   /**
+   * Define a session variable which can be referenced in sql commands by wrapping the variable name
+   * with {@code ${}}.
+   *
+   * <p>If the variable is already defined, the existing value will be overridden.
+   *
+   * @param variable the name of the variable
+   * @param value the value represented by the variable
+   */
+  void define(String variable, Object value);
+
+  /**
+   * Undefine a session variable. {@code '${<variable name>}'} will no longer be replaced in other
+   * functions.
+   *
+   * <p>If the variable is not defined, then this method call is a no-op.
+   *
+   * @param variable the name of the variable to undefine
+   */
+  void undefine(String variable);
+
+  /**
+   * @return a map of the session variables and values used for variable substitution.
+   */
+  Map<String, Object> getVariables();
+
+  /**
    * Closes the underlying HTTP client.
    */
   void close();

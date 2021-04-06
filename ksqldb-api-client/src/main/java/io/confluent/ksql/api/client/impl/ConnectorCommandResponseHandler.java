@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import static io.confluent.ksql.api.client.impl.AdminResponseHandlers.isCreateConnectorResponse;
+import static io.confluent.ksql.api.client.impl.AdminResponseHandlers.isDropConnectorResponse;
+
 import io.confluent.ksql.api.client.ConnectorDescription;
 import io.confluent.ksql.api.client.ConnectorInfo;
 import io.vertx.core.json.JsonArray;
@@ -33,7 +36,7 @@ public final class ConnectorCommandResponseHandler {
       final JsonObject connectorInfoEntity,
       final CompletableFuture<Void> cf
   ) {
-    if (connectorInfoEntity.getString("@type").equals("connector_info")) {
+    if (isCreateConnectorResponse(connectorInfoEntity)) {
       cf.complete(null);
     } else {
       cf.completeExceptionally(new IllegalStateException(
@@ -46,7 +49,7 @@ public final class ConnectorCommandResponseHandler {
       final JsonObject dropConnectorResponseEntity,
       final CompletableFuture<Void> cf
   ) {
-    if (dropConnectorResponseEntity.getString("@type").equals("drop_connector")) {
+    if (isDropConnectorResponse(dropConnectorResponseEntity)) {
       cf.complete(null);
     } else {
       cf.completeExceptionally(new IllegalStateException(

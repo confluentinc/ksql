@@ -452,6 +452,18 @@ public class ClientIntegrationTest {
   }
 
   @Test
+  public void shouldExecutePullQueryWithVariables() throws Exception {
+    // When
+    client.define("AGG_TABLE", AGG_TABLE);
+    client.define("value", false);
+    final BatchedQueryResult batchedQueryResult = client.executeQuery("SELECT ${value} from ${AGG_TABLE} WHERE K=STRUCT(F1 := ARRAY['a']);");
+
+    // Then
+    assertThat(batchedQueryResult.queryID().get(), is(nullValue()));
+    assertThat(batchedQueryResult.get().get(0).getBoolean(1), is(false));
+  }
+
+  @Test
   public void shouldExecutePushWithLimitQuery() throws Exception {
     // When
     final BatchedQueryResult batchedQueryResult = client.executeQuery(PUSH_QUERY_WITH_LIMIT);
@@ -460,6 +472,19 @@ public class ClientIntegrationTest {
     assertThat(batchedQueryResult.queryID().get(), is(notNullValue()));
 
     verifyStreamRows(batchedQueryResult.get(), PUSH_QUERY_LIMIT_NUM_ROWS);
+  }
+
+  @Test
+  public void shouldExecutePushQueryWithVariables() throws Exception {
+    // When
+    client.define("TEST_STREAM", TEST_STREAM);
+    client.define("number", 4567);
+    final BatchedQueryResult batchedQueryResult =
+        client.executeQuery("SELECT ${number} FROM ${TEST_STREAM} EMIT CHANGES LIMIT " + PUSH_QUERY_LIMIT_NUM_ROWS + ";");
+
+    // Then
+    assertThat(batchedQueryResult.queryID().get(), is(notNullValue()));
+    assertThat(batchedQueryResult.get().get(0).getInteger(1), is(4567));
   }
 
   @Test
@@ -1084,6 +1109,25 @@ public class ClientIntegrationTest {
   public void shouldCreateConnector() throws Exception {
     // When:
     client.createConnector("FOO", true, ImmutableMap.of("connector.class", MOCK_SOURCE_CLASS)).get();
+
+    // Then:
+    assertThatEventually(
+        () -> {
+          try {
+            return (client.describeConnector("FOO").get()).state();
+          } catch (InterruptedException | ExecutionException e) {
+            return null;
+          }
+        },
+        is("RUNNING")
+    );
+  }
+
+  @Test
+  public void shouldCreateConnectorWithVariables() throws Exception {
+    // When:
+    client.define("class", MOCK_SOURCE_CLASS);
+    client.createConnector("FOO", true, ImmutableMap.of("connector.class", "${class}")).get();
 
     // Then:
     assertThatEventually(

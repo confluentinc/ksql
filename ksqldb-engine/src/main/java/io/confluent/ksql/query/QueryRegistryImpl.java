@@ -34,7 +34,6 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SandboxedPersistentQueryMetadata;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
-import io.vertx.core.impl.ConcurrentHashSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;

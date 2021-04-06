@@ -20,6 +20,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryRegistryImpl.QueryExecutorFactory;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
@@ -30,6 +31,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.stream.Collectors;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -88,6 +91,26 @@ public class QueryRegistryImplTest {
   }
 
   @Test
+  public void shouldGetAllLiveQueriesSandbox() {
+    // Given:
+    final Set<QueryMetadata> queries = ImmutableSet.of(
+        givenCreate(registry, "q1", "source", "sink", true),
+        givenCreateTransient(registry, "transient1")
+    );
+    final QueryRegistry sandbox = registry.createSandbox();
+
+    // When:
+    final Set<QueryMetadata> listed
+        = ImmutableSet.<QueryMetadata>builder().addAll(sandbox.getAllLiveQueries()).build();
+
+    // Then:
+    final Set<String> ids = listed.stream()
+        .map(q -> q.getQueryId().toString())
+        .collect(Collectors.toSet());
+    assertThat(ids, contains("q1", "transient1"));
+  }
+
+  @Test
   public void shouldGetPersistentQueries() {
     // Given:
     final PersistentQueryMetadata q1 = givenCreate(registry, "q1", "source", "sink1", true);
@@ -117,6 +140,21 @@ public class QueryRegistryImplTest {
   }
 
   @Test
+  public void shouldGetQueriesWithSinkFromSandbox() {
+    // Given:
+    givenCreate(registry, "q1", "source", "sink1", true);
+    givenCreate(registry, "q2", "source", "sink1", false);
+    givenCreate(registry, "q3", "source", "sink2", false);
+    final QueryRegistry sandbox = registry.createSandbox();
+
+    // When:
+    final Set<QueryId> queries = sandbox.getQueriesWithSink(SourceName.of("sink1"));
+
+    // Then:
+    assertThat(queries, contains(new QueryId("q1"), new QueryId("q2")));
+  }
+
+  @Test
   public void shouldGetQueryThatCreatedSource() {
     // Given:
     final QueryMetadata query = givenCreate(registry, "q1", "source", "sink1", true);
@@ -131,6 +169,21 @@ public class QueryRegistryImplTest {
   }
 
   @Test
+  public void shouldGetQueryThatCreatedSourceOnSandbox() {
+    // Given:
+    final QueryMetadata query = givenCreate(registry, "q1", "source", "sink1", true);
+    givenCreate(registry, "q2", "source", "sink1", false);
+    givenCreate(registry, "q3", "source", "sink2", false);
+    final QueryRegistry sandbox = registry.createSandbox();
+
+    // When:
+    final Optional<QueryMetadata> found = sandbox.getCreateAsQuery(SourceName.of("sink1"));
+
+    // Then:
+    assertThat(found.get().getQueryId().toString(), equalTo("q1"));
+  }
+
+  @Test
   public void shouldGetQueriesInsertingIntoOrReadingFromSource() {
     givenCreate(registry, "q1", "source", "sink1", true);
     givenCreate(registry, "q2", "source", "sink1", false);
@@ -142,6 +195,21 @@ public class QueryRegistryImplTest {
 
     // Then:
     assertThat(queries, contains(new QueryId("q2"), new QueryId("q3"), new QueryId("q4")));
+  }
+
+  @Test
+  public void shouldCopyInsertsOnSandbox() {
+    // Given:
+    givenCreate(registry, "q1", "source", "sink1", true);
+    givenCreate(registry, "q2", "source", "sink1", false);
+    givenCreate(registry, "q3", "source", "sink1", false);
+    final QueryRegistry sandbox = registry.createSandbox();
+
+    // When:
+    final Set<QueryId> queries = registry.getInsertQueries(SourceName.of("sink1"), (n, q) -> true);
+
+    // Then:
+    assertThat(queries, contains(new QueryId("q2"), new QueryId("q3")));
   }
 
   @Test
@@ -166,6 +234,35 @@ public class QueryRegistryImplTest {
     // Then:
     verify(listener1).onClose(query);
     verify(listener2).onClose(query);
+  }
+
+  @Test
+  public void shouldCallListenerOnStateChange() {
+    // Given:
+    final QueryMetadata.Listener queryListener = givenCreateGetListener(registry, "foo");
+    final QueryMetadata query = registry.getPersistentQuery(new QueryId("foo")).get();
+
+    // When:
+    queryListener.onStateChange(query, State.CREATED, State.RUNNING);
+
+    // Then:
+    verify(listener1).onStateChange(query, State.CREATED, State.RUNNING);
+    verify(listener2).onStateChange(query, State.CREATED, State.RUNNING);
+  }
+
+  @Test
+  public void shouldCallListenerOnError() {
+    // Given:
+    final QueryMetadata.Listener queryListener = givenCreateGetListener(registry, "foo");
+    final QueryMetadata query = registry.getPersistentQuery(new QueryId("foo")).get();
+    final QueryError error = new QueryError(123L, "error", Type.USER);
+
+    // When:
+    queryListener.onError(query, error);
+
+    // Then:
+    verify(listener1).onError(query, error);
+    verify(listener2).onError(query, error);
   }
 
   @Test

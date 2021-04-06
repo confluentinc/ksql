@@ -34,6 +34,7 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SandboxedPersistentQueryMetadata;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
+import io.vertx.core.impl.ConcurrentHashSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -99,7 +100,11 @@ public class QueryRegistryImpl implements QueryRegistry {
       }
     });
     createAsQueries.putAll(original.createAsQueries);
-    insertQueries.putAll(original.insertQueries);
+    for (final Map.Entry<SourceName, Set<QueryId>> inserts : original.insertQueries.entrySet()) {
+      final Set<QueryId> sandboxInserts = Collections.synchronizedSet(new HashSet<>());
+      sandboxInserts.addAll(inserts.getValue());
+      insertQueries.put(inserts.getKey(), sandboxInserts);
+    }
     eventListeners = original.eventListeners.stream()
         .map(QueryEventListener::createSandbox)
         .filter(Optional::isPresent)

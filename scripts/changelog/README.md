@@ -43,6 +43,10 @@ conventional-changelog -p angular -i new_commits.txt -s -r 0
 ### List commits on `OLD_VERSION`
 
 Next, repeat the process to list commits from the `OLD_VERSION`. A tag for this release should already exist, so check out the tag:
+ 
+**note: if a previous release is on-going there may not be a tag yet. If this is the case, wait for the previous release to create
+their tag or continue with these instructions using the previous release's branch instead of the tag. If you use the previous release's branch,
+you will have to manually edit the .txt file to have the right version in the header
 ```
 git fetch --all --tags --prune
 git checkout tags/v0.7.0-ksqldb

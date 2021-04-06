@@ -46,7 +46,8 @@ Next, repeat the process to list commits from the `OLD_VERSION`. A tag for this 
  
 **note: if a previous release is on-going there may not be a tag yet. If this is the case, wait for the previous release to create
 their tag or continue with these instructions using the previous release's branch instead of the tag. If you use the previous release's branch,
-you will have to manually edit the .txt file to have the right version in the header
+you will have to manually edit the .txt file to have the right version in the header. For example, if you're working on 0.17, where the header
+has `[]` you would want to change it to `[0.17.0]` for `new_commits.txt` and `[0.16.0]` for `old_commits.txt`
 ```
 git fetch --all --tags --prune
 git checkout tags/v0.7.0-ksqldb

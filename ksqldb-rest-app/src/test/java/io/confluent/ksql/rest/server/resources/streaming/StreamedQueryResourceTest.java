@@ -122,6 +122,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
@@ -653,6 +654,7 @@ public class StreamedQueryResourceTest {
     final Map<String, Object> requestStreamsProperties = Collections.emptyMap();
     final KafkaStreamsBuilder kafkaStreamsBuilder = mock(KafkaStreamsBuilder.class);
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(mockKafkaStreams);
+    when(mockKafkaStreams.state()).thenReturn(State.RUNNING);
 
     final TransientQueryMetadata transientQueryMetadata =
         new TransientQueryMetadata(

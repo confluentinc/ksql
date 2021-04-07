@@ -51,7 +51,9 @@ For more information, see [Configuring Listeners of a ksqlDB Cluster](./index.md
 ## `ksql.compression.type`
 
 Sets the compression type used by {{ site.ak }} producers, like the
-INSERT VALUES statement. This setting is distinct from the
+INSERT VALUES statement. The default is `none`.
+
+This setting is distinct from the
 `ksql.streams.producer.compression.type` config, which sets the type of 
 compression used by streams producers for topics created by CREATE TABLE AS
 SELECT and CREATE STREAM AS SELECT statements.
@@ -463,10 +465,11 @@ For more information, see [Processing Guarantees](/operate-and-deploy/exactly-on
 
 ## `ksql.streams.producer.compression.type`
 
-The type of compression used by streams producers for topics created by 
-CREATE TABLE AS SELECT and CREATE STREAM AS SELECT statements. This setting is
-distinct from the `ksql.compression.type` config, which sets the compression
-type used by {{ site.ak }} producers, like the INSERT VALUES statement.
+The type of compression used by streams producers for topics created by INSERT INTO, 
+CREATE TABLE AS SELECT, and CREATE STREAM AS SELECT statements. The default is `none`.
+
+This setting is distinct from the `ksql.compression.type` config, which sets the
+compression type used by {{ site.ak }} producers, like the INSERT VALUES statement.
 
 !!! note
 

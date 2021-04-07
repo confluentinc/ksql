@@ -201,6 +201,7 @@
           </execution>
         </executions>
       </plugin>
+      <!-- we use maven-assembly but I this package is for testing only, so no licence plugin required -->
     </plugins>
   </build>
 </project>

@@ -55,6 +55,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
+
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -230,6 +232,8 @@ public class QueryExecutorTest {
 
   @Test
   public void shouldBuildTransientQueryCorrectly() {
+    final int defaultNumOfThreads = 4;
+
     // Given:
     givenTransientQuery();
 
@@ -252,8 +256,52 @@ public class QueryExecutorTest {
     assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
     assertThat(queryMetadata.getTopology(), is(topology));
     assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
+    assertThat(queryMetadata.getCloseTimeout(), is(defaultNumOfThreads * 60000L));
     verify(kafkaStreamsBuilder).build(any(), propertyCaptor.capture());
     assertThat(queryMetadata.getStreamsProperties(), equalTo(propertyCaptor.getValue()));
+  }
+
+  @Test
+  public void shouldBuildTransientQueryCorrectlyWithDerivedClosingTimeout() {
+    final int numOfThreads = 2;
+
+    // Given:
+    when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(ImmutableMap.of(
+        StreamsConfig.NUM_STREAM_THREADS_CONFIG, numOfThreads
+    ));
+
+    queryBuilder = new QueryExecutor(
+        config,
+        processingLogContext,
+        serviceContext,
+        functionRegistry,
+        closeCallback,
+        kafkaStreamsBuilder,
+        streamsBuilder,
+        new MaterializationProviderBuilderFactory(
+            ksqlConfig,
+            serviceContext,
+            ksMaterializationFactory,
+            ksqlMaterializationFactory
+        ));
+
+    givenTransientQuery();
+
+    // When:
+    final TransientQueryMetadata queryMetadata = queryBuilder.buildTransientQuery(
+        STATEMENT_TEXT,
+        QUERY_ID,
+        SOURCES,
+        physicalPlan,
+        SUMMARY,
+        TRANSIENT_SINK_SCHEMA,
+        LIMIT,
+        Optional.empty(),
+        false
+    );
+
+    // Then:
+    assertThat(queryMetadata.getCloseTimeout(), is(numOfThreads * 60000L));
   }
 
   @Test

@@ -16,6 +16,7 @@
 package io.confluent.ksql.query;
 
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
+import static io.confluent.ksql.util.KsqlConstants.defaultNumberOfStreamsThreads;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -79,6 +80,10 @@ public final class QueryExecutor {
 
   private static final String KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER
       = "ksql.logger.thread.exception.uncaught";
+
+  // Each stream thread has two internal consumer threads running. When closing those consumer
+  // threads, the close has a hard-coded 30 seconds timeout per thread.
+  private static long INTERNAL_CONSUMER_THREADS_TIMEOUT_MS = 2 * 30_000;
 
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private final SessionConfig config;
@@ -167,6 +172,8 @@ public final class QueryExecutor {
         ? windowInfo.isPresent() ? ResultType.WINDOWED_TABLE : ResultType.TABLE
         : ResultType.STREAM;
 
+    final long queryTimeout = getTransientQueryCloseTimeout(streamsProperties);
+
     return new TransientQueryMetadata(
         statementText,
         schema,
@@ -179,12 +186,24 @@ public final class QueryExecutor {
         streamsProperties,
         config.getOverrides(),
         queryCloseCallback,
-        ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
+        queryTimeout,
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
         resultType,
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS)
     );
+  }
+
+  private long getTransientQueryCloseTimeout(final Map<String, Object> streamsProperties) {
+    final int numThreads = (int)streamsProperties.getOrDefault(
+        StreamsConfig.NUM_STREAM_THREADS_CONFIG, defaultNumberOfStreamsThreads);
+
+    // Each streams thread has internal threads that are closed one at a time (one after the other).
+    // Each close operation has a timeout that is used in this formula to derive the query timeout.
+    // For transient queries, we only use the total consumer timeouts because are the only ones
+    // that may affect the query closing time and that may re-create the state directory if a
+    // smaller query timeout is set and consumers were still rebalancing during that time.
+    return numThreads * INTERNAL_CONSUMER_THREADS_TIMEOUT;
   }
 
   private static Optional<MaterializationInfo> getMaterializationInfo(final Object result) {

@@ -673,6 +673,7 @@ public class StreamedQueryResourceTest {
             0L,
             listener
         );
+    transientQueryMetadata.initialize();
 
     when(mockKsqlEngine.executeQuery(serviceContext,
         ConfiguredStatement

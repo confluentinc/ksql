@@ -29,7 +29,6 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.FieldInfo;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.CommandParser;
@@ -153,7 +152,6 @@ public class ApplyMigrationCommand extends BaseCommand {
   ) {
     // CHECKSTYLE_RULES.ON: NPathComplexity
     final Client ksqlClient;
-    final KsqlRestClient restClient;
     try {
       ksqlClient = clientSupplier.apply(config);
     } catch (MigrationException e) {

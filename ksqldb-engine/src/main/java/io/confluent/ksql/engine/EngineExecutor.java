@@ -54,8 +54,8 @@ import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.PullQueryQueue;
-import io.confluent.ksql.query.QueryExecutor;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.QueryRegistry;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -224,15 +224,16 @@ final class EngineExecutor {
     final ExecutorPlans plans = planQuery(statement, statement.getStatement(),
         Optional.empty(), Optional.empty());
     final KsqlBareOutputNode outputNode = (KsqlBareOutputNode) plans.logicalPlan.getNode().get();
-    final QueryExecutor executor = engineContext.createQueryExecutor(config, serviceContext);
-
     engineContext.createQueryValidator().validateQuery(
         config,
         plans.physicalPlan,
-        engineContext.getAllLiveQueries()
+        engineContext.getQueryRegistry().getAllLiveQueries()
     );
-
-    return executor.buildTransientQuery(
+    return engineContext.getQueryRegistry().createTransientQuery(
+        config,
+        serviceContext,
+        engineContext.getProcessingLogContext(),
+        engineContext.getMetaStore(),
         statement.getStatementText(),
         plans.physicalPlan.getQueryId(),
         getSourceNames(outputNode),
@@ -279,7 +280,7 @@ final class EngineExecutor {
           outputNode
       );
 
-      validateQuery(outputNode.getNodeOutputType(), statement);
+      validateResultType(outputNode.getNodeOutputType(), statement);
 
       final QueryPlan queryPlan = new QueryPlan(
           getSourceNames(outputNode),
@@ -291,7 +292,7 @@ final class EngineExecutor {
       engineContext.createQueryValidator().validateQuery(
           config,
           plans.physicalPlan,
-          engineContext.getAllLiveQueries()
+          engineContext.getQueryRegistry().getAllLiveQueries()
       );
 
       return KsqlPlan.queryPlanCurrent(
@@ -331,7 +332,8 @@ final class EngineExecutor {
         withQueryId
     );
 
-    if (withQueryId.isPresent() && engineContext.getPersistentQuery(queryId).isPresent()) {
+    if (withQueryId.isPresent()
+        && engineContext.getQueryRegistry().getPersistentQuery(queryId).isPresent()) {
       throw new KsqlException(String.format("Query ID '%s' already exists.", queryId));
     }
 
@@ -447,7 +449,7 @@ final class EngineExecutor {
     }
   }
 
-  private static void validateQuery(
+  private static void validateResultType(
       final DataSourceType dataSourceType,
       final ConfiguredStatement<?> statement
   ) {
@@ -501,22 +503,20 @@ final class EngineExecutor {
       final String statementText,
       final boolean createAsQuery
   ) {
-    final QueryExecutor executor = engineContext.createQueryExecutor(
+    final QueryRegistry queryRegistry = engineContext.getQueryRegistry();
+    return queryRegistry.createOrReplacePersistentQuery(
         config,
-        serviceContext
-    );
-
-    final PersistentQueryMetadata queryMetadata = executor.buildPersistentQuery(
+        serviceContext,
+        engineContext.getProcessingLogContext(),
+        engineContext.getMetaStore(),
         statementText,
         queryPlan.getQueryId(),
         engineContext.getMetaStore().getSource(queryPlan.getSink()),
         queryPlan.getSources(),
         queryPlan.getPhysicalPlan(),
-        buildPlanSummary(queryPlan.getQueryId(), queryPlan.getPhysicalPlan())
+        buildPlanSummary(queryPlan.getQueryId(), queryPlan.getPhysicalPlan()),
+        createAsQuery
     );
-
-    engineContext.registerQuery(queryMetadata, createAsQuery);
-    return queryMetadata;
   }
 
   private String buildPlanSummary(final QueryId queryId, final ExecutionStep<?> plan) {

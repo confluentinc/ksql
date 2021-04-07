@@ -71,7 +71,7 @@ public final class PullQueryExecutionUtil {
     final DataSource source = analysis.getFrom().getDataSource();
     final SourceName sourceName = source.getName();
 
-    final Set<QueryId> queries = engineContext.getQueriesWithSink(sourceName);
+    final Set<QueryId> queries = engineContext.getQueryRegistry().getQueriesWithSink(sourceName);
 
     if (source.getDataSourceType() != DataSourceType.KTABLE) {
       throw new KsqlException("Pull queries are not supported on streams."
@@ -92,6 +92,7 @@ public final class PullQueryExecutionUtil {
     final QueryId queryId = Iterables.getOnlyElement(queries);
 
     return engineContext
+        .getQueryRegistry()
         .getPersistentQuery(queryId)
         .orElseThrow(() -> new KsqlException("Materializing query has been stopped"));
   }

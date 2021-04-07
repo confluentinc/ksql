@@ -33,6 +33,8 @@ import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.exception.ParseFailedException;
+import io.confluent.ksql.parser.tree.CreateConnector;
+import io.confluent.ksql.parser.tree.CreateConnector.Type;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import java.util.ArrayList;
@@ -52,6 +54,8 @@ public final class CommandParser {
       Pattern.compile("\\s*SET\\s+'((?:[^']*|(?:''))*)'\\s*=\\s*'((?:[^']*|(?:''))*)'\\s*;\\s*");
   private static final Pattern UNSET_PROPERTY =
       Pattern.compile("\\s*UNSET\\s+'((?:[^']*|(?:''))*)'\\s*;\\s*");
+  private static final Pattern DROP_CONNECTOR =
+      Pattern.compile("\\s*DROP\\s+CONNECTOR\\s+((?:[^']*|(?:''))*)\\s*;\\s*");
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
   private static final String INSERT = "INSERT";
   private static final String INTO = "INTO";
@@ -85,7 +89,8 @@ public final class CommandParser {
 
   private enum StatementType {
     INSERT_VALUES,
-    CONNECTOR,
+    CREATE_CONNECTOR,
+    DROP_CONNECTOR,
     STATEMENT,
     SET_PROPERTY,
     UNSET_PROPERTY
@@ -192,7 +197,9 @@ public final class CommandParser {
   /**
   * Determines the type of command a sql string is and returns a SqlCommand.
   */
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private static SqlCommand transformToSqlCommand(final String sql) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     final List<String> tokens = Arrays
         .stream(sql.toUpperCase().split(QUOTED_STRING_OR_WHITESPACE))
         .filter(s -> !s.isEmpty())
@@ -214,8 +221,35 @@ public final class CommandParser {
             parsedStatement.getValues(),
             parsedStatement.getColumns().stream()
                 .map(ColumnName::text).collect(Collectors.toList()));
-      case CONNECTOR:
-        return new SqlConnectorStatement(sql);
+      case CREATE_CONNECTOR:
+        final CreateConnector createConnector;
+        try {
+          createConnector = (CreateConnector) new AstBuilder(TypeRegistry.EMPTY)
+              .buildStatement(KSQL_PARSER.parse(sql).get(0).getStatement());
+        } catch (ParseFailedException e) {
+          throw new MigrationException(String.format(
+              "Failed to parse CREATE CONNECTOR statement. Statement: %s. Reason: %s",
+              sql, e.getMessage()));
+        }
+        return new SqlCreateConnectorStatement(
+            sql,
+            createConnector.getName(),
+            createConnector.getType() == Type.SOURCE,
+            createConnector.getConfig().entrySet().stream()
+                .collect(Collectors.toMap(e -> e.getKey(), e -> toFieldType(e.getValue())))
+        );
+      case DROP_CONNECTOR:
+        final Matcher dropConnectorMatcher = DROP_CONNECTOR.matcher(sql);
+        if (!dropConnectorMatcher.matches()) {
+          throw new MigrationException("Invalid DROP CONNECTOR command: " + sql);
+        }
+        final String connectorName = dropConnectorMatcher.group(1);
+        return new SqlDropConnectorStatement(
+            sql,
+            connectorName.startsWith("`")
+                ? connectorName.substring(1, connectorName.length() - 1)
+                : connectorName
+        );
       case STATEMENT:
         return new SqlStatement(sql);
       case SET_PROPERTY:
@@ -240,8 +274,10 @@ public final class CommandParser {
   private static StatementType getStatementType(final List<String> tokens) {
     if (isInsertValuesStatement(tokens)) {
       return StatementType.INSERT_VALUES;
-    } else if (isCreateConnectorStatement(tokens) || isDropConnectorStatement(tokens)) {
-      return StatementType.CONNECTOR;
+    } else if (isCreateConnectorStatement(tokens)) {
+      return StatementType.CREATE_CONNECTOR;
+    } else if (isDropConnectorStatement(tokens)) {
+      return StatementType.DROP_CONNECTOR;
     } else if (tokens.size() > 0 && tokens.get(0).equals(SET)) {
       return StatementType.SET_PROPERTY;
     } else if (tokens.size() > 0 && tokens.get(0).equals(UNSET)) {
@@ -350,11 +386,54 @@ public final class CommandParser {
   }
 
   /**
-   * Represents commands that deal with connectors.
+   * Represents ksqlDB CREATE CONNECTOR statements.
    */
-  public static class SqlConnectorStatement extends SqlCommand {
-    SqlConnectorStatement(final String command) {
+  public static class SqlCreateConnectorStatement extends SqlCommand {
+    final String name;
+    final boolean isSource;
+    final Map<String, Object> properties;
+
+    SqlCreateConnectorStatement(
+        final String command,
+        final String name,
+        final boolean isSource,
+        final Map<String, Object> properties
+    ) {
       super(command);
+      this.name = name;
+      this.isSource = isSource;
+      this.properties = properties;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public boolean isSource() {
+      return isSource;
+    }
+
+    public Map<String, Object> getProperties() {
+      return properties;
+    }
+  }
+
+  /**
+   * Represents ksqlDB DROP CONNECTOR statements.
+   */
+  public static class SqlDropConnectorStatement extends SqlCommand {
+    final String name;
+
+    SqlDropConnectorStatement(
+        final String command,
+        final String name
+    ) {
+      super(command);
+      this.name = name;
+    }
+
+    public String getName() {
+      return name;
     }
   }
 

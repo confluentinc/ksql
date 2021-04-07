@@ -25,7 +25,8 @@ import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.tools.migrations.MigrationException;
-import io.confluent.ksql.tools.migrations.util.CommandParser.SqlConnectorStatement;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCreateConnectorStatement;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlDropConnectorStatement;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlInsertValues;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlPropertyCommand;
@@ -280,10 +281,21 @@ public class CommandParserTest {
 
     // Then:
     assertThat(commands.size(), is(2));
-    assertThat(commands.get(0), instanceOf(SqlConnectorStatement.class));
+    assertThat(commands.get(0), instanceOf(SqlCreateConnectorStatement.class));
     assertThat(commands.get(0).getCommand(), is(createConnector));
-    assertThat(commands.get(1), instanceOf(SqlConnectorStatement.class));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getName(), is("jdbc-connector"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).isSource(), is(true));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().size(), is(6));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("connector.class"), is("io.confluent.connect.jdbc.JdbcSourceConnector"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("connection.url"), is("jdbc:postgresql://localhost:5432/my.db"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("mode"), is("bulk"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("topic.prefix"), is("jdbc-"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("table.whitelist"), is("users"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("key"), is("username"));
+    assertThat(commands.get(0).getCommand(), is(createConnector));
+    assertThat(commands.get(1), instanceOf(SqlDropConnectorStatement.class));
     assertThat(commands.get(1).getCommand(), is(dropConnector));
+    assertThat(((SqlDropConnectorStatement) commands.get(1)).getName(), is("jdbc-connector"));
   }
 
   @Test

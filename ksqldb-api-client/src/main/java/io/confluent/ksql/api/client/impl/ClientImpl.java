@@ -302,7 +302,7 @@ public class ClientImpl implements Client {
     makePostRequest(
         KSQL_ENDPOINT,
         new JsonObject()
-            .put("ksql", "describe " + sourceName + ";")
+            .put("ksql", "describe `" + sourceName + "`;")
             .put("sessionVariables", sessionVariables),
         cf,
         response -> handleSingleEntityResponse(
@@ -344,7 +344,7 @@ public class ClientImpl implements Client {
         KSQL_ENDPOINT,
         new JsonObject()
             .put("ksql",
-                String.format("CREATE %s CONNECTOR %s WITH (%s);", type, name, connectorConfigs))
+                String.format("CREATE %s CONNECTOR `%s` WITH (%s);", type, name, connectorConfigs))
             .put("sessionVariables", sessionVariables),
         cf,
         response -> handleSingleEntityResponse(
@@ -361,7 +361,7 @@ public class ClientImpl implements Client {
     makePostRequest(
         KSQL_ENDPOINT,
         new JsonObject()
-            .put("ksql", "drop connector " + name + ";")
+            .put("ksql", "drop connector `" + name + "`;")
             .put("sessionVariables", sessionVariables),
         cf,
         response -> handleSingleEntityResponse(
@@ -393,7 +393,7 @@ public class ClientImpl implements Client {
     makePostRequest(
         KSQL_ENDPOINT,
         new JsonObject()
-            .put("ksql", "describe connector " + name + ";")
+            .put("ksql", "describe connector `" + name + "`;")
             .put("sessionVariables", sessionVariables),
         cf,
         response -> handleSingleEntityResponse(

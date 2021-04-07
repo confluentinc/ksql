@@ -446,12 +446,24 @@ application. The stream processing code runs in these threads. For more
 information about the {{ site.kstreams }} threading model, see
 [Threading Model](https://docs.confluent.io/current/streams/architecture.html#threading-model).
 
-## ksql.streams.processing.guarantee
+## `ksql.streams.processing.guarantee`
 
 The processing semantics to use for persistent queries. The default is 
 `at_least_once`. To enable exactly-once semantics, use `exactly_once`. 
 
 For more information, see [Processing Guarantees](/operate-and-deploy/exactly-once-semantics).
+
+## `ksql.streams.producer.compression.type`
+
+The type of compression used by streams producers for topics created by 
+CREATE TABLE AS SELECT and CREATE STREAM AS SELECT statements.
+This setting is distinct from the `compression.type` config, which sets the
+compression type used by {{ site.ak }} producers, like the INSERT VALUES
+statement.
+
+!!! note
+
+    In {{ site.ccloud }} ksqlDB, the default is `snappy`.
 
 ## `ksql.streams.state.dir`
 

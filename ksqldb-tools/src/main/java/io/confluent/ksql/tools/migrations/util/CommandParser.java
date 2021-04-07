@@ -248,7 +248,7 @@ public final class CommandParser {
             sql,
             connectorName.startsWith("`")
                 ? connectorName.substring(1, connectorName.length() - 1)
-                : connectorName
+                : connectorName.toUpperCase()
         );
       case STATEMENT:
         return new SqlStatement(sql);

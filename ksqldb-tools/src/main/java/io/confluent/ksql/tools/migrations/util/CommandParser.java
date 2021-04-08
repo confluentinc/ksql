@@ -55,7 +55,7 @@ public final class CommandParser {
   private static final Pattern UNSET_PROPERTY =
       Pattern.compile("\\s*UNSET\\s+'((?:[^']*|(?:''))*)'\\s*;\\s*");
   private static final Pattern DROP_CONNECTOR =
-      Pattern.compile("\\s*DROP\\s+CONNECTOR\\s+((?:[^']*|(?:''))*)\\s*;\\s*");
+      Pattern.compile("\\s*DROP\\s+CONNECTOR\\s+(.*)\\s*;\\s*");
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
   private static final String INSERT = "INSERT";
   private static final String INTO = "INTO";
@@ -197,78 +197,90 @@ public final class CommandParser {
   /**
   * Determines the type of command a sql string is and returns a SqlCommand.
   */
-  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private static SqlCommand transformToSqlCommand(final String sql) {
-    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     final List<String> tokens = Arrays
         .stream(sql.toUpperCase().split(QUOTED_STRING_OR_WHITESPACE))
         .filter(s -> !s.isEmpty())
         .collect(Collectors.toList());
     switch (getStatementType(tokens)) {
       case INSERT_VALUES:
-        final InsertValues parsedStatement;
-        try {
-          parsedStatement = (InsertValues) new AstBuilder(TypeRegistry.EMPTY)
-              .buildStatement(KSQL_PARSER.parse(sql).get(0).getStatement());
-        } catch (ParseFailedException e) {
-          throw new MigrationException(String.format(
-              "Failed to parse INSERT VALUES statement. Statement: %s. Reason: %s",
-              sql, e.getMessage()));
-        }
-        return new SqlInsertValues(
-            sql,
-            parsedStatement.getTarget().text(),
-            parsedStatement.getValues(),
-            parsedStatement.getColumns().stream()
-                .map(ColumnName::text).collect(Collectors.toList()));
+        return getInsertValueStatement(sql);
       case CREATE_CONNECTOR:
-        final CreateConnector createConnector;
-        try {
-          createConnector = (CreateConnector) new AstBuilder(TypeRegistry.EMPTY)
-              .buildStatement(KSQL_PARSER.parse(sql).get(0).getStatement());
-        } catch (ParseFailedException e) {
-          throw new MigrationException(String.format(
-              "Failed to parse CREATE CONNECTOR statement. Statement: %s. Reason: %s",
-              sql, e.getMessage()));
-        }
-        return new SqlCreateConnectorStatement(
-            sql,
-            createConnector.getName(),
-            createConnector.getType() == Type.SOURCE,
-            createConnector.getConfig().entrySet().stream()
-                .collect(Collectors.toMap(e -> e.getKey(), e -> toFieldType(e.getValue())))
-        );
+        return getCreateConnectorStatement(sql);
       case DROP_CONNECTOR:
-        final Matcher dropConnectorMatcher = DROP_CONNECTOR.matcher(sql);
-        if (!dropConnectorMatcher.matches()) {
-          throw new MigrationException("Invalid DROP CONNECTOR command: " + sql);
-        }
-        final String connectorName = dropConnectorMatcher.group(1);
-        return new SqlDropConnectorStatement(
-            sql,
-            connectorName.startsWith("`")
-                ? connectorName.substring(1, connectorName.length() - 1)
-                : connectorName.toUpperCase()
-        );
+        return getDropConnectorStatement(sql);
       case STATEMENT:
         return new SqlStatement(sql);
       case SET_PROPERTY:
-        final Matcher setPropertyMatcher = SET_PROPERTY.matcher(sql);
-        if (!setPropertyMatcher.matches()) {
-          throw new MigrationException("Invalid SET command: " + sql);
-        }
-        return new SqlPropertyCommand(
-            sql, true, setPropertyMatcher.group(1), Optional.of(setPropertyMatcher.group(2)));
+        return getSetPropertyCommand(sql);
       case UNSET_PROPERTY:
-        final Matcher unsetPropertyMatcher = UNSET_PROPERTY.matcher(sql);
-        if (!unsetPropertyMatcher.matches()) {
-          throw new MigrationException("Invalid UNSET command: " + sql);
-        }
-        return new SqlPropertyCommand(
-            sql, false, unsetPropertyMatcher.group(1), Optional.empty());
+        return getUnsetPropertyCommand(sql);
       default:
         throw new IllegalStateException();
     }
+  }
+
+  private static SqlInsertValues getInsertValueStatement(final String sql) {
+    final InsertValues parsedStatement;
+    try {
+      parsedStatement = (InsertValues) new AstBuilder(TypeRegistry.EMPTY)
+          .buildStatement(KSQL_PARSER.parse(sql).get(0).getStatement());
+    } catch (ParseFailedException e) {
+      throw new MigrationException(String.format(
+          "Failed to parse INSERT VALUES statement. Statement: %s. Reason: %s",
+          sql, e.getMessage()));
+    }
+    return new SqlInsertValues(
+        sql,
+        parsedStatement.getTarget().text(),
+        parsedStatement.getValues(),
+        parsedStatement.getColumns().stream()
+            .map(ColumnName::text).collect(Collectors.toList()));
+  }
+
+  private static SqlCreateConnectorStatement getCreateConnectorStatement(final String sql) {
+    final CreateConnector createConnector;
+    try {
+      createConnector = (CreateConnector) new AstBuilder(TypeRegistry.EMPTY)
+          .buildStatement(KSQL_PARSER.parse(sql).get(0).getStatement());
+    } catch (ParseFailedException e) {
+      throw new MigrationException(String.format(
+          "Failed to parse CREATE CONNECTOR statement. Statement: %s. Reason: %s",
+          sql, e.getMessage()));
+    }
+    return new SqlCreateConnectorStatement(
+        sql,
+        "`" + createConnector.getName() + "`",
+        createConnector.getType() == Type.SOURCE,
+        createConnector.getConfig().entrySet().stream()
+            .collect(Collectors.toMap(e -> e.getKey(), e -> toFieldType(e.getValue())))
+    );
+  }
+
+  private static SqlDropConnectorStatement getDropConnectorStatement(final String sql) {
+    final Matcher dropConnectorMatcher = DROP_CONNECTOR.matcher(sql);
+    if (!dropConnectorMatcher.matches()) {
+      throw new MigrationException("Invalid DROP CONNECTOR command: " + sql);
+    }
+    return new SqlDropConnectorStatement(sql, dropConnectorMatcher.group(1));
+  }
+
+  private static SqlPropertyCommand getSetPropertyCommand(final String sql) {
+    final Matcher setPropertyMatcher = SET_PROPERTY.matcher(sql);
+    if (!setPropertyMatcher.matches()) {
+      throw new MigrationException("Invalid SET command: " + sql);
+    }
+    return new SqlPropertyCommand(
+        sql, true, setPropertyMatcher.group(1), Optional.of(setPropertyMatcher.group(2)));
+  }
+
+  private static SqlPropertyCommand getUnsetPropertyCommand(final String sql) {
+    final Matcher unsetPropertyMatcher = UNSET_PROPERTY.matcher(sql);
+    if (!unsetPropertyMatcher.matches()) {
+      throw new MigrationException("Invalid UNSET command: " + sql);
+    }
+    return new SqlPropertyCommand(
+        sql, false, unsetPropertyMatcher.group(1), Optional.empty());
   }
 
   private static StatementType getStatementType(final List<String> tokens) {
@@ -400,9 +412,9 @@ public final class CommandParser {
         final Map<String, Object> properties
     ) {
       super(command);
-      this.name = name;
+      this.name = Objects.requireNonNull(name);
       this.isSource = isSource;
-      this.properties = properties;
+      this.properties = Objects.requireNonNull(properties);
     }
 
     public String getName() {
@@ -429,7 +441,7 @@ public final class CommandParser {
         final String name
     ) {
       super(command);
-      this.name = name;
+      this.name = Objects.requireNonNull(name);
     }
 
     public String getName() {
@@ -452,9 +464,9 @@ public final class CommandParser {
         final Optional<String> value
     ) {
       super(command);
-      this.set = Objects.requireNonNull(set);
+      this.set = set;
       this.property = Objects.requireNonNull(property);
-      this.value = value;
+      this.value = Objects.requireNonNull(value);
     }
 
     public boolean isSetCommand() {

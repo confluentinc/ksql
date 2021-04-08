@@ -80,7 +80,7 @@ public class ApplyMigrationCommandTest {
   private static final String INSERTS = "INSERT INTO FOO VALUES ('abcd'); "
       + "insert into foo ( a ) values ( 'efgh' );"
       + "INSERT INTO `FOO` ( `A` ) values ( 'ijkl' );";
-  private static final String CREATE_CONNECTOR = "CREATE SINK CONNECTOR WOOF WITH ('meow'='woof');";
+  private static final String CREATE_CONNECTOR = "CREATE SINK CONNECTOR woof WITH ('meow'='woof');";
   private static final String DROP_CONNECTOR = "DROP CONNECTOR WOOF;";
   private static final Map<String, Object> CONNECTOR_PROPERTIES = ImmutableMap.of("meow", "woof");
   private static final String SET_COMMANDS = COMMAND
@@ -140,7 +140,7 @@ public class ApplyMigrationCommandTest {
     when(ksqlClient.describeSource(MIGRATIONS_STREAM)).thenReturn(sourceDescriptionCf);
     when(ksqlClient.describeSource(MIGRATIONS_TABLE)).thenReturn(sourceDescriptionCf);
     when(ksqlClient.describeSource("FOO")).thenReturn(fooDescriptionCf);
-    when(ksqlClient.createConnector("WOOF", false, CONNECTOR_PROPERTIES)).thenReturn(voidCf);
+    when(ksqlClient.createConnector("`WOOF`", false, CONNECTOR_PROPERTIES)).thenReturn(voidCf);
     when(ksqlClient.dropConnector("WOOF")).thenReturn(voidCf);
     when(sourceDescriptionCf.get()).thenReturn(sourceDescription);
     when(statementResultCf.get()).thenReturn(statementResult);
@@ -435,7 +435,7 @@ public class ApplyMigrationCommandTest {
     assertThat(result, is(0));
     final InOrder inOrder = inOrder(ksqlClient);
     verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED,
-        () -> inOrder.verify(ksqlClient).createConnector("WOOF", false, CONNECTOR_PROPERTIES));
+        () -> inOrder.verify(ksqlClient).createConnector("`WOOF`", false, CONNECTOR_PROPERTIES));
     inOrder.verify(ksqlClient).close();
     inOrder.verifyNoMoreInteractions();
   }

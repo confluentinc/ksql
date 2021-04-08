@@ -46,7 +46,6 @@ import io.confluent.ksql.tools.migrations.util.MigrationsUtil;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.RetryUtil;
 import java.time.Clock;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;

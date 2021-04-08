@@ -265,7 +265,7 @@ public class CommandParserTest {
   }
 
   @Test
-  public void shouldParseConnectorStatements() {
+  public void shouldParseCreateConnectorStatement() {
     // Given:
     final String createConnector = "CREATE SOURCE CONNECTOR `jdbc-connector` WITH(\n"
         + "    \"connector.class\"='io.confluent.connect.jdbc.JdbcSourceConnector',\n"
@@ -274,16 +274,15 @@ public class CommandParserTest {
         + "    \"topic.prefix\"='jdbc-',\n"
         + "    \"table.whitelist\"='users',\n"
         + "    \"key\"='username');";
-    final String dropConnector = "DROP CONNECTOR `jdbc-connector`;";
 
     // When:
-    List<SqlCommand> commands = CommandParser.parse(createConnector + dropConnector);
+    List<SqlCommand> commands = CommandParser.parse(createConnector);
 
     // Then:
-    assertThat(commands.size(), is(2));
+    assertThat(commands.size(), is(1));
     assertThat(commands.get(0), instanceOf(SqlCreateConnectorStatement.class));
     assertThat(commands.get(0).getCommand(), is(createConnector));
-    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getName(), is("jdbc-connector"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getName(), is("`jdbc-connector`"));
     assertThat(((SqlCreateConnectorStatement) commands.get(0)).isSource(), is(true));
     assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().size(), is(6));
     assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("connector.class"), is("io.confluent.connect.jdbc.JdbcSourceConnector"));
@@ -292,10 +291,22 @@ public class CommandParserTest {
     assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("topic.prefix"), is("jdbc-"));
     assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("table.whitelist"), is("users"));
     assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("key"), is("username"));
-    assertThat(commands.get(0).getCommand(), is(createConnector));
-    assertThat(commands.get(1), instanceOf(SqlDropConnectorStatement.class));
-    assertThat(commands.get(1).getCommand(), is(dropConnector));
-    assertThat(((SqlDropConnectorStatement) commands.get(1)).getName(), is("jdbc-connector"));
+  }
+
+  @Test
+  public void shouldParseDropConnectorStatement() {
+    // Given:
+    final String dropConnector = "DROP CONNECTOR `jdbc-connector`;";
+
+    // When:
+    List<SqlCommand> commands = CommandParser.parse(dropConnector);
+
+    // Then:
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0).getCommand(), is(dropConnector));
+    assertThat(commands.get(0), instanceOf(SqlDropConnectorStatement.class));
+    assertThat(commands.get(0).getCommand(), is(dropConnector));
+    assertThat(((SqlDropConnectorStatement) commands.get(0)).getName(), is("`jdbc-connector`"));
   }
 
   @Test

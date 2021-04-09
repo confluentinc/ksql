@@ -64,7 +64,7 @@ public class KafkaFormat implements Format {
   }
 
   @Override
-  public boolean supportKeyType(SqlType type) {
+  public boolean supportsKeyType(final SqlType type) {
     return type instanceof SqlPrimitiveType
                && KafkaSerdeFactory.containsSerde(
         SchemaConverters.sqlToJavaConverter().toJavaType(type.baseType()));

@@ -1,6 +1,6 @@
 {
   "version" : "7.0.0",
-  "timestamp" : 1617915332745,
+  "timestamp" : 1617994288755,
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {

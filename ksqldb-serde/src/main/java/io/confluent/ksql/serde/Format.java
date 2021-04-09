@@ -148,5 +148,5 @@ public interface Format {
    * @param type given sql key type
    * @return true if the given sql type is supported
    */
-  boolean supportKeyType(SqlType type);
+  boolean supportsKeyType(SqlType type);
 }

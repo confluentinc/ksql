@@ -244,7 +244,7 @@ public abstract class ConnectFormat implements Format {
   }
 
   @Override
-  public boolean supportKeyType(SqlType type) {
+  public boolean supportsKeyType(final SqlType type) {
     return true;
   }
 }

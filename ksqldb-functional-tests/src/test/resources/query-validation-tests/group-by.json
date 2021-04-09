@@ -602,6 +602,17 @@
       "name": "multiple expressions - KAFKA to non-supported decimal key format",
       "statements": [
         "CREATE STREAM TEST (f1 INT KEY, f2 DECIMAL(2, 1)) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE TABLE OUTPUT AS SELECT f2 AS key, COUNT(*) AS total FROM TEST GROUP BY f2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Key format does not support schema.\nformat: KAFKA\nschema: Persistence{columns=[`KEY` DECIMAL(2, 1) KEY], features=[]}\nreason: The 'KAFKA' format does not support type 'DECIMAL'\nStatement: CREATE TABLE OUTPUT AS SELECT\n  TEST.F2 KEY,\n  COUNT(*) TOTAL\nFROM TEST TEST\nGROUP BY TEST.F2\nEMIT CHANGES"
+      }
+    },
+    {
+      "name": "multiple expressions - KAFKA to non-supported decimal key format with JSON format conversion",
+      "statements": [
+        "CREATE STREAM TEST (f1 INT KEY, f2 DECIMAL(2, 1)) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
         "CREATE TABLE OUTPUT WITH (KEY_FORMAT='JSON') AS SELECT f2 AS key, COUNT(*) AS total FROM TEST GROUP BY f2;"
       ],
       "inputs": [
@@ -628,6 +639,41 @@
             "name": "OUTPUT",
             "type": "table",
             "keyFormat": {"format": "JSON"},
+            "schema": "KEY DECIMAL(2, 1) KEY, TOTAL BIGINT"
+          }
+        ]
+      }
+    },
+    {
+      "name": "multiple expressions - KAFKA to non-supported decimal key format with favored explicit AVRO format conversion",
+      "statements": [
+        "CREATE STREAM TEST (f1 INT KEY, f2 DECIMAL(2, 1)) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE TABLE OUTPUT WITH (KEY_FORMAT='AVRO') AS SELECT f2 AS key, COUNT(*) AS total FROM TEST GROUP BY f2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"f2": "2"}},
+        {"topic": "test_topic", "key": 2, "value": {"f2": "4"}},
+        {"topic": "test_topic", "key": 1, "value": {"f2": null}},
+        {"topic": "test_topic", "key": 1, "value": null},
+        {"topic": "test_topic", "key": null, "value": {"f2": "1"}},
+        {"topic": "test_topic", "key": 1, "value": {"f2": "2"}},
+        {"topic": "test_topic", "key": 2, "value": {"f2": "4"}},
+        {"topic": "test_topic", "key": 2, "value": {"f2": "1"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 2.0, "value": {"TOTAL": 1}},
+        {"topic": "OUTPUT", "key": 4.0, "value": {"TOTAL": 1}},
+        {"topic": "OUTPUT", "key": 1.0, "value": {"TOTAL": 1}},
+        {"topic": "OUTPUT", "key": 2.0, "value": {"TOTAL": 2}},
+        {"topic": "OUTPUT", "key": 4.0, "value": {"TOTAL": 2}},
+        {"topic": "OUTPUT", "key": 1.0, "value": {"TOTAL": 2}}
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "table",
+            "keyFormat": {"format": "AVRO"},
             "schema": "KEY DECIMAL(2, 1) KEY, TOTAL BIGINT"
           }
         ]

@@ -1,11 +1,11 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM TEST (F1 INTEGER KEY, F2 INTEGER) WITH (KAFKA_TOPIC='test_topic', KEY_FORMAT='KAFKA', PARTITIONS=1, VALUE_FORMAT='JSON');",
+    "statementText" : "CREATE STREAM TEST (F1 INTEGER KEY, F2 DECIMAL(2, 1)) WITH (KAFKA_TOPIC='test_topic', KEY_FORMAT='KAFKA', PARTITIONS=1, VALUE_FORMAT='JSON');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "TEST",
-      "schema" : "`F1` INTEGER KEY, `F2` INTEGER",
+      "schema" : "`F1` INTEGER KEY, `F2` DECIMAL(2, 1)",
       "topicName" : "test_topic",
       "formats" : {
         "keyFormat" : {
@@ -19,15 +19,18 @@
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE TABLE OUTPUT WITH (KEY_FORMAT='JSON') AS SELECT\n  ROUND(TEST.F1) KEY,\n  COUNT(*) TOTAL\nFROM TEST TEST\nGROUP BY ROUND(TEST.F1)\nEMIT CHANGES",
+    "statementText" : "CREATE TABLE OUTPUT WITH (KEY_FORMAT='AVRO') AS SELECT\n  TEST.F2 KEY,\n  COUNT(*) TOTAL\nFROM TEST TEST\nGROUP BY TEST.F2\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createTableV1",
       "sourceName" : "OUTPUT",
-      "schema" : "`KEY` BIGINT KEY, `TOTAL` BIGINT",
+      "schema" : "`KEY` DECIMAL(2, 1) KEY, `TOTAL` BIGINT",
       "topicName" : "OUTPUT",
       "formats" : {
         "keyFormat" : {
-          "format" : "JSON"
+          "format" : "AVRO",
+          "properties" : {
+            "fullSchemaName" : "io.confluent.ksql.avro_schemas.OutputKey"
+          }
         },
         "valueFormat" : {
           "format" : "JSON"
@@ -78,30 +81,32 @@
                       "format" : "JSON"
                     }
                   },
-                  "sourceSchema" : "`F1` INTEGER KEY, `F2` INTEGER"
+                  "sourceSchema" : "`F1` INTEGER KEY, `F2` DECIMAL(2, 1)"
                 },
                 "keyColumnNames" : [ "F1" ],
-                "selectExpressions" : [ "F1 AS F1", "ROWTIME AS ROWTIME" ]
+                "selectExpressions" : [ "F2 AS F2", "ROWTIME AS ROWTIME" ]
               },
               "internalFormats" : {
                 "keyFormat" : {
-                  "format" : "KAFKA"
+                  "format" : "JSON"
                 },
                 "valueFormat" : {
                   "format" : "JSON"
-                }
+                },
+                "keyFeatures" : [ "UNWRAP_SINGLES" ]
               },
-              "groupByExpressions" : [ "ROUND(F1)" ]
+              "groupByExpressions" : [ "F2" ]
             },
             "internalFormats" : {
               "keyFormat" : {
-                "format" : "KAFKA"
+                "format" : "JSON"
               },
               "valueFormat" : {
                 "format" : "JSON"
-              }
+              },
+              "keyFeatures" : [ "UNWRAP_SINGLES" ]
             },
-            "nonAggregateColumns" : [ "F1", "ROWTIME" ],
+            "nonAggregateColumns" : [ "F2", "ROWTIME" ],
             "aggregationFunctions" : [ "COUNT(ROWTIME)" ]
           },
           "keyColumnNames" : [ "KEY" ],
@@ -109,7 +114,10 @@
         },
         "formats" : {
           "keyFormat" : {
-            "format" : "JSON"
+            "format" : "AVRO",
+            "properties" : {
+              "fullSchemaName" : "io.confluent.ksql.avro_schemas.OutputKey"
+            }
           },
           "valueFormat" : {
             "format" : "JSON"

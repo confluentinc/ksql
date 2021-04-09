@@ -1,12 +1,13 @@
 {
   "version" : "7.0.0",
-  "timestamp" : 1617915332641,
+  "timestamp" : 1617994288873,
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
-      "schema" : "`F1` STRING KEY, `F2` INTEGER KEY, `F1` STRING, `F2` INTEGER, `ROWTIME` BIGINT",
+      "schema" : "`KSQL_COL_0` STRUCT<`F1` STRING, `F2` INTEGER> KEY, `F1` STRING, `F2` INTEGER, `ROWTIME` BIGINT",
       "keyFormat" : {
-        "format" : "DELIMITED"
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
       },
       "valueFormat" : {
         "format" : "JSON"
@@ -22,18 +23,20 @@
       }
     },
     "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
-      "schema" : "`F1` STRING KEY, `F2` INTEGER KEY, `F1` STRING, `F2` INTEGER, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "schema" : "`KSQL_COL_0` STRUCT<`F1` STRING, `F2` INTEGER> KEY, `F1` STRING, `F2` INTEGER, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
       "keyFormat" : {
-        "format" : "DELIMITED"
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
       },
       "valueFormat" : {
         "format" : "JSON"
       }
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K1` STRING KEY, `K2` INTEGER KEY, `TOTAL` BIGINT",
+      "schema" : "`K` STRUCT<`F1` STRING, `F2` INTEGER> KEY, `KEY` STRUCT<`F1` STRING, `F2` INTEGER>, `TOTAL` BIGINT",
       "keyFormat" : {
-        "format" : "DELIMITED"
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
       },
       "valueFormat" : {
         "format" : "JSON"
@@ -41,7 +44,7 @@
     }
   },
   "testCase" : {
-    "name" : "multiple expressions - delimited key format to multi-column primitive format",
+    "name" : "multiple expressions - delimited key format to struct format",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : "a",
@@ -91,32 +94,93 @@
     } ],
     "outputs" : [ {
       "topic" : "OUTPUT",
-      "key" : "a,2",
+      "key" : {
+        "F1" : "a",
+        "F2" : 2
+      },
       "value" : {
+        "KEY" : {
+          "F1" : "a",
+          "F2" : 2
+        },
         "TOTAL" : 1
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "b,4",
+      "key" : {
+        "F1" : "b",
+        "F2" : 4
+      },
       "value" : {
+        "KEY" : {
+          "F1" : "b",
+          "F2" : 4
+        },
         "TOTAL" : 1
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "a,2",
+      "key" : {
+        "F1" : "a",
+        "F2" : null
+      },
       "value" : {
+        "KEY" : {
+          "F1" : "a",
+          "F2" : null
+        },
+        "TOTAL" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "F1" : null,
+        "F2" : 1
+      },
+      "value" : {
+        "KEY" : {
+          "F1" : null,
+          "F2" : 1
+        },
+        "TOTAL" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : {
+        "F1" : "a",
+        "F2" : 2
+      },
+      "value" : {
+        "KEY" : {
+          "F1" : "a",
+          "F2" : 2
+        },
         "TOTAL" : 2
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "b,4",
+      "key" : {
+        "F1" : "b",
+        "F2" : 4
+      },
       "value" : {
+        "KEY" : {
+          "F1" : "b",
+          "F2" : 4
+        },
         "TOTAL" : 2
       }
     }, {
       "topic" : "OUTPUT",
-      "key" : "b,1",
+      "key" : {
+        "F1" : "b",
+        "F2" : 1
+      },
       "value" : {
+        "KEY" : {
+          "F1" : "b",
+          "F2" : 1
+        },
         "TOTAL" : 1
       }
     } ],
@@ -129,17 +193,17 @@
       "replicas" : 1,
       "numPartitions" : 1
     } ],
-    "statements" : [ "CREATE STREAM TEST (f1 STRING KEY, f2 INT) WITH (kafka_topic='test_topic', key_format='DELIMITED', value_format='JSON', partitions=1);", "CREATE TABLE OUTPUT AS SELECT f1 AS k1, f2 AS k2, COUNT(*) AS total FROM TEST GROUP BY f1, f2;" ],
+    "statements" : [ "CREATE STREAM TEST (f1 STRING KEY, f2 INT) WITH (kafka_topic='test_topic', key_format='DELIMITED', value_format='JSON', partitions=1);", "CREATE TABLE OUTPUT WITH (KEY_FORMAT='JSON') AS SELECT STRUCT(f1:=f1, f2:=f2) AS k, as_value(struct(f1:=f1, f2:=f2)) AS key, COUNT(*) AS total FROM TEST GROUP BY STRUCT(f1:=f1, f2:=f2);" ],
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
         "type" : "TABLE",
-        "schema" : "`K1` STRING KEY, `K2` INTEGER KEY, `TOTAL` BIGINT",
+        "schema" : "`K` STRUCT<`F1` STRING, `F2` INTEGER> KEY, `KEY` STRUCT<`F1` STRING, `F2` INTEGER>, `TOTAL` BIGINT",
         "keyFormat" : {
-          "format" : "DELIMITED"
+          "format" : "JSON"
         },
         "valueFormat" : "JSON",
-        "keyFeatures" : [ ],
+        "keyFeatures" : [ "UNWRAP_SINGLES" ],
         "valueFeatures" : [ ]
       }, {
         "name" : "TEST",
@@ -165,7 +229,8 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
           "keyFormat" : {
-            "format" : "DELIMITED"
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -173,7 +238,8 @@
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
           "keyFormat" : {
-            "format" : "DELIMITED"
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
           },
           "valueFormat" : {
             "format" : "JSON"
@@ -181,7 +247,8 @@
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
-            "format" : "DELIMITED"
+            "format" : "JSON",
+            "features" : [ "UNWRAP_SINGLES" ]
           },
           "valueFormat" : {
             "format" : "JSON"

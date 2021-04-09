@@ -144,7 +144,8 @@ public final class SerdeFeaturesFactory {
    *
    * @param keyFormat the key format to be checked
    * @param numKeyColumns number of output key columns
-   * @return Original key format if multiple column key types are supported, or else return the JSON format
+   * @return Original key format if multiple column key types
+   *         are supported, or else return the JSON format
    */
   private static KeyFormat sanitizeKeyFormatForMultipleColumns(
       final KeyFormat keyFormat,
@@ -161,13 +162,14 @@ public final class SerdeFeaturesFactory {
    *
    * @param keyFormat the key format to be checked
    * @param sqlTypes the sql types to be tested
-   * @return Original key format if multiple column key types are supported, or else return the JSON format
+   * @return Original key format if multiple column key types
+   *         are supported, or else return the JSON format
    */
   private static KeyFormat sanitizeKeyFormatForTypeCompatibility(final KeyFormat keyFormat,
                                                                  final List<SqlType> sqlTypes) {
 
     return sqlTypes.stream().allMatch(sqlType -> FormatFactory.of(keyFormat.getFormatInfo())
-        .supportKeyType(sqlType)) ? keyFormat : convertToJsonFormat(keyFormat);
+        .supportsKeyType(sqlType)) ? keyFormat : convertToJsonFormat(keyFormat);
   }
 
   private static KeyFormat convertToJsonFormat(final KeyFormat keyFormat) {

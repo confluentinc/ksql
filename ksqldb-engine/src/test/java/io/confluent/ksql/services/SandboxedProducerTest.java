@@ -45,7 +45,6 @@ public final class SandboxedProducerTest {
           .ignore("send", ProducerRecord.class)
           .ignore("send", ProducerRecord.class, Callback.class)
           .ignore("close")
-          .ignore("close", long.class, TimeUnit.class)
           .ignore("close", Duration.class)
           .build();
     }
@@ -82,11 +81,9 @@ public final class SandboxedProducerTest {
       sandboxedProducer.close();
     }
 
-    @SuppressWarnings("deprecation")
     @Test
     public void shouldDoNothingOnClose() {
       sandboxedProducer.close();
-      sandboxedProducer.close(1, TimeUnit.MILLISECONDS);
       sandboxedProducer.close(Duration.ofMillis(1));
     }
   }

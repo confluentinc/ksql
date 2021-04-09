@@ -117,7 +117,7 @@ public final class SerdeFeaturesFactory {
    *
    * @param keyFormat un-sanitized format
    * @param newKeyColumnSqlTypes sql types of key columns for this stream/table
-   * @param allowKeyFormatChangeToSupportMultipleKeys safeguard to prevent changing key formats in
+   * @param allowKeyFormatChangeToSupportNewKeySchema safeguard to prevent changing key formats in
    *                                                  unexpected ways. if false, no format change
    *                                                  will take place
    * @return the new key format to use
@@ -125,10 +125,10 @@ public final class SerdeFeaturesFactory {
   public static KeyFormat sanitizeKeyFormat(
       final KeyFormat keyFormat,
       final List<SqlType> newKeyColumnSqlTypes,
-      final boolean allowKeyFormatChangeToSupportMultipleKeys
+      final boolean allowKeyFormatChangeToSupportNewKeySchema
   ) {
     return sanitizeKeyFormatWrapping(
-        !allowKeyFormatChangeToSupportMultipleKeys ? keyFormat :
+        !allowKeyFormatChangeToSupportNewKeySchema ? keyFormat :
         sanitizeKeyFormatForTypeCompatibility(
             sanitizeKeyFormatForMultipleColumns(
                 keyFormat,
@@ -144,7 +144,7 @@ public final class SerdeFeaturesFactory {
    *
    * @param keyFormat the key format to be checked
    * @param numKeyColumns number of output key columns
-   * @return true if multiple column key types are supported by key format
+   * @return Original key format if multiple column key types are supported, or else return the JSON format
    */
   private static KeyFormat sanitizeKeyFormatForMultipleColumns(
       final KeyFormat keyFormat,
@@ -161,11 +161,13 @@ public final class SerdeFeaturesFactory {
    *
    * @param keyFormat the key format to be checked
    * @param sqlTypes the sql types to be tested
-   * @return true if the out sql types are supported by key format
+   * @return Original key format if multiple column key types are supported, or else return the JSON format
    */
   private static KeyFormat sanitizeKeyFormatForTypeCompatibility(final KeyFormat keyFormat,
                                                                  final List<SqlType> sqlTypes) {
-    return keyFormat.supportKeyTypes(sqlTypes) ? keyFormat : convertToJsonFormat(keyFormat);
+
+    return sqlTypes.stream().allMatch(sqlType -> FormatFactory.of(keyFormat.getFormatInfo())
+        .supportKeyType(sqlType)) ? keyFormat : convertToJsonFormat(keyFormat);
   }
 
   private static KeyFormat convertToJsonFormat(final KeyFormat keyFormat) {

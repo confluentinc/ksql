@@ -107,30 +107,6 @@ public final class KeyFormat {
   }
 
   @JsonIgnore
-  public boolean supportKeyTypes(final List<SqlType> sqlTypes) {
-    switch (getFormat()) {
-      case KafkaFormat.NAME:
-        return isSupportedByKafkaFormat(sqlTypes);
-      case DelimitedFormat.NAME:
-        return isSupportedByDelimitedFormat(sqlTypes);
-      case NoneFormat.NAME:
-        return false;
-      default:
-        return true;
-    }
-  }
-
-  private static boolean isSupportedByKafkaFormat(final List<SqlType> sqlTypes) {
-    return sqlTypes.stream().allMatch(sqlType -> sqlType instanceof SqlPrimitiveType
-                                                     && KafkaSerdeFactory.containsSerde(
-        SchemaConverters.sqlToJavaConverter().toJavaType(sqlType.baseType())));
-  }
-
-  private static boolean isSupportedByDelimitedFormat(final List<SqlType> sqlTypes) {
-    return sqlTypes.stream().allMatch(sqlType -> sqlType instanceof SqlPrimitiveType);
-  }
-
-  @JsonIgnore
   public FormatInfo getFormatInfo() {
     return format;
   }

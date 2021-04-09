@@ -18,11 +18,15 @@ package io.confluent.ksql.serde.delimited;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatProperties;
 import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeUtils;
+import io.confluent.ksql.serde.kafka.KafkaSerdeFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Map;
@@ -80,5 +84,10 @@ public final class DelimitedFormat implements Format {
 
   private static Delimiter getDelimiter(final Map<String, String> formatProperties) {
     return Delimiter.parse(formatProperties.getOrDefault(DELIMITER, DEFAULT_DELIMITER));
+  }
+
+  @Override
+  public boolean supportKeyType(SqlType type) {
+    return type instanceof SqlPrimitiveType;
   }
 }

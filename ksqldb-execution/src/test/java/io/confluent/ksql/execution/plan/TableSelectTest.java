@@ -40,7 +40,9 @@ public class TableSelectTest {
   @Mock
   private ExecutionStep<KTableHolder<Struct>> source2;
   @Mock
-  private Formats internalFormats;
+  private Formats internalFormats1;
+  @Mock
+  private Formats internalFormats2;
 
   private List<ColumnName> keys1;
   private List<ColumnName> keys2;
@@ -59,13 +61,14 @@ public class TableSelectTest {
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new TableSelect<>(properties1, source1, keys1, selects1, internalFormats),
-            new TableSelect<>(properties1, source1, keys1, selects1, internalFormats)
+            new TableSelect<>(properties1, source1, keys1, selects1, internalFormats1),
+            new TableSelect<>(properties1, source1, keys1, selects1, internalFormats1)
         )
-        .addEqualityGroup(new TableSelect<>(properties2, source1, keys1, selects1, internalFormats))
-        .addEqualityGroup(new TableSelect<>(properties1, source2, keys1, selects1, internalFormats))
-        .addEqualityGroup(new TableSelect<>(properties1, source1, keys2, selects1, internalFormats))
-        .addEqualityGroup(new TableSelect<>(properties1, source1, keys1, selects2, internalFormats))
+        .addEqualityGroup(new TableSelect<>(properties2, source1, keys1, selects1, internalFormats1))
+        .addEqualityGroup(new TableSelect<>(properties1, source2, keys1, selects1, internalFormats1))
+        .addEqualityGroup(new TableSelect<>(properties1, source1, keys2, selects1, internalFormats1))
+        .addEqualityGroup(new TableSelect<>(properties1, source1, keys1, selects2, internalFormats1))
+        .addEqualityGroup(new TableSelect<>(properties1, source1, keys1, selects1, internalFormats2))
         .testEquals();
   }
 }

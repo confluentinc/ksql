@@ -96,6 +96,7 @@ public class ProjectNodeTest {
         SELECTS,
         SCHEMA
     );
+    when(projectNode.getFormatInfo()).thenReturn(internalFormats);
   }
 
   @Test

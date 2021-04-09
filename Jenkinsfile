@@ -282,6 +282,21 @@ def job = {
         }
     }
 
+    stage('KSQLDB package smoke tests') {
+        dir('ksql-db') {
+            withDockerServer([uri: dockerHost()]) {
+                // Run smoke tests for the packages produced above.  This utilizes
+                // docker and must be wrapped in a withDockerServer
+                sh """
+                echo "Package Smoke tests"
+                # The last argument is the public CP version to use for dependencies
+                # such as Zookeeper and Kafka when testing ksqlDB. 
+                ${env.WORKSPACE}/smoke/run_smoke.sh ${env.WORKSPACE} "\${PWD}/output/" "6.1"
+            """
+            }
+        }
+    }
+
     if (!config.isPrJob) {
         stage('Publish Artifacts') {
             writeFile file: settingsFile, text: settings
@@ -473,6 +488,10 @@ def post = {
                 fi
             """
         }
+        // Remove any images we created during a smoke test
+        sh '''
+            docker rmi -f ksqldb-package-test-deb || true
+        '''
     }
     commonPost(config)
 }

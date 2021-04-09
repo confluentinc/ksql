@@ -159,5 +159,5 @@ if "${BUILD_JAR}"; then
         "-Ddocker.registry=${DOCKER_REGISTRY}" \
         "-Ddocker.upstream-tag=${UPSTREAM_VERSION}-latest" \
         "-Dskip.docker.build=false"
-fi 
+fi
 

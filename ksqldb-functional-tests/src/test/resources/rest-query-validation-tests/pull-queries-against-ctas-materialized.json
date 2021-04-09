@@ -120,57 +120,6 @@
       ]
     },
     {
-      "name": "select with filter and table scan",
-      "statements": [
-        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE NEW_INPUT AS SELECT ID, CONCAT(GRADE, '+'), RANK * 2 AS DOUBLE_RANK FROM INPUT;",
-        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT WHERE ID='11';",
-        "SELECT * FROM NEW_INPUT;"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"GRADE": "A", "RANK": 1}},
-        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"GRADE": "B", "RANK": 2}},
-        {"topic": "test_topic", "timestamp": 12389, "key": "12", "value": {"GRADE": "C", "RANK": 3}}
-      ],
-      "responses": [
-        {"admin": {"@type": "currentStatus"}},
-        {"admin": {"@type": "currentStatus"}},
-        {"query": [
-          {"header":{"schema":"`ID` STRING KEY, `DOUBLE_RANK` INTEGER"}},
-          {"row":{"columns":["11", 2]}}
-        ]},
-        {"query": [
-          {"header":{"schema":"`ID` STRING KEY, `DOUBLE_RANK` INTEGER"}},
-          {"row":{"columns":["11", 2]}}
-        ]}
-      ]
-    },
-    {
-      "name": "select with filter and key lookup pull query",
-      "statements": [
-        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE NEW_INPUT AS SELECT ID, CONCAT(GRADE, '+'), RANK * 2 AS DOUBLE_RANK FROM INPUT;",
-        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT WHERE ID='11';",
-        "SELECT * FROM NEW_INPUT WHERE ID='12';"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"GRADE": "A", "RANK": 1}},
-        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"GRADE": "B", "RANK": 2}},
-        {"topic": "test_topic", "timestamp": 12389, "key": "12", "value": {"GRADE": "C", "RANK": 3}}
-      ],
-      "responses": [
-        {"admin": {"@type": "currentStatus"}},
-        {"admin": {"@type": "currentStatus"}},
-        {"query": [
-          {"header":{"schema":"`ID` STRING KEY, `DOUBLE_RANK` INTEGER"}},
-          {"row":{"columns":["11", 2]}}
-        ]},
-        {"query": [
-          {"header":{"schema":"`ID` STRING KEY, `DOUBLE_RANK` INTEGER"}}
-        ]}
-      ]
-    },
-    {
       "name": "select with projection and IN clause",
       "statements": [
         "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -224,19 +173,38 @@
       ]
     },
     {
+      "name": "table table inner join should fail as the join result is not materialized",
+      "statements": [
+        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, NAME varchar, VALUE bigint) WITH (kafka_topic='left_topic', value_format='json');",
+        "CREATE TABLE TEST_TABLE (ID BIGINT PRIMARY KEY, F1 varchar, F2 bigint) WITH (kafka_topic='right_topic', value_format='json');",
+        "CREATE TABLE INNER_JOIN as SELECT t.id, name, value, f1, f2 FROM test t join TEST_TABLE tt on t.id = tt.id;",
+        "SELECT * FROM INNER_JOIN;"
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}}
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "The `INNER_JOIN` table isn't queryable. To derive a queryable table, you can do 'CREATE TABLE QUERYABLE_INNER_JOIN AS SELECT * FROM INNER_JOIN'. See https://cnfl.io/queries for more info.",
+        "status": 400
+      }
+    },
+    {
       "name": "pull query on `CREATE TABLE` table should fail ",
       "statements": [
         "CREATE TABLE USERS (id BIGINT PRIMARY KEY, USER_TIMESTAMP BIGINT, GENDER VARCHAR, REGION_ID VARCHAR) WITH (KAFKA_TOPIC = 'my-users-topic', VALUE_FORMAT = 'JSON', PARTITIONS=1);",
         "SELECT * FROM USERS;"
       ],
       "responses": [
-        {"admin": {"@type": "currentStatus"}},
-        {"admin": {"@type": "currentStatus"}},
-        {"admin": {"@type": "currentStatus"}},
-        {"query": [
-          {"header":{"schema":"`T_ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT"}}
-        ]}
-      ]
+        {"admin": {"@type": "currentStatus"}}
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "The `USERS` table isn't queryable. To derive a queryable table, you can do 'CREATE TABLE QUERYABLE_USERS AS SELECT * FROM USERS'. See https://cnfl.io/queries for more info.",
+        "status": 400
+      }
     },
     {
       "name": "persistent query with KEY filter and projection +++ pull query table scan and single key lookup",

@@ -25,7 +25,15 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -65,6 +73,12 @@ public final class TestMethods {
       this.typeUnderTest = Objects.requireNonNull(typeUnderTest, "typeUnderTest");
     }
 
+    /**
+     * The purpose of this class is to provide a more general reference to the actual Method that we can
+     * use in the blacklist. Note that the equality algorithm is the same as Method's: class name, method name,
+     * and argument types. I expect this to be a valid equality algorithm for methods indefinitely because it's
+     * the same as the method overload resolution criteria specified in the Java language.
+     */
     public static class MethodRef {
       private final Class<?> clazz;
       final String methodName;

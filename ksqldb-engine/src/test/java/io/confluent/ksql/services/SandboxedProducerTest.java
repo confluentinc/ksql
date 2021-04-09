@@ -45,6 +45,7 @@ public final class SandboxedProducerTest {
           .ignore("send", ProducerRecord.class)
           .ignore("send", ProducerRecord.class, Callback.class)
           .ignore("close")
+          .ignoreUnchecked("close", long.class, TimeUnit.class)
           .ignore("close", Duration.class)
           .build();
     }

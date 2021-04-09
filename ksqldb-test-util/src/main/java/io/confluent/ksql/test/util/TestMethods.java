@@ -18,20 +18,14 @@ package io.confluent.ksql.test.util;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
+
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -65,11 +59,49 @@ public final class TestMethods {
   public static final class Builder<T> {
 
     private final Class<T> typeUnderTest;
-    private final Set<Method> blackList = new HashSet<>();
+    private final Set<MethodRef> blackList = new HashSet<>();
     private final Map<Class<?>, Object> defaults = new HashMap<>();
-
     public Builder(final Class<T> typeUnderTest) {
       this.typeUnderTest = Objects.requireNonNull(typeUnderTest, "typeUnderTest");
+    }
+
+    public static class MethodRef {
+      private final Class<?> clazz;
+      final String methodName;
+      final Class[] paramTypes;
+
+      public MethodRef(final Class<?> clazz, final String methodName, final Class[] paramTypes) {
+        this.clazz = clazz;
+        this.methodName = methodName;
+        this.paramTypes = paramTypes;
+      }
+
+      public MethodRef(final Method method) {
+        this(method.getDeclaringClass(), method.getName(), method.getParameterTypes());
+      }
+
+      public static Collection<MethodRef> refs(final Collection<? extends Method> declaredPublicMethods) {
+        final List<MethodRef> methodRefs = new ArrayList<>(declaredPublicMethods.size());
+        for (final Method method : declaredPublicMethods) {
+          methodRefs.add(new MethodRef(method));
+        }
+        return methodRefs;
+      }
+
+      @Override
+      public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        final MethodRef methodRef = (MethodRef) o;
+        return Objects.equals(clazz, methodRef.clazz) && Objects.equals(methodName, methodRef.methodName) && Arrays.equals(paramTypes, methodRef.paramTypes);
+      }
+
+      @Override
+      public int hashCode() {
+        int result = Objects.hash(clazz, methodName);
+        result = 31 * result + Arrays.hashCode(paramTypes);
+        return result;
+      }
     }
 
     /**
@@ -80,7 +112,21 @@ public final class TestMethods {
      * @return the builder.
      */
     public Builder<T> ignore(final String methodName, final Class<?>... paramTypes) {
-      blackList.addAll(getDeclaredPublicMethods(methodName, paramTypes));
+      blackList.addAll(MethodRef.refs(getDeclaredPublicMethods(methodName, paramTypes)));
+      return this;
+    }
+
+    /**
+     * Exclude a certain method from the test cases without checking first that the method-to-ignore actually exists.
+     * This was added to let us keep "ignore" directives for methods that get deleted. Because of modular dependencies,
+     * it's not always possible to "atomically" remove a method from the declaration and the test all at once.
+     *
+     * @param methodName the name of the method
+     * @param paramTypes the types of the parameters to the method.
+     * @return the builder.
+     */
+    public Builder<T> ignoreUnchecked(final String methodName, final Class<?>... paramTypes) {
+      blackList.add(new MethodRef(typeUnderTest, methodName, paramTypes));
       return this;
     }
 
@@ -112,7 +158,7 @@ public final class TestMethods {
       return Arrays.stream(typeUnderTest.getDeclaredMethods())
           .filter(method -> !Modifier.isStatic(method.getModifiers()))
           .filter(method -> Modifier.isPublic(method.getModifiers()))
-          .filter(method -> !blackList.contains(method))
+          .filter(method -> !blackList.contains(new MethodRef(method)))
           .map(this::buildTestCase)
           .collect(Collectors.toList());
     }

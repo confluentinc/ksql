@@ -131,12 +131,13 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(keyColumnNames, that.keyColumnNames)
-        && Objects.equals(selectExpressions, that.selectExpressions);
+        && Objects.equals(selectExpressions, that.selectExpressions)
+        && Objects.equals(internalFormats, that.internalFormats);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(properties, source, keyColumnNames, selectExpressions);
+    return Objects.hash(properties, source, keyColumnNames, selectExpressions, internalFormats);
   }
 
   public Formats getInternalFormats() {

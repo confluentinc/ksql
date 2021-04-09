@@ -296,7 +296,7 @@ public class CommandParserTest {
   @Test
   public void shouldParseDropConnectorStatement() {
     // Given:
-    final String dropConnector = "DROP CONNECTOR `jdbc-connector`;";
+    final String dropConnector = "DROP CONNECTOR `jdbc-connector` ;";
 
     // When:
     List<SqlCommand> commands = CommandParser.parse(dropConnector);

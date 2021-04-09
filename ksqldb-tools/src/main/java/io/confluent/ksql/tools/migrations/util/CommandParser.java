@@ -54,8 +54,8 @@ public final class CommandParser {
       Pattern.compile("\\s*SET\\s+'((?:[^']*|(?:''))*)'\\s*=\\s*'((?:[^']*|(?:''))*)'\\s*;\\s*");
   private static final Pattern UNSET_PROPERTY =
       Pattern.compile("\\s*UNSET\\s+'((?:[^']*|(?:''))*)'\\s*;\\s*");
-  private static final Pattern DROP_CONNECTOR =
-      Pattern.compile("\\s*DROP\\s+CONNECTOR\\s+(.*)\\s*;\\s*");
+  private static final Pattern DROP_CONNECTOR = Pattern.compile("\\s*DROP\\s+CONNECTOR\\s+"
+          + "([^\\s]*|`(?:(?:[^`]*|(?:``))*)`|\"(?:(?:[^\"]*|(?:\"\"))*)\")\\s*;\\s*");
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
   private static final String INSERT = "INSERT";
   private static final String INTO = "INTO";
@@ -204,7 +204,7 @@ public final class CommandParser {
         .collect(Collectors.toList());
     switch (getStatementType(tokens)) {
       case INSERT_VALUES:
-        return getInsertValueStatement(sql);
+        return getInsertValuesStatement(sql);
       case CREATE_CONNECTOR:
         return getCreateConnectorStatement(sql);
       case DROP_CONNECTOR:
@@ -220,7 +220,7 @@ public final class CommandParser {
     }
   }
 
-  private static SqlInsertValues getInsertValueStatement(final String sql) {
+  private static SqlInsertValues getInsertValuesStatement(final String sql) {
     final InsertValues parsedStatement;
     try {
       parsedStatement = (InsertValues) new AstBuilder(TypeRegistry.EMPTY)

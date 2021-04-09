@@ -267,14 +267,6 @@ def job = {
                                 
                                 """
                             }
-                            // Run smoke tests for the packages produced above.  This utilizes
-                            // docker and must be wrapped in a withDockerServer
-                            sh """
-                                echo "Package Smoke tests"
-                                # The last argument is the public CP version to use for dependencies
-                                # such as Zookeeper and Kafka when testing ksqlDB. 
-                                ${env.WORKSPACE}/smoke/run_smoke.sh ${env.WORKSPACE} ./output/ "6.1"
-                            """
                             step([$class: 'hudson.plugins.findbugs.FindBugsPublisher', pattern: '**/*bugsXml.xml'])
 
                             if (!config.isPrJob) {
@@ -288,6 +280,19 @@ def job = {
                     }
                 }
             }
+        }
+    }
+
+    stage('KSQLDB package smoke tests') {
+        withDockerServer([uri: dockerHost()]) {
+            // Run smoke tests for the packages produced above.  This utilizes
+            // docker and must be wrapped in a withDockerServer
+            sh """
+                echo "Package Smoke tests"
+                # The last argument is the public CP version to use for dependencies
+                # such as Zookeeper and Kafka when testing ksqlDB. 
+                ${env.WORKSPACE}/smoke/run_smoke.sh ${env.WORKSPACE} ./output/ "6.1"
+            """
         }
     }
 

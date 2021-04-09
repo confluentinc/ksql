@@ -316,12 +316,6 @@
         {"topic": "right_topic", "key": 90, "value": {"F1": "b", "F2": 10}, "timestamp": 18000},
         {"topic": "right_topic", "key": 90, "value": null, "timestamp": 19000}
       ],
-      "outputs": [
-        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "bar", "F1": "a", "F2": 10}, "timestamp": 16000},
-        {"topic": "OUTPUT", "key": 90, "value": {"NAME": "ninety", "F1": "b", "F2": 10}, "timestamp": 18000},
-        {"topic": "OUTPUT", "key": 90, "value": null, "timestamp": 19000}
-      ],
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
@@ -331,6 +325,142 @@
           {"row":{"columns":[0, "bar", "a", 10]}}
         ]}
       ]
+    },
+    {
+      "name": "table to table wrapped single field value schema on inputs",
+      "statements": [
+        "CREATE TABLE T1 (ID BIGINT PRIMARY KEY, NAME STRING) WITH (kafka_topic='T1', value_format='JSON');",
+        "CREATE TABLE T2 (ID BIGINT PRIMARY KEY, NAME STRING) WITH (kafka_topic='T2', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT t1.id, t1.name name1, t2.name name2 FROM T1 JOIN T2 ON T1.id = T2.id;",
+        "SELECT * FROM OUTPUT;"
+      ],
+      "inputs": [
+        {"topic": "T1", "key": 0, "value": {"NAME": "a"}, "timestamp": 0},
+        {"topic": "T2", "key": 0, "value": {"NAME": "b"}, "timestamp": 10},
+        {"topic": "T1", "key": 0, "value": {"NAME": null}, "timestamp": 20},
+        {"topic": "T2", "key": 0, "value": {"NAME": null}, "timestamp": 30},
+        {"topic": "T1", "key": 0, "value": {"NAME": null}, "timestamp": 40},
+        {"topic": "T1", "key": 0, "value": null, "timestamp": 50},
+        {"topic": "T2", "key": 0, "value": null, "timestamp": 60}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`T1_ID` BIGINT KEY, `NAME1` STRING, `NAME2` STRING"}}
+        ]}
+      ]
+    },
+    {
+      "name": "table to table unwrapped single field value schema on inputs",
+      "statements": [
+        "CREATE TABLE T1 (ID BIGINT PRIMARY KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T1', value_format='JSON');",
+        "CREATE TABLE T2 (ID BIGINT PRIMARY KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T2', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT t1.id, t1.name name1, t2.name name2 FROM T1 JOIN T2 ON T1.id = T2.id;",
+        "SELECT * FROM OUTPUT;"
+      ],
+      "inputs": [
+        {"topic": "T1", "key": 0, "value": "a", "timestamp": 0},
+        {"topic": "T2", "key": 0, "value": "b", "timestamp": 10},
+        {"topic": "T1", "key": 0, "value": null, "timestamp": 20},
+        {"topic": "T2", "key": 0, "value": null, "timestamp": 30},
+        {"topic": "T1", "key": 0, "value": null, "timestamp": 40}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`T1_ID` BIGINT KEY, `NAME1` STRING, `NAME2` STRING"}}
+        ]}
+      ]
+    },
+    {
+      "name": "table to table unwrapped single field value schema on inputs and output",
+      "statements": [
+        "CREATE TABLE T1 (ID BIGINT PRIMARY KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T1', value_format='JSON');",
+        "CREATE TABLE T2 (ID BIGINT PRIMARY KEY, NAME STRING) WITH (WRAP_SINGLE_VALUE=false, kafka_topic='T2', value_format='JSON');",
+        "CREATE TABLE OUTPUT WITH (WRAP_SINGLE_VALUE=false) AS SELECT t1.id, t1.name name FROM T1 JOIN T2 ON T1.id = T2.id;",
+        "SELECT * FROM OUTPUT;"
+      ],
+      "inputs": [
+        {"topic": "T1", "key": 0, "value": "a", "timestamp": 0},
+        {"topic": "T2", "key": 0, "value": "b", "timestamp": 10},
+        {"topic": "T1", "key": 0, "value": null, "timestamp": 20},
+        {"topic": "T2", "key": 0, "value": null, "timestamp": 30},
+        {"topic": "T1", "key": 0, "value": null, "timestamp": 40}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`T1_ID` BIGINT KEY, `NAME` STRING"}}
+        ]}
+      ]
+    },
+    {
+      "name": "table-table-table - inner-inner",
+      "statements": [
+        "CREATE TABLE T1 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT T1.ID, T1.V0, T2.V0, T3.V0 FROM T1 JOIN T2 ON T1.ID = T2.ID JOIN T3 ON T1.ID = T3.ID;",
+        "SELECT * FROM OUTPUT;"
+      ],
+      "inputs": [
+        {"topic": "left", "key": 0, "value": {"V0": 1}, "timestamp": 0},
+        {"topic": "right", "key": 0, "value": {"V0": 2}, "timestamp": 1},
+        {"topic": "right2", "key": 0, "value": {"V0": 3}, "timestamp": 2},
+        {"topic": "left", "key": 0, "value": {"V0": 4}, "timestamp": 1000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"T1_V0": 1, "T2_V0": 2, "T3_V0": 3}, "timestamp": 2},
+        {"topic": "OUTPUT", "key": 0, "value": {"T1_V0": 4, "T2_V0": 2, "T3_V0": 3}, "timestamp": 1000}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`T1_ID` INTEGER KEY, `T1_V0` BIGINT, `T2_V0` BIGINT, `T3_V0` BIGINT"}},
+          {"row":{"columns":[0, 4, 2, 3]}}
+        ]}
+      ]
+    },
+    {
+      "name": "table-table-table - inner-full",
+      "statements": [
+        "CREATE TABLE T1 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT ROWKEY AS ID, T1.V0, T2.V0, T3.V0 FROM T1 JOIN T2 ON T1.ID = T2.ID FULL JOIN T3 ON T1.ID = T3.ID;",
+        "SELECT * FROM OUTPUT;"
+      ],
+      "inputs": [
+        {"topic": "left", "key": 0, "value": {"V0": 1}, "timestamp": 0},
+        {"topic": "right2", "key": 0, "value": {"V0": 3}, "timestamp": 2},
+        {"topic": "right", "key": 0, "value": {"V0": 2}, "timestamp": 3},
+        {"topic": "left", "key": 0, "value": {"V0": 4}, "timestamp": 1000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"T1_V0": null, "T2_V0": null, "T3_V0": 3}, "timestamp": 2},
+        {"topic": "OUTPUT", "key": 0, "value": {"T1_V0": 1, "T2_V0": 2, "T3_V0": 3}, "timestamp": 3},
+        {"topic": "OUTPUT", "key": 0, "value": {"T1_V0": 4, "T2_V0": 2, "T3_V0": 3}, "timestamp": 1000}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`T1_ID` INTEGER KEY, `T1_V0` BIGINT, `T2_V0` BIGINT, `T3_V0` BIGINT"}},
+          {"row":{"columns":[0, 4, 2, 3]}}
+        ]}
+      ]
     }
+
   ]
 }

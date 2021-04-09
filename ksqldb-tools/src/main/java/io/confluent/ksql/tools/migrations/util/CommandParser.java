@@ -54,8 +54,8 @@ public final class CommandParser {
       Pattern.compile("\\s*SET\\s+'((?:[^']*|(?:''))*)'\\s*=\\s*'((?:[^']*|(?:''))*)'\\s*;\\s*");
   private static final Pattern UNSET_PROPERTY =
       Pattern.compile("\\s*UNSET\\s+'((?:[^']*|(?:''))*)'\\s*;\\s*");
-  private static final Pattern DROP_CONNECTOR = Pattern.compile("\\s*DROP\\s+CONNECTOR\\s+"
-          + "([^\\s]*|`(?:(?:[^`]*|(?:``))*)`|\"(?:(?:[^\"]*|(?:\"\"))*)\")\\s*;\\s*");
+  private static final Pattern DROP_CONNECTOR =
+      Pattern.compile("\\s*DROP\\s+CONNECTOR\\s+(.*?)\\s*;\\s*");
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
   private static final String INSERT = "INSERT";
   private static final String INTO = "INTO";

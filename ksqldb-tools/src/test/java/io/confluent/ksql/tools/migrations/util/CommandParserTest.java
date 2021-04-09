@@ -296,7 +296,7 @@ public class CommandParserTest {
   @Test
   public void shouldParseDropConnectorStatement() {
     // Given:
-    final String dropConnector = "DROP CONNECTOR `jdbc-connector` ;";
+    final String dropConnector = "DROP CONNECTOR `jdbc-connector` ;"; // The space at the end is to make sure that the regex doesn't capture it as a part of the name
 
     // When:
     List<SqlCommand> commands = CommandParser.parse(dropConnector);

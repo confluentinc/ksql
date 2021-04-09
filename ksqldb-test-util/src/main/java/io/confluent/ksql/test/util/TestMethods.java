@@ -69,32 +69,36 @@ public final class TestMethods {
     private final Class<T> typeUnderTest;
     private final Set<MethodRef> blackList = new HashSet<>();
     private final Map<Class<?>, Object> defaults = new HashMap<>();
+
     public Builder(final Class<T> typeUnderTest) {
       this.typeUnderTest = Objects.requireNonNull(typeUnderTest, "typeUnderTest");
     }
 
     /**
-     * The purpose of this class is to provide a more general reference to the actual Method that we can
-     * use in the blacklist. Note that the equality algorithm is the same as Method's: class name, method name,
-     * and argument types. I expect this to be a valid equality algorithm for methods indefinitely because it's
-     * the same as the method overload resolution criteria specified in the Java language.
+     * The purpose of this class is to provide a more general reference to the actual Method
+     * that we can use in the blacklist. Note that the equality algorithm is the same as
+     * Method's: class name, method name, and argument types. I expect this to be a valid
+     * equality algorithm for methods indefinitely because it's the same as the method
+     * overload resolution criteria specified in the Java language.
      */
     public static class MethodRef {
       private final Class<?> clazz;
-      final String methodName;
-      final Class[] paramTypes;
+      private final String methodName;
+      private final Class<?>[] paramTypes;
 
-      public MethodRef(final Class<?> clazz, final String methodName, final Class[] paramTypes) {
+      public MethodRef(final Class<?> clazz, final String methodName, final Class<?>[] paramTypes) {
         this.clazz = clazz;
         this.methodName = methodName;
-        this.paramTypes = paramTypes;
+        this.paramTypes = Arrays.copyOf(paramTypes, paramTypes.length);
       }
 
       public MethodRef(final Method method) {
         this(method.getDeclaringClass(), method.getName(), method.getParameterTypes());
       }
 
-      public static Collection<MethodRef> refs(final Collection<? extends Method> declaredPublicMethods) {
+      public static Collection<MethodRef> refs(
+              final Collection<? extends Method> declaredPublicMethods
+      ) {
         final List<MethodRef> methodRefs = new ArrayList<>(declaredPublicMethods.size());
         for (final Method method : declaredPublicMethods) {
           methodRefs.add(new MethodRef(method));
@@ -104,10 +108,16 @@ public final class TestMethods {
 
       @Override
       public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        final MethodRef methodRef = (MethodRef) o;
-        return Objects.equals(clazz, methodRef.clazz) && Objects.equals(methodName, methodRef.methodName) && Arrays.equals(paramTypes, methodRef.paramTypes);
+        if (this == o) {
+          return true;
+        } else if (o == null || getClass() != o.getClass()) {
+          return false;
+        } else {
+          final MethodRef methodRef = (MethodRef) o;
+          return Objects.equals(clazz, methodRef.clazz)
+                  && Objects.equals(methodName, methodRef.methodName)
+                  && Arrays.equals(paramTypes, methodRef.paramTypes);
+        }
       }
 
       @Override
@@ -131,9 +141,11 @@ public final class TestMethods {
     }
 
     /**
-     * Exclude a certain method from the test cases without checking first that the method-to-ignore actually exists.
-     * This was added to let us keep "ignore" directives for methods that get deleted. Because of modular dependencies,
-     * it's not always possible to "atomically" remove a method from the declaration and the test all at once.
+     * Exclude a certain method from the test cases without checking first that the
+     * method-to-ignore actually exists. This was added to let us keep "ignore"
+     * directives for methods that get deleted. Because of modular dependencies,
+     * it's not always possible to "atomically" remove a method from the declaration
+     * and the test all at once.
      *
      * @param methodName the name of the method
      * @param paramTypes the types of the parameters to the method.

@@ -490,7 +490,7 @@ def post = {
         }
         // Remove any images we created during a smoke test
         sh '''
-            docker rmi -f ksqldb-package-test-deb || true
+            docker rmi -f ksqldb-package-test-deb ksqldb-package-test-rpm ksqldb-package-test-tgz || true
         '''
     }
     commonPost(config)

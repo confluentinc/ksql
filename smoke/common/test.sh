@@ -2,6 +2,10 @@
 
 set -e
 
+KSQL_INSTALL_BIN_DIR=$1
+KSQL_INSTALL_ETC_DIR=$2
+DEFAULT_TIMED_OUT=30
+
 increment_failures() {
   local message=$1
 
@@ -59,8 +63,6 @@ timed_wait() {
   return "${status}"
 }
 
-DEFAULT_TIMED_OUT=30
-
 echo "Starting Zookeeper"
 /usr/bin/zookeeper-server-start /etc/kafka/zookeeper.properties  > zookeeper.out &
 timed_wait $DEFAULT_TIMED_OUT "grep -qe 'binding to port' zookeeper.out" ||
@@ -72,7 +74,7 @@ timed_wait $DEFAULT_TIMED_OUT "grep -qe 'started (kafka.server.KafkaServer)' kaf
     increment_failures "start kafka fail"
 
 echo "Starting ksqlDB"
-/usr/bin/ksql-server-start /etc/ksqldb/ksql-server.properties  > ksqldb.out &
+"$KSQL_INSTALL_BIN_DIR"/ksql-server-start "$KSQL_INSTALL_ETC_DIR"/ksqldb/ksql-server.properties  > ksqldb.out &
 timed_wait $DEFAULT_TIMED_OUT \
     "curl -sf http://localhost:8088/info" ||
     increment_failures "Unable to curl ksql server at http://localhost:8088/info"

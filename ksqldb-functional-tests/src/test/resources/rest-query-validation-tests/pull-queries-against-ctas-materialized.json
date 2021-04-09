@@ -120,57 +120,6 @@
       ]
     },
     {
-      "name": "select with filter and table scan",
-      "statements": [
-        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE NEW_INPUT AS SELECT ID, CONCAT(GRADE, '+'), RANK * 2 AS DOUBLE_RANK FROM INPUT;",
-        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT WHERE ID='11';",
-        "SELECT * FROM NEW_INPUT;"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"GRADE": "A", "RANK": 1}},
-        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"GRADE": "B", "RANK": 2}},
-        {"topic": "test_topic", "timestamp": 12389, "key": "12", "value": {"GRADE": "C", "RANK": 3}}
-      ],
-      "responses": [
-        {"admin": {"@type": "currentStatus"}},
-        {"admin": {"@type": "currentStatus"}},
-        {"query": [
-          {"header":{"schema":"`ID` STRING KEY, `DOUBLE_RANK` INTEGER"}},
-          {"row":{"columns":["11", 2]}}
-        ]},
-        {"query": [
-          {"header":{"schema":"`ID` STRING KEY, `DOUBLE_RANK` INTEGER"}},
-          {"row":{"columns":["11", 2]}}
-        ]}
-      ]
-    },
-    {
-      "name": "select with filter and key lookup pull query",
-      "statements": [
-        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE NEW_INPUT AS SELECT ID, CONCAT(GRADE, '+'), RANK * 2 AS DOUBLE_RANK FROM INPUT;",
-        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT WHERE ID='11';",
-        "SELECT * FROM NEW_INPUT WHERE ID='12';"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"GRADE": "A", "RANK": 1}},
-        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"GRADE": "B", "RANK": 2}},
-        {"topic": "test_topic", "timestamp": 12389, "key": "12", "value": {"GRADE": "C", "RANK": 3}}
-      ],
-      "responses": [
-        {"admin": {"@type": "currentStatus"}},
-        {"admin": {"@type": "currentStatus"}},
-        {"query": [
-          {"header":{"schema":"`ID` STRING KEY, `DOUBLE_RANK` INTEGER"}},
-          {"row":{"columns":["11", 2]}}
-        ]},
-        {"query": [
-          {"header":{"schema":"`ID` STRING KEY, `DOUBLE_RANK` INTEGER"}}
-        ]}
-      ]
-    },
-    {
       "name": "select with projection and IN clause",
       "statements": [
         "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -234,11 +183,13 @@
       "responses": [
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
-        {"admin": {"@type": "currentStatus"}},
-        {"query": [
-          {"header":{"schema":"`T_ID` BIGINT KEY, `NAME` STRING, `VALUE` BIGINT, `F1` STRING, `F2` BIGINT"}}
-        ]}
-      ]
+        {"admin": {"@type": "currentStatus"}}
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "The `INNER_JOIN` table isn't queryable. To derive a queryable table, you can do 'CREATE TABLE QUERYABLE_INNER_JOIN AS SELECT * FROM INNER_JOIN'. See https://cnfl.io/queries for more info.",
+        "status": 400
+      }
     },
     {
       "name": "pull query on `CREATE TABLE` table should fail ",
@@ -248,6 +199,385 @@
       ],
       "responses": [
         {"admin": {"@type": "currentStatus"}}
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "The `USERS` table isn't queryable. To derive a queryable table, you can do 'CREATE TABLE QUERYABLE_USERS AS SELECT * FROM USERS'. See https://cnfl.io/queries for more info.",
+        "status": 400
+      }
+    },
+    {
+      "name": "persistent query with KEY filter and projection +++ pull query table scan and single key lookup",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE NEW_INPUT AS SELECT ID, GRADE, RANK * 2 AS DOUBLE_RANK FROM INPUT WHERE ID='11';",
+        "SELECT * FROM NEW_INPUT;",
+        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT;",
+        "SELECT * FROM NEW_INPUT WHERE ID='11';",
+        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT WHERE ID='11';",
+        "SELECT * FROM NEW_INPUT WHERE ID='12';",
+        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT WHERE ID='12';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"GRADE": "A", "RANK": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"GRADE": "B", "RANK": 2}},
+        {"topic": "test_topic", "timestamp": 12389, "key": "12", "value": {"GRADE": "C", "RANK": 3}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":["11", "A", 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":["11", 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":["11", "A", 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":["11", 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `DOUBLE_RANK` INTEGER"}}
+        ]}
+      ]
+    },
+    {
+      "name": "persistent query with KEY filter and projection +++ pull query table scan and single key lookup ***FAILURE***",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE NEW_INPUT AS SELECT ID, GRADE, RANK * 2 AS DOUBLE_RANK FROM INPUT WHERE ID='11';",
+        "SELECT * FROM NEW_INPUT WHERE ID=11;"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Error in WHERE expression: Cannot compare ID (STRING) to 11 (INTEGER) with EQUAL.\nStatement: (ID = 11)",
+        "status": 400
+      }
+    },
+    {
+      "name": "persistent query with NON KEY filter and projection +++ pull query table scan and single key lookup",
+      "statements": [
+        "CREATE TABLE INPUT (ID STRING PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE NEW_INPUT AS SELECT ID, GRADE, RANK * 2 AS DOUBLE_RANK FROM INPUT WHERE GRADE='A';",
+        "SELECT * FROM NEW_INPUT;",
+        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT;",
+        "SELECT * FROM NEW_INPUT WHERE ID='11';",
+        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT WHERE ID='11';",
+        "SELECT * FROM NEW_INPUT WHERE ID='12';",
+        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT WHERE ID='12';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": "11", "value": {"GRADE": "A", "RANK": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {"GRADE": "B", "RANK": 2}},
+        {"topic": "test_topic", "timestamp": 12389, "key": "12", "value": {"GRADE": "C", "RANK": 3}},
+        {"topic": "test_topic", "timestamp": 12397, "key": "14", "value": {"GRADE": "A", "RANK": 4}},
+        {"topic": "test_topic", "timestamp": 12478, "key": "15", "value": {"GRADE": "B", "RANK": 5}},
+        {"topic": "test_topic", "timestamp": 12378, "key": "16", "value": {"GRADE": "A", "RANK": 6}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":["11", "A", 2]}},
+          {"row":{"columns":["16", "A", 12]}},
+          {"row":{"columns":["14", "A", 8]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":["11", 2]}},
+          {"row":{"columns":["16", 12]}},
+          {"row":{"columns":["14", 8]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":["11", "A", 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":["11", 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `DOUBLE_RANK` INTEGER"}}
+        ]}
+      ]
+    },
+    {
+      "name": "persistent query with NUMERIC KEY filter and projection +++ pull query table scan and single key lookup",
+      "statements": [
+        "CREATE TABLE INPUT (ID INT PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE NEW_INPUT AS SELECT ID, GRADE, RANK * 2 AS DOUBLE_RANK FROM INPUT WHERE ID < 14;",
+        "SELECT * FROM NEW_INPUT;",
+        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT;",
+        "SELECT * FROM NEW_INPUT WHERE ID=11;",
+        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT WHERE ID=11;",
+        "SELECT * FROM NEW_INPUT WHERE ID=12;",
+        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT WHERE ID=12;",
+        "SELECT * FROM NEW_INPUT WHERE ID=14;",
+        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT WHERE ID=14;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": 11, "value": {"GRADE": "A", "RANK": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 10, "value": {"GRADE": "B", "RANK": 2}},
+        {"topic": "test_topic", "timestamp": 12389, "key": 12, "value": {"GRADE": "C", "RANK": 3}},
+        {"topic": "test_topic", "timestamp": 12397, "key": 14, "value": {"GRADE": "A", "RANK": 4}},
+        {"topic": "test_topic", "timestamp": 12478, "key": 15, "value": {"GRADE": "B", "RANK": 5}},
+        {"topic": "test_topic", "timestamp": 12378, "key": 16, "value": {"GRADE": "A", "RANK": 6}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":[10, "B", 4]}},
+          {"row":{"columns":[11, "A", 2]}},
+          {"row":{"columns":[12, "C", 6]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":[10, 4]}},
+          {"row":{"columns":[11, 2]}},
+          {"row":{"columns":[12, 6]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":[11, "A", 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":[11, 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":[12, "C", 6]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":[12, 6]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `DOUBLE_RANK` INTEGER"}}
+        ]}
+      ]
+    },
+    {
+      "name": "persistent query with NUMERIC KEY OR CLAUSE filter and projection +++ pull query table scan and single key lookup",
+      "statements": [
+        "CREATE TABLE INPUT (ID INT PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE NEW_INPUT AS SELECT ID, GRADE, RANK * 2 AS DOUBLE_RANK FROM INPUT WHERE ID < 14 OR ID >=16;",
+        "SELECT * FROM NEW_INPUT;",
+        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT;",
+        "SELECT * FROM NEW_INPUT WHERE ID=11;",
+        "SELECT * FROM NEW_INPUT WHERE ID=15;",
+        "SELECT * FROM NEW_INPUT WHERE ID=16;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": 11, "value": {"GRADE": "A", "RANK": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 10, "value": {"GRADE": "B", "RANK": 2}},
+        {"topic": "test_topic", "timestamp": 12389, "key": 12, "value": {"GRADE": "C", "RANK": 3}},
+        {"topic": "test_topic", "timestamp": 12397, "key": 14, "value": {"GRADE": "A", "RANK": 4}},
+        {"topic": "test_topic", "timestamp": 12478, "key": 15, "value": {"GRADE": "B", "RANK": 5}},
+        {"topic": "test_topic", "timestamp": 12378, "key": 16, "value": {"GRADE": "A", "RANK": 6}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":[10, "B", 4]}},
+          {"row":{"columns":[16, "A", 12]}},
+          {"row":{"columns":[11, "A", 2]}},
+          {"row":{"columns":[12, "C", 6]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":[10, 4]}},
+          {"row":{"columns":[16, 12]}},
+          {"row":{"columns":[11, 2]}},
+          {"row":{"columns":[12, 6]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":[11, "A", 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":[16, "A", 12]}}
+        ]}
+      ]
+    },
+    {
+      "name": "persistent query with NUMERIC KEY + AND CLAUSE filter and projection +++ pull query table scan and single key lookup",
+      "statements": [
+        "CREATE TABLE INPUT (ID INT PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE NEW_INPUT AS SELECT ID, GRADE, RANK * 2 AS DOUBLE_RANK FROM INPUT WHERE ID > 11 AND ID < 16;",
+        "SELECT * FROM NEW_INPUT;",
+        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT;",
+        "SELECT * FROM NEW_INPUT WHERE ID=11;",
+        "SELECT * FROM NEW_INPUT WHERE ID=15;",
+        "SELECT * FROM NEW_INPUT WHERE ID=16;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": 11, "value": {"GRADE": "A", "RANK": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 10, "value": {"GRADE": "B", "RANK": 2}},
+        {"topic": "test_topic", "timestamp": 12389, "key": 12, "value": {"GRADE": "C", "RANK": 3}},
+        {"topic": "test_topic", "timestamp": 12397, "key": 14, "value": {"GRADE": "A", "RANK": 4}},
+        {"topic": "test_topic", "timestamp": 12478, "key": 15, "value": {"GRADE": "B", "RANK": 5}},
+        {"topic": "test_topic", "timestamp": 12378, "key": 16, "value": {"GRADE": "A", "RANK": 6}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":[15, "B", 10]}},
+          {"row":{"columns":[12, "C", 6]}},
+          {"row":{"columns":[14, "A", 8]}}
+
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":[15, 10]}},
+          {"row":{"columns":[12, 6]}},
+          {"row":{"columns":[14, 8]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":[15, "B", 10]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}}
+        ]}
+      ]
+    },
+    {
+      "name": "persistent query with NUMERIC KEY + AND CLAUSE COMPLEX filter and projection +++ pull query table scan and single key lookup",
+      "statements": [
+        "CREATE TABLE INPUT (ID INT PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE NEW_INPUT AS SELECT ID, GRADE, RANK * 2 AS DOUBLE_RANK FROM INPUT WHERE ID > 12 AND GRADE = 'A';",
+        "SELECT * FROM NEW_INPUT;",
+        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT;",
+        "SELECT * FROM NEW_INPUT WHERE ID=11;",
+        "SELECT * FROM NEW_INPUT WHERE ID=15;",
+        "SELECT * FROM NEW_INPUT WHERE ID=16;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12346, "key": 11, "value": {"GRADE": "A", "RANK": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 10, "value": {"GRADE": "B", "RANK": 2}},
+        {"topic": "test_topic", "timestamp": 12389, "key": 12, "value": {"GRADE": "C", "RANK": 3}},
+        {"topic": "test_topic", "timestamp": 12397, "key": 14, "value": {"GRADE": "A", "RANK": 4}},
+        {"topic": "test_topic", "timestamp": 12478, "key": 15, "value": {"GRADE": "B", "RANK": 5}},
+        {"topic": "test_topic", "timestamp": 12378, "key": 16, "value": {"GRADE": "A", "RANK": 6}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":[16, "A", 12]}},
+          {"row":{"columns":[14, "A", 8]}}
+
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":[16, 12]}},
+          {"row":{"columns":[14, 8]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":[16, "A", 12]}}
+        ]}
+      ]
+    },
+    {
+      "name": "persistent query with COMPLEX filter on all columns and projection +++ pull query table scan and single key lookup",
+      "statements": [
+        "CREATE TABLE INPUT (ID INT PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE NEW_INPUT AS SELECT ID, GRADE, RANK * 2 AS DOUBLE_RANK FROM INPUT WHERE (ID > 12 AND GRADE IN ('A', 'D')) OR RANK < 2;",
+        "SELECT * FROM NEW_INPUT;",
+        "SELECT ID, DOUBLE_RANK FROM NEW_INPUT;",
+        "SELECT * FROM NEW_INPUT WHERE ID=11;",
+        "SELECT * FROM NEW_INPUT WHERE ID=15;",
+        "SELECT * FROM NEW_INPUT WHERE ID=16;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12333, "key": 9, "value": {"GRADE": "F", "RANK": 0}},
+        {"topic": "test_topic", "timestamp": 12346, "key": 11, "value": {"GRADE": "A", "RANK": 1}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 10, "value": {"GRADE": "B", "RANK": 2}},
+        {"topic": "test_topic", "timestamp": 12389, "key": 12, "value": {"GRADE": "C", "RANK": 3}},
+        {"topic": "test_topic", "timestamp": 12397, "key": 14, "value": {"GRADE": "A", "RANK": 4}},
+        {"topic": "test_topic", "timestamp": 12478, "key": 15, "value": {"GRADE": "B", "RANK": 5}},
+        {"topic": "test_topic", "timestamp": 12378, "key": 16, "value": {"GRADE": "A", "RANK": 6}},
+        {"topic": "test_topic", "timestamp": 12378, "key": 18, "value": {"GRADE": "D", "RANK": 7}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":[9, "F", 0]}},
+          {"row":{"columns":[18, "D", 14]}},
+          {"row":{"columns":[16, "A", 12]}},
+          {"row":{"columns":[11, "A", 2]}},
+          {"row":{"columns":[14, "A", 8]}}
+
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":[9, 0]}},
+          {"row":{"columns":[18, 14]}},
+          {"row":{"columns":[16, 12]}},
+          {"row":{"columns":[11, 2]}},
+          {"row":{"columns":[14, 8]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":[11, "A", 2]}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}}
+        ]},
+        {"query": [
+          {"header":{"schema":"`ID` INTEGER KEY, `GRADE` STRING, `DOUBLE_RANK` INTEGER"}},
+          {"row":{"columns":[16, "A", 12]}}
+        ]}
+      ]
+    },
+    {
+      "name": "persistent query with COMPLEX filter on all columns + GROUPBY + projection +++ pull query table scan and single key lookup",
+      "statements": [
+        "CREATE TABLE INPUT (ID INT PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE NEW_INPUT AS SELECT COUNT(ID) AS NUM_STUDENTS, GRADE FROM INPUT WHERE (ID > 12 AND GRADE IN ('A', 'D')) OR RANK < 2 GROUP BY GRADE;",
+        "SELECT * FROM NEW_INPUT;",
+        "SELECT * FROM NEW_INPUT WHERE NUM_STUDENTS=1;"
+
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",

@@ -139,7 +139,7 @@ public class ApplyMigrationCommandTest {
         .thenReturn(infoQueryResult);
     when(ksqlClient.describeSource(MIGRATIONS_STREAM)).thenReturn(sourceDescriptionCf);
     when(ksqlClient.describeSource(MIGRATIONS_TABLE)).thenReturn(sourceDescriptionCf);
-    when(ksqlClient.describeSource("FOO")).thenReturn(fooDescriptionCf);
+    when(ksqlClient.describeSource("`FOO`")).thenReturn(fooDescriptionCf);
     when(ksqlClient.createConnector("`WOOF`", false, CONNECTOR_PROPERTIES)).thenReturn(voidCf);
     when(ksqlClient.dropConnector("WOOF")).thenReturn(voidCf);
     when(sourceDescriptionCf.get()).thenReturn(sourceDescription);

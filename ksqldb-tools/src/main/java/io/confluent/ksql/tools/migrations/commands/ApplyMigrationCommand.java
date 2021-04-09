@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.tools.migrations.commands;
 
+import static io.confluent.ksql.tools.migrations.util.CommandParser.preserveCase;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getAllMigrations;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationForVersion;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
@@ -336,7 +337,7 @@ public class ApplyMigrationCommand extends BaseCommand {
       final List<FieldInfo> fields =
           ksqlClient.describeSource(((SqlInsertValues) command).getSourceName()).get().fields();
       ksqlClient.insertInto(
-          preserveCase(((SqlInsertValues) command).getSourceName()),
+          ((SqlInsertValues) command).getSourceName(),
           getRow(
               fields,
               ((SqlInsertValues) command).getColumns(),
@@ -489,9 +490,5 @@ public class ApplyMigrationCommand extends BaseCommand {
   ) {
     LOGGER.info("Validating current migration state before applying new migrations");
     return ValidateMigrationsCommand.validate(config, migrationsDir, ksqlClient);
-  }
-
-  private static String preserveCase(final String fieldOrSourceName) {
-    return "`" + fieldOrSourceName + "`";
   }
 }

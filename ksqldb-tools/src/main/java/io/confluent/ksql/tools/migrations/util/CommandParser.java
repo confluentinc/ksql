@@ -232,7 +232,7 @@ public final class CommandParser {
     }
     return new SqlInsertValues(
         sql,
-        parsedStatement.getTarget().text(),
+        preserveCase(parsedStatement.getTarget().text()),
         parsedStatement.getValues(),
         parsedStatement.getColumns().stream()
             .map(ColumnName::text).collect(Collectors.toList()));
@@ -250,7 +250,7 @@ public final class CommandParser {
     }
     return new SqlCreateConnectorStatement(
         sql,
-        "`" + createConnector.getName() + "`",
+        preserveCase(createConnector.getName()),
         createConnector.getType() == Type.SOURCE,
         createConnector.getConfig().entrySet().stream()
             .collect(Collectors.toMap(e -> e.getKey(), e -> toFieldType(e.getValue())))
@@ -341,6 +341,10 @@ public final class CommandParser {
     if (tokens.size() > 1 && tokens.get(0).equals(RUN) && tokens.get(1).equals(SCRIPT)) {
       throw new MigrationException("'RUN SCRIPT' statements are not supported.");
     }
+  }
+
+  public static String preserveCase(final String fieldOrSourceName) {
+    return "`" + fieldOrSourceName + "`";
   }
 
   public abstract static class SqlCommand {

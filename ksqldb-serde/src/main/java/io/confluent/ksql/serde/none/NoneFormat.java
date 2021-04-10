@@ -17,6 +17,7 @@ package io.confluent.ksql.serde.none;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatProperties;
 import io.confluent.ksql.serde.SerdeUtils;
@@ -56,5 +57,10 @@ public class NoneFormat implements Format {
     }
 
     return new KsqlVoidSerde<>();
+  }
+
+  @Override
+  public boolean supportsKeyType(final SqlType type) {
+    return false;
   }
 }

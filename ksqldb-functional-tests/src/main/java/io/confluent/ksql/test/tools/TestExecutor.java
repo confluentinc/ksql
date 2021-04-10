@@ -362,7 +362,7 @@ public class TestExecutor implements Closeable {
     try {
       key = topicInfo.getKeySerializer().serialize(rec.topic(), rec.key());
     } catch (final Exception e) {
-      throw new AssertionError("Failed to serialize value: " + e.getMessage()
+      throw new AssertionError("Failed to serialize key: " + e.getMessage()
           + System.lineSeparator()
           + "rec: " + rec,
           e

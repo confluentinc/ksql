@@ -35,10 +35,12 @@ import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.CommandParser;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCreateConnectorStatement;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlDefineVariableCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlDropConnectorStatement;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlInsertValues;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlPropertyCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlStatement;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlUndefineVariableCommand;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
 import io.confluent.ksql.tools.migrations.util.MigrationFile;
@@ -312,13 +314,17 @@ public class ApplyMigrationCommand extends BaseCommand {
       final String previous
   ) {
     final Map<String, Object> properties = new HashMap<>();
-    final List<SqlCommand> commands = CommandParser.parse(migrationFileContent);
-    for (final SqlCommand command : commands) {
+    final List<String> commands = CommandParser.splitSql(migrationFileContent);
+
+    for (final String command : commands) {
       try {
-        executeCommand(command, ksqlClient, properties);
+        final Map<String, String> variables = ksqlClient.getVariables().entrySet()
+            .stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toString()));
+        executeCommand(
+            CommandParser.transformToSqlCommand(command, variables), ksqlClient, properties);
       } catch (InterruptedException | ExecutionException e) {
         final String errorMsg = String.format(
-            "Failed to execute sql: %s. Error: %s", command.getCommand(), e.getMessage());
+            "Failed to execute sql: %s. Error: %s", command, e.getMessage());
         updateState(config, ksqlClient, MigrationState.ERROR,
             executionStart, migration, clock, previous, Optional.of(errorMsg));
         throw new MigrationException(errorMsg);
@@ -360,6 +366,13 @@ public class ApplyMigrationCommand extends BaseCommand {
       } else {
         properties.remove(((SqlPropertyCommand) command).getProperty());
       }
+    } else if (command instanceof SqlDefineVariableCommand) {
+      ksqlClient.define(
+          ((SqlDefineVariableCommand) command).getVariable(),
+          ((SqlDefineVariableCommand) command).getValue()
+      );
+    } else if (command instanceof SqlUndefineVariableCommand) {
+      ksqlClient.undefine(((SqlUndefineVariableCommand) command).getVariable());
     }
   }
 

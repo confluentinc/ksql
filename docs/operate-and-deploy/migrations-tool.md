@@ -48,6 +48,8 @@ types of ksqlDB statements:
 * `DROP TYPE`
 * `SET <property>`
 * `UNSET <property>`
+* `DEFINE <variable>`
+* `UNDEFINE <variable>`
 
 Requirements and Installation
 -----------------------------

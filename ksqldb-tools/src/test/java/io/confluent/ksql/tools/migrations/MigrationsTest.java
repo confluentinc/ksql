@@ -237,19 +237,23 @@ public class MigrationsTest {
         "CREATE OR REPLACE STREAM FOO (A STRING, B INT) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='JSON');"
             + "ALTER STREAM FOO ADD COLUMN C BIGINT;" +
             "/* add some '''data''' to FOO */" +
-            "INSERT INTO FOO VALUES ('HELLO', 50, -4325);" +
+            "DEFINE variable = '50';" +
+            "INSERT INTO FOO VALUES ('HELLO', ${variable}, -4325);" +
             "INSERT INTO FOO (A) VALUES ('GOOD''BYE');" +
             "INSERT INTO FOO (A) VALUES ('mua--ha\nha');" +
             "INSERT INTO FOO (A) VALUES ('');" +
-            "SET 'ksql.output.topic.name.prefix' = 'cool';" +
+            "DEFINE variable = 'cool';" +
+            "SET 'ksql.output.topic.name.prefix' = '${variable}';" +
             "CREATE STREAM `bar` AS SELECT CONCAT(A, 'woo''hoo') AS A FROM FOO;" +
             "UNSET 'ksql.output.topic.name.prefix';" +
             "CREATE STREAM CAR AS SELECT * FROM FOO;" +
             "DROP CONNECTOR D;" +
             "INSERT INTO `bar` SELECT A FROM CAR;" +
             "CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;" +
-            "CREATE STREAM HOMES (ADDR ADDRESS) WITH (KAFKA_TOPIC='HOMES', PARTITIONS=1, VALUE_FORMAT='JSON');" +
-            "INSERT INTO HOMES VALUES (STRUCT(number := 123, street := 'sesame st', city := 'New York City'));" +
+            "DEFINE variable = 'HOMES';" +
+            "CREATE STREAM ${variable} (ADDR ADDRESS) WITH (KAFKA_TOPIC='${variable}', PARTITIONS=1, VALUE_FORMAT='JSON');" +
+            "UNDEFINE variable;" +
+            "INSERT INTO HOMES VALUES (STRUCT(number := 123, street := 'sesame st', city := '${variable}'));" +
             "DROP TYPE ADDRESS;"
     );
 
@@ -362,7 +366,7 @@ public class MigrationsTest {
         () -> makeKsqlQuery("SELECT * FROM HOMES EMIT CHANGES LIMIT 1;"),
         hasSize(3)); // first row is a header, last row is a message saying "Limit Reached"
     assertThat(homes.get(1).getRow().get().getColumns().size(), is(1));
-    assertThat(homes.get(1).getRow().get().getColumns().get(0).toString(), is("{NUMBER=123, STREET=sesame st, CITY=New York City}"));
+    assertThat(homes.get(1).getRow().get().getColumns().get(0).toString(), is("{NUMBER=123, STREET=sesame st, CITY=${variable}}"));
 
     // verify type was dropped:
     assertTypeCount(0);

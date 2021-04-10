@@ -86,8 +86,15 @@ public class ApplyMigrationCommandTest {
   private static final String SET_COMMANDS = COMMAND
       + "SET 'auto.offset.reset' = 'earliest';"
       + "CREATE TABLE BAR AS SELECT * FROM FOO GROUP BY A;"
-       + "UNSET 'auto.offset.reset';"
+      + "UNSET 'auto.offset.reset';"
       + "CREATE STREAM MOO (A STRING) WITH (KAFKA_TOPIC='MOO', PARTITIONS=1, VALUE_FORMAT='DELIMITED');";
+  private static final String DEFINE_COMMANDS = COMMAND
+      + "DEFINE str='abc';"
+      + "SET '${str}'='yay';"
+      + "CREATE STREAM ${str} AS SELECT * FROM FOO;"
+      + "INSERT INTO FOO VALUES ('${str}');"
+      + "UNDEFINE str;"
+      + "INSERT INTO FOO VALUES ('${str}');";
 
   @Rule
   public TemporaryFolder folder = new TemporaryFolder();
@@ -195,6 +202,45 @@ public class ApplyMigrationCommandTest {
       assertThat(propCaptor.getValue().size(), is(1));
       assertThat(propCaptor.getValue().get("auto.offset.reset"), is("earliest"));
       inOrder.verify(ksqlClient).executeStatement("CREATE STREAM MOO (A STRING) WITH (KAFKA_TOPIC='MOO', PARTITIONS=1, VALUE_FORMAT='DELIMITED');", new HashMap<>());
+    });
+    inOrder.verify(ksqlClient).close();
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void shouldApplyDefineUndefineCommands() throws Exception {
+    // Given:
+    final Map<String, Object> variables = ImmutableMap.of("str", "abc");
+    command = PARSER.parse("-n");
+    createMigrationFile(1, NAME, migrationsDir, DEFINE_COMMANDS);
+    when(versionQueryResult.get()).thenReturn(ImmutableList.of());
+    when(ksqlClient.getVariables()).thenReturn(
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        variables,
+        variables,
+        variables,
+        variables,
+        ImmutableMap.of()
+    );
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(0));
+    final InOrder inOrder = inOrder(ksqlClient);
+
+    verifyMigratedVersion(inOrder, 1, "<none>", MigrationState.MIGRATED, () -> {
+      inOrder.verify(ksqlClient).executeStatement(COMMAND, new HashMap<>());
+      inOrder.verify(ksqlClient).define("str", "abc");
+      inOrder.verify(ksqlClient).executeStatement(eq("CREATE STREAM ${str} AS SELECT * FROM FOO;"), propCaptor.capture());
+      assertThat(propCaptor.getValue().size(), is(1));
+      assertThat(propCaptor.getValue().get("abc"), is("yay"));
+      inOrder.verify(ksqlClient).insertInto("`FOO`", new KsqlObject(ImmutableMap.of("`A`", "abc")));
+      inOrder.verify(ksqlClient).undefine("str");
+      inOrder.verify(ksqlClient).insertInto("`FOO`", new KsqlObject(ImmutableMap.of("`A`", "${str}")));
     });
     inOrder.verify(ksqlClient).close();
     inOrder.verifyNoMoreInteractions();

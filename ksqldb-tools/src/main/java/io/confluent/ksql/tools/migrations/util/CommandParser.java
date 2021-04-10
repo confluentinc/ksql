@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.tools.migrations.util;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
@@ -32,6 +31,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.VariableSubstitutor;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.CreateConnector.Type;
@@ -39,6 +39,7 @@ import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +57,10 @@ public final class CommandParser {
       Pattern.compile("\\s*UNSET\\s+'((?:[^']*|(?:''))*)'\\s*;\\s*");
   private static final Pattern DROP_CONNECTOR =
       Pattern.compile("\\s*DROP\\s+CONNECTOR\\s+(.*?)\\s*;\\s*");
+  private static final Pattern DEFINE_VARIABLE = Pattern.compile(
+      "\\s*DEFINE\\s+([a-zA-Z_][a-zA-Z0-9_@]*)\\s*=\\s*'((?:[^']*|(?:''))*)'\\s*;\\s*");
+  private static final Pattern UNDEFINE_VARIABLE =
+      Pattern.compile("\\s*UNDEFINE\\s+([a-zA-Z_][a-zA-Z0-9_@]*)\\s*;\\s*");
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
   private static final String INSERT = "INSERT";
   private static final String INTO = "INTO";
@@ -84,7 +89,7 @@ public final class CommandParser {
   private static final char SINGLE_QUOTE = '\'';
   private static final char SEMICOLON = ';';
   private static final List<String> UNSUPPORTED_STATEMENTS = ImmutableList.of(
-      DEFINE, UNDEFINE, DESCRIBE, EXPLAIN, SELECT, PRINT, SHOW, LIST
+      DESCRIBE, EXPLAIN, SELECT, PRINT, SHOW, LIST
   );
 
   private enum StatementType {
@@ -93,16 +98,12 @@ public final class CommandParser {
     DROP_CONNECTOR,
     STATEMENT,
     SET_PROPERTY,
-    UNSET_PROPERTY
+    UNSET_PROPERTY,
+    DEFINE_VARIABLE,
+    UNDEFINE_VARIABLE
   }
 
   private CommandParser() {
-  }
-
-  public static List<SqlCommand> parse(final String sql) {
-    return splitSql(sql).stream()
-        .map(CommandParser::transformToSqlCommand)
-        .collect(Collectors.toList());
   }
 
   /**
@@ -112,8 +113,7 @@ public final class CommandParser {
   *
   * @return list of commands with comments removed
   */
-  @VisibleForTesting
-  static List<String> splitSql(final String sql) {
+  public static List<String> splitSql(final String sql) {
     final List<String> commands = new ArrayList<>();
     StringBuffer current = new StringBuffer();
     int index = 0;
@@ -197,14 +197,15 @@ public final class CommandParser {
   /**
   * Determines the type of command a sql string is and returns a SqlCommand.
   */
-  private static SqlCommand transformToSqlCommand(final String sql) {
+  public static SqlCommand transformToSqlCommand(
+      final String sql, final Map<String, String> variables) {
     final List<String> tokens = Arrays
         .stream(sql.toUpperCase().split(QUOTED_STRING_OR_WHITESPACE))
         .filter(s -> !s.isEmpty())
         .collect(Collectors.toList());
     switch (getStatementType(tokens)) {
       case INSERT_VALUES:
-        return getInsertValuesStatement(sql);
+        return getInsertValuesStatement(sql, variables);
       case CREATE_CONNECTOR:
         return getCreateConnectorStatement(sql);
       case DROP_CONNECTOR:
@@ -212,19 +213,28 @@ public final class CommandParser {
       case STATEMENT:
         return new SqlStatement(sql);
       case SET_PROPERTY:
-        return getSetPropertyCommand(sql);
+        return getSetPropertyCommand(sql, variables);
       case UNSET_PROPERTY:
-        return getUnsetPropertyCommand(sql);
+        return getUnsetPropertyCommand(sql, variables);
+      case DEFINE_VARIABLE:
+        return getDefineVariableCommand(sql);
+      case UNDEFINE_VARIABLE:
+        return getUndefineVariableCommand(sql);
       default:
         throw new IllegalStateException();
     }
   }
 
-  private static SqlInsertValues getInsertValuesStatement(final String sql) {
+  private static SqlInsertValues getInsertValuesStatement(
+      final String sql, Map<String, String> variables) {
     final InsertValues parsedStatement;
     try {
+      final String substituted = VariableSubstitutor.substitute(
+          KSQL_PARSER.parse(sql).get(0),
+          variables
+      );
       parsedStatement = (InsertValues) new AstBuilder(TypeRegistry.EMPTY)
-          .buildStatement(KSQL_PARSER.parse(sql).get(0).getStatement());
+          .buildStatement(KSQL_PARSER.parse(substituted).get(0).getStatement());
     } catch (ParseFailedException e) {
       throw new MigrationException(String.format(
           "Failed to parse INSERT VALUES statement. Statement: %s. Reason: %s",
@@ -265,22 +275,51 @@ public final class CommandParser {
     return new SqlDropConnectorStatement(sql, dropConnectorMatcher.group(1));
   }
 
-  private static SqlPropertyCommand getSetPropertyCommand(final String sql) {
+  private static SqlPropertyCommand getSetPropertyCommand(
+      final String sql, final Map<String, String> variables) {
     final Matcher setPropertyMatcher = SET_PROPERTY.matcher(sql);
     if (!setPropertyMatcher.matches()) {
       throw new MigrationException("Invalid SET command: " + sql);
     }
     return new SqlPropertyCommand(
-        sql, true, setPropertyMatcher.group(1), Optional.of(setPropertyMatcher.group(2)));
+        sql,
+        true,
+        VariableSubstitutor.substitute(setPropertyMatcher.group(1), variables),
+        Optional.of(VariableSubstitutor.substitute(setPropertyMatcher.group(2), variables))
+    );
   }
 
-  private static SqlPropertyCommand getUnsetPropertyCommand(final String sql) {
+  private static SqlPropertyCommand getUnsetPropertyCommand(
+      final String sql, final Map<String, String> variables) {
     final Matcher unsetPropertyMatcher = UNSET_PROPERTY.matcher(sql);
     if (!unsetPropertyMatcher.matches()) {
       throw new MigrationException("Invalid UNSET command: " + sql);
     }
     return new SqlPropertyCommand(
-        sql, false, unsetPropertyMatcher.group(1), Optional.empty());
+        sql,
+        false,
+        VariableSubstitutor.substitute(unsetPropertyMatcher.group(1), variables),
+        Optional.empty());
+  }
+
+  private static SqlDefineVariableCommand getDefineVariableCommand(final String sql) {
+    final Matcher defineVariableMatcher = DEFINE_VARIABLE.matcher(sql);
+    if (!defineVariableMatcher.matches()) {
+      throw new MigrationException("Invalid DEFINE command: " + sql);
+    }
+    return new SqlDefineVariableCommand(
+        sql,
+        defineVariableMatcher.group(1),
+        defineVariableMatcher.group(2)
+    );
+  }
+
+  private static SqlUndefineVariableCommand getUndefineVariableCommand(final String sql) {
+    final Matcher undefineVariableMatcher = UNDEFINE_VARIABLE.matcher(sql);
+    if (!undefineVariableMatcher.matches()) {
+      throw new MigrationException("Invalid UNDEFINE command: " + sql);
+    }
+    return new SqlUndefineVariableCommand(sql, undefineVariableMatcher.group(1));
   }
 
   private static StatementType getStatementType(final List<String> tokens) {
@@ -294,6 +333,10 @@ public final class CommandParser {
       return StatementType.SET_PROPERTY;
     } else if (tokens.size() > 0 && tokens.get(0).equals(UNSET)) {
       return StatementType.UNSET_PROPERTY;
+    } else if (tokens.size() > 0 && tokens.get(0).equals(DEFINE)) {
+      return StatementType.DEFINE_VARIABLE;
+    } else if (tokens.size() > 0 && tokens.get(0).equals(UNDEFINE)) {
+      return StatementType.UNDEFINE_VARIABLE;
     } else {
       validateSupportedStatementType(tokens);
       return StatementType.STATEMENT;
@@ -483,6 +526,51 @@ public final class CommandParser {
 
     public Optional<String> getValue() {
       return value;
+    }
+  }
+
+  /**
+   * Represents ksqlDB DEFINE commands.
+   */
+  public static class SqlDefineVariableCommand extends SqlCommand {
+    private final String variable;
+    private final Object value;
+
+    SqlDefineVariableCommand(
+        final String command,
+        final String variable,
+        final Object value
+    ) {
+      super(command);
+      this.variable = Objects.requireNonNull(variable);
+      this.value = Objects.requireNonNull(value);
+    }
+
+    public String getVariable() {
+      return variable;
+    }
+
+    public Object getValue() {
+      return value;
+    }
+  }
+
+  /**
+   * Represents ksqlDB UNDEFINE commands.
+   */
+  public static class SqlUndefineVariableCommand extends SqlCommand {
+    private final String variable;
+
+    SqlUndefineVariableCommand(
+        final String command,
+        final String variable
+    ) {
+      super(command);
+      this.variable = Objects.requireNonNull(variable);
+    }
+
+    public String getVariable() {
+      return variable;
     }
   }
 }

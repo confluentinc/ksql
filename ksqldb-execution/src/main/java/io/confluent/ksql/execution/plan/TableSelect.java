@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -23,7 +25,6 @@ import io.confluent.ksql.name.ColumnName;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import static java.util.Objects.requireNonNull;
 import java.util.Optional;
 
 @Immutable

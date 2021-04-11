@@ -70,7 +70,6 @@ public class PlanInfo {
     return new PlanInfo(allSources.merge(other.allSources));
   }
 
-
   private static class SourceInfo {
     final ExecutionStep<?> sourceStep;
     boolean isRepartitionedInPlan;

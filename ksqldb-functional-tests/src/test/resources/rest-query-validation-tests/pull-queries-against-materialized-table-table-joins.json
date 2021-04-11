@@ -456,7 +456,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`T1_ID` INTEGER KEY, `T1_V0` BIGINT, `T2_V0` BIGINT, `T3_V0` BIGINT"}},
+          {"header":{"schema":"`ID` INTEGER KEY, `T1_V0` BIGINT, `T2_V0` BIGINT, `T3_V0` BIGINT"}},
           {"row":{"columns":[0, 4, 2, 3]}}
         ]}
       ]

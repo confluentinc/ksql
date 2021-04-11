@@ -76,7 +76,7 @@ public final class TableSelectBuilder {
     //Feauture flag for turning T-T Join queryability on or off
     final boolean turnItOn = true;
 
-    if (forceMaterialize && turnItOn) {
+    if (formats != null && forceMaterialize && turnItOn) {
       final PhysicalSchema physicalSchema = PhysicalSchema.from(
               selection.getSchema(),
               formats.getKeyFeatures(),

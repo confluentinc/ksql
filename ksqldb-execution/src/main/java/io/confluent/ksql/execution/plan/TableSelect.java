@@ -14,8 +14,6 @@
 
 package io.confluent.ksql.execution.plan;
 
-import static java.util.Objects.requireNonNull;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -25,6 +23,7 @@ import io.confluent.ksql.name.ColumnName;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 import java.util.Optional;
 
 @Immutable
@@ -72,13 +71,13 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
       @JsonProperty(value = "keyColumnNames") final Optional<List<ColumnName>> keyColumnNames,
       @JsonProperty(value = "selectExpressions", required = true) final
       List<SelectExpression> selectExpressions,
-      @JsonProperty(value = "internalFormats", required = true) final Formats internalFormats
+      @JsonProperty(value = "internalFormats") final Optional<Formats> internalFormats
   ) {
     this(props,
         source,
         keyColumnNames.orElseGet(ImmutableList::of),
         selectExpressions,
-        internalFormats);
+        internalFormats.orElse(null));
   }
 
   @Override

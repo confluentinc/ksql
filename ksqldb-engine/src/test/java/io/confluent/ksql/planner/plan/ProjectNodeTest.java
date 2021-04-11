@@ -15,12 +15,6 @@
 
 package io.confluent.ksql.planner.plan;
 
-import io.confluent.ksql.serde.FormatInfo;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
@@ -30,12 +24,19 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import static org.mockito.ArgumentMatchers.any;
 import org.mockito.Mock;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -82,6 +83,7 @@ public class ProjectNodeTest {
 
   private ProjectNode projectNode;
 
+
   @SuppressWarnings({"unchecked", "rawtypes"})
   @Before
   public void init() {
@@ -90,13 +92,14 @@ public class ProjectNodeTest {
     when(planBuildContext.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
     when(stream.select(any(), any(), any(), any(), any())).thenReturn((SchemaKStream) stream);
 
-    projectNode = new TestProjectNode(
+    projectNode = spy(new TestProjectNode(
         NODE_ID,
         source,
         SELECTS,
         SCHEMA
-    );
-    when(projectNode.getFormatInfo()).thenReturn(internalFormats);
+    ));
+
+    doReturn(internalFormats).when(projectNode).getFormatInfo();
   }
 
   @Test

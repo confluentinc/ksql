@@ -18,6 +18,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
@@ -28,6 +29,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
 
   private final ExecutionStepPropertiesV1 properties;
@@ -47,7 +49,7 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
     this.source = requireNonNull(source, "source");
     this.keyColumnNames = ImmutableList.copyOf(keyColumnNames);
     this.selectExpressions = ImmutableList.copyOf(selectExpressions);
-    this.internalFormats = requireNonNull(internalFormats, "internalFormats");
+    this.internalFormats = internalFormats;
 
     if (selectExpressions.isEmpty()) {
       throw new IllegalArgumentException("Need at least one select expression");

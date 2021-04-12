@@ -1198,7 +1198,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldSupportVariableSubstitutionWithInitialVariables() {
+  public void shouldSupportVariableSubstitutionWithVariablesInRequest() {
     // Given:
     final String csasRaw = "CREATE STREAM ${streamName} AS SELECT * FROM ${fromStream};";
     final String csasSubstituted = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";

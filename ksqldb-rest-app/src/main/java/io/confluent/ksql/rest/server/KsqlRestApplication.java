@@ -681,7 +681,8 @@ public final class KsqlRestApplication implements Executable {
         functionRegistry,
         ServiceInfo.create(ksqlConfig, metricsPrefix),
         specificQueryIdGenerator,
-        new KsqlConfig(restConfig.getKsqlConfigProperties())
+        new KsqlConfig(restConfig.getKsqlConfigProperties()),
+        Collections.emptyList()
     );
 
     UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();

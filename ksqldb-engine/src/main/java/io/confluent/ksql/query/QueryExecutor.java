@@ -65,7 +65,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -75,7 +74,7 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-public final class QueryExecutor {
+final class QueryExecutor {
 
   private static final String KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER
       = "ksql.logger.thread.exception.uncaught";
@@ -86,22 +85,19 @@ public final class QueryExecutor {
   private final ServiceContext serviceContext;
   private final FunctionRegistry functionRegistry;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
-  private final Consumer<QueryMetadata> queryCloseCallback;
   private final StreamsBuilder streamsBuilder;
   private final MaterializationProviderBuilderFactory materializationProviderBuilderFactory;
 
-  public QueryExecutor(
+  QueryExecutor(
       final SessionConfig config,
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
-      final FunctionRegistry functionRegistry,
-      final Consumer<QueryMetadata> queryCloseCallback) {
+      final FunctionRegistry functionRegistry) {
     this(
         config,
         processingLogContext,
         serviceContext,
         functionRegistry,
-        queryCloseCallback,
         new KafkaStreamsBuilderImpl(
             Objects.requireNonNull(serviceContext, "serviceContext").getKafkaClientSupplier()),
         new StreamsBuilder(),
@@ -110,7 +106,8 @@ public final class QueryExecutor {
             serviceContext,
             new KsMaterializationFactory(),
             new KsqlMaterializationFactory(processingLogContext)
-        ));
+        )
+    );
   }
 
   @VisibleForTesting
@@ -119,7 +116,6 @@ public final class QueryExecutor {
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Consumer<QueryMetadata> queryCloseCallback,
       final KafkaStreamsBuilder kafkaStreamsBuilder,
       final StreamsBuilder streamsBuilder,
       final MaterializationProviderBuilderFactory materializationProviderBuilderFactory
@@ -131,10 +127,6 @@ public final class QueryExecutor {
     );
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
-    this.queryCloseCallback = Objects.requireNonNull(
-        queryCloseCallback,
-        "queryCloseCallback"
-    );
     this.kafkaStreamsBuilder = Objects.requireNonNull(kafkaStreamsBuilder, "kafkaStreamsBuilder");
     this.streamsBuilder = Objects.requireNonNull(streamsBuilder, "streamsBuilder");
     this.materializationProviderBuilderFactory = Objects.requireNonNull(
@@ -143,7 +135,7 @@ public final class QueryExecutor {
     );
   }
 
-  public TransientQueryMetadata buildTransientQuery(
+  TransientQueryMetadata buildTransientQuery(
       final String statementText,
       final QueryId queryId,
       final Set<SourceName> sources,
@@ -152,7 +144,8 @@ public final class QueryExecutor {
       final LogicalSchema schema,
       final OptionalInt limit,
       final Optional<WindowInfo> windowInfo,
-      final boolean excludeTombstones
+      final boolean excludeTombstones,
+      final QueryMetadata.Listener listener
   ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
     final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
@@ -178,12 +171,12 @@ public final class QueryExecutor {
         kafkaStreamsBuilder,
         streamsProperties,
         config.getOverrides(),
-        queryCloseCallback,
         ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
         resultType,
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
-        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS)
+        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
+        listener
     );
   }
 
@@ -194,13 +187,14 @@ public final class QueryExecutor {
     return Optional.empty();
   }
 
-  public PersistentQueryMetadata buildPersistentQuery(
+  PersistentQueryMetadata buildPersistentQuery(
       final String statementText,
       final QueryId queryId,
       final DataSource sinkDataSource,
       final Set<SourceName> sources,
       final ExecutionStep<?> physicalPlan,
-      final String planSummary
+      final String planSummary,
+      final QueryMetadata.Listener listener
   ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
 
@@ -247,14 +241,14 @@ public final class QueryExecutor {
         runtimeBuildContext.getSchemas(),
         streamsProperties,
         config.getOverrides(),
-        queryCloseCallback,
         ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
         classifier,
         physicalPlan,
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
         getUncaughtExceptionProcessingLogger(queryId),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
-        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS)
+        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
+        listener
     );
   }
 

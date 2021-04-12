@@ -48,6 +48,16 @@ to, set `ksql.advertised.listener` to a URL that ksqlDB nodes can resolve.
 
 For more information, see [Configuring Listeners of a ksqlDB Cluster](./index.md#configuring-listeners-of-a-ksqldb-cluster)
 
+## `ksql.compression.type`
+
+Sets the compression type used by {{ site.ak }} producers, like the
+INSERT VALUES statement. The default is `none`.
+
+This setting is distinct from the
+`ksql.streams.producer.compression.type` config, which sets the type of 
+compression used by streams producers for topics created by CREATE TABLE AS
+SELECT, CREATE STREAM AS SELECT, and INSERT INTO statements.
+
 ## `ksql.connect.url`
 
 The {{ site.kconnect }} cluster URL to integrate with. If the
@@ -118,6 +128,13 @@ Controls the semantics of the SUBSTRING UDF. Refer to the SUBSTRING
 documentation in the [function](/developer-guide/ksqldb-reference/scalar-functions)
 guide for details.
 
+## `ksql.heartbeat.enable`
+
+If enabled, ksqlDB servers in the same ksqlDB cluster send heartbeats to each
+other, to aid in faster failure detection for improved pull query routing.
+Also enables the [`/clusterStatus` endpoint](../developer-guide/ksqldb-rest-api/cluster-status-endpoint.md).
+The default is `false`.
+
 ## `ksql.internal.listener`
 
 The `ksql.internal.listener` setting controls the address bound for use by internal,
@@ -136,6 +153,13 @@ The number of replicas for the internal topics created by ksqlDB Server.
 The default is 1. Replicas for the record processing log topic should be
 configured separately. For more information, see
 [Processing Log](/reference/processing-log).
+
+## `ksql.lag.reporting.enable`
+
+If enabled, ksqlDB servers in the same ksqlDB cluster sends state-store 
+lag information to each other as a form of heartbeat, for improved pull query routing.
+Only applicable if [`ksql.heartbeat.enable`](#ksqlheartbeatenable) is also set to `true`.
+The default is `false`.
 
 ## `ksql.logging.processing.topic.auto.create`
 
@@ -432,12 +456,20 @@ application. The stream processing code runs in these threads. For more
 information about the {{ site.kstreams }} threading model, see
 [Threading Model](https://docs.confluent.io/current/streams/architecture.html#threading-model).
 
-## ksql.streams.processing.guarantee
+## `ksql.streams.processing.guarantee`
 
 The processing semantics to use for persistent queries. The default is 
 `at_least_once`. To enable exactly-once semantics, use `exactly_once`. 
 
 For more information, see [Processing Guarantees](/operate-and-deploy/exactly-once-semantics).
+
+## `ksql.streams.producer.compression.type`
+
+The type of compression used by streams producers for topics created by INSERT INTO, 
+CREATE TABLE AS SELECT, and CREATE STREAM AS SELECT statements. The default is `snappy`.
+
+This setting is distinct from the `ksql.compression.type` config, which sets the
+compression type used by {{ site.ak }} producers, like the INSERT VALUES statement.
 
 ## `ksql.streams.state.dir`
 

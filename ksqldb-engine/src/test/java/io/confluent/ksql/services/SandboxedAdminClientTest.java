@@ -44,7 +44,7 @@ public final class SandboxedAdminClientTest {
       return TestMethods.builder(Admin.class)
           .ignore("close")
           .ignore("close", Duration.class)
-          .ignore("close", long.class, TimeUnit.class)
+          .ignoreUnchecked("close", long.class, TimeUnit.class)
           .setDefault(ElectLeadersOptions.class, new ElectLeadersOptions())
           .setDefault(Optional.class, Optional.empty())
           .build();
@@ -77,11 +77,9 @@ public final class SandboxedAdminClientTest {
       sandboxedAdminClient = SandboxedAdminClient.createProxy();
     }
 
-    @SuppressWarnings("deprecation")
     @Test
     public void shouldDoNothingOnClose() {
       sandboxedAdminClient.close();
-      sandboxedAdminClient.close(1, TimeUnit.MILLISECONDS);
       sandboxedAdminClient.close(Duration.ofMillis(1));
     }
   }

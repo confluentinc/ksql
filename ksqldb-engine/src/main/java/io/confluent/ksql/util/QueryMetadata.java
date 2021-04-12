@@ -21,7 +21,6 @@ import com.google.common.base.Ticker;
 import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError;
@@ -36,10 +35,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.streams.KafkaStreams;
@@ -63,7 +60,6 @@ public abstract class QueryMetadata {
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private final Map<String, Object> streamsProperties;
   private final Map<String, Object> overriddenProperties;
-  protected final Consumer<QueryMetadata> closeCallback;
   private final Set<SourceName> sourceNames;
   private final LogicalSchema logicalSchema;
   private final Duration closeTimeout;
@@ -71,13 +67,12 @@ public abstract class QueryMetadata {
   private final QueryErrorClassifier errorClassifier;
   private final TimeBoundedQueue queryErrors;
   private final RetryEvent retryEvent;
+  private final Listener listener;
 
-  private Optional<QueryStateListener> queryStateListener = Optional.empty();
   private boolean everStarted = false;
   protected boolean closed = false;
   private StreamsUncaughtExceptionHandler uncaughtExceptionHandler = this::uncaughtHandler;
   private KafkaStreams kafkaStreams;
-  private Consumer<Boolean> onStop = (ignored) -> { };
   private boolean initialized = false;
 
   private static final Ticker CURRENT_TIME_MILLIS_TICKER = new Ticker() {
@@ -99,13 +94,13 @@ public abstract class QueryMetadata {
       final KafkaStreamsBuilder kafkaStreamsBuilder,
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
-      final Consumer<QueryMetadata> closeCallback,
       final long closeTimeout,
       final QueryId queryId,
       final QueryErrorClassifier errorClassifier,
       final int maxQueryErrorsQueueSize,
       final long baseWaitingTimeMs,
-      final long retryBackoffMaxMs
+      final long retryBackoffMaxMs,
+      final Listener listener
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementString = Objects.requireNonNull(statementString, "statementString");
@@ -119,7 +114,7 @@ public abstract class QueryMetadata {
     this.overriddenProperties =
         ImmutableMap.copyOf(
             Objects.requireNonNull(overriddenProperties, "overriddenProperties"));
-    this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
+    this.listener = Objects.requireNonNull(listener, "listener");
     this.sourceNames = Objects.requireNonNull(sourceNames, "sourceNames");
     this.logicalSchema = Objects.requireNonNull(logicalSchema, "logicalSchema");
     this.closeTimeout = Duration.ofMillis(closeTimeout);
@@ -127,61 +122,55 @@ public abstract class QueryMetadata {
     this.errorClassifier = Objects.requireNonNull(errorClassifier, "errorClassifier");
     this.queryErrors = new TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
     this.retryEvent = new RetryEvent(
-            queryId,
-            baseWaitingTimeMs,
-            retryBackoffMaxMs,
-            CURRENT_TIME_MILLIS_TICKER
+        queryId,
+        baseWaitingTimeMs,
+        retryBackoffMaxMs,
+        CURRENT_TIME_MILLIS_TICKER
     );
   }
 
-  protected QueryMetadata(final QueryMetadata other, final Consumer<QueryMetadata> closeCallback) {
-    this.statementString = other.statementString;
-    this.kafkaStreams = other.kafkaStreams;
-    this.executionPlan = other.executionPlan;
-    this.queryApplicationId = other.queryApplicationId;
-    this.topology = other.topology;
+  // Used for sandboxing
+  QueryMetadata(final QueryMetadata other, final Listener listener) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
+    this.statementString = other.getStatementString();
+    this.kafkaStreams = other.getKafkaStreams();
+    this.executionPlan = other.getExecutionPlan();
+    this.queryApplicationId = other.getQueryApplicationId();
+    this.topology = other.getTopology();
     this.kafkaStreamsBuilder = other.kafkaStreamsBuilder;
-    this.streamsProperties = other.streamsProperties;
-    this.overriddenProperties = other.overriddenProperties;
-    this.sourceNames = other.sourceNames;
-    this.logicalSchema = other.logicalSchema;
-    this.closeCallback = Objects.requireNonNull(closeCallback, "closeCallback");
+    this.streamsProperties = other.getStreamsProperties();
+    this.overriddenProperties = other.getOverriddenProperties();
+    this.sourceNames = other.getSourceNames();
+    this.logicalSchema = other.getLogicalSchema();
     this.closeTimeout = other.closeTimeout;
-    this.queryId = other.queryId;
+    this.queryId = other.getQueryId();
     this.errorClassifier = other.errorClassifier;
     this.uncaughtExceptionHandler = other.uncaughtExceptionHandler;
-    this.queryStateListener = other.queryStateListener;
     this.everStarted = other.everStarted;
-    this.queryErrors = other.queryErrors;
-    this.retryEvent = other.retryEvent;
+    this.queryErrors = new TimeBoundedQueue(Duration.ZERO, 0);
+    this.retryEvent = new RetryEvent(
+        other.getQueryId(),
+        0,
+        0,
+        new Ticker() {
+          @Override
+          public long read() {
+            return 0;
+          }
+        }
+    );
+    this.listener
+        = Objects.requireNonNull(listener, "stopListeners");
   }
 
   public void initialize() {
     // initialize the first KafkaStreams
-    this.kafkaStreams = kafkaStreamsBuilder.build(topology, streamsProperties);
-    kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
+    resetKafkaStreams(kafkaStreamsBuilder.build(topology, streamsProperties));
     this.initialized = true;
   }
 
-  public void setQueryStateListener(final QueryStateListener queryStateListener) {
-    this.queryStateListener = Optional.of(queryStateListener);
-    kafkaStreams.setStateListener(queryStateListener);
-    queryStateListener.onChange(kafkaStreams.state(), kafkaStreams.state());
-  }
-
-  /**
-   * Set a callback to execute when the query stops. This is run on {@link #stop()}
-   * as well as {@link #close()}, unlike the {@link #closeCallback}, which is only
-   * executed on {@code close}.
-   *
-   * <p>{@code onStop} accepts true iff the callback is being called from {@code close}.
-   */
-  public void onStop(final Consumer<Boolean> onStop) {
-    this.onStop = onStop;
-  }
-
   protected StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
-          final Throwable e
+      final Throwable e
   ) {
     QueryError.Type errorType = Type.UNKNOWN;
     try {
@@ -200,7 +189,7 @@ public abstract class QueryMetadata {
               Throwables.getStackTraceAsString(e),
               errorType
           );
-      queryStateListener.ifPresent(lis -> lis.onError(queryError));
+      listener.onError(this, queryError);
       queryErrors.add(queryError);
       LOG.error(
           "Unhandled exception caught in streams thread {}. ({})",
@@ -304,10 +293,6 @@ public abstract class QueryMetadata {
     return queryErrors.toImmutableList();
   }
 
-  public long uptime() {
-    return queryStateListener.map(QueryStateListener::uptime).orElse(0L);
-  }
-
   protected boolean isClosed() {
     return closed;
   }
@@ -316,15 +301,25 @@ public abstract class QueryMetadata {
     return kafkaStreams;
   }
 
+  Listener getListener() {
+    return listener;
+  }
+
   protected void resetKafkaStreams(final KafkaStreams kafkaStreams) {
     this.kafkaStreams = kafkaStreams;
     setUncaughtExceptionHandler(uncaughtExceptionHandler);
-    queryStateListener.ifPresent(this::setQueryStateListener);
+    kafkaStreams.setStateListener((b, a) -> listener.onStateChange(this, b, a));
   }
 
   protected void closeKafkaStreams() {
     if (initialized) {
       kafkaStreams.close(closeTimeout);
+      if (!getState().equals(State.NOT_RUNNING)) {
+        LOG.warn(
+            "query has not terminated even after close. "
+                + "This may happen when streams threads are hung. State: " + getState()
+        );
+      }
     }
   }
 
@@ -333,44 +328,22 @@ public abstract class QueryMetadata {
   }
 
   /**
-   * Stops the query without cleaning up the external resources
-   * so that it can be resumed when we call {@link #start()}.
-   *
-   * <p>NOTE: {@link TransientQueryMetadata} overrides this method
-   * since any time a transient query is stopped the external resources
-   * should be cleaned up.</p>
-   *
-   * @see #close()
-   */
-  public synchronized void stop() {
-    doClose(false);
-  }
-
-  /**
    * Closes the {@code QueryMetadata} and cleans up any of
    * the resources associated with it (e.g. internal topics,
    * schemas, etc...).
-   *
-   * @see QueryMetadata#stop()
    */
   public void close() {
     doClose(true);
+    listener.onClose(this);
   }
 
-  private void doClose(final boolean cleanUp) {
+  void doClose(final boolean cleanUp) {
     closed = true;
     closeKafkaStreams();
 
     if (cleanUp) {
       kafkaStreams.cleanUp();
     }
-
-    queryStateListener.ifPresent(QueryStateListener::close);
-
-    if (cleanUp) {
-      closeCallback.accept(this);
-    }
-    onStop.accept(cleanUp);
   }
 
   public static class TimeBoundedQueue {
@@ -412,6 +385,7 @@ public abstract class QueryMetadata {
     }
     LOG.info("Starting query with application id: {}", queryApplicationId);
     everStarted = true;
+    listener.onStateChange(this, kafkaStreams.state(), kafkaStreams.state());
     kafkaStreams.start();
   }
 
@@ -474,5 +448,22 @@ public abstract class QueryMetadata {
         return retryBackoffMaxMs;
       }
     }
+  }
+
+  public interface Listener {
+    /**
+     * This method will be called whenever the underlying application
+     * throws an uncaught exception.
+     *
+     * @param error the error that occurred
+     */
+    void onError(QueryMetadata queryMetadata, QueryError error);
+
+    void onStateChange(
+        QueryMetadata queryMetadata,
+        KafkaStreams.State before,
+        KafkaStreams.State after);
+
+    void onClose(QueryMetadata queryMetadata);
   }
 }

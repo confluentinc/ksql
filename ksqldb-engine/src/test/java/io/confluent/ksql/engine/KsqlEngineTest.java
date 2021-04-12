@@ -1171,6 +1171,50 @@ public class KsqlEngineTest {
     query.close();
 
     // Then:
+    awaitCleanupComplete();
+    verify(topicClient, never()).deleteInternalTopics(any());
+  }
+
+  @Test
+  public void shouldNotCleanUpInternalTopicsOnReplace() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream s1 with (value_format = 'avro') as select * from test1;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+
+    // When:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create or replace stream s1 with (value_format = 'avro') as select *, 'foo' from test1;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+
+
+    // Then:
+    awaitCleanupComplete();
+    verify(topicClient, never()).deleteInternalTopics(any());
+  }
+
+  @Test
+  public void shouldNotCleanUpInternalTopicsOnSandboxQueryClose() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream s1 with (value_format = 'avro') as select * from test1;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+    final KsqlExecutionContext sandbox = ksqlEngine.createSandbox(serviceContext);
+
+    // When:
+    sandbox.getPersistentQueries().forEach(PersistentQueryMetadata::close);
+
+    // Then:
+    awaitCleanupComplete();
     verify(topicClient, never()).deleteInternalTopics(any());
   }
 

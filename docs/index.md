@@ -2,12 +2,12 @@
 layout: page
 title: ksqlDB Overview
 tagline: What is ksqlDB?
-description: Learn about ksqlDB, the event streaming database for creating stream processing applications with Apache Kafka®.
+description: Learn about ksqlDB, the database for creating stream processing applications with Apache Kafka®.
 keywords: ksqldb
 ---
 
-[ksqlDB](https://ksqldb.io/) is an event streaming database purpose-built to help developers create
-stream processing applications on top of {{ site.aktm }}.
+[ksqlDB](https://ksqldb.io/) is a database purpose-built
+for stream processing applications on top of {{ site.aktm }}.
 
 ## Try it
 

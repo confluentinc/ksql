@@ -637,6 +637,35 @@
                     <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.pitest</groupId>
+                <artifactId>pitest-maven</artifactId>
+                <version>1.6.4</version>
+                <configuration>
+                    <threads>8</threads>
+                    <targetClasses>
+                        <param>io.confluent.ksql.*</param>
+                    </targetClasses>
+                    <excludedClasses>
+                        <param>io.confluent.ksql.engine.StubInsertValuesExecutor</param>
+                        <param>io.confluent.ksql.test.*</param>
+                    </excludedClasses>
+                    <excludedTestClasses>
+                        <param>io.confluent.ksql.rest.app.ImmutabilityTest</param>
+                        <param>io.confluent.ksql.rest.integration.*</param>
+                        <param>io.confluent.ksql.rest.server.resources.*ResourceTest</param>
+                        <param>io.confluent.ksql.*.Immutability*</param>
+                        <param>io.confluent.ksql.*.ImmutableTester*</param>
+                        <param>io.confluent.ksql.schema.ksql.types.SqlTypesTest</param>
+                        <param>io.confluent.ksql.schema.ksql.PhysicalSchemaTest</param>
+                        <param>io.confluent.ksql.rest.entity.KsqlRequestTest</param>
+                        <param>io.confluent.ksql.execution.plan.ExecutionStepTest</param>
+                        <param>io.confluent.ksql.metastore.model.MetaStoreModelTest</param>
+                        <param>io.confluent.ksql.test.*</param>
+                        <param>io.confluent.ksql.rocksdb.KsqlBoundedMemoryRocksDBConfigSetterTest</param>
+                    </excludedTestClasses>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
     <reporting>

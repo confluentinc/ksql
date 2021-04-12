@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.tools.migrations.commands;
 
+import static io.confluent.ksql.tools.migrations.util.CommandParser.preserveCase;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getAllMigrations;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationForVersion;
 import static io.confluent.ksql.tools.migrations.util.MigrationsDirectoryUtil.getMigrationsDirFromConfigFile;
@@ -29,14 +30,12 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.FieldInfo;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.CommandParser;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCommand;
-import io.confluent.ksql.tools.migrations.util.CommandParser.SqlConnectorStatement;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCreateConnectorStatement;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlDropConnectorStatement;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlInsertValues;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlPropertyCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlStatement;
@@ -138,7 +137,6 @@ public class ApplyMigrationCommand extends BaseCommand {
     return command(
         config,
         MigrationsUtil::getKsqlClient,
-        MigrationsUtil::createRestClient,
         getMigrationsDirFromConfigFile(getConfigFile()),
         Clock.systemDefaultZone()
     );
@@ -149,16 +147,13 @@ public class ApplyMigrationCommand extends BaseCommand {
   int command(
       final MigrationConfig config,
       final Function<MigrationConfig, Client> clientSupplier,
-      final Function<MigrationConfig, KsqlRestClient> restClientSupplier,
       final String migrationsDir,
       final Clock clock
   ) {
     // CHECKSTYLE_RULES.ON: NPathComplexity
     final Client ksqlClient;
-    final KsqlRestClient restClient;
     try {
       ksqlClient = clientSupplier.apply(config);
-      restClient = restClientSupplier.apply(config);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
       return 1;
@@ -177,13 +172,12 @@ public class ApplyMigrationCommand extends BaseCommand {
     boolean success;
     try {
       success = validateCurrentState(config, ksqlClient, migrationsDir)
-          && apply(config, ksqlClient, restClient, migrationsDir, clock);
+          && apply(config, ksqlClient, migrationsDir, clock);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
       success = false;
     } finally {
       ksqlClient.close();
-      restClient.close();
     }
 
     return success ? 0 : 1;
@@ -192,7 +186,6 @@ public class ApplyMigrationCommand extends BaseCommand {
   private boolean apply(
       final MigrationConfig config,
       final Client ksqlClient,
-      final KsqlRestClient restClient,
       final String migrationsDir,
       final Clock clock
   ) {
@@ -217,7 +210,7 @@ public class ApplyMigrationCommand extends BaseCommand {
     }
 
     for (MigrationFile migration : migrations) {
-      if (!applyMigration(config, ksqlClient, restClient, migration, clock, previous)) {
+      if (!applyMigration(config, ksqlClient, migration, clock, previous)) {
         return false;
       }
       previous = Integer.toString(migration.getVersion());
@@ -265,7 +258,6 @@ public class ApplyMigrationCommand extends BaseCommand {
   private boolean applyMigration(
       final MigrationConfig config,
       final Client ksqlClient,
-      final KsqlRestClient restClient,
       final MigrationFile migration,
       final Clock clock,
       final String previous
@@ -295,7 +287,7 @@ public class ApplyMigrationCommand extends BaseCommand {
     }
 
     try {
-      executeCommands(migrationFileContent, ksqlClient, restClient, config,
+      executeCommands(migrationFileContent, ksqlClient, config,
           executionStart, migration, clock, previous);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
@@ -313,7 +305,6 @@ public class ApplyMigrationCommand extends BaseCommand {
   private void executeCommands(
       final String migrationFileContent,
       final Client ksqlClient,
-      final KsqlRestClient restClient,
       final MigrationConfig config,
       final String executionStart,
       final MigrationFile migration,
@@ -324,7 +315,7 @@ public class ApplyMigrationCommand extends BaseCommand {
     final List<SqlCommand> commands = CommandParser.parse(migrationFileContent);
     for (final SqlCommand command : commands) {
       try {
-        executeCommand(command, ksqlClient, restClient, properties);
+        executeCommand(command, ksqlClient, properties);
       } catch (InterruptedException | ExecutionException e) {
         final String errorMsg = String.format(
             "Failed to execute sql: %s. Error: %s", command.getCommand(), e.getMessage());
@@ -338,7 +329,6 @@ public class ApplyMigrationCommand extends BaseCommand {
   private void executeCommand(
       final SqlCommand command,
       final Client ksqlClient,
-      final KsqlRestClient restClient,
       final Map<String, Object> properties
   ) throws ExecutionException, InterruptedException {
     if (command instanceof SqlStatement) {
@@ -347,17 +337,19 @@ public class ApplyMigrationCommand extends BaseCommand {
       final List<FieldInfo> fields =
           ksqlClient.describeSource(((SqlInsertValues) command).getSourceName()).get().fields();
       ksqlClient.insertInto(
-          preserveCase(((SqlInsertValues) command).getSourceName()),
+          ((SqlInsertValues) command).getSourceName(),
           getRow(
               fields,
               ((SqlInsertValues) command).getColumns(),
               ((SqlInsertValues) command).getValues())).get();
-    } else if (command instanceof SqlConnectorStatement) {
-      final RestResponse<KsqlEntityList> response =
-          restClient.makeKsqlRequest(command.getCommand());
-      if (!response.isSuccessful()) {
-        throw new MigrationException(response.getErrorMessage().getMessage());
-      }
+    } else if (command instanceof SqlCreateConnectorStatement) {
+      ksqlClient.createConnector(
+          ((SqlCreateConnectorStatement) command).getName(),
+          ((SqlCreateConnectorStatement) command).isSource(),
+          ((SqlCreateConnectorStatement) command).getProperties()
+      ).get();
+    } else if (command instanceof SqlDropConnectorStatement) {
+      ksqlClient.dropConnector(((SqlDropConnectorStatement) command).getName()).get();
     } else if (command instanceof SqlPropertyCommand) {
       if (((SqlPropertyCommand) command).isSetCommand()
           && ((SqlPropertyCommand) command).getValue().isPresent()) {
@@ -498,9 +490,5 @@ public class ApplyMigrationCommand extends BaseCommand {
   ) {
     LOGGER.info("Validating current migration state before applying new migrations");
     return ValidateMigrationsCommand.validate(config, migrationsDir, ksqlClient);
-  }
-
-  private static String preserveCase(final String fieldOrSourceName) {
-    return "`" + fieldOrSourceName + "`";
   }
 }

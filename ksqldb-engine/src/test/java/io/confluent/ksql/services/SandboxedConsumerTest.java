@@ -43,8 +43,8 @@ public final class SandboxedConsumerTest {
       return TestMethods.builder(Consumer.class)
           .ignore("unsubscribe")
           .ignore("close")
-          .ignore("close", long.class, TimeUnit.class)
           .ignore("close", Duration.class)
+          .ignoreUnchecked("close", long.class, TimeUnit.class)
           .ignore("wakeup")
           .ignore("groupMetadata")
           .setDefault(TopicPartition.class, new TopicPartition("t", 1))
@@ -86,12 +86,6 @@ public final class SandboxedConsumerTest {
     @Test
     public void shouldDoNothingOnCloseWithNoArgs() {
       sandboxedConsumer.close();
-    }
-
-    @SuppressWarnings("deprecation")
-    @Test
-    public void shouldDoNothingOnCloseWithTimeUnit() {
-      sandboxedConsumer.close(1, TimeUnit.MILLISECONDS);
     }
 
     @Test

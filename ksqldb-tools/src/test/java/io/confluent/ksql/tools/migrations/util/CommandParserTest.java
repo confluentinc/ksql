@@ -25,7 +25,8 @@ import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.tools.migrations.MigrationException;
-import io.confluent.ksql.tools.migrations.util.CommandParser.SqlConnectorStatement;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCreateConnectorStatement;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlDropConnectorStatement;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlInsertValues;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlPropertyCommand;
@@ -47,7 +48,7 @@ public class CommandParserTest {
     assertThat(commands.get(0), instanceOf(SqlInsertValues.class));
     final SqlInsertValues insertValues = (SqlInsertValues) commands.get(0);
 
-    assertThat(insertValues.getSourceName(), is("FOO"));
+    assertThat(insertValues.getSourceName(), is("`FOO`"));
     assertThat(insertValues.getColumns(), is(Collections.emptyList()));
     assertThat(insertValues.getValues().size(), is(1));
     assertThat(toFieldType(insertValues.getValues().get(0)), is(55));
@@ -63,7 +64,7 @@ public class CommandParserTest {
     assertThat(commands.get(0), instanceOf(SqlInsertValues.class));
     final SqlInsertValues insertValues = (SqlInsertValues) commands.get(0);
 
-    assertThat(insertValues.getSourceName(), is("foo"));
+    assertThat(insertValues.getSourceName(), is("`foo`"));
     assertThat(insertValues.getColumns(), is(ImmutableList.of("COL1", "COL2")));
     assertThat(insertValues.getValues().size(), is(2));
     assertThat(toFieldType(insertValues.getValues().get(0)), is(55));
@@ -80,7 +81,7 @@ public class CommandParserTest {
     assertThat(commands.get(0), instanceOf(SqlInsertValues.class));
     final SqlInsertValues insertValues = (SqlInsertValues) commands.get(0);
 
-    assertThat(insertValues.getSourceName(), is("foo"));
+    assertThat(insertValues.getSourceName(), is("`foo`"));
     assertThat(insertValues.getColumns(), is(ImmutableList.of("col1")));
     assertThat(insertValues.getValues().size(), is(1));
     assertThat(toFieldType(insertValues.getValues().get(0)), is(55));
@@ -131,12 +132,12 @@ public class CommandParserTest {
     // Then:
     assertThat(commands.size(), is(2));
     assertThat(commands.get(0), instanceOf(SqlInsertValues.class));
-    assertThat(((SqlInsertValues) commands.get(0)).getSourceName(), is("FOO"));
+    assertThat(((SqlInsertValues) commands.get(0)).getSourceName(), is("`FOO`"));
     assertThat(((SqlInsertValues) commands.get(0)).getValues().size(), is(1));
     assertThat(toFieldType(((SqlInsertValues) commands.get(0)).getValues().get(0)), is(32));
 
     assertThat(commands.get(1), instanceOf(SqlInsertValues.class));
-    assertThat(((SqlInsertValues) commands.get(1)).getSourceName(), is("FOO_2"));
+    assertThat(((SqlInsertValues) commands.get(1)).getSourceName(), is("`FOO_2`"));
     assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(0)), is("wow"));
     assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(1)), is(3));
     assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(2)), is("hello 'world'!"));
@@ -246,7 +247,7 @@ public class CommandParserTest {
     assertThat(commands.get(0), instanceOf(SqlStatement.class));
     assertThat(commands.get(0).getCommand(), is("CREATE STREAM riderLocations (profileId VARCHAR, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='locations', value_format='json', partitions=1);"));
     assertThat(commands.get(1), instanceOf(SqlInsertValues.class));
-    assertThat(((SqlInsertValues) commands.get(1)).getSourceName(), is("RIDERLOCATIONS"));
+    assertThat(((SqlInsertValues) commands.get(1)).getSourceName(), is("`RIDERLOCATIONS`"));
     assertThat(((SqlInsertValues) commands.get(1)).getColumns().size(), is(3));
     assertThat(((SqlInsertValues) commands.get(1)).getColumns().get(0), is("PROFILEID"));
     assertThat(((SqlInsertValues) commands.get(1)).getColumns().get(1), is("LATITUDE"));
@@ -256,15 +257,15 @@ public class CommandParserTest {
     assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(1)), is(BigDecimal.valueOf(37.7877)));
     assertThat(toFieldType(((SqlInsertValues) commands.get(1)).getValues().get(2)), is(BigDecimal.valueOf(-122.4205)));
     assertThat(commands.get(2), instanceOf(SqlInsertValues.class));
-    assertThat(((SqlInsertValues) commands.get(2)).getSourceName(), is("riderLocations"));
+    assertThat(((SqlInsertValues) commands.get(2)).getSourceName(), is("`riderLocations`"));
     assertThat(commands.get(3), instanceOf(SqlInsertValues.class));
-    assertThat(((SqlInsertValues) commands.get(3)).getSourceName(), is("riderLocations"));
+    assertThat(((SqlInsertValues) commands.get(3)).getSourceName(), is("`riderLocations`"));
     assertThat(commands.get(4), instanceOf(SqlInsertValues.class));
-    assertThat(((SqlInsertValues) commands.get(4)).getSourceName(), is("values"));
+    assertThat(((SqlInsertValues) commands.get(4)).getSourceName(), is("`values`"));
   }
 
   @Test
-  public void shouldParseConnectorStatements() {
+  public void shouldParseCreateConnectorStatement() {
     // Given:
     final String createConnector = "CREATE SOURCE CONNECTOR `jdbc-connector` WITH(\n"
         + "    \"connector.class\"='io.confluent.connect.jdbc.JdbcSourceConnector',\n"
@@ -273,17 +274,39 @@ public class CommandParserTest {
         + "    \"topic.prefix\"='jdbc-',\n"
         + "    \"table.whitelist\"='users',\n"
         + "    \"key\"='username');";
-    final String dropConnector = "DROP CONNECTOR `jdbc-connector`;";
 
     // When:
-    List<SqlCommand> commands = CommandParser.parse(createConnector + dropConnector);
+    List<SqlCommand> commands = CommandParser.parse(createConnector);
 
     // Then:
-    assertThat(commands.size(), is(2));
-    assertThat(commands.get(0), instanceOf(SqlConnectorStatement.class));
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0), instanceOf(SqlCreateConnectorStatement.class));
     assertThat(commands.get(0).getCommand(), is(createConnector));
-    assertThat(commands.get(1), instanceOf(SqlConnectorStatement.class));
-    assertThat(commands.get(1).getCommand(), is(dropConnector));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getName(), is("`jdbc-connector`"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).isSource(), is(true));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().size(), is(6));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("connector.class"), is("io.confluent.connect.jdbc.JdbcSourceConnector"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("connection.url"), is("jdbc:postgresql://localhost:5432/my.db"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("mode"), is("bulk"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("topic.prefix"), is("jdbc-"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("table.whitelist"), is("users"));
+    assertThat(((SqlCreateConnectorStatement) commands.get(0)).getProperties().get("key"), is("username"));
+  }
+
+  @Test
+  public void shouldParseDropConnectorStatement() {
+    // Given:
+    final String dropConnector = "DROP CONNECTOR `jdbc-connector` ;"; // The space at the end is to make sure that the regex doesn't capture it as a part of the name
+
+    // When:
+    List<SqlCommand> commands = CommandParser.parse(dropConnector);
+
+    // Then:
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0).getCommand(), is(dropConnector));
+    assertThat(commands.get(0), instanceOf(SqlDropConnectorStatement.class));
+    assertThat(commands.get(0).getCommand(), is(dropConnector));
+    assertThat(((SqlDropConnectorStatement) commands.get(0)).getName(), is("`jdbc-connector`"));
   }
 
   @Test

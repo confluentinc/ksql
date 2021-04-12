@@ -159,7 +159,7 @@ public class KsqlRequestTest {
     final String jsonRequest = serialize(A_REQUEST);
 
     // Then:
-    // assertThat(jsonRequest, is(A_JSON_REQUEST_WITH_NULL_COMMAND_NUMBER));
+    assertThat(jsonRequest, is(A_JSON_REQUEST_WITH_NULL_COMMAND_NUMBER));
   }
 
   @Test
@@ -168,7 +168,7 @@ public class KsqlRequestTest {
     final String jsonRequest = serialize(A_REQUEST_WITH_COMMAND_NUMBER);
 
     // Then:
-    // assertThat(jsonRequest, is(A_JSON_REQUEST_WITH_COMMAND_NUMBER));
+    assertThat(jsonRequest, is(A_JSON_REQUEST_WITH_COMMAND_NUMBER));
   }
 
   @Test

@@ -16,6 +16,6 @@ RUN add-apt-repository "deb [arch=amd64] https://packages.confluent.io/deb/${CP_
 
 RUN apt-get update && apt-get install -y confluent-kafka
 
-RUN apt-get install -y /ksql_test/*.deb
+RUN mkdir /ksql_test/confluent_platform && tar -zxf /ksql_test/*.tar.gz -C /ksql_test/confluent_platform --strip-components 1
 
-RUN /ksql_test/test.sh /usr/bin /etc
+RUN /ksql_test/test.sh /ksql_test/confluent_platform/bin /ksql_test/confluent_platform/etc

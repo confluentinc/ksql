@@ -393,12 +393,12 @@ Connect Converter classes you would need to use to write the key to
 Kafka, read the key from Kafka, or use to configure Apache Connect to
 work with the `KAFKA` format, respectively.
 
-| SQL Field Type  | Kafka Type                     | Kafka Serializer                                          | Kafka Deserializer                                          | Connect Converter                                   |
-|------------------|--------------------------------|-----------------------------------------------------------|-------------------------------------------------------------|-----------------------------------------------------|
-| INT / INTEGER    | A 32-bit signed integer        | `org.apache.kafka.common.serialization.IntegerSerializer` | `org.apache.kafka.common.serialization.IntegerDeserializer` | `org.apache.kafka.connect.storage.IntegerConverter` |
-| BIGINT           | A 64-bit signed integer        | `org.apache.kafka.common.serialization.LongSerializer`    | `org.apache.kafka.common.serialization.LongDeserializer`    | `org.apache.kafka.connect.storage.LongConverter`    |
-| DOUBLE           | A 64-bit floating point number | `org.apache.kafka.common.serialization.DoubleSerializer`  | `org.apache.kafka.common.serialization.DoubleDeserializer`  | `org.apache.kafka.connect.storage.DoubleConverter`  |
-| STRING / VARCHAR | A UTF-8 encoded text string    | `org.apache.kafka.common.serialization.StringSerializer`  | `org.apache.kafka.common.serialization.StringDeserializer`  | `org.apache.kafka.connect.storage.StringConverter`  |
+| SQL Field Type   | Kafka Type                       | Kafka Serializer                                          | Kafka Deserializer                                          | Connect Converter                                      |
+|------------------|----------------------------------|-----------------------------------------------------------|-------------------------------------------------------------|--------------------------------------------------------|
+| INT / INTEGER    | A 32-bit signed integer          | `org.apache.kafka.common.serialization.IntegerSerializer` | `org.apache.kafka.common.serialization.IntegerDeserializer` | `org.apache.kafka.connect.converters.IntegerConverter` |
+| BIGINT           | A 64-bit signed integer          | `org.apache.kafka.common.serialization.LongSerializer`    | `org.apache.kafka.common.serialization.LongDeserializer`    | `org.apache.kafka.connect.converters.LongConverter`    |
+| DOUBLE           | A 64-bit floating point number   | `org.apache.kafka.common.serialization.DoubleSerializer`  | `org.apache.kafka.common.serialization.DoubleDeserializer`  | `org.apache.kafka.connect.converters.DoubleConverter`  |
+| STRING / VARCHAR | A UTF-8 encoded text string      | `org.apache.kafka.common.serialization.StringSerializer`  | `org.apache.kafka.common.serialization.StringDeserializer`  | `org.apache.kafka.connect.storage.StringConverter`     |
 
 
 Because the format supports only primitive types, you can only use it

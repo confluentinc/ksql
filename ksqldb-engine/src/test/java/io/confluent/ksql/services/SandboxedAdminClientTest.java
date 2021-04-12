@@ -44,7 +44,6 @@ public final class SandboxedAdminClientTest {
       return TestMethods.builder(Admin.class)
           .ignore("close")
           .ignore("close", Duration.class)
-          .ignoreUnchecked("close", long.class, TimeUnit.class)
           .setDefault(ElectLeadersOptions.class, new ElectLeadersOptions())
           .setDefault(Optional.class, Optional.empty())
           .build();

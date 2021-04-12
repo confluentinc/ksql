@@ -117,6 +117,9 @@ public final class TableSelectBuilder {
               selection.getSchema(),
               table.getExecutionKeyFactory(),
               MaterializationInfo.builder(stateStoreName, selection.getSchema())
+                  .map(pl -> (KsqlTransformer<Object, GenericRow>) selectMapper.getTransformer(pl),
+                      selection.getSchema(),
+                      queryContext)
       );
     }
 

@@ -47,7 +47,7 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
     this.source = requireNonNull(source, "source");
     this.keyColumnNames = ImmutableList.copyOf(keyColumnNames);
     this.selectExpressions = ImmutableList.copyOf(selectExpressions);
-    this.internalFormats = requireNonNull(internalFormats, "internalFormats");
+    this.internalFormats = internalFormats;
 
     if (selectExpressions.isEmpty()) {
       throw new IllegalArgumentException("Need at least one select expression");

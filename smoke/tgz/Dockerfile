@@ -18,7 +18,4 @@ RUN apt-get update && apt-get install -y confluent-kafka
 
 RUN mkdir /ksql_test/confluent_platform && tar -zxf /ksql_test/*.tar.gz -C /ksql_test/confluent_platform --strip-components 1
 
-# A crude installation of the
-#RUN cp -R bin/* /usr/bin/ && cp -R etc/* /etc/ && cp -R share/* /usr/share/
-
 RUN /ksql_test/test.sh /ksql_test/confluent_platform/bin /ksql_test/confluent_platform/etc

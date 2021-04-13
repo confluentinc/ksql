@@ -263,6 +263,21 @@ Stream
 Return the Top *K* values for the given column and window
 Rows that have `col1` set to null are ignored.
 
+Example
+
+```
+CREATE STREAM input (id int key, value int);
+// insert the following values: (1, 1), (1, 2), (1,3), (1,2), (1,1)
++------------------------------------+------------------------------------+
+|ID                                  |KSQL_COL_0                          |
++------------------------------------+------------------------------------+
+|1                                   |[1]                                 |
+|1                                   |[2, 1]                              |
+|1                                   |[3, 2, 1]                           |
+|1                                   |[3, 2, 2]                           |
+|1                                   |[3, 2, 2]                           |
+```
+
 ## `TOPKDISTINCT`
 
 Since: -
@@ -275,3 +290,18 @@ Stream
 
 Return the distinct Top *K* values for the given column and window
 Rows that have `col1` set to null are ignored.
+
+Example
+
+```
+CREATE STREAM input (id int key, value int);
+// insert the following values: (1, 1), (1, 2), (1,3), (1,2), (1,1)
++------------------------------------+------------------------------------+
+|ID                                  |KSQL_COL_0                          |
++------------------------------------+------------------------------------+
+|1                                   |[1]                                 |
+|1                                   |[2, 1]                              |
+|1                                   |[3, 2, 1]                           |
+|1                                   |[3, 2, 1]                           |
+|1                                   |[3, 2, 1]                           |
+```

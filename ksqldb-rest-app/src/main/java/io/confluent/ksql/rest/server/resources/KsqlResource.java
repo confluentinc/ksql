@@ -284,7 +284,8 @@ public class KsqlResource implements KsqlConfigurable {
               configProperties,
               localHost,
               localUrl,
-              requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST)
+              requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST),
+              request.getSessionVariables()
           ),
           request.getKsql()
       );

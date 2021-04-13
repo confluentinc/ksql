@@ -185,7 +185,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
     final KeyFormat newKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
         forceInternalKeyFormat.orElse(keyFormat),
-        keyExpression.size(),
+        toSqlTypes(keyExpression),
         false // logical schema changes are not supported
     );
 
@@ -225,7 +225,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     // the key format directly (as opposed to the logic in SchemaKStream)
     final KeyFormat groupedKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
         KeyFormat.nonWindowed(keyFormat.getFormatInfo(), keyFormat.getFeatures()),
-        groupByExpressions.size(),
+        toSqlTypes(groupByExpressions),
         true
     );
 

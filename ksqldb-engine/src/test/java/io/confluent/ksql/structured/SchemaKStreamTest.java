@@ -135,7 +135,8 @@ public class SchemaKStreamTest {
         ImmutableList.of(ColumnName.of("K")),
         selectExpressions,
         childContextStacker,
-        buildContext, internalFormats);
+        buildContext,
+        internalFormats);
 
     // Then:
     assertThat(

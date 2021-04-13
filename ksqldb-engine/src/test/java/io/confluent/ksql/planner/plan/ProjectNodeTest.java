@@ -121,7 +121,8 @@ public class ProjectNodeTest {
         ImmutableList.of(K),
         SELECTS,
         stacker,
-        planBuildContext, internalFormats
+        planBuildContext,
+        internalFormats
     );
   }
 

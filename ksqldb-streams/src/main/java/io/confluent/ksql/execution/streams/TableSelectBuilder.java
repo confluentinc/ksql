@@ -73,10 +73,7 @@ public final class TableSelectBuilder {
 
     final boolean forceMaterialize = !matBuilder.isPresent();
 
-    //Feauture flag for turning T-T Join queryability on or off
-    final boolean turnItOn = true;
-
-    if (formats != null && forceMaterialize && turnItOn) {
+    if (formats != null && forceMaterialize) {
       final PhysicalSchema physicalSchema = PhysicalSchema.from(
               selection.getSchema(),
               formats.getKeyFeatures(),
@@ -117,9 +114,6 @@ public final class TableSelectBuilder {
               selection.getSchema(),
               table.getExecutionKeyFactory(),
               MaterializationInfo.builder(stateStoreName, selection.getSchema())
-                  .map(pl -> (KsqlTransformer<Object, GenericRow>) selectMapper.getTransformer(pl),
-                      selection.getSchema(),
-                      queryContext)
       );
     }
 

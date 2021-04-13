@@ -691,8 +691,8 @@ public class RestApiTest {
     // Given:
     // When:
     makeKsqlRequestWithVariables(
-        "CREATE STREAM Y AS SELECT * FROM " + PAGE_VIEW_STREAM + " WHERE USERID='${id}';",
-        ImmutableMap.of("id", "USER_1")
+        "CREATE STREAM ${name} AS SELECT * FROM " + PAGE_VIEW_STREAM + " WHERE USERID='${id}';",
+        ImmutableMap.of("id", "USER_1", "name", "Y")
     );
 
     // Then:

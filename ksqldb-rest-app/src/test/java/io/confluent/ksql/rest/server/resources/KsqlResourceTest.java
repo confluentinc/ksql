@@ -1198,6 +1198,34 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldSupportVariableSubstitutionWithVariablesInRequest() {
+    // Given:
+    final String csasRaw = "CREATE STREAM ${streamName} AS SELECT * FROM ${fromStream};";
+    final String csasSubstituted = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
+
+
+    // When:
+    final List<CommandStatusEntity> results = makeMultipleRequest(
+        new KsqlRequest(
+            csasRaw,
+            emptyMap(),
+            emptyMap(),
+            ImmutableMap.of("streamName", streamName, "fromStream", "test_stream"),
+            null),
+        CommandStatusEntity.class);
+
+    // Then:
+    verify(commandStore).enqueueCommand(
+        argThat(is(commandIdWithString("stream/`" + streamName + "`/create"))),
+        argThat(is(commandWithStatement(csasSubstituted))),
+        any()
+    );
+
+    assertThat(results, hasSize(1));
+    assertThat(results.get(0).getStatementText(), is(csasSubstituted));
+  }
+
+  @Test
   public void shouldSupportSchemaInference() {
     // Given:
     givenMockEngine();

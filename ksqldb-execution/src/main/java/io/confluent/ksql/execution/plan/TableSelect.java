@@ -34,14 +34,14 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
   private final ExecutionStep<KTableHolder<K>> source;
   private final ImmutableList<ColumnName> keyColumnNames;
   private final ImmutableList<SelectExpression> selectExpressions;
-  private final Formats internalFormats;
+  private final Optional<Formats> internalFormats;
 
   public TableSelect(
       final ExecutionStepPropertiesV1 props,
       final ExecutionStep<KTableHolder<K>> source,
       final List<ColumnName> keyColumnNames,
       final List<SelectExpression> selectExpressions,
-      final Formats internalFormats
+      final Optional<Formats> internalFormats
   ) {
     this.properties = requireNonNull(props, "props");
     this.source = requireNonNull(source, "source");
@@ -78,7 +78,7 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
         source,
         keyColumnNames.orElseGet(ImmutableList::of),
         selectExpressions,
-        internalFormats.orElse(null));
+        internalFormats);
   }
 
   @Override
@@ -140,7 +140,7 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
     return Objects.hash(properties, source, keyColumnNames, selectExpressions, internalFormats);
   }
 
-  public Formats getInternalFormats() {
+  public Optional<Formats> getInternalFormats() {
     return internalFormats;
   }
 

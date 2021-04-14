@@ -49,7 +49,7 @@ public final class TableSelectBuilder {
           final KTableHolder<K> table,
           final TableSelect<K> step,
           final RuntimeBuildContext buildContext,
-          final Formats formats,
+          final Optional<Formats> formats,
           final MaterializedFactory materializedFactory
   ) {
     final LogicalSchema sourceSchema = table.getSchema();
@@ -73,21 +73,23 @@ public final class TableSelectBuilder {
 
     final boolean forceMaterialize = !matBuilder.isPresent();
 
-    if (formats != null && forceMaterialize) {
+    if (formats.isPresent() && forceMaterialize) {
+      final Formats materializationFormat = formats.get();
+
       final PhysicalSchema physicalSchema = PhysicalSchema.from(
               selection.getSchema(),
-              formats.getKeyFeatures(),
-              formats.getValueFeatures()
+              materializationFormat.getKeyFeatures(),
+              materializationFormat.getValueFeatures()
       );
 
       final Serde<K> keySerde = (Serde<K>) buildContext.buildKeySerde(
-              formats.getKeyFormat(),
+              materializationFormat.getKeyFormat(),
               physicalSchema,
               queryContext
       );
 
       final Serde<GenericRow> valSerde = buildContext.buildValueSerde(
-              formats.getValueFormat(),
+              materializationFormat.getValueFormat(),
               physicalSchema,
               queryContext
       );

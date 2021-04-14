@@ -111,7 +111,7 @@ public class StepSchemaResolverTest {
   @Mock
   private KsqlConfig config;
   @Mock
-  private Formats internalFormats;
+  private Optional<Formats> internalFormats;
 
   private StepSchemaResolver resolver;
 

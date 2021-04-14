@@ -14,17 +14,17 @@
 
 package io.confluent.ksql.execution.plan;
 
-import static org.mockito.Mockito.mock;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.name.ColumnName;
 import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import static org.mockito.Mockito.mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("UnstableApiUsage")
@@ -40,9 +40,9 @@ public class TableSelectTest {
   @Mock
   private ExecutionStep<KTableHolder<Struct>> source2;
   @Mock
-  private Formats internalFormats1;
+  private Optional<Formats> internalFormats1;
   @Mock
-  private Formats internalFormats2;
+  private Optional<Formats> internalFormats2;
 
   private List<ColumnName> keys1;
   private List<ColumnName> keys2;

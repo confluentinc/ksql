@@ -299,7 +299,7 @@ public final class ExecutionStepFactory {
         source,
         keyColumnNames,
         selectExpressions,
-        format
+        Optional.ofNullable(format)
     );
   }
 

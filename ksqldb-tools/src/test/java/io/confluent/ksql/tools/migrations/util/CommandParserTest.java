@@ -137,35 +137,41 @@ public class CommandParserTest {
 
   @Test
   public void shouldParseSetUnsetStatements() {
-    List<SqlCommand> commands = parse("SET 'foo.property'='bar';UNSET 'foo.property';");
+    List<SqlCommand> commands = parse("SeT 'foo.property'='bar';UnSET 'foo.property';");
     assertThat(commands.size(), is(2));
     assertThat(commands.get(0), instanceOf(SqlPropertyCommand.class));
-    assertThat(commands.get(0).getCommand(), is("SET 'foo.property'='bar';"));
+    assertThat(commands.get(0).getCommand(), is("SeT 'foo.property'='bar';"));
     assertThat(((SqlPropertyCommand) commands.get(0)).isSetCommand(), is(true));
     assertThat(((SqlPropertyCommand) commands.get(0)).getProperty(), is("foo.property"));
     assertThat(((SqlPropertyCommand) commands.get(0)).getValue().get(), is("bar"));
     assertThat(commands.get(1), instanceOf(SqlPropertyCommand.class));
-    assertThat(commands.get(1).getCommand(), is("UNSET 'foo.property';"));
+    assertThat(commands.get(1).getCommand(), is("UnSET 'foo.property';"));
     assertThat(((SqlPropertyCommand) commands.get(1)).isSetCommand(), is(false));
     assertThat(((SqlPropertyCommand) commands.get(1)).getProperty(), is("foo.property"));
     assertTrue(!((SqlPropertyCommand) commands.get(1)).getValue().isPresent());
   }
 
   @Test
-  public void shouldParseSetUnsetStatementsWithVariables() {
-    List<SqlCommand> commands = parse("SET '${name}'='${value}';UNSET '${name}';",
+  public void shouldParseSetStatementsWithVariables() {
+    List<SqlCommand> commands = parse("SET '${name}'='${value}';",
         ImmutableMap.of("name", "foo.property", "value", "bar"));
-    assertThat(commands.size(), is(2));
+    assertThat(commands.size(), is(1));
     assertThat(commands.get(0), instanceOf(SqlPropertyCommand.class));
     assertThat(commands.get(0).getCommand(), is("SET '${name}'='${value}';"));
     assertThat(((SqlPropertyCommand) commands.get(0)).isSetCommand(), is(true));
     assertThat(((SqlPropertyCommand) commands.get(0)).getProperty(), is("foo.property"));
     assertThat(((SqlPropertyCommand) commands.get(0)).getValue().get(), is("bar"));
-    assertThat(commands.get(1), instanceOf(SqlPropertyCommand.class));
-    assertThat(commands.get(1).getCommand(), is("UNSET '${name}';"));
-    assertThat(((SqlPropertyCommand) commands.get(1)).isSetCommand(), is(false));
-    assertThat(((SqlPropertyCommand) commands.get(1)).getProperty(), is("foo.property"));
-    assertTrue(!((SqlPropertyCommand) commands.get(1)).getValue().isPresent());
+  }
+
+  @Test
+  public void shouldParseUnsetStatementsWithVariables() {
+    List<SqlCommand> commands = parse("UnSeT '${name}';",
+        ImmutableMap.of("name", "foo.property"));
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0), instanceOf(SqlPropertyCommand.class));
+    assertThat(((SqlPropertyCommand) commands.get(0)).isSetCommand(), is(false));
+    assertThat(((SqlPropertyCommand) commands.get(0)).getProperty(), is("foo.property"));
+    assertTrue(!((SqlPropertyCommand) commands.get(0)).getValue().isPresent());
   }
 
   @Test
@@ -340,7 +346,7 @@ public class CommandParserTest {
   @Test
   public void shouldParseDropConnectorStatement() {
     // Given:
-    final String dropConnector = "DROP CONNECTOR `jdbc-connector` ;"; // The space at the end is to make sure that the regex doesn't capture it as a part of the name
+    final String dropConnector = "DRoP CONNEcTOR `jdbc-connector` ;"; // The space at the end is to make sure that the regex doesn't capture it as a part of the name
 
     // When:
     List<SqlCommand> commands = parse(dropConnector);
@@ -383,17 +389,32 @@ public class CommandParserTest {
   @Test
   public void shouldParseDefineStatement() {
     // Given:
-    final String undefineVar = "DEFINE var = 'foo';";
+    final String defineVar = "DEFINE var = 'foo';";
 
     // When:
-    List<SqlCommand> commands = parse(undefineVar);
+    List<SqlCommand> commands = parse(defineVar);
 
     // Then:
     assertThat(commands.size(), is(1));
-    assertThat(commands.get(0).getCommand(), is(undefineVar));
+    assertThat(commands.get(0).getCommand(), is(defineVar));
     assertThat(commands.get(0), instanceOf(SqlDefineVariableCommand.class));
     assertThat(((SqlDefineVariableCommand) commands.get(0)).getVariable(), is("var"));
     assertThat(((SqlDefineVariableCommand) commands.get(0)).getValue(), is("foo"));
+  }
+
+  @Test
+  public void shouldDefineStatementWithVariable() {
+    // Given:
+    final String defineVar = "DEFiNe word = 'walk${suffix}';";
+
+    // When:
+    List<SqlCommand> commands = parse(defineVar, ImmutableMap.of("suffix", "ing"));
+
+    // Then:
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0), instanceOf(SqlDefineVariableCommand.class));
+    assertThat(((SqlDefineVariableCommand) commands.get(0)).getVariable(), is("word"));
+    assertThat(((SqlDefineVariableCommand) commands.get(0)).getValue(), is("walking"));
   }
 
   @Test

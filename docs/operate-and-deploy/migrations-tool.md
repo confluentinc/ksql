@@ -51,6 +51,9 @@ types of ksqlDB statements:
 * `DEFINE <variable>`
 * `UNDEFINE <variable>`
 
+Any properties or variables set using the `SET`, `UNSET`, `DEFINE` and `UNDEFINE` are applied in the 
+current migration file only. They do not carry over to the next migration file.
+
 Requirements and Installation
 -----------------------------
 

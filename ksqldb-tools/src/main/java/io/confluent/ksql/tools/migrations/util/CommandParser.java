@@ -39,7 +39,6 @@ import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,16 +50,18 @@ import java.util.stream.Collectors;
 
 public final class CommandParser {
   private static final String QUOTED_STRING_OR_WHITESPACE = "('([^']*|(''))*')|\\s+";
-  private static final Pattern SET_PROPERTY =
-      Pattern.compile("\\s*SET\\s+'((?:[^']*|(?:''))*)'\\s*=\\s*'((?:[^']*|(?:''))*)'\\s*;\\s*");
-  private static final Pattern UNSET_PROPERTY =
-      Pattern.compile("\\s*UNSET\\s+'((?:[^']*|(?:''))*)'\\s*;\\s*");
+  private static final Pattern SET_PROPERTY = Pattern.compile(
+      "\\s*SET\\s+'((?:[^']*|(?:''))*)'\\s*=\\s*'((?:[^']*|(?:''))*)'\\s*;\\s*",
+      Pattern.CASE_INSENSITIVE);
+  private static final Pattern UNSET_PROPERTY = Pattern.compile(
+      "\\s*UNSET\\s+'((?:[^']*|(?:''))*)'\\s*;\\s*", Pattern.CASE_INSENSITIVE);
   private static final Pattern DROP_CONNECTOR =
-      Pattern.compile("\\s*DROP\\s+CONNECTOR\\s+(.*?)\\s*;\\s*");
+      Pattern.compile("\\s*DROP\\s+CONNECTOR\\s+(.*?)\\s*;\\s*", Pattern.CASE_INSENSITIVE);
   private static final Pattern DEFINE_VARIABLE = Pattern.compile(
-      "\\s*DEFINE\\s+([a-zA-Z_][a-zA-Z0-9_@]*)\\s*=\\s*'((?:[^']*|(?:''))*)'\\s*;\\s*");
-  private static final Pattern UNDEFINE_VARIABLE =
-      Pattern.compile("\\s*UNDEFINE\\s+([a-zA-Z_][a-zA-Z0-9_@]*)\\s*;\\s*");
+      "\\s*DEFINE\\s+([a-zA-Z_][a-zA-Z0-9_@]*)\\s*=\\s*'((?:[^']*|(?:''))*)'\\s*;\\s*",
+      Pattern.CASE_INSENSITIVE);
+  private static final Pattern UNDEFINE_VARIABLE = Pattern.compile(
+      "\\s*UNDEFINE\\s+([a-zA-Z_][a-zA-Z0-9_@]*)\\s*;\\s*", Pattern.CASE_INSENSITIVE);
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
   private static final String INSERT = "INSERT";
   private static final String INTO = "INTO";
@@ -217,7 +218,7 @@ public final class CommandParser {
       case UNSET_PROPERTY:
         return getUnsetPropertyCommand(sql, variables);
       case DEFINE_VARIABLE:
-        return getDefineVariableCommand(sql);
+        return getDefineVariableCommand(sql, variables);
       case UNDEFINE_VARIABLE:
         return getUndefineVariableCommand(sql);
       default:
@@ -302,7 +303,8 @@ public final class CommandParser {
         Optional.empty());
   }
 
-  private static SqlDefineVariableCommand getDefineVariableCommand(final String sql) {
+  private static SqlDefineVariableCommand getDefineVariableCommand(
+      final String sql, final Map<String, String> variables) {
     final Matcher defineVariableMatcher = DEFINE_VARIABLE.matcher(sql);
     if (!defineVariableMatcher.matches()) {
       throw new MigrationException("Invalid DEFINE command: " + sql);
@@ -310,7 +312,7 @@ public final class CommandParser {
     return new SqlDefineVariableCommand(
         sql,
         defineVariableMatcher.group(1),
-        defineVariableMatcher.group(2)
+        VariableSubstitutor.substitute(defineVariableMatcher.group(2), variables)
     );
   }
 
@@ -534,12 +536,12 @@ public final class CommandParser {
    */
   public static class SqlDefineVariableCommand extends SqlCommand {
     private final String variable;
-    private final Object value;
+    private final String value;
 
     SqlDefineVariableCommand(
         final String command,
         final String variable,
-        final Object value
+        final String value
     ) {
       super(command);
       this.variable = Objects.requireNonNull(variable);
@@ -550,7 +552,7 @@ public final class CommandParser {
       return variable;
     }
 
-    public Object getValue() {
+    public String getValue() {
       return value;
     }
   }

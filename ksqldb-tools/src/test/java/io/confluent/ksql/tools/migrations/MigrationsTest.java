@@ -228,7 +228,8 @@ public class MigrationsTest {
             "CREATE SOURCE CONNECTOR C WITH ('connector.class'='org.apache.kafka.connect.tools.MockSourceConnector');\n" +
             "CREATE SINK CONNECTOR D WITH ('connector.class'='org.apache.kafka.connect.tools.MockSinkConnector', 'topics'='d');\n" +
             "CREATE TABLE blue (ID BIGINT PRIMARY KEY, A STRING) WITH (KAFKA_TOPIC='blue', PARTITIONS=1, VALUE_FORMAT='DELIMITED');" +
-            "DROP TABLE blue;"
+            "DROP TABLE blue;" +
+            "DEFINE onlyDefinedInFile1 = 'nope';"
     );
     createMigrationFile(
         2,
@@ -240,7 +241,7 @@ public class MigrationsTest {
             "DEFINE variable = '50';" +
             "INSERT INTO FOO VALUES ('HELLO', ${variable}, -4325);" +
             "INSERT INTO FOO (A) VALUES ('GOOD''BYE');" +
-            "INSERT INTO FOO (A) VALUES ('mua--ha\nha');" +
+            "INSERT INTO FOO (A) VALUES ('${onlyDefinedInFile1}--ha\nha');" +
             "INSERT INTO FOO (A) VALUES ('');" +
             "DEFINE variable = 'cool';" +
             "SET 'ksql.output.topic.name.prefix' = '${variable}';" +
@@ -250,7 +251,8 @@ public class MigrationsTest {
             "DROP CONNECTOR D;" +
             "INSERT INTO `bar` SELECT A FROM CAR;" +
             "CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;" +
-            "DEFINE variable = 'HOMES';" +
+            "DEFINE suffix = 'OMES';" +
+            "DEFINE variable = 'H${suffix}';" +
             "CREATE STREAM ${variable} (ADDR ADDRESS) WITH (KAFKA_TOPIC='${variable}', PARTITIONS=1, VALUE_FORMAT='JSON');" +
             "UNDEFINE variable;" +
             "INSERT INTO HOMES VALUES (STRUCT(number := 123, street := 'sesame st', city := '${variable}'));" +
@@ -346,7 +348,7 @@ public class MigrationsTest {
     assertThat(foo.get(2).getRow().get().getColumns().get(0), is("GOOD'BYE"));
     assertNull(foo.get(2).getRow().get().getColumns().get(1));
     assertNull(foo.get(2).getRow().get().getColumns().get(2));
-    assertThat(foo.get(3).getRow().get().getColumns().get(0), is("mua--ha\nha"));
+    assertThat(foo.get(3).getRow().get().getColumns().get(0), is("${onlyDefinedInFile1}--ha\nha"));
     assertThat(foo.get(4).getRow().get().getColumns().get(0), is(""));
 
     // verify bar
@@ -355,7 +357,7 @@ public class MigrationsTest {
         hasSize(6)); // first row is a header, last row is a message saying "Limit Reached"
     assertThat(bar.get(1).getRow().get().getColumns().get(0), is("HELLOwoo'hoo"));
     assertThat(bar.get(2).getRow().get().getColumns().get(0), is("GOOD'BYEwoo'hoo"));
-    assertThat(bar.get(3).getRow().get().getColumns().get(0), is("mua--ha\nhawoo'hoo"));
+    assertThat(bar.get(3).getRow().get().getColumns().get(0), is("${onlyDefinedInFile1}--ha\nhawoo'hoo"));
     assertThat(bar.get(4).getRow().get().getColumns().get(0), is("woo'hoo"));
 
     verifyConnector("C", true);

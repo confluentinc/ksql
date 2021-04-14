@@ -313,18 +313,34 @@ public class ApplyMigrationCommand extends BaseCommand {
       final Clock clock,
       final String previous
   ) {
-    final Map<String, Object> properties = new HashMap<>();
     final List<String> commands = CommandParser.splitSql(migrationFileContent);
 
+    executeCommands(commands, ksqlClient, config, executionStart, migration, clock, previous, true);
+    executeCommands(commands, ksqlClient, config, executionStart, migration, clock, previous, false);
+  }
+
+  private void executeCommands(
+      final List<String> commands,
+      final Client ksqlClient,
+      final MigrationConfig config,
+      final String executionStart,
+      final MigrationFile migration,
+      final Clock clock,
+      final String previous,
+      final boolean verify
+  ) {
+    cleanUpJavaClientVariables(ksqlClient);
+    final Map<String, Object> properties = new HashMap<>();
     for (final String command : commands) {
       try {
         final Map<String, String> variables = ksqlClient.getVariables().entrySet()
             .stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toString()));
         executeCommand(
-            CommandParser.transformToSqlCommand(command, variables), ksqlClient, properties);
-      } catch (InterruptedException | ExecutionException e) {
+            CommandParser.transformToSqlCommand(command, variables), ksqlClient, properties, verify);
+      } catch (InterruptedException | ExecutionException | MigrationException e) {
+        final String action = verify ? "parse" : "execute";
         final String errorMsg = String.format(
-            "Failed to execute sql: %s. Error: %s", command, e.getMessage());
+            "Failed to %s sql: %s. Error: %s", action, command, e.getMessage());
         updateState(config, ksqlClient, MigrationState.ERROR,
             executionStart, migration, clock, previous, Optional.of(errorMsg));
         throw new MigrationException(errorMsg);
@@ -332,14 +348,19 @@ public class ApplyMigrationCommand extends BaseCommand {
     }
   }
 
+  private void cleanUpJavaClientVariables(final Client ksqlClient) {
+    ksqlClient.getVariables().forEach((k, v) -> ksqlClient.undefine(k));
+  }
+
   private void executeCommand(
       final SqlCommand command,
       final Client ksqlClient,
-      final Map<String, Object> properties
+      final Map<String, Object> properties,
+      final boolean defineUndefineOnly
   ) throws ExecutionException, InterruptedException {
-    if (command instanceof SqlStatement) {
+    if (command instanceof SqlStatement && !defineUndefineOnly) {
       ksqlClient.executeStatement(command.getCommand(), new HashMap<>(properties)).get();
-    } else if (command instanceof SqlInsertValues) {
+    } else if (command instanceof SqlInsertValues && !defineUndefineOnly) {
       final List<FieldInfo> fields =
           ksqlClient.describeSource(((SqlInsertValues) command).getSourceName()).get().fields();
       ksqlClient.insertInto(
@@ -348,15 +369,15 @@ public class ApplyMigrationCommand extends BaseCommand {
               fields,
               ((SqlInsertValues) command).getColumns(),
               ((SqlInsertValues) command).getValues())).get();
-    } else if (command instanceof SqlCreateConnectorStatement) {
+    } else if (command instanceof SqlCreateConnectorStatement && !defineUndefineOnly) {
       ksqlClient.createConnector(
           ((SqlCreateConnectorStatement) command).getName(),
           ((SqlCreateConnectorStatement) command).isSource(),
           ((SqlCreateConnectorStatement) command).getProperties()
       ).get();
-    } else if (command instanceof SqlDropConnectorStatement) {
+    } else if (command instanceof SqlDropConnectorStatement && !defineUndefineOnly) {
       ksqlClient.dropConnector(((SqlDropConnectorStatement) command).getName()).get();
-    } else if (command instanceof SqlPropertyCommand) {
+    } else if (command instanceof SqlPropertyCommand && !defineUndefineOnly) {
       if (((SqlPropertyCommand) command).isSetCommand()
           && ((SqlPropertyCommand) command).getValue().isPresent()) {
         properties.put(

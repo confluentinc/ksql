@@ -48,7 +48,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class CommandParser {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private static final String QUOTED_STRING_OR_WHITESPACE = "('([^']*|(''))*')|\\s+";
   private static final Pattern SET_PROPERTY = Pattern.compile(
       "\\s*SET\\s+'((?:[^']*|(?:''))*)'\\s*=\\s*'((?:[^']*|(?:''))*)'\\s*;\\s*",
@@ -331,13 +333,13 @@ public final class CommandParser {
       return StatementType.CREATE_CONNECTOR;
     } else if (isDropConnectorStatement(tokens)) {
       return StatementType.DROP_CONNECTOR;
-    } else if (tokens.size() > 0 && tokens.get(0).equals(SET)) {
+    } else if (isSetStatement(tokens)) {
       return StatementType.SET_PROPERTY;
-    } else if (tokens.size() > 0 && tokens.get(0).equals(UNSET)) {
+    } else if (isUnsetStatement(tokens)) {
       return StatementType.UNSET_PROPERTY;
-    } else if (tokens.size() > 0 && tokens.get(0).equals(DEFINE)) {
+    } else if (isDefineStatement(tokens)) {
       return StatementType.DEFINE_VARIABLE;
-    } else if (tokens.size() > 0 && tokens.get(0).equals(UNDEFINE)) {
+    } else if (isUndefineStatement(tokens)) {
       return StatementType.UNDEFINE_VARIABLE;
     } else {
       validateSupportedStatementType(tokens);
@@ -367,6 +369,22 @@ public final class CommandParser {
 
   private static boolean isDropConnectorStatement(final List<String> tokens) {
     return tokens.size() > 1 && tokens.get(0).equals(DROP) && tokens.get(1).equals(CONNECTOR);
+  }
+
+  private static boolean isSetStatement(final List<String> tokens) {
+    return tokens.size() > 0 && tokens.get(0).equals(SET);
+  }
+
+  private static boolean isUnsetStatement(final List<String> tokens) {
+    return tokens.size() > 0 && tokens.get(0).equals(UNSET);
+  }
+
+  private static boolean isDefineStatement(final List<String> tokens) {
+    return tokens.size() > 0 && tokens.get(0).equals(DEFINE);
+  }
+
+  private static boolean isUndefineStatement(final List<String> tokens) {
+    return tokens.size() > 0 && tokens.get(0).equals(UNDEFINE);
   }
 
   /**

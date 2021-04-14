@@ -315,8 +315,10 @@ public class ApplyMigrationCommand extends BaseCommand {
   ) {
     final List<String> commands = CommandParser.splitSql(migrationFileContent);
 
-    executeCommands(commands, ksqlClient, config, executionStart, migration, clock, previous, true);
-    executeCommands(commands, ksqlClient, config, executionStart, migration, clock, previous, false);
+    executeCommands(
+        commands, ksqlClient, config, executionStart, migration, clock, previous, true);
+    executeCommands(
+        commands, ksqlClient, config, executionStart, migration, clock, previous, false);
   }
 
   private void executeCommands(
@@ -336,7 +338,11 @@ public class ApplyMigrationCommand extends BaseCommand {
         final Map<String, String> variables = ksqlClient.getVariables().entrySet()
             .stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toString()));
         executeCommand(
-            CommandParser.transformToSqlCommand(command, variables), ksqlClient, properties, verify);
+            CommandParser.transformToSqlCommand(command, variables),
+            ksqlClient,
+            properties,
+            verify
+        );
       } catch (InterruptedException | ExecutionException | MigrationException e) {
         final String action = verify ? "parse" : "execute";
         final String errorMsg = String.format(
@@ -358,9 +364,30 @@ public class ApplyMigrationCommand extends BaseCommand {
       final Map<String, Object> properties,
       final boolean defineUndefineOnly
   ) throws ExecutionException, InterruptedException {
-    if (command instanceof SqlStatement && !defineUndefineOnly) {
+    if (!defineUndefineOnly) {
+      executeServerCommands(command, ksqlClient, properties);
+    }
+    if (command instanceof SqlDefineVariableCommand) {
+      ksqlClient.define(
+          ((SqlDefineVariableCommand) command).getVariable(),
+          ((SqlDefineVariableCommand) command).getValue()
+      );
+    } else if (command instanceof SqlUndefineVariableCommand) {
+      ksqlClient.undefine(((SqlUndefineVariableCommand) command).getVariable());
+    }
+  }
+
+  /**
+  * Executes commands that get sent to the server (everything besides define/undefine commands)
+  */
+  private void executeServerCommands(
+      final SqlCommand command,
+      final Client ksqlClient,
+      final Map<String, Object> properties
+  ) throws ExecutionException, InterruptedException {
+    if (command instanceof SqlStatement) {
       ksqlClient.executeStatement(command.getCommand(), new HashMap<>(properties)).get();
-    } else if (command instanceof SqlInsertValues && !defineUndefineOnly) {
+    } else if (command instanceof SqlInsertValues) {
       final List<FieldInfo> fields =
           ksqlClient.describeSource(((SqlInsertValues) command).getSourceName()).get().fields();
       ksqlClient.insertInto(
@@ -369,15 +396,15 @@ public class ApplyMigrationCommand extends BaseCommand {
               fields,
               ((SqlInsertValues) command).getColumns(),
               ((SqlInsertValues) command).getValues())).get();
-    } else if (command instanceof SqlCreateConnectorStatement && !defineUndefineOnly) {
+    } else if (command instanceof SqlCreateConnectorStatement) {
       ksqlClient.createConnector(
           ((SqlCreateConnectorStatement) command).getName(),
           ((SqlCreateConnectorStatement) command).isSource(),
           ((SqlCreateConnectorStatement) command).getProperties()
       ).get();
-    } else if (command instanceof SqlDropConnectorStatement && !defineUndefineOnly) {
+    } else if (command instanceof SqlDropConnectorStatement) {
       ksqlClient.dropConnector(((SqlDropConnectorStatement) command).getName()).get();
-    } else if (command instanceof SqlPropertyCommand && !defineUndefineOnly) {
+    } else if (command instanceof SqlPropertyCommand) {
       if (((SqlPropertyCommand) command).isSetCommand()
           && ((SqlPropertyCommand) command).getValue().isPresent()) {
         properties.put(
@@ -387,13 +414,6 @@ public class ApplyMigrationCommand extends BaseCommand {
       } else {
         properties.remove(((SqlPropertyCommand) command).getProperty());
       }
-    } else if (command instanceof SqlDefineVariableCommand) {
-      ksqlClient.define(
-          ((SqlDefineVariableCommand) command).getVariable(),
-          ((SqlDefineVariableCommand) command).getValue()
-      );
-    } else if (command instanceof SqlUndefineVariableCommand) {
-      ksqlClient.undefine(((SqlUndefineVariableCommand) command).getVariable());
     }
   }
 

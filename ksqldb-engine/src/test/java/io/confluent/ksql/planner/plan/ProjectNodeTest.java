@@ -83,7 +83,6 @@ public class ProjectNodeTest {
 
   private ProjectNode projectNode;
 
-
   @SuppressWarnings({"unchecked", "rawtypes"})
   @Before
   public void init() {

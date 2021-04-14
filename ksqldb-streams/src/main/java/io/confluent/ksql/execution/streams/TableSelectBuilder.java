@@ -119,20 +119,19 @@ public final class TableSelectBuilder {
       );
     }
 
+    final KTable<K, GenericRow> transFormedTable = table.getTable().transformValues(
+        () -> new KsTransformer<>(selectMapper.getTransformer(logger)),
+            selectName
+    );
+
+    final Optional<MaterializationInfo.Builder> materialization = matBuilder.map(b -> b.map(
+        pl -> (KsqlTransformer<Object, GenericRow>) selectMapper.getTransformer(pl),
+            selection.getSchema(),
+            queryContext)
+    );
+
     return table
-            .withTable(
-                    table.getTable().transformValues(
-                        () -> new KsTransformer<>(selectMapper.getTransformer(logger)),
-                            selectName
-                    ),
-                    selection.getSchema()
-            )
-            .withMaterialization(
-                    matBuilder.map(b -> b.map(
-                        pl -> (KsqlTransformer<Object, GenericRow>) selectMapper.getTransformer(pl),
-                        selection.getSchema(),
-                        queryContext)
-                    )
-            );
+            .withTable(transFormedTable, selection.getSchema())
+            .withMaterialization(materialization);
   }
 }

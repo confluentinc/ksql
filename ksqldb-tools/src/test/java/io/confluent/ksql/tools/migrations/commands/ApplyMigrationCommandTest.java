@@ -274,6 +274,27 @@ public class ApplyMigrationCommandTest {
   }
 
   @Test
+  public void shouldResetPropertiesBetweenMigrations() throws Exception {
+    // Given:
+    command = PARSER.parse("-a");
+    createMigrationFile(1, NAME, migrationsDir, "SET 'cat'='pat';");
+    createMigrationFile(2, NAME, migrationsDir, COMMAND);
+    when(versionQueryResult.get()).thenReturn(ImmutableList.of());
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(0));
+    final InOrder inOrder = inOrder(ksqlClient);
+    inOrder.verify(ksqlClient).executeStatement(COMMAND, ImmutableMap.of());
+    inOrder.verify(ksqlClient).close();
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
   public void shouldApplySecondMigration() throws Exception {
     // Given:
     command = PARSER.parse("-n");
@@ -460,7 +481,7 @@ public class ApplyMigrationCommandTest {
         Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
 
     // Then:
-    assertThat(result, is(0));
+    assertThat(result, is(1));
     Mockito.verify(ksqlClient, times(0)).executeStatement(any(), any());
     Mockito.verify(ksqlClient, times(0)).insertInto(any(), any());
   }

@@ -321,6 +321,12 @@ public class ApplyMigrationCommand extends BaseCommand {
         commands, ksqlClient, config, executionStart, migration, clock, previous, false);
   }
 
+  /**
+   * If validateOnly is set to true, then this parses each of the commands but only executes
+   * DEFINE/UNDEFINE commands (variables are needed for parsing INSERT INTO... VALUES, SET/UNSET
+   * and DEFINE commands). If validateOnly is set to fales, then each command will execute after
+   * parsing.
+   */
   private void executeCommands(
       final List<String> commands,
       final Client ksqlClient,
@@ -329,7 +335,7 @@ public class ApplyMigrationCommand extends BaseCommand {
       final MigrationFile migration,
       final Clock clock,
       final String previous,
-      final boolean verify
+      final boolean validateOnly
   ) {
     cleanUpJavaClientVariables(ksqlClient);
     final Map<String, Object> properties = new HashMap<>();
@@ -341,10 +347,10 @@ public class ApplyMigrationCommand extends BaseCommand {
             CommandParser.transformToSqlCommand(command, variables),
             ksqlClient,
             properties,
-            verify
+            validateOnly
         );
       } catch (InterruptedException | ExecutionException | MigrationException e) {
-        final String action = verify ? "parse" : "execute";
+        final String action = validateOnly ? "parse" : "execute";
         final String errorMsg = String.format(
             "Failed to %s sql: %s. Error: %s", action, command, e.getMessage());
         updateState(config, ksqlClient, MigrationState.ERROR,
@@ -365,7 +371,7 @@ public class ApplyMigrationCommand extends BaseCommand {
       final boolean defineUndefineOnly
   ) throws ExecutionException, InterruptedException {
     if (!defineUndefineOnly) {
-      executeServerCommands(command, ksqlClient, properties);
+      executeNonVariableCommands(command, ksqlClient, properties);
     }
     if (command instanceof SqlDefineVariableCommand) {
       ksqlClient.define(
@@ -378,9 +384,9 @@ public class ApplyMigrationCommand extends BaseCommand {
   }
 
   /**
-  * Executes commands that get sent to the server (everything besides define/undefine commands)
-  */
-  private void executeServerCommands(
+   * Executes everything besides define/undefine commands
+   */
+  private void executeNonVariableCommands(
       final SqlCommand command,
       final Client ksqlClient,
       final Map<String, Object> properties

@@ -229,7 +229,7 @@ public final class CommandParser {
   }
 
   private static SqlInsertValues getInsertValuesStatement(
-      final String sql, Map<String, String> variables) {
+      final String sql, final Map<String, String> variables) {
     final InsertValues parsedStatement;
     try {
       final String substituted = VariableSubstitutor.substitute(

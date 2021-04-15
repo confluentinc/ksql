@@ -202,6 +202,8 @@ public final class CommandParser {
   */
   public static SqlCommand transformToSqlCommand(
       final String sql, final Map<String, String> variables) {
+
+    // Splits the sql string into tokens(uppercased keyowords, identifiers and strings)
     final List<String> tokens = Arrays
         .stream(sql.toUpperCase().split(QUOTED_STRING_OR_WHITESPACE))
         .filter(s -> !s.isEmpty())
@@ -326,6 +328,9 @@ public final class CommandParser {
     return new SqlUndefineVariableCommand(sql, undefineVariableMatcher.group(1));
   }
 
+  /**
+   * Determines if a statement is supported and the type of command it is based on a list of tokens.
+   */
   private static StatementType getStatementType(final List<String> tokens) {
     if (isInsertValuesStatement(tokens)) {
       return StatementType.INSERT_VALUES;

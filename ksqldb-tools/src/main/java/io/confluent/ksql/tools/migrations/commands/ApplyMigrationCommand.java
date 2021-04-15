@@ -324,7 +324,7 @@ public class ApplyMigrationCommand extends BaseCommand {
   /**
    * If validateOnly is set to true, then this parses each of the commands but only executes
    * DEFINE/UNDEFINE commands (variables are needed for parsing INSERT INTO... VALUES, SET/UNSET
-   * and DEFINE commands). If validateOnly is set to fales, then each command will execute after
+   * and DEFINE commands). If validateOnly is set to false, then each command will execute after
    * parsing.
    */
   private void executeCommands(
@@ -370,9 +370,6 @@ public class ApplyMigrationCommand extends BaseCommand {
       final Map<String, Object> properties,
       final boolean defineUndefineOnly
   ) throws ExecutionException, InterruptedException {
-    if (!defineUndefineOnly) {
-      executeNonVariableCommands(command, ksqlClient, properties);
-    }
     if (command instanceof SqlDefineVariableCommand) {
       ksqlClient.define(
           ((SqlDefineVariableCommand) command).getVariable(),
@@ -380,6 +377,8 @@ public class ApplyMigrationCommand extends BaseCommand {
       );
     } else if (command instanceof SqlUndefineVariableCommand) {
       ksqlClient.undefine(((SqlUndefineVariableCommand) command).getVariable());
+    } else if (!defineUndefineOnly) {
+      executeNonVariableCommands(command, ksqlClient, properties);
     }
   }
 

@@ -926,6 +926,9 @@
           "items" : {
             "type" : "string"
           }
+        },
+        "internalFormats" : {
+          "$ref" : "#/definitions/Formats"
         }
       },
       "title" : "tableSelectV1",

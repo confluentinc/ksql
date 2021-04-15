@@ -18,6 +18,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
@@ -28,23 +29,27 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
 
   private final ExecutionStepPropertiesV1 properties;
   private final ExecutionStep<KTableHolder<K>> source;
   private final ImmutableList<ColumnName> keyColumnNames;
   private final ImmutableList<SelectExpression> selectExpressions;
+  private final Formats internalFormats;
 
   public TableSelect(
       final ExecutionStepPropertiesV1 props,
       final ExecutionStep<KTableHolder<K>> source,
       final List<ColumnName> keyColumnNames,
-      final List<SelectExpression> selectExpressions
+      final List<SelectExpression> selectExpressions,
+      final Formats internalFormats
   ) {
     this.properties = requireNonNull(props, "props");
     this.source = requireNonNull(source, "source");
     this.keyColumnNames = ImmutableList.copyOf(keyColumnNames);
     this.selectExpressions = ImmutableList.copyOf(selectExpressions);
+    this.internalFormats = internalFormats;
 
     if (selectExpressions.isEmpty()) {
       throw new IllegalArgumentException("Need at least one select expression");
@@ -68,9 +73,14 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
       @JsonProperty(value = "source", required = true) final ExecutionStep<KTableHolder<K>> source,
       @JsonProperty(value = "keyColumnNames") final Optional<List<ColumnName>> keyColumnNames,
       @JsonProperty(value = "selectExpressions", required = true) final
-      List<SelectExpression> selectExpressions
+      List<SelectExpression> selectExpressions,
+      @JsonProperty(value = "internalFormats") final Optional<Formats> internalFormats
   ) {
-    this(props, source, keyColumnNames.orElseGet(ImmutableList::of), selectExpressions);
+    this(props,
+        source,
+        keyColumnNames.orElseGet(ImmutableList::of),
+        selectExpressions,
+        internalFormats.orElse(null));
   }
 
   @Override
@@ -123,11 +133,17 @@ public class TableSelect<K> implements ExecutionStep<KTableHolder<K>> {
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(keyColumnNames, that.keyColumnNames)
-        && Objects.equals(selectExpressions, that.selectExpressions);
+        && Objects.equals(selectExpressions, that.selectExpressions)
+        && Objects.equals(internalFormats, that.internalFormats);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(properties, source, keyColumnNames, selectExpressions);
+    return Objects.hash(properties, source, keyColumnNames, selectExpressions, internalFormats);
   }
+
+  public Formats getInternalFormats() {
+    return internalFormats;
+  }
+
 }

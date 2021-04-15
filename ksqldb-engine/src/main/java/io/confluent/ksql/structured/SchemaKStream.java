@@ -145,7 +145,8 @@ public class SchemaKStream<K> {
       final List<ColumnName> keyColumnNames,
       final List<SelectExpression> selectExpressions,
       final Stacker contextStacker,
-      final PlanBuildContext buildContext
+      final PlanBuildContext buildContext,
+      final FormatInfo valueFormat
   ) {
     final StreamSelect<K> step = ExecutionStepFactory.streamSelect(
         contextStacker,

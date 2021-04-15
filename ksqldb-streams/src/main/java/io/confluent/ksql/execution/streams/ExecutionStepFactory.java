@@ -288,7 +288,8 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<KTableHolder<K>> source,
       final List<ColumnName> keyColumnNames,
-      final List<SelectExpression> selectExpressions
+      final List<SelectExpression> selectExpressions,
+      final Formats format
   ) {
     final ExecutionStepPropertiesV1 properties = new ExecutionStepPropertiesV1(
         stacker.getQueryContext()
@@ -297,7 +298,8 @@ public final class ExecutionStepFactory {
         properties,
         source,
         keyColumnNames,
-        selectExpressions
+        selectExpressions,
+        format
     );
   }
 

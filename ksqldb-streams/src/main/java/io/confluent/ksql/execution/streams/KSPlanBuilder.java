@@ -347,7 +347,12 @@ public final class KSPlanBuilder implements PlanBuilder {
       final TableSelect<K> tableSelect,
       final PlanInfo planInfo) {
     final KTableHolder<K> source = tableSelect.getSource().build(this, planInfo);
-    return TableSelectBuilder.build(source, tableSelect, buildContext);
+    return TableSelectBuilder.build(source,
+            tableSelect,
+            buildContext,
+            tableSelect.getInternalFormats(),
+            streamsFactories.getMaterializedFactory()
+    );
   }
 
   @Override

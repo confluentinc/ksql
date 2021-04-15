@@ -163,6 +163,8 @@ public class SchemaKTableTest {
   private PlanInfo planInfo;
   @Mock
   private MaterializationInfo.Builder materializationBuilder;
+  @Mock
+  private FormatInfo internalFormats;
 
   @Before
   public void init() {
@@ -284,7 +286,8 @@ public class SchemaKTableTest {
         ImmutableList.of(ColumnName.of("K")),
         projectNode.getSelectExpressions(),
         childContextStacker,
-        buildContext
+        buildContext,
+        internalFormats
     );
 
     // Then:
@@ -407,7 +410,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable<?> projectedSchemaKStream = initialSchemaKTable.select(ImmutableList.of(),
-        projectNode.getSelectExpressions(), childContextStacker, buildContext);
+        projectNode.getSelectExpressions(), childContextStacker, buildContext, internalFormats);
 
     // Then:
     assertThat(projectedSchemaKStream.getSchema(),
@@ -430,7 +433,8 @@ public class SchemaKTableTest {
         ImmutableList.of(),
         projectNode.getSelectExpressions(),
         childContextStacker,
-        buildContext
+        buildContext,
+        internalFormats
     );
 
     // Then:

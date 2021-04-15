@@ -228,22 +228,22 @@ public class MigrationsTest {
             "CREATE SOURCE CONNECTOR C WITH ('connector.class'='org.apache.kafka.connect.tools.MockSourceConnector');\n" +
             "CREATE SINK CONNECTOR D WITH ('connector.class'='org.apache.kafka.connect.tools.MockSinkConnector', 'topics'='d');\n" +
             "CREATE TABLE blue (ID BIGINT PRIMARY KEY, A STRING) WITH (KAFKA_TOPIC='blue', PARTITIONS=1, VALUE_FORMAT='DELIMITED');" +
-            "DROP TABLE blue;"
+            "drop TABLE blue;"
     );
     createMigrationFile(
         2,
         "bar_bar_BAR",
         configFilePath,
         "CREATE OR REPLACE STREAM FOO (A STRING, B INT) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='JSON');"
-            + "ALTER STREAM FOO ADD COLUMN C BIGINT;" +
+            + "ALTeR STREAM FOO ADD COLUMN C BIGINT;" +
             "/* add some '''data''' to FOO */" +
-            "INSERT INTO FOO VALUES ('HELLO', 50, -4325);" +
+            "INsERT INTO FOO VALUES ('HELLO', 50, -4325);" +
             "INSERT INTO FOO (A) VALUES ('GOOD''BYE');" +
             "INSERT INTO FOO (A) VALUES ('mua--ha\nha');" +
             "INSERT INTO FOO (A) VALUES ('');" +
-            "SET 'ksql.output.topic.name.prefix' = 'cool';" +
+            "SeT 'ksql.output.topic.name.prefix' = 'cool';" +
             "CREATE STREAM `bar` AS SELECT CONCAT(A, 'woo''hoo') AS A FROM FOO;" +
-            "UNSET 'ksql.output.topic.name.prefix';" +
+            "UnSET 'ksql.output.topic.name.prefix';" +
             "CREATE STREAM CAR AS SELECT * FROM FOO;" +
             "DROP CONNECTOR D;" +
             "INSERT INTO `bar` SELECT A FROM CAR;" +

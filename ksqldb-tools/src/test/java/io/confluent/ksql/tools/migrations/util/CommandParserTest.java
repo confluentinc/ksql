@@ -109,7 +109,7 @@ public class CommandParserTest {
 
   @Test
   public void shouldParseSetUnsetStatements() {
-    List<SqlCommand> commands = CommandParser.parse("SET 'foo.property'='bar';UNSET 'foo.property';");
+    List<SqlCommand> commands = CommandParser.parse("SeT 'foo.property'='bar';UnSeT 'foo.property';");
     assertThat(commands.size(), is(2));
     assertThat(commands.get(0), instanceOf(SqlPropertyCommand.class));
     assertThat(commands.get(0).getCommand(), is("SET 'foo.property'='bar';"));

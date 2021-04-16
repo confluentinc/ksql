@@ -23,8 +23,10 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import io.vertx.core.http.ServerWebSocket;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -42,11 +44,17 @@ public class SessionUtilTest {
   @Captor
   private ArgumentCaptor<String> reasonCaptor;
 
+  @Before
+  public void setUp() {
+    when(websocket.writeFinalTextFrame(any(String.class))).thenReturn(websocket);
+  }
+
   @Test
   public void shouldCloseQuietly() throws Exception {
     // Given:
     doThrow(new RuntimeException("Boom")).when(websocket)
         .close(any(Short.class), any(String.class));
+
 
     // When:
     SessionUtil.closeSilently(websocket, INVALID_MESSAGE_TYPE.code(), "reason");
@@ -65,6 +73,7 @@ public class SessionUtilTest {
     SessionUtil.closeSilently(websocket, INVALID_MESSAGE_TYPE.code(), reason);
 
     // Then:
+    verify(websocket).writeFinalTextFrame(any(String.class));
     verify(websocket).close(codeCaptor.capture(), reasonCaptor.capture());
     assertThat(reasonCaptor.getValue(), is(reason));
   }
@@ -80,6 +89,7 @@ public class SessionUtilTest {
     SessionUtil.closeSilently(websocket, INVALID_MESSAGE_TYPE.code(), reason);
 
     // Then:
+    verify(websocket).writeFinalTextFrame(any(String.class));
     verify(websocket).close(codeCaptor.capture(), reasonCaptor.capture());
     assertThat(reasonCaptor.getValue(), is(
         "A long message that is longer than the maximum size that the CloseReason class "
@@ -99,6 +109,7 @@ public class SessionUtilTest {
     SessionUtil.closeSilently(websocket, INVALID_MESSAGE_TYPE.code(), reason);
 
     // Then:
+    verify(websocket).writeFinalTextFrame(any(String.class));
     verify(websocket).close(codeCaptor.capture(), reasonCaptor.capture());
     assertThat(reasonCaptor.getValue(), is(
         "A long message that is longer than the maximum size that the CloseReason class will "

@@ -248,7 +248,7 @@ public class RestApiTest {
     );
 
     // Then:
-    assertThat(messages, hasSize(HEADER + LIMIT));
+    assertThat(messages, hasSize(HEADER + LIMIT + 1));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0), is("["
         + "{\"name\":\"PAGEID\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
@@ -273,7 +273,7 @@ public class RestApiTest {
     );
 
     // Then:
-    assertThat(messages, hasSize(HEADER + LIMIT));
+    assertThat(messages, hasSize(HEADER + LIMIT + 1));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0), is("["
         + "{\"name\":\"VAL\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}}"
@@ -296,7 +296,7 @@ public class RestApiTest {
     );
 
     // Then:
-    assertThat(messages, hasSize(HEADER + LIMIT));
+    assertThat(messages, hasSize(HEADER + LIMIT + 1));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0), is("["
         + "{\"name\":\"PAGEID\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
@@ -321,7 +321,7 @@ public class RestApiTest {
     );
 
     // Then:
-    assertThat(messages, hasSize(HEADER + LIMIT));
+    assertThat(messages, hasSize(HEADER + LIMIT + 1));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0), is("["
         + "{\"name\":\"VAL\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}}"
@@ -510,7 +510,7 @@ public class RestApiTest {
     );
 
     // Then:
-    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 2));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
         is("["
@@ -531,7 +531,7 @@ public class RestApiTest {
     );
 
     // Then:
-    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 2));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
         is("["
@@ -552,7 +552,7 @@ public class RestApiTest {
     );
 
     // Then:
-    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 2));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
         is("["
@@ -572,7 +572,7 @@ public class RestApiTest {
     );
 
     // Then:
-    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 2));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
         is("["
@@ -664,7 +664,7 @@ public class RestApiTest {
         MediaType.APPLICATION_JSON);
 
     // Then:
-    assertThat(messages, hasSize(LIMIT));
+    assertThat(messages, hasSize(LIMIT + 1));
   }
 
   @Test

@@ -118,9 +118,8 @@ public final class HARouting implements AutoCloseable {
     if (anyPartitionsEmpty) {
       LOG.debug("Unable to execute pull query: {}. All nodes are dead or exceed max allowed lag.",
                 statement.getStatementText());
-      throw new MaterializationException(String.format(
-          "Unable to execute pull query \"%s\". All nodes are dead or exceed max allowed lag.",
-          statement.getStatementText()));
+      throw new MaterializationException("Unable to execute pull query. "
+          + "All nodes are dead or exceed max allowed lag.");
     }
 
     final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
@@ -188,11 +187,7 @@ public final class HARouting implements AutoCloseable {
         try {
           routingResult = future.get();
         } catch (ExecutionException e) {
-          LOG.warn("Error routing query {} to host {} at timestamp {} with exception {}",
-              statement.getStatementText(), node, System.currentTimeMillis(), e.getCause());
-          throw new MaterializationException(String.format(
-              "Unable to execute pull query \"%s\". %s",
-              statement.getStatementText(), e.getCause().getMessage()));
+          throw new MaterializationException("Unable to execute pull query", e);
         }
         if (routingResult == RoutingResult.STANDBY_FALLBACK) {
           nextRoundRemaining.addAll(groupedByHost.get(node));
@@ -227,9 +222,7 @@ public final class HARouting implements AutoCloseable {
     for (KsqlPartitionLocation location : locations) {
       // If one of the partitions required is out of nodes, then we cannot continue.
       if (round >= location.getNodes().size()) {
-        throw new MaterializationException(String.format(
-            "Unable to execute pull query: \"%s\". Exhausted standby hosts to try.",
-            statement.getStatementText()));
+        throw new MaterializationException("Exhausted standby hosts to try.");
       }
       final KsqlNode nextHost = location.getNodes().get(round);
       groupedByHost.computeIfAbsent(nextHost, h -> new ArrayList<>()).add(location);
@@ -278,13 +271,10 @@ public final class HARouting implements AutoCloseable {
         pullPhysicalPlan.execute(locations, pullQueryQueue,  rowFactory);
         return RoutingResult.SUCCESS;
       } catch (StandbyFallbackException e) {
-        LOG.warn("Error executing query {} locally at node {}. Falling back to standby state which "
-                + "may return stale results",
-            statement.getStatementText(), node, e.getCause());
+        LOG.warn("Error executing query locally at node {}. Falling back to standby state which "
+                + "may return stale results", node, e.getCause());
         return RoutingResult.STANDBY_FALLBACK;
       } catch (Exception e) {
-        LOG.error("Error executing query {} locally at node {}",
-            statement.getStatementText(), node.location(), e.getCause());
         throw new KsqlException(
             String.format("Error executing query locally at node %s: %s", node.location(),
                 e.getMessage()),
@@ -301,16 +291,12 @@ public final class HARouting implements AutoCloseable {
             outputSchema);
         return RoutingResult.SUCCESS;
       } catch (StandbyFallbackException e) {
-        LOG.warn("Error forwarding query {} to node {}. Falling back to standby state which may "
-                + "return stale results",
-            statement.getStatementText(), node.location(), e.getCause());
+        LOG.warn("Error forwarding query to node {}. Falling back to standby state which may "
+                + "return stale results", node.location(), e.getCause());
         return RoutingResult.STANDBY_FALLBACK;
       } catch (Exception e) {
-        LOG.error("Error forwarding query {} to node {}",
-                  statement.getStatementText(), node, e.getCause());
         throw new KsqlException(
-            String.format("Error forwarding query to node %s: %s", node.location(),
-                e.getMessage()),
+            String.format("Error forwarding query to node %s: %s", node.location(), e.getMessage()),
             e
         );
       }

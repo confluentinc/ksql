@@ -30,7 +30,7 @@
 * update default kafka log4j appender configs for sync sends ([#7078](https://github.com/confluentinc/ksql/pull/7078)) ([8bc16b3](https://github.com/confluentinc/ksql/commit/8bc16b3f8b6d6a785f65c73c510180db443ef4aa))
 
 
-## [0.16.0](https://github.com/confluentinc/ksql/releases/tag/v0.16.0-ksqldb) (2021-03-15)
+## [0.16.0](https://github.com/confluentinc/ksql/releases/tag/v0.16.0-ksqldb) (Not released publicly, build hiccups)
 
 ### Features
 

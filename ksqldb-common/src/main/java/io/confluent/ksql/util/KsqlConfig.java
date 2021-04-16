@@ -154,6 +154,12 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_WRAP_SINGLE_VALUES =
       "ksql.persistence.wrap.single.values";
 
+  public static final String KSQL_CCLOUD_QUERYANONYMIZER_CLUSTER_NAMESPACE =
+      "ksql.ccloud.queryanonymizer.cluster_namespace";
+  private static final String KSQL_CCLOUD_QUERYANONYMIZER_CLUSTER_NAMESPACE_TAG =
+      "Namespace used in the query anonymization process, representing cluster id and "
+          + "organization id respectively. For example, 'clusterid.orgid'.";
+
   public static final String KSQL_CUSTOM_METRICS_TAGS = "ksql.metrics.tags.custom";
   private static final String KSQL_CUSTOM_METRICS_TAGS_DOC =
       "A list of tags to be included with emitted JMX metrics, formatted as a string of key:value "
@@ -688,6 +694,12 @@ public class KsqlConfig extends AbstractConfig {
             "",
             ConfigDef.Importance.LOW,
             KSQL_CUSTOM_METRICS_TAGS_DOC
+        ).define(
+            KSQL_CCLOUD_QUERYANONYMIZER_CLUSTER_NAMESPACE,
+            ConfigDef.Type.STRING,
+            KSQL_SERVICE_ID_CONFIG,
+            ConfigDef.Importance.LOW,
+            KSQL_CCLOUD_QUERYANONYMIZER_CLUSTER_NAMESPACE_TAG
         ).define(
             KSQL_CUSTOM_METRICS_EXTENSION,
             ConfigDef.Type.CLASS,

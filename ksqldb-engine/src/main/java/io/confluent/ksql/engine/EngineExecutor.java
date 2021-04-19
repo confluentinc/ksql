@@ -232,7 +232,7 @@ final class EngineExecutor {
             pullPlannerOptions.debugString(),
             loc);
       } else {
-        LOG.warn("Failure to execute pull query. {} {}",
+        LOG.error("Failure to execute pull query. {} {}",
             routingOptions.debugString(),
             pullPlannerOptions.debugString(),
             e);

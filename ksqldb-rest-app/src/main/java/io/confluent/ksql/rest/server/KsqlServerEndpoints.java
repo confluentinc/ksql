@@ -31,6 +31,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.physical.pull.HARouting;
+import io.confluent.ksql.physical.scalable_push.PushRouting;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
@@ -89,6 +90,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter pullConcurrencyLimiter;
   private final HARouting routing;
+  private final PushRouting pushRouting;
   private final Optional<LocalCommands> localCommands;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumber
@@ -112,6 +114,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
       final HARouting routing,
+      final PushRouting pushRouting,
       final Optional<LocalCommands> localCommands
   ) {
 
@@ -136,6 +139,7 @@ public class KsqlServerEndpoints implements Endpoints {
     this.rateLimiter = Objects.requireNonNull(rateLimiter);
     this.pullConcurrencyLimiter = pullConcurrencyLimiter;
     this.routing = Objects.requireNonNull(routing);
+    this.pushRouting = pushRouting;
     this.localCommands = Objects.requireNonNull(localCommands);
   }
 
@@ -153,7 +157,7 @@ public class KsqlServerEndpoints implements Endpoints {
       try {
         return new QueryEndpoint(
             ksqlEngine, ksqlConfig, ksqlRestConfig, routingFilterFactory, pullQueryMetrics,
-            rateLimiter, pullConcurrencyLimiter, routing, localCommands)
+            rateLimiter, pullConcurrencyLimiter, routing, pushRouting, localCommands)
             .createQueryPublisher(
                 sql,
                 properties,

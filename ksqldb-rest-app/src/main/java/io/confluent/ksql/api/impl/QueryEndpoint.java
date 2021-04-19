@@ -36,6 +36,7 @@ import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullQueryResult;
+import io.confluent.ksql.physical.scalable_push.PushRouting;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.LocalCommands;
@@ -73,6 +74,7 @@ public class QueryEndpoint {
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter pullConcurrencyLimiter;
   private final HARouting routing;
+  private final PushRouting pushRouting;
   private final Optional<LocalCommands> localCommands;
 
   public QueryEndpoint(
@@ -84,6 +86,7 @@ public class QueryEndpoint {
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
       final HARouting routing,
+      final PushRouting pushRouting,
       final Optional<LocalCommands> localCommands
   ) {
     this.ksqlEngine = ksqlEngine;
@@ -94,6 +97,7 @@ public class QueryEndpoint {
     this.rateLimiter = rateLimiter;
     this.pullConcurrencyLimiter = pullConcurrencyLimiter;
     this.routing = routing;
+    this.pushRouting = pushRouting;
     this.localCommands = localCommands;
   }
 

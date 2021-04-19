@@ -27,6 +27,8 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
+import io.confluent.ksql.physical.scalable_push.PushRouting;
+import io.confluent.ksql.physical.scalable_push.PushRoutingOptions;
 import io.confluent.ksql.planner.PullPlannerOptions;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
@@ -34,6 +36,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collections;
 import java.util.List;
@@ -159,6 +162,14 @@ public interface KsqlExecutionContext {
       PullPlannerOptions pullPlannerOptions,
       Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       boolean startImmediately
+  );
+
+
+  ScalablePushQueryMetadata executeScalablePushQuery(
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<Query> statement,
+      final PushRouting pushRouting,
+      final PushRoutingOptions pushRoutingOptions
   );
 
   /**

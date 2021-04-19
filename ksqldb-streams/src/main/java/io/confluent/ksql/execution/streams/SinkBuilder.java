@@ -86,6 +86,10 @@ public final class SinkBuilder {
             + StreamsUtil.buildOpName(queryContext))))
         .orElse(stream);
 
+//    stream.peek((k, v) -> {
+//      System.out.println("PEEK: " + k.toString() + ", " + v.toString());
+//    });
+
     transformed.to(topicName, Produced.with(keySerde, valueSerde));
   }
 

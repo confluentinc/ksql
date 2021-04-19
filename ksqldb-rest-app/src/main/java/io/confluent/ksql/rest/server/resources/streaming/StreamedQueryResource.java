@@ -37,6 +37,8 @@ import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullQueryResult;
+import io.confluent.ksql.physical.scalable_push.PushRouting;
+import io.confluent.ksql.physical.scalable_push.ScalablePushUtil;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
@@ -60,6 +62,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Clock;
@@ -98,6 +101,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter concurrencyLimiter;
   private final HARouting routing;
+  private final PushRouting pushRouting;
   private final Optional<LocalCommands> localCommands;
 
   private KsqlConfig ksqlConfig;
@@ -119,6 +123,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter concurrencyLimiter,
       final HARouting routing,
+      final PushRouting pushRouting,
       final Optional<LocalCommands> localCommands
   ) {
     this(
@@ -137,6 +142,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         rateLimiter,
         concurrencyLimiter,
         routing,
+        pushRouting,
         localCommands
     );
   }
@@ -160,6 +166,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter concurrencyLimiter,
       final HARouting routing,
+      final PushRouting pushRouting,
       final Optional<LocalCommands> localCommands
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
@@ -182,6 +189,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
     this.concurrencyLimiter = Objects.requireNonNull(concurrencyLimiter, "concurrencyLimiter");
     this.routing = Objects.requireNonNull(routing, "routing");
+    this.pushRouting = pushRouting;
     this.localCommands = Objects.requireNonNull(localCommands, "localCommands");
   }
 
@@ -268,6 +276,15 @@ public class StreamedQueryResource implements KsqlConfigurable {
               isInternalRequest,
               connectionClosedFuture,
               metricsCallbackHolder
+          );
+        }
+        if (ScalablePushUtil.isScalablePushQuery(statement)) {
+          return handleScalablePushQuery(
+              securityContext.getServiceContext(),
+              queryStmt,
+              configProperties,
+              request.getRequestProperties(),
+              connectionClosedFuture
           );
         }
 
@@ -402,6 +419,33 @@ public class StreamedQueryResource implements KsqlConfigurable {
       optionalDecrementer.ifPresent(Decrementer::decrementAtMostOnce);
       throw t;
     }
+  }
+
+  private EndpointResponse handleScalablePushQuery(
+      final ServiceContext serviceContext,
+      final PreparedStatement<Query> statement,
+      final Map<String, Object> streamsProperties,
+      final Map<String, Object> requestProperties,
+      final CompletableFuture<Void> connectionClosedFuture
+  ) {
+    final ConfiguredStatement<Query> configured = ConfiguredStatement
+        .of(statement, SessionConfig.of(ksqlConfig, streamsProperties));
+
+    final PushQueryConfigRoutingOptions routingOptions =
+        new PushQueryConfigRoutingOptions(requestProperties);
+
+    final ScalablePushQueryMetadata query = ksqlEngine
+        .executeScalablePushQuery(serviceContext, configured, pushRouting, routingOptions);
+
+    final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
+        query,
+        disconnectCheckInterval.toMillis(),
+        OBJECT_MAPPER,
+        connectionClosedFuture
+    );
+
+    log.info("Streaming query '{}'", statement.getStatementText());
+    return EndpointResponse.ok(queryStreamWriter);
   }
 
   private EndpointResponse handlePushQuery(

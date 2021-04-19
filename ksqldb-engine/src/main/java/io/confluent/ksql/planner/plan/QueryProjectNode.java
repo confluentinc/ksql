@@ -71,8 +71,10 @@ public class QueryProjectNode extends ProjectNode {
   private final List<ExpressionEvaluator> compiledSelectExpressions;
   private final RewrittenAnalysis analysis;
   private final PullPlannerOptions pullPlannerOptions;
+  private final boolean isScalablePush;
   private final boolean isSelectStar;
   private final boolean addAdditionalColumnsToIntermediateSchema;
+  private final boolean addKeyColumnsToIntermediateSchema;
 
   public QueryProjectNode(
       final PlanNodeId id,
@@ -82,16 +84,19 @@ public class QueryProjectNode extends ProjectNode {
       final KsqlConfig ksqlConfig,
       final RewrittenAnalysis analysis,
       final boolean isWindowed,
-      final PullPlannerOptions pullPlannerOptions
+      final PullPlannerOptions pullPlannerOptions,
+      final boolean isScalablePush
   ) {
     super(id, source);
     this.projection = Projection.of(selectItems);
     this.analysis = Objects.requireNonNull(analysis, "analysis");
     this.pullPlannerOptions = Objects.requireNonNull(pullPlannerOptions, "pullPlannerOptions");
+    this.isScalablePush = isScalablePush;
     this.selectExpressions = ImmutableList.copyOf(SelectionUtil
         .buildSelectExpressions(getSource(), projection.selectItems(), Optional.empty()));
     this.isSelectStar = isSelectStar();
     this.addAdditionalColumnsToIntermediateSchema = shouldAddAdditionalColumnsInSchema();
+    this.addKeyColumnsToIntermediateSchema = isScalablePush;
     this.outputSchema = buildOutputSchema(metaStore);
     this.intermediateSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
           source.getSchema(),
@@ -139,6 +144,10 @@ public class QueryProjectNode extends ProjectNode {
     return addAdditionalColumnsToIntermediateSchema;
   }
 
+  public boolean getAddKeyColumnsToIntermediateSchema() {
+    return addKeyColumnsToIntermediateSchema;
+  }
+
   /**
    * Builds the output schema of the project node.
    * The output schema comprises of exactly the columns that appear in the SELECT clause of the
@@ -166,6 +175,17 @@ public class QueryProjectNode extends ProjectNode {
           .collect(Collectors.toList());
 
       outputSchema = selectOutputSchema(metaStore, projects, isWindowed);
+    }
+
+    if (isScalablePush) {
+      final Builder builder = LogicalSchema.builder();
+
+//      builder.keyColumns(parentSchema.key());
+
+      outputSchema.columns()
+          .forEach(builder::valueColumn);
+
+      return builder.build();
     }
     return outputSchema;
   }

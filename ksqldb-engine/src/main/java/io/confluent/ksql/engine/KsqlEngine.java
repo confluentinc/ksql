@@ -37,6 +37,8 @@ import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
+import io.confluent.ksql.physical.scalable_push.PushRouting;
+import io.confluent.ksql.physical.scalable_push.PushRoutingOptions;
 import io.confluent.ksql.planner.PullPlannerOptions;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
@@ -48,6 +50,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.Closeable;
 import java.util.List;
@@ -274,6 +277,19 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       // add the statement text to the KsqlException
       throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e.getCause());
     }
+  }
+
+  @Override
+  public ScalablePushQueryMetadata executeScalablePushQuery(
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<Query> statement,
+      final PushRouting pushRouting,
+      final PushRoutingOptions pushRoutingOptions
+  ) {
+      final ScalablePushQueryMetadata query = EngineExecutor
+          .create(primaryContext, serviceContext, statement.getSessionConfig())
+          .executeScalablePushQuery(statement, pushRouting, pushRoutingOptions);
+      return query;
   }
 
   @Override

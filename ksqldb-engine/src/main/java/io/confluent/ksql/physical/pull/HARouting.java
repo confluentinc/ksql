@@ -438,7 +438,7 @@ public final class HARouting implements AutoCloseable {
     }
   }
 
-  private enum RoutingResult {
+  public enum RoutingResult {
     SUCCESS,
     STANDBY_FALLBACK
   }

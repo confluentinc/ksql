@@ -121,7 +121,8 @@ public class QueryProjectNodeTest {
         ksqlConfig,
         analysis,
         false,
-        plannerOptions
+        plannerOptions,
+        false
     );
 
     // Then:
@@ -145,7 +146,8 @@ public class QueryProjectNodeTest {
         ksqlConfig,
         analysis,
         true,
-        plannerOptions
+        plannerOptions,
+        false
     );
 
     // Then:
@@ -168,7 +170,8 @@ public class QueryProjectNodeTest {
         ksqlConfig,
         analysis,
         false,
-        plannerOptions
+        plannerOptions,
+        false
     );
 
     // Then:
@@ -190,7 +193,8 @@ public class QueryProjectNodeTest {
         ksqlConfig,
         analysis,
         false,
-        plannerOptions
+        plannerOptions,
+        false
     );
 
     // Then:
@@ -225,7 +229,8 @@ public class QueryProjectNodeTest {
         ksqlConfig,
         analysis,
         true,
-        plannerOptions
+        plannerOptions,
+        false
     );
 
     // Then:
@@ -262,7 +267,8 @@ public class QueryProjectNodeTest {
         ksqlConfig,
         analysis,
         true,
-        plannerOptions
+        plannerOptions,
+        false
     );
 
     // Then:
@@ -291,7 +297,8 @@ public class QueryProjectNodeTest {
         ksqlConfig,
         analysis,
         false,
-        plannerOptions
+        plannerOptions,
+        false
     );
 
     // Then:

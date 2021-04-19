@@ -42,6 +42,7 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.physical.pull.HARouting;
+import io.confluent.ksql.physical.scalable_push.PushRouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -143,6 +144,8 @@ public class KsqlRestApplicationTest {
   private ConcurrencyLimiter concurrencyLimiter;
   @Mock
   private HARouting haRouting;
+  @Mock
+  private PushRouting pushRouting;
 
   @Mock
   private Vertx vertx;
@@ -487,6 +490,7 @@ public class KsqlRestApplicationTest {
         rateLimiter,
         concurrencyLimiter,
         haRouting,
+        pushRouting,
         Optional.empty()
     );
   }

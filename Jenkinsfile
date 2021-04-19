@@ -345,7 +345,7 @@ def job = {
             withDockerServer([uri: dockerHost()]) {
                 config.dockerRepos.eachWithIndex { dockerRepo, index ->
                     dockerArtifact = config.dockerArtifacts[index]
-                    sh "docker tag ${config.dockerRegistry}${dockerArtifact}:${config.docker_tag} ${config.dockerRegistry}${dockerRepo}:${config.docker_tag}"
+                    sh "docker tag ${config.dockerRegistry}${dockerArtifact}:${config.docker_tag}-1 ${config.dockerRegistry}${dockerRepo}:${config.docker_tag}"
                 }
             }
         }

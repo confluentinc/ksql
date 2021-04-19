@@ -138,6 +138,7 @@
     "ksql.udfs.enabled" : "true",
     "ksql.udf.enable.security.manager" : "true",
     "ksql.connect.worker.config" : "",
+    "ksql.nested.error.set.null" : "true",
     "ksql.udf.collect.metrics" : "false",
     "ksql.query.pull.thread.pool.size" : "100",
     "ksql.persistent.prefix" : "query_",

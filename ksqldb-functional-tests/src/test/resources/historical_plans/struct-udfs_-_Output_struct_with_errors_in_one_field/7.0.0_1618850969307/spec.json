@@ -1,7 +1,7 @@
 {
   "version" : "7.0.0",
-  "timestamp" : 1618268101306,
-  "path" : "query-validation-tests/array.json",
+  "timestamp" : 1618850969307,
+  "path" : "query-validation-tests/struct-udfs.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
       "schema" : "`K` STRING KEY, `VAL` STRING",
@@ -13,7 +13,7 @@
       }
     },
     "CSAS_OUTPUT_0.OUTPUT" : {
-      "schema" : "`K` STRING KEY, `VALUE` ARRAY<INTEGER>",
+      "schema" : "`K` STRING KEY, `VALUE` STRUCT<`FIELD1` STRING, `FIELD2` INTEGER>",
       "keyFormat" : {
         "format" : "KAFKA"
       },
@@ -23,7 +23,7 @@
     }
   },
   "testCase" : {
-    "name" : "Output array with an error",
+    "name" : "Output struct with errors in one field",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : "1",
@@ -36,7 +36,10 @@
       "topic" : "OUTPUT",
       "key" : "1",
       "value" : {
-        "VALUE" : [ 44, null ]
+        "VALUE" : {
+          "FIELD1" : "moo",
+          "FIELD2" : null
+        }
       },
       "timestamp" : 0
     } ],
@@ -49,12 +52,12 @@
       "replicas" : 1,
       "numPartitions" : 4
     } ],
-    "statements" : [ "CREATE STREAM test (K STRING KEY, val VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, ARRAY[44, stringtodate(val, 'yyyyMMdd')] AS VALUE FROM test;" ],
+    "statements" : [ "CREATE STREAM test (K STRING KEY, val VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');", "CREATE STREAM OUTPUT AS SELECT K, STRUCT(field1:='moo', field2:=stringtodate(val, 'yyyyMMdd')) AS VALUE FROM test;" ],
     "post" : {
       "sources" : [ {
         "name" : "OUTPUT",
         "type" : "STREAM",
-        "schema" : "`K` STRING KEY, `VALUE` ARRAY<INTEGER>",
+        "schema" : "`K` STRING KEY, `VALUE` STRUCT<`FIELD1` STRING, `FIELD2` INTEGER>",
         "keyFormat" : {
           "format" : "KAFKA"
         },

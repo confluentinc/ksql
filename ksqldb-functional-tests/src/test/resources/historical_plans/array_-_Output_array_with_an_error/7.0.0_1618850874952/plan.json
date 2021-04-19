@@ -19,11 +19,11 @@
     }
   }, {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.K K,\n  MAP('boo':=STRINGTODATE(TEST.VAL, 'yyyyMMdd'), 'shoe':=3) VALUE\nFROM TEST TEST\nEMIT CHANGES",
+    "statementText" : "CREATE STREAM OUTPUT AS SELECT\n  TEST.K K,\n  ARRAY[44, STRINGTODATE(TEST.VAL, 'yyyyMMdd')] VALUE\nFROM TEST TEST\nEMIT CHANGES",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "OUTPUT",
-      "schema" : "`K` STRING KEY, `VALUE` MAP<STRING, INTEGER>",
+      "schema" : "`K` STRING KEY, `VALUE` ARRAY<INTEGER>",
       "topicName" : "OUTPUT",
       "formats" : {
         "keyFormat" : {
@@ -65,7 +65,7 @@
             "sourceSchema" : "`K` STRING KEY, `VAL` STRING"
           },
           "keyColumnNames" : [ "K" ],
-          "selectExpressions" : [ "MAP('boo':=STRINGTODATE(VAL, 'yyyyMMdd'), 'shoe':=3) AS VALUE" ]
+          "selectExpressions" : [ "ARRAY[44, STRINGTODATE(VAL, 'yyyyMMdd')] AS VALUE" ]
         },
         "formats" : {
           "keyFormat" : {
@@ -138,6 +138,7 @@
     "ksql.udfs.enabled" : "true",
     "ksql.udf.enable.security.manager" : "true",
     "ksql.connect.worker.config" : "",
+    "ksql.nested.error.set.null" : "true",
     "ksql.udf.collect.metrics" : "false",
     "ksql.query.pull.thread.pool.size" : "100",
     "ksql.persistent.prefix" : "query_",

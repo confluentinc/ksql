@@ -1,6 +1,6 @@
 {
   "version" : "7.0.0",
-  "timestamp" : 1618268165027,
+  "timestamp" : 1618850948804,
   "path" : "query-validation-tests/map.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {

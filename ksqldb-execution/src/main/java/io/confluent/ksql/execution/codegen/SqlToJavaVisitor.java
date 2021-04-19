@@ -1099,18 +1099,22 @@ public class SqlToJavaVisitor {
     }
 
     private String evaluateOrReturnNull(final String s, final String type) {
-      return " (new " + Supplier.class.getSimpleName() + "<Object>() {"
-          + "@Override public Object get() {"
-          + " try {"
-          + "  return " + s + ";"
-          + " } catch (Exception e) {"
-          + "  logger.error(RecordProcessingError.recordProcessingError("
-          + "    \"Error processing " + type + "\","
-          + "    e instanceof InvocationTargetException? e.getCause() : e,"
-          + "    row));"
-          + "  return defaultValue;"
-          + " }"
-          + "}}).get()";
+      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_NESTED_ERROR_HANDLING_CONFIG)) {
+        return " (new " + Supplier.class.getSimpleName() + "<Object>() {"
+            + "@Override public Object get() {"
+            + " try {"
+            + "  return " + s + ";"
+            + " } catch (Exception e) {"
+            + "  logger.error(RecordProcessingError.recordProcessingError("
+            + "    \"Error processing " + type + "\","
+            + "    e instanceof InvocationTargetException? e.getCause() : e,"
+            + "    row));"
+            + "  return defaultValue;"
+            + " }"
+            + "}}).get()";
+      } else {
+        return s;
+      }
     }
 
     @Override

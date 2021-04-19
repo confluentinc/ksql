@@ -14,7 +14,6 @@ def baseConfig = {
     dockerRepos = ['confluentinc/ksqldb-cli', 'confluentinc/ksqldb-server']
     nodeLabel = 'docker-oraclejdk8-compose-swarm'
     dockerScan = true
-    cron = '@daily'
     maven_packages_url = "https://jenkins-confluent-packages-beta-maven.s3-us-west-2.amazonaws.com"
     dockerPullDeps = ['confluentinc/cp-base-new']
     kafka_tutorials_branch = 'ksqldb-latest'

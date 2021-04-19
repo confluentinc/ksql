@@ -105,6 +105,8 @@ public class SchemaKStreamTest {
   private PlanBuildContext buildContext;
   @Mock
   private KsqlTopic topic;
+  @Mock
+  private FormatInfo internalFormats;
 
   @Before
   public void init() {
@@ -133,7 +135,8 @@ public class SchemaKStreamTest {
         ImmutableList.of(ColumnName.of("K")),
         selectExpressions,
         childContextStacker,
-        buildContext);
+        buildContext,
+        internalFormats);
 
     // Then:
     assertThat(

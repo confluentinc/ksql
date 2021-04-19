@@ -137,6 +137,10 @@ class KsqlMaterialization implements Materialization {
 
     @Override
     public Optional<Row> get(final GenericKey key, final int partition) {
+      if (transforms.isEmpty()) {
+        return table.get(key, partition);
+      }
+
       return table.get(key, partition)
           .flatMap(row -> filterAndTransform(key, getIntermediateRow(row), row.rowTime())
               .map(v -> row.withValue(v, schema()))
@@ -145,6 +149,10 @@ class KsqlMaterialization implements Materialization {
 
     @Override
     public Iterator<Row> get(final int partition) {
+      if (transforms.isEmpty()) {
+        return table.get(partition);
+      }
+
       return Streams.stream(table.get(partition))
           .map(row -> filterAndTransform(row.key(), getIntermediateRow(row), row.rowTime())
               .map(v -> row.withValue(v, schema())))
@@ -169,6 +177,10 @@ class KsqlMaterialization implements Materialization {
         final Range<Instant> windowStart,
         final Range<Instant> windowEnd
     ) {
+      if (transforms.isEmpty()) {
+        return table.get(key, partition, windowStart, windowEnd);
+      }
+
       final List<WindowedRow> result = table.get(key, partition, windowStart, windowEnd);
 
       final Builder<WindowedRow> builder = ImmutableList.builder();
@@ -184,6 +196,10 @@ class KsqlMaterialization implements Materialization {
     @Override
     public Iterator<WindowedRow> get(final int partition, final Range<Instant> windowStartBounds,
         final Range<Instant> windowEndBounds) {
+      if (transforms.isEmpty()) {
+        return table.get(partition, windowStartBounds, windowEndBounds);
+      }
+
       final Iterator<WindowedRow> result = table.get(partition, windowStartBounds, windowEndBounds);
       return Streams.stream(result)
           .map(row ->  {

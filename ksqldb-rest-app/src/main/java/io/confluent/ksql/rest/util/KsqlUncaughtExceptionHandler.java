@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.util;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.server.KsqlServerMain;
-import org.apache.kafka.streams.processor.internals.StreamThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,9 +32,6 @@ public class KsqlUncaughtExceptionHandler implements Thread.UncaughtExceptionHan
 
   @SuppressFBWarnings
   public void uncaughtException(final Thread t, final Throwable e) {
-    if (t instanceof StreamThread) {
-      return;
-    }
     log.error("Unhandled exception caught in thread {}.", t.getName(), e);
     System.err.println(
         "Unhandled exception caught in thread: " + t.getName() + ". Exception:" + e.getMessage());

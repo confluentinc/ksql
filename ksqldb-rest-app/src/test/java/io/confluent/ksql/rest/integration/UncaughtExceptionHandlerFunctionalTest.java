@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.rest.integration;
 
-import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
-import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
@@ -26,9 +26,9 @@ import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.rest.util.KsqlUncaughtExceptionHandler;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.util.PageViewDataProvider;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.util.Collections;
+import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.log4j.LogManager;
@@ -72,19 +72,13 @@ public class UncaughtExceptionHandlerFunctionalTest {
 
   @Test
   public void shouldNotSystemExitWhenSourceTopicDeleted() throws InterruptedException {
-    final String streamsErrorMessage = "streams thread error";
+    // When
+    final CountDownLatch latch = new CountDownLatch(1);
     Thread.setDefaultUncaughtExceptionHandler(
-        new KsqlUncaughtExceptionHandler(LogManager::shutdown, streamsErrorMessage));
-
-    final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-    System.setErr(new PrintStream(outContent));
-
+        new KsqlUncaughtExceptionHandler(LogManager::shutdown, Optional.of(latch)));
     TEST_HARNESS.deleteTopics(Collections.singletonList(PAGE_VIEW_TOPIC));
-    assertThatEventually(
-        "hit streams error",
-        outContent::toString,
-        containsString(streamsErrorMessage),
-        60000,
-        TimeUnit.MILLISECONDS);
+    
+    // Then
+    assertThat(latch.await(60000, TimeUnit.MILLISECONDS), is(true));
   }
 }

@@ -92,7 +92,7 @@ done
 
 echo "FULL_VERSION=${FULL_VERSION} VERSION=${VERSION} REELASE=${RELEASE} UPSTREAM_VERSION=${UPSTREAM_VERSION}"
 cd "${WORKSPACE}"
-work_branch="debian-${FULL_VERSION}"
+work_branch="debian-${VERSION}"
 git checkout -b "${work_branch}"
 export DEBEMAIL="Confluent Packaging <packages@confluent.io>"
 
@@ -115,7 +115,7 @@ mvn --batch-mode versions:set-property -DgenerateBackupPoms=false "-DnewVersion=
 mvn --batch-mode versions:set-property -DgenerateBackupPoms=false "-DnewVersion=${UPSTREAM_VERSION}" -Dproperty=io.confluent.schema-registry.version
 
 # Set version for Debian Package
-dch --newversion "${VERSION}" "Release version ${VERSION}"
+dch --newversion "${FULL_VERSION}" "Release version ${FULL_VERSION}"
 dch --release --distribution unstable ""
 
 echo "Versioning Diff:"

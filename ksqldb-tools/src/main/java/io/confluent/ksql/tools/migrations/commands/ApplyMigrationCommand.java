@@ -373,7 +373,7 @@ public class ApplyMigrationCommand extends BaseCommand {
     ksqlClient.getVariables().forEach((k, v) -> ksqlClient.undefine(k));
     try {
       VariableParser.getVariables(definedVars).forEach((k, v) -> ksqlClient.define(k, v));
-    } catch(IllegalArgumentException e) {
+    } catch (IllegalArgumentException e) {
       throw new MigrationException(e.getMessage());
     }
   }

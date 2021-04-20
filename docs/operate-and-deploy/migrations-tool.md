@@ -243,7 +243,7 @@ the path to the config file of your migrations project as part of the command.
 You can define variables by passing the `--define` flag followed by a string of the form
 `name=value` any number of times. For example, the following command
 
-```
+```bash
 $ ksql-migrations --config-file /my/migrations/project/ksql-migrations.properties apply --next -d foo=bar -d car=3
 ```
 

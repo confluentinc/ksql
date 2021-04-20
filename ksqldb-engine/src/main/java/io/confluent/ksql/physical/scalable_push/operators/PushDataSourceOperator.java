@@ -4,4 +4,6 @@ import io.confluent.ksql.physical.scalable_push.ScalablePushRegistry;
 
 public interface PushDataSourceOperator {
   ScalablePushRegistry getScalablePushRegistry();
+
+  void setNewRowCallback(final Runnable newRowCallback);
 }

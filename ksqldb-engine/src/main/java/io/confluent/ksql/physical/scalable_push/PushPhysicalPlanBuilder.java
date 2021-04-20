@@ -51,6 +51,7 @@ import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.vertx.core.Context;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -94,7 +95,10 @@ public class PushPhysicalPlanBuilder {
    * @param logicalPlanNode the logical plan root node
    * @return the root node of the tree of physical operators
    */
-  public PushPhysicalPlan buildPushPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
+  public PushPhysicalPlan buildPushPhysicalPlan(
+      final LogicalPlanNode logicalPlanNode,
+      final Context context
+  ) {
     PushDataSourceOperator dataSourceOperator = null;
 
     final OutputNode outputNode = logicalPlanNode.getNode()
@@ -149,7 +153,8 @@ public class PushPhysicalPlanBuilder {
         (rootPhysicalOp).getLogicalNode().getSchema(),
         queryId,
         dataSourceOperator.getScalablePushRegistry(),
-        dataSourceOperator);
+        dataSourceOperator,
+        context);
   }
 
   private ProjectOperator translateProjectNode(final PullProjectNode logicalNode) {

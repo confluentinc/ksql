@@ -29,7 +29,7 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
 
   @Override
   public Object next() {
-    return processingQueue.get();
+    return processingQueue.poll();
   }
 
   @Override
@@ -61,5 +61,10 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
   @Override
   public ScalablePushRegistry getScalablePushRegistry() {
     return scalablePushRegistry;
+  }
+
+  @Override
+  public void setNewRowCallback(Runnable newRowCallback) {
+    processingQueue.setNewRowCallback(newRowCallback);
   }
 }

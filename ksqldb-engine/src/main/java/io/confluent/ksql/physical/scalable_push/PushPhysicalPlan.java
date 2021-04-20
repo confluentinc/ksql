@@ -18,15 +18,20 @@ import io.confluent.ksql.planner.plan.LookupConstraint;
 import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.TransientQueryQueue;
+import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.VertxUtils;
+import io.vertx.core.Context;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
+import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PushPhysicalPlan {
+  private static final int CAPACITY = Integer.MAX_VALUE;
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PullPhysicalPlan.class);
 
@@ -36,13 +41,17 @@ public class PushPhysicalPlan {
   private final QueryId queryId;
   private final ScalablePushRegistry scalablePushRegistry;
   private final PushDataSourceOperator dataSourceOperator;
+  private final Context context;
+  private boolean closed = false;
+  private long timer = -1;
 
   public PushPhysicalPlan(
       final AbstractPhysicalOperator root,
       final LogicalSchema schema,
       final QueryId queryId,
       final ScalablePushRegistry scalablePushRegistry,
-      final PushDataSourceOperator dataSourceOperator
+      final PushDataSourceOperator dataSourceOperator,
+      final Context context
   ) {
     this.root = Objects.requireNonNull(root, "root");
     this.schema = Objects.requireNonNull(schema, "schema");
@@ -50,31 +59,51 @@ public class PushPhysicalPlan {
     this.scalablePushRegistry =
         Objects.requireNonNull(scalablePushRegistry, "scalablePushRegistry");
     this.dataSourceOperator = dataSourceOperator;
+    this.context = context;
   }
 
-  public void execute(
-      final TransientQueryQueue transientQueryQueue) {
+  public BufferedPublisher<List<?>> execute() {
+    final BufferedPublisher<List<?>> publisher = new BufferedPublisher<>(context, CAPACITY);
+    context.runOnContext(v -> open(publisher));
+    return publisher;
+  }
 
-    open();
+  private void maybeNext(final BufferedPublisher<List<?>> publisher) {
     List<?> row;
     while ((row = (List<?>)next()) != null) {
-      if (transientQueryQueue.isClosed()) {
+      if (publisher.accept(row)) {
         break;
       }
-      transientQueryQueue.acceptRow(null, GenericRow.fromList(row));
     }
-    close();
+    if (!closed) {
+      if (timer >= 0) {
+        context.owner().cancelTimer(timer);
+      }
+      // Schedule another batch async
+      timer = context.owner()
+          .setTimer(100, timerId -> context.runOnContext(v -> maybeNext(publisher)));
+    }
   }
 
-  private void open() {
+  private void open(final BufferedPublisher<List<?>> publisher) {
+    VertxUtils.checkContext(context);
+    dataSourceOperator.setNewRowCallback(() -> context.runOnContext(v -> maybeNext(publisher)));
     root.open();
+    maybeNext(publisher);
   }
 
   private Object next() {
+    VertxUtils.checkContext(context);
     return root.next();
   }
 
   public void close() {
+    context.runOnContext(v -> closeInternal());
+  }
+
+  private void closeInternal() {
+    VertxUtils.checkContext(context);
+    closed = true;
     root.close();
   }
 

@@ -20,11 +20,14 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlRequestConfig;
+import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Context;
+import io.vertx.core.WorkerExecutor;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -42,19 +45,19 @@ public class PushRouting implements AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(HARouting.class);
 
-  private final ExecutorService executorService;
+//  private final ExecutorService executorService;
 
   public PushRouting(
       final KsqlConfig ksqlConfig
   ) {
-    this.executorService = Executors.newFixedThreadPool(
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG),
-        new ThreadFactoryBuilder().setNameFormat("pull-query-executor-%d").build());
+//    this.executorService = Executors.newFixedThreadPool(
+//        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG),
+//        new ThreadFactoryBuilder().setNameFormat("pull-query-executor-%d").build());
   }
 
   @Override
   public void close() {
-    executorService.shutdown();
+//    executorService.shutdown();
   }
 
   public CompletableFuture<PushConnectionsHandle> handlePushQuery(
@@ -63,7 +66,8 @@ public class PushRouting implements AutoCloseable {
       final ConfiguredStatement<Query> statement,
       final PushRoutingOptions pushRoutingOptions,
       final LogicalSchema outputSchema,
-      final TransientQueryQueue transientQueryQueue
+      final TransientQueryQueue transientQueryQueue,
+      final WorkerExecutor workerExecutor
   ) {
     final Set<KsqlNode> hosts = pushPhysicalPlan.getScalablePushRegistry()
         .getLocator()
@@ -80,19 +84,20 @@ public class PushRouting implements AutoCloseable {
           statement.getStatementText()));
     }
 
-    final CompletableFuture<PushConnectionsHandle> completableFuture = new CompletableFuture<>();
-    executorService.submit(() -> {
+//    final CompletableFuture<PushConnectionsHandle> completableFuture = new CompletableFuture<>();
+    final VertxCompletableFuture<PushConnectionsHandle> vcf = new VertxCompletableFuture<>();
+    workerExecutor.executeBlocking(promise -> {
       try {
         PushConnectionsHandle pushConnectionsHandle =
             executeRounds(serviceContext, pushPhysicalPlan, statement, hosts, outputSchema,
-                transientQueryQueue);
-        completableFuture.complete(pushConnectionsHandle);
+                transientQueryQueue, workerExecutor);
+        promise.complete(pushConnectionsHandle);
       } catch (Throwable t) {
-        completableFuture.completeExceptionally(t);
+        promise.fail(t);
       }
-    });
+    }, false, vcf);
 
-    return completableFuture;
+    return vcf;
   }
 
   private PushConnectionsHandle executeRounds(
@@ -101,24 +106,30 @@ public class PushRouting implements AutoCloseable {
       final ConfiguredStatement<Query> statement,
       final Set<KsqlNode> hosts,
       final LogicalSchema outputSchema,
-      final TransientQueryQueue transientQueryQueue
+      final TransientQueryQueue transientQueryQueue,
+      final WorkerExecutor workerExecutor
   ) throws InterruptedException {
     final Map<KsqlNode, CompletableFuture<RoutingResult>> futures = new LinkedHashMap<>();
     for (final KsqlNode node : hosts) {
-      final CompletableFuture<RoutingResult> completableFuture = new CompletableFuture<>();
-      executorService.submit(
-          () -> {
+//      final CompletableFuture<RoutingResult> completableFuture = new CompletableFuture<>();
+      final VertxCompletableFuture<RoutingResult> vcf = new VertxCompletableFuture<>();
+      workerExecutor.executeBlocking(
+          promise -> {
             try {
               final RoutingResult result = executeOrRouteQuery(
                   node, statement, serviceContext, pushPhysicalPlan, outputSchema,
-                  transientQueryQueue);
-              completableFuture.complete(result);
+                  transientQueryQueue, workerExecutor);
+//              completableFuture.complete(result);
+              promise.complete(result);
             } catch (Throwable t) {
-              completableFuture.completeExceptionally(t);
+//              completableFuture.completeExceptionally(t);
+              promise.fail(t);
             }
-          }
+          },
+          false,
+          vcf
       );
-      futures.put(node, completableFuture);
+      futures.put(node, vcf);
     }
 
     final PushConnectionsHandle pushConnectionsHandle = new PushConnectionsHandle();
@@ -147,13 +158,16 @@ public class PushRouting implements AutoCloseable {
       final ServiceContext serviceContext,
       final PushPhysicalPlan pushPhysicalPlan,
       final LogicalSchema outputSchema,
-      final TransientQueryQueue transientQueryQueue
+      final TransientQueryQueue transientQueryQueue,
+      final WorkerExecutor workerExecutor
   ) {
     if (node.isLocal()) {
       try {
         LOG.debug("Query {} executed locally at host {} at timestamp {}.",
             statement.getStatementText(), node.location(), System.currentTimeMillis());
-        pushPhysicalPlan.execute(transientQueryQueue);
+        BufferedPublisher<List<?>> publisher = pushPhysicalPlan.execute();
+        publisher.subscribe(new LocalQueryStreamSubscriber(publisher.getContext(),
+            transientQueryQueue, workerExecutor));
         return new RoutingResult(RoutingResultStatus.SUCCESS, pushPhysicalPlan::close);
       } catch (StandbyFallbackException e) {
         LOG.warn("Error executing query {} locally at node {}. Falling back to standby state which "
@@ -174,7 +188,7 @@ public class PushRouting implements AutoCloseable {
         LOG.debug("Query {} routed to host {} at timestamp {}.",
             statement.getStatementText(), node.location(), System.currentTimeMillis());
         final BufferedPublisher<StreamedRow> publisher = forwardTo(node, statement, serviceContext,
-            transientQueryQueue, outputSchema);
+            transientQueryQueue, outputSchema, workerExecutor);
         return new RoutingResult(RoutingResultStatus.SUCCESS, publisher::close);
       } catch (StandbyFallbackException e) {
         LOG.warn("Error forwarding query {} to node {}. Falling back to standby state which may "
@@ -198,7 +212,8 @@ public class PushRouting implements AutoCloseable {
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext,
       final TransientQueryQueue transientQueryQueue,
-      final LogicalSchema outputSchema
+      final LogicalSchema outputSchema,
+      final WorkerExecutor workerExecutor
   ) {
     // Add skip forward flag to properties
     final Map<String, Object> requestProperties = ImmutableMap.of(
@@ -239,7 +254,8 @@ public class PushRouting implements AutoCloseable {
     }
 
     final BufferedPublisher<StreamedRow> publisher = response.getResponse();
-    publisher.subscribe(new QueryStreamSubscriber(publisher.getContext(), transientQueryQueue));
+    publisher.subscribe(new QueryStreamSubscriber(publisher.getContext(), transientQueryQueue,
+        workerExecutor));
     return publisher;
   }
 
@@ -346,12 +362,15 @@ public class PushRouting implements AutoCloseable {
   private static class QueryStreamSubscriber extends BaseSubscriber<StreamedRow> {
 
     private final TransientQueryQueue transientQueryQueue;
+    private final WorkerExecutor workerExecutor;
     private boolean closed;
 
     QueryStreamSubscriber(final Context context,
-        final TransientQueryQueue transientQueryQueue) {
+        final TransientQueryQueue transientQueryQueue,
+        final WorkerExecutor workerExecutor) {
       super(context);
       this.transientQueryQueue = transientQueryQueue;
+      this.workerExecutor = workerExecutor;
     }
 
     @Override
@@ -369,7 +388,10 @@ public class PushRouting implements AutoCloseable {
         return;
       }
       if (row.getRow().isPresent()) {
-        transientQueryQueue.acceptRow(null, GenericRow.fromList(row.getRow().get().getColumns()));
+        workerExecutor.executeBlocking(promise -> {
+          transientQueryQueue.acceptRow(null, GenericRow.fromList(row.getRow().get().getColumns()));
+          promise.complete();
+        }, false, result -> {});
       }
       makeRequest(1);
     }
@@ -381,6 +403,54 @@ public class PushRouting implements AutoCloseable {
     @Override
     protected void handleError(final Throwable t) {
 
+    }
+
+    synchronized void close() {
+      closed = true;
+      context.runOnContext(v -> cancel());
+    }
+  }
+
+  private static class LocalQueryStreamSubscriber extends BaseSubscriber<List<?>> {
+
+    private final TransientQueryQueue transientQueryQueue;
+    private final WorkerExecutor workerExecutor;
+    private boolean closed;
+
+    LocalQueryStreamSubscriber(
+        final Context context,
+        final TransientQueryQueue transientQueryQueue,
+        final WorkerExecutor workerExecutor
+    ) {
+      super(context);
+      this.transientQueryQueue = transientQueryQueue;
+      this.workerExecutor = workerExecutor;
+    }
+
+    @Override
+    protected void afterSubscribe(final Subscription subscription) {
+      makeRequest(1);
+    }
+
+    @Override
+    protected synchronized void handleValue(final List<?> row) {
+      if (closed) {
+        return;
+      }
+      workerExecutor.executeBlocking(promise -> {
+        transientQueryQueue.acceptRow(null, GenericRow.fromList(row));
+        promise.complete();
+      }, false, result -> {});
+
+      makeRequest(1);
+    }
+
+    @Override
+    protected void handleComplete() {
+    }
+
+    @Override
+    protected void handleError(final Throwable t) {
     }
 
     synchronized void close() {

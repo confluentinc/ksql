@@ -87,7 +87,8 @@ public interface Endpoints {
       CompletableFuture<Void> connectionClosedFuture, ApiSecurityContext apiSecurityContext,
       Optional<Boolean> isInternalRequest,
       KsqlMediaType mediaType,
-      MetricsCallbackHolder metricsCallbackHolder);
+      MetricsCallbackHolder metricsCallbackHolder,
+      Context context);
 
   CompletableFuture<EndpointResponse> executeInfo(ApiSecurityContext apiSecurityContext);
 

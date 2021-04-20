@@ -38,6 +38,8 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
+import io.vertx.core.Context;
+import io.vertx.core.WorkerExecutor;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -169,7 +171,9 @@ public interface KsqlExecutionContext {
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
       final PushRouting pushRouting,
-      final PushRoutingOptions pushRoutingOptions
+      final PushRoutingOptions pushRoutingOptions,
+      final Context context,
+      final WorkerExecutor workerExecutor
   );
 
   /**

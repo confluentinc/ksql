@@ -67,6 +67,12 @@ public class ScalablePushRegistry {
     stream.process(peek);
   }
 
+  public void close() {
+    for (ProcessingQueue queue : processingQueues) {
+      queue.close();
+    }
+  }
+
   class Peek<K, V> implements ProcessorSupplier<K, V> {
     private final ForeachAction<K, V> action;
 

@@ -251,7 +251,8 @@ public class ServerVerticle extends AbstractVerticle {
                     DefaultApiSecurityContext.create(routingContext),
                     isInternalRequest(routingContext),
                     getContentType(routingContext),
-                    metricsCallbackHolder
+                    metricsCallbackHolder,
+                    context
                 )
 
     );

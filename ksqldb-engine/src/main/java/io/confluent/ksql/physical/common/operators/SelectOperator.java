@@ -101,7 +101,7 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
 
   @Override
   public void close() {
-
+    child.close();
   }
 
   @Override

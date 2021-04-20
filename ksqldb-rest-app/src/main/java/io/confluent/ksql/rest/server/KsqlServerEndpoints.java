@@ -205,7 +205,8 @@ public class KsqlServerEndpoints implements Endpoints {
       final ApiSecurityContext apiSecurityContext,
       final Optional<Boolean> isInternalRequest,
       final KsqlMediaType mediaType,
-      final MetricsCallbackHolder metricsCallbackHolder
+      final MetricsCallbackHolder metricsCallbackHolder,
+      final Context context
   ) {
     return executeOldApiEndpointOnWorker(apiSecurityContext,
         ksqlSecurityContext -> streamedQueryResource.streamQuery(
@@ -214,7 +215,9 @@ public class KsqlServerEndpoints implements Endpoints {
             connectionClosedFuture,
             isInternalRequest,
             mediaType,
-            metricsCallbackHolder
+            metricsCallbackHolder,
+            context,
+            workerExecutor
         ), workerExecutor);
   }
 

@@ -24,16 +24,28 @@ import org.slf4j.LoggerFactory;
 
 public class KsqlUncaughtExceptionHandler implements Thread.UncaughtExceptionHandler {
   private final Runnable flusher;
+  private final String streamsThreadMessage;
 
   private static final Logger log = LoggerFactory.getLogger(KsqlServerMain.class);
 
   public KsqlUncaughtExceptionHandler(final Runnable flusher) {
+    this(flusher, "");
+  }
+
+  public KsqlUncaughtExceptionHandler(
+      final Runnable flusher,
+      final String streamsThreadMessage
+  ) {
     this.flusher = flusher;
+    this.streamsThreadMessage = streamsThreadMessage;
   }
 
   @SuppressFBWarnings
   public void uncaughtException(final Thread t, final Throwable e) {
     if (t instanceof StreamThread) {
+      if (!streamsThreadMessage.isEmpty()) {
+        System.err.println(streamsThreadMessage);
+      }
       return;
     }
     log.error("Unhandled exception caught in thread {}.", t.getName(), e);

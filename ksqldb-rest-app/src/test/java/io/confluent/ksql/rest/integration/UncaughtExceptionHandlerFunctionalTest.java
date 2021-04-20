@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"; you may not use
  * this file except in compliance with the License. You may obtain a copy of the
@@ -15,21 +15,26 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static org.hamcrest.Matchers.containsString;
+
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
+import io.confluent.ksql.rest.util.KsqlUncaughtExceptionHandler;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.util.PageViewDataProvider;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.log4j.LogManager;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.contrib.java.lang.system.ExpectedSystemExit;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
@@ -54,9 +59,6 @@ public class UncaughtExceptionHandlerFunctionalTest {
       .around(TEST_HARNESS)
       .around(REST_APP_0);
 
-  @Rule
-  public final ExpectedSystemExit exit = ExpectedSystemExit.none();
-
   @BeforeClass
   public static void setUpClass() throws InterruptedException {
     TEST_HARNESS.ensureTopics(2, PAGE_VIEW_TOPIC);
@@ -70,7 +72,19 @@ public class UncaughtExceptionHandlerFunctionalTest {
 
   @Test
   public void shouldNotSystemExitWhenSourceTopicDeleted() throws InterruptedException {
+    final String streamsErrorMessage = "streams thread error";
+    Thread.setDefaultUncaughtExceptionHandler(
+        new KsqlUncaughtExceptionHandler(LogManager::shutdown, streamsErrorMessage));
+
+    final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+    System.setErr(new PrintStream(outContent));
+
     TEST_HARNESS.deleteTopics(Collections.singletonList(PAGE_VIEW_TOPIC));
-    Thread.sleep(60000);
+    assertThatEventually(
+        "hit streams error",
+        outContent::toString,
+        containsString(streamsErrorMessage),
+        60000,
+        TimeUnit.MILLISECONDS);
   }
 }

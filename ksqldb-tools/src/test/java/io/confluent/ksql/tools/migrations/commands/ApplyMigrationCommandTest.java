@@ -274,6 +274,45 @@ public class ApplyMigrationCommandTest {
   }
 
   @Test
+  public void shouldApplyArgumentVariablesEveryMigration() throws Exception {
+    // Given:
+    final Map<String, Object> variables = ImmutableMap.of("name", "tame");
+    command = PARSER.parse("-a", "-d", "name=tame");
+    createMigrationFile(1, NAME, migrationsDir, "INSERT INTO FOO VALUES ('${name}');");
+    createMigrationFile(2, NAME, migrationsDir, "INSERT INTO FOO VALUES ('${name}2');");
+    when(versionQueryResult.get()).thenReturn(ImmutableList.of());
+    when(ksqlClient.getVariables()).thenReturn(variables);
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(0));
+    final InOrder inOrder = inOrder(ksqlClient);
+    inOrder.verify(ksqlClient).insertInto("`FOO`", new KsqlObject(ImmutableMap.of("`A`", "tame")));
+    inOrder.verify(ksqlClient).insertInto("`FOO`", new KsqlObject(ImmutableMap.of("`A`", "tame2")));
+    inOrder.verify(ksqlClient).close();
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void shouldFailOnInvalidArgumentVariable() throws Exception {
+    // Given:
+    command = PARSER.parse("-a", "-d", "woooo");
+    createMigrationFile(1, NAME, migrationsDir, "INSERT INTO FOO VALUES ('${name}');");
+    when(versionQueryResult.get()).thenReturn(ImmutableList.of());
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(1));
+  }
+
+  @Test
   public void shouldResetPropertiesBetweenMigrations() throws Exception {
     // Given:
     command = PARSER.parse("-a");

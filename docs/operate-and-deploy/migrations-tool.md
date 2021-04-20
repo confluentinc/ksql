@@ -224,6 +224,7 @@ ksql-migrations {-c | --config-file} <config-file> apply
                 [ {-n | --next} ] 
                 [ {-u | --until} <untilVersion> ] 
                 [ {-v | --version} <version> ]
+                [ {-d | --define} <variableName>=<variableValue> ]
                 [ --dry-run ] 
 ```
 
@@ -238,6 +239,20 @@ to apply:
   
 In addition to selecting a mode for `ksql-migrations apply`, you must also provide
 the path to the config file of your migrations project as part of the command.
+
+You can define variables by passing the `--define` flag followed by a string of the form
+`name=value` any number of times. For example, the following command
+
+```
+$ ksql-migrations --config-file /my/migrations/project/ksql-migrations.properties apply --next -d foo=bar -d car=3
+```
+
+is equivalent to having the following lines at the begining of each migration file:
+
+```
+DEFINE foo='bar';
+DEFINE car='3';
+```
 
 You can optionally use the `--dry-run` flag to see which migration file(s) the
 command will apply before running the actual `ksql-migrations apply` command

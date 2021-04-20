@@ -223,7 +223,7 @@ public class MigrationsTest {
         1,
         "foo FOO fO0",
         configFilePath,
-        "CREATE STREAM FOO (A STRING) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='JSON');\n" +
+        "CREATE STREAM ${streamName} (A STRING) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='JSON');\n" +
             "-- let's create some connectors!!!\n" +
             "CREATE SOURCE CONNECTOR C WITH ('connector.class'='org.apache.kafka.connect.tools.MockSourceConnector');\n" +
             "CREATE SINK CONNECTOR D WITH ('connector.class'='org.apache.kafka.connect.tools.MockSinkConnector', 'topics'='d');\n" +
@@ -235,13 +235,13 @@ public class MigrationsTest {
         2,
         "bar_bar_BAR",
         configFilePath,
-        "CREATE OR REPLACE STREAM FOO (A STRING, B INT) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='JSON');"
-            + "ALTER STREAM FOO ADD COLUMN C BIGINT;" +
+        "CREATE OR REPLACE STREAM ${streamName} (A STRING, B INT) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='JSON');"
+            + "ALTER STREAM ${streamName} ADD COLUMN C BIGINT;" +
             "/* add some '''data''' to FOO */" +
             "DEFINE variable = '50';" +
             "INSERT INTO FOO VALUES ('HELLO', ${variable}, -4325);" +
             "INSERT INTO FOO (A) VALUES ('GOOD''BYE');" +
-            "INSERT INTO FOO (A) VALUES ('${onlyDefinedInFile1}--ha\nha');" +
+            "INSERT INTO ${streamName} (A) VALUES ('${onlyDefinedInFile1}--ha\nha');" +
             "INSERT INTO FOO (A) VALUES ('');" +
             "DEFINE variable = 'cool';" +
             "SET 'ksql.output.topic.name.prefix' = '${variable}';" +
@@ -260,7 +260,7 @@ public class MigrationsTest {
     );
 
     // When:
-    final int applyStatus = MIGRATIONS_CLI.parse("--config-file", configFilePath, "apply", "-a").runCommand();
+    final int applyStatus = MIGRATIONS_CLI.parse("--config-file", configFilePath, "apply", "-a", "-d", "streamName=FOO").runCommand();
 
     // Then:
     assertThat(applyStatus, is(0));

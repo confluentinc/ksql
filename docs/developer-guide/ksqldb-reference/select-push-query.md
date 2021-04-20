@@ -17,7 +17,7 @@ SELECT select_expr [, ...]
   FROM from_item
   [[ LEFT | FULL | INNER ] JOIN join_item ON [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ] join_criteria]*
   [ WINDOW window_expression ]
-  [ WHERE condition ]
+  [ WHERE where_condition ]
   [ GROUP BY grouping_expression ]
   [ HAVING having_expression ]
   EMIT [ output_refinement ]
@@ -56,7 +56,11 @@ In the previous statements, `from_item` is one of the following:
 -   `from_item LEFT JOIN from_item ON join_condition`
 
 The WHERE clause can refer to any column defined for a stream or table,
-including the `ROWTIME` pseudo column.
+including the `ROWTIME` pseudo column. `where_condition` is an expression that evaluates to true
+for each record selected.
+
+In the WHERE expression, you can use any operator that ksqlDB supports.
+See [Operators in ksqlDB](../../developer-guide/ksqldb-reference/operators.md)
 
 Example
 -------

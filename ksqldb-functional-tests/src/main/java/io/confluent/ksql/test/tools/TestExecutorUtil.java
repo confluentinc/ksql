@@ -67,6 +67,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -119,7 +120,7 @@ public final class TestExecutorUtil {
       final TopologyTestDriver topologyTestDriver = new TopologyTestDriver(
           topology,
           streamsProperties,
-          0);
+          Instant.EPOCH);
       final List<Topic> sourceTopics = persistentQueryAndSources.getSources()
           .stream()
           .map(dataSource -> {

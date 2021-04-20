@@ -2,9 +2,52 @@
 layout: page
 title: ksqlDB Operators
 tagline:  ksqlDB operators for queries
-description: Operators to use in  ksqlDB statements and queries
+description: Operators to use in ksqlDB statements and queries
 keywords: ksqlDB, operator
 ---
+
+Expression Syntax
+=================
+
+ksqlDB supports the following syntax to define WHERE expressions.
+
+```
+expr:
+    expr AND expr
+  | expr OR expr
+  | NOT expr
+  | predicate
+  
+predicate:
+    value_expr comparison_operator value_expr
+  | value_expr [NOT] BETWEEN value_expr AND value_expr  
+  | value_expr [NOT] LIKE value_expr [ESCAPE string]
+  | value_expr IS [NOT] NULL
+  | value_expr IS [NOT] DISTINCT FROM value_expr
+    
+comparison_operator: EQ | NEQ | LT | LTE | GT | GTE
+
+value_expr:
+    primary_expr
+  | + value_expr
+  | - value_expr
+  | value_expr + value_expr
+  | value_expr - value_expr
+  | value_expr * value_expr
+  | value_expr / value_expr
+  | value_expr % value_expr
+  | value_expr AT timezone
+  | value_expr CONCAT value_expr
+
+primary_expr:
+    literal
+  | identifier
+  | function_call
+  | case_expr
+  | cast_expr
+  
+arithmetic_operator: + | - | * | / | %
+```
 
 Operators
 =========
@@ -45,17 +88,6 @@ SELECT USERID,
   FROM INVALID_USERS_LOGINS_PER_HOST
   WHERE INVALID_LOGIN_COUNT>=4
   EMIT CHANGES;
-```
-
-In
---
-
-The IN operator enables specifying multiple values in a `WHERE` clause.
-
-It provides the equivalent of multiple `OR` conditions.
-
-```sql
-SELECT * FROM USERS WHERE USERID IN (1543, 6256, 87569);
 ```
 
 Source Dereference

@@ -67,6 +67,7 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -81,7 +82,6 @@ import org.apache.kafka.streams.TopologyTestDriver;
 import org.hamcrest.StringDescription;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-@SuppressWarnings("deprecation")
 public final class TestExecutorUtil {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
@@ -119,7 +119,7 @@ public final class TestExecutorUtil {
       final TopologyTestDriver topologyTestDriver = new TopologyTestDriver(
           topology,
           streamsProperties,
-          0);
+          Instant.ofEpochMilli(0L));
       final List<Topic> sourceTopics = persistentQueryAndSources.getSources()
           .stream()
           .map(dataSource -> {

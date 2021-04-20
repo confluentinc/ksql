@@ -277,17 +277,11 @@ public class ApplyMigrationCommandTest {
   public void shouldApplyArgumentVariablesEveryMigration() throws Exception {
     // Given:
     command = PARSER.parse("-a", "-d", "name=tame", "-d", "dame=blame");
-    createMigrationFile(1, NAME, migrationsDir, "INSERT INTO FOO VALUES ('${name}'); INSERT INTO FOO VALUES ('${dame}');");
-    createMigrationFile(2, NAME, migrationsDir, "DEFINE name='flame'; INSERT INTO FOO VALUES ('${name}');");
+    createMigrationFile(1, NAME, migrationsDir, "INSERT INTO FOO VALUES ('${name}');");
+    createMigrationFile(2, NAME, migrationsDir, "INSERT INTO FOO VALUES ('${dame}');");
     when(versionQueryResult.get()).thenReturn(ImmutableList.of());
     when(ksqlClient.getVariables()).thenReturn(
-        ImmutableMap.of("name", "tame", "dame", "blame"),
-        ImmutableMap.of("name", "tame", "dame", "blame"),
-        ImmutableMap.of("name", "tame", "dame", "blame"),
-        ImmutableMap.of("name", "tame", "dame", "blame"),
-        ImmutableMap.of("name", "tame", "dame", "blame"),
-        ImmutableMap.of("name", "tame", "dame", "blame"),
-        ImmutableMap.of("name", "flame", "dame", "blame")
+        ImmutableMap.of("name", "tame", "dame", "blame")
     );
     givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
 
@@ -300,6 +294,28 @@ public class ApplyMigrationCommandTest {
     final InOrder inOrder = inOrder(ksqlClient);
     inOrder.verify(ksqlClient).insertInto("`FOO`", new KsqlObject(ImmutableMap.of("`A`", "tame")));
     inOrder.verify(ksqlClient).insertInto("`FOO`", new KsqlObject(ImmutableMap.of("`A`", "blame")));
+    inOrder.verify(ksqlClient).close();
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void defineStatementsShouldTakePrecedenceOverArgumentVariables() throws Exception {
+    // Given:
+    command = PARSER.parse("-a", "-d", "name=tame");
+    createMigrationFile(1, NAME, migrationsDir, "DEFINE name='flame'; INSERT INTO FOO VALUES ('${name}');");
+    when(versionQueryResult.get()).thenReturn(ImmutableList.of());
+    when(ksqlClient.getVariables()).thenReturn(
+        ImmutableMap.of("name", "flame")
+    );
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(0));
+    final InOrder inOrder = inOrder(ksqlClient);
     inOrder.verify(ksqlClient).define("name", "flame");
     inOrder.verify(ksqlClient).insertInto("`FOO`", new KsqlObject(ImmutableMap.of("`A`", "flame")));
     inOrder.verify(ksqlClient).close();

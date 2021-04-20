@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.util;
 
+import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.rest.server.KsqlServerMain;
 import org.apache.kafka.streams.processor.internals.StreamThread;
@@ -32,6 +33,7 @@ public class KsqlUncaughtExceptionHandler implements Thread.UncaughtExceptionHan
     this(flusher, "");
   }
 
+  @VisibleForTesting
   public KsqlUncaughtExceptionHandler(
       final Runnable flusher,
       final String streamsThreadMessage

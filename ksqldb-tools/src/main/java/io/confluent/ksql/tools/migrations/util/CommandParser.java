@@ -48,10 +48,11 @@ import java.util.stream.Collectors;
 
 public final class CommandParser {
   private static final String QUOTED_STRING_OR_WHITESPACE = "('([^']*|(''))*')|\\s+";
-  private static final Pattern SET_PROPERTY =
-      Pattern.compile("\\s*SET\\s+'((?:[^']*|(?:''))*)'\\s*=\\s*'((?:[^']*|(?:''))*)'\\s*;\\s*");
-  private static final Pattern UNSET_PROPERTY =
-      Pattern.compile("\\s*UNSET\\s+'((?:[^']*|(?:''))*)'\\s*;\\s*");
+  private static final Pattern SET_PROPERTY = Pattern.compile(
+      "\\s*SET\\s+'((?:[^']*|(?:''))*)'\\s*=\\s*'((?:[^']*|(?:''))*)'\\s*;\\s*",
+      Pattern.CASE_INSENSITIVE);
+  private static final Pattern UNSET_PROPERTY = Pattern.compile(
+      "\\s*UNSET\\s+'((?:[^']*|(?:''))*)'\\s*;\\s*", Pattern.CASE_INSENSITIVE);
   private static final KsqlParser KSQL_PARSER = new DefaultKsqlParser();
   private static final String INSERT = "INSERT";
   private static final String INTO = "INTO";

@@ -91,7 +91,11 @@ public final class InternalKsqlClientFactory {
     return new HttpClientOptions().setMaxPoolSize(100);
   }
 
+<<<<<<< HEAD
   private static HttpClientOptions createClientOptionsHttp2() {
+=======
+  private static HttpClientOptions createClientOptions2() {
+>>>>>>> Uses query-stream for inter node push
     return new HttpClientOptions().setHttp2MaxPoolSize(100).setProtocolVersion(HttpVersion.HTTP_2);
   }
 }

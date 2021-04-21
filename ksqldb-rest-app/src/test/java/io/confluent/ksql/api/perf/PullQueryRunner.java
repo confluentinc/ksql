@@ -121,6 +121,7 @@ public class PullQueryRunner extends BasePerfRunner {
     public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
         final Map<String, Object> properties,
         final Map<String, Object> sessionVariables,
+        final Map<String, Object> requestProperties,
         final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext,

@@ -125,6 +125,7 @@ public class TransientQueryQueue implements BlockingRowQueue {
 
       while (!closed) {
         if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
+          System.out.println("ROW OFFERED " + row.value().values());
           callback.onQueued();
           break;
         }

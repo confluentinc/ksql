@@ -147,6 +147,7 @@ public class KsqlServerEndpoints implements Endpoints {
   public CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
       final Map<String, Object> properties,
       final Map<String, Object> sessionVariables,
+      final Map<String, Object> requestProperties,
       final Context context,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext,
@@ -161,6 +162,7 @@ public class KsqlServerEndpoints implements Endpoints {
             .createQueryPublisher(
                 sql,
                 properties,
+                requestProperties,
                 sessionVariables,
                 context,
                 workerExecutor,

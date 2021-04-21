@@ -80,6 +80,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();
     final long startTimeNanos = Time.SYSTEM.nanoseconds();
     endpoints.createQueryPublisher(queryStreamArgs.get().sql, queryStreamArgs.get().properties,
+        queryStreamArgs.get().requestProperties,
         queryStreamArgs.get().sessionVariables, context, server.getWorkerExecutor(),
         DefaultApiSecurityContext.create(routingContext), metricsCallbackHolder)
         .thenAccept(queryPublisher -> {

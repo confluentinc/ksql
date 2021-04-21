@@ -389,6 +389,7 @@ public class PushRouting implements AutoCloseable {
       }
       if (row.getRow().isPresent()) {
         workerExecutor.executeBlocking(promise -> {
+          System.out.println("ROW1 " + row.getRow().get().getColumns());
           transientQueryQueue.acceptRow(null, GenericRow.fromList(row.getRow().get().getColumns()));
           promise.complete();
         }, false, result -> {});
@@ -438,6 +439,7 @@ public class PushRouting implements AutoCloseable {
         return;
       }
       workerExecutor.executeBlocking(promise -> {
+        System.out.println("ROW2 " + row);
         transientQueryQueue.acceptRow(null, GenericRow.fromList(row));
         promise.complete();
       }, false, result -> {});

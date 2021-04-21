@@ -19,7 +19,12 @@ import static io.confluent.ksql.rest.client.KsqlClientUtil.deserialize;
 import static io.confluent.ksql.rest.client.KsqlClientUtil.serialize;
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.Streams;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.metastore.TypeRegistry;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.LocalProperties;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
@@ -27,15 +32,22 @@ import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.HeartbeatResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.LagReportingResponse;
+import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.QueryStreamArgs;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
+import io.confluent.ksql.schema.ksql.SqlTypeParser;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -462,6 +474,40 @@ public final class KsqlTarget {
       }
     }
     return rows;
+  }
+
+  private static StreamedRow toRowFromQueryStream(final Buffer buff) {
+    try {
+      final QueryResponseMetadata metadata = deserialize(buff, QueryResponseMetadata.class);
+      final SqlTypeParser parser = SqlTypeParser.create(TypeRegistry.EMPTY);
+      return StreamedRow.header(new QueryId(metadata.queryId),
+          LogicalSchema.builder().valueColumns(
+              Streams.zip(metadata.columnNames.stream(), metadata.columnTypes.stream(), Pair::of)
+                  .map(pair -> {
+                    final SqlType sqlType = parser.parse(pair.getRight()).getSqlType();
+                    final ColumnName name = ColumnName.of(pair.getLeft());
+                    return new SimpleColumn() {
+                      @Override
+                      public ColumnName name() {
+                        return name;
+                      }
+
+                      @Override
+                      public SqlType type() {
+                        return sqlType;
+                      }
+                    };
+                  }).collect(Collectors.toList())).build());
+    } catch (KsqlRestClientException e) {}
+    try {
+      final KsqlErrorMessage error = deserialize(buff, KsqlErrorMessage.class);
+      return StreamedRow.error(new RuntimeException(error.getMessage()), error.getErrorCode());
+    } catch (KsqlRestClientException e) {}
+    try {
+      final List<?> row = deserialize(buff, List.class);
+      return StreamedRow.pushRow(GenericRow.fromList(row));
+    } catch (KsqlRestClientException e) {}
+    throw new IllegalStateException("Couldn't parse type");
   }
 
 }

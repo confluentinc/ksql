@@ -64,10 +64,12 @@ done
 if [[ "${FULL_VERSION}" =~ ^[0-9]+.[0-9]+.[0-9]+-rc[0-9]+$ ]]; then
     RELEASE="0.${FULL_VERSION##*-rc}"
     VERSION="${FULL_VERSION%%-rc*}"
+    MAVEN_ARTIFACT_VERSION="${FULL_VERSION}"
 elif [[ "${FULL_VERSION}" =~ ^[0-9]+.[0-9]+.[0-9]+$ ]]; then
     RELEASE=1
     VERSION="${FULL_VERSION}"
     FULL_VERSION="${FULL_VERSION}-${RELEASE}"
+    MAVEN_ARTIFACT_VERSION="${VERSION}"
 else
     error "Unknown version format '${FULL_VERSION}' "
 fi
@@ -90,7 +92,7 @@ for cmd in "${REQUIRED_UTILS[@]}"; do
     fi
 done
 
-echo "FULL_VERSION=${FULL_VERSION} VERSION=${VERSION} REELASE=${RELEASE} UPSTREAM_VERSION=${UPSTREAM_VERSION}"
+echo "FULL_VERSION=${FULL_VERSION} VERSION=${VERSION} RELEASE=${RELEASE} UPSTREAM_VERSION=${UPSTREAM_VERSION}"
 cd "${WORKSPACE}"
 work_branch="debian-${FULL_VERSION}"
 git checkout -b "${work_branch}"
@@ -110,8 +112,8 @@ export DEBEMAIL="Confluent Packaging <packages@confluent.io>"
 xmlstarlet ed --inplace -P --update "/_:project/_:parent/_:version" --value "${UPSTREAM_VERSION}" pom.xml
 
 # Maven provides some helpfull commands for setting versions/properties
-mvn --batch-mode versions:set          -DgenerateBackupPoms=false "-DnewVersion=${FULL_VERSION}"
-mvn --batch-mode versions:set-property -DgenerateBackupPoms=false "-DnewVersion=${FULL_VERSION}" -Dproperty=io.confluent.ksql.version 
+mvn --batch-mode versions:set          -DgenerateBackupPoms=false "-DnewVersion=${MAVEN_ARTIFACT_VERSION}"
+mvn --batch-mode versions:set-property -DgenerateBackupPoms=false "-DnewVersion=${MAVEN_ARTIFACT_VERSION}" -Dproperty=io.confluent.ksql.version 
 mvn --batch-mode versions:set-property -DgenerateBackupPoms=false "-DnewVersion=${UPSTREAM_VERSION}" -Dproperty=io.confluent.schema-registry.version
 
 # Set version for Debian Package
@@ -155,7 +157,7 @@ if "${BUILD_JAR}"; then
         "-DskipTests" \
         "-Dspotbugs.skip" \
         "-Dcheckstyle.skip" \
-        "-Ddocker.tag=${FULL_VERSION}" \
+        "-Ddocker.tag=${MAVEN_ARTIFACT_VERSION}" \
         "-Ddocker.registry=${DOCKER_REGISTRY}" \
         "-Ddocker.upstream-tag=${UPSTREAM_VERSION}-latest" \
         "-Dskip.docker.build=false"

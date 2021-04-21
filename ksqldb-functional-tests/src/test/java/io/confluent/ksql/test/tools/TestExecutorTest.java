@@ -66,6 +66,7 @@ import java.util.OptionalInt;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.streams.TestInputTopic;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.junit.Before;
 import org.junit.Test;
@@ -136,6 +137,8 @@ public class TestExecutorTest {
     );
 
     when(sourceTopic.getName()).thenReturn("source_topic");
+    when(topologyTestDriver.createInputTopic(any(), any(), any()))
+        .thenReturn(mock(TestInputTopic.class));
     when(sinkTopic.getName()).thenReturn(SINK_TOPIC_NAME);
 
     final TopologyTestDriverContainer container = TopologyTestDriverContainer.of(

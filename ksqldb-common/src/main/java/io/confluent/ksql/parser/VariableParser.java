@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Map;
 
 public class VariableParser {
+  private VariableParser() {
+  }
 
   /**
    * Parses a list of Strings of the form, var=val into a map of variables and values.

@@ -76,12 +76,9 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.ByteArrayDeserializer;
-import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.TopologyTestDriver;
+import org.apache.kafka.streams.TestOutputTopic;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
@@ -184,20 +181,20 @@ public class TestExecutor implements Closeable {
           verifyTopology(testCase);
         }
 
-        final Set<Topic> topicsFromInput = topologyTestDriverContainer.getSourceTopics()
+        final Set<String> topicsFromInput = topologyTestDriverContainer.getSourceTopicNames()
             .stream()
-            .filter(topic -> inputTopics.contains(topic.getName()))
+            .filter(inputTopics::contains)
             .collect(Collectors.toSet());
-        final Set<Topic> topicsFromKafka = topologyTestDriverContainer.getSourceTopics()
+        final Set<String> topicsFromKafka = topologyTestDriverContainer.getSourceTopicNames()
             .stream()
-            .filter(topic -> !inputTopics.contains(topic.getName()))
+            .filter(topicName -> !inputTopics.contains(topicName))
             .collect(Collectors.toSet());
         if (!topicsFromInput.isEmpty()) {
           pipeRecordsFromProvidedInput(testCase, topologyTestDriverContainer);
         }
-        for (final Topic kafkaTopic : topicsFromKafka) {
+        for (final String kafkaTopic : topicsFromKafka) {
           pipeRecordsFromKafka(
-              kafkaTopic.getName(),
+              kafkaTopic,
               topologyTestDriverContainer
           );
         }
@@ -498,56 +495,40 @@ public class TestExecutor implements Closeable {
       final TopologyTestDriverContainer testDriver,
       final Set<Topic> possibleSinkTopics
   ) {
-    final String topicName = producedRecord.topic();
-
-    final ConsumerRecord<byte[], byte[]> consumerRecord =
-        new org.apache.kafka.streams.test.ConsumerRecordFactory<>(
-            new ByteArraySerializer(),
-            new ByteArraySerializer()
-        ).create(
-            topicName,
+    testDriver.getSourceTopic(producedRecord.topic())
+        .pipeInput(
             producedRecord.key(),
             producedRecord.value(),
-            producedRecord.timestamp()
-        );
+            producedRecord.timestamp());
 
-    testDriver.getTopologyTestDriver().pipeInput(consumerRecord);
+    final String sinkTopicName = testDriver.getSinkTopicName();
+    final TestOutputTopic<byte[], byte[]> sinkTopic = testDriver.getSinkTopic(sinkTopicName);
 
-    final Topic sinkTopic = testDriver.getSinkTopic();
-
-    processRecordsForTopic(
-        testDriver.getTopologyTestDriver(),
-        sinkTopic
-    );
+    processRecordsForTopic(sinkTopic, sinkTopicName);
 
     for (final Topic possibleSinkTopic : possibleSinkTopics) {
-      if (possibleSinkTopic.getName().equals(sinkTopic.getName())) {
+      if (possibleSinkTopic.getName().equals(sinkTopicName)) {
         continue;
       }
       processRecordsForTopic(
-          testDriver.getTopologyTestDriver(),
-          possibleSinkTopic
+          testDriver.getSinkTopic(possibleSinkTopic.getName()),
+          possibleSinkTopic.getName()
       );
     }
   }
 
   private void processRecordsForTopic(
-      final TopologyTestDriver topologyTestDriver,
-      final Topic sinkTopic
+      final TestOutputTopic<byte[], byte[]> sinkTopic,
+      final String sinkTopicName
   ) {
-    while (true) {
-      final ProducerRecord<byte[], byte[]> producerRecord = topologyTestDriver.readOutput(
-          sinkTopic.getName(),
-          new ByteArrayDeserializer(),
-          new ByteArrayDeserializer()
-      );
-
-      if (producerRecord == null) {
-        break;
-      }
-
-      kafka.writeRecord(producerRecord);
-    }
+    sinkTopic.readRecordsToList()
+        .forEach(testRecord -> kafka.writeRecord(new ProducerRecord<>(
+            sinkTopicName,
+            null, // partition
+            testRecord.timestamp(),
+            testRecord.getKey(),
+            testRecord.getValue()
+        )));
   }
 
   static ServiceContext getServiceContext() {

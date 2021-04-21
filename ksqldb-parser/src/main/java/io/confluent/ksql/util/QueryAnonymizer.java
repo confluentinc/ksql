@@ -15,10 +15,12 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.SqlBaseBaseVisitor;
-import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.AlterOptionContext;
 import io.confluent.ksql.parser.SqlBaseParser.AlterSourceContext;
 import io.confluent.ksql.parser.SqlBaseParser.BooleanDefaultContext;
@@ -103,16 +105,6 @@ public class QueryAnonymizer {
     private int tableCount = 1;
     private int udfCount = 1;
     private final Hashtable<String, String> anonTable = new Hashtable<>();
-
-    @Override
-    public String visitFunctionCall(SqlBaseParser.FunctionCallContext ctx) {
-      return visitChildren(ctx);
-    }
-
-    @Override
-    public String visitFunctionArgument(SqlBaseParser.FunctionArgumentContext ctx) {
-      return visitChildren(ctx);
-    }
 
     @Override
     public String visitStatements(final StatementsContext context) {
@@ -446,6 +438,12 @@ public class QueryAnonymizer {
     @Override
     public String visitExpression(final ExpressionContext context) {
       final String columnName = context.getText();
+
+      // check if it's an udf
+      if (new AstBuilder(TypeRegistry.EMPTY).buildExpression(context) instanceof FunctionCall) {
+        return getAnonUdfName(columnName);
+      }
+
       return getAnonColumnName(columnName);
     }
 

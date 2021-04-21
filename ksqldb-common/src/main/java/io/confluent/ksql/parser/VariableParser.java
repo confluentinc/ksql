@@ -20,7 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class VariableParser {
+public final class VariableParser {
   private VariableParser() {
   }
 

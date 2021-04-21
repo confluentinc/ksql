@@ -35,10 +35,12 @@ import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.CommandParser;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCreateConnectorStatement;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlDefineVariableCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlDropConnectorStatement;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlInsertValues;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlPropertyCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlStatement;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlUndefineVariableCommand;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil;
 import io.confluent.ksql.tools.migrations.util.MetadataUtil.MigrationState;
 import io.confluent.ksql.tools.migrations.util.MigrationFile;
@@ -311,14 +313,46 @@ public class ApplyMigrationCommand extends BaseCommand {
       final Clock clock,
       final String previous
   ) {
+    final List<String> commands = CommandParser.splitSql(migrationFileContent);
+
+    executeCommands(
+        commands, ksqlClient, config, executionStart, migration, clock, previous, true);
+    executeCommands(
+        commands, ksqlClient, config, executionStart, migration, clock, previous, false);
+  }
+
+  /**
+   * If validateOnly is set to true, then this parses each of the commands but only executes
+   * DEFINE/UNDEFINE commands (variables are needed for parsing INSERT INTO... VALUES, SET/UNSET
+   * and DEFINE commands). If validateOnly is set to false, then each command will execute after
+   * parsing.
+   */
+  private void executeCommands(
+      final List<String> commands,
+      final Client ksqlClient,
+      final MigrationConfig config,
+      final String executionStart,
+      final MigrationFile migration,
+      final Clock clock,
+      final String previous,
+      final boolean validateOnly
+  ) {
+    cleanUpJavaClientVariables(ksqlClient);
     final Map<String, Object> properties = new HashMap<>();
-    final List<SqlCommand> commands = CommandParser.parse(migrationFileContent);
-    for (final SqlCommand command : commands) {
+    for (final String command : commands) {
       try {
-        executeCommand(command, ksqlClient, properties);
-      } catch (InterruptedException | ExecutionException e) {
+        final Map<String, String> variables = ksqlClient.getVariables().entrySet()
+            .stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toString()));
+        executeCommand(
+            CommandParser.transformToSqlCommand(command, variables),
+            ksqlClient,
+            properties,
+            validateOnly
+        );
+      } catch (InterruptedException | ExecutionException | MigrationException e) {
+        final String action = validateOnly ? "parse" : "execute";
         final String errorMsg = String.format(
-            "Failed to execute sql: %s. Error: %s", command.getCommand(), e.getMessage());
+            "Failed to %s sql: %s. Error: %s", action, command, e.getMessage());
         updateState(config, ksqlClient, MigrationState.ERROR,
             executionStart, migration, clock, previous, Optional.of(errorMsg));
         throw new MigrationException(errorMsg);
@@ -326,7 +360,32 @@ public class ApplyMigrationCommand extends BaseCommand {
     }
   }
 
+  private void cleanUpJavaClientVariables(final Client ksqlClient) {
+    ksqlClient.getVariables().forEach((k, v) -> ksqlClient.undefine(k));
+  }
+
   private void executeCommand(
+      final SqlCommand command,
+      final Client ksqlClient,
+      final Map<String, Object> properties,
+      final boolean defineUndefineOnly
+  ) throws ExecutionException, InterruptedException {
+    if (command instanceof SqlDefineVariableCommand) {
+      ksqlClient.define(
+          ((SqlDefineVariableCommand) command).getVariable(),
+          ((SqlDefineVariableCommand) command).getValue()
+      );
+    } else if (command instanceof SqlUndefineVariableCommand) {
+      ksqlClient.undefine(((SqlUndefineVariableCommand) command).getVariable());
+    } else if (!defineUndefineOnly) {
+      executeNonVariableCommands(command, ksqlClient, properties);
+    }
+  }
+
+  /**
+   * Executes everything besides define/undefine commands
+   */
+  private void executeNonVariableCommands(
       final SqlCommand command,
       final Client ksqlClient,
       final Map<String, Object> properties

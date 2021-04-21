@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 import com.github.rvesse.airline.SingleCommand;
@@ -86,8 +87,16 @@ public class ApplyMigrationCommandTest {
   private static final String SET_COMMANDS = COMMAND
       + "SET 'auto.offset.reset' = 'earliest';"
       + "CREATE TABLE BAR AS SELECT * FROM FOO GROUP BY A;"
-       + "UNSET 'auto.offset.reset';"
+      + "UNSET 'auto.offset.reset';"
       + "CREATE STREAM MOO (A STRING) WITH (KAFKA_TOPIC='MOO', PARTITIONS=1, VALUE_FORMAT='DELIMITED');";
+  private static final String DEFINE_COMMANDS = COMMAND
+      + "DEFINE pre='a';"
+      + "DEFINE str='${pre}bc';"
+      + "SET '${str}'='yay';"
+      + "CREATE STREAM ${str} AS SELECT * FROM FOO;"
+      + "INSERT INTO FOO VALUES ('${str}');"
+      + "UNDEFINE str;"
+      + "INSERT INTO FOO VALUES ('${str}');";
 
   @Rule
   public TemporaryFolder folder = new TemporaryFolder();
@@ -201,6 +210,91 @@ public class ApplyMigrationCommandTest {
   }
 
   @Test
+  public void shouldApplyDefineUndefineCommands() throws Exception {
+    // Given:
+    final Map<String, Object> variables = ImmutableMap.of("pre", "a", "str", "abc");
+    command = PARSER.parse("-n");
+    createMigrationFile(1, NAME, migrationsDir, DEFINE_COMMANDS);
+    when(versionQueryResult.get()).thenReturn(ImmutableList.of());
+    when(ksqlClient.getVariables()).thenReturn(
+        ImmutableMap.of(), ImmutableMap.of(), variables, variables, variables, variables, variables,
+        variables, variables, variables, variables, variables, variables, variables, variables,
+        variables, variables, ImmutableMap.of()
+    );
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(0));
+    final InOrder inOrder = inOrder(ksqlClient);
+
+    verifyMigratedVersion(inOrder, 1, "<none>", MigrationState.MIGRATED, () -> {
+      inOrder.verify(ksqlClient).executeStatement(COMMAND, new HashMap<>());
+      inOrder.verify(ksqlClient).define("pre", "a");
+      inOrder.verify(ksqlClient).define("str", "abc");
+      inOrder.verify(ksqlClient).executeStatement(eq("CREATE STREAM ${str} AS SELECT * FROM FOO;"), propCaptor.capture());
+      assertThat(propCaptor.getValue().size(), is(1));
+      assertThat(propCaptor.getValue().get("abc"), is("yay"));
+      inOrder.verify(ksqlClient).insertInto("`FOO`", new KsqlObject(ImmutableMap.of("`A`", "abc")));
+      inOrder.verify(ksqlClient).undefine("str");
+      inOrder.verify(ksqlClient).insertInto("`FOO`", new KsqlObject(ImmutableMap.of("`A`", "${str}")));
+    });
+    inOrder.verify(ksqlClient).close();
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void shouldResetVariablesBetweenMigrations() throws Exception {
+    // Given:
+    final Map<String, Object> variables = ImmutableMap.of("cat", "pat");
+    command = PARSER.parse("-a");
+    createMigrationFile(1, NAME, migrationsDir, "DEFINE cat='pat';");
+    createMigrationFile(2, NAME, migrationsDir, "INSERT INTO FOO VALUES ('${cat}');");
+    when(versionQueryResult.get()).thenReturn(ImmutableList.of());
+    when(ksqlClient.getVariables()).thenReturn(ImmutableMap.of(), ImmutableMap.of(), variables, ImmutableMap.of());
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(0));
+    final InOrder inOrder = inOrder(ksqlClient);
+    inOrder.verify(ksqlClient, times(2)).getVariables();
+    inOrder.verify(ksqlClient).define("cat", "pat");
+    inOrder.verify(ksqlClient).getVariables();
+    inOrder.verify(ksqlClient).undefine("cat");
+    inOrder.verify(ksqlClient).getVariables();
+    inOrder.verify(ksqlClient).insertInto("`FOO`", new KsqlObject(ImmutableMap.of("`A`", "${cat}")));
+    inOrder.verify(ksqlClient).close();
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void shouldResetPropertiesBetweenMigrations() throws Exception {
+    // Given:
+    command = PARSER.parse("-a");
+    createMigrationFile(1, NAME, migrationsDir, "SET 'cat'='pat';");
+    createMigrationFile(2, NAME, migrationsDir, COMMAND);
+    when(versionQueryResult.get()).thenReturn(ImmutableList.of());
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(0));
+    final InOrder inOrder = inOrder(ksqlClient);
+    inOrder.verify(ksqlClient).executeStatement(COMMAND, ImmutableMap.of());
+    inOrder.verify(ksqlClient).close();
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
   public void shouldApplySecondMigration() throws Exception {
     // Given:
     command = PARSER.parse("-n");
@@ -306,7 +400,7 @@ public class ApplyMigrationCommandTest {
     final InOrder inOrder = inOrder(ksqlClient);
     verifyMigratedVersion(inOrder, 1, "<none>", MigrationState.MIGRATED);
     inOrder.verify(ksqlClient).close();
-    Mockito.verify(ksqlClient, Mockito.times(1)).executeStatement(COMMAND, new HashMap<>());
+    Mockito.verify(ksqlClient, times(1)).executeStatement(COMMAND, new HashMap<>());
   }
 
   @Test
@@ -346,9 +440,9 @@ public class ApplyMigrationCommandTest {
 
     // Then:
     assertThat(result, is(1));
-    Mockito.verify(ksqlClient, Mockito.times(3)).executeQuery(any());
-    Mockito.verify(ksqlClient, Mockito.times(0)).executeStatement(any(), any());
-    Mockito.verify(ksqlClient, Mockito.times(0)).insertInto(any(), any());
+    Mockito.verify(ksqlClient, times(3)).executeQuery(any());
+    Mockito.verify(ksqlClient, times(0)).executeStatement(any(), any());
+    Mockito.verify(ksqlClient, times(0)).insertInto(any(), any());
   }
 
   @Test
@@ -388,8 +482,27 @@ public class ApplyMigrationCommandTest {
 
     // Then:
     assertThat(result, is(1));
-    Mockito.verify(ksqlClient, Mockito.times(0)).executeStatement(any(), any());
-    Mockito.verify(ksqlClient, Mockito.times(0)).insertInto(any(), any());
+    Mockito.verify(ksqlClient, times(0)).executeStatement(any(), any());
+    Mockito.verify(ksqlClient, times(0)).insertInto(any(), any());
+  }
+
+  @Test
+  public void shouldThrowErrorOnParsingFailure() throws Exception {
+    // Given:
+    command = PARSER.parse("-n");
+    createMigrationFile(1, NAME, migrationsDir, "SHOW TABLES;");
+    when(versionQueryResult.get()).thenReturn(ImmutableList.of());
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(1));
+    final InOrder inOrder = inOrder(ksqlClient);
+    verifyMigratedVersion(
+        inOrder, 1, "<none>", MigrationState.ERROR,
+        Optional.of("Failed to parse sql: SHOW TABLES;. Error: 'SHOW' statements are not supported."), () -> {});
   }
 
   @Test

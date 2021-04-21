@@ -24,16 +24,21 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCreateConnectorStatement;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlDefineVariableCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlDropConnectorStatement;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlInsertValues;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlPropertyCommand;
 import io.confluent.ksql.tools.migrations.util.CommandParser.SqlStatement;
+import io.confluent.ksql.tools.migrations.util.CommandParser.SqlUndefineVariableCommand;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.junit.Test;
 
 public class CommandParserTest {
@@ -41,7 +46,7 @@ public class CommandParserTest {
   @Test
   public void shouldParseInsertValuesStatement() {
     // When:
-    List<SqlCommand> commands = CommandParser.parse("INSERT INTO FOO VALUES (55);");
+    List<SqlCommand> commands = parse("INSERT INTO FOO VALUES (55);");
 
     // Then:
     assertThat(commands.size(), is(1));
@@ -57,7 +62,7 @@ public class CommandParserTest {
   @Test
   public void shouldParseInsertValuesStatementWithExplicitFields() {
     // When:
-    List<SqlCommand> commands = CommandParser.parse("INSERT INTO `foo` (col1, col2) VALUES (55, '40');");
+    List<SqlCommand> commands = parse("INSERT INTO `foo` (col1, col2) VALUES (55, '40');");
 
     // Then:
     assertThat(commands.size(), is(1));
@@ -74,7 +79,7 @@ public class CommandParserTest {
   @Test
   public void shouldParseInsertValuesStatementWithExplicitQuoting() {
     // When:
-    List<SqlCommand> commands = CommandParser.parse("INSERT INTO `foo` (`col1`) VALUES (55);");
+    List<SqlCommand> commands = parse("INSERT INTO `foo` (`col1`) VALUES (55);");
 
     // Then:
     assertThat(commands.size(), is(1));
@@ -88,10 +93,32 @@ public class CommandParserTest {
   }
 
   @Test
+  public void shouldParseInsertValuesStatementWithVariables() {
+    // When:
+    List<SqlCommand> commands = parse(
+        "INSERT INTO ${stream} VALUES (${num});",
+        ImmutableMap.of(
+            "stream", "FOO",
+            "num", "55"
+        )
+    );
+
+    // Then:
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0), instanceOf(SqlInsertValues.class));
+    final SqlInsertValues insertValues = (SqlInsertValues) commands.get(0);
+
+    assertThat(insertValues.getSourceName(), is("`FOO`"));
+    assertThat(insertValues.getColumns().size(), is(0));
+    assertThat(insertValues.getValues().size(), is(1));
+    assertThat(toFieldType(insertValues.getValues().get(0)), is(55));
+  }
+
+  @Test
   public void shouldThrowOnInvalidInsertValues() {
     // When:
     final MigrationException e = assertThrows(MigrationException.class,
-        () -> CommandParser.parse("insert into foo values (this_should_not_here) ('val');"));
+        () -> parse("insert into foo values (this_should_not_here) ('val');"));
 
     // Then:
     assertThat(e.getMessage(), containsString("Failed to parse INSERT VALUES statement"));
@@ -100,7 +127,7 @@ public class CommandParserTest {
   @Test
   public void shouldParseInsertIntoStatement() {
     // When:
-    List<SqlCommand> commands = CommandParser.parse("INSERT INTO FOO SELECT VALUES FROM BAR;");
+    List<SqlCommand> commands = parse("INSERT INTO FOO SELECT VALUES FROM BAR;");
 
     // Then:
     assertThat(commands.size(), is(1));
@@ -110,24 +137,47 @@ public class CommandParserTest {
 
   @Test
   public void shouldParseSetUnsetStatements() {
-    List<SqlCommand> commands = CommandParser.parse("SET 'foo.property'='bar';UNSET 'foo.property';");
+    List<SqlCommand> commands = parse("SeT 'foo.property'='bar';UnSET 'foo.property';");
     assertThat(commands.size(), is(2));
     assertThat(commands.get(0), instanceOf(SqlPropertyCommand.class));
-    assertThat(commands.get(0).getCommand(), is("SET 'foo.property'='bar';"));
+    assertThat(commands.get(0).getCommand(), is("SeT 'foo.property'='bar';"));
     assertThat(((SqlPropertyCommand) commands.get(0)).isSetCommand(), is(true));
     assertThat(((SqlPropertyCommand) commands.get(0)).getProperty(), is("foo.property"));
     assertThat(((SqlPropertyCommand) commands.get(0)).getValue().get(), is("bar"));
     assertThat(commands.get(1), instanceOf(SqlPropertyCommand.class));
-    assertThat(commands.get(1).getCommand(), is("UNSET 'foo.property';"));
+    assertThat(commands.get(1).getCommand(), is("UnSET 'foo.property';"));
     assertThat(((SqlPropertyCommand) commands.get(1)).isSetCommand(), is(false));
     assertThat(((SqlPropertyCommand) commands.get(1)).getProperty(), is("foo.property"));
     assertTrue(!((SqlPropertyCommand) commands.get(1)).getValue().isPresent());
   }
 
   @Test
+  public void shouldParseSetStatementsWithVariables() {
+    List<SqlCommand> commands = parse("SET '${name}'='${value}';",
+        ImmutableMap.of("name", "foo.property", "value", "bar"));
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0), instanceOf(SqlPropertyCommand.class));
+    assertThat(commands.get(0).getCommand(), is("SET '${name}'='${value}';"));
+    assertThat(((SqlPropertyCommand) commands.get(0)).isSetCommand(), is(true));
+    assertThat(((SqlPropertyCommand) commands.get(0)).getProperty(), is("foo.property"));
+    assertThat(((SqlPropertyCommand) commands.get(0)).getValue().get(), is("bar"));
+  }
+
+  @Test
+  public void shouldParseUnsetStatementsWithVariables() {
+    List<SqlCommand> commands = parse("UnSeT '${name}';",
+        ImmutableMap.of("name", "foo.property"));
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0), instanceOf(SqlPropertyCommand.class));
+    assertThat(((SqlPropertyCommand) commands.get(0)).isSetCommand(), is(false));
+    assertThat(((SqlPropertyCommand) commands.get(0)).getProperty(), is("foo.property"));
+    assertTrue(!((SqlPropertyCommand) commands.get(0)).getValue().isPresent());
+  }
+
+  @Test
   public void shouldParseMultipleStatements() {
     // When:
-    List<SqlCommand> commands = CommandParser.parse("INSERT INTO foo VALUES (32);INSERT INTO FOO_2 VALUES ('wow',3,'hello ''world''!');");
+    List<SqlCommand> commands = parse("INSERT INTO foo VALUES (32);INSERT INTO FOO_2 VALUES ('wow',3,'hello ''world''!');");
 
     // Then:
     assertThat(commands.size(), is(2));
@@ -146,7 +196,7 @@ public class CommandParserTest {
   @Test
   public void shouldParseCreateStatement() {
     // When:
-    List<SqlCommand> commands = CommandParser.parse("CREATE STREAM FOO (A STRING) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='DELIMITED');");
+    List<SqlCommand> commands = parse("CREATE STREAM FOO (A STRING) WITH (KAFKA_TOPIC='FOO', PARTITIONS=1, VALUE_FORMAT='DELIMITED');");
 
     // Then:
     assertThat(commands.size(), is(1));
@@ -157,7 +207,7 @@ public class CommandParserTest {
   @Test
   public void shouldParseCreateAsStatement() {
     // When:
-    List<SqlCommand> commands = CommandParser.parse("CREATE STREAM FOO AS SELECT col1, col2 + 2 FROM BAR;");
+    List<SqlCommand> commands = parse("CREATE STREAM FOO AS SELECT col1, col2 + 2 FROM BAR;");
 
     // Then:
     assertThat(commands.size(), is(1));
@@ -168,7 +218,7 @@ public class CommandParserTest {
   @Test
   public void shouldParseCreateOrReplaceStatement() {
     // When:
-    List<SqlCommand> commands = CommandParser.parse("create or replace stream FOO (A STRING) WITH (KAFKA_TOPIC='FOO', VALUE_FORMAT='DELIMITED');");
+    List<SqlCommand> commands = parse("create or replace stream FOO (A STRING) WITH (KAFKA_TOPIC='FOO', VALUE_FORMAT='DELIMITED');");
 
     // Then:
     assertThat(commands.size(), is(1));
@@ -179,7 +229,7 @@ public class CommandParserTest {
   @Test
   public void shouldParseTerminateStatement() {
     // When:
-    List<SqlCommand> commands = CommandParser.parse("terminate some_query_id;");
+    List<SqlCommand> commands = parse("terminate some_query_id;");
 
     // Then:
     assertThat(commands.size(), is(1));
@@ -190,7 +240,7 @@ public class CommandParserTest {
   @Test
   public void shouldParseDropSourceStatement() {
     // When:
-    List<SqlCommand> commands = CommandParser.parse("drop stream foo;");
+    List<SqlCommand> commands = parse("drop stream foo;");
 
     // Then:
     assertThat(commands.size(), is(1));
@@ -201,7 +251,7 @@ public class CommandParserTest {
   @Test
   public void shouldParseAlterSourceStatement() {
     // When:
-    List<SqlCommand> commands = CommandParser.parse("alter stream foo add column new_col string;");
+    List<SqlCommand> commands = parse("alter stream foo add column new_col string;");
 
     // Then:
     assertThat(commands.size(), is(1));
@@ -212,7 +262,7 @@ public class CommandParserTest {
   @Test
   public void shouldParseCreateTypeStatement() {
     // When:
-    List<SqlCommand> commands = CommandParser.parse("create type address as struct<street varchar, number int, city string, zip varchar>;");
+    List<SqlCommand> commands = parse("create type address as struct<street varchar, number int, city string, zip varchar>;");
 
     // Then:
     assertThat(commands.size(), is(1));
@@ -223,7 +273,7 @@ public class CommandParserTest {
   @Test
   public void shouldParseDropTypeStatement() {
     // When:
-    List<SqlCommand> commands = CommandParser.parse("drop type address;");
+    List<SqlCommand> commands = parse("drop type address;");
 
     // Then:
     assertThat(commands.size(), is(1));
@@ -234,7 +284,7 @@ public class CommandParserTest {
   @Test
   public void shouldParseSeveralCommands() {
     // When:
-    List<SqlCommand> commands = CommandParser.parse("CREATE STREAM riderLocations (profileId VARCHAR, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='locations', value_format='json', partitions=1);\n"
+    List<SqlCommand> commands = parse("CREATE STREAM riderLocations (profileId VARCHAR, latitude DOUBLE, longitude DOUBLE) WITH (kafka_topic='locations', value_format='json', partitions=1);\n"
         + "INSERT INTO riderLocations (profileId, latitude, longitude) VALUES ('c2309eec', 37.7877, -122.4205);\n"
         + "INSERT INTO `riderLocations` (profileId, latitude, longitude) VALUES ('18f4ea86', 37.3903, -122.0643);\n"
         + "INSERT INTO \"riderLocations\" (profileId, latitude, longitude) VALUES ('4ab5cbad', 37.3952, -122.0813);\n"
@@ -276,7 +326,7 @@ public class CommandParserTest {
         + "    \"key\"='username');";
 
     // When:
-    List<SqlCommand> commands = CommandParser.parse(createConnector);
+    List<SqlCommand> commands = parse(createConnector);
 
     // Then:
     assertThat(commands.size(), is(1));
@@ -296,10 +346,10 @@ public class CommandParserTest {
   @Test
   public void shouldParseDropConnectorStatement() {
     // Given:
-    final String dropConnector = "DROP CONNECTOR `jdbc-connector` ;"; // The space at the end is to make sure that the regex doesn't capture it as a part of the name
+    final String dropConnector = "DRoP CONNEcTOR `jdbc-connector` ;"; // The space at the end is to make sure that the regex doesn't capture it as a part of the name
 
     // When:
-    List<SqlCommand> commands = CommandParser.parse(dropConnector);
+    List<SqlCommand> commands = parse(dropConnector);
 
     // Then:
     assertThat(commands.size(), is(1));
@@ -337,6 +387,52 @@ public class CommandParserTest {
   }
 
   @Test
+  public void shouldParseDefineStatement() {
+    // Given:
+    final String defineVar = "DEFINE var = 'foo';";
+
+    // When:
+    List<SqlCommand> commands = parse(defineVar);
+
+    // Then:
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0).getCommand(), is(defineVar));
+    assertThat(commands.get(0), instanceOf(SqlDefineVariableCommand.class));
+    assertThat(((SqlDefineVariableCommand) commands.get(0)).getVariable(), is("var"));
+    assertThat(((SqlDefineVariableCommand) commands.get(0)).getValue(), is("foo"));
+  }
+
+  @Test
+  public void shouldDefineStatementWithVariable() {
+    // Given:
+    final String defineVar = "DEFiNe word = 'walk${suffix}';";
+
+    // When:
+    List<SqlCommand> commands = parse(defineVar, ImmutableMap.of("suffix", "ing"));
+
+    // Then:
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0), instanceOf(SqlDefineVariableCommand.class));
+    assertThat(((SqlDefineVariableCommand) commands.get(0)).getVariable(), is("word"));
+    assertThat(((SqlDefineVariableCommand) commands.get(0)).getValue(), is("walking"));
+  }
+
+  @Test
+  public void shouldParseUndefineStatement() {
+    // Given:
+    final String undefineVar = "UNDEFINE var;";
+
+    // When:
+    List<SqlCommand> commands = parse(undefineVar);
+
+    // Then:
+    assertThat(commands.size(), is(1));
+    assertThat(commands.get(0).getCommand(), is(undefineVar));
+    assertThat(commands.get(0), instanceOf(SqlUndefineVariableCommand.class));
+    assertThat(((SqlUndefineVariableCommand) commands.get(0)).getVariable(), is("var"));
+  }
+
+  @Test
   public void shouldThrowOnMalformedComment() {
     // When:
     final MigrationException e = assertThrows(MigrationException.class,
@@ -360,37 +456,17 @@ public class CommandParserTest {
   public void shouldThrowOnMissingSemicolon() {
     // When:
     final MigrationException e = assertThrows(MigrationException.class,
-        () -> CommandParser.parse("create stream foo as select * from no_semicolon_after_this"));
+        () -> parse("create stream foo as select * from no_semicolon_after_this"));
 
     // Then:
     assertThat(e.getMessage(), containsString("Unmatched command at end of file; missing semicolon"));
   }
 
   @Test
-  public void shouldThrowOnDefineStatement() {
-    // When:
-    final MigrationException e = assertThrows(MigrationException.class,
-        () -> CommandParser.parse("define var = 'value';"));
-
-    // Then:
-    assertThat(e.getMessage(), is("'DEFINE' statements are not supported."));
-  }
-
-  @Test
-  public void shouldThrowOnUndefineStatement() {
-    // When:
-    final MigrationException e = assertThrows(MigrationException.class,
-        () -> CommandParser.parse("undefine var;"));
-
-    // Then:
-    assertThat(e.getMessage(), is("'UNDEFINE' statements are not supported."));
-  }
-
-  @Test
   public void shouldThrowOnDescribeStatement() {
     // When:
     final MigrationException e = assertThrows(MigrationException.class,
-        () -> CommandParser.parse("describe my_stream;"));
+        () -> parse("describe my_stream;"));
 
     // Then:
     assertThat(e.getMessage(), is("'DESCRIBE' statements are not supported."));
@@ -400,7 +476,7 @@ public class CommandParserTest {
   public void shouldThrowOnExplainStatement() {
     // When:
     final MigrationException e = assertThrows(MigrationException.class,
-        () -> CommandParser.parse("explain my_query_id;"));
+        () -> parse("explain my_query_id;"));
 
     // Then:
     assertThat(e.getMessage(), is("'EXPLAIN' statements are not supported."));
@@ -410,7 +486,7 @@ public class CommandParserTest {
   public void shouldThrowOnSelectStatement() {
     // When:
     final MigrationException e = assertThrows(MigrationException.class,
-        () -> CommandParser.parse("select * from my_stream emit changes;"));
+        () -> parse("select * from my_stream emit changes;"));
 
     // Then:
     assertThat(e.getMessage(), is("'SELECT' statements are not supported."));
@@ -420,7 +496,7 @@ public class CommandParserTest {
   public void shouldThrowOnPrintStatement() {
     // When:
     final MigrationException e = assertThrows(MigrationException.class,
-        () -> CommandParser.parse("print 'my_topic';"));
+        () -> parse("print 'my_topic';"));
 
     // Then:
     assertThat(e.getMessage(), is("'PRINT' statements are not supported."));
@@ -430,7 +506,7 @@ public class CommandParserTest {
   public void shouldThrowOnShowStatement() {
     // When:
     final MigrationException e = assertThrows(MigrationException.class,
-        () -> CommandParser.parse("show connectors;"));
+        () -> parse("show connectors;"));
 
     // Then:
     assertThat(e.getMessage(), is("'SHOW' statements are not supported."));
@@ -440,7 +516,7 @@ public class CommandParserTest {
   public void shouldThrowOnListStatement() {
     // When:
     final MigrationException e = assertThrows(MigrationException.class,
-        () -> CommandParser.parse("list queries;"));
+        () -> parse("list queries;"));
 
     // Then:
     assertThat(e.getMessage(), is("'LIST' statements are not supported."));
@@ -450,9 +526,19 @@ public class CommandParserTest {
   public void shouldThrowOnRunScriptStatement() {
     // When:
     final MigrationException e = assertThrows(MigrationException.class,
-        () -> CommandParser.parse("RUN SCRIPT 'my_script.sql';"));
+        () -> parse("RUN SCRIPT 'my_script.sql';"));
 
     // Then:
     assertThat(e.getMessage(), is("'RUN SCRIPT' statements are not supported."));
+  }
+
+  private List<SqlCommand> parse(final String sql, Map<String, String> variables) {
+    return CommandParser.splitSql(sql).stream()
+        .map(command -> CommandParser.transformToSqlCommand(command, variables))
+        .collect(Collectors.toList());
+  }
+
+  private List<SqlCommand> parse(final String sql) {
+    return parse(sql, ImmutableMap.of());
   }
 }

@@ -244,9 +244,9 @@ public class MigrationsTest {
             "INSERT INTO ${streamName} (A) VALUES ('${onlyDefinedInFile1}--ha\nha');" +
             "INSERT INTO FOO (A) VALUES ('');" +
             "DEFINE variable = 'cool';" +
-            "SET 'ksql.output.topic.name.prefix' = '${variable}';" +
+            "SeT 'ksql.output.topic.name.prefix' = '${variable}';" +
             "CREATE STREAM `bar` AS SELECT CONCAT(A, 'woo''hoo') AS A FROM FOO;" +
-            "UNSET 'ksql.output.topic.name.prefix';" +
+            "UnSET 'ksql.output.topic.name.prefix';" +
             "CREATE STREAM CAR AS SELECT * FROM FOO;" +
             "DROP CONNECTOR D;" +
             "INSERT INTO `bar` SELECT A FROM CAR;" +

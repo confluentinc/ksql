@@ -318,7 +318,7 @@ public class QueryRegistryImplTest {
   ) {
     givenCreate(registry, id, "source", "sink1", true);
     verify(executor).buildPersistentQuery(
-        any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture());
+        any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any());
     return queryListenerCaptor.getValue();
   }
 
@@ -338,7 +338,7 @@ public class QueryRegistryImplTest {
     when(query.getSink()).thenReturn(sinkSource);
     when(query.getSourceNames()).thenReturn(ImmutableSet.of(SourceName.of(source)));
     when(executor.buildPersistentQuery(
-        any(), any(), any(), any(), any(), any(), any())
+        any(), any(), any(), any(), any(), any(), any(), any())
     ).thenReturn(query);
     registry.createOrReplacePersistentQuery(
         config,

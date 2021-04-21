@@ -170,7 +170,8 @@ public class QueryRegistryImpl implements QueryRegistry {
         sources,
         physicalPlan,
         planSummary,
-        new ListenerImpl()
+        new ListenerImpl(),
+        () -> ImmutableList.copyOf(getPersistentQueries().values())
     );
     registerQuery(serviceContext, metaStore, query, createAsQuery);
     return query;

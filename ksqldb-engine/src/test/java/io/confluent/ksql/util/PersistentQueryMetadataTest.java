@@ -126,7 +126,8 @@ public class PersistentQueryMetadataTest {
         processingLogger,
         0L,
         0L,
-        listener
+        listener,
+        Optional.empty()
     );
 
     query.initialize();

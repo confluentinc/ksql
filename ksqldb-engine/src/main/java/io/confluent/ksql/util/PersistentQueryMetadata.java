@@ -27,6 +27,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.physical.scalable_push.ScalablePushRegistry;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.MaterializationProviderBuilderFactory;
 import io.confluent.ksql.query.QueryErrorClassifier;
@@ -54,6 +55,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
   private Optional<MaterializationProvider> materializationProvider;
   private ProcessingLogger processingLogger;
+  private final Optional<ScalablePushRegistry> scalablePushRegistry;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public PersistentQueryMetadata(
@@ -78,7 +80,8 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final ProcessingLogger processingLogger,
       final long retryBackoffInitialMs,
       final long retryBackoffMaxMs,
-      final Listener listener
+      final Listener listener,
+      final Optional<ScalablePushRegistry> scalablePushRegistry
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -106,6 +109,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.materializationProviderBuilder =
         requireNonNull(materializationProviderBuilder, "materializationProviderBuilder");
     this.processingLogger = requireNonNull(processingLogger, "processingLogger");
+    this.scalablePushRegistry = requireNonNull(scalablePushRegistry, "scalablePushRegistry");
   }
 
   // for creating sandbox instances
@@ -121,6 +125,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.physicalPlan = original.physicalPlan;
     this.materializationProviderBuilder = original.materializationProviderBuilder;
     this.processingLogger = original.processingLogger;
+    this.scalablePushRegistry = original.scalablePushRegistry;
   }
 
   @Override
@@ -215,5 +220,10 @@ public class PersistentQueryMetadata extends QueryMetadata {
    */
   public synchronized void stop() {
     doClose(false);
+    scalablePushRegistry.ifPresent(ScalablePushRegistry::close);
+  }
+
+  public Optional<ScalablePushRegistry> getScalablePushRegistry() {
+    return scalablePushRegistry;
   }
 }

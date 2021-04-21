@@ -192,7 +192,7 @@ public final class KSPlanBuilder implements PlanBuilder {
       final PlanInfo planInfo) {
     final KStreamHolder<K> source = streamSink.getSource().build(this, planInfo);
     StreamSinkBuilder.build(source, streamSink, buildContext);
-    return null;
+    return source;
   }
 
   @Override

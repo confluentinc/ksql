@@ -20,6 +20,7 @@ import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
@@ -44,6 +45,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.physical.scalable_push.ScalablePushRegistry;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -65,6 +67,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -187,6 +190,24 @@ final class QueryExecutor {
     return Optional.empty();
   }
 
+  @SuppressWarnings("unchecked")
+  private static Optional<ScalablePushRegistry> getScalablePushRegistry(
+      final LogicalSchema schema,
+      final Object result,
+      final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
+      final boolean windowed,
+      final Map<String, Object> streamsProperties
+  ) {
+    KStream<?, GenericRow> stream;
+    if (result instanceof KTableHolder) {
+      stream = ((KTableHolder<?>) result).getTable().toStream();
+    } else {
+      stream = ((KStreamHolder<?>) result).getStream();
+    }
+    return ScalablePushRegistry.create(stream, schema, allPersistentQueries, windowed,
+        streamsProperties);
+  }
+
   PersistentQueryMetadata buildPersistentQuery(
       final String statementText,
       final QueryId queryId,
@@ -194,7 +215,8 @@ final class QueryExecutor {
       final Set<SourceName> sources,
       final ExecutionStep<?> physicalPlan,
       final String planSummary,
-      final QueryMetadata.Listener listener
+      final QueryMetadata.Listener listener,
+      final Supplier<List<PersistentQueryMetadata>> allPersistentQueries
   ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
 
@@ -209,6 +231,12 @@ final class QueryExecutor {
 
     final RuntimeBuildContext runtimeBuildContext = buildContext(applicationId, queryId);
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
+    // Must be created before the topology is created since the ScalablePushRegistry adds a peek
+    // to the topology.
+    final Optional<ScalablePushRegistry> scalablePushRegistry
+        = getScalablePushRegistry(querySchema.logicalSchema(), result, allPersistentQueries,
+        sinkDataSource.getKsqlTopic().getKeyFormat().isWindowed(),
+        streamsProperties);
     final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
 
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
@@ -248,7 +276,8 @@ final class QueryExecutor {
         getUncaughtExceptionProcessingLogger(queryId),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
         ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
-        listener
+        listener,
+        scalablePushRegistry
     );
   }
 

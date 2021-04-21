@@ -117,7 +117,7 @@ public class CommandParserTest {
     assertThat(((SqlPropertyCommand) commands.get(0)).getProperty(), is("foo.property"));
     assertThat(((SqlPropertyCommand) commands.get(0)).getValue().get(), is("bar"));
     assertThat(commands.get(1), instanceOf(SqlPropertyCommand.class));
-    assertThat(commands.get(1).getCommand(), is("UNSeT 'foo.property';"));
+    assertThat(commands.get(1).getCommand(), is("UnSeT 'foo.property';"));
     assertThat(((SqlPropertyCommand) commands.get(1)).isSetCommand(), is(false));
     assertThat(((SqlPropertyCommand) commands.get(1)).getProperty(), is("foo.property"));
     assertTrue(!((SqlPropertyCommand) commands.get(1)).getValue().isPresent());

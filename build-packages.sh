@@ -92,7 +92,7 @@ done
 
 echo "FULL_VERSION=${FULL_VERSION} VERSION=${VERSION} REELASE=${RELEASE} UPSTREAM_VERSION=${UPSTREAM_VERSION}"
 cd "${WORKSPACE}"
-work_branch="debian-${VERSION}"
+work_branch="debian-${FULL_VERSION}"
 git checkout -b "${work_branch}"
 export DEBEMAIL="Confluent Packaging <packages@confluent.io>"
 
@@ -110,8 +110,8 @@ export DEBEMAIL="Confluent Packaging <packages@confluent.io>"
 xmlstarlet ed --inplace -P --update "/_:project/_:parent/_:version" --value "${UPSTREAM_VERSION}" pom.xml
 
 # Maven provides some helpfull commands for setting versions/properties
-mvn --batch-mode versions:set          -DgenerateBackupPoms=false "-DnewVersion=${VERSION}"
-mvn --batch-mode versions:set-property -DgenerateBackupPoms=false "-DnewVersion=${VERSION}" -Dproperty=io.confluent.ksql.version
+mvn --batch-mode versions:set          -DgenerateBackupPoms=false "-DnewVersion=${FULL_VERSION}"
+mvn --batch-mode versions:set-property -DgenerateBackupPoms=false "-DnewVersion=${FULL_VERSION}" -Dproperty=io.confluent.ksql.version 
 mvn --batch-mode versions:set-property -DgenerateBackupPoms=false "-DnewVersion=${UPSTREAM_VERSION}" -Dproperty=io.confluent.schema-registry.version
 
 # Set version for Debian Package
@@ -123,7 +123,7 @@ git diff | cat
 
 # Commit changes
 git add maven-settings.xml
-git commit -a -m "build: Setting project version ${VERSION} and parent version ${UPSTREAM_VERSION}."
+git commit -a -m "build: Setting project version ${FULL_VERSION} and parent version ${UPSTREAM_VERSION}."
 
 # We run things through fakeroot, which causes issues with finding an .m2/repository location to write. We set the homedir where it does
 # have write access too to get around that.
@@ -136,11 +136,11 @@ git-buildpackage -us -uc --git-debian-branch="${work_branch}" --git-upstream-tre
 
 # Build RPM
 echo "Building RPM packages"
-fakeroot make PACKAGE_TYPE=rpm "VERSION=${VERSION}" "RPM_VERSION=${VERSION}" "REVISION=${RELEASE}" -f debian/Makefile rpm
+fakeroot make PACKAGE_TYPE=rpm "VERSION=${FULL_VERSION}" "RPM_VERSION=${VERSION}" "REVISION=${RELEASE}" -f debian/Makefile rpm
 
 # Build Archive
 echo "Building Archive packages"
-fakeroot make PACKAGE_TYPE=archive "VERSION=${VERSION}" -f debian/Makefile archive
+fakeroot make PACKAGE_TYPE=archive "VERSION=${FULL_VERSION}" -f debian/Makefile archive
 
 # Collect output
 mkdir -p "${WORKSPACE}/output"
@@ -155,7 +155,7 @@ if "${BUILD_JAR}"; then
         "-DskipTests" \
         "-Dspotbugs.skip" \
         "-Dcheckstyle.skip" \
-        "-Ddocker.tag=${VERSION}" \
+        "-Ddocker.tag=${FULL_VERSION}" \
         "-Ddocker.registry=${DOCKER_REGISTRY}" \
         "-Ddocker.upstream-tag=${UPSTREAM_VERSION}-latest" \
         "-Dskip.docker.build=false"

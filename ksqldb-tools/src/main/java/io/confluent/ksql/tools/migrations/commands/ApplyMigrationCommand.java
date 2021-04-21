@@ -30,6 +30,7 @@ import io.confluent.ksql.api.client.Client;
 import io.confluent.ksql.api.client.FieldInfo;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.parser.VariableParser;
 import io.confluent.ksql.tools.migrations.MigrationConfig;
 import io.confluent.ksql.tools.migrations.MigrationException;
 import io.confluent.ksql.tools.migrations.util.CommandParser;
@@ -121,6 +122,14 @@ public class ApplyMigrationCommand extends BaseCommand {
   )
   @Once
   private boolean dryRun = false;
+
+  @Option(
+      name = {"--define", "-d"},
+      description = "Define variables for the session. This is equivalent to including DEFINE "
+          + "statements before each migration. The `--define` option should be followed by a "
+          + "string of the form `name=value` and may be passed any number of times."
+  )
+  private List<String> definedVars = null;
 
   @Override
   protected int command() {
@@ -337,7 +346,7 @@ public class ApplyMigrationCommand extends BaseCommand {
       final String previous,
       final boolean validateOnly
   ) {
-    cleanUpJavaClientVariables(ksqlClient);
+    setUpJavaClientVariables(ksqlClient);
     final Map<String, Object> properties = new HashMap<>();
     for (final String command : commands) {
       try {
@@ -360,8 +369,13 @@ public class ApplyMigrationCommand extends BaseCommand {
     }
   }
 
-  private void cleanUpJavaClientVariables(final Client ksqlClient) {
+  private void setUpJavaClientVariables(final Client ksqlClient) {
     ksqlClient.getVariables().forEach((k, v) -> ksqlClient.undefine(k));
+    try {
+      VariableParser.getVariables(definedVars).forEach((k, v) -> ksqlClient.define(k, v));
+    } catch (IllegalArgumentException e) {
+      throw new MigrationException(e.getMessage());
+    }
   }
 
   private void executeCommand(

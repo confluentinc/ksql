@@ -26,6 +26,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
@@ -314,8 +315,7 @@ public class HARoutingTest {
     verify(pullPhysicalPlan).execute(eq(ImmutableList.of(location1, location3)), any(), any());
     verify(ksqlClient, times(2)).makeQueryRequest(eq(node2.location()), any(), any(), any(), any());
 
-    assertThat(e.getCause().getMessage(), containsString("Unable to execute pull query: \"foo\". "
-                                                  + "Exhausted standby hosts to try."));
+    assertThat(e.getCause().getMessage(), containsString("Exhausted standby hosts to try."));
   }
 
   @Test
@@ -332,8 +332,7 @@ public class HARoutingTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString(
-        "Unable to execute pull query \"foo\". All nodes are dead or exceed max allowed lag."));
+    assertThat(e.getMessage(), containsString("All nodes are dead or exceed max allowed lag."));
   }
 
   @Test
@@ -365,7 +364,7 @@ public class HARoutingTest {
 
     // Then:
     assertThat(pullQueryQueue.size(), is(0));
-    assertThat(e.getMessage(), containsString("Row Error!"));
+    assertThat(Throwables.getRootCause(e).getMessage(), containsString("Row Error!"));
   }
 
   @Test
@@ -394,7 +393,7 @@ public class HARoutingTest {
 
     // Then:
     assertThat(pullQueryQueue.size(), is(0));
-    assertThat(e.getMessage(), containsString("Authentication Error"));
+    assertThat(Throwables.getRootCause(e).getMessage(), containsString("Authentication Error"));
   }
 
   @Test
@@ -423,7 +422,7 @@ public class HARoutingTest {
 
     // Then:
     assertThat(pullQueryQueue.size(), is(0));
-    assertThat(e.getMessage(),
+    assertThat(Throwables.getRootCause(e).getMessage(),
         containsString("empty response from forwarding call, expected a header row"));
   }
 
@@ -456,7 +455,7 @@ public class HARoutingTest {
 
     // Then:
     assertThat(pullQueryQueue.size(), is(0));
-    assertThat(e.getMessage(),
+    assertThat(Throwables.getRootCause(e).getMessage(),
         containsString("Schemas logicalSchema2 from host node2 differs from schema logicalSchema"));
   }
 

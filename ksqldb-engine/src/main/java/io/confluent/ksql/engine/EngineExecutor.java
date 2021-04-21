@@ -17,6 +17,8 @@ package io.confluent.ksql.engine;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
+import com.google.common.base.Throwables;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
@@ -67,10 +69,13 @@ import io.confluent.ksql.util.PlanSummary;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Executor of {@code PreparedStatement} within a specific {@code EngineContext} and using a
@@ -85,6 +90,8 @@ import java.util.stream.Collectors;
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 final class EngineExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
+  private static final Logger LOG = LoggerFactory.getLogger(EngineExecutor.class);
 
   private final EngineContext engineContext;
   private final ServiceContext serviceContext;
@@ -205,6 +212,33 @@ final class EngineExecutor {
           Optional.ofNullable(finalSourceType).orElse(PullSourceType.UNKNOWN),
           Optional.ofNullable(finalPlanType).orElse(PullPhysicalPlanType.UNKNOWN),
           Optional.ofNullable(finalRoutingNodeType).orElse(RoutingNodeType.UNKNOWN)));
+
+      final String stmtLower = statement.getStatementText().toLowerCase(Locale.ROOT);
+      final String messageLower = e.getMessage().toLowerCase(Locale.ROOT);
+      final String stackLower = Throwables.getStackTraceAsString(e).toLowerCase(Locale.ROOT);
+
+      // do not include the statement text in the default logs as it may contain sensitive
+      // information - the exception which is returned to the user below will contain
+      // the contents of the query
+      if (messageLower.contains(stmtLower) || stackLower.contains(stmtLower)) {
+        final StackTraceElement loc = Iterables
+            .getLast(Throwables.getCausalChain(e))
+            .getStackTrace()[0];
+        LOG.error("Failure to execute pull query {} {}, not logging the error message since it "
+            + "contains the query string, which may contain sensitive information. If you "
+            + "see this LOG message, please submit a GitHub ticket and we will scrub "
+            + "the statement text from the error at {}",
+            routingOptions.debugString(),
+            pullPlannerOptions.debugString(),
+            loc);
+      } else {
+        LOG.error("Failure to execute pull query. {} {}",
+            routingOptions.debugString(),
+            pullPlannerOptions.debugString(),
+            e);
+      }
+      LOG.debug("Failed pull query text {}, {}", statement.getStatementText(), e);
+
       throw new KsqlStatementException(
           e.getMessage() == null
               ? "Server Error" + Arrays.toString(e.getStackTrace())

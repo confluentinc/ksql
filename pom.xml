@@ -136,7 +136,7 @@
         <scala.version>2.13.2</scala.version>
         <apache.io.version>2.6</apache.io.version>
         <io.confluent.ksql.version>7.0.0-0</io.confluent.ksql.version>
-        <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
+        <io.confluent.schema-registry.version>7.0.0-245</io.confluent.schema-registry.version>
         <mockito.version>3.8.0</mockito.version>
     </properties>
 

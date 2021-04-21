@@ -20,4 +20,16 @@ public interface PullPlannerOptions {
   boolean getTableScansEnabled();
 
   boolean getInterpreterEnabled();
+
+  /**
+   * @return a human readable representation of the {@code PullPlannerOptions},
+   *         used to debug requests
+   */
+  default String debugString() {
+    return "PullPlannerOptions{"
+        + "tableScansEnabled: " + getTableScansEnabled()
+        + ", interpreterEnabled: " + getInterpreterEnabled()
+        + "}";
+  }
+
 }

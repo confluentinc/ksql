@@ -131,6 +131,8 @@ public class SqlToJavaVisitor {
       "io.confluent.ksql.execution.codegen.helpers.ArrayAccess",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction",
       "io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction.LazyWhenClause",
+      "io.confluent.ksql.logging.processing.RecordProcessingError",
+      "java.lang.reflect.InvocationTargetException",
       "java.util.concurrent.TimeUnit",
       "java.sql.Timestamp",
       "java.util.Arrays",
@@ -1033,7 +1035,7 @@ public class SqlToJavaVisitor {
 
       for (Expression value : expressions) {
         array.append(".add(");
-        array.append(process(value, context).getLeft());
+        array.append(evaluateOrReturnNull(process(value, context).getLeft(), "array item"));
         array.append(")");
       }
       return new Pair<>(
@@ -1064,8 +1066,8 @@ public class SqlToJavaVisitor {
       final String entries = Streams.zip(
           keys.stream(),
           values.stream(),
-          (k, v) -> ".put(" + process(k, context).getLeft() + ", " + process(v, context).getLeft()
-              + ")"
+          (k, v) -> ".put(" + evaluateOrReturnNull(process(k, context).getLeft(), "map key")
+              + ", " + evaluateOrReturnNull(process(v, context).getLeft(), "map value") + ")"
       ).collect(Collectors.joining());
 
       return new Pair<>(
@@ -1086,13 +1088,33 @@ public class SqlToJavaVisitor {
             .append(field.getName())
             .append('"')
             .append(",")
-            .append(process(field.getValue(), context).getLeft())
+            .append(evaluateOrReturnNull(
+                process(field.getValue(), context).getLeft(), "struct field"))
             .append(")");
       }
       return new Pair<>(
           "((Struct)" + struct.toString() + ")",
           expressionTypeManager.getExpressionSqlType(node, context.getLambdaSqlTypeMapping())
       );
+    }
+
+    private String evaluateOrReturnNull(final String s, final String type) {
+      if (ksqlConfig.getBoolean(KsqlConfig.KSQL_NESTED_ERROR_HANDLING_CONFIG)) {
+        return " (new " + Supplier.class.getSimpleName() + "<Object>() {"
+            + "@Override public Object get() {"
+            + " try {"
+            + "  return " + s + ";"
+            + " } catch (Exception e) {"
+            + "  logger.error(RecordProcessingError.recordProcessingError("
+            + "    \"Error processing " + type + "\","
+            + "    e instanceof InvocationTargetException? e.getCause() : e,"
+            + "    row));"
+            + "  return defaultValue;"
+            + " }"
+            + "}}).get()";
+      } else {
+        return s;
+      }
     }
 
     @Override

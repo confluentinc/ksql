@@ -175,7 +175,9 @@ public class SqlToJavaVisitorTest {
     // Then:
     assertThat(
         java,
-        equalTo("((List)new ArrayBuilder(2).add(((Double) ((java.util.Map)COL5).get(\"key1\"))).add(1E0).build())"));
+        equalTo("((List)new ArrayBuilder(2)"
+            + ".add( (new Supplier<Object>() {@Override public Object get() { try {  return ((Double) ((java.util.Map)COL5).get(\"key1\")); } catch (Exception e) {  " + onException("array item") + " }}}).get())"
+            + ".add( (new Supplier<Object>() {@Override public Object get() { try {  return 1E0; } catch (Exception e) {  " + onException("array item") + " }}}).get()).build())"));
   }
 
   @Test
@@ -194,7 +196,9 @@ public class SqlToJavaVisitorTest {
     String java = sqlToJavaVisitor.process(expression);
 
     // Then:
-    assertThat(java, equalTo("((Map)new MapBuilder(2).put(\"foo\", ((Double) ((java.util.Map)COL5).get(\"key1\"))).put(\"bar\", 1E0).build())"));
+    assertThat(java, equalTo("((Map)new MapBuilder(2)"
+        + ".put( (new Supplier<Object>() {@Override public Object get() { try {  return \"foo\"; } catch (Exception e) {  " + onException("map key") + " }}}).get(),  (new Supplier<Object>() {@Override public Object get() { try {  return ((Double) ((java.util.Map)COL5).get(\"key1\")); } catch (Exception e) {  " + onException("map value") + " }}}).get())"
+        + ".put( (new Supplier<Object>() {@Override public Object get() { try {  return \"bar\"; } catch (Exception e) {  " + onException("map key") + " }}}).get(),  (new Supplier<Object>() {@Override public Object get() { try {  return 1E0; } catch (Exception e) {  " + onException("map value") + " }}}).get()).build())"));
   }
 
   @Test
@@ -213,7 +217,9 @@ public class SqlToJavaVisitorTest {
     // Then:
     assertThat(
         javaExpression,
-        equalTo("((Struct)new Struct(schema0).put(\"col1\",\"foo\").put(\"col2\",((Double) ((java.util.Map)COL5).get(\"key1\"))))"));
+        equalTo("((Struct)new Struct(schema0)"
+            + ".put(\"col1\", (new Supplier<Object>() {@Override public Object get() { try {  return \"foo\"; } catch (Exception e) {  " + onException("struct field") + " }}}).get())"
+            + ".put(\"col2\", (new Supplier<Object>() {@Override public Object get() { try {  return ((Double) ((java.util.Map)COL5).get(\"key1\")); } catch (Exception e) {  " + onException("struct field") + " }}}).get()))"));
   }
 
   @Test
@@ -1164,5 +1170,10 @@ public class SqlToJavaVisitorTest {
     when(function.getReturnType(anyList())).thenReturn(returnType);
     final UdfMetadata metadata = mock(UdfMetadata.class);
     when(factory.getMetadata()).thenReturn(metadata);
+  }
+
+  private String onException(final String type) {
+    return String.format("logger.error(RecordProcessingError.recordProcessingError(    \"Error processing %s\",    "
+        + "e instanceof InvocationTargetException? e.getCause() : e,    row));  return defaultValue;", type);
   }
 }

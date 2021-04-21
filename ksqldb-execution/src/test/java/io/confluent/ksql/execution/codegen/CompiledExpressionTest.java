@@ -86,7 +86,7 @@ public class CompiledExpressionTest {
 
     // Then:
     assertThat(result, equalTo(RETURN_VALUE));
-    verify(expressionEvaluator).evaluate(new Object[]{123, 456});
+    verify(expressionEvaluator).evaluate(new Object[]{123, 456, DEFAULT_VAL, processingLogger, genericRow(123, 456)});
   }
 
   @Test
@@ -115,7 +115,7 @@ public class CompiledExpressionTest {
 
     // Then:
     assertThat(result, equalTo(RETURN_VALUE));
-    verify(expressionEvaluator).evaluate(new Object[]{udf, 123});
+    verify(expressionEvaluator).evaluate(new Object[]{udf, 123, DEFAULT_VAL, processingLogger, genericRow(123)});
   }
 
   @Test
@@ -135,7 +135,7 @@ public class CompiledExpressionTest {
     final CountDownLatch threadLatch = new CountDownLatch(1);
     final CountDownLatch mainLatch = new CountDownLatch(1);
 
-    when(expressionEvaluator.evaluate(new Object[]{123, 456}))
+    when(expressionEvaluator.evaluate(new Object[]{123, 456, DEFAULT_VAL, processingLogger, genericRow(123, 456)}))
         .thenAnswer(
             invocation -> {
               threadLatch.countDown();
@@ -169,9 +169,9 @@ public class CompiledExpressionTest {
     // Then:
     thread.join();
     verify(expressionEvaluator, times(1))
-        .evaluate(new Object[]{123, 456});
+        .evaluate(new Object[]{123, 456, DEFAULT_VAL, processingLogger, genericRow(123, 456)});
     verify(expressionEvaluator, times(1))
-        .evaluate(new Object[]{100, 200});
+        .evaluate(new Object[]{100, 200, DEFAULT_VAL, processingLogger, genericRow(100, 200)});
   }
 
   @Test

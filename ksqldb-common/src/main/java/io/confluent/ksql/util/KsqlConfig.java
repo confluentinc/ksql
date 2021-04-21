@@ -264,6 +264,13 @@ public class KsqlConfig extends AbstractConfig {
       "When casting a SQLType to string, if false, use String.valueof(), else if true use"
           + "Objects.toString()";
 
+  public static final String KSQL_NESTED_ERROR_HANDLING_CONFIG =
+      "ksql.nested.error.set.null";
+  public static final String KSQL_NESTED_ERROR_HANDLING_CONFIG_DOC =
+      "If there is a processing error in an element of a map, struct or array, if true set only the"
+          + " failing element to null and preserve the rest of the value, else if false, set the"
+          + " the entire value to null.";
+
   public static final String KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG =
       "ksql.streams.shutdown.timeout.ms";
   public static final Long KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT = 300_000L;
@@ -409,16 +416,27 @@ public class KsqlConfig extends AbstractConfig {
     CURRENT
   }
 
-  public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
-      = ImmutableList.of(new CompatibilityBreakingConfigDef(
-          KSQL_STRING_CASE_CONFIG_TOGGLE,
-          Type.BOOLEAN,
-          false,
-          true,
-          Importance.LOW,
-          Optional.empty(),
-          KSQL_STRING_CASE_CONFIG_TOGGLE_DOC
-      ));
+  public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS =
+      ImmutableList.of(
+          new CompatibilityBreakingConfigDef(
+              KSQL_STRING_CASE_CONFIG_TOGGLE,
+              Type.BOOLEAN,
+              false,
+              true,
+              Importance.LOW,
+              Optional.empty(),
+              KSQL_STRING_CASE_CONFIG_TOGGLE_DOC
+          ),
+          new CompatibilityBreakingConfigDef(
+              KSQL_NESTED_ERROR_HANDLING_CONFIG,
+              Type.BOOLEAN,
+              false,
+              true,
+              Importance.LOW,
+              Optional.empty(),
+              KSQL_NESTED_ERROR_HANDLING_CONFIG_DOC
+          )
+      );
 
   public static class CompatibilityBreakingConfigDef {
 

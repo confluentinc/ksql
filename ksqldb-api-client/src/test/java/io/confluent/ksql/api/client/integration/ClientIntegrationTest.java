@@ -21,10 +21,13 @@ import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -69,8 +72,11 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.client.StreamPublisher;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.ConnectExecutable;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
@@ -203,10 +209,18 @@ public class ClientIntegrationTest {
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
+  // these properties are set together to allow us to verify that we can handle push queries
+  // in the worker pool without blocking the event loop.
+  private static final int EVENT_LOOP_POOL_SIZE = 1;
+  private static final int NUM_CONCURRENT_REQUESTS_TO_TEST = 5;
+  private static final int WORKER_POOL_SIZE = 10;
+
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
       .withProperty(KSQL_DEFAULT_KEY_FORMAT_CONFIG, "JSON")
+      .withProperty("ksql.verticle.instances", EVENT_LOOP_POOL_SIZE)
+      .withProperty("ksql.worker.pool.size", WORKER_POOL_SIZE)
       .build();
 
   @ClassRule
@@ -294,6 +308,30 @@ public class ClientIntegrationTest {
       vertx.close();
     }
     REST_APP.getServiceContext().close();
+  }
+
+  @Test
+  public void shouldStreamMultiplePushQueries() throws Exception {
+    // When
+    final StreamedQueryResult[] streamedQueryResults = new StreamedQueryResult[NUM_CONCURRENT_REQUESTS_TO_TEST];
+    for (int i = 0; i < streamedQueryResults.length; i++) {
+      streamedQueryResults[i] = client.streamQuery(PUSH_QUERY).get();
+    }
+
+    // Then
+    for (final StreamedQueryResult streamedQueryResult : streamedQueryResults) {
+      assertThat(streamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
+      assertThat(streamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
+      assertThat(streamedQueryResult.queryID(), is(notNullValue()));
+    }
+
+    for (final StreamedQueryResult streamedQueryResult : streamedQueryResults) {
+      shouldReceiveStreamRows(streamedQueryResult, false);
+    }
+
+    for (final StreamedQueryResult streamedQueryResult : streamedQueryResults) {
+      assertThat(streamedQueryResult.isComplete(), is(false));
+    }
   }
 
   @Test
@@ -958,29 +996,24 @@ public class ClientIntegrationTest {
   }
 
   @Test
-  public void shouldListQueries() {
+  public void shouldListQueries() throws ExecutionException, InterruptedException {
     // When
-    // Try multiple times to allow time for queries started by the other tests to finish terminating
-    final List<QueryInfo> queries = assertThatEventually(() -> {
-      try {
-        return client.listQueries().get();
-      } catch (Exception e) {
-        return Collections.emptyList();
-      }
-    }, hasSize(1));
+    final List<QueryInfo> queries = client.listQueries().get();
 
     // Then
-    assertThat(queries.get(0).getQueryType(), is(QueryType.PERSISTENT));
-    assertThat(queries.get(0).getId(), is("CTAS_" + AGG_TABLE + "_5"));
-    assertThat(queries.get(0).getSql(), is(
-        "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
-            + "  " + TEST_STREAM + ".K K,\n"
-            + "  LATEST_BY_OFFSET(" + TEST_STREAM + ".LONG) LONG\n"
-            + "FROM " + TEST_STREAM + " " + TEST_STREAM + "\n"
-            + "GROUP BY " + TEST_STREAM + ".K\n"
-            + "EMIT CHANGES;"));
-    assertThat(queries.get(0).getSink(), is(Optional.of(AGG_TABLE)));
-    assertThat(queries.get(0).getSinkTopic(), is(Optional.of(AGG_TABLE)));
+    assertThat(queries, hasItem(allOf(
+            hasProperty("queryType", is(QueryType.PERSISTENT)),
+            hasProperty("id", is("CTAS_" + AGG_TABLE + "_5")),
+            hasProperty("sql", is(
+                    "CREATE TABLE " + AGG_TABLE + " WITH (KAFKA_TOPIC='" + AGG_TABLE + "', PARTITIONS=1, REPLICAS=1) AS SELECT\n"
+                            + "  " + TEST_STREAM + ".K K,\n"
+                            + "  LATEST_BY_OFFSET(" + TEST_STREAM + ".LONG) LONG\n"
+                            + "FROM " + TEST_STREAM + " " + TEST_STREAM + "\n"
+                            + "GROUP BY " + TEST_STREAM + ".K\n"
+                            + "EMIT CHANGES;")),
+            hasProperty("sink", is(Optional.of(AGG_TABLE))),
+            hasProperty("sinkTopic", is(Optional.of(AGG_TABLE)))
+    )));
   }
 
   @Test

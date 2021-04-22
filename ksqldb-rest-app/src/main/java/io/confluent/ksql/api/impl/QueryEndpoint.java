@@ -149,7 +149,7 @@ public class QueryEndpoint {
             workerExecutor);
 
 
-    publisher.setQueryHandle(new KsqlQueryHandle(query), false);
+    publisher.setQueryHandle(new KsqlQueryHandle(query), false, true);
 
     return publisher;
   }
@@ -175,7 +175,7 @@ public class QueryEndpoint {
 
     localCommands.ifPresent(lc -> lc.write(queryMetadata));
 
-    publisher.setQueryHandle(new KsqlQueryHandle(queryMetadata), false);
+    publisher.setQueryHandle(new KsqlQueryHandle(queryMetadata), false, false);
 
     return publisher;
   }
@@ -244,7 +244,7 @@ public class QueryEndpoint {
 
       final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
 
-      publisher.setQueryHandle(new KsqlPullQueryHandle(result, pullQueryMetrics), true);
+      publisher.setQueryHandle(new KsqlPullQueryHandle(result, pullQueryMetrics), true, false);
 
       return publisher;
     } catch (Throwable t) {

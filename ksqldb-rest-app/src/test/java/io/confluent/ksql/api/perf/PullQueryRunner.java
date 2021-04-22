@@ -256,5 +256,10 @@ public class PullQueryRunner extends BasePerfRunner {
     public boolean isPullQuery() {
       return true;
     }
+
+    @Override
+    public boolean isScalablePushQuery() {
+      return false;
+    }
   }
 }

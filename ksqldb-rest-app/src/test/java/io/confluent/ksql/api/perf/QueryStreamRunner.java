@@ -107,7 +107,7 @@ public class QueryStreamRunner extends BasePerfRunner {
         final MetricsCallbackHolder metricsCallbackHolder) {
       QueryStreamPublisher publisher = new QueryStreamPublisher(context,
           server.getWorkerExecutor());
-      publisher.setQueryHandle(new TestQueryHandle(), false);
+      publisher.setQueryHandle(new TestQueryHandle(), false, false);
       publishers.add(publisher);
       publisher.start();
       return CompletableFuture.completedFuture(publisher);
@@ -270,9 +270,10 @@ public class QueryStreamRunner extends BasePerfRunner {
     }
 
     @Override
-    public void setQueryHandle(final QueryHandle queryHandle, boolean isPullQuery) {
+    public void setQueryHandle(final QueryHandle queryHandle, boolean isPullQuery,
+        boolean isScalablePushQuery) {
       this.queue = (TransientQueryQueue) queryHandle.getQueue();
-      super.setQueryHandle(queryHandle, isPullQuery);
+      super.setQueryHandle(queryHandle, isPullQuery, isScalablePushQuery);
     }
 
     public void close() {

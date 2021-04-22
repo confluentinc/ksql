@@ -101,6 +101,13 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
                   routingContext.response().bytesWritten(),
                   startTimeNanos);
             });
+          }  else if (queryPublisher.isScalablePushQuery()) {
+            metadata = new QueryResponseMetadata(
+                queryPublisher.getColumnNames(),
+                queryPublisher.getColumnTypes());
+            routingContext.response().endHandler(v -> {
+              queryPublisher.close();
+            });
           } else {
             final PushQueryHolder query = connectionQueryManager
                 .createApiQuery(queryPublisher, routingContext.request());

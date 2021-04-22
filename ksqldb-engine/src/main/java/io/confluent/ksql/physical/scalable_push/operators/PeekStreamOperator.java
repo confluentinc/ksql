@@ -67,4 +67,9 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
   public void setNewRowCallback(Runnable newRowCallback) {
     processingQueue.setNewRowCallback(newRowCallback);
   }
+
+  @Override
+  public boolean droppedRows() {
+    return processingQueue.hasDroppedRows();
+  }
 }

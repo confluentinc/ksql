@@ -9,6 +9,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 
@@ -21,6 +22,7 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
   private final ResultType resultType;
   private final PushQueryQueuePopulator pushQueryQueuePopulator;
 
+  private CompletableFuture<Void> future = new CompletableFuture<>();
   private final AtomicReference<PushConnectionsHandle> handleRef = new AtomicReference<>();
 
   public ScalablePushQueryMetadata(
@@ -41,6 +43,7 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
   public void start() {
     pushQueryQueuePopulator.run().thenApply(handle -> {
       handleRef.set(handle);
+      handle.onException(future::completeExceptionally);
       return null;
     });
   }
@@ -88,5 +91,12 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
   @Override
   public ResultType getResultType() {
     return resultType;
+  }
+
+  public void onException(final Consumer<Throwable> consumer) {
+    future.exceptionally(t -> {
+      consumer.accept(t);
+      return null;
+    });
   }
 }

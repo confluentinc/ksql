@@ -99,4 +99,9 @@ public class TestQueryPublisher
     return !push;
   }
 
+  @Override
+  public boolean isScalablePushQuery() {
+    return false;
+  }
+
 }

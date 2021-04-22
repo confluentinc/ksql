@@ -6,4 +6,6 @@ public interface PushDataSourceOperator {
   ScalablePushRegistry getScalablePushRegistry();
 
   void setNewRowCallback(final Runnable newRowCallback);
+
+  boolean droppedRows();
 }

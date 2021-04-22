@@ -53,15 +53,27 @@ public class ScalablePushRegistry {
 //        .orElseThrow(() -> new IllegalStateException("No row time found"));
       //      final long rowTime = (long) v.get(rowTimeColumn.index());
     ProcessorSupplier<Object, GenericRow> peek = new Peek<>((key, value, timestamp) -> {
-      TableRow row;
-      if (!windowed) {
-        row = new StreamRow(logicalSchema, (GenericKey) key, value, timestamp);
-      } else {
-        row = WindowedRow.of(logicalSchema, (Windowed<GenericKey>) key, value, timestamp);
-      }
+
       System.out.println("PEEK2: " + key.toString() + ", " + value.toString());
       for (ProcessingQueue queue : processingQueues) {
-        queue.offer(row);
+        try {
+          TableRow row;
+          if (!windowed) {
+            final GenericKey keyCopy = GenericKey.fromList(((GenericKey) key).values());
+            final GenericRow valueCopy = GenericRow.fromList(value.values());
+            row = new StreamRow(logicalSchema, keyCopy, valueCopy, timestamp);
+          } else {
+            final Windowed<GenericKey> windowedKey = (Windowed<GenericKey>) key;
+            final Windowed<GenericKey> keyCopy =
+                new Windowed<>(GenericKey.fromList(windowedKey.key().values()),
+                    windowedKey.window());
+            final GenericRow valueCopy = GenericRow.fromList(value.values());
+            row = WindowedRow.of(logicalSchema, keyCopy, valueCopy, timestamp);
+          }
+          queue.offer(row);
+        } catch (Throwable t) {
+          t.printStackTrace();
+        }
       }
     });
     stream.process(peek);
@@ -112,10 +124,12 @@ public class ScalablePushRegistry {
 
 
   public void register(final ProcessingQueue processingQueue) {
+    System.out.println("A REGISTERING " + processingQueue);
     processingQueues.add(processingQueue);
   }
 
   public void unregister(final ProcessingQueue processingQueue) {
+    System.out.println("A UNREGISTERING " + processingQueue);
     processingQueues.remove(processingQueue);
   }
 

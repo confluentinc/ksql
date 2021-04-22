@@ -11,6 +11,7 @@ import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
 import io.confluent.ksql.physical.pull.PullQueryRow;
 import io.confluent.ksql.physical.pull.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.pull.operators.DataSourceOperator;
+import io.confluent.ksql.physical.scalable_push.operators.PeekStreamOperator;
 import io.confluent.ksql.physical.scalable_push.operators.PushDataSourceOperator;
 import io.confluent.ksql.planner.plan.KeyConstraint;
 import io.confluent.ksql.planner.plan.KeyConstraint.ConstraintOperator;
@@ -63,16 +64,20 @@ public class PushPhysicalPlan {
   }
 
   public BufferedPublisher<List<?>> execute() {
-    final BufferedPublisher<List<?>> publisher = new BufferedPublisher<>(context, CAPACITY);
+    final Publisher publisher = new Publisher(context);
     context.runOnContext(v -> open(publisher));
     return publisher;
   }
 
-  private void maybeNext(final BufferedPublisher<List<?>> publisher) {
+  private void maybeNext(final Publisher publisher) {
     List<?> row;
     while ((row = (List<?>)next()) != null) {
-      if (publisher.accept(row)) {
+      if (dataSourceOperator.droppedRows()) {
+        publisher.reportDroppedRows();
+        closeInternal();
         break;
+      } else {
+        publisher.accept(row);
       }
     }
     if (!closed) {
@@ -82,10 +87,12 @@ public class PushPhysicalPlan {
       // Schedule another batch async
       timer = context.owner()
           .setTimer(100, timerId -> context.runOnContext(v -> maybeNext(publisher)));
+    } else {
+      publisher.close();
     }
   }
 
-  private void open(final BufferedPublisher<List<?>> publisher) {
+  private void open(final Publisher publisher) {
     VertxUtils.checkContext(context);
     dataSourceOperator.setNewRowCallback(() -> context.runOnContext(v -> maybeNext(publisher)));
     root.open();
@@ -121,5 +128,16 @@ public class PushPhysicalPlan {
 
   public ScalablePushRegistry getScalablePushRegistry() {
     return scalablePushRegistry;
+  }
+
+  public static class Publisher extends BufferedPublisher<List<?>> {
+
+    public Publisher(Context ctx) {
+      super(ctx, CAPACITY);
+    }
+
+    public void reportDroppedRows() {
+      sendError(new RuntimeException("Dropped rows"));
+    }
   }
 }

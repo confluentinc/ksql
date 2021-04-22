@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 
 public class ProcessingQueue {
 
-  private static final int BLOCKING_QUEUE_CAPACITY = 100;
+  private static final int BLOCKING_QUEUE_CAPACITY = 1000;
 
   private final LinkedList<TableRow> rowQueue;
   private final int queueSizeLimit;

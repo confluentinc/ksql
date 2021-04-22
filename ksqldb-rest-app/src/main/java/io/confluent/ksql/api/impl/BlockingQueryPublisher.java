@@ -48,6 +48,7 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, Gene
   private final WorkerExecutor workerExecutor;
   private BlockingRowQueue queue;
   private boolean isPullQuery;
+  private boolean isScalablePushQuery;
   private QueryHandle queryHandle;
   private List<String> columnNames;
   private List<String> columnTypes;
@@ -60,11 +61,13 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, Gene
     this.workerExecutor = Objects.requireNonNull(workerExecutor);
   }
 
-  public void setQueryHandle(final QueryHandle queryHandle, final boolean isPullQuery) {
+  public void setQueryHandle(final QueryHandle queryHandle, final boolean isPullQuery,
+      final boolean isScalablePushQuery) {
     this.columnNames = queryHandle.getColumnNames();
     this.columnTypes = queryHandle.getColumnTypes();
     this.queue = queryHandle.getQueue();
     this.isPullQuery = isPullQuery;
+    this.isScalablePushQuery = isScalablePushQuery;
     this.queue.setQueuedCallback(this::maybeSend);
     this.queue.setLimitHandler(() -> {
       complete = true;
@@ -100,6 +103,11 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, Gene
   @Override
   public boolean isPullQuery() {
     return isPullQuery;
+  }
+
+  @Override
+  public boolean isScalablePushQuery() {
+    return isScalablePushQuery;
   }
 
   @Override

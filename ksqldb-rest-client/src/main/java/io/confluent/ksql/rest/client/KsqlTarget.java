@@ -19,6 +19,7 @@ import static io.confluent.ksql.rest.client.KsqlClientUtil.deserialize;
 import static io.confluent.ksql.rest.client.KsqlClientUtil.serialize;
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.TypeRegistry;
@@ -478,36 +479,44 @@ public final class KsqlTarget {
 
   private static StreamedRow toRowFromQueryStream(final Buffer buff) {
     try {
-      final QueryResponseMetadata metadata = deserialize(buff, QueryResponseMetadata.class);
-      final SqlTypeParser parser = SqlTypeParser.create(TypeRegistry.EMPTY);
-      return StreamedRow.header(new QueryId(metadata.queryId),
-          LogicalSchema.builder().valueColumns(
-              Streams.zip(metadata.columnNames.stream(), metadata.columnTypes.stream(), Pair::of)
-                  .map(pair -> {
-                    final SqlType sqlType = parser.parse(pair.getRight()).getSqlType();
-                    final ColumnName name = ColumnName.of(pair.getLeft());
-                    return new SimpleColumn() {
-                      @Override
-                      public ColumnName name() {
-                        return name;
-                      }
+      try {
+        final QueryResponseMetadata metadata = deserialize(buff, QueryResponseMetadata.class);
+        final SqlTypeParser parser = SqlTypeParser.create(TypeRegistry.EMPTY);
+        return StreamedRow.header(new QueryId(Strings.nullToEmpty(metadata.queryId)),
+            LogicalSchema.builder().valueColumns(
+                Streams.zip(metadata.columnNames.stream(), metadata.columnTypes.stream(), Pair::of)
+                    .map(pair -> {
+                      final SqlType sqlType = parser.parse(pair.getRight()).getSqlType();
+                      final ColumnName name = ColumnName.of(pair.getLeft());
+                      return new SimpleColumn() {
+                        @Override
+                        public ColumnName name() {
+                          return name;
+                        }
 
-                      @Override
-                      public SqlType type() {
-                        return sqlType;
-                      }
-                    };
-                  }).collect(Collectors.toList())).build());
-    } catch (KsqlRestClientException e) {}
-    try {
-      final KsqlErrorMessage error = deserialize(buff, KsqlErrorMessage.class);
-      return StreamedRow.error(new RuntimeException(error.getMessage()), error.getErrorCode());
-    } catch (KsqlRestClientException e) {}
-    try {
-      final List<?> row = deserialize(buff, List.class);
-      return StreamedRow.pushRow(GenericRow.fromList(row));
-    } catch (KsqlRestClientException e) {}
-    throw new IllegalStateException("Couldn't parse type");
+                        @Override
+                        public SqlType type() {
+                          return sqlType;
+                        }
+                      };
+                    }).collect(Collectors.toList())).build());
+      } catch (KsqlRestClientException e) {
+      }
+      try {
+        final KsqlErrorMessage error = deserialize(buff, KsqlErrorMessage.class);
+        return StreamedRow.error(new RuntimeException(error.getMessage()), error.getErrorCode());
+      } catch (KsqlRestClientException e) {
+      }
+      try {
+        final List<?> row = deserialize(buff, List.class);
+        return StreamedRow.pushRow(GenericRow.fromList(row));
+      } catch (KsqlRestClientException e) {
+      }
+      throw new IllegalStateException("Couldn't parse type");
+    } catch (Throwable t) {
+      t.printStackTrace();
+      throw t;
+    }
   }
 
 }

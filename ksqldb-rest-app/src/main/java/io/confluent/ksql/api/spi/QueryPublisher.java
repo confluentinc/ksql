@@ -47,4 +47,8 @@ public interface QueryPublisher extends Publisher<KeyValue<List<?>, GenericRow>>
    */
   boolean isPullQuery();
 
+  /**
+   * @return true if scalable push query
+   */
+  boolean isScalablePushQuery();
 }

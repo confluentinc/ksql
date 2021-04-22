@@ -251,8 +251,8 @@ extra:
         ksqldbversion: 0.17.0
         kstreamsbetatag: 6.2.0-beta210310224144
         kstreamsbetabuild: 1
-        cprelease: 6.2.0
-        releasepostbranch: 6.2.0-post
+        cprelease: 6.1.1
+        releasepostbranch: 6.1.1-post
         scalaversion: 2.13
         voluble_version: 0.3.1
         jdbc_connector_version: 10.0.0

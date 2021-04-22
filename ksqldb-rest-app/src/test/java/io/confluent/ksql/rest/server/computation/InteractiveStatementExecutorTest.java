@@ -491,7 +491,7 @@ public class InteractiveStatementExecutorTest {
     // Then
     assertThat(e.getMessage(), containsString(
         "This version of ksqlDB does not support executing statements submitted prior to ksqlDB "
-            + "0.8.0 or Confluent Platform ksqlDB 5.0. Please see the upgrading guide to upgrade."));
+            + "0.8.0 or Confluent Platform ksqlDB 5.5. Please see the upgrading guide to upgrade."));
   }
 
   @Test
@@ -515,7 +515,7 @@ public class InteractiveStatementExecutorTest {
     // Then
     assertThat(e.getMessage(), containsString(
         "This version of ksqlDB does not support executing statements submitted prior to ksqlDB "
-            + "0.8.0 or Confluent Platform ksqlDB 5.0. Please see the upgrading guide to upgrade."));
+            + "0.8.0 or Confluent Platform ksqlDB 5.5. Please see the upgrading guide to upgrade."));
   }
 
   @Test
@@ -539,7 +539,7 @@ public class InteractiveStatementExecutorTest {
     // Then
     assertThat(e.getMessage(), containsString(
         "This version of ksqlDB does not support executing statements submitted prior to ksqlDB "
-            + "0.8.0 or Confluent Platform ksqlDB 5.0. Please see the upgrading guide to upgrade."));
+            + "0.8.0 or Confluent Platform ksqlDB 5.5. Please see the upgrading guide to upgrade."));
   }
 
   @Test

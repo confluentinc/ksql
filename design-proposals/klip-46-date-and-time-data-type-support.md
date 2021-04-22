@@ -3,7 +3,7 @@
 **Author**: Zara Lim (@jzaralim) | 
 **Release Target**: 0.20 | 
 **Status**: _In Discussion_ | 
-**Discussion**: _link to the design discussion PR_
+**Discussion**: https://github.com/confluentinc/ksql/pull/7417
 
 **tl;dr:** _Add support for DATE and TIME types. This will give users a more complete set of types
 to represent time data with, and makes it easier to handle date/time data from other data sources._

@@ -30,8 +30,12 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.Metrics;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class UdafFactoryInvoker implements FunctionSignature {
+
+  private static final Logger LOG = LoggerFactory.getLogger(UdafFactoryInvoker.class);
 
   private final FunctionName functionName;
   private final ParamType aggregateArgType;
@@ -110,6 +114,7 @@ class UdafFactoryInvoker implements FunctionSignature {
       }
       return function;
     } catch (final Exception e) {
+      LOG.error("Failed to invoke UDAF factory method", e);
       throw new KsqlException("Failed to invoke UDAF factory method", e);
     }
   }

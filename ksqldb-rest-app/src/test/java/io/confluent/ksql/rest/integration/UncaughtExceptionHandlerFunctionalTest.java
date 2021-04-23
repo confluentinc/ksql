@@ -32,6 +32,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.log4j.LogManager;
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -66,8 +67,12 @@ public class UncaughtExceptionHandlerFunctionalTest {
     RestIntegrationTestUtil.createStream(REST_APP_0, PAGE_VIEWS_PROVIDER);
     RestIntegrationTestUtil.makeKsqlRequest(
         REST_APP_0,
-        "CREATE STREAM S AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"
-                                           );
+        "CREATE STREAM S AS SELECT * FROM " + PAGE_VIEW_STREAM + ";");
+  }
+
+  @After
+  public void tearDown() {
+    REST_APP_0.stop();
   }
 
   @Test

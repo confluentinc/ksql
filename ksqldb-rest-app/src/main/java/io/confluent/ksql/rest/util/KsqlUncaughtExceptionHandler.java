@@ -47,9 +47,7 @@ public class KsqlUncaughtExceptionHandler implements Thread.UncaughtExceptionHan
   @SuppressFBWarnings
   public void uncaughtException(final Thread t, final Throwable e) {
     if (t instanceof StreamThread) {
-      if (!countDownLatch.isPresent()) {
-        countDownLatch.get().countDown();
-      }
+      countDownLatch.ifPresent(CountDownLatch::countDown);
       return;
     }
     log.error("Unhandled exception caught in thread {}.", t.getName(), e);

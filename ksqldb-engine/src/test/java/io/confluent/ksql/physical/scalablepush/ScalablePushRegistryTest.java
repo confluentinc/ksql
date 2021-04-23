@@ -1,4 +1,4 @@
-package io.confluent.ksql.physical.scalable_push;
+package io.confluent.ksql.physical.scalablepush;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -15,10 +15,9 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.physical.scalable_push.locator.PushLocator;
+import io.confluent.ksql.physical.scalablepush.locator.PushLocator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;

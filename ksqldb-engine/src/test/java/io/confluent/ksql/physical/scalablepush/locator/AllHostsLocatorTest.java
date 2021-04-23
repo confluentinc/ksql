@@ -1,11 +1,11 @@
-package io.confluent.ksql.physical.scalable_push.locator;
+package io.confluent.ksql.physical.scalablepush.locator;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.physical.scalable_push.locator.PushLocator.KsqlNode;
+import io.confluent.ksql.physical.scalablepush.locator.PushLocator.KsqlNode;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.net.MalformedURLException;
 import java.net.URL;

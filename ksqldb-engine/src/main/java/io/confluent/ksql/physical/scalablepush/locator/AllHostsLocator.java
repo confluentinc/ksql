@@ -1,9 +1,20 @@
-package io.confluent.ksql.physical.scalable_push.locator;
+/*
+ * Copyright 2021 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
-import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.execution.streams.materialization.ks.KsLocator;
-import io.confluent.ksql.execution.streams.materialization.ks.KsLocator.Node;
-import io.confluent.ksql.util.KsqlHostInfo;
+package io.confluent.ksql.physical.scalablepush.locator;
+
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.net.URI;
@@ -75,7 +86,7 @@ public class AllHostsLocator implements PushLocator {
     private final boolean isLocal;
     private final URI location;
 
-    public Node(final boolean isLocal, final URI location) {
+    Node(final boolean isLocal, final URI location) {
       this.isLocal = isLocal;
       this.location = location;
     }

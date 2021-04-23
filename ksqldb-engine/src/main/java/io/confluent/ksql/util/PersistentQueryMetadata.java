@@ -27,7 +27,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.physical.scalable_push.ScalablePushRegistry;
+import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.MaterializationProviderBuilderFactory;
 import io.confluent.ksql.query.QueryErrorClassifier;

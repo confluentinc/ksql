@@ -121,7 +121,7 @@ public class ScalablePushRegistry {
   }
 
   // This Peek processors just passes the row to the given action.
-  class Peek<K, V> implements ProcessorSupplier<K, V> {
+  static class Peek<K, V> implements ProcessorSupplier<K, V> {
     private final ForeachAction<K, V> action;
 
     Peek(final ForeachAction<K, V> action) {

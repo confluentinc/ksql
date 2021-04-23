@@ -196,8 +196,12 @@ final class QueryExecutor {
       final Object result,
       final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
       final boolean windowed,
-      final Map<String, Object> streamsProperties
+      final Map<String, Object> streamsProperties,
+      final KsqlConfig ksqlConfig
   ) {
+    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_ENABLED)) {
+      return Optional.empty();
+    }
     KStream<?, GenericRow> stream;
     if (result instanceof KTableHolder) {
       stream = ((KTableHolder<?>) result).getTable().toStream();
@@ -236,7 +240,7 @@ final class QueryExecutor {
     final Optional<ScalablePushRegistry> scalablePushRegistry
         = getScalablePushRegistry(querySchema.logicalSchema(), result, allPersistentQueries,
         sinkDataSource.getKsqlTopic().getKeyFormat().isWindowed(),
-        streamsProperties);
+        streamsProperties, ksqlConfig);
     final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
 
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>

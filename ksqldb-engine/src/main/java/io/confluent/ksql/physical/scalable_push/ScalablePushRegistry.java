@@ -1,7 +1,6 @@
 package io.confluent.ksql.physical.scalable_push;
 
-import static io.confluent.ksql.schema.ksql.SystemColumns.ROWTIME_NAME;
-
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.Row;
@@ -9,7 +8,6 @@ import io.confluent.ksql.execution.streams.materialization.TableRow;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.physical.scalable_push.locator.AllHostsLocator;
 import io.confluent.ksql.physical.scalable_push.locator.PushLocator;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.vertx.core.impl.ConcurrentHashSet;
@@ -26,12 +24,15 @@ import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.processor.Processor;
 import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.kafka.streams.processor.ProcessorSupplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ScalablePushRegistry {
 
+  private static final Logger LOG = LoggerFactory.getLogger(ScalablePushRegistry.class);
+
   private final KStream<?, GenericRow> stream;
   private final LogicalSchema logicalSchema;
-  private final LogicalSchema intermediateSchema;
   private final PushLocator pushLocator;
   private final Set<ProcessingQueue> processingQueues = new ConcurrentHashSet<>();
 
@@ -43,26 +44,32 @@ public class ScalablePushRegistry {
   ) {
     this.stream = stream;
     this.logicalSchema = logicalSchema;
-    this.intermediateSchema = logicalSchema.withPseudoAndKeyColsInValue(windowed);
     this.pushLocator = pushLocator;
     registerPeek(windowed);
   }
 
   @SuppressWarnings("unchecked")
   private void registerPeek(final boolean windowed) {
-//    final Column rowTimeColumn = intermediateSchema.findValueColumn(ROWTIME_NAME)
-//        .orElseThrow(() -> new IllegalStateException("No row time found"));
-      //      final long rowTime = (long) v.get(rowTimeColumn.index());
     ProcessorSupplier<Object, GenericRow> peek = new Peek<>((key, value, timestamp) -> {
-      TableRow row;
-      if (!windowed) {
-        row = Row.of(logicalSchema, (GenericKey) key, value, timestamp);
-      } else {
-        row = WindowedRow.of(logicalSchema, (Windowed<GenericKey>) key, value, timestamp);
-      }
-      System.out.println("PEEK2: " + key.toString() + ", " + value.toString());
       for (ProcessingQueue queue : processingQueues) {
-        queue.offer(row);
+        try {
+          TableRow row;
+          if (!windowed) {
+            final GenericKey keyCopy = GenericKey.fromList(((GenericKey) key).values());
+            final GenericRow valueCopy = GenericRow.fromList(value.values());
+            row = Row.of(logicalSchema, keyCopy, valueCopy, timestamp);
+          } else {
+            final Windowed<GenericKey> windowedKey = (Windowed<GenericKey>) key;
+            final Windowed<GenericKey> keyCopy =
+                new Windowed<>(GenericKey.fromList(windowedKey.key().values()),
+                    windowedKey.window());
+            final GenericRow valueCopy = GenericRow.fromList(value.values());
+            row = WindowedRow.of(logicalSchema, keyCopy, valueCopy, timestamp);
+          }
+          queue.offer(row);
+        } catch (final Throwable t) {
+          LOG.error("Error while offering row", t);
+        }
       }
     });
     stream.process(peek);
@@ -124,6 +131,10 @@ public class ScalablePushRegistry {
     return pushLocator;
   }
 
+  @VisibleForTesting
+  int numRegistered() {
+    return processingQueues.size();
+  }
 
   public static Optional<ScalablePushRegistry> create(
       final KStream<?, GenericRow> stream,

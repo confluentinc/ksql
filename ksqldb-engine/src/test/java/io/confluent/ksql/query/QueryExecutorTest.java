@@ -276,7 +276,8 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY,
-        queryListener
+        queryListener,
+        Collections::emptyList
     );
     queryMetadata.initialize();
 
@@ -305,7 +306,8 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY,
-        queryListener
+        queryListener,
+        Collections::emptyList
     );
     queryMetadata.initialize();
     queryMetadata.start();
@@ -324,7 +326,8 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY,
-        queryListener
+        queryListener,
+        Collections::emptyList
     );
     queryMetadata.initialize();
     queryMetadata.start();
@@ -346,7 +349,8 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY,
-        queryListener
+        queryListener,
+        Collections::emptyList
     ).initialize();
 
     // Then:
@@ -374,7 +378,8 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY,
-        queryListener
+        queryListener,
+        Collections::emptyList
     );
     queryMetadata.initialize();
     queryMetadata.start();
@@ -403,7 +408,8 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY,
-        queryListener
+        queryListener,
+        Collections::emptyList
     );
     queryMetadata.initialize();
 
@@ -424,7 +430,8 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY,
-        queryListener
+        queryListener,
+        Collections::emptyList
     ).initialize();
 
     // Then:
@@ -445,7 +452,8 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY,
-        queryListener
+        queryListener,
+        Collections::emptyList
     ).initialize();
 
     // Then:
@@ -475,7 +483,8 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY,
-        queryListener
+        queryListener,
+        Collections::emptyList
     );
     queryMetadata.initialize();
     queryMetadata.start();
@@ -536,7 +545,8 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY,
-        queryListener
+        queryListener,
+        Collections::emptyList
     ).initialize();
 
     // Then:
@@ -561,7 +571,8 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY,
-        queryListener
+        queryListener,
+        Collections::emptyList
     ).initialize();
 
     // Then:
@@ -587,7 +598,8 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY,
-        queryListener
+        queryListener,
+        Collections::emptyList
     ).initialize();
 
     // Then:
@@ -617,7 +629,8 @@ public class QueryExecutorTest {
         SOURCES,
         physicalPlan,
         SUMMARY,
-        queryListener
+        queryListener,
+        Collections::emptyList
     ).initialize();
 
     // Then:

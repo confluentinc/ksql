@@ -2,15 +2,10 @@ package io.confluent.ksql.physical.scalable_push;
 
 import io.confluent.ksql.execution.streams.materialization.TableRow;
 import java.util.LinkedList;
-import java.util.Optional;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.TimeUnit;
 
 public class ProcessingQueue {
 
-  private static final int BLOCKING_QUEUE_CAPACITY = 100;
+  static final int BLOCKING_QUEUE_CAPACITY = 100;
 
   private final LinkedList<TableRow> rowQueue;
   private final int queueSizeLimit;

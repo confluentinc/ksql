@@ -10,6 +10,7 @@ import java.net.URI;
 import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -43,7 +44,7 @@ public class AllHostsLocator implements PushLocator {
         .filter(streamsMetadata -> streamsMetadata != StreamsMetadata.NOT_AVAILABLE)
         .map(StreamsMetadata::hostInfo)
         .map(hi -> new Node(isLocalhost(hi), buildLocation(hi)))
-        .collect(Collectors.toSet());
+        .collect(Collectors.toCollection(LinkedHashSet::new));
   }
 
   private boolean isLocalhost(final HostInfo hostInfo) {

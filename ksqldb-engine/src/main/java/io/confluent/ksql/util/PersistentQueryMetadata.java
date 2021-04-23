@@ -223,6 +223,9 @@ public class PersistentQueryMetadata extends QueryMetadata {
     scalablePushRegistry.ifPresent(ScalablePushRegistry::close);
   }
 
+  /**
+   * Gets the scalable push query registry, if one was created for this persistent query.
+   */
   public Optional<ScalablePushRegistry> getScalablePushRegistry() {
     return scalablePushRegistry;
   }

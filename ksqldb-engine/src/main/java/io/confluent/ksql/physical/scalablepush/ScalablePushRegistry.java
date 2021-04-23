@@ -1,4 +1,19 @@
-package io.confluent.ksql.physical.scalable_push;
+/*
+ * Copyright 2021 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
+package io.confluent.ksql.physical.scalablepush;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericKey;
@@ -6,8 +21,8 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.TableRow;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
-import io.confluent.ksql.physical.scalable_push.locator.AllHostsLocator;
-import io.confluent.ksql.physical.scalable_push.locator.PushLocator;
+import io.confluent.ksql.physical.scalablepush.locator.AllHostsLocator;
+import io.confluent.ksql.physical.scalablepush.locator.PushLocator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.vertx.core.impl.ConcurrentHashSet;
@@ -50,10 +65,10 @@ public class ScalablePushRegistry {
 
   @SuppressWarnings("unchecked")
   private void registerPeek(final boolean windowed) {
-    ProcessorSupplier<Object, GenericRow> peek = new Peek<>((key, value, timestamp) -> {
+    final ProcessorSupplier<Object, GenericRow> peek = new Peek<>((key, value, timestamp) -> {
       for (ProcessingQueue queue : processingQueues) {
         try {
-          TableRow row;
+          final TableRow row;
           if (!windowed) {
             final GenericKey keyCopy = GenericKey.fromList(((GenericKey) key).values());
             final GenericRow valueCopy = GenericRow.fromList(value.values());
@@ -84,7 +99,7 @@ public class ScalablePushRegistry {
   class Peek<K, V> implements ProcessorSupplier<K, V> {
     private final ForeachAction<K, V> action;
 
-    public Peek(ForeachAction<K, V> action) {
+    Peek(final ForeachAction<K, V> action) {
       this.action = action;
     }
 
@@ -92,18 +107,18 @@ public class ScalablePushRegistry {
       return new PeekProcessor();
     }
 
-    private class PeekProcessor implements Processor<K, V> {
+    private final class PeekProcessor implements Processor<K, V> {
 
       private ProcessorContext context;
 
       private PeekProcessor() {
       }
 
-      public void init(ProcessorContext context) {
+      public void init(final ProcessorContext context) {
         this.context = context;
       }
 
-      public void process(K key, V value) {
+      public void process(final K key, final V value) {
         Peek.this.action.apply(key, value, this.context.timestamp());
         this.context.forward(key, value);
       }

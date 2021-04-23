@@ -1,4 +1,4 @@
-package io.confluent.ksql.physical.scalable_push;
+package io.confluent.ksql.physical.scalablepush;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;

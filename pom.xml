@@ -666,22 +666,6 @@
                     </excludedTestClasses>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.owasp</groupId>
-                <artifactId>dependency-check-maven</artifactId>
-                <version>5.2.4</version>
-                <executions>
-                    <execution>
-                        <configuration>
-                            <!-- temporary workaround as NIST is broken -->
-                            <autoUpdate>false</autoUpdate>
-                        </configuration>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
     <reporting>

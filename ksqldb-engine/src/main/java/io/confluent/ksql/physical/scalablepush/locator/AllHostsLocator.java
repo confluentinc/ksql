@@ -30,6 +30,10 @@ import java.util.stream.Collectors;
 import org.apache.kafka.streams.state.HostInfo;
 import org.apache.kafka.streams.state.StreamsMetadata;
 
+/**
+ * This locator contacts all hosts since there currently isn't a mechanism to find which hosts own
+ * a particular persistent query task.
+ */
 public class AllHostsLocator implements PushLocator {
 
   private final Supplier<List<PersistentQueryMetadata>> allPersistentQueries;

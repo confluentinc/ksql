@@ -18,6 +18,11 @@ package io.confluent.ksql.physical.scalablepush;
 import io.confluent.ksql.execution.streams.materialization.TableRow;
 import java.util.LinkedList;
 
+/**
+ * A queue for storing pre-processed rows for a given scalable push query request. This queue
+ * starts dropping rows if they're past the capacity, and keeps track so it can be reported to the
+ * request.
+ */
 public class ProcessingQueue {
 
   static final int BLOCKING_QUEUE_CAPACITY = 100;

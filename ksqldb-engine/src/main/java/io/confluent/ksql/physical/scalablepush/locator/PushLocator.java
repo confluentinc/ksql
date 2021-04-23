@@ -18,8 +18,12 @@ package io.confluent.ksql.physical.scalablepush.locator;
 import java.net.URI;
 import java.util.Set;
 
+/**
+ * The interface used for locating hosts for a given scalable push query.
+ */
 public interface PushLocator {
 
+  // Returns the set of nodes which should be contacted to respond to this query.
   Set<KsqlNode> locate();
 
   interface KsqlNode {

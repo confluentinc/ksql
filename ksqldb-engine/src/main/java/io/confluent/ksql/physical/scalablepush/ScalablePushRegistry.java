@@ -42,6 +42,11 @@ import org.apache.kafka.streams.processor.ProcessorSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This registry is kept with every persistent query, peeking at the stream which is the output
+ * of the topology. These rows are then fed to any registered ProcessingQueues where they are
+ * eventually passed on to scalable push queries.
+ */
 public class ScalablePushRegistry {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScalablePushRegistry.class);
@@ -63,6 +68,31 @@ public class ScalablePushRegistry {
     registerPeek(windowed);
   }
 
+  public void close() {
+    for (ProcessingQueue queue : processingQueues) {
+      queue.close();
+    }
+  }
+
+  public void register(final ProcessingQueue processingQueue) {
+    processingQueues.add(processingQueue);
+  }
+
+  public void unregister(final ProcessingQueue processingQueue) {
+    processingQueues.remove(processingQueue);
+  }
+
+  public PushLocator getLocator() {
+    return pushLocator;
+  }
+
+  @VisibleForTesting
+  int numRegistered() {
+    return processingQueues.size();
+  }
+
+  // Registers a peek processor which makes a copy of every row and passes it on to any registered
+  // queues.
   @SuppressWarnings("unchecked")
   private void registerPeek(final boolean windowed) {
     final ProcessorSupplier<Object, GenericRow> peek = new Peek<>((key, value, timestamp) -> {
@@ -90,12 +120,7 @@ public class ScalablePushRegistry {
     stream.process(peek);
   }
 
-  public void close() {
-    for (ProcessingQueue queue : processingQueues) {
-      queue.close();
-    }
-  }
-
+  // This Peek processors just passes the row to the given action.
   class Peek<K, V> implements ProcessorSupplier<K, V> {
     private final ForeachAction<K, V> action;
 
@@ -131,24 +156,6 @@ public class ScalablePushRegistry {
 
   public interface ForeachAction<K, V> {
     void apply(K key, V value, long timestamp);
-  }
-
-
-  public void register(final ProcessingQueue processingQueue) {
-    processingQueues.add(processingQueue);
-  }
-
-  public void unregister(final ProcessingQueue processingQueue) {
-    processingQueues.remove(processingQueue);
-  }
-
-  public PushLocator getLocator() {
-    return pushLocator;
-  }
-
-  @VisibleForTesting
-  int numRegistered() {
-    return processingQueues.size();
   }
 
   public static Optional<ScalablePushRegistry> create(

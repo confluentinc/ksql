@@ -36,7 +36,7 @@ import java.util.Optional;
 public class Command {
 
   @VisibleForTesting
-  public static final int VERSION = 6;
+  public static final int VERSION = 7;
 
   private final String statement;
   private final Map<String, Object> overwriteProperties;

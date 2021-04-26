@@ -109,15 +109,15 @@ public class CommandParserTest {
 
   @Test
   public void shouldParseSetUnsetStatements() {
-    List<SqlCommand> commands = CommandParser.parse("SET 'foo.property'='bar';UNSET 'foo.property';");
+    List<SqlCommand> commands = CommandParser.parse("SeT 'foo.property'='bar';UnSeT 'foo.property';");
     assertThat(commands.size(), is(2));
     assertThat(commands.get(0), instanceOf(SqlPropertyCommand.class));
-    assertThat(commands.get(0).getCommand(), is("SET 'foo.property'='bar';"));
+    assertThat(commands.get(0).getCommand(), is("SeT 'foo.property'='bar';"));
     assertThat(((SqlPropertyCommand) commands.get(0)).isSetCommand(), is(true));
     assertThat(((SqlPropertyCommand) commands.get(0)).getProperty(), is("foo.property"));
     assertThat(((SqlPropertyCommand) commands.get(0)).getValue().get(), is("bar"));
     assertThat(commands.get(1), instanceOf(SqlPropertyCommand.class));
-    assertThat(commands.get(1).getCommand(), is("UNSET 'foo.property';"));
+    assertThat(commands.get(1).getCommand(), is("UnSeT 'foo.property';"));
     assertThat(((SqlPropertyCommand) commands.get(1)).isSetCommand(), is(false));
     assertThat(((SqlPropertyCommand) commands.get(1)).getProperty(), is("foo.property"));
     assertTrue(!((SqlPropertyCommand) commands.get(1)).getValue().isPresent());

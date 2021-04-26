@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.parser.ParsingException;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.approvaltests.Approvals;
 import org.junit.Assert;
@@ -40,6 +41,14 @@ public class QueryAnonymizerTest {
     // Then:
     Assert.assertEquals("DESCRIBE stream1 EXTENDED;",
         anon.anonymize(tree));
+  }
+
+  @Test
+  public void shouldThrowWhenUnparseableStringProvided() {
+    // Given:
+    final String nonsenseUnparsedQuery = "cat";
+    // Then:
+    Assert.assertThrows(ParsingException.class, () -> anon.anonymize(nonsenseUnparsedQuery));
   }
 
   @Test

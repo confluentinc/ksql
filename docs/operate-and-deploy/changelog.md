@@ -10,7 +10,7 @@ Version 0.17.0
 --------------
 
 - [Announcing ksqlDB 0.17.0](https://www.confluent.io/blog/announcing-ksqldb-0-17-0-new-features-and-updates/)
-- [ksqlDB v0.17.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0170-2021-04-19)
+- [ksqlDB v0.17.0 changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md#0170-2021-04-26)
 
 Version 0.16.0
 --------------

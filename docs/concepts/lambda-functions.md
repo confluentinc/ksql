@@ -11,4 +11,4 @@ For example, you could apply a lambda function to each element of a collection, 
 Also, you can use lambdas to filter the elements of a collection, or reduce a collection to a single value.
 The advantage of a lambda is that you can express user-defined functionality in a way that doesn’t require implementing a full [UDF](/how-to-guides/create-a-user-defined-function).
 
-Learn how to use lambda functions in the [how-to guide](/how-to-guides/use-lambda-functions-in-udfs).
+Learn how to use lambda functions in the [how-to guide](/how-to-guides/use-lambda-functions).

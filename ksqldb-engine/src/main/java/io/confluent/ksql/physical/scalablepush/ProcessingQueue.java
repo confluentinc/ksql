@@ -16,18 +16,22 @@
 package io.confluent.ksql.physical.scalablepush;
 
 import io.confluent.ksql.execution.streams.materialization.TableRow;
-import java.util.LinkedList;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 /**
  * A queue for storing pre-processed rows for a given scalable push query request. This queue
  * starts dropping rows if they're past the capacity, and keeps track so it can be reported to the
  * request.
+ *
+ * <p>The class is threadsafe since it's assumed that different threads are producing and consuming
+ * the data.
  */
 public class ProcessingQueue {
 
   static final int BLOCKING_QUEUE_CAPACITY = 100;
 
-  private final LinkedList<TableRow> rowQueue;
+  private final Deque<TableRow> rowQueue;
   private final int queueSizeLimit;
   private boolean closed = false;
   private boolean droppedRows = false;
@@ -39,11 +43,20 @@ public class ProcessingQueue {
 
   public ProcessingQueue(final int queueSizeLimit) {
     this.queueSizeLimit = queueSizeLimit;
-    this.rowQueue = new LinkedList<>();
+    this.rowQueue = new ArrayDeque<>();
   }
 
+  /**
+   * Adds a {@link TableRow} to the queue. This is expected to be called from the processor streams
+   * thread when a new row arrives.
+   * @param tableRow The row to add
+   * @return if the row has been successfully added to the queue or if it's been dropped due to
+   *     being at the size limit.
+   */
   public synchronized boolean offer(final TableRow tableRow) {
-    if (rowQueue.size() < queueSizeLimit && !droppedRows) {
+    if (closed) {
+      return false;
+    } else if (rowQueue.size() < queueSizeLimit && !droppedRows) {
       rowQueue.offer(tableRow);
       newRowCallback.run();
       return true;
@@ -52,6 +65,11 @@ public class ProcessingQueue {
     return false;
   }
 
+  /**
+   * Reads a row from the queue. This is expected to be called from the plan's physical operator
+   * which is called from the Vertx context.
+   * @return The next row or null if either the queue is closed or there's no data to return.
+   */
   public synchronized TableRow poll() {
     if (!closed) {
       return rowQueue.poll();
@@ -59,6 +77,9 @@ public class ProcessingQueue {
     return null;
   }
 
+  /**
+   * Closes the queue which causes rows to stop being returned.
+   */
   public synchronized void close() {
     closed = true;
   }
@@ -67,10 +88,17 @@ public class ProcessingQueue {
     return closed;
   }
 
+  /**
+   * Sets a callback which is invoked every time a new row has been enqueued.
+   * @param newRowCallback The callback to invoke
+   */
   public synchronized void setNewRowCallback(final Runnable newRowCallback) {
     this.newRowCallback = newRowCallback;
   }
 
+  /**
+   * Whether rows have been dropped due to hitting the queue limit.
+   */
   public synchronized boolean hasDroppedRows() {
     return droppedRows;
   }

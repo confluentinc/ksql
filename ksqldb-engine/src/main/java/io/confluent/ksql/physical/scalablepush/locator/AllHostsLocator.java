@@ -21,10 +21,8 @@ import java.net.URI;
 import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.state.HostInfo;
@@ -46,10 +44,10 @@ public class AllHostsLocator implements PushLocator {
   }
 
 
-  public Set<KsqlNode> locate() {
+  public List<KsqlNode> locate() {
     final List<PersistentQueryMetadata> currentQueries = allPersistentQueries.get();
     if (currentQueries.isEmpty()) {
-      return Collections.emptySet();
+      return Collections.emptyList();
     }
 
     return currentQueries.stream()
@@ -59,7 +57,8 @@ public class AllHostsLocator implements PushLocator {
         .filter(streamsMetadata -> streamsMetadata != StreamsMetadata.NOT_AVAILABLE)
         .map(StreamsMetadata::hostInfo)
         .map(hi -> new Node(isLocalhost(hi), buildLocation(hi)))
-        .collect(Collectors.toCollection(LinkedHashSet::new));
+        .distinct()
+        .collect(Collectors.toList());
   }
 
   private boolean isLocalhost(final HostInfo hostInfo) {

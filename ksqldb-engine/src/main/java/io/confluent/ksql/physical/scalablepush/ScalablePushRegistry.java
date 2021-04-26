@@ -34,7 +34,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.processor.Processor;
 import org.apache.kafka.streams.processor.ProcessorContext;
@@ -47,38 +46,45 @@ import org.slf4j.LoggerFactory;
  * of the topology. These rows are then fed to any registered ProcessingQueues where they are
  * eventually passed on to scalable push queries.
  */
-public class ScalablePushRegistry {
+public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRow> {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScalablePushRegistry.class);
 
-  private final KStream<?, GenericRow> stream;
-  private final LogicalSchema logicalSchema;
   private final PushLocator pushLocator;
+  private final LogicalSchema logicalSchema;
+  private final boolean windowed;
   private final Set<ProcessingQueue> processingQueues = new ConcurrentHashSet<>();
+  private volatile boolean closed = false;
 
   public ScalablePushRegistry(
-      final KStream<?, GenericRow> stream,
-      final LogicalSchema logicalSchema,
       final PushLocator pushLocator,
+      final LogicalSchema logicalSchema,
       final boolean windowed
   ) {
-    this.stream = stream;
-    this.logicalSchema = logicalSchema;
     this.pushLocator = pushLocator;
-    registerPeek(windowed);
+    this.logicalSchema = logicalSchema;
+    this.windowed = windowed;
   }
 
   public void close() {
     for (ProcessingQueue queue : processingQueues) {
       queue.close();
     }
+    processingQueues.clear();
+    closed = true;
   }
 
   public void register(final ProcessingQueue processingQueue) {
+    if (closed) {
+      throw new IllegalStateException("Shouldn't register after closing");
+    }
     processingQueues.add(processingQueue);
   }
 
   public void unregister(final ProcessingQueue processingQueue) {
+    if (closed) {
+      throw new IllegalStateException("Shouldn't unregister after closing");
+    }
     processingQueues.remove(processingQueue);
   }
 
@@ -91,75 +97,58 @@ public class ScalablePushRegistry {
     return processingQueues.size();
   }
 
-  // Registers a peek processor which makes a copy of every row and passes it on to any registered
-  // queues.
-  @SuppressWarnings("unchecked")
-  private void registerPeek(final boolean windowed) {
-    final ProcessorSupplier<Object, GenericRow> peek = new Peek<>((key, value, timestamp) -> {
-      for (ProcessingQueue queue : processingQueues) {
-        try {
-          final TableRow row;
-          if (!windowed) {
-            final GenericKey keyCopy = GenericKey.fromList(((GenericKey) key).values());
-            final GenericRow valueCopy = GenericRow.fromList(value.values());
-            row = Row.of(logicalSchema, keyCopy, valueCopy, timestamp);
-          } else {
-            final Windowed<GenericKey> windowedKey = (Windowed<GenericKey>) key;
-            final Windowed<GenericKey> keyCopy =
-                new Windowed<>(GenericKey.fromList(windowedKey.key().values()),
-                    windowedKey.window());
-            final GenericRow valueCopy = GenericRow.fromList(value.values());
-            row = WindowedRow.of(logicalSchema, keyCopy, valueCopy, timestamp);
-          }
-          queue.offer(row);
-        } catch (final Throwable t) {
-          LOG.error("Error while offering row", t);
+  private void handleRow(final Object key, final GenericRow value, final long timestamp) {
+    for (ProcessingQueue queue : processingQueues) {
+      try {
+        // The physical operators may modify the keys and values, so we make a copy to ensure
+        // that there's no cross-query interference.
+        final TableRow row;
+        if (!windowed) {
+          final GenericKey keyCopy = GenericKey.fromList(((GenericKey) key).values());
+          final GenericRow valueCopy = GenericRow.fromList(value.values());
+          row = Row.of(logicalSchema, keyCopy, valueCopy, timestamp);
+        } else {
+          final Windowed<GenericKey> windowedKey = (Windowed<GenericKey>) key;
+          final Windowed<GenericKey> keyCopy =
+              new Windowed<>(GenericKey.fromList(windowedKey.key().values()),
+                  windowedKey.window());
+          final GenericRow valueCopy = GenericRow.fromList(value.values());
+          row = WindowedRow.of(logicalSchema, keyCopy, valueCopy, timestamp);
         }
-      }
-    });
-    stream.process(peek);
-  }
-
-  // This Peek processors just passes the row to the given action.
-  static class Peek<K, V> implements ProcessorSupplier<K, V> {
-    private final ForeachAction<K, V> action;
-
-    Peek(final ForeachAction<K, V> action) {
-      this.action = action;
-    }
-
-    public Processor<K, V> get() {
-      return new PeekProcessor();
-    }
-
-    private final class PeekProcessor implements Processor<K, V> {
-
-      private ProcessorContext context;
-
-      private PeekProcessor() {
-      }
-
-      public void init(final ProcessorContext context) {
-        this.context = context;
-      }
-
-      public void process(final K key, final V value) {
-        Peek.this.action.apply(key, value, this.context.timestamp());
-        this.context.forward(key, value);
-      }
-
-      @Override
-      public void close() {
+        queue.offer(row);
+      } catch (final Throwable t) {
+        LOG.error("Error while offering row", t);
       }
     }
   }
 
-  public interface ForeachAction<K, V> {
-    void apply(K key, V value, long timestamp);
+  @Override
+  public Processor<Object, GenericRow> get() {
+    return new PeekProcessor();
+  }
+
+  private final class PeekProcessor implements Processor<Object, GenericRow> {
+
+    private ProcessorContext context;
+
+    private PeekProcessor() {
+    }
+
+    public void init(final ProcessorContext context) {
+      this.context = context;
+    }
+
+    public void process(final Object key, final GenericRow value) {
+      handleRow(key, value, this.context.timestamp());
+      this.context.forward(key, value);
+    }
+
+    @Override
+    public void close() {
+    }
   }
 
   public static Optional<ScalablePushRegistry> create(
-      final KStream<?, GenericRow> stream,
       final LogicalSchema logicalSchema,
       final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
       final boolean windowed,
@@ -183,6 +172,6 @@ public class ScalablePushRegistry {
     }
 
     final PushLocator pushLocator = new AllHostsLocator(allPersistentQueries, localhost);
-    return Optional.of(new ScalablePushRegistry(stream, logicalSchema, pushLocator, windowed));
+    return Optional.of(new ScalablePushRegistry(pushLocator, logicalSchema, windowed));
   }
 }

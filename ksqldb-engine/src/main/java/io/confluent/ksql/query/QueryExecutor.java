@@ -191,7 +191,7 @@ final class QueryExecutor {
   }
 
   @SuppressWarnings("unchecked")
-  private static Optional<ScalablePushRegistry> getScalablePushRegistry(
+  private static Optional<ScalablePushRegistry> applyScalablePushProcessor(
       final LogicalSchema schema,
       final Object result,
       final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
@@ -208,8 +208,10 @@ final class QueryExecutor {
     } else {
       stream = ((KStreamHolder<?>) result).getStream();
     }
-    return ScalablePushRegistry.create(stream, schema, allPersistentQueries, windowed,
-        streamsProperties);
+    final Optional<ScalablePushRegistry> registry = ScalablePushRegistry.create(schema,
+        allPersistentQueries, windowed, streamsProperties);
+    registry.ifPresent(r -> stream.process(registry.get()));
+    return registry;
   }
 
   PersistentQueryMetadata buildPersistentQuery(
@@ -235,10 +237,10 @@ final class QueryExecutor {
 
     final RuntimeBuildContext runtimeBuildContext = buildContext(applicationId, queryId);
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
-    // Must be created before the topology is created since the ScalablePushRegistry adds a peek
-    // to the topology.
+    // Creates a ProcessorSupplier, a ScalablePushRegistry, to apply to the topology, if
+    // scalable push queries are enabled.
     final Optional<ScalablePushRegistry> scalablePushRegistry
-        = getScalablePushRegistry(querySchema.logicalSchema(), result, allPersistentQueries,
+        = applyScalablePushProcessor(querySchema.logicalSchema(), result, allPersistentQueries,
         sinkDataSource.getKsqlTopic().getKeyFormat().isWindowed(),
         streamsProperties, ksqlConfig);
     final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));

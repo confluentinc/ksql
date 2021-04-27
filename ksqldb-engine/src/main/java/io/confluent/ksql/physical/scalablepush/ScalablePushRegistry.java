@@ -53,9 +53,11 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
   private final PushLocator pushLocator;
   private final LogicalSchema logicalSchema;
   private final boolean windowed;
+  // All mutable field accesses are protected with synchronized.  The exception is when
+  // processingQueues is accessed to processed rows, in which case we want a weakly consistent
+  // view of the map, so we just iterate over the ConcurrentHashMap directly.
   private final ConcurrentHashMap<QueryId, ProcessingQueue> processingQueues
       = new ConcurrentHashMap<>();
-  // Protected by synchronized
   private boolean closed = false;
 
   public ScalablePushRegistry(

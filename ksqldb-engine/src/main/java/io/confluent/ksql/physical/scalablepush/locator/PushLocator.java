@@ -23,7 +23,7 @@ import java.util.List;
  */
 public interface PushLocator {
 
-  // Returns the list of nodes which should be contacted to respond to this query.
+  /** Returns the list of nodes which should be contacted to respond to this query. */
   List<KsqlNode> locate();
 
   interface KsqlNode {

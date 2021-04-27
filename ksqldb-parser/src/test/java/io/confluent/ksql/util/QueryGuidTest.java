@@ -43,9 +43,9 @@ public class QueryGuidTest {
 
     // When:
     final String queryId1 =
-        new QueryGuid("testData.testData", query1, "TEST").getQueryUuid();
+        new QueryGuid("testData.testData", query1, "TEST").getQueryGuid();
     final String queryId2 =
-        new QueryGuid("testData.testData", query2, "TEST").getQueryUuid();
+        new QueryGuid("testData.testData", query2, "TEST").getQueryGuid();
 
     // Then:
     Assert.assertEquals(queryId1, queryId2);
@@ -59,9 +59,9 @@ public class QueryGuidTest {
 
     // When:
     final String queryId1 =
-        new QueryGuid("testData.testData", query, "TEST").getQueryUuid();
+        new QueryGuid("testData.testData", query, "TEST").getQueryGuid();
     final String queryId2 =
-        new QueryGuid("testData2.testData", query, "TEST").getQueryUuid();
+        new QueryGuid("testData2.testData", query, "TEST").getQueryGuid();
 
     // Then:
     Assert.assertNotEquals(queryId1, queryId2);
@@ -79,9 +79,9 @@ public class QueryGuidTest {
 
     // When:
     final String id1 =
-        new QueryGuid("testData.testData", query1, anonQuery).getAnonQueryUuid();
+        new QueryGuid("testData.testData", query1, anonQuery).getStructuralGuid();
     final String id2 =
-        new QueryGuid("testData.testData", query2, anonQuery).getAnonQueryUuid();
+        new QueryGuid("testData.testData", query2, anonQuery).getStructuralGuid();
 
     // Then:
     Assert.assertEquals(id1, id2);
@@ -98,10 +98,10 @@ public class QueryGuidTest {
     // When:
     final String id1 =
         new QueryGuid("testData.testData", "TEST", anonQuery1)
-        .getAnonQueryUuid();
+        .getStructuralGuid();
     final String id2 =
         new QueryGuid("testData.testData", "TEST", anonQuery2)
-        .getAnonQueryUuid();
+        .getStructuralGuid();
 
     // Then:
     Assert.assertNotEquals(id1, id2);
@@ -139,8 +139,8 @@ public class QueryGuidTest {
 
     // Then:
     Assert.assertEquals("", metaData.getClusterNamespace());
-    Assert.assertNotEquals("", metaData.getQueryUuid());
-    Assert.assertNotEquals("", metaData.getAnonQueryUuid());
+    Assert.assertNotEquals("", metaData.getQueryGuid());
+    Assert.assertNotEquals("", metaData.getStructuralGuid());
     Assert.assertEquals(localDateTime, metaData.getTimeOfCreation());
   }
 
@@ -157,8 +157,8 @@ public class QueryGuidTest {
 
     // Then:
     Assert.assertEquals("testData.testData", metaData.getClusterNamespace());
-    Assert.assertNotEquals("", metaData.getQueryUuid());
-    Assert.assertNotEquals("", metaData.getAnonQueryUuid());
+    Assert.assertNotEquals("", metaData.getQueryGuid());
+    Assert.assertNotEquals("", metaData.getStructuralGuid());
     Assert.assertEquals(localDateTime, metaData.getTimeOfCreation());
   }
 
@@ -177,8 +177,8 @@ public class QueryGuidTest {
 
     // Then:
     Assert.assertEquals("testData.testData", metaData.getClusterNamespace());
-    Assert.assertNotEquals("", metaData.getQueryUuid());
-    Assert.assertNotEquals("", metaData.getAnonQueryUuid());
+    Assert.assertNotEquals("", metaData.getQueryGuid());
+    Assert.assertNotEquals("", metaData.getStructuralGuid());
     Assert.assertEquals(localDateTime, metaData.getTimeOfCreation());
   }
 }

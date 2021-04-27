@@ -22,8 +22,8 @@ import java.util.UUID;
 
 public final class QueryGuid {
   private final String clusterNamespace;
-  private final String queryUuid;
-  private final String anonQueryUuid;
+  private final String queryGuid;
+  private final String structuralGuid;
   private final LocalDateTime timeOfCreation;
 
   public QueryGuid(final String namespace, final String nonAnonQuery, final String anonQuery) {
@@ -36,8 +36,8 @@ public final class QueryGuid {
             final String anonQuery,
             final LocalDateTime timeOfCreation) {
     this.clusterNamespace = namespace;
-    this.queryUuid = computeQueryId(nonAnonQuery, clusterNamespace);
-    this.anonQueryUuid = computeQueryId(anonQuery, "");
+    this.queryGuid = computeQueryId(nonAnonQuery, clusterNamespace);
+    this.structuralGuid = computeQueryId(anonQuery, "");
     this.timeOfCreation = timeOfCreation;
   }
 
@@ -45,12 +45,12 @@ public final class QueryGuid {
     return this.clusterNamespace;
   }
 
-  public String getQueryUuid() {
-    return this.queryUuid;
+  public String getQueryGuid() {
+    return this.queryGuid;
   }
 
-  public String getAnonQueryUuid() {
-    return this.anonQueryUuid;
+  public String getStructuralGuid() {
+    return this.structuralGuid;
   }
 
   public LocalDateTime getTimeOfCreation() {

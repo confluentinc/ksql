@@ -4,46 +4,34 @@
 ### Features
 
 * implemented working query anonymizer ([#7357](https://github.com/confluentinc/ksql/pull/7357)) ([fa0445f](https://github.com/confluentinc/ksql/commit/fa0445fe466511c5126ae30f2979bcc48f2792c4))
-* **migrations:** add --define flag to apply command ([#7401](https://github.com/confluentinc/ksql/pull/7401)) ([165e972](https://github.com/confluentinc/ksql/commit/165e9729110f8059ab6338052074e2e9bb10c8bf))
-* **migrations:** support DEFINE and UNDEFINE statements ([#7366](https://github.com/confluentinc/ksql/pull/7366)) ([330db93](https://github.com/confluentinc/ksql/commit/330db939861f22da7c6914a66a39824e08972419))
 * add 'show connector plugins' syntax ([#7284](https://github.com/confluentinc/ksql/pull/7284)) ([be50d2d](https://github.com/confluentinc/ksql/commit/be50d2db3681ac9d91501d203fec9d19bcfdc716))
 * add mutation testing ([76e41a4](https://github.com/confluentinc/ksql/commit/76e41a4853ed57ab459eb13c3f7a1c36ae3f706c))
 * Detailed pull query metrics broken down by type and source ([#7272](https://github.com/confluentinc/ksql/pull/7272)) ([9c173a6](https://github.com/confluentinc/ksql/commit/9c173a6022f9e95ef7cbc1ddbf8abd61ec9d2320))
 * emit an error reason before closing websocket ([#7390](https://github.com/confluentinc/ksql/pull/7390)) ([c2d9372](https://github.com/confluentinc/ksql/commit/c2d9372715be0a1d3d8013c91c5f07b0aec3e871))
-* enable variable substitution for /query-stream and /ksql endpoints ([#7271](https://github.com/confluentinc/ksql/pull/7271)) ([f6dd212](https://github.com/confluentinc/ksql/commit/f6dd212a50a6c247f2c7a946da3144a0f1460fc7))
-* enable variable substitution for java client ([#7335](https://github.com/confluentinc/ksql/pull/7335)) ([c82a072](https://github.com/confluentinc/ksql/commit/c82a072e40fd64085faf11cdead6c255e0096708))
 * Materialize Table-Table join results ([#7246](https://github.com/confluentinc/ksql/pull/7246)) ([4ae1b31](https://github.com/confluentinc/ksql/commit/4ae1b31913c1d118894aed377bef086461fc1062))
 * scatter gather task metadata for query descriptions ([#7331](https://github.com/confluentinc/ksql/pull/7331)) ([c0e1e73](https://github.com/confluentinc/ksql/commit/c0e1e73fc5e7b1c05562aaf618c77902ea779dc8))
-* **cli:** print stats/errors breakdown by host ([#7296](https://github.com/confluentinc/ksql/pull/7296)) ([20a4ea5](https://github.com/confluentinc/ksql/commit/20a4ea5a84d134b44ff5d41335bdf925a8ce98f5))
+* print stats/errors breakdown by host in cli ([#7296](https://github.com/confluentinc/ksql/pull/7296)) ([20a4ea5](https://github.com/confluentinc/ksql/commit/20a4ea5a84d134b44ff5d41335bdf925a8ce98f5))
 * update sourcedescription to have statistics as structured objects ([#7235](https://github.com/confluentinc/ksql/pull/7235)) ([924fc5b](https://github.com/confluentinc/ksql/commit/924fc5baacd7ff7002566641dab936cfabda2532))
 * use approval tests to verify static equality ([#7293](https://github.com/confluentinc/ksql/pull/7293)) ([044a7ef](https://github.com/confluentinc/ksql/commit/044a7ef469c3bb585beb24dc663c5f6fca21a453))
-* **executor:** Allow SourceDescription returning executors to return cluster wide stream stats ([#7252](https://github.com/confluentinc/ksql/pull/7252)) ([0b30ed9](https://github.com/confluentinc/ksql/commit/0b30ed97aac906c6639da00588d580f148ffeb7f))
-* **java client:** Add connector functions to java client ([#7222](https://github.com/confluentinc/ksql/pull/7222)) ([7766195](https://github.com/confluentinc/ksql/commit/77661957c447ee3eb6bbc162ed2a8976a06ac71b))
+* Allow SourceDescription returning executors to return cluster wide stream stats ([#7252](https://github.com/confluentinc/ksql/pull/7252)) ([0b30ed9](https://github.com/confluentinc/ksql/commit/0b30ed97aac906c6639da00588d580f148ffeb7f))
 * expose TaskMetadata in QueryDescription ([#7151](https://github.com/confluentinc/ksql/pull/7151)) ([657cbe7](https://github.com/confluentinc/ksql/commit/657cbe764f8f43c54b75439311a6c9aa5db08e40))
-
-
+* add --define flag to migrations tool apply command ([#7401](https://github.com/confluentinc/ksql/pull/7401)) ([165e972](https://github.com/confluentinc/ksql/commit/165e9729110f8059ab6338052074e2e9bb10c8bf))
+* support DEFINE and UNDEFINE statements in migrations tool ([#7366](https://github.com/confluentinc/ksql/pull/7366)) ([330db93](https://github.com/confluentinc/ksql/commit/330db939861f22da7c6914a66a39824e08972419))
+* enable variable substitution for /query-stream and /ksql endpoints ([#7271](https://github.com/confluentinc/ksql/pull/7271)) ([f6dd212](https://github.com/confluentinc/ksql/commit/f6dd212a50a6c247f2c7a946da3144a0f1460fc7))
+* enable variable substitution for java client ([#7335](https://github.com/confluentinc/ksql/pull/7335)) ([c82a072](https://github.com/confluentinc/ksql/commit/c82a072e40fd64085faf11cdead6c255e0096708))
+* Add connector functions to java client ([#7222](https://github.com/confluentinc/ksql/pull/7222)) ([7766195](https://github.com/confluentinc/ksql/commit/77661957c447ee3eb6bbc162ed2a8976a06ac71b))
 
 ### Bug Fixes
 
 * Add line breaks to error message ([#7324](https://github.com/confluentinc/ksql/pull/7324)) ([1695f39](https://github.com/confluentinc/ksql/commit/1695f390cf1b3c676fba703c87987a0828e668df)), closes [#7205](https://github.com/confluentinc/ksql/issues/7205)
-* add sessionVariables to /ksql endpoint validator ([#7365](https://github.com/confluentinc/ksql/pull/7365)) ([438f42a](https://github.com/confluentinc/ksql/commit/438f42a7837599900518c4bac26a766a09dee99c))
 * Append state.dir directive to ksql-server.properties ([#7003](https://github.com/confluentinc/ksql/pull/7003)) ([4893e90](https://github.com/confluentinc/ksql/commit/4893e90fd0dcbcc26626a36579558e048a6ad9d8))
 * Bubble up errors from HARouting unless using StandbyFallbackException ([#7238](https://github.com/confluentinc/ksql/pull/7238)) ([ec12516](https://github.com/confluentinc/ksql/commit/ec12516799993cb99880d0430b609ce4d0ab81dc))
 * fix NPE when backing a record that has null key/values ([#7268](https://github.com/confluentinc/ksql/pull/7268)) ([0cbd4e8](https://github.com/confluentinc/ksql/commit/0cbd4e847326010d0acd321331e8427f7ea731e9))
-* Fixes ambiguous test mocks after streams change ([#7298](https://github.com/confluentinc/ksql/pull/7298)) ([e53f875](https://github.com/confluentinc/ksql/commit/e53f875db4ccdf567c6761bb2fd7674db58fc47a))
 * long-running queries shouldn't block the main event loop ([#7420](https://github.com/confluentinc/ksql/pull/7420)) ([242fefb](https://github.com/confluentinc/ksql/commit/242fefb268923650592996f6764f198488759d2e)), closes [#7358](https://github.com/confluentinc/ksql/issues/7358)
 * Make topic offset public ([#7321](https://github.com/confluentinc/ksql/pull/7321)) ([3343763](https://github.com/confluentinc/ksql/commit/334376310324bc15b09e0e17cb4e6ac361a2ac1d))
 * preserve the rest of a struct when one field has a processing error ([#7373](https://github.com/confluentinc/ksql/pull/7373)) ([6d708db](https://github.com/confluentinc/ksql/commit/6d708db41fe7fa6c1a3cd74dcebfcd66c66e0aaa))
-* revert schema registry version ([#7418](https://github.com/confluentinc/ksql/pull/7418)) ([e28fe96](https://github.com/confluentinc/ksql/commit/e28fe96b773d12771219f50a94e1af6031c2294c))
 * worker-poll tasks shouldn't block main loop ([#7427](https://github.com/confluentinc/ksql/pull/7427)) ([0b0bf65](https://github.com/confluentinc/ksql/commit/0b0bf65df6c2e178a5c249de6ac6bf7a13abe70c)), closes [#7358](https://github.com/confluentinc/ksql/issues/7358)
-* Revert "test: fix QTT tests after upstream change ([#7294](https://github.com/confluentinc/ksql/pull/7294))" ([#7299](https://github.com/confluentinc/ksql/issues/7299)) ([7e374e9](https://github.com/confluentinc/ksql/commit/7e374e9a15389316494f75b227c5b16b2cd31015))
-* **java client:** allow java client to accept statements with more than one semicolon ([#7243](https://github.com/confluentinc/ksql/pull/7243)) ([4086acb](https://github.com/confluentinc/ksql/commit/4086acbeff89cc5f8c0b5b03e800074894be8183))
-
-
-
-### Reverts
-
-* Revert "exclude stream threads" ([d01ea2f](https://github.com/confluentinc/ksql/commit/d01ea2fd9c354ef98afd1c6cc7300d76471af2bd))
+* allow java client to accept statements with more than one semicolon ([#7243](https://github.com/confluentinc/ksql/pull/7243)) ([4086acb](https://github.com/confluentinc/ksql/commit/4086acbeff89cc5f8c0b5b03e800074894be8183))
 
 ## [0.17.0](https://github.com/confluentinc/ksql/releases/tag/v0.17.0-ksqldb) (2021-04-26)
 

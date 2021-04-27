@@ -16,6 +16,7 @@
 package io.confluent.ksql.physical.scalablepush;
 
 import io.confluent.ksql.execution.streams.materialization.TableRow;
+import io.confluent.ksql.query.QueryId;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
@@ -32,16 +33,18 @@ public class ProcessingQueue {
   static final int BLOCKING_QUEUE_CAPACITY = 100;
 
   private final Deque<TableRow> rowQueue;
+  private final QueryId queryId;
   private final int queueSizeLimit;
   private boolean closed = false;
   private boolean droppedRows = false;
   private Runnable newRowCallback = () -> { };
 
-  public ProcessingQueue() {
-    this(BLOCKING_QUEUE_CAPACITY);
+  public ProcessingQueue(final QueryId queryId) {
+    this(queryId, BLOCKING_QUEUE_CAPACITY);
   }
 
-  public ProcessingQueue(final int queueSizeLimit) {
+  public ProcessingQueue(final QueryId queryId, final int queueSizeLimit) {
+    this.queryId = queryId;
     this.queueSizeLimit = queueSizeLimit;
     this.rowQueue = new ArrayDeque<>();
   }
@@ -101,5 +104,9 @@ public class ProcessingQueue {
    */
   public synchronized boolean hasDroppedRows() {
     return droppedRows;
+  }
+
+  public QueryId getQueryId() {
+    return queryId;
   }
 }

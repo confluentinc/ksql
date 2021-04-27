@@ -7,6 +7,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import io.confluent.ksql.execution.streams.materialization.TableRow;
+import io.confluent.ksql.query.QueryId;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -27,7 +28,7 @@ public class ProcessingQueueTest {
   @Test
   public void shouldOfferAndPoll() {
     // Given:
-    final ProcessingQueue queue = new ProcessingQueue();
+    final ProcessingQueue queue = new ProcessingQueue(new QueryId("a"));
     queue.setNewRowCallback(runnable);
 
     // When:
@@ -47,7 +48,7 @@ public class ProcessingQueueTest {
   @Test
   public void shouldHitLimit() {
     // Given:
-    final ProcessingQueue queue = new ProcessingQueue(2);
+    final ProcessingQueue queue = new ProcessingQueue(new QueryId("a"), 2);
     queue.setNewRowCallback(runnable);
 
     // When:

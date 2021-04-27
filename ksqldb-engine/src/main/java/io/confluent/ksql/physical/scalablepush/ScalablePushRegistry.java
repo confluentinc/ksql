@@ -23,15 +23,15 @@ import io.confluent.ksql.execution.streams.materialization.TableRow;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.physical.scalablepush.locator.AllHostsLocator;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.vertx.core.impl.ConcurrentHashSet;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -53,8 +53,10 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
   private final PushLocator pushLocator;
   private final LogicalSchema logicalSchema;
   private final boolean windowed;
-  private final Set<ProcessingQueue> processingQueues = new ConcurrentHashSet<>();
-  private volatile boolean closed = false;
+  private final ConcurrentHashMap<QueryId, ProcessingQueue> processingQueues
+      = new ConcurrentHashMap<>();
+  // Protected by synchronized
+  private boolean closed = false;
 
   public ScalablePushRegistry(
       final PushLocator pushLocator,
@@ -66,26 +68,26 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
     this.windowed = windowed;
   }
 
-  public void close() {
-    for (ProcessingQueue queue : processingQueues) {
+  public synchronized void close() {
+    for (ProcessingQueue queue : processingQueues.values()) {
       queue.close();
     }
     processingQueues.clear();
     closed = true;
   }
 
-  public void register(final ProcessingQueue processingQueue) {
+  public synchronized void register(final ProcessingQueue processingQueue) {
     if (closed) {
       throw new IllegalStateException("Shouldn't register after closing");
     }
-    processingQueues.add(processingQueue);
+    processingQueues.put(processingQueue.getQueryId(), processingQueue);
   }
 
-  public void unregister(final ProcessingQueue processingQueue) {
+  public synchronized void unregister(final ProcessingQueue processingQueue) {
     if (closed) {
       throw new IllegalStateException("Shouldn't unregister after closing");
     }
-    processingQueues.remove(processingQueue);
+    processingQueues.remove(processingQueue.getQueryId());
   }
 
   public PushLocator getLocator() {
@@ -97,8 +99,10 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
     return processingQueues.size();
   }
 
-  private void handleRow(final Object key, final GenericRow value, final long timestamp) {
-    for (ProcessingQueue queue : processingQueues) {
+  @SuppressWarnings("unchecked")
+  private void handleRow(
+      final Object key, final GenericRow value, final long timestamp) {
+    for (ProcessingQueue queue : processingQueues.values()) {
       try {
         // The physical operators may modify the keys and values, so we make a copy to ensure
         // that there's no cross-query interference.

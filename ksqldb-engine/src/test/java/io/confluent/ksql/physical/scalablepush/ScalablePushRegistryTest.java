@@ -16,6 +16,7 @@ import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
@@ -68,7 +69,7 @@ public class ScalablePushRegistryTest {
 
   @Before
   public void setUp() {
-
+    when(processingQueue.getQueryId()).thenReturn(new QueryId("abc"));
   }
 
   @Test
@@ -80,7 +81,6 @@ public class ScalablePushRegistryTest {
     when(processorContext.timestamp()).thenReturn(TIMESTAMP);
 
     // When:
-//    verify(stream).process(processorSupplier.capture());
     registry.register(processingQueue);
     assertThat(registry.numRegistered(), is(1));
 
@@ -105,7 +105,6 @@ public class ScalablePushRegistryTest {
     when(windowed.key()).thenReturn(genericKey);
 
     // When:
-//    verify(stream).process(processorSupplier.capture());
     registry.register(processingQueue);
     assertThat(registry.numRegistered(), is(1));
 
@@ -130,7 +129,6 @@ public class ScalablePushRegistryTest {
     when(processingQueue.offer(any())).thenThrow(new RuntimeException("Error!"));
 
     // When:
-//    verify(stream).process(processorSupplier.capture());
     registry.register(processingQueue);
 
     // Then:

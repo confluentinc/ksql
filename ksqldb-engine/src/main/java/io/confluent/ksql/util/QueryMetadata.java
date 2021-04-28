@@ -46,6 +46,7 @@ import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.state.StreamsMetadata;
+import org.apache.log4j.MDC;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -165,6 +166,7 @@ public abstract class QueryMetadata {
 
   public void initialize() {
     // initialize the first KafkaStreams
+    MDC.put("queryId", queryId.toString());
     resetKafkaStreams(kafkaStreamsBuilder.build(topology, streamsProperties));
     this.initialized = true;
   }
@@ -377,6 +379,7 @@ public abstract class QueryMetadata {
   }
 
   public void start() {
+    MDC.put("queryId", queryId.toString());
     if (!initialized) {
       throw new KsqlException(
           String.format(

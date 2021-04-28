@@ -51,7 +51,7 @@ For more information, see [Configuring Listeners of a ksqlDB Cluster](./index.md
 ## `ksql.compression.type`
 
 Sets the compression type used by {{ site.ak }} producers, like the
-INSERT VALUES statement. The default is `none`.
+INSERT VALUES statement. The default is `snappy`.
 
 This setting is distinct from the
 `ksql.streams.producer.compression.type` config, which sets the type of 

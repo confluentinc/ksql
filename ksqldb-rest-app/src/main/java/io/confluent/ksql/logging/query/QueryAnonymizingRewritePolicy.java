@@ -18,7 +18,6 @@ package io.confluent.ksql.logging.query;
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryAnonymizer;
@@ -83,7 +82,7 @@ public final class QueryAnonymizingRewritePolicy implements RewritePolicy {
         source.getLogger() != null ? source.getLogger() : Logger.getLogger(source.getLoggerName()),
         source.getTimeStamp(),
         source.getLevel(),
-        newMessageBuilder.build(),
+        combined,
         source.getThreadName(),
         source.getThrowableInformation(),
         source.getNDC(),

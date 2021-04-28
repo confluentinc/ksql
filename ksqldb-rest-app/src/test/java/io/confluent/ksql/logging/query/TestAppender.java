@@ -7,7 +7,6 @@ import org.apache.log4j.spi.LoggingEvent;
 
 class TestAppender extends AppenderSkeleton {
     private final List<LoggingEvent> log = new ArrayList<>();
-
     @Override
     public boolean requiresLayout() {
         return false;

@@ -1,4 +1,4 @@
-package io.confluent.ksql.physical.scalable_push;
+package io.confluent.ksql.physical.scalablepush;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;

@@ -50,7 +50,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.scalable_push.PushRouting;
+import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;

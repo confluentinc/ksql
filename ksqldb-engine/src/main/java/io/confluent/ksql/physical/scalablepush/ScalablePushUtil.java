@@ -1,6 +1,5 @@
-package io.confluent.ksql.physical.scalable_push;
+package io.confluent.ksql.physical.scalablepush;
 
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import java.util.function.Supplier;

@@ -31,7 +31,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.scalable_push.PushRouting;
+import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;

@@ -42,7 +42,7 @@ import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.physical.pull.HARouting;
-import io.confluent.ksql.physical.scalable_push.PushRouting;
+import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;

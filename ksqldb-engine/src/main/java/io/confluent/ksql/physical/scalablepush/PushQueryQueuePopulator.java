@@ -1,6 +1,6 @@
-package io.confluent.ksql.physical.scalable_push;
+package io.confluent.ksql.physical.scalablepush;
 
-import io.confluent.ksql.physical.scalable_push.PushRouting.PushConnectionsHandle;
+import io.confluent.ksql.physical.scalablepush.PushRouting.PushConnectionsHandle;
 import java.util.concurrent.CompletableFuture;
 
 public interface PushQueryQueuePopulator {

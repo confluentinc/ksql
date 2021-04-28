@@ -149,7 +149,7 @@ public class PushRouting implements AutoCloseable {
   ) {
     if (node.isLocal()) {
       LOG.debug("Query {} executed locally at host {} at timestamp {}.",
-            statement.getStatementText(), node.location(), System.currentTimeMillis());
+          statement.getStatementText(), node.location(), System.currentTimeMillis());
       final AtomicReference<BufferedPublisher<List<?>>> publisherRef
           = new AtomicReference<>(null);
       return CompletableFuture.completedFuture(null)
@@ -217,13 +217,13 @@ public class PushRouting implements AutoCloseable {
         KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true);
 
     final CompletableFuture<RestResponse<BufferedPublisher<StreamedRow>>> future  = serviceContext
-          .getKsqlClient()
-          .makeQueryRequestStreamed(
-              owner.location(),
-              statement.getStatementText(),
-              statement.getSessionConfig().getOverrides(),
-              requestProperties
-          );
+        .getKsqlClient()
+        .makeQueryRequestStreamed(
+            owner.location(),
+            statement.getStatementText(),
+            statement.getSessionConfig().getOverrides(),
+            requestProperties
+        );
 
     return future.thenApply(response -> {
       if (response.isErroneous()) {

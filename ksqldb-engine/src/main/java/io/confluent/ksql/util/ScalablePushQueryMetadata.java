@@ -1,7 +1,7 @@
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.physical.scalable_push.PushQueryQueuePopulator;
-import io.confluent.ksql.physical.scalable_push.PushRouting.PushConnectionsHandle;
+import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
+import io.confluent.ksql.physical.scalablepush.PushRouting.PushConnectionsHandle;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.query.QueryId;
@@ -10,7 +10,6 @@ import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 
 public class ScalablePushQueryMetadata implements PushQueryMetadata {

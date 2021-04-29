@@ -26,10 +26,18 @@ public final class QueryGuid {
   private final LocalDateTime timeOfCreation;
 
   public QueryGuid(final String namespace, final String nonAnonQuery, final String anonQuery) {
+    this(namespace, nonAnonQuery, anonQuery, LocalDateTime.now());
+  }
+
+  // for testing
+  QueryGuid(final String namespace,
+            final String nonAnonQuery,
+            final String anonQuery,
+            final LocalDateTime timeOfCreation) {
     this.clusterNamespace = namespace;
     this.queryUuid = computeQueryId(nonAnonQuery, clusterNamespace);
     this.anonQueryUuid = computeQueryId(anonQuery, "");
-    this.timeOfCreation = LocalDateTime.now();
+    this.timeOfCreation = timeOfCreation;
   }
 
   public String getClusterNamespace() {

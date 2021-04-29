@@ -110,55 +110,75 @@ public class QueryGuidTest {
   @Test
   public void queriesGetCorrectTimeOfCreation() {
     // Given:
-    final QueryGuid metaData = new QueryGuid("testData.testData",
+    final LocalDateTime localDateTime = LocalDateTime.now();
+    final QueryGuid metaData = new QueryGuid(
+        "testData.testData",
         "CREATE STREAM my_stream (profileId VARCHAR, latitude DOUBLE, "
             + "longitude DOUBLE)\nWITH (kafka_topic='locations', value_format='json', "
-            + "partitions=1);", "TEST");
+            + "partitions=1);",
+        "TEST",
+        localDateTime
+    );
 
     // Then:
-    Assert.assertEquals(LocalDateTime.now(), metaData.getTimeOfCreation());
+    Assert.assertEquals(localDateTime, metaData.getTimeOfCreation());
   }
 
   @Test
   public void handlesEmptyNamespaceCorrectly() {
     // Given:
-    final QueryGuid metaData = new QueryGuid("",
+    final LocalDateTime localDateTime = LocalDateTime.now();
+    final QueryGuid metaData = new QueryGuid(
+        "",
         "CREATE STREAM my_stream (profileId VARCHAR, latitude DOUBLE, "
             + "longitude DOUBLE)\nWITH (kafka_topic='locations', value_format='json', "
-            + "partitions=1);", "TEST");
+            + "partitions=1);",
+        "TEST",
+        localDateTime
+    );
 
     // Then:
     Assert.assertEquals("", metaData.getClusterNamespace());
     Assert.assertNotEquals("", metaData.getQueryUuid());
     Assert.assertNotEquals("", metaData.getAnonQueryUuid());
-    Assert.assertEquals(LocalDateTime.now(), metaData.getTimeOfCreation());
+    Assert.assertEquals(localDateTime, metaData.getTimeOfCreation());
   }
 
   @Test
   public void handlesEmptyQueryCorrectly() {
     // Given:
-    final QueryGuid metaData = new QueryGuid("testData.testData",
-        "", "TEST");
+    final LocalDateTime localDateTime = LocalDateTime.now();
+    final QueryGuid metaData = new QueryGuid(
+        "testData.testData",
+        "",
+        "TEST",
+        localDateTime
+    );
 
     // Then:
     Assert.assertEquals("testData.testData", metaData.getClusterNamespace());
     Assert.assertNotEquals("", metaData.getQueryUuid());
     Assert.assertNotEquals("", metaData.getAnonQueryUuid());
-    Assert.assertEquals(LocalDateTime.now(), metaData.getTimeOfCreation());
+    Assert.assertEquals(localDateTime, metaData.getTimeOfCreation());
   }
 
   @Test
   public void handlesEmptyAnonQueryCorrectly() {
     // Given:
-    final QueryGuid metaData = new QueryGuid("testData.testData",
+    final LocalDateTime localDateTime = LocalDateTime.now();
+    final QueryGuid metaData = new QueryGuid(
+        "testData.testData",
         "CREATE STREAM my_stream (profileId VARCHAR, latitude DOUBLE, "
             + "longitude DOUBLE)\nWITH (kafka_topic='locations', value_format='json', "
-            + "partitions=1);", "TEST");
+            + "partitions=1);",
+        "TEST",
+        localDateTime
+    );
 
     // Then:
     Assert.assertEquals("testData.testData", metaData.getClusterNamespace());
     Assert.assertNotEquals("", metaData.getQueryUuid());
     Assert.assertNotEquals("", metaData.getAnonQueryUuid());
-    Assert.assertEquals(LocalDateTime.now(), metaData.getTimeOfCreation());
+    Assert.assertEquals(localDateTime, metaData.getTimeOfCreation());
   }
 }

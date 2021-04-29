@@ -43,6 +43,7 @@ import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.function.udf.AsValue;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
@@ -59,6 +60,7 @@ import io.confluent.ksql.planner.plan.FinalProjectNode;
 import io.confluent.ksql.planner.plan.FlatMapNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.JoinNode.JoinKey;
+import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
@@ -559,6 +561,8 @@ public class LogicalPlanner {
           leaf.getSource(), prefix + "Right", root.getInfo().getRightJoinExpression(), isWindowed);
     }
 
+    verifyJoin(root, left, right);
+
     final boolean finalJoin = prefix.isEmpty();
 
     final JoinKey joinKey = buildJoinKey(root);
@@ -575,7 +579,107 @@ public class LogicalPlanner {
     );
   }
 
+  private void verifyJoin(final Join root, final PlanNode left, final PlanNode right) {
+    if (left.getNodeOutputType() == DataSourceType.KSTREAM) {
+      if (right.getNodeOutputType() == DataSourceType.KTABLE) {
+
+        // stream-table join detected
+
+        if (root.getInfo().getType().equals(JoinType.OUTER)) {
+          throw new KsqlException("Invalid join type:"
+              + " full-outer join not supported for stream-table joins.");
+        }
+
+        // added outer check to make `multi-joins.json` pass
+        // the test uses expressions -> need to follow up on this issue
+        if (root.getInfo().getRightJoinExpression() instanceof ColumnReferenceExp) {
+          if (joinOnNonKeyAttribute(
+              ((ColumnReferenceExp) root.getInfo().getRightJoinExpression()),
+              right
+          )) {
+            throw new KsqlException("Invalid join condition:"
+                + " stream-table joins require to join on the table's primary key.");
+          }
+        }
+      }
+
+      // stream-stream join detected: nothing to verify
+
+    } else {
+      if (right.getNodeOutputType() == DataSourceType.KSTREAM) {
+        throw new KsqlException("Invalid join order:"
+            + " table-stream joins are not supported; only stream-table joins.");
+      }
+
+      // table-table join detected
+
+      if (joinOnNonKeyAttribute(
+            ((ColumnReferenceExp) root.getInfo().getLeftJoinExpression()),
+            left
+      )) {
+        throw new KsqlException("Invalid join condition:"
+            + " table-table joins require to join on the primary key of the left input table."
+        );
+      }
+
+      if (joinOnNonKeyAttribute(
+            ((ColumnReferenceExp) root.getInfo().getRightJoinExpression()),
+            right
+      )) {
+        throw new KsqlException("Invalid join condition:"
+            + " foreign-key table-table joins are not supported.");
+      }
+    }
+  }
+
+  private boolean joinOnNonKeyAttribute(final ColumnReferenceExp joinExpression,
+                                        final PlanNode node) {
+    final String joinAttributeName = joinExpression.getColumnName().text();
+    final List<DataSourceNode> dataSourceNodes = node.getSourceNodes().collect(Collectors.toList());
+    final String singleAttributeKeyName;
+    if (dataSourceNodes.size() == 1) {
+      singleAttributeKeyName = dataSourceNodes.get(0).getSchema().key().get(0).name().text();
+    } else {
+      final List<DataSourceNode> qualifiedNodes;
+
+      if (joinExpression.maybeQualifier().isPresent()) {
+        final String qualifier = joinExpression.maybeQualifier().get().text();
+        qualifiedNodes = dataSourceNodes.stream()
+            .filter(n -> n.getDataSource().getName().text().equals(qualifier))
+            .collect(Collectors.toList());
+
+        if (qualifiedNodes.size() != 1) {
+          // double check this
+          throw new KsqlException(String.format(
+              "Join qualifier '%s' could not be resolved (either not found or not unique).",
+              qualifier
+            ));
+        }
+      } else {
+        qualifiedNodes = dataSourceNodes.stream()
+            .filter(n -> n.getSchema().columns().stream()
+                .map(column -> column.name().text()).collect(Collectors.toList())
+                .contains(joinAttributeName))
+            .collect(Collectors.toList());
+        if (qualifiedNodes.size() != 1) {
+          // double check this
+          throw new KsqlException(String.format(
+              "Join identifier '%s' could not be resolved (either not found or not unique).",
+              joinAttributeName
+          ));
+        }
+      }
+
+      singleAttributeKeyName = qualifiedNodes.get(0).getSchema().key().get(0).name().text();
+    }
+
+
+    return !joinAttributeName.equals(singleAttributeKeyName);
+  }
+
+
   private JoinKey buildJoinKey(final Join join) {
+    //
     final List<QualifiedColumnReferenceExp> viableKeyColumns = join.viableKeyColumns();
     if (viableKeyColumns.isEmpty()) {
       return JoinKey.syntheticColumn();

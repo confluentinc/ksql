@@ -64,6 +64,7 @@ class QueryEngine {
     final QueryAnalyzer queryAnalyzer =
         new QueryAnalyzer(metaStore, outputPrefix);
 
+    // why does the analyzer not verify the join condition?
     final Analysis analysis = queryAnalyzer.analyze(query, sink);
 
     return new LogicalPlanner(config, analysis, metaStore).buildPersistentLogicalPlan();

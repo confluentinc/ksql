@@ -296,8 +296,9 @@ public class JoinNode extends PlanNode implements JoiningNode {
         final DataSourceType rightType) {
 
       return joinerMap.getOrDefault(new Pair<>(leftType, rightType), () -> {
-        throw new KsqlException("Join between invalid operands requested: left type: "
-            + leftType + ", right type: " + rightType);
+        throw new KsqlException(
+            "Internal planning error. Please file a bug report. Joins between invalid operands "
+                + "requested: left type: " + leftType + ", right type: " + rightType);
       }).get();
     }
   }

@@ -1233,18 +1233,6 @@
       }
     },
     {
-      "name": "to table using something other than key column",
-      "statements": [
-        "CREATE STREAM S (K STRING KEY, ID bigint) WITH (kafka_topic='S', value_format='JSON');",
-        "CREATE TABLE NO_KEY (K STRING PRIMARY KEY, ID bigint, NAME string) WITH (kafka_topic='NO_KEY', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT s.id, name FROM S JOIN NO_KEY t ON s.id = t.id;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Cannot repartition a TABLE source. If this is a join, make sure that the criteria uses the TABLE's key column K instead of [ID]"
-      }
-    },
-    {
       "name": "stream to stream wrapped single field value schema on inputs",
       "statements": [
         "CREATE STREAM S1 (ID BIGINT KEY, NAME STRING) WITH (kafka_topic='S1', value_format='JSON');",
@@ -1701,18 +1689,6 @@
             "schema": "S_SF BIGINT KEY, S_K STRING, T_ID BIGINT, T_TF INT, S_ROWTIME BIGINT, T_ROWTIME BIGINT"
           }
         ]
-      }
-    },
-    {
-      "name": "on non-key table column",
-      "statements": [
-        "CREATE STREAM INPUT_STREAM (ID BIGINT KEY, SF BIGINT) WITH (kafka_topic='stream_topic', value_format='JSON');",
-        "CREATE TABLE INPUT_TABLE (K BIGINT PRIMARY KEY, ID BIGINT, TF INT) WITH (kafka_topic='table_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT_STREAM S JOIN INPUT_TABLE T on S.ID = T.ID;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Cannot repartition a TABLE source. If this is a join, make sure that the criteria uses the TABLE's key column K instead of [ID]"
       }
     },
     {
@@ -3096,7 +3072,7 @@
       "statements": [
         "CREATE TABLE T1 (ID INT PRIMARY KEY, VAL STRING) WITH (kafka_topic='t1', key_format='AVRO', value_format='JSON');",
         "CREATE TABLE T2 (ID BIGINT PRIMARY KEY, FOO INT) WITH (kafka_topic='t2', key_format='AVRO', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT T2.ID, T1.VAL FROM T1 JOIN T2 ON T1.ID = T2.ID;"
+        "CREATE TABLE OUTPUT AS SELECT T2.ID, T1.VAL FROM T1 JOIN T2 ON T1.ID = T2.ID;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -3233,18 +3209,6 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Implicit repartitioning of windowed sources is not supported. See https://github.com/confluentinc/ksql/issues/4385."
-      }
-    },
-    {
-      "name": "stream-table key-to-key with necessary repartition - SR-enabled key format",
-      "statements": [
-        "CREATE TABLE T (ID INT PRIMARY KEY, VAL INT) WITH (kafka_topic='t', key_format='AVRO', value_format='JSON');",
-        "CREATE STREAM S (ID INT KEY, FOO INT) WITH (kafka_topic='s', key_format='AVRO', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT S.ID, VAL FROM S JOIN T ON S.ID = T.VAL;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Cannot repartition a TABLE source. If this is a join, make sure that the criteria uses the TABLE's key column ID instead of [VAL]"
       }
     }
   ]

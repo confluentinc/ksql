@@ -223,19 +223,6 @@
       }
     },
     {
-      "name": "full-full missing join expression in projection",
-      "statements": [
-        "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
-        "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');",
-        "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT s1.V0, t2.V0, t3.V0 FROM S1 FULL OUTER JOIN T2 ON S1.ID = T2.ID FULL OUTER JOIN T3 ON S1.ID = T3.ID;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expression ROWKEY in its projection."
-      }
-    },
-    {
       "name": "stream-table-table - table key format mismatch",
       "statements": [
         "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', key_format='JSON', value_format='JSON');",
@@ -997,7 +984,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Join between invalid operands requested: left type: KTABLE, right type: KSTREAM"
+        "message": "Invalid join order: table-stream joins are not supported; only stream-table joins."
       }
     },
     {

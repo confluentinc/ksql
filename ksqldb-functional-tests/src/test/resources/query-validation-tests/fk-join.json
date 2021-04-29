@@ -1,0 +1,76 @@
+{
+  "tests": [
+    {
+      "name": "Should fail on left non-key attribute for inner-join",
+      "statements": [
+        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, id2, f1, f2 FROM left_table JOIN right_table ON f1 = id2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: table-table joins require to join on the primary key of the left input table."
+      }
+    },
+    {
+      "name": "Should fail on left non-key attribute for left-join",
+      "statements": [
+        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, id2, f1, f2 FROM left_table LEFT JOIN right_table ON f1 = id2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: table-table joins require to join on the primary key of the left input table."
+      }
+    },
+    {
+      "name": "Should fail on left non-key attribute for outer-join",
+      "statements": [
+        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, id2, f1, f2 FROM left_table FULL OUTER JOIN right_table ON f1 = id2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: table-table joins require to join on the primary key of the left input table."
+      }
+    },
+    {
+      "name": "Should fail on right non-key attribute for inner-join",
+      "statements": [
+        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, id2, f1, f2 FROM left_table JOIN right_table ON id1 = f2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: foreign-key table-table joins are not supported."
+      }
+    },
+    {
+      "name": "Should fail on right non-key attribute for left-join",
+      "statements": [
+        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, id2, f1, f2 FROM left_table LEFT JOIN right_table ON id1 = f2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: foreign-key table-table joins are not supported."
+      }
+    },
+    {
+      "name": "Should fail on right non-key attribute for outer-join",
+      "statements": [
+        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, id2, f1, f2 FROM left_table FULL OUTER JOIN right_table ON id1 = f2;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: foreign-key table-table joins are not supported."
+      }
+    }
+  ]
+}

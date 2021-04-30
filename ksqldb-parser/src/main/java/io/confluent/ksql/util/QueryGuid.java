@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -29,7 +30,7 @@ public final class QueryGuid {
     this(namespace, nonAnonQuery, anonQuery, LocalDateTime.now());
   }
 
-  // for testing
+  @VisibleForTesting
   QueryGuid(final String namespace,
             final String nonAnonQuery,
             final String anonQuery,

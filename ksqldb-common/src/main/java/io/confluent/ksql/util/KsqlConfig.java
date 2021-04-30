@@ -154,14 +154,14 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_WRAP_SINGLE_VALUES =
       "ksql.persistence.wrap.single.values";
 
-  public static final String KSQL_CCLOUD_QUERYANONYMIZER_ENABLED =
-      "ksql.ccloud.queryanonymizer.logs_enabled";
-  private static final String KSQL_CCLOUD_QUERYANONYMIZER_ENABLED_DOC =
+  public static final String KSQL_QUERYANONYMIZER_ENABLED =
+      "ksql.queryanonymizer.logs_enabled";
+  private static final String KSQL_QUERYANONYMIZER_ENABLED_DOC =
       "This defines whether we log anonymized queries out of query logger or if we log them"
       + "in plain text. Defaults to true";
-  public static final String KSQL_CCLOUD_QUERYANONYMIZER_CLUSTER_NAMESPACE =
-      "ksql.ccloud.queryanonymizer.cluster_namespace";
-  private static final String KSQL_CCLOUD_QUERYANONYMIZER_CLUSTER_NAMESPACE_DOC =
+  public static final String KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE =
+      "ksql.queryanonymizer.cluster_namespace";
+  private static final String KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE_DOC =
       "Namespace used in the query anonymization process, representing cluster id and "
           + "organization id respectively. For example, 'clusterid.orgid'.";
 
@@ -718,17 +718,17 @@ public class KsqlConfig extends AbstractConfig {
             ConfigDef.Importance.LOW,
             KSQL_CUSTOM_METRICS_TAGS_DOC
         ).define(
-            KSQL_CCLOUD_QUERYANONYMIZER_CLUSTER_NAMESPACE,
+            KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE,
             ConfigDef.Type.STRING,
             null,
             ConfigDef.Importance.LOW,
-            KSQL_CCLOUD_QUERYANONYMIZER_CLUSTER_NAMESPACE_DOC
+            KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE_DOC
         ).define(
-            KSQL_CCLOUD_QUERYANONYMIZER_ENABLED,
+            KSQL_QUERYANONYMIZER_ENABLED,
             ConfigDef.Type.BOOLEAN,
             true,
             ConfigDef.Importance.LOW,
-            KSQL_CCLOUD_QUERYANONYMIZER_ENABLED_DOC
+            KSQL_QUERYANONYMIZER_ENABLED_DOC
         ).define(
             KSQL_CUSTOM_METRICS_EXTENSION,
             ConfigDef.Type.CLASS,

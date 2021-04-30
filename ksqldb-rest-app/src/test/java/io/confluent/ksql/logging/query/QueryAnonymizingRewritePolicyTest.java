@@ -31,9 +31,9 @@ public class QueryAnonymizingRewritePolicyTest {
   @Before
   public void setUp() throws Exception {
     // when
-    when(config.getBoolean(KsqlConfig.KSQL_CCLOUD_QUERYANONYMIZER_ENABLED))
+    when(config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED))
         .thenReturn(true);
-    when(config.getString(KsqlConfig.KSQL_CCLOUD_QUERYANONYMIZER_CLUSTER_NAMESPACE))
+    when(config.getString(KsqlConfig.KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE))
         .thenReturn("cathouse.org.meowcluster");
 
 

@@ -37,12 +37,12 @@ public final class QueryAnonymizingRewritePolicy implements RewritePolicy {
 
   public QueryAnonymizingRewritePolicy(final KsqlConfig config) {
     final String clusterNamespace =
-        config.getString(KsqlConfig.KSQL_CCLOUD_QUERYANONYMIZER_CLUSTER_NAMESPACE);
+        config.getString(KsqlConfig.KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE);
     this.namespace =
         clusterNamespace.isEmpty()
             ? config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
             : clusterNamespace;
-    this.anonymizeQueries = config.getBoolean(KsqlConfig.KSQL_CCLOUD_QUERYANONYMIZER_ENABLED);
+    this.anonymizeQueries = config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED);
   }
 
   private QueryGuid buildGuids(final String query, final String anonymizedQuery) {

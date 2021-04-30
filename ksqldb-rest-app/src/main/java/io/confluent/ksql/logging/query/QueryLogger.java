@@ -64,9 +64,11 @@ public final class QueryLogger {
       final Object message, final ParseTree query) {
     return ImmutableMap.of("message", message, "query", query);
   }
+
   public static void debug(final Object message) {
     logger.debug(message);
   }
+
   public static void debug(final Object message, final String query) {
     logger.debug(buildPayload(message, query));
   }
@@ -74,9 +76,11 @@ public final class QueryLogger {
   public static void debug(final Object message, final ParseTree query) {
     logger.debug(buildPayload(message, query));
   }
+
   public static void info(final Object message) {
     logger.info(message);
   }
+
   public static void info(final Object message, final String query) {
     logger.info(buildPayload(message, query));
   }
@@ -84,9 +88,11 @@ public final class QueryLogger {
   public static void info(final Object message, final ParseTree query) {
     logger.info(buildPayload(message, query));
   }
+
   public static void warn(final Object message) {
     logger.warn(message);
   }
+
   public static void warn(final Object message, final String query) {
     logger.warn(buildPayload(message, query));
   }
@@ -94,9 +100,11 @@ public final class QueryLogger {
   public static void warn(final Object message, final ParseTree query) {
     logger.warn(buildPayload(message, query));
   }
+
   public static void error(final Object message) {
     logger.error(message);
   }
+
   public static void error(final Object message, final String query) {
     logger.error(buildPayload(message, query));
   }

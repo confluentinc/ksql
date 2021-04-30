@@ -52,6 +52,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -227,7 +228,7 @@ final class QueryExecutor {
         .map(userErrorClassifiers::and)
         .orElse(userErrorClassifiers);
 
-    return new PersistentQueryMetadata(
+    return new PersistentQueryMetadataImpl(
         statementText,
         querySchema,
         sources,

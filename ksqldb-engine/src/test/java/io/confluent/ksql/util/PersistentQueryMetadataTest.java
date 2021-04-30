@@ -105,7 +105,7 @@ public class PersistentQueryMetadataTest {
         .thenReturn(Optional.of(materializationProvider));
     when(kafkaStreams.state()).thenReturn(State.NOT_RUNNING);
 
-    query = new PersistentQueryMetadata(
+    query = new PersistentQueryMetadataImpl(
         SQL,
         physicalSchema,
         Collections.emptySet(),

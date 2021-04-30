@@ -54,6 +54,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueryMetadataImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collections;
 import java.util.List;
@@ -178,7 +179,7 @@ public class QueryExecutorTest {
   @Mock
   private SessionConfig config;
   @Mock
-  private QueryMetadata.Listener queryListener;
+  private QueryMetadataImpl.ListenerImpl queryListener;
   @Captor
   private ArgumentCaptor<Map<String, Object>> propertyCaptor;
 

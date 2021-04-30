@@ -25,6 +25,7 @@ import io.confluent.ksql.query.QueryRegistryImpl.QueryExecutorFactory;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Map;
@@ -330,7 +331,7 @@ public class QueryRegistryImplTest {
       boolean createAs
   ) {
     final QueryId queryId = new QueryId(id);
-    final PersistentQueryMetadata query = mock(PersistentQueryMetadata.class);
+    final PersistentQueryMetadata query = mock(PersistentQueryMetadataImpl.class);
     final DataSource sinkSource = mock(DataSource.class);
     when(sinkSource.getName()).thenReturn(SourceName.of(sink));
     when(query.getQueryId()).thenReturn(queryId);

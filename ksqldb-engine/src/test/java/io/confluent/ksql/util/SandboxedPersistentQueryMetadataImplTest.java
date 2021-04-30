@@ -46,7 +46,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SandboxedPersistentQueryMetadataTest {
+public class SandboxedPersistentQueryMetadataImplTest {
   private static final String SQL = "sql";
   private static final String EXECUTION_PLAN = "execution plan";
   private static final QueryId QUERY_ID = new QueryId("queryId");
@@ -87,7 +87,8 @@ public class SandboxedPersistentQueryMetadataTest {
   @Mock
   private Listener sandboxListener;
 
-  private SandboxedPersistentQueryMetadata sandbox;
+  private PersistentQueryMetadataImpl query;
+  private SandboxedPersistentQueryMetadataImpl sandbox;
 
   @Before
   public void setUp() {
@@ -96,7 +97,7 @@ public class SandboxedPersistentQueryMetadataTest {
     when(materializationProviderBuilder.apply(kafkaStreams, topology))
         .thenReturn(Optional.of(materializationProvider));
 
-    final PersistentQueryMetadata query = new PersistentQueryMetadata(
+    final PersistentQueryMetadata query = new PersistentQueryMetadataImpl(
         SQL,
         physicalSchema,
         Collections.emptySet(),
@@ -122,7 +123,7 @@ public class SandboxedPersistentQueryMetadataTest {
 
     query.initialize();
 
-    sandbox = SandboxedPersistentQueryMetadata.of(query, sandboxListener);
+    sandbox = SandboxedPersistentQueryMetadataImpl.of(query, sandboxListener);
     reset(kafkaStreams);
   }
 

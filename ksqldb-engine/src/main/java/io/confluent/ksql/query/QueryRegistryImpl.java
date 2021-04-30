@@ -30,8 +30,10 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SandboxedPersistentQueryMetadata;
+import io.confluent.ksql.util.QueryMetadataImpl;
+import io.confluent.ksql.util.SandboxedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collection;
@@ -84,10 +86,10 @@ public class QueryRegistryImpl implements QueryRegistry {
     insertQueries = new ConcurrentHashMap<>();
     original.allLiveQueries.forEach(query -> {
       if (query instanceof PersistentQueryMetadata) {
-        final PersistentQueryMetadata sandboxed = SandboxedPersistentQueryMetadata.of(
-            (PersistentQueryMetadata) query,
+        final PersistentQueryMetadata sandboxed = SandboxedPersistentQueryMetadataImpl.of(
+            (PersistentQueryMetadataImpl) query,
             new ListenerImpl()
-        );
+                                                                                         );
         persistentQueries.put(sandboxed.getQueryId(), sandboxed);
         allLiveQueries.add(sandboxed);
       } else {
@@ -332,7 +334,7 @@ public class QueryRegistryImpl implements QueryRegistry {
     );
   }
 
-  private class ListenerImpl implements QueryMetadata.Listener {
+  private class ListenerImpl implements QueryMetadataImpl.Listener {
     @Override
     public void onError(final QueryMetadata queryMetadata, final QueryError error) {
       eventListeners.forEach(l -> l.onError(queryMetadata, error));

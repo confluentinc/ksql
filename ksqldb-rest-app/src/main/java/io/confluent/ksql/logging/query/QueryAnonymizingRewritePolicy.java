@@ -20,7 +20,7 @@ import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.QueryAnonymizer;
+import io.confluent.ksql.engine.rewrite.QueryAnonymizer;
 import io.confluent.ksql.util.QueryGuid;
 import java.util.HashMap;
 import java.util.Map;

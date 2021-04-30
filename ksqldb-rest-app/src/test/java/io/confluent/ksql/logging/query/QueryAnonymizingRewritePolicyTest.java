@@ -2,7 +2,7 @@ package io.confluent.ksql.logging.query;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.QueryAnonymizer;
+import io.confluent.ksql.engine.rewrite.QueryAnonymizer;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.rewrite.RewriteAppender;

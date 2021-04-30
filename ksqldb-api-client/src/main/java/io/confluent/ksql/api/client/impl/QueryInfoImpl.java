@@ -78,8 +78,8 @@ public class QueryInfoImpl implements QueryInfo {
     return queryType == queryInfo.queryType
         && id.equals(queryInfo.id)
         && sql.equals(queryInfo.sql)
-        && Objects.equals(sinkName, queryInfo.sinkName)
-        && Objects.equals(sinkTopicName, queryInfo.sinkTopicName);
+        && sinkName.equals(queryInfo.sinkName)
+        && sinkTopicName.equals(queryInfo.sinkTopicName);
   }
 
   @Override

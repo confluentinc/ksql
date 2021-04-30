@@ -32,7 +32,7 @@ import org.apache.kafka.streams.Topology;
 /**
  * Metadata of a transient query, e.g. {@code SELECT * FROM FOO;}.
  */
-public class TransientQueryMetadata extends QueryMetadata {
+public class TransientQueryMetadata extends QueryMetadataImpl {
 
   public enum ResultType {
     STREAM,

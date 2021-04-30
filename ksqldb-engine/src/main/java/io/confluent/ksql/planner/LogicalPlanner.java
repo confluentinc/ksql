@@ -626,6 +626,24 @@ public class LogicalPlanner {
             ((ColumnReferenceExp) root.getInfo().getRightJoinExpression()),
             right
       )) {
+        // when we add the first version of FK-joins,
+        // we should still check for n-way joins and disallow FK-joins for this case initially
+        // -> we should throw an informative error message if we detect an n-way join
+        //
+        // after we lift the n-way join restriction, we should be able to support FK-joins
+        // at any level in the join tree, because we currently only support left-deep join trees
+        //
+        // when we add support for right-deep join trees (or any bushy tree), a FK-join
+        // cannot still not be supported in any "right hand sub-tree",
+        // because a FK-join returns a result table with a multi-column PK;
+        // -> we should ensure to add corresponding tests when right-deep/bushy join trees
+        //    are added
+        //
+        // hence, we can only fully support FK-joins in right-deep/bush join trees after we
+        // added multi-attribute joins
+        // Note: it should not be necessary to detect this case though, as we should have a
+        //       check for single-column join conditions elsewhere and thus this check should
+        //       trigger and throw a much more informative error message
         throw new KsqlException("Invalid join condition:"
             + " foreign-key table-table joins are not supported.");
       }
@@ -637,40 +655,49 @@ public class LogicalPlanner {
     final String joinAttributeName = joinExpression.getColumnName().text();
     final List<DataSourceNode> dataSourceNodes = node.getSourceNodes().collect(Collectors.toList());
     final String singleAttributeKeyName;
-    if (dataSourceNodes.size() == 1) {
-      singleAttributeKeyName = dataSourceNodes.get(0).getSchema().key().get(0).name().text();
-    } else {
-      final List<DataSourceNode> qualifiedNodes;
+
+    // n-way join sub-tree (ie, not a leaf)
+    if (node instanceof JoinNode) {
+      final DataSourceNode qualifiedNode;
 
       if (joinExpression.maybeQualifier().isPresent()) {
         final String qualifier = joinExpression.maybeQualifier().get().text();
-        qualifiedNodes = dataSourceNodes.stream()
+        final List<DataSourceNode> allNodes = dataSourceNodes.stream()
             .filter(n -> n.getDataSource().getName().text().equals(qualifier))
             .collect(Collectors.toList());
 
-        if (qualifiedNodes.size() != 1) {
+        if (allNodes.size() != 1) {
           // double check this
           throw new KsqlException(String.format(
               "Join qualifier '%s' could not be resolved (either not found or not unique).",
               qualifier
-            ));
+          ));
         }
+        qualifiedNode = allNodes.get(0);
       } else {
-        qualifiedNodes = dataSourceNodes.stream()
+        final List<DataSourceNode> allNodes = dataSourceNodes.stream()
             .filter(n -> n.getSchema().columns().stream()
                 .map(column -> column.name().text()).collect(Collectors.toList())
                 .contains(joinAttributeName))
             .collect(Collectors.toList());
-        if (qualifiedNodes.size() != 1) {
+
+        if (allNodes.size() != 1) {
           // double check this
           throw new KsqlException(String.format(
               "Join identifier '%s' could not be resolved (either not found or not unique).",
               joinAttributeName
           ));
         }
+        qualifiedNode = allNodes.get(0);
       }
 
-      singleAttributeKeyName = qualifiedNodes.get(0).getSchema().key().get(0).name().text();
+      // we only support joins on single attributes so the key has a single field
+      singleAttributeKeyName = qualifiedNode.getSchema().key().get(0).name().text();
+    } else {
+      // leaf node:
+      // - we know we have single data source
+      // - we only support joins on single attributes so the key has a single field
+      singleAttributeKeyName = dataSourceNodes.get(0).getSchema().key().get(0).name().text();
     }
 
 
@@ -679,7 +706,6 @@ public class LogicalPlanner {
 
 
   private JoinKey buildJoinKey(final Join join) {
-    //
     final List<QualifiedColumnReferenceExp> viableKeyColumns = join.viableKeyColumns();
     if (viableKeyColumns.isEmpty()) {
       return JoinKey.syntheticColumn();

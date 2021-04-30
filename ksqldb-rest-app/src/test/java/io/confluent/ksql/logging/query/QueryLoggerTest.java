@@ -14,7 +14,6 @@ package io.confluent.ksql.logging.query;
 
 import io.confluent.common.logging.log4j.StructuredJsonLayout;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Map;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.rewrite.RewriteAppender;
 import org.junit.Before;
@@ -83,9 +82,28 @@ public class QueryLoggerTest {
         .getLog()
         .forEach(
             (e) -> {
-              final Map<String, Object> msg = (Map<String, Object>) e.getMessage();
-              assertEquals(msg.get("message"), message);
-              assertNotEquals(msg.get("query"), query);
+              final QueryLoggerMessage msg = (QueryLoggerMessage) e.getMessage();
+              assertEquals(msg.getMessage(), message);
+              assertNotEquals(msg.getQuery(), query);
+            });
+  }
+
+  @Test
+  public void shouldNotLogIfQueryCannotBeParsed() {
+    String message = " I love cats";
+    String query = "CREATE CAT;";
+
+    QueryLogger.debug(message, query);
+    QueryLogger.error(message, query);
+    QueryLogger.info(message, query);
+    QueryLogger.warn(message, query);
+    testAppender
+        .getLog()
+        .forEach(
+            (e) -> {
+              final QueryLoggerMessage msg = (QueryLoggerMessage) e.getMessage();
+              assertNotEquals(msg.getMessage(), message);
+              assertNotEquals(msg.getQuery(), query);
             });
   }
 }

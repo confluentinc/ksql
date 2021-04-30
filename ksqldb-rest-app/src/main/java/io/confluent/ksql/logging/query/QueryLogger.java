@@ -12,13 +12,16 @@
 
 package io.confluent.ksql.logging.query;
 
-import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.parser.ParsingException;
+import io.confluent.ksql.parser.SqlFormatter;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.log4j.Appender;
+import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.rewrite.RewriteAppender;
@@ -55,61 +58,57 @@ public final class QueryLogger {
     rewriteAppender.setRewritePolicy(new QueryAnonymizingRewritePolicy(config));
   }
 
-  private static ImmutableMap<String, Object> buildPayload(
-      final Object message, final String query) {
-    return ImmutableMap.of("message", message, "query", query);
+  private static void log(final Level level, final Object message, final String query) {
+    try {
+      DefaultKsqlParser.getParseTree(query);
+      logger.log(level, buildPayload(message, query));
+    } catch (ParsingException e) {
+      if (logger.isDebugEnabled()) {
+        Logger.getRootLogger()
+            .log(
+                Level.DEBUG,
+                String.format("Failed to parse a query in query logger, message: %s", message));
+      }
+    }
   }
 
-  private static ImmutableMap<String, Object> buildPayload(
-      final Object message, final ParseTree query) {
-    return ImmutableMap.of("message", message, "query", query);
+  private static void log(final Level level, final Object message, final Statement query) {
+    logger.log(level, buildPayload(message, SqlFormatter.formatSql(query)));
   }
 
-  public static void debug(final Object message) {
-    logger.debug(message);
+  private static QueryLoggerMessage buildPayload(final Object message, final String query) {
+    return new QueryLoggerMessage(message, query);
   }
 
   public static void debug(final Object message, final String query) {
-    logger.debug(buildPayload(message, query));
+    log(Level.DEBUG, message, query);
   }
 
-  public static void debug(final Object message, final ParseTree query) {
-    logger.debug(buildPayload(message, query));
-  }
-
-  public static void info(final Object message) {
-    logger.info(message);
+  public static void debug(final Object message, final Statement query) {
+    log(Level.DEBUG, message, query);
   }
 
   public static void info(final Object message, final String query) {
-    logger.info(buildPayload(message, query));
+    log(Level.INFO, message, query);
   }
 
-  public static void info(final Object message, final ParseTree query) {
-    logger.info(buildPayload(message, query));
-  }
-
-  public static void warn(final Object message) {
-    logger.warn(message);
+  public static void info(final Object message, final Statement query) {
+    log(Level.INFO, message, query);
   }
 
   public static void warn(final Object message, final String query) {
-    logger.warn(buildPayload(message, query));
+    log(Level.WARN, message, query);
   }
 
-  public static void warn(final Object message, final ParseTree query) {
-    logger.warn(buildPayload(message, query));
-  }
-
-  public static void error(final Object message) {
-    logger.error(message);
+  public static void warn(final Object message, final Statement query) {
+    log(Level.WARN, message, query);
   }
 
   public static void error(final Object message, final String query) {
-    logger.error(buildPayload(message, query));
+    log(Level.ERROR, message, query);
   }
 
-  public static void error(final Object message, final ParseTree query) {
-    logger.error(buildPayload(message, query));
+  public static void error(final Object message, final Statement query) {
+    log(Level.ERROR, message, query);
   }
 }

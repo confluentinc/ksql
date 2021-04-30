@@ -19,10 +19,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 public final class QueryGuid {
+  private final String namespace;
   private final String queryGuid;
   private final String structuralGuid;
 
   public QueryGuid(final String namespace, final String nonAnonQuery, final String anonQuery) {
+    this.namespace = namespace;
     this.queryGuid = computeQueryGuid(nonAnonQuery, namespace);
     this.structuralGuid = computeQueryGuid(anonQuery, "");
   }
@@ -44,5 +46,9 @@ public final class QueryGuid {
 
   public String getStructuralGuid() {
     return this.structuralGuid;
+  }
+
+  public String getNamespace() {
+    return namespace;
   }
 }

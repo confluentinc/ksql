@@ -15,17 +15,9 @@
 
 package io.confluent.ksql.logging.query;
 
-import static com.google.common.collect.ImmutableMap.toImmutableMap;
-
-import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.parser.ParsingException;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.engine.rewrite.QueryAnonymizer;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryGuid;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Stream;
 import org.apache.log4j.Logger;
 import org.apache.log4j.rewrite.RewritePolicy;
 import org.apache.log4j.spi.LoggingEvent;
@@ -51,42 +43,30 @@ public final class QueryAnonymizingRewritePolicy implements RewritePolicy {
 
   @Override
   public LoggingEvent rewrite(final LoggingEvent source) {
-    final ImmutableMap<String, String> oldMessage =
-        (ImmutableMap<String, String>) source.getMessage();
-    final String query = oldMessage.get("query");
-
-    final Map props = new HashMap(source.getProperties());
-
-    String anonymizedQuery;
-    try {
-      anonymizedQuery = anonymizer.anonymize(query);
-    } catch (ParsingException e) {
-      anonymizedQuery = "";
+    final Object inputMessage = source.getMessage();
+    if (!(inputMessage instanceof QueryLoggerMessage)) {
+      return source;
     }
+    final String query = ((QueryLoggerMessage) inputMessage).getQuery();
+    final Object message = ((QueryLoggerMessage) inputMessage).getMessage();
+
+    final String anonymizedQuery =
+        anonymizeQueries ? anonymizer.anonymize(query) : query;
 
     final QueryGuid queryGuids = buildGuids(query, anonymizedQuery);
-    final ImmutableMap<Object, Object> newMessage =
-        ImmutableMap.builder()
-            .put("query", anonymizeQueries ? anonymizedQuery : query)
-            .put("queryGUID", queryGuids.getQueryGuid())
-            .put("structuralGUID", queryGuids.getStructuralGuid())
-            .build();
-
-    final ImmutableMap<Object, Object> combined =
-        Stream.concat(oldMessage.entrySet().stream(), newMessage.entrySet().stream())
-            .collect(
-                toImmutableMap(Map.Entry::getKey, Map.Entry::getValue, (left, right) -> right));
+    final QueryLoggerMessage anonymized =
+        new QueryLoggerMessage(message, anonymizedQuery, queryGuids);
 
     return new LoggingEvent(
         source.getFQNOfLoggerClass(),
         source.getLogger() != null ? source.getLogger() : Logger.getLogger(source.getLoggerName()),
         source.getTimeStamp(),
         source.getLevel(),
-        combined,
+        anonymized,
         source.getThreadName(),
         source.getThrowableInformation(),
         source.getNDC(),
         source.getLocationInformation(),
-        props);
+        source.getProperties());
   }
 }

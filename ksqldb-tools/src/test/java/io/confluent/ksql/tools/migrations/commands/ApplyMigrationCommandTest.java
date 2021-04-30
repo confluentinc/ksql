@@ -209,6 +209,7 @@ public class ApplyMigrationCommandTest {
     inOrder.verifyNoMoreInteractions();
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldApplyDefineUndefineCommands() throws Exception {
     // Given:
@@ -245,6 +246,7 @@ public class ApplyMigrationCommandTest {
     inOrder.verifyNoMoreInteractions();
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldResetVariablesBetweenMigrations() throws Exception {
     // Given:

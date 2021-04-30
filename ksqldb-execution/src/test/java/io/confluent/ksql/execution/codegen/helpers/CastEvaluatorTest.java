@@ -690,6 +690,7 @@ public class CastEvaluatorTest {
         .put(SqlBaseType.TIMESTAMP, new Timestamp(500))
         .build();
 
+    @SuppressWarnings("fallthrough")
     static Object instanceFor(final SqlType type, final SqlType to) {
       switch (type.baseType()) {
         case ARRAY:

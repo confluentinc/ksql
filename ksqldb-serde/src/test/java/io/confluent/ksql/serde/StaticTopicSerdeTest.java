@@ -20,7 +20,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.logging.processing.DeserializationError;
@@ -74,7 +74,7 @@ public class StaticTopicSerdeTest {
     // Then:
     verify(delegateS).serialize(STATIC_TOPIC, SOME_OBJECT);
     assertThat(serialized, is(SOME_BYTES));
-    verifyZeroInteractions(callback);
+    verifyNoMoreInteractions(callback);
   }
 
   @Test
@@ -85,7 +85,7 @@ public class StaticTopicSerdeTest {
     // Then:
     verify(delegateD).deserialize(STATIC_TOPIC, SOME_BYTES);
     assertThat(deserialized, is(SOME_OBJECT));
-    verifyZeroInteractions(callback);
+    verifyNoMoreInteractions(callback);
   }
 
   @Test
@@ -103,8 +103,8 @@ public class StaticTopicSerdeTest {
     // Then:
     verify(delegateD).deserialize(STATIC_TOPIC, SOME_BYTES);
     assertThat(deserialized, is(SOME_OBJECT));
-    verifyZeroInteractions(callback);
-    verifyZeroInteractions(logger);
+    verifyNoMoreInteractions(callback);
+    verifyNoMoreInteractions(logger);
   }
 
   @Test
@@ -137,7 +137,7 @@ public class StaticTopicSerdeTest {
     final Object deserialized = staticSerde.deserializer().deserialize(SOURCE_TOPIC, SOME_BYTES);
 
     // Then:
-    verifyZeroInteractions(logger);
+    verifyNoMoreInteractions(logger);
     verify(callback).onDeserializationFailure(SOURCE_TOPIC, STATIC_TOPIC, SOME_BYTES);
     assertThat(deserialized, is(SOME_OBJECT));
   }
@@ -160,7 +160,7 @@ public class StaticTopicSerdeTest {
 
     // Then:
     verify(logger).error(new DeserializationError(err, Optional.of(SOME_BYTES), STATIC_TOPIC, false));
-    verifyZeroInteractions(callback);
+    verifyNoMoreInteractions(callback);
   }
 
 }

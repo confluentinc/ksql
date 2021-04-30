@@ -334,10 +334,10 @@ public class ClientImpl implements Client {
       final Map<String, Object> properties
   ) {
     final CompletableFuture<Void> cf = new CompletableFuture<>();
-    final String connectorConfigs = String.join(",", properties.entrySet()
+    final String connectorConfigs = properties.entrySet()
                 .stream()
                 .map(e -> String.format("'%s'='%s'", e.getKey(), e.getValue()))
-                .collect(Collectors.toList()));
+                .collect(Collectors.joining(","));
     final String type = isSource ? "SOURCE" : "SINK";
 
     makePostRequest(
@@ -410,9 +410,7 @@ public class ClientImpl implements Client {
 
   @Override
   public void undefine(final String variable) {
-    if (sessionVariables.containsKey(variable)) {
-      sessionVariables.remove(variable);
-    }
+    sessionVariables.remove(variable);
   }
 
   @Override
@@ -509,9 +507,7 @@ public class ClientImpl implements Client {
       request.end(requestBody);
     } else {
       final HttpClientRequest finalRequest = request;
-      finalRequest.sendHead(version -> {
-        finalRequest.writeCustomFrame(0, 0, requestBody);
-      });
+      finalRequest.sendHead(version -> finalRequest.writeCustomFrame(0, 0, requestBody));
     }
   }
 

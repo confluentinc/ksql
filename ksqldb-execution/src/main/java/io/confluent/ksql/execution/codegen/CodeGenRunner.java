@@ -174,6 +174,7 @@ public class CodeGenRunner {
     }
   }
 
+  @SuppressWarnings("unchecked")
   @VisibleForTesting
   public static IExpressionEvaluator cook(
       final String javaCode,

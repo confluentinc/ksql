@@ -47,7 +47,6 @@ import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
 import io.confluent.ksql.api.client.util.RowUtil;
 import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
-import io.confluent.ksql.metrics.TopicSensors.Stat;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.query.QueryId;
@@ -97,7 +96,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -134,10 +132,6 @@ public class ClientTest extends BaseApiTest {
       + "SELECT' statements. ";
   protected static final org.apache.kafka.connect.runtime.rest.entities.ConnectorType SOURCE_TYPE =
       org.apache.kafka.connect.runtime.rest.entities.ConnectorType.SOURCE;
-
-  protected static final Stat STAT =  new Stat("TEST", 0, 0);
-
-  protected static final ImmutableMap<String, Stat> IMMUTABLE_MAP = new ImmutableMap.Builder<String, Stat>().put("TEST", STAT).build();
 
   protected Client javaClient;
 
@@ -346,7 +340,7 @@ public class ClientTest extends BaseApiTest {
     // When
     final Exception e = assertThrows(
         IllegalStateException.class,
-        () -> streamedQueryResult.poll()
+        streamedQueryResult::poll
     );
 
     // Then
@@ -366,7 +360,7 @@ public class ClientTest extends BaseApiTest {
     CountDownLatch pollReturned = new CountDownLatch(1);
     new Thread(() -> {
       // This poll() call blocks as there are no more rows to be returned
-      final Row row = StreamedQueryResultImpl.pollWithCallback(streamedQueryResult, () -> pollStarted.countDown());
+      final Row row = StreamedQueryResultImpl.pollWithCallback(streamedQueryResult, pollStarted::countDown);
       assertThat(row, is(nullValue()));
       pollReturned.countDown();
     }).start();
@@ -655,7 +649,7 @@ public class ClientTest extends BaseApiTest {
     assertThatEventually(acksSubscriber::getValues, hasSize(INSERT_ROWS.size()));
     assertThat(acksSubscriber.getError(), is(nullValue()));
     for (int i = 0; i < INSERT_ROWS.size(); i++) {
-      assertThat(acksSubscriber.getValues().get(i).seqNum(), is(Long.valueOf(i)));
+      assertThat(acksSubscriber.getValues().get(i).seqNum(), is((long) i));
     }
     assertThat(acksSubscriber.isCompleted(), is(false));
 
@@ -697,8 +691,8 @@ public class ClientTest extends BaseApiTest {
 
     // When:
     final AcksPublisher acksPublisher = javaClient.streamInserts("test-stream", insertsPublisher).get();
-    for (int i = 0; i < INSERT_ROWS.size(); i++) {
-      insertsPublisher.accept(INSERT_ROWS.get(i));
+    for (KsqlObject insertRow : INSERT_ROWS) {
+      insertsPublisher.accept(insertRow);
     }
 
     TestSubscriber<InsertAck> acksSubscriber = subscribeAndWait(acksPublisher);
@@ -714,7 +708,7 @@ public class ClientTest extends BaseApiTest {
 
     assertThatEventually(acksSubscriber::getValues, hasSize(INSERT_ROWS.size() - 1));
     for (int i = 0; i < INSERT_ROWS.size() - 1; i++) {
-      assertThat(acksSubscriber.getValues().get(i).seqNum(), is(Long.valueOf(i)));
+      assertThat(acksSubscriber.getValues().get(i).seqNum(), is((long) i));
     }
     assertThatEventually(acksSubscriber::getError, is(notNullValue()));
 
@@ -1481,7 +1475,7 @@ public class ClientTest extends BaseApiTest {
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When:
-    javaClient.createConnector("name", true, Collections.EMPTY_MAP).get();
+    javaClient.createConnector("name", true, Collections.emptyMap()).get();
 
     // Then:
     assertThat(testEndpoints.getLastSql(), is("CREATE SOURCE CONNECTOR name WITH ();"));
@@ -1608,7 +1602,7 @@ public class ClientTest extends BaseApiTest {
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When:
-    javaClient.createConnector("name", true, Collections.EMPTY_MAP).get();
+    javaClient.createConnector("name", true, Collections.emptyMap()).get();
 
     // Then:
     assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("a", "a")));
@@ -1716,7 +1710,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(row.getString("f_str"), is("foo" + index));
     assertThat(row.getInteger("f_int"), is(index));
     assertThat(row.getBoolean("f_bool"), is(index % 2 == 0));
-    assertThat(row.getLong("f_long"), is(Long.valueOf(index) * index));
+    assertThat(row.getLong("f_long"), is(((long) index) * index));
     assertThat(row.getDouble("f_double"), is(index + 0.1111));
     assertThat(row.getDecimal("f_decimal"), is(BigDecimal.valueOf(index + 0.1)));
     final KsqlArray arrayVal = row.getKsqlArray("f_array");

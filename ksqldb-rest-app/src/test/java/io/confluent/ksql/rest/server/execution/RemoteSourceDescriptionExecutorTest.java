@@ -54,6 +54,7 @@ public class RemoteSourceDescriptionExecutorTest  {
       .zip(hosts.stream(), descriptionLists.stream(), AbstractMap.SimpleImmutableEntry::new)
       .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
+  @SuppressWarnings({"unchecked", "rawtypes"})
   @Test
   public void itShouldReturnRemoteSourceDescriptionsGroupedByName() {
     // Given
@@ -66,19 +67,20 @@ public class RemoteSourceDescriptionExecutorTest  {
         .collect(Collectors.groupingBy(SourceDescription::getName));
 
     assertThat(res.values(), everyItem(instanceOf(SourceDescription.class)));
-    response.forEach((host, value) -> value.getSourceDescriptions().forEach((sd) -> {
-      assertThat(res.get(sd.getName()), hasSize(queryHostCounts.get(sd.getName()).size()));
-    }));
+    response.forEach((host, value) -> value.getSourceDescriptions().forEach(
+        (sd) -> assertThat(res.get(sd.getName()), hasSize(queryHostCounts.get(sd.getName()).size()))
+    ));
   }
 
+  @SuppressWarnings({"unchecked", "rawtypes"})
   @Test
   public void itShouldReturnEmptyIfNoRemoteResults() {
     // Given
     when(augmenter.fetchAllRemoteResults()).thenReturn(new Pair(ImmutableMap.of(), response.keySet()));
 
     Multimap<String, SourceDescription> res = RemoteSourceDescriptionExecutor.fetchSourceDescriptions(augmenter);
-    response.forEach((key, value) -> value.getSourceDescriptions().forEach((sd) -> {
-      assertThat(res.get(sd.getName()), hasSize(0));
-    }));
+    response.forEach((key, value) -> value.getSourceDescriptions().forEach(
+        (sd) -> assertThat(res.get(sd.getName()), hasSize(0))
+    ));
   }
 }

@@ -335,9 +335,7 @@ final class AdminResponseHandlers {
           source.getString("valueFormat"),
           formatQueries(source.getJsonArray("readQueries")),
           formatQueries(source.getJsonArray("writeQueries")),
-          source.getString("timestamp").isEmpty()
-              ? Optional.empty()
-              : Optional.of(source.getString("timestamp")),
+          Optional.ofNullable(source.getString("timestamp")),
           Optional.ofNullable(source.getString("windowType")),
           source.getString("statement"),
           source.getJsonArray("sourceConstraints").stream()

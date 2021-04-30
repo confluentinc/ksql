@@ -23,7 +23,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.rest.server.resources.CommandTopicCorruptionException;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
 import java.io.File;
@@ -162,12 +161,12 @@ public class CommandTopicBackupImplTest {
     assertThat(Files.exists(dir), is(true));
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldNotFailIfRecordKeyIsNull() throws IOException {
     // Given
     commandTopicBackup.initialize();
-    final ConsumerRecord<byte[], byte[]> record =
-        (ConsumerRecord<byte[], byte[]>) mock(ConsumerRecord.class);
+    final ConsumerRecord<byte[], byte[]> record = mock(ConsumerRecord.class);
     when(record.key()).thenReturn(null);
     when(record.value()).thenReturn(new byte[]{});
 
@@ -179,12 +178,12 @@ public class CommandTopicBackupImplTest {
     assertThat(commands.size(), is(0));
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void shouldNotFailIfRecordValueIsNull() throws IOException {
     // Given
     commandTopicBackup.initialize();
-    final ConsumerRecord<byte[], byte[]> record =
-        (ConsumerRecord<byte[], byte[]>) mock(ConsumerRecord.class);
+    final ConsumerRecord<byte[], byte[]> record = mock(ConsumerRecord.class);
     when(record.key()).thenReturn(new byte[]{});
     when(record.value()).thenReturn(null);
 

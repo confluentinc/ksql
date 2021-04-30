@@ -27,13 +27,12 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
@@ -137,8 +136,6 @@ public class KsqlRestApplicationTest {
   @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
   @Mock
-  private SchemaRegistryClient schemaRegistryClient;
-  @Mock
   private RoutingFilterFactory routingFilterFactory;
   @Mock
   private RateLimiter rateLimiter;
@@ -158,7 +155,7 @@ public class KsqlRestApplicationTest {
   private final ArgumentCaptor<KsqlSecurityContext> securityContextArgumentCaptor =
       ArgumentCaptor.forClass(KsqlSecurityContext.class);
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   @Before
   public void setUp() {
     when(processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE))
@@ -373,7 +370,7 @@ public class KsqlRestApplicationTest {
   public void shouldCheckPreconditionsBeforeUsingServiceContext() {
     // Given:
     when(precondition2.checkPrecondition(any(), any())).then(a -> {
-      verifyZeroInteractions(serviceContext);
+      verifyNoMoreInteractions(serviceContext);
       return Optional.empty();
     });
 
@@ -395,7 +392,7 @@ public class KsqlRestApplicationTest {
     errors.add(error1);
     errors.add(error2);
     when(precondition2.checkPrecondition(any(), any())).then(a -> {
-      verifyZeroInteractions(serviceContext);
+      verifyNoMoreInteractions(serviceContext);
       return Optional.ofNullable(errors.isEmpty() ? null : errors.remove());
     });
 

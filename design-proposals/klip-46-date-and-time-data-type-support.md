@@ -199,17 +199,6 @@ Casting from DATE to TIMESTAMP adds `00:00:00.000` as the time portion to the DA
 SELECT CAST(d AS TIMESTAMP) FROM s;
 > 2007-01-1T00:00:00
 ```
-#### TIME AS TIMESTAMP
-Casting from TIME to TIMESTAMP adds `1970-01-01` as the date portion to the TIME:
-```roomsql
--- t is the time, '03:20:45'
-SELECT CAST(t AS TIMESTAMP) FROM s;
-> 1970-01-01T03:20:45
-```
-
-`1970-01-01` is the date of Unix epoch. Some other options are to set the date to the current date
-([MySQL does this](https://dev.mysql.com/doc/refman/8.0/en/date-and-time-type-conversion.html)) or
-to set it to `1900-01-1` ([Transact-SQL does this](https://dev.mysql.com/doc/refman/8.0/en/date-and-time-type-conversion.html))
 
 #### TIME AS STRING
 Casting from TIME to STRING will convert the TIME value to a STRING of the form `hh:mm:ss`
@@ -269,15 +258,15 @@ There will need to be tests for the following:
 
 ## LOEs and Delivery Milestones
 DATE and TIME are each a milestone. They can both be broken up as follows:
-* Adding the types to the syntax - 1 day
-* Serialization/deserialization - 2 days
-* Documentation - 2 days
+* Adding the types to the syntax - 2 days
+* Serialization/deserialization - 3 days
+* Documentation - 3 days
 * Adding and updating UDFs + documentation - 1 week
 * Add to Connect integration test - 1 day
 
 DATE and TIME should be implemented together for the following componenets:
-* Casting - 3 days
-* Comparisons - 2 days
+* Casting - 4 days
+* Comparisons - 3 days
 
 ## Documentation Updates
 * The deprecation of DATETOSTRING and STRINGTODATE should be stated and users should be

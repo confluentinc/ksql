@@ -627,23 +627,12 @@ public class LogicalPlanner {
             right
       )) {
         // when we add the first version of FK-joins,
-        // we should still check for n-way joins and disallow FK-joins for this case initially
+        // we might want to check for n-way joins and disallow FK-joins for this case initially
         // -> we should throw an informative error message if we detect an n-way join
         //
         // after we lift the n-way join restriction, we should be able to support FK-joins
-        // at any level in the join tree, because we currently only support left-deep join trees
-        //
-        // when we add support for right-deep join trees (or any bushy tree), a FK-join
-        // cannot still not be supported in any "right hand sub-tree",
-        // because a FK-join returns a result table with a multi-column PK;
-        // -> we should ensure to add corresponding tests when right-deep/bushy join trees
-        //    are added
-        //
-        // hence, we can only fully support FK-joins in right-deep/bush join trees after we
-        // added multi-attribute joins
-        // Note: it should not be necessary to detect this case though, as we should have a
-        //       check for single-column join conditions elsewhere and thus this check should
-        //       trigger and throw a much more informative error message
+        // at any level in the join tree, even after we add right-deep/bushy join tree support,
+        // because a FK-join output table has the same PK as its left input table
         throw new KsqlException("Invalid join condition:"
             + " foreign-key table-table joins are not supported.");
       }

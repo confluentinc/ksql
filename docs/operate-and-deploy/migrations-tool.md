@@ -30,6 +30,7 @@ command.
 
 The `ksql-migrations` tool supports migrations files containing the following
 types of ksqlDB statements:
+
 * `CREATE STREAM`
 * `CREATE TABLE`
 * `CREATE STREAM ... AS SELECT` 

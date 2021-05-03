@@ -58,7 +58,7 @@ public interface PersistentQueryMetadata extends QueryMetadata {
 
   StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
       final Throwable error
-                                                                                         );
+  );
 
   Optional<MaterializationProvider>  getMaterializationProvider();
 }

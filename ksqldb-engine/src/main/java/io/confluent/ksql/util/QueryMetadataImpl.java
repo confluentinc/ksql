@@ -31,6 +31,7 @@ import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -373,7 +374,6 @@ public class QueryMetadataImpl implements QueryMetadata {
         queue.poll();
       }
     }
-
   }
 
   public void start() {

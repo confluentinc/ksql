@@ -86,5 +86,5 @@ Next KLIP number: **47**
 | [KLIP-43: TIMESTAMP data type support ](klip-43-timestamp-data-type-support.md)                                                  | Approved |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/6649) |
 | [KLIP-44: ksqlDB Go client](klip-44-ksqldb-golang-client.md)                                                                     | Proposal |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/6825) |
 | [KLIP-45: Materializing Tables for Query](klip-45-materializing-tables-for-query.md)                                             | Proposal |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/6997) |
-| KLIP-46: DATE and TIME data type support                                                                                         | Proposal |                   |            |                                                              |
+| KLIP-46: DATE and TIME data type support                                                                                         | Proposal |        0.20.0     |            | [Discussion](https://github.com/confluentinc/ksql/pull/7417) |
 

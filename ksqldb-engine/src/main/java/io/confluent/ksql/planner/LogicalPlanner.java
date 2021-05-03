@@ -590,16 +590,9 @@ public class LogicalPlanner {
               + " full-outer join not supported for stream-table joins.");
         }
 
-        // added outer check to make `multi-joins.json` pass
-        // the test uses expressions -> need to follow up on this issue
-        if (root.getInfo().getRightJoinExpression() instanceof ColumnReferenceExp) {
-          if (joinOnNonKeyAttribute(
-              ((ColumnReferenceExp) root.getInfo().getRightJoinExpression()),
-              right
-          )) {
-            throw new KsqlException("Invalid join condition:"
-                + " stream-table joins require to join on the table's primary key.");
-          }
+        if (joinOnNonKeyAttribute(root.getInfo().getRightJoinExpression(), right)) {
+          throw new KsqlException("Invalid join condition:"
+              + " stream-table joins require to join on the table's primary key.");
         }
       }
 
@@ -613,23 +606,13 @@ public class LogicalPlanner {
 
       // table-table join detected
 
-      if (joinOnNonKeyAttribute(
-            ((ColumnReferenceExp) root.getInfo().getLeftJoinExpression()),
-            left
-      )) {
+      if (joinOnNonKeyAttribute(root.getInfo().getRightJoinExpression(), right)) {
         throw new KsqlException("Invalid join condition:"
-            + " table-table joins require to join on the primary key of the left input table."
+            + " table-table joins require to join on the primary key of the right input table."
         );
       }
 
-      if (joinOnNonKeyAttribute(
-            ((ColumnReferenceExp) root.getInfo().getRightJoinExpression()),
-            right
-      )) {
-        // when we add the first version of FK-joins,
-        // we might want to check for n-way joins and disallow FK-joins for this case initially
-        // -> we should throw an informative error message if we detect an n-way join
-        //
+      if (joinOnNonKeyAttribute(root.getInfo().getLeftJoinExpression(), left)) {
         // after we lift the n-way join restriction, we should be able to support FK-joins
         // at any level in the join tree, even after we add right-deep/bushy join tree support,
         // because a FK-join output table has the same PK as its left input table
@@ -639,18 +622,23 @@ public class LogicalPlanner {
     }
   }
 
-  private boolean joinOnNonKeyAttribute(final ColumnReferenceExp joinExpression,
+  private boolean joinOnNonKeyAttribute(final Expression joinExpression,
                                         final PlanNode node) {
-    final String joinAttributeName = joinExpression.getColumnName().text();
+    if (!(joinExpression instanceof ColumnReferenceExp)) {
+      return true;
+    }
+    final ColumnReferenceExp simpleJoinExpression = (ColumnReferenceExp) joinExpression;
+
+    final String joinAttributeName = simpleJoinExpression.getColumnName().text();
     final List<DataSourceNode> dataSourceNodes = node.getSourceNodes().collect(Collectors.toList());
     final String singleAttributeKeyName;
 
     // n-way join sub-tree (ie, not a leaf)
-    if (node instanceof JoinNode) {
+    if (isInnerNode(node)) {
       final DataSourceNode qualifiedNode;
 
-      if (joinExpression.maybeQualifier().isPresent()) {
-        final String qualifier = joinExpression.maybeQualifier().get().text();
+      if (simpleJoinExpression.maybeQualifier().isPresent()) {
+        final String qualifier = simpleJoinExpression.maybeQualifier().get().text();
         final List<DataSourceNode> allNodes = dataSourceNodes.stream()
             .filter(n -> n.getDataSource().getName().text().equals(qualifier))
             .collect(Collectors.toList());
@@ -691,6 +679,10 @@ public class LogicalPlanner {
 
 
     return !joinAttributeName.equals(singleAttributeKeyName);
+  }
+
+  private boolean isInnerNode(final PlanNode node) {
+    return node.getSourceNodes().count() > 1;
   }
 
 

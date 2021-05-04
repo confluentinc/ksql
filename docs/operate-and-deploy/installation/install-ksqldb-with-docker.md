@@ -83,6 +83,11 @@ docker run -d \
 :   A list of URIs, including the protocol, that the broker listens on.
     If you are using IPv6, set to `http://[::]:8088`.
 
+`KSQL_CLASSPATH`
+
+:   The classpath to use for the server, which can contain any additional
+    JARs that you may need to run your plugins and UDFs.
+
 In interactive mode, a ksqlDB CLI instance running outside of Docker can
 connect to the ksqlDB server running in Docker.
 
@@ -119,6 +124,11 @@ docker run -d \
 `KSQL_KSQL_QUERIES_FILE`
 
 :   A file that specifies predefined SQL queries.
+
+`KSQL_CLASSPATH`
+
+:   The classpath to use for the server, which can contain any additional
+    JARs that you may need to run your plugins and UDFs.
 
 ### Connect ksqlDB Server to a secure Kafka Cluster, like Confluent Cloud
 
@@ -256,6 +266,35 @@ KSQL_LOG4J_PROCESSING_LOG_TOPIC: demo_processing_log
 KSQL_KSQL_LOGGING_PROCESSING_TOPIC_NAME: demo_processing_log
 KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
 KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
+```
+
+### Mount Volumes
+
+Various features (plugins, UDFs, embedded connectors) may require that you mount
+volumes to the docker image. To do this, follow [the official docker documentation](https://docs.docker.com/storage/volumes/).
+
+As an example using `docker-compose`, you can mount a udf directory and use it like this:
+
+```yaml
+  ksqldb-server:
+    image: confluentinc/ksqldb-server:{{ site.ksqldbversion }}
+    hostname: ksqldb-server
+    container_name: ksqldb-server
+    depends_on:
+      - broker
+      - schema-registry
+    ports:
+      - "8088:8088"
+    volumes:
+      - "./extensions/:/opt/ksqldb-udfs"
+    environment:
+      KSQL_LISTENERS: "http://0.0.0.0:8088"
+      KSQL_BOOTSTRAP_SERVERS: "broker:9092"
+      KSQL_KSQL_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+      KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
+      KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
+      # Configuration for UDFs
+      KSQL_KSQL_EXTENSION_DIR: "/opt/ksqldb-udfs"
 ```
 
 ksqlDB Command-line Interface (CLI)

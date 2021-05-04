@@ -275,7 +275,7 @@ volumes to the docker image. To do this, follow [the official docker documentati
 
 As an example using `docker-compose`, you can mount a udf directory and use it like this:
 
-```
+```yaml
   ksqldb-server:
     image: confluentinc/ksqldb-server:{{ site.ksqldbversion }}
     hostname: ksqldb-server

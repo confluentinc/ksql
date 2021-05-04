@@ -138,7 +138,9 @@
         <io.confluent.ksql.version>7.0.0-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
         <mockito.version>3.8.0</mockito.version>
+        <cdg.pitest.version>0.0.2</cdg.pitest.version>
     </properties>
+
 
     <dependencyManagement>
         <dependencies>
@@ -523,6 +525,20 @@
         </dependency>
     </dependencies>
 
+    <profiles>
+        <profile>
+            <id>pitest</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-maven</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
     <build>
         <pluginManagement>
             <plugins>
@@ -539,6 +555,59 @@
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
                     <version>${exec-maven-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>com.groupcdg</groupId>
+                    <artifactId>pitest-github-maven-plugin</artifactId>
+                    <version>${cdg.pitest.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.pitest</groupId>
+                    <artifactId>pitest-maven</artifactId>
+                    <version>1.6.4</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>com.groupcdg</groupId>
+                            <artifactId>pitest-git-plugin</artifactId>
+                            <version>${cdg.pitest.version}</version>
+                        </dependency>
+                    </dependencies>
+                    <executions>
+                        <execution>
+                            <id>pitest</id>
+                            <phase>test</phase>
+                            <goals>
+                                <goal>mutationCoverage</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <threads>8</threads>
+                        <failWhenNoMutations>false</failWhenNoMutations>
+                        <mutators>STRONGER</mutators>
+                        <targetClasses>
+                            <param>io.confluent.ksql.*</param>
+                        </targetClasses>
+                        <excludedClasses>
+                            <param>io.confluent.ksql.engine.StubInsertValuesExecutor</param>
+                        </excludedClasses>
+                        <excludedTestClasses>
+                            <param>io.confluent.ksql.rest.app.ImmutabilityTest</param>
+                            <param>io.confluent.ksql.rest.integration.*</param>
+                            <param>io.confluent.ksql.rest.server.resources.*ResourceTest</param>
+                            <param>io.confluent.ksql.*.Immutability*</param>
+                            <param>io.confluent.ksql.*.ImmutableTester*</param>
+                            <param>io.confluent.ksql.schema.ksql.types.SqlTypesTest</param>
+                            <param>io.confluent.ksql.schema.ksql.PhysicalSchemaTest</param>
+                            <param>io.confluent.ksql.rest.entity.KsqlRequestTest</param>
+                            <param>io.confluent.ksql.execution.plan.ExecutionStepTest</param>
+                            <param>io.confluent.ksql.metastore.model.MetaStoreModelTest</param>
+                            <param>io.confluent.ksql.test.*</param>
+                            <param>io.confluent.ksql.rocksdb.KsqlBoundedMemoryRocksDBConfigSetterTest</param>
+                        </excludedTestClasses>
+                    </configuration>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -635,35 +704,6 @@
                     <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
                     <generateGitPropertiesFile>true</generateGitPropertiesFile>
                     <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.pitest</groupId>
-                <artifactId>pitest-maven</artifactId>
-                <version>1.6.4</version>
-                <configuration>
-                    <threads>8</threads>
-                    <targetClasses>
-                        <param>io.confluent.ksql.*</param>
-                    </targetClasses>
-                    <excludedClasses>
-                        <param>io.confluent.ksql.engine.StubInsertValuesExecutor</param>
-                        <param>io.confluent.ksql.test.*</param>
-                    </excludedClasses>
-                    <excludedTestClasses>
-                        <param>io.confluent.ksql.rest.app.ImmutabilityTest</param>
-                        <param>io.confluent.ksql.rest.integration.*</param>
-                        <param>io.confluent.ksql.rest.server.resources.*ResourceTest</param>
-                        <param>io.confluent.ksql.*.Immutability*</param>
-                        <param>io.confluent.ksql.*.ImmutableTester*</param>
-                        <param>io.confluent.ksql.schema.ksql.types.SqlTypesTest</param>
-                        <param>io.confluent.ksql.schema.ksql.PhysicalSchemaTest</param>
-                        <param>io.confluent.ksql.rest.entity.KsqlRequestTest</param>
-                        <param>io.confluent.ksql.execution.plan.ExecutionStepTest</param>
-                        <param>io.confluent.ksql.metastore.model.MetaStoreModelTest</param>
-                        <param>io.confluent.ksql.test.*</param>
-                        <param>io.confluent.ksql.rocksdb.KsqlBoundedMemoryRocksDBConfigSetterTest</param>
-                    </excludedTestClasses>
                 </configuration>
             </plugin>
         </plugins>

@@ -1,0 +1,7 @@
+#Licence file for pitest git plugin
+#Tue Apr 06 11:53:18 BST 2021
+expires=06/10/2022
+keyVersion=1
+signature=M0nyhJD8sddZtpAeyu0LpHTdAmMDESQRkncAQP1gOtdlDuBViLK4MgbmNjVUIB5mM328QTTpcr0Hxrq0Uo6XB7xctsqAKa1mdnr/45k464P3CWgbH/GB4dIh5fxcB/i3QdNrQ10FmnNEWfJSlIu/rMV1xJNaSH/5COt5OL6DbKo\=
+packages=io.confluent.ksql.*
+type=OSSS

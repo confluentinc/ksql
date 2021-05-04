@@ -102,7 +102,16 @@ public class TopicInfoCache {
   }
 
   public TopicInfo get(final String topicName) {
-    return cache.getUnchecked(topicName);
+    final TopicInfo topicInfo = cache.getUnchecked(topicName);
+
+    // Value formats can not be determined if a null (tombstone) value was produced in the topic.
+    // If the valueFormat is not determined, then attempt to refresh the entry cached to get the
+    // right format in case a non-null value is already produced.
+    if (topicInfo.getValueFormat().getFormat().equals(FormatFactory.NONE.name())) {
+      cache.refresh(topicName);
+    }
+
+    return topicInfo;
   }
 
   public List<TopicInfo> all() {

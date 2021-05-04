@@ -35,10 +35,10 @@ public class ConnectorDescriptionImplTest {
             new ConnectorDescriptionImpl("name", "class2", Collections.singletonList("source"), Collections.singletonList("topic"), new ConnectorTypeImpl("SOURCE"), "state")
         )
         .addEqualityGroup(
-            new ConnectorDescriptionImpl("name", "class", Collections.EMPTY_LIST, Collections.singletonList("topic"), new ConnectorTypeImpl("SOURCE"), "state")
+            new ConnectorDescriptionImpl("name", "class", Collections.emptyList(), Collections.singletonList("topic"), new ConnectorTypeImpl("SOURCE"), "state")
         )
         .addEqualityGroup(
-            new ConnectorDescriptionImpl("name", "class", Collections.singletonList("source"), Collections.EMPTY_LIST, new ConnectorTypeImpl("SOURCE"), "state")
+            new ConnectorDescriptionImpl("name", "class", Collections.singletonList("source"), Collections.emptyList(), new ConnectorTypeImpl("SOURCE"), "state")
         )
         .addEqualityGroup(
             new ConnectorDescriptionImpl("name", "class", Collections.singletonList("source"), Collections.singletonList("topic"), new ConnectorTypeImpl("SINK"), "state")

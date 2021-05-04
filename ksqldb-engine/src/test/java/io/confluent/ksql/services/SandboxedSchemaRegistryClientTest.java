@@ -18,7 +18,7 @@ package io.confluent.ksql.services;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
@@ -148,7 +148,7 @@ public final class SandboxedSchemaRegistryClientTest {
       sandboxedClient.deleteSubject("some subject");
 
       // Then:
-      verifyZeroInteractions(delegate);
+      verifyNoMoreInteractions(delegate);
     }
 
     @Test
@@ -158,7 +158,7 @@ public final class SandboxedSchemaRegistryClientTest {
       sandboxedClient.register("some subject", schema, 1, 1);
 
       // Then:
-      verifyZeroInteractions(delegate);
+      verifyNoMoreInteractions(delegate);
     }
 
     @Test

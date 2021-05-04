@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.cli.console;
 
-import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static io.confluent.ksql.GenericRow.genericRow;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -27,9 +26,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Functions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -109,7 +106,6 @@ import java.util.TimeZone;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
@@ -205,7 +201,7 @@ public class ConsoleTest {
 
   @Before
   public void setUp() {
-    MockitoAnnotations.initMocks(this);
+    MockitoAnnotations.openMocks(this);
     when(queryStatusCount.toString()).thenReturn(STATUS_COUNT_STRING);
     when(queryStatusCount.getAggregateStatus()).thenReturn(KsqlQueryStatus.valueOf(AGGREGATE_STATUS));
     final EnumMap<KsqlQueryStatus, Integer> mockStatusCount = new EnumMap<>(KsqlQueryStatus.class);

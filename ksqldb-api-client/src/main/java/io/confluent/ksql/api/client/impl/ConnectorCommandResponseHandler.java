@@ -72,6 +72,7 @@ public final class ConnectorCommandResponseHandler {
     }
   }
 
+  @SuppressWarnings("unchecked")
   static void handleDescribeConnectorsResponse(
       final JsonObject connectorDescriptionEntity,
       final CompletableFuture<ConnectorDescription> cf

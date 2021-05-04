@@ -41,7 +41,6 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.query.QuerySchemas;
@@ -75,7 +74,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
-@SuppressWarnings("ResultOfMethodCallIgnored")
 @RunWith(MockitoJUnitRunner.class)
 public class TestExecutorTest {
 
@@ -85,8 +83,6 @@ public class TestExecutorTest {
       .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
       .build();
-  private static final PhysicalSchema PHYSICAL_SCHEMA =
-      PhysicalSchema.from(LOGICAL_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of());
 
   @Mock
   private StubKafkaService kafkaService;
@@ -122,6 +118,7 @@ public class TestExecutorTest {
   private TestExecutor executor;
   private final Map<SourceName, DataSource> allSources = new HashMap<>();
 
+  @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
     allSources.clear();

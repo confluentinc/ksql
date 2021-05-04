@@ -20,6 +20,7 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -61,7 +62,7 @@ public class SessionProperties {
         Objects.requireNonNull(sessionVariables, "sessionVariables")
             .entrySet()
             .stream()
-            .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toString())));
+            .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().toString())));
   }
 
   /**
@@ -76,7 +77,7 @@ public class SessionProperties {
       final URL localUrl,
       final boolean internalRequest
   ) {
-    this(mutableScopedProperties, ksqlHostInfo, localUrl, internalRequest, Collections.EMPTY_MAP);
+    this(mutableScopedProperties, ksqlHostInfo, localUrl, internalRequest, Collections.emptyMap());
   }
 
   public Map<String, Object> getMutableScopedProperties() {

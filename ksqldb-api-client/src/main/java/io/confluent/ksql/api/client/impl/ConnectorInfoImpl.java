@@ -21,10 +21,10 @@ import java.util.Objects;
 
 public class ConnectorInfoImpl implements ConnectorInfo {
 
-  private String name;
-  private ConnectorType type;
-  private String className;
-  private String state;
+  private final String name;
+  private final ConnectorType type;
+  private final String className;
+  private final String state;
 
   public ConnectorInfoImpl(
       final String name,

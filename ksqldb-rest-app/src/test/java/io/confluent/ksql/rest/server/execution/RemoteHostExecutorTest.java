@@ -59,6 +59,7 @@ public class RemoteHostExecutorTest {
   private KsqlEntityList ksqlEntityList;
   private RemoteHostExecutor augmenter;
 
+  @SuppressWarnings("unchecked")
   @Before
   public void setup() throws MalformedURLException {
 

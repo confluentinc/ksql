@@ -84,7 +84,6 @@ import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-@SuppressWarnings("deprecation")
 public class TestExecutor implements Closeable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 

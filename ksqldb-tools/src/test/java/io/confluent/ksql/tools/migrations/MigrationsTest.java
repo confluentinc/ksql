@@ -409,6 +409,7 @@ public class MigrationsTest {
     }
   }
 
+  @SuppressWarnings("unchecked")
   private static void initializeAndVerifyMetadataStreamAndTable(final String configFile) {
     // use `initialize-metadata` to create metadata stream and table
     final int status = MIGRATIONS_CLI.parse("--config-file", configFile, "initialize-metadata").runCommand();

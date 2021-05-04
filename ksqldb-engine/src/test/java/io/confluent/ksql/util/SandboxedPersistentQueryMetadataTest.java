@@ -18,7 +18,7 @@ package io.confluent.ksql.util;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -87,7 +87,6 @@ public class SandboxedPersistentQueryMetadataTest {
   @Mock
   private Listener sandboxListener;
 
-  private PersistentQueryMetadata query;
   private SandboxedPersistentQueryMetadata sandbox;
 
   @Before
@@ -97,7 +96,7 @@ public class SandboxedPersistentQueryMetadataTest {
     when(materializationProviderBuilder.apply(kafkaStreams, topology))
         .thenReturn(Optional.of(materializationProvider));
 
-    query = new PersistentQueryMetadata(
+    final PersistentQueryMetadata query = new PersistentQueryMetadata(
         SQL,
         physicalSchema,
         Collections.emptySet(),
@@ -133,7 +132,7 @@ public class SandboxedPersistentQueryMetadataTest {
     sandbox.start();
 
     // Then:
-    verifyZeroInteractions(kafkaStreams);
+    verifyNoMoreInteractions(kafkaStreams);
   }
 
   @Test
@@ -142,7 +141,7 @@ public class SandboxedPersistentQueryMetadataTest {
     sandbox.stop();
 
     // Then:
-    verifyZeroInteractions(kafkaStreams);
+    verifyNoMoreInteractions(kafkaStreams);
   }
 
   @Test
@@ -151,7 +150,7 @@ public class SandboxedPersistentQueryMetadataTest {
     sandbox.close();
 
     // Then:
-    verifyZeroInteractions(kafkaStreams);
+    verifyNoMoreInteractions(kafkaStreams);
   }
 
   @Test
@@ -160,6 +159,6 @@ public class SandboxedPersistentQueryMetadataTest {
     sandbox.stop();
 
     // Then:
-    verifyZeroInteractions(closeCallback);
+    verifyNoMoreInteractions(closeCallback);
   }
 }

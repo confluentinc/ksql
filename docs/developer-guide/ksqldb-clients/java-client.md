@@ -70,7 +70,7 @@ Start by creating a `pom.xml` for your Java application:
             <url>https://ksqldb-maven.s3.amazonaws.com/maven/</url>
         </repository>
         <repository>
-            <id>confluent</id>
+            <id>confluent-packages</id>
             <name>Confluent</name>
             <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/{{ site.kstreamsbetatag }}/{{ site.kstreamsbetabuild }}/maven/</url>
         </repository>
@@ -82,7 +82,7 @@ Start by creating a `pom.xml` for your Java application:
             <url>https://ksqldb-maven.s3.amazonaws.com/maven/</url>
         </pluginRepository>
         <pluginRepository>
-            <id>confluent</id>
+            <id>confluent-packages</id>
             <url>https://jenkins-confluent-packages-beta-maven.s3.amazonaws.com/{{ site.kstreamsbetatag }}/{{ site.kstreamsbetabuild }}/maven/</url>
         </pluginRepository>
     </pluginRepositories>

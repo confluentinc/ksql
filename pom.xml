@@ -124,7 +124,7 @@
         <wiremock.version>2.24.0</wiremock.version>
         <clearspring-analytics.version>2.9.5</clearspring-analytics.version>
         <icu.version>67.1</icu.version>
-        <vertx.version>3.9.1</vertx.version>
+        <vertx.version>3.9.7</vertx.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <skip.docker.build>true</skip.docker.build>
         <skip.docker.test>true</skip.docker.test>
@@ -140,6 +140,10 @@
         <mockito.version>3.8.0</mockito.version>
         <kafka.version>7.0.0-52-ccs</kafka.version>
         <netty-tcnative-version>2.0.39.Final</netty-tcnative-version>
+        <!-- We normally get this from common, but Vertx is built against 4.1.60.Final -->
+        <netty.version>4.1.60.Final</netty.version>
+        <!-- This matches the version in common -->
+        <netty-codec-http2-version>4.1.63.Final</netty-codec-http2-version>
     </properties>
 
     <dependencyManagement>
@@ -523,7 +527,7 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-codec-http2</artifactId>
-                <version>${netty.version}</version>
+                <version>${netty-codec-http2-version}</version>
             </dependency>
             <dependency>
                 <groupId>io.netty</groupId>

@@ -11,5 +11,5 @@ Installation and Configuration
     check-ksql-server-health
     server-config/index
     cli-config
-    ../../../cloud/connect/ksql-cloud-config
+    Connecting ksqlDB to Confluent Cloud <https://docs.confluent.io/cloud/current/cp-component/ksql-cloud-config.html>
     upgrading

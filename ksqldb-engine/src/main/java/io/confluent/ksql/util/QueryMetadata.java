@@ -39,7 +39,7 @@ public interface QueryMetadata {
 
   String getStatementString();
 
-  void setUncaughtExceptionHandler(final StreamsUncaughtExceptionHandler handler);
+  void setUncaughtExceptionHandler(StreamsUncaughtExceptionHandler handler);
 
   KafkaStreams.State getState();
 

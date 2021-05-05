@@ -46,6 +46,7 @@ import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.state.StreamsMetadata;
+import org.apache.log4j.NDC;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -165,8 +166,10 @@ public abstract class QueryMetadata {
 
   public void initialize() {
     // initialize the first KafkaStreams
+    NDC.push("queryId =" + queryId.toString());
     resetKafkaStreams(kafkaStreamsBuilder.build(topology, streamsProperties));
     this.initialized = true;
+    NDC.pop();
   }
 
   protected StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
@@ -377,6 +380,8 @@ public abstract class QueryMetadata {
   }
 
   public void start() {
+    NDC.push("queryId  = " + queryId.toString());
+    LOG.error("testing format");
     if (!initialized) {
       throw new KsqlException(
           String.format(
@@ -387,6 +392,7 @@ public abstract class QueryMetadata {
     everStarted = true;
     listener.onStateChange(this, kafkaStreams.state(), kafkaStreams.state());
     kafkaStreams.start();
+    NDC.pop();
   }
 
   public static class RetryEvent {

@@ -335,8 +335,8 @@ final class AdminResponseHandlers {
           source.getString("valueFormat"),
           formatQueries(source.getJsonArray("readQueries")),
           formatQueries(source.getJsonArray("writeQueries")),
-          Optional.ofNullable(source.getString("timestamp")),
-          Optional.ofNullable(source.getString("windowType")),
+          Optional.ofNullable(emptyToNull(source.getString("timestamp"))),
+          Optional.ofNullable(emptyToNull(source.getString("windowType"))),
           source.getString("statement"),
           source.getJsonArray("sourceConstraints").stream()
               .map(o -> (String)o)
@@ -345,5 +345,9 @@ final class AdminResponseHandlers {
     } catch (Exception e) {
       return Optional.empty();
     }
+  }
+
+  private static String emptyToNull(final String str) {
+    return str == null ? null : (str.isEmpty() ? null : str);
   }
 }

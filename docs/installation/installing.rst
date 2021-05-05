@@ -201,4 +201,4 @@ After KSQL is started, your terminal should resemble this.
 Configuring KSQL for |ccloud|
 -----------------------------
 
-You can use KSQL with a Kafka cluster in |ccloud|. For more information, see :ref:`install_ksql-ccloud`.
+You can use KSQL with a Kafka cluster in |ccloud|. For more information, see `Connecting ksqlDB to Confluent Cloud <https://docs.confluent.io/cloud/current/cp-component/ksql-cloud-config.html>`__.

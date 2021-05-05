@@ -136,7 +136,7 @@
         <scala.version>2.13.2</scala.version>
         <apache.io.version>2.6</apache.io.version>
         <io.confluent.ksql.version>7.0.0-0</io.confluent.ksql.version>
-        <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
+        <io.confluent.schema-registry.version>7.0.0-290</io.confluent.schema-registry.version>
         <mockito.version>3.8.0</mockito.version>
         <kafka.version>7.0.0-52-ccs</kafka.version>
         <netty-tcnative-version>2.0.29.Final</netty-tcnative-version>
@@ -144,6 +144,8 @@
         <netty.version>4.1.49.Final</netty.version>
         <!-- This matches the version in common -->
         <netty-codec-http2-version>4.1.49.Final</netty-codec-http2-version>
+        <!-- Brought in by both schema registry and connect, we need to pick a version -->
+        <jersey-common>2.31</jersey-common>
     </properties>
 
     <dependencyManagement>
@@ -558,6 +560,11 @@
                 <groupId>io.netty</groupId>
                 <artifactId>netty-tcnative-boringssl-static</artifactId>
                 <version>${netty-tcnative-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.glassfish.jersey.core</groupId>
+                <artifactId>jersey-common</artifactId>
+                <version>${jersey-common}</version>
             </dependency>
 
             <!-- Required for running tests -->

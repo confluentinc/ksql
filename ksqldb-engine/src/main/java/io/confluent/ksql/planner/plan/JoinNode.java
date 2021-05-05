@@ -443,8 +443,6 @@ public class JoinNode extends PlanNode implements JoiningNode {
               JoiningNode.getValueFormatForSource(joinNode.left).getFormatInfo(),
               contextStacker
           );
-        case OUTER:
-          throw new KsqlException("Full outer joins between streams and tables are not supported.");
 
         default:
           throw new KsqlException("Invalid join type encountered: " + joinNode.joinType);

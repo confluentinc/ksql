@@ -928,11 +928,11 @@
         "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
         "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT * FROM T2 JOIN T3 ON T2.ID = T3.ID JOIN S1 ON S1.ID = T2.ID;"
+        "CREATE STREAM OUTPUT as SELECT * FROM T2 JOIN T3 ON T2.ID = T3.ID JOIN S1 ON T2.ID = S1.ID;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Invalid join order: table-stream joins are not supported; only stream-table joins."
+        "message": "Invalid join order: table-stream joins are not supported; only stream-table joins: T2 [INNER] JOIN S1."
       }
     },
     {

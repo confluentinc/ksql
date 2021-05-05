@@ -73,6 +73,7 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.PullFilterNode;
 import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.planner.plan.SelectionUtil;
+import io.confluent.ksql.planner.plan.SingleSourcePlanNode;
 import io.confluent.ksql.planner.plan.SuppressNode;
 import io.confluent.ksql.planner.plan.UserRepartitionNode;
 import io.confluent.ksql.schema.ksql.Column;
@@ -695,11 +696,13 @@ public class LogicalPlanner {
       }
 
       // we only support joins on single attributes so the key has a single field
+      // (this condition is already verified by `Analyzer#visitJoinedSource()`)
       singleAttributeKeyName = Iterables.getOnlyElement(qualifiedNode.getSchema().key()).name();
     } else {
       // leaf node:
       // - we know we have single data source
       // - we only support joins on single attributes so the key has a single field
+      //   (this condition is already verified by `Analyzer#visitJoinedSource()`)
       singleAttributeKeyName =
           Iterables.getOnlyElement(
               Iterables.getOnlyElement(dataSourceNodes).getSchema().key()
@@ -711,7 +714,19 @@ public class LogicalPlanner {
   }
 
   private boolean isInnerNode(final PlanNode node) {
-    return node.getSourceNodes().count() > 1;
+    if (node instanceof JoinNode) {
+      return true;
+    }
+
+    if (node instanceof DataSourceNode) {
+      return false;
+    }
+
+    if (node instanceof SingleSourcePlanNode) {
+      return isInnerNode(((SingleSourcePlanNode) node).getSource());
+    }
+
+    throw new IllegalStateException("Unknown node type: " + node.getClass().getName());
   }
 
 

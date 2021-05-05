@@ -22,7 +22,7 @@ file and then :ref:`start the KSQL server <start_ksql-server>` with your configu
 Configuring KSQL for |ccloud|
 -----------------------------
 
-You can use KSQL with a Kafka cluster in |ccloud|. For more information, see :ref:`install_ksql-ccloud`.
+You can use KSQL with a Kafka cluster in |ccloud|. For more information, see `Connecting ksqlDB to Confluent Cloud <https://docs.confluent.io/cloud/current/cp-component/ksql-cloud-config.html>`__.
 
 Configuring KSQL for |c3|
 -----------------------------

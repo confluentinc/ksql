@@ -449,21 +449,4 @@ public class QueryMetadataImpl implements QueryMetadata {
       }
     }
   }
-
-  public interface ListenerImpl extends Listener {
-    /**
-     * This method will be called whenever the underlying application
-     * throws an uncaught exception.
-     *
-     * @param error the error that occurred
-     */
-    void onError(QueryMetadata queryMetadata, QueryError error);
-
-    void onStateChange(
-        QueryMetadata queryMetadata,
-        KafkaStreams.State before,
-        KafkaStreams.State after);
-
-    void onClose(QueryMetadata queryMetadata);
-  }
 }

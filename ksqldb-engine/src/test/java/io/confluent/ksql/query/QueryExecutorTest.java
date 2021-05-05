@@ -179,7 +179,7 @@ public class QueryExecutorTest {
   @Mock
   private SessionConfig config;
   @Mock
-  private QueryMetadataImpl.ListenerImpl queryListener;
+  private QueryMetadata.Listener queryListener;
   @Captor
   private ArgumentCaptor<Map<String, Object>> propertyCaptor;
 

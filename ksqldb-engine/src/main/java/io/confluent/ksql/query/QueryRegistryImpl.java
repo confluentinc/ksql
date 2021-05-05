@@ -32,7 +32,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -89,7 +88,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         final PersistentQueryMetadata sandboxed = SandboxedPersistentQueryMetadataImpl.of(
             (PersistentQueryMetadataImpl) query,
             new ListenerImpl()
-                                                                                         );
+        );
         persistentQueries.put(sandboxed.getQueryId(), sandboxed);
         allLiveQueries.add(sandboxed);
       } else {
@@ -334,7 +333,7 @@ public class QueryRegistryImpl implements QueryRegistry {
     );
   }
 
-  private class ListenerImpl implements QueryMetadataImpl.Listener {
+  private class ListenerImpl implements QueryMetadata.Listener {
     @Override
     public void onError(final QueryMetadata queryMetadata, final QueryError error) {
       eventListeners.forEach(l -> l.onError(queryMetadata, error));

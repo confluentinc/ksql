@@ -282,7 +282,7 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Invalid join condition:"
-        + " table-table joins require to join on the primary key of the left input table."));
+        + " foreign-key table-table joins are not supported: TEST4.COL0 = TEST5.ID."));
   }
 
   @Test
@@ -301,7 +301,7 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     assertThat(e.getMessage(), containsString("Invalid join condition:"
-        + " foreign-key table-table joins are not supported."));
+        + " table-table joins require to join on the primary key of the right input table: TEST4.ID = TEST5.COL0."));
   }
 
   @Test

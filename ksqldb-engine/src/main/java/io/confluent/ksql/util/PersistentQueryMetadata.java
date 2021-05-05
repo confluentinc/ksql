@@ -26,9 +26,8 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
-import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
-
 import java.util.Optional;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 
 public interface PersistentQueryMetadata extends QueryMetadata {
 
@@ -49,15 +48,16 @@ public interface PersistentQueryMetadata extends QueryMetadata {
   ProcessingLogger getProcessingLogger();
 
   Optional<Materialization> getMaterialization(
-      final QueryId queryId,
-      final QueryContext.Stacker contextStacker);
+      QueryId queryId,
+      QueryContext.Stacker contextStacker
+  );
 
   void restart();
 
   void stop();
 
   StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
-      final Throwable error
+      Throwable error
   );
 
   Optional<MaterializationProvider>  getMaterializationProvider();

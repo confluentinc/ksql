@@ -97,7 +97,7 @@ public class SandboxedPersistentQueryMetadataImplTest {
     when(materializationProviderBuilder.apply(kafkaStreams, topology))
         .thenReturn(Optional.of(materializationProvider));
 
-    final PersistentQueryMetadata query = new PersistentQueryMetadataImpl(
+    final PersistentQueryMetadataImpl query = new PersistentQueryMetadataImpl(
         SQL,
         physicalSchema,
         Collections.emptySet(),

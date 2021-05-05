@@ -50,9 +50,12 @@
     },
     {
       "name": "Should fail on table-side non-key join attribute for left-join",
+      "comments": [
+        "We run this test using AVRO format to make sure the SR-enable formats don't cause issues."
+      ],
       "statements": [
-        "CREATE STREAM test_stream (id1 BIGINT KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
-        "CREATE TABLE test_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE STREAM test_stream (id1 BIGINT KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='AVRO');",
+        "CREATE TABLE test_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='AVRO');",
         "CREATE STREAM output AS SELECT id1, id2, f1, f2 FROM test_stream LEFT JOIN test_table ON id1 = f2;"
       ],
       "expectedException": {

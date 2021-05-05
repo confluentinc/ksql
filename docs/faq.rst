@@ -193,7 +193,7 @@ For more information, see :ref:`config-security-ssl-sasl`.
 Will KSQL work with Confluent Cloud?
 ====================================
 
-Yes. Running KSQL against an Apache Kafka cluster running in the cloud is pretty straight forward. For more information, see :ref:`install_ksql-ccloud`.
+Yes. Running KSQL against an Apache Kafka cluster running in the cloud is pretty straight forward. For more information, see `Connecting ksqlDB to Confluent Cloud <https://docs.confluent.io/cloud/current/cp-component/ksql-cloud-config.html>`__.
 
 ====================================================================
 Will KSQL work with a Apache Kafka cluster secured using Kafka ACLs?

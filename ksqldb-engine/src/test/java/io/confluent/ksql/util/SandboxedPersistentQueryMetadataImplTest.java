@@ -87,7 +87,6 @@ public class SandboxedPersistentQueryMetadataImplTest {
   @Mock
   private Listener sandboxListener;
 
-  private PersistentQueryMetadataImpl query;
   private SandboxedPersistentQueryMetadataImpl sandbox;
 
   @Before

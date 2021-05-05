@@ -67,7 +67,21 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 public class JoinNode extends PlanNode implements JoiningNode {
 
   public enum JoinType {
-    INNER, LEFT, OUTER
+    INNER, LEFT, OUTER;
+
+    @Override
+    public String toString() {
+      switch (this) {
+        case INNER:
+          return "[INNER] JOIN";
+        case LEFT:
+          return "LEFT [OUTER] JOIN";
+        case OUTER:
+          return "[FULL] OUTER JOIN";
+        default:
+          throw new IllegalStateException();
+      }
+    }
   }
 
   private final JoinType joinType;
@@ -292,9 +306,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
       );
     }
 
-    Joiner<?> getJoiner(final DataSourceType leftType,
-        final DataSourceType rightType) {
-
+    Joiner<?> getJoiner(final DataSourceType leftType, final DataSourceType rightType) {
       return joinerMap.get(new Pair<>(leftType, rightType)).get();
     }
   }

@@ -71,6 +71,26 @@
       }
     },
     {
+      "name": "aliased join condition",
+      "statements": [
+        "CREATE STREAM left_stream (id INT KEY, b INT, c INT) WITH (kafka_topic='LEFT_TOPIC', value_format='JSON');",
+        "CREATE STREAM right_stream (id INT KEY, e INT, f INT) WITH (kafka_topic='RIGHT_TOPIC', value_format='JSON');",
+        "CREATE STREAM output AS SELECT ls.id, ls.b, ls.c, rs.e, rs.f FROM left_stream AS ls INNER JOIN right_stream AS rs WITHIN 10 SECONDS ON ls.id = rs.id;"
+      ],
+      "inputs": [
+        {"topic": "LEFT_TOPIC", "key": 0, "value": {"b": 1, "c": 2}, "timestamp": 10},
+        {"topic": "RIGHT_TOPIC", "key": 0, "value": {"e": -1, "f": -2}, "timestamp": 11}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"B": 1, "C": 2, "E": -1, "F": -2}, "timestamp":  11}
+      ],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
+      }
+    },
+    {
       "name": "aliased join key",
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
@@ -1630,6 +1650,54 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Line: 3, Col: 38: JOIN ON column 'TT.IID' cannot be resolved."
+      }
+    },
+    {
+      "name": "Should fail on ambiguous join attribute",
+      "statements": [
+        "CREATE TABLE left_table (id BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, id2, f1, f2 FROM left_table JOIN right_table ON id = id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Exception while preparing statement: Line: 3, Col: 84: Column 'ID' is ambiguous. Could be LEFT_TABLE.ID or RIGHT_TABLE.ID."
+      }
+    },
+    {
+      "name": "Should fail on unknown qualifier -- left join attribute",
+      "statements": [
+        "CREATE TABLE left_table (id BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, id2, f1, f2 FROM left_table JOIN right_table ON unknown.id = id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Failed to prepare statement: 'UNKNOWN' is not a valid stream/table name or alias."
+      }
+    },
+    {
+      "name": "Should fail on unknown qualifier -- right join attribute",
+      "statements": [
+        "CREATE TABLE left_table (id BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, id2, f1, f2 FROM left_table JOIN right_table ON id = unknown.id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Failed to prepare statement: 'UNKNOWN' is not a valid stream/table name or alias."
+      }
+    },
+    {
+      "name": "should not allow complex join conditions",
+      "statements": [
+        "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='RIGHT', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM L INNER JOIN R WITHIN 10 SECONDS ON L.A = R.A AND L.A = R.A;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: joins on multiple conditions are not yet supported: ((L.A = R.A) AND (L.A = R.A))"
       }
     },
     {

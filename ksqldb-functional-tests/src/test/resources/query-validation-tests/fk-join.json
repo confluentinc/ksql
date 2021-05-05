@@ -9,7 +9,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table."
+        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table: LEFT_TABLE.ID1 = RIGHT_TABLE.F2."
       }
     },
     {
@@ -21,7 +21,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table."
+        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table: LEFT_TABLE.ID1 = RIGHT_TABLE.F2."
       }
     },
     {
@@ -33,7 +33,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table."
+        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table: LEFT_TABLE.ID1 = RIGHT_TABLE.F2."
       }
     },
     {
@@ -45,7 +45,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: foreign-key table-table joins are not supported."
+        "message": "Invalid join condition: foreign-key table-table joins are not supported: LEFT_TABLE.F1 = RIGHT_TABLE.ID2."
       }
     },
     {
@@ -57,7 +57,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: foreign-key table-table joins are not supported."
+        "message": "Invalid join condition: foreign-key table-table joins are not supported: LEFT_TABLE.F1 = RIGHT_TABLE.ID2."
       }
     },
     {
@@ -69,7 +69,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: foreign-key table-table joins are not supported."
+        "message": "Invalid join condition: foreign-key table-table joins are not supported: LEFT_TABLE.F1 = RIGHT_TABLE.ID2."
       }
     },
     {
@@ -81,7 +81,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table."
+        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table: LEFT_TABLE.ID1 = RIGHT_TABLE.F2."
       }
     },
     {
@@ -93,7 +93,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table."
+        "message": "Invalid join condition: table-table joins require to join on the primary key of the right input table: LT.ID1 = RT.F2."
       }
     },
     {
@@ -111,7 +111,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: foreign-key table-table joins are not supported."
+        "message": "Invalid join condition: foreign-key table-table joins are not supported: LEFT_TABLE.F1 = RIGHT_TABLE.ID3."
       }
     },
     {
@@ -129,7 +129,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: foreign-key table-table joins are not supported."
+        "message": "Invalid join condition: foreign-key table-table joins are not supported: LEFT_TABLE.F1 = MIDDLE_TABLE.ID2."
       }
     }
   ]

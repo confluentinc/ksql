@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.planner;
 
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
@@ -561,7 +562,7 @@ public class LogicalPlanner {
           leaf.getSource(), prefix + "Right", root.getInfo().getRightJoinExpression(), isWindowed);
     }
 
-    verifyJoin(root, left, right);
+    verifyJoin(root.getInfo(), left, right);
 
     final boolean finalJoin = prefix.isEmpty();
 
@@ -579,45 +580,73 @@ public class LogicalPlanner {
     );
   }
 
-  private void verifyJoin(final Join root, final PlanNode left, final PlanNode right) {
-    if (left.getNodeOutputType() == DataSourceType.KSTREAM) {
-      if (right.getNodeOutputType() == DataSourceType.KTABLE) {
+  private void verifyJoin(final JoinInfo joinInfo,
+                          final PlanNode leftNode,
+                          final PlanNode rightNode) {
+    final JoinType joinType = joinInfo.getType();
+    final Expression leftExpression = joinInfo.getLeftJoinExpression();
+    final Expression rightExpression = joinInfo.getRightJoinExpression();
+
+    if (leftNode.getNodeOutputType() == DataSourceType.KSTREAM) {
+      if (rightNode.getNodeOutputType() == DataSourceType.KTABLE) {
 
         // stream-table join detected
 
-        if (root.getInfo().getType().equals(JoinType.OUTER)) {
-          throw new KsqlException("Invalid join type:"
-              + " full-outer join not supported for stream-table joins.");
+        if (joinType.equals(JoinType.OUTER)) {
+          throw new KsqlException(String.format(
+                  "Invalid join type: "
+                      + "full-outer join not supported for stream-table join: %s %s %s.",
+                  joinInfo.getLeftSource().getDataSource().getName().text(),
+                  joinType,
+                  joinInfo.getRightSource().getDataSource().getName().text()
+              ));
         }
 
-        if (joinOnNonKeyAttribute(root.getInfo().getRightJoinExpression(), right)) {
-          throw new KsqlException("Invalid join condition:"
-              + " stream-table joins require to join on the table's primary key.");
+        if (joinOnNonKeyAttribute(rightExpression, rightNode)) {
+          throw new KsqlException(String.format(
+                  "Invalid join condition:"
+                      + " stream-table joins require to join on the table's primary key: %s = %s.",
+                  leftExpression,
+                  rightExpression
+              ));
         }
       }
 
       // stream-stream join detected: nothing to verify
 
     } else {
-      if (right.getNodeOutputType() == DataSourceType.KSTREAM) {
-        throw new KsqlException("Invalid join order:"
-            + " table-stream joins are not supported; only stream-table joins.");
+      if (rightNode.getNodeOutputType() == DataSourceType.KSTREAM) {
+        throw new KsqlException(String.format(
+                "Invalid join order:"
+                  + " table-stream joins are not supported; only stream-table joins: %s %s %s.",
+                joinInfo.getLeftSource().getDataSource().getName().text(),
+                joinType,
+                joinInfo.getRightSource().getDataSource().getName().text()
+            ));
       }
 
       // table-table join detected
 
-      if (joinOnNonKeyAttribute(root.getInfo().getRightJoinExpression(), right)) {
-        throw new KsqlException("Invalid join condition:"
-            + " table-table joins require to join on the primary key of the right input table."
-        );
+      if (joinOnNonKeyAttribute(rightExpression, rightNode)) {
+        throw new KsqlException(String.format(
+                "Invalid join condition:"
+                    + " table-table joins require to join on the primary key of the right input"
+                    + " table: %s = %s.",
+                leftExpression,
+                rightExpression
+           ));
       }
 
-      if (joinOnNonKeyAttribute(root.getInfo().getLeftJoinExpression(), left)) {
+      if (joinOnNonKeyAttribute(leftExpression, leftNode)) {
         // after we lift the n-way join restriction, we should be able to support FK-joins
         // at any level in the join tree, even after we add right-deep/bushy join tree support,
         // because a FK-join output table has the same PK as its left input table
-        throw new KsqlException("Invalid join condition:"
-            + " foreign-key table-table joins are not supported.");
+        throw new KsqlException(String.format(
+                "Invalid join condition:"
+                    + " foreign-key table-table joins are not supported: %s = %s.",
+                leftExpression,
+                rightExpression
+            ));
       }
     }
   }
@@ -629,33 +658,30 @@ public class LogicalPlanner {
     }
     final ColumnReferenceExp simpleJoinExpression = (ColumnReferenceExp) joinExpression;
 
-    final String joinAttributeName = simpleJoinExpression.getColumnName().text();
+    final ColumnName joinAttributeName = simpleJoinExpression.getColumnName();
     final List<DataSourceNode> dataSourceNodes = node.getSourceNodes().collect(Collectors.toList());
-    final String singleAttributeKeyName;
+    final ColumnName singleAttributeKeyName;
 
     // n-way join sub-tree (ie, not a leaf)
     if (isInnerNode(node)) {
       final DataSourceNode qualifiedNode;
 
       if (simpleJoinExpression.maybeQualifier().isPresent()) {
-        final String qualifier = simpleJoinExpression.maybeQualifier().get().text();
+        final SourceName qualifier = simpleJoinExpression.maybeQualifier().get();
         final List<DataSourceNode> allNodes = dataSourceNodes.stream()
-            .filter(n -> n.getDataSource().getName().text().equals(qualifier))
+            .filter(n -> n.getDataSource().getName().equals(qualifier))
             .collect(Collectors.toList());
 
         if (allNodes.size() != 1) {
-          // double check this
           throw new KsqlException(String.format(
               "Join qualifier '%s' could not be resolved (either not found or not unique).",
               qualifier
           ));
         }
-        qualifiedNode = allNodes.get(0);
+        qualifiedNode = Iterables.getOnlyElement(allNodes);
       } else {
         final List<DataSourceNode> allNodes = dataSourceNodes.stream()
-            .filter(n -> n.getSchema().columns().stream()
-                .map(column -> column.name().text()).collect(Collectors.toList())
-                .contains(joinAttributeName))
+            .filter(n -> n.getSchema().findColumn(simpleJoinExpression.getColumnName()).isPresent())
             .collect(Collectors.toList());
 
         if (allNodes.size() != 1) {
@@ -665,16 +691,19 @@ public class LogicalPlanner {
               joinAttributeName
           ));
         }
-        qualifiedNode = allNodes.get(0);
+        qualifiedNode = Iterables.getOnlyElement(allNodes);
       }
 
       // we only support joins on single attributes so the key has a single field
-      singleAttributeKeyName = qualifiedNode.getSchema().key().get(0).name().text();
+      singleAttributeKeyName = Iterables.getOnlyElement(qualifiedNode.getSchema().key()).name();
     } else {
       // leaf node:
       // - we know we have single data source
       // - we only support joins on single attributes so the key has a single field
-      singleAttributeKeyName = dataSourceNodes.get(0).getSchema().key().get(0).name().text();
+      singleAttributeKeyName =
+          Iterables.getOnlyElement(
+              Iterables.getOnlyElement(dataSourceNodes).getSchema().key()
+          ).name();
     }
 
 
@@ -756,7 +785,7 @@ public class LogicalPlanner {
           return Optional.empty();
 
         case 1:
-          return Optional.of(foundInProjection.get(0));
+          return Optional.of(Iterables.getOnlyElement(foundInProjection));
 
         default:
           final String keys = GrammaticalJoiner.and().join(foundInProjection);

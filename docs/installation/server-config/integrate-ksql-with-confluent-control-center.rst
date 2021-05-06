@@ -177,5 +177,5 @@ connections. In the ``ksql-server.properties`` file, set
 Next Steps
 **********
 
-* :ref:`install_ksql-ccloud`
+* `Connecting ksqlDB to Confluent Cloud <https://docs.confluent.io/cloud/current/cp-component/ksql-cloud-config.html>`__
 * :ref:`ksql-security`

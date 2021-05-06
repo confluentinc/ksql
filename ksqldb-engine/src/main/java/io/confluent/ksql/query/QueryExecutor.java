@@ -49,6 +49,8 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
+import io.confluent.ksql.util.BinPackedStreamsMetadata;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -57,6 +59,8 @@ import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -88,6 +92,7 @@ final class QueryExecutor {
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private final StreamsBuilder streamsBuilder;
   private final MaterializationProviderBuilderFactory materializationProviderBuilderFactory;
+  private final List<BinPackedStreamsMetadata> streams;
 
   QueryExecutor(
       final SessionConfig config,
@@ -134,6 +139,15 @@ final class QueryExecutor {
         materializationProviderBuilderFactory,
         "materializationProviderBuilderFactory"
     );
+    this.streams = new ArrayList<>();
+
+    for (int i = 0; i < 8; i++) {
+      BinPackedStreamsMetadata stream = new BinPackedStreamsMetadata(
+          kafkaStreamsBuilder,
+          config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE)
+      );
+      streams.add(stream);
+    }
   }
 
   TransientQueryMetadata buildTransientQuery(
@@ -228,29 +242,58 @@ final class QueryExecutor {
         .map(userErrorClassifiers::and)
         .orElse(userErrorClassifiers);
 
-    return new PersistentQueryMetadataImpl(
-        statementText,
-        querySchema,
-        sources,
-        sinkDataSource,
-        planSummary,
-        queryId,
-        materializationProviderBuilder,
-        applicationId,
-        topology,
-        kafkaStreamsBuilder,
-        runtimeBuildContext.getSchemas(),
-        streamsProperties,
-        config.getOverrides(),
-        ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
-        classifier,
-        physicalPlan,
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
-        getUncaughtExceptionProcessingLogger(queryId),
-        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
-        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
-        listener
-    );
+    final boolean useBinPacked = true;
+    if (useBinPacked) {
+      BinPackedStreamsMetadata binPackedStreamsMetadata = getStream(sources);
+      binPackedStreamsMetadata.addQuery(classifier, streamsProperties);
+      return new BinPackedPersistentQueryMetadataImpl(
+          statementText,
+          querySchema.logicalSchema(),
+          querySchema,
+          sources,
+          planSummary,
+          applicationId,
+          topology,
+          binPackedStreamsMetadata,
+          runtimeBuildContext.getSchemas(),
+          config.getOverrides(),
+          queryId,
+          materializationProviderBuilder,
+          physicalPlan,
+          getUncaughtExceptionProcessingLogger(queryId),
+          sinkDataSource
+      );
+    } else {
+
+      return new PersistentQueryMetadataImpl(
+          statementText,
+          querySchema,
+          sources,
+          sinkDataSource,
+          planSummary,
+          queryId,
+          materializationProviderBuilder,
+          applicationId,
+          topology,
+          kafkaStreamsBuilder,
+          runtimeBuildContext.getSchemas(),
+          streamsProperties,
+          config.getOverrides(),
+          ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
+          classifier,
+          physicalPlan,
+          ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
+          getUncaughtExceptionProcessingLogger(queryId),
+          ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
+          ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
+          listener
+      );
+    }
+  }
+
+  private BinPackedStreamsMetadata getStream(final Set<SourceName> sources) {
+    //TODO: find streams app with no conflicting sources
+    return streams.get(0);
   }
 
   private ProcessingLogger getUncaughtExceptionProcessingLogger(final QueryId queryId) {

@@ -84,7 +84,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
-  BinPackedPersistentQueryMetadataImpl(
+  public BinPackedPersistentQueryMetadataImpl(
       final String statementString,
       final LogicalSchema logicalSchema,
       final PhysicalSchema schema,
@@ -95,15 +95,13 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
       final BinPackedStreamsMetadata binPackedStreamsMetadata,
       final QuerySchemas schemas,
       final Map<String, Object> overriddenProperties,
-      final long closeTimeout,
       final QueryId queryId,
       final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
           materializationProviderBuilder,
       final ExecutionStep<?> physicalPlan,
       final ProcessingLogger processingLogger,
-      final Listener listener,
       final DataSource sinkDataSource
-  ) {
+                                             ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementString = Objects.requireNonNull(statementString, "statementString");
     this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");

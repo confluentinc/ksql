@@ -96,6 +96,8 @@ public interface QueryMetadata {
      */
     void onError(QueryMetadata queryMetadata, QueryError error);
 
+    void onError(QueryError error);
+
     void onStateChange(
         QueryMetadata queryMetadata,
         KafkaStreams.State before,

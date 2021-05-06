@@ -25,6 +25,7 @@ import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
@@ -33,36 +34,42 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-public class BinPackedStreamsMetadata implements QueryMetadata {
+public class BinPackedStreamsMetadata {
 
   private static final Logger LOG = LoggerFactory.getLogger(BinPackedStreamsMetadata.class);
 
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
-  private final QueryErrorClassifier errorClassifier ;
-  private final KafkaStreams kafkaStreams;
-  private final ImmutableMap<String, Object> streamsProperties;
+  private QueryErrorClassifier errorClassifier ;
+  private KafkaStreams kafkaStreams;
+  private ImmutableMap<String, Object> streamsProperties;
   private final QueryMetadataImpl.TimeBoundedQueue queryErrors;
-  private final List<QueryMetadata.Listener> listeners;
+  private final List<QueryMetadata.Listener> listeners;\
+  private final Map<String, Topology> queryMap;
 
 
-  BinPackedStreamsMetadata(final KafkaStreamsBuilder kafkaStreamsBuilder,
-                           final QueryErrorClassifier errorClassifier,
-                           final int maxQueryErrorsQueueSize,
-                           final Map<String, Object> streamsProperties) {
+  public BinPackedStreamsMetadata(final KafkaStreamsBuilder kafkaStreamsBuilder,
+                                  final int maxQueryErrorsQueueSize) {
     this.kafkaStreamsBuilder = kafkaStreamsBuilder;
-    this.errorClassifier = errorClassifier;
     this.kafkaStreams = kafkaStreamsBuilder.build(null, streamsProperties);
-    this.streamsProperties =
-        ImmutableMap.copyOf(
-            Objects.requireNonNull(streamsProperties, "streamsProperties"));
     this.queryErrors
       = new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
     this.listeners = new ArrayList<>();
+    this.queryMap = new HashMap<>();
+  }
+
+  public void addQuery(final QueryErrorClassifier errorClassifier,
+                       final Map<String, Object> streamsProperties) {
+    this.errorClassifier = errorClassifier;
+    this.streamsProperties =
+        ImmutableMap.copyOf(
+            Objects.requireNonNull(streamsProperties, "streamsProperties"));
   }
 
   protected StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
@@ -86,7 +93,7 @@ public class BinPackedStreamsMetadata implements QueryMetadata {
               errorType
           );
       for (QueryMetadata.Listener listener: listeners) {
-        listener.onError(, queryError);
+        listener.onError(queryError);
       }
       queryErrors.add(queryError);
       LOG.error(
@@ -100,46 +107,59 @@ public class BinPackedStreamsMetadata implements QueryMetadata {
   }
 
   public void addListener(QueryMetadata.Listener listener) {
-
+    listeners.add(listener);
   }
 
   public KafkaStreams getKafkaStreams() {
-    return null;
+    return kafkaStreams;
   }
 
   public KafkaStreams.State state() {
-    return null;
+    return kafkaStreams.state();
   }
 
   public Collection<StreamsMetadata> allMetadata() {
-    return null;
+    return kafkaStreams.allMetadata();
   }
 
   public Set<StreamsTaskMetadata> getTaskMetadata() {
-    return null;
+    return kafkaStreams.localThreadsMetadata()
+                       .stream()
+                       .flatMap(t -> t.activeTasks().stream())
+                       .map(StreamsTaskMetadata::fromStreamsTaskMetadata)
+                       .collect(Collectors.toSet());
   }
 
   public void addToplogy(final Topology topology) {
+    queryMap.put(topology.getName(), topology);
+    kafkaStreams.addTopology(topology);
   }
 
   public void stop(final QueryId queryId) {
-
+    kafkaStreams.removeTopology(queryId);
   }
 
   public void restart(final QueryId queryId) {
-
+    final KafkaStreams newKafkaStreams = buildKafkaStreams();
+    for (Topology topology: queryMap.values()) {
+      newKafkaStreams.addTopology(topology);
+    }
+    newKafkaStreams.start();
+    kafkaStreams.close();
+    kafkaStreams = newKafkaStreams;
   }
 
   public boolean isError(final QueryId queryId) {
-
+    return !queryErrors.toImmutableList().isEmpty();
   }
 
   public void close(final QueryId queryId) {
-
+    queryMap.remove(queryId.toString());
+    kafkaStreams.removeTopology(queryId);
   }
 
   public void start(final QueryId queryId) {
-
+    kafkaStreams.addTopology(queryMap.get(queryId.toString()));
   }
 
   public List<QueryError> getQueryErrors(final QueryId queryId) {
@@ -147,6 +167,12 @@ public class BinPackedStreamsMetadata implements QueryMetadata {
   }
 
   public Map<String, Map<Integer, LagInfo>> allLocalStorePartitionLags(final QueryId queryId) {
+    try {
+      return kafkaStreams.allLocalStorePartitionLags();
+    } catch (IllegalStateException | StreamsException e) {
+      LOG.error(e.getMessage());
+      return ImmutableMap.of();
+    }
   }
 
   public Map<String, Object> getStreamProperties() {

@@ -656,3 +656,12 @@ SELECT WINDOWSTART, WINDOWEND, aggregate_function
   WINDOW window_expression
   EMIT CHANGES;
 ```
+
+## NULLIF
+Returns NULL if two expressions are equal, otherwise it returns the first expression.
+
+```sql hl_lines="1"
+SELECT NULLIF(col1, col2) 
+    FROM from_stream | from_table
+    EMIT CHANGES;
+```

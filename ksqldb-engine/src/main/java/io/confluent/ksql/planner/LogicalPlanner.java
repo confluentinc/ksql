@@ -686,7 +686,6 @@ public class LogicalPlanner {
             .collect(Collectors.toList());
 
         if (allNodes.size() != 1) {
-          // double check this
           throw new KsqlException(String.format(
               "Join identifier '%s' could not be resolved (either not found or not unique).",
               joinAttributeName

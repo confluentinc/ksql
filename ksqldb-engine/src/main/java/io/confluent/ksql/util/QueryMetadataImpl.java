@@ -228,7 +228,7 @@ public class QueryMetadataImpl implements QueryMetadata {
   }
 
   public boolean isError() {
-    return getState() == State.ERROR;
+    return !queryErrors.toImmutableList().isEmpty();
   }
 
   public String getExecutionPlan() {

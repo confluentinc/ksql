@@ -111,7 +111,7 @@ public class QueryAnonymizer {
         final String statement = visitSingleStatement(stmtContext);
         statementList.add(statement);
       }
-      return StringUtils.join(statementList, "");
+      return StringUtils.join(statementList, "\n");
     }
 
     @Override
@@ -122,14 +122,24 @@ public class QueryAnonymizer {
     @Override
     public String visitType(final TypeContext context) {
       if (context.type().isEmpty()) {
-        return context.getText();
+        return getTypeName(context);
       }
+
+      // get type name
+      String typeName = "STRUCT";
+      if (context.MAP() != null) {
+        typeName = "MAP";
+      } else if (context.ARRAY() != null) {
+        typeName = "ARRAY";
+      }
+
+      // get type list
       final List<String> typeList = new ArrayList<>();
       for (TypeContext typeContext : context.type()) {
         typeList.add(visit(typeContext));
       }
 
-      return String.format("STRUCT<%s>", StringUtils.join(typeList, ", "));
+      return String.format("%s<%s>", typeName, StringUtils.join(typeList, ", "));
     }
 
     @Override
@@ -158,9 +168,8 @@ public class QueryAnonymizer {
     public String visitAlterOption(final AlterOptionContext context) {
       final String columnName = context.identifier().getText();
       final String anonColumnName = getAnonColumnName(columnName);
-      final String typeName = context.type().getText();
 
-      return String.format("ADD COLUMN %1$s %2$s", anonColumnName, typeName);
+      return String.format("ADD COLUMN %1$s %2$s", anonColumnName, visit(context.type()));
     }
 
     @Override
@@ -459,8 +468,13 @@ public class QueryAnonymizer {
     public String visitBooleanDefault(final BooleanDefaultContext context) {
       final String columnName = context.getChild(0).getChild(0).getText();
       final String anonColumnName = getAnonColumnName(columnName);
-      final String anonValue = visit(context.getChild(0).getChild(1));
-      return String.format("%1$s=%2$s", anonColumnName, anonValue);
+
+      if (context.getChild(0).getChild(1) != null) {
+        final String anonValue = visit(context.getChild(0).getChild(1));
+        return String.format("%1$s=%2$s", anonColumnName, anonValue);
+      }
+
+      return anonColumnName;
     }
 
     @Override
@@ -645,10 +659,18 @@ public class QueryAnonymizer {
 
     @Override
     public String visitTableElement(final TableElementContext context) {
+      final StringBuilder stringBuilder = new StringBuilder();
       final String columnName = ParserUtil.getIdentifierText(context.identifier());
       final String newName = getAnonColumnName(columnName);
+      stringBuilder.append(String.format("%1$s %2$s", newName, visit(context.type())));
 
-      return String.format("%1$s %2$s", newName, context.type().getText());
+      if (context.PRIMARY() != null) {
+        stringBuilder.append(" PRIMARY");
+      }
+      if (context.KEY() != null) {
+        stringBuilder.append(" KEY");
+      }
+      return stringBuilder.toString();
     }
 
     @Override
@@ -730,6 +752,24 @@ public class QueryAnonymizer {
       stringBuilder.append("type");
 
       return String.format("%s;", stringBuilder);
+    }
+
+    private String getTypeName(final TypeContext context) {
+      if (context.DECIMAL() != null) {
+        return "DECIMAL";
+      }
+      switch (context.getText().toUpperCase()) {
+        case ("BOOLEAN"):
+        case ("INTEGER"):
+        case ("INT"):
+        case ("BIGINT"):
+        case ("DOUBLE"):
+        case ("STRING"):
+        case ("VARCHAR"):
+          return context.getText().toUpperCase();
+        default:
+          return "CUSTOM_TYPE";
+      }
     }
 
     private String getQuery(final QueryContext context, final boolean isStream) {

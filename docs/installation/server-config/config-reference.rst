@@ -344,7 +344,7 @@ You can access KSQL Server by using |c3|. For more information, see
 -----------------
 
 You can connect KSQL Server to |ccloud|. For more information, see
-:ref:`install_ksql-ccloud`.
+`Connecting ksqlDB to Confluent Cloud <https://docs.confluent.io/cloud/current/cp-component/ksql-cloud-config.html>`__.
 
 .. _ksql-server-log-settings:
 

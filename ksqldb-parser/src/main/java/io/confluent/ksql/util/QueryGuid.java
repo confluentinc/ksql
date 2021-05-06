@@ -15,49 +15,21 @@
 
 package io.confluent.ksql.util;
 
-import com.google.common.annotations.VisibleForTesting;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 public final class QueryGuid {
-  private final String clusterNamespace;
-  private final String queryUuid;
-  private final String anonQueryUuid;
-  private final LocalDateTime timeOfCreation;
+  private final String namespace;
+  private final String queryGuid;
+  private final String structuralGuid;
 
   public QueryGuid(final String namespace, final String nonAnonQuery, final String anonQuery) {
-    this(namespace, nonAnonQuery, anonQuery, LocalDateTime.now());
+    this.namespace = namespace;
+    this.queryGuid = computeQueryGuid(nonAnonQuery, namespace);
+    this.structuralGuid = computeQueryGuid(anonQuery, "");
   }
 
-  @VisibleForTesting
-  QueryGuid(final String namespace,
-            final String nonAnonQuery,
-            final String anonQuery,
-            final LocalDateTime timeOfCreation) {
-    this.clusterNamespace = namespace;
-    this.queryUuid = computeQueryId(nonAnonQuery, clusterNamespace);
-    this.anonQueryUuid = computeQueryId(anonQuery, "");
-    this.timeOfCreation = timeOfCreation;
-  }
-
-  public String getClusterNamespace() {
-    return this.clusterNamespace;
-  }
-
-  public String getQueryUuid() {
-    return this.queryUuid;
-  }
-
-  public String getAnonQueryUuid() {
-    return this.anonQueryUuid;
-  }
-
-  public LocalDateTime getTimeOfCreation() {
-    return this.timeOfCreation;
-  }
-
-  private static String computeQueryId(final String query, final String namespace) {
+  private static String computeQueryGuid(final String query, final String namespace) {
     final String genericQuery = getGenericQueryForm(query);
     final String namespacePlusQuery = namespace + genericQuery;
 
@@ -66,5 +38,17 @@ public final class QueryGuid {
 
   private static String getGenericQueryForm(final String query) {
     return query.replaceAll("[\\n\\t ]", "");
+  }
+
+  public String getQueryGuid() {
+    return this.queryGuid;
+  }
+
+  public String getStructuralGuid() {
+    return this.structuralGuid;
+  }
+
+  public String getNamespace() {
+    return namespace;
   }
 }

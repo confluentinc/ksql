@@ -1,19 +1,16 @@
 /*
  * Copyright 2021 Confluent Inc.
- *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
  * License at
- *
  * http://www.confluent.io/confluent-community-license
- *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.engine.rewrite;
 
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.metastore.TypeRegistry;
@@ -76,26 +73,27 @@ import io.confluent.ksql.parser.SqlBaseParser.UndefineVariableContext;
 import io.confluent.ksql.parser.SqlBaseParser.UnquotedIdentifierContext;
 import io.confluent.ksql.parser.SqlBaseParser.UnsetPropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.ValueExpressionContext;
+import io.confluent.ksql.util.ParserUtil;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.apache.commons.lang3.StringUtils;
 
 public class QueryAnonymizer {
 
-  public String anonymize(final ParserRuleContext tree) {
+  public String anonymize(final ParseTree tree) {
     return build(tree);
   }
 
   public String anonymize(final String query) {
-    final ParserRuleContext tree = DefaultKsqlParser.getParseTree(query);
+    final ParseTree tree = DefaultKsqlParser.getParseTree(query);
     return build(tree);
   }
 
-  private String build(final ParserRuleContext parseTree) {
+  private String build(final ParseTree parseTree) {
     return new Visitor().visit(parseTree);
   }
 
@@ -153,7 +151,7 @@ public class QueryAnonymizer {
       }
       stringBuilder.append(String.format(" (%s)", StringUtils.join(alterOptions, ", ")));
 
-      return String.format("%s;", stringBuilder.toString());
+      return String.format("%s;", stringBuilder);
     }
 
     @Override
@@ -177,7 +175,7 @@ public class QueryAnonymizer {
       // anonymize type
       stringBuilder.append(String.format(" type AS %s", visit(context.type())));
 
-      return String.format("%s;", stringBuilder.toString());
+      return String.format("%s;", stringBuilder);
     }
 
     @Override
@@ -204,7 +202,7 @@ public class QueryAnonymizer {
         stringBuilder.append(visit(context.tableProperties()));
       }
 
-      return String.format("%s;", stringBuilder.toString());
+      return String.format("%s;", stringBuilder);
     }
 
     @Override
@@ -225,7 +223,7 @@ public class QueryAnonymizer {
         stringBuilder.append(String.format(" SELECT %s", getQuery(context.query(), true)));
       }
 
-      return String.format("%s;", stringBuilder.toString());
+      return String.format("%s;", stringBuilder);
     }
 
     @Override
@@ -255,7 +253,7 @@ public class QueryAnonymizer {
       }
       stringBuilder.append(String.format(" VALUES (%s)", StringUtils.join(values, " ,")));
 
-      return String.format("%s;", stringBuilder.toString());
+      return String.format("%s;", stringBuilder);
     }
 
     @Override
@@ -271,7 +269,7 @@ public class QueryAnonymizer {
 
       stringBuilder.append(" CONNECTORS");
 
-      return String.format("%s;", stringBuilder.toString());
+      return String.format("%s;", stringBuilder);
     }
 
     @Override
@@ -283,7 +281,7 @@ public class QueryAnonymizer {
         stringBuilder.append(" EXTENDED");
       }
 
-      return String.format("%s;", stringBuilder.toString());
+      return String.format("%s;", stringBuilder);
     }
 
     @Override
@@ -319,7 +317,7 @@ public class QueryAnonymizer {
         stringBuilder.append(" EXTENDED");
       }
 
-      return String.format("%s;", stringBuilder.toString());
+      return String.format("%s;", stringBuilder);
     }
 
     @Override
@@ -337,7 +335,7 @@ public class QueryAnonymizer {
         stringBuilder.append(" EXTENDED");
       }
 
-      return String.format("%s;", stringBuilder.toString());
+      return String.format("%s;", stringBuilder);
     }
 
     @Override
@@ -366,7 +364,7 @@ public class QueryAnonymizer {
         stringBuilder.append(" LIMIT '0'");
       }
 
-      return String.format("%s;", stringBuilder.toString());
+      return String.format("%s;", stringBuilder);
     }
 
     @Override
@@ -386,7 +384,7 @@ public class QueryAnonymizer {
         stringBuilder.append("EXTENDED");
       }
 
-      return String.format("%s;", stringBuilder.toString());
+      return String.format("%s;", stringBuilder);
     }
 
     @Override
@@ -405,7 +403,7 @@ public class QueryAnonymizer {
         stringBuilder.append(" EXTENDED");
       }
 
-      return String.format("%s;", stringBuilder.toString());
+      return String.format("%s;", stringBuilder);
     }
 
     @Override
@@ -533,7 +531,7 @@ public class QueryAnonymizer {
         stringBuilder.append(String.format(" AS SELECT %s", getQuery(context.query(), true)));
       }
 
-      return String.format("%s;", stringBuilder.toString());
+      return String.format("%s;", stringBuilder);
     }
 
     @Override
@@ -566,7 +564,7 @@ public class QueryAnonymizer {
         stringBuilder.append(visit(context.tableProperties()));
       }
 
-      return String.format("%s;", stringBuilder.toString());
+      return String.format("%s;", stringBuilder);
     }
 
     @Override
@@ -599,7 +597,7 @@ public class QueryAnonymizer {
         stringBuilder.append(String.format(" AS SELECT %s", getQuery(context.query(), false)));
       }
 
-      return String.format("%s;", stringBuilder.toString());
+      return String.format("%s;", stringBuilder);
     }
 
     @Override
@@ -632,7 +630,7 @@ public class QueryAnonymizer {
         stringBuilder.append(visit(context.tableProperties()));
       }
 
-      return String.format("%s;", stringBuilder.toString());
+      return String.format("%s;", stringBuilder);
     }
 
     @Override
@@ -686,7 +684,7 @@ public class QueryAnonymizer {
         stringBuilder.append(" DELETE TOPIC");
       }
 
-      return String.format("%s;", stringBuilder.toString());
+      return String.format("%s;", stringBuilder);
     }
 
     @Override
@@ -705,7 +703,7 @@ public class QueryAnonymizer {
         stringBuilder.append(" DELETE TOPIC");
       }
 
-      return String.format("%s;", stringBuilder.toString());
+      return String.format("%s;", stringBuilder);
     }
 
     @Override
@@ -718,7 +716,7 @@ public class QueryAnonymizer {
 
       stringBuilder.append("connector");
 
-      return String.format("%s;", stringBuilder.toString());
+      return String.format("%s;", stringBuilder);
     }
 
     @Override
@@ -731,7 +729,7 @@ public class QueryAnonymizer {
 
       stringBuilder.append("type");
 
-      return String.format("%s;", stringBuilder.toString());
+      return String.format("%s;", stringBuilder);
     }
 
     private String getQuery(final QueryContext context, final boolean isStream) {

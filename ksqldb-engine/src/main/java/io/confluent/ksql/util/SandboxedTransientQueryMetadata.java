@@ -33,7 +33,7 @@ public final class SandboxedTransientQueryMetadata extends TransientQueryMetadat
 
   public static SandboxedTransientQueryMetadata of(
       final TransientQueryMetadata queryMetadata,
-      final Listener listener
+      final QueryMetadata.Listener listener
   ) {
     return new SandboxedTransientQueryMetadata(
         Objects.requireNonNull(queryMetadata, "queryMetadata"),

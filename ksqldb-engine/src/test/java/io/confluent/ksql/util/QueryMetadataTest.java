@@ -41,7 +41,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
-import io.confluent.ksql.util.QueryMetadata.Listener;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Set;
@@ -79,7 +78,7 @@ public class QueryMetadataTest {
   @Mock
   private KafkaStreams kafkaStreams;
   @Mock
-  private Listener listener;
+  private QueryMetadataImpl.Listener listener;
   @Mock
   private QueryErrorClassifier classifier;
   @Captor
@@ -87,7 +86,7 @@ public class QueryMetadataTest {
   @Mock
   private Ticker ticker;
 
-  private QueryMetadata query;
+  private QueryMetadataImpl query;
 
   @Before
   public void setup() {
@@ -95,7 +94,7 @@ public class QueryMetadataTest {
     when(classifier.classify(any())).thenReturn(Type.UNKNOWN);
     when(kafkaStreams.state()).thenReturn(State.NOT_RUNNING);
 
-    query = new QueryMetadata(
+    query = new QueryMetadataImpl(
         "foo",
         SOME_SCHEMA,
         SOME_SOURCES,
@@ -231,7 +230,7 @@ public class QueryMetadataTest {
     when(ticker.read()).thenReturn(now);
 
     // When:
-    final QueryMetadata.RetryEvent retryEvent = new QueryMetadata.RetryEvent(
+    final QueryMetadataImpl.RetryEvent retryEvent = new QueryMetadataImpl.RetryEvent(
             QUERY_ID,
             RETRY_BACKOFF_INITIAL_MS,
             RETRY_BACKOFF_MAX_MS,
@@ -250,7 +249,7 @@ public class QueryMetadataTest {
     when(ticker.read()).thenReturn(now);
 
     // When:
-    final QueryMetadata.RetryEvent retryEvent = new QueryMetadata.RetryEvent(
+    final QueryMetadataImpl.RetryEvent retryEvent = new QueryMetadataImpl.RetryEvent(
             QUERY_ID,
             RETRY_BACKOFF_INITIAL_MS,
             RETRY_BACKOFF_MAX_MS,
@@ -271,7 +270,7 @@ public class QueryMetadataTest {
     when(ticker.read()).thenReturn(now);
 
     // When:
-    final QueryMetadata.RetryEvent retryEvent = new QueryMetadata.RetryEvent(
+    final QueryMetadataImpl.RetryEvent retryEvent = new QueryMetadataImpl.RetryEvent(
             QUERY_ID,
             RETRY_BACKOFF_INITIAL_MS,
             RETRY_BACKOFF_MAX_MS,
@@ -288,7 +287,7 @@ public class QueryMetadataTest {
   @Test
   public void shouldEvictBasedOnTime() {
     // Given:
-    final QueryMetadata.TimeBoundedQueue queue = new QueryMetadata.TimeBoundedQueue(Duration.ZERO, 1);
+    final QueryMetadataImpl.TimeBoundedQueue queue = new QueryMetadataImpl.TimeBoundedQueue(Duration.ZERO, 1);
     queue.add(new QueryError(System.currentTimeMillis(), "test", Type.SYSTEM));
 
     //Then:

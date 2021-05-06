@@ -78,7 +78,7 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
-import io.confluent.ksql.util.SandboxedPersistentQueryMetadata;
+import io.confluent.ksql.util.SandboxedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.IOException;
@@ -980,7 +980,7 @@ public class KsqlEngineTest {
         if (q instanceof TransientQueryMetadata) {
           assertTrue(sq instanceof SandboxedTransientQueryMetadata);
         } else {
-          assertTrue(sq instanceof SandboxedPersistentQueryMetadata);
+          assertTrue(sq instanceof SandboxedPersistentQueryMetadataImpl);
         }
       }
     }

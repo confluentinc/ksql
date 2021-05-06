@@ -66,7 +66,6 @@ public class SandboxedTransientQueryMetadataTest {
     when(original.getSourceNames()).thenReturn(SOURCE_NAMES);
     when(original.getExecutionPlan()).thenReturn(PLAN);
     when(original.getQueryApplicationId()).thenReturn(APP_ID);
-    when(original.getResultType()).thenReturn(RESULT_TYPE);
     when(original.getLogicalSchema()).thenReturn(schema);
     when(original.getTopology()).thenReturn(topology);
     sandboxed = SandboxedTransientQueryMetadata.of(original, listener);

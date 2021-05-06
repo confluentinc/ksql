@@ -36,22 +36,30 @@ public class SqlDecimalTest {
         .addEqualityGroup(SqlDecimal.of(10, 2), SqlDecimal.of(10, 2))
         .addEqualityGroup(SqlDecimal.of(11, 2))
         .addEqualityGroup(SqlDecimal.of(10, 3))
+        .addEqualityGroup(SqlDecimal.of(10, 2).required(), SqlDecimal.of(10, 2).required())
+        .addEqualityGroup(SqlDecimal.of(11, 2).required())
+        .addEqualityGroup(SqlDecimal.of(10, 3).required())
         .testEquals();
   }
 
   @Test
   public void shouldReturnBaseType() {
     MatcherAssert.assertThat(SqlDecimal.of(10, 2).baseType(), Matchers.is(SqlBaseType.DECIMAL));
+    MatcherAssert.assertThat(SqlDecimal.of(10, 2).isOptional(), Matchers.is(true));
+    MatcherAssert.assertThat(SqlDecimal.of(10, 2).required().baseType(), Matchers.is(SqlBaseType.DECIMAL));
+    MatcherAssert.assertThat(SqlDecimal.of(10, 2).required().isOptional(), Matchers.is(false));
   }
 
   @Test
   public void shouldReturnPrecision() {
     assertThat(SqlDecimal.of(10, 2).getPrecision(), is(10));
+    assertThat(SqlDecimal.of(10, 2).required().getPrecision(), is(10));
   }
 
   @Test
   public void shouldReturnScale() {
     assertThat(SqlDecimal.of(10, 2).getScale(), is(2));
+    assertThat(SqlDecimal.of(10, 2).required().getScale(), is(2));
   }
 
   @Test(expected = SchemaException.class)
@@ -72,6 +80,8 @@ public class SqlDecimalTest {
   @Test
   public void shouldImplementToString() {
     assertThat(SqlDecimal.of(10, 2).toString(), is("DECIMAL(10, 2)"));
+    assertThat(SqlDecimal.of(10, 2).required().toString(), is("DECIMAL(10, 2) NOT NULL"));
+
   }
 
   @Test
@@ -83,6 +93,8 @@ public class SqlDecimalTest {
             .put(TestCase.of(SqlTypes.decimal(2, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(4, 2))
             .put(TestCase.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(3, 2)), SqlTypes.decimal(4, 2))
             .put(TestCase.of(SqlTypes.decimal(3, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(4, 2))
+            .put(TestCase.of(SqlTypes.decimal(3, 1).required(), SqlTypes.decimal(2, 1).required()), SqlTypes.decimal(4, 1))
+            .put(TestCase.of(SqlTypes.decimal(3, 1).required(), SqlTypes.decimal(2, 2)), SqlTypes.decimal(5, 2))
             .build();
 
     testCases.forEach((in, expected) -> {
@@ -103,6 +115,8 @@ public class SqlDecimalTest {
             .put(TestCase.of(SqlTypes.decimal(2, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(4, 2))
             .put(TestCase.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(3, 2)), SqlTypes.decimal(4, 2))
             .put(TestCase.of(SqlTypes.decimal(3, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(4, 2))
+            .put(TestCase.of(SqlTypes.decimal(3, 1).required(), SqlTypes.decimal(2, 1).required()), SqlTypes.decimal(4, 1))
+            .put(TestCase.of(SqlTypes.decimal(3, 3).required(), SqlTypes.decimal(2, 1)), SqlTypes.decimal(5, 3))
             .build();
 
     inputToExpected.forEach((in, expected) -> {
@@ -122,6 +136,8 @@ public class SqlDecimalTest {
             .put(TestCase.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(5, 3))
             .put(TestCase.of(SqlTypes.decimal(2, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(5, 3))
             .put(TestCase.of(SqlTypes.decimal(3, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(6, 3))
+            .put(TestCase.of(SqlTypes.decimal(3, 1).required(), SqlTypes.decimal(2, 1).required()), SqlTypes.decimal(6, 2))
+            .put(TestCase.of(SqlTypes.decimal(3, 3).required(), SqlTypes.decimal(2, 1)), SqlTypes.decimal(6, 4))
             .build();
 
     inputToExpected.forEach((in, expected) -> {
@@ -142,6 +158,8 @@ public class SqlDecimalTest {
             .put(TestCase.of(SqlTypes.decimal(2, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(7, 6))
             .put(TestCase.of(SqlTypes.decimal(3, 3), SqlTypes.decimal(3, 3)), SqlTypes.decimal(10, 7))
             .put(TestCase.of(SqlTypes.decimal(3, 3), SqlTypes.decimal(3, 2)), SqlTypes.decimal(9, 7))
+            .put(TestCase.of(SqlTypes.decimal(3, 1).required(), SqlTypes.decimal(3, 2).required()), SqlTypes.decimal(10, 6))
+            .put(TestCase.of(SqlTypes.decimal(1, 1).required(), SqlTypes.decimal(3, 2)), SqlTypes.decimal(8, 6))
             .build();
 
     inputToExpected.forEach((in, expected) -> {
@@ -161,6 +179,8 @@ public class SqlDecimalTest {
             .put(TestCase.of(SqlTypes.decimal(2, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(2, 2))
             .put(TestCase.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(2, 2))
             .put(TestCase.of(SqlTypes.decimal(3, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(2, 2))
+            .put(TestCase.of(SqlTypes.decimal(1, 1).required(), SqlTypes.decimal(2, 2).required()), SqlTypes.decimal(2, 2))
+            .put(TestCase.of(SqlTypes.decimal(3, 2).required(), SqlTypes.decimal(2, 2)), SqlTypes.decimal(2, 2))
             .build();
 
     inputToExpected.forEach((in, expected) -> {

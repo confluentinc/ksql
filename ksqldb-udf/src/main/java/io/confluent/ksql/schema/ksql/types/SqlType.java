@@ -26,14 +26,23 @@ import java.util.Objects;
 public abstract class SqlType {
 
   private final SqlBaseType baseType;
+  private final boolean optional;
 
-  SqlType(final SqlBaseType baseType) {
+  SqlType(final SqlBaseType baseType, final Boolean optional) {
     this.baseType = Objects.requireNonNull(baseType, "baseType");
+    this.optional = Objects.requireNonNull(optional, "optional");
+
   }
 
   public SqlBaseType baseType() {
     return baseType;
   }
+
+  public boolean isOptional() {
+    return optional;
+  }
+
+  public abstract SqlType required();
 
   public abstract String toString(FormatOptions formatOptions);
 }

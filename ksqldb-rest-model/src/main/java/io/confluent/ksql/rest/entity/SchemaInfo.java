@@ -44,13 +44,15 @@ public class SchemaInfo {
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   @EffectivelyImmutable
   private final ImmutableMap<String, Object> parameters;
+  private final boolean optional;
 
   @JsonCreator
   public SchemaInfo(
       @JsonProperty("type") final SqlBaseType type,
       @JsonProperty("fields") final List<? extends FieldInfo> fields,
       @JsonProperty("memberSchema") final SchemaInfo memberSchema,
-      @JsonProperty("parameters") final ImmutableMap<String, Object> parameters) {
+      @JsonProperty("parameters") final ImmutableMap<String, Object> parameters,
+      @JsonProperty("optional") final boolean optional) {
     Objects.requireNonNull(type);
     this.type = type;
     this.fields = fields == null
@@ -58,14 +60,16 @@ public class SchemaInfo {
         : ImmutableList.copyOf(fields);
     this.memberSchema = memberSchema;
     this.parameters = parameters;
+    this.optional = optional;
 
   }
 
   public SchemaInfo(
       @JsonProperty("type") final SqlBaseType type,
       @JsonProperty("fields") final List<? extends FieldInfo> fields,
-      @JsonProperty("memberSchema") final SchemaInfo memberSchema) {
-    this(type, fields, memberSchema, ImmutableMap.of());
+      @JsonProperty("memberSchema") final SchemaInfo memberSchema,
+      @JsonProperty("optional") final boolean optional) {
+    this(type, fields, memberSchema, ImmutableMap.of(), optional);
   }
 
   public SqlBaseType getType() {
@@ -75,6 +79,10 @@ public class SchemaInfo {
   @JsonProperty("type")
   public String getTypeName() {
     return type.name();
+  }
+
+  public boolean isOptional() {
+    return optional;
   }
 
   public Optional<List<FieldInfo>> getFields() {
@@ -100,39 +108,42 @@ public class SchemaInfo {
     final SchemaInfo that = (SchemaInfo) o;
     return type == that.type
         && Objects.equals(fields, that.fields)
-        && Objects.equals(memberSchema, that.memberSchema);
+        && Objects.equals(memberSchema, that.memberSchema)
+        && Objects.equals(optional, that.optional);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(type, fields, memberSchema);
+    return Objects.hash(type, fields, memberSchema, optional);
   }
 
   @EffectivelyImmutable
   private static final ImmutableMap<SqlBaseType, Function<SchemaInfo, String>> TO_TYPE_STRING =
       ImmutableMap.<SqlBaseType, Function<SchemaInfo, String>>builder()
-          .put(SqlBaseType.STRING, si -> "VARCHAR(STRING)")
+          .put(SqlBaseType.STRING, si -> "VARCHAR(STRING)" + (!si.optional ? " NOT NULL" : ""))
           .put(
               SqlBaseType.ARRAY,
-              si -> SqlBaseType.ARRAY + "<" + si.memberSchema.toTypeString() + ">")
+              si -> SqlBaseType.ARRAY + "<" + si.memberSchema.toTypeString() + ">"
+                      + (!si.optional ? " NOT NULL" : ""))
           .put(
               SqlBaseType.MAP,
               si -> SqlBaseType.MAP
                   + "<" + SqlBaseType.STRING
                   + ", " + si.memberSchema.toTypeString()
-                  + ">")
+                  + ">" + (!si.optional ? " NOT NULL" : ""))
           .put(
               SqlBaseType.STRUCT,
               si -> si.fields
                   .stream()
                   .map(f -> f.getName() + " " + f.getSchema().toTypeString())
-                  .collect(Collectors.joining(", ", SqlBaseType.STRUCT + "<", ">")))
+                  .collect(Collectors.joining(", ", SqlBaseType.STRUCT + "<", ">"
+                          + (!si.optional ? " NOT NULL" : ""))))
           .put(
               SqlBaseType.DECIMAL,
               si -> {
                 // Backwards compatibility case when the backend does not return parameters
                 if (si.getParameters().isEmpty()) {
-                  return String.valueOf(SqlBaseType.DECIMAL);
+                  return SqlBaseType.DECIMAL + (!si.optional ? " NOT NULL" : "");
                 }
 
                 final Object precision = si.getParameters().get(SqlDecimal.PRECISION);
@@ -143,13 +154,15 @@ public class SchemaInfo {
                     "Either one of precision and scale missing: "
                         + parameterString
                 );
-                return SqlBaseType.DECIMAL + parameterString;
+                return SqlBaseType.DECIMAL + parameterString
+                        + (!si.optional ? " NOT NULL" : "");
               })
           .build();
 
   public String toTypeString() {
     // needs a map instead of switch because for some reason switch creates an
     // internal class with no annotations that messes up EntityTest
-    return TO_TYPE_STRING.getOrDefault(type, si -> si.type.name()).apply(this);
+    return TO_TYPE_STRING.getOrDefault(type, si -> si.type.name()
+            + (!si.optional ? " NOT NULL" : "")).apply(this);
   }
 }

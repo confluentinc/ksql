@@ -1128,6 +1128,30 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "JSON does not support the following configs: [fullSchemaName]"
       }
+    },
+    {
+      "name": "not null - missing require field `b` doesn't insert in topic `input_topic`",
+      "statements": [
+        "CREATE STREAM INPUT (a string not null, b string not null) WITH (kafka_topic='input_topic', value_format='AVRO');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "topics": [
+        {
+          "name": "input_topic",
+          "valueSchema": {
+            "name": "inputValue", 
+            "type": "record", 
+            "namespace": "io.confluent.ksql.avro_schemas", 
+            "fields": [ 
+              { "name": "a", "type": [ "null", "string" ], "default": null },
+              { "name": "b", "type": [ "null", "string" ], "default": null }
+            ]},
+          "valueFormat": "AVRO"
+        }
+      ],
+      "inputs": [
+        {"topic": "input_topic", "value": {"a": "foo"}}
+      ]
     }
   ]
 }

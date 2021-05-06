@@ -48,20 +48,23 @@ public class SchemaDescriptionFormatTest {
         "    \"schema\": {\n" +
         "      \"type\": \"INTEGER\",\n" +
         "      \"fields\": null,\n" +
-        "      \"memberSchema\": null\n" +
+        "      \"memberSchema\": null,\n" +
+        "      \"optional\": true\n" +
         "    }\n" +
         "  },\n" +
         "  {\n" +
         "    \"name\": \"l1struct\",\n" +
         "    \"schema\": {\n" +
         "      \"type\": \"STRUCT\",\n" +
+        "      \"optional\": true,\n" +
         "      \"fields\": [\n" +
         "        {\n" +
         "          \"name\": \"l2string\",\n" +
         "          \"schema\": {\n" +
         "            \"type\": \"STRING\",\n" +
         "            \"fields\": null,\n" +
-        "            \"memberSchema\": null\n" +
+        "            \"memberSchema\": null,\n" +
+        "            \"optional\": true\n" +
         "          }\n" +
         "        },\n" +
         "        {\n" +
@@ -69,7 +72,8 @@ public class SchemaDescriptionFormatTest {
         "          \"schema\": {\n" +
         "            \"type\": \"INTEGER\",\n" +
         "            \"fields\": null,\n" +
-        "            \"memberSchema\": null\n" +
+        "            \"memberSchema\": null,\n" +
+        "            \"optional\": true\n" +
         "          }\n" +
         "        }\n" +
         "      ],\n" +
@@ -88,7 +92,7 @@ public class SchemaDescriptionFormatTest {
     assertThat(
         deserialized.get(0).getSchema(),
         equalTo(
-            new SchemaInfo(SqlBaseType.INTEGER, null, null)));
+            new SchemaInfo(SqlBaseType.INTEGER, null, null, true)));
     assertThat(deserialized.get(1).getName(), equalTo("l1struct"));
     final SchemaInfo structSchema = deserialized.get(1).getSchema();
     assertThat(structSchema.getType(), equalTo(SqlBaseType.STRUCT));
@@ -98,12 +102,12 @@ public class SchemaDescriptionFormatTest {
     assertThat(
         structSchema.getFields().get().get(0).getSchema(),
         equalTo(
-            new SchemaInfo(SqlBaseType.STRING, null, null)));
+            new SchemaInfo(SqlBaseType.STRING, null, null, true)));
     assertThat(structSchema.getFields().get().get(1).getName(), equalTo("l2integer"));
     assertThat(
         structSchema.getFields().get().get(1).getSchema(),
         equalTo(
-            new SchemaInfo(SqlBaseType.INTEGER, null, null)));
+            new SchemaInfo(SqlBaseType.INTEGER, null, null, true)));
 
     shouldSerializeCorrectly(descriptionString, deserialized);
   }
@@ -115,10 +119,12 @@ public class SchemaDescriptionFormatTest {
         "    \"name\": \"mapfield\",\n" +
         "    \"schema\": {\n" +
         "      \"type\": \"MAP\",\n" +
+        "      \"optional\": true,\n" +
         "      \"memberSchema\": {\n" +
         "        \"type\": \"STRING\",\n" +
         "        \"memberSchema\": null,\n" +
-        "        \"fields\": null\n" +
+        "        \"fields\": null,\n" +
+        "        \"optional\": true\n" +
         "      },\n" +
         "      \"fields\": null\n" +
         "    }\n" +
@@ -138,7 +144,7 @@ public class SchemaDescriptionFormatTest {
             new SchemaInfo(
                 SqlBaseType.MAP,
                 null,
-                new SchemaInfo(SqlBaseType.STRING, null, null))));
+                new SchemaInfo(SqlBaseType.STRING, null, null, true ),true)));
 
     shouldSerializeCorrectly(descriptionString, deserialized);
   }
@@ -150,10 +156,12 @@ public class SchemaDescriptionFormatTest {
         "    \"name\": \"arrayfield\",\n" +
         "    \"schema\": {\n" +
         "      \"type\": \"ARRAY\",\n" +
+        "      \"optional\": true,\n" +
         "      \"memberSchema\": {\n" +
         "        \"type\": \"STRING\",\n" +
         "        \"memberSchema\": null,\n" +
-        "        \"fields\": null\n" +
+        "        \"fields\": null,\n" +
+        "        \"optional\": true\n" +
         "      },\n" +
         "      \"fields\": null\n" +
         "    }\n" +
@@ -173,7 +181,7 @@ public class SchemaDescriptionFormatTest {
             new SchemaInfo(
                 SqlBaseType.ARRAY,
                 null,
-                new SchemaInfo(SqlBaseType.STRING, null, null))));
+                new SchemaInfo(SqlBaseType.STRING, null, null,true),true)));
 
     shouldSerializeCorrectly(descriptionString, deserialized);
   }

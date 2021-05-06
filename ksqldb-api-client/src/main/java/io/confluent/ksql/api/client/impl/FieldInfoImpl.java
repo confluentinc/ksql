@@ -24,11 +24,14 @@ public final class FieldInfoImpl implements FieldInfo {
   private final String name;
   private final ColumnType type;
   private final boolean isKey;
+  private final boolean isOptional;
 
-  FieldInfoImpl(final String name, final ColumnType type, final boolean isKey) {
+  FieldInfoImpl(final String name, final ColumnType type, final boolean isKey,
+                final boolean isOptional) {
     this.name = Objects.requireNonNull(name, "name");
     this.type = Objects.requireNonNull(type, "type");
     this.isKey = isKey;
+    this.isOptional = isOptional;
   }
 
   @Override
@@ -47,6 +50,11 @@ public final class FieldInfoImpl implements FieldInfo {
   }
 
   @Override
+  public boolean isOptional() {
+    return isOptional;
+  }
+
+  @Override
   public boolean equals(final Object o) {
     if (this == o) {
       return true;
@@ -57,12 +65,13 @@ public final class FieldInfoImpl implements FieldInfo {
     final FieldInfoImpl fieldInfo = (FieldInfoImpl) o;
     return name.equals(fieldInfo.name)
         && type.equals(fieldInfo.type)
-        && isKey == fieldInfo.isKey;
+        && isKey == fieldInfo.isKey
+        && isOptional == fieldInfo.isOptional;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, type, isKey);
+    return Objects.hash(name, type, isKey, isOptional);
   }
 
   @Override
@@ -71,6 +80,7 @@ public final class FieldInfoImpl implements FieldInfo {
         + "name='" + name + '\''
         + ", type=" + type
         + ", isKey=" + isKey
+        + ", isOptional=" + isOptional
         + '}';
   }
 }

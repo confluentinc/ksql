@@ -209,6 +209,333 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Result schema is `K` STRING KEY, `DATA_1` STRING, `DATA_2` STRING, `DATA_3` STRING\nSink schema is `K` STRING KEY, `DATA_1` STRING, `DATA_2` STRING"
       }
+    },
+    {
+      "name": "fails when not inserting value to a VARCHAR NOT NULL column",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, data VARCHAR NOT NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "INSERT INTO SOURCE1 (K) VALUES ('bar');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Invalid value: null used for required field: \"DATA\", schema type: STRING"
+      }
+    },
+    {
+      "name": "fails when not inserting value to a STRING NOT NULL column",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, data STRING NOT NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "INSERT INTO SOURCE1 (K) VALUES ('bar');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Invalid value: null used for required field: \"DATA\", schema type: STRING"
+      }
+    },
+    {
+      "name": "fails when not inserting value to a INT32 NOT NULL column",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, data INT NOT NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "INSERT INTO SOURCE1 (K) VALUES ('bar');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Invalid value: null used for required field: \"DATA\", schema type: INT32"
+      }
+    },
+    {
+      "name": "fails when not inserting value to a BOOLEAN NOT NULL column",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, data BOOLEAN NOT NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "INSERT INTO SOURCE1 (K) VALUES ('bar');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Invalid value: null used for required field: \"DATA\", schema type: BOOLEAN"
+      }
+    },
+    {
+      "name": "fails when not inserting value to a BIGINT NOT NULL column",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, data BIGINT NOT NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "INSERT INTO SOURCE1 (K) VALUES ('bar');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Invalid value: null used for required field: \"DATA\", schema type: INT64"
+      }
+    },
+    {
+      "name": "fails when not inserting value to a DOUBLE NOT NULL column",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, data DOUBLE NOT NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "INSERT INTO SOURCE1 (K) VALUES ('bar');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Invalid value: null used for required field: \"DATA\", schema type: FLOAT64"
+      }
+    },
+    {
+      "name": "fails when not inserting value to a DECIMAL NOT NULL column",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, data DECIMAL(20,10) NOT NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "INSERT INTO SOURCE1 (K) VALUES ('bar') ;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Invalid value: null used for required field: \"DATA\", schema type: BYTES"
+      }
+    },
+    {
+      "name": "fails when not inserting value to a ARRAY<STRING> NOT NULL column",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, data ARRAY<STRING> NOT NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "INSERT INTO SOURCE1 (K) VALUES ('bar') ;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Invalid value: null used for required field: \"DATA\", schema type: ARRAY"
+      }
+    },
+    {
+      "name": "fails when not inserting value to a MAP<STRING, INT> NOT NULL column",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, data MAP<STRING, INT> NOT NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "INSERT INTO SOURCE1 (K) VALUES ('bar') ;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Invalid value: null used for required field: \"DATA\", schema type: MAP"
+      }
+    },
+    {
+      "name": "fails when not inserting value to a MAP<STRING, INT NOT NULL> NOT NULL column",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, data MAP<STRING, INT NOT NULL> NOT NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "INSERT INTO SOURCE1 (K, data) VALUES ('bar', MAP('key':=null)) ;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Failed to insert values into 'SOURCE1'. Invalid insert value: Cannot construct a map with all NULL values (see https://github.com/confluentinc/ksql/issues/4239). As a workaround, you may cast a NULL value to the desired type.. expression:MAP('key':=null), schema:"
+      }
+    },
+    {
+      "name": "fails when inserting null to a STRUCT<a VARCHAR, b INT> NOT NULL column",
+      "statements": [
+        "CREATE STREAM SOURCE1 (K STRING KEY, data STRUCT<a VARCHAR, b INT> NOT NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "INSERT INTO SOURCE1 (K) VALUES ('bar') ;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Invalid value: null used for required field: \"DATA\", schema type: STRUCT"
+      }
+    },
+    {
+      "name": "fails when inserting null to a STRUCT<a VARCHAR, b INT NOT NULL> NOT NULL column",
+      "statements": [
+        "CREATE STREAM SOURCE1 (data STRUCT<a VARCHAR, b INTEGER NOT NULL, c DOUBLE NOT NULL> NOT NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "INSERT INTO SOURCE1 (data) VALUES (STRUCT(a:='a')) ;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Failed to insert values into 'SOURCE1'. Could not serialize value: [ Struct{A=a} ]. Failed to prepare Struct value field 'DATA' for serialization. This could happen if the value was produced by a user-defined function where the schema has non-optional return types."
+      }
+    },
+    {
+      "name": "fails when inserting null to a MAP<STRING, STRUCT<a VARCHAR, b INT NOT NULL>> column",
+      "statements": [
+        "CREATE STREAM SOURCE1 (data MAP<STRING, STRUCT<a VARCHAR, b INT NOT NULL>>) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "INSERT INTO SOURCE1 (data) VALUES (MAP('key':=STRUCT(a:='a'))) ;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Invalid value: null used for required field: \"B\", schema type: INT32"
+      }
+    },
+    {
+      "name": "fails when inserting null to a ARRAY<STRUCT<a VARCHAR, b INT NOT NULL>> column",
+      "statements": [
+        "CREATE STREAM SOURCE1 (data ARRAY<STRUCT<a VARCHAR, b INT NOT NULL>>) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "INSERT INTO SOURCE1 (data) VALUES (ARRAY[STRUCT(a:='a')]) ;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Invalid value: null used for required field: \"B\", schema type: INT32"
+      }
+    },
+    {
+      "name": "fails when inserting null to a ARRAY<STRUCT<a VARCHAR NOT NULL, b INT NULL, c DOUBLE NOT NULL>> column",
+      "statements": [
+        "CREATE STREAM SOURCE1 (data ARRAY<STRUCT<a VARCHAR, b INT NULL, c DOUBLE NOT NULL>>) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "INSERT INTO SOURCE1 (data) VALUES (ARRAY[STRUCT(b:=1)]) ;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Invalid value: null used for required field: \"C\", schema type: FLOAT64"
+      }
+    },
+    {
+      "name": "insert null into NOT NULL field fails the insert",
+      "statements": [
+        "CREATE STREAM SOURCE1 (v1 VARCHAR NOT NULL, v2 STRING NOT NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;",
+        "INSERT INTO OUTPUT (v2) VALUES ('string');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Invalid value: null used for required field: \"V1\", schema type: STRING"
+      }
+    },
+    {
+      "name": "insert primitives VARCHAR NULL",
+      "statements": [
+        "CREATE STREAM SOURCE1 (v1 VARCHAR NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;",
+        "INSERT INTO OUTPUT (v1) VALUES ('varchar1');"
+      ],
+      "inputs": [
+        {"topic": "insert-source",  "value": {"v1" : "varchar2" }}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": {"V1": "varchar1" }},
+        {"topic": "OUTPUT", "key": null, "value": {"V1": "varchar2" }}
+      ]
+    },
+    {
+      "name": "insert values to STRING NULL",
+      "statements": [
+        "CREATE STREAM SOURCE1 (v1 STRING NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;",
+        "INSERT INTO OUTPUT (v1) VALUES ('string1');"
+      ],
+      "inputs": [
+        {"topic": "insert-source", "value": {"v1": "string2"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": {"V1": "string1" }},
+        {"topic": "OUTPUT", "key": null, "value": {"V1": "string2" }}
+      ]
+    },
+    {
+      "name": "insert values to INT NULL",
+      "statements": [
+        "CREATE STREAM SOURCE1 (v1 INT NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;",
+        "INSERT INTO OUTPUT (v1) VALUES (1);"
+      ],
+      "inputs": [
+        {"topic": "insert-source", "value": {"v1": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": {"V1": 1 }},
+        {"topic": "OUTPUT", "key": null, "value": {"V1": 2 }}
+      ]
+    },
+    {
+      "name": "insert values to INTEGER NULL",
+      "statements": [
+        "CREATE STREAM SOURCE1 (v1 INTEGER NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;",
+        "INSERT INTO OUTPUT (v1) VALUES (1);"
+      ],
+      "inputs": [
+        {"topic": "insert-source", "value": {"v1": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": {"V1": 1 }},
+        {"topic": "OUTPUT", "key": null, "value": {"V1": 2 }}
+      ]
+    },
+    {
+      "name": "insert values to DOUBLE NULL",
+      "statements": [
+        "CREATE STREAM SOURCE1 (v1 DOUBLE NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;",
+        "INSERT INTO OUTPUT (v1) VALUES (1.0);"
+      ],
+      "inputs": [
+        {"topic": "insert-source", "value": {"v1": 2.0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": {"V1": 1.0 }},
+        {"topic": "OUTPUT", "key": null, "value": {"V1": 2.0 }}
+      ]
+    },
+    {
+      "name": "insert values to BIGINT NULL",
+      "statements": [
+        "CREATE STREAM SOURCE1 (v1 BIGINT NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;",
+        "INSERT INTO OUTPUT (v1) VALUES (1);"
+      ],
+      "inputs": [
+        {"topic": "insert-source", "value": {"v1": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": {"V1": 1 }},
+        {"topic": "OUTPUT", "key": null, "value": {"V1": 2 }}
+      ]
+    },
+    {
+      "name": "insert values to BOOLEAN NULL",
+      "statements": [
+        "CREATE STREAM SOURCE1 (v1 BOOLEAN NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;",
+        "INSERT INTO OUTPUT (v1) VALUES (true);"
+      ],
+      "inputs": [
+        {"topic": "insert-source", "value": {"v1": false}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": {"V1": true }},
+        {"topic": "OUTPUT", "key": null, "value": {"V1": false }}
+      ]
+    },
+    {
+      "name": "insert values to DECIMAL NULL",
+      "statements": [
+        "CREATE STREAM SOURCE1 (v1 DECIMAL(6,4) NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;",
+        "INSERT INTO OUTPUT (v1) VALUES (1);"
+      ],
+      "inputs": [
+        {"topic": "insert-source", "value": {"v1": 2}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": {"V1": 1.0000 }},
+        {"topic": "OUTPUT", "key": null, "value": {"V1": 2.0000 }}
+      ]
+    },
+    {
+      "name": "insert values to MAP NULL",
+      "statements": [
+        "CREATE STREAM SOURCE1 (v1 MAP<STRING, INTEGER NULL> NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;",
+        "INSERT INTO OUTPUT (v1) VALUES (MAP('k':=1));"
+      ],
+      "inputs": [
+        {"topic": "insert-source", "value": {"v1": {"k": 2}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": {"V1": {"k": 1} }},
+        {"topic": "OUTPUT", "key": null, "value": {"V1": {"k": 2} }}
+      ]
+    },
+    {
+      "name": "insert values to ARRAY NULL",
+      "statements": [
+        "CREATE STREAM SOURCE1 (v1 ARRAY<INTEGER> NULL) WITH (kafka_topic='insert-source', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM SOURCE1;",
+        "INSERT INTO OUTPUT (v1) VALUES (ARRAY[1]);"
+      ],
+      "inputs": [
+        {"topic": "insert-source", "value": {"v1": [2]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": null, "value": {"V1": [1] }},
+        {"topic": "OUTPUT", "key": null, "value": {"V1": [2] }}
+      ]
     }
   ]
 }

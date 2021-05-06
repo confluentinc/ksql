@@ -31,11 +31,16 @@ public final class SqlDecimal extends SqlType {
 
 
   public static SqlDecimal of(final int precision, final int scale) {
-    return new SqlDecimal(precision, scale);
+    return new SqlDecimal(precision, scale, true);
   }
 
-  private SqlDecimal(final int precision, final int scale) {
-    super(SqlBaseType.DECIMAL);
+  @Override
+  public SqlDecimal required() {
+    return new SqlDecimal(precision, scale, false);
+  }
+
+  private SqlDecimal(final int precision, final int scale, final boolean optional) {
+    super(SqlBaseType.DECIMAL, optional);
     this.precision = precision;
     this.scale = scale;
 
@@ -70,17 +75,19 @@ public final class SqlDecimal extends SqlType {
     }
     final SqlDecimal that = (SqlDecimal) o;
     return precision == that.precision
-        && scale == that.scale;
+        && scale == that.scale
+        && isOptional() == that.isOptional();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(precision, scale);
+    return Objects.hash(precision, scale, isOptional());
   }
 
   @Override
   public String toString() {
-    return "DECIMAL(" + precision + ", " + scale + ')';
+    return "DECIMAL(" + precision + ", " + scale + ')'
+            + (!this.isOptional() ? " NOT NULL" : "");
   }
 
   @Override

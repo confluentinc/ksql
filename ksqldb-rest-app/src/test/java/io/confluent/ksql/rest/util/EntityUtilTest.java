@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.hasSize;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.FieldInfo.FieldType;
+import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -73,6 +74,7 @@ public class EntityUtilTest {
     assertThat(fields.get(0).getName(), equalTo("field"));
     assertThat(fields.get(0).getSchema().getTypeName(), equalTo("MAP"));
     assertThat(fields.get(0).getSchema().getFields(), equalTo(Optional.empty()));
+    assertThat(fields.get(0).getSchema().isOptional(), equalTo(true));
     assertThat(fields.get(0).getSchema().getMemberSchema().get().getTypeName(),
         equalTo("INTEGER"));
   }
@@ -113,6 +115,7 @@ public class EntityUtilTest {
     assertThat(fields.get(0).getName(), equalTo("field"));
     assertThat(fields.get(0).getSchema().getTypeName(), equalTo("ARRAY"));
     assertThat(fields.get(0).getSchema().getFields(), equalTo(Optional.empty()));
+    assertThat(fields.get(0).getSchema().isOptional(), equalTo(true));
     assertThat(fields.get(0).getSchema().getMemberSchema().get().getTypeName(),
         equalTo("BIGINT"));
   }
@@ -134,10 +137,12 @@ public class EntityUtilTest {
     assertThat(fields.get(0).getName(), equalTo("field"));
     assertThat(fields.get(0).getSchema().getTypeName(), equalTo("STRUCT"));
     assertThat(fields.get(0).getSchema().getFields().get().size(), equalTo(1));
+    assertThat(fields.get(0).getSchema().isOptional(), equalTo(true));
     final FieldInfo inner = fields.get(0).getSchema().getFields().get().get(0);
     assertThat(inner.getSchema().getTypeName(), equalTo("STRING"));
     assertThat(inner.getType(), equalTo(Optional.empty()));
     assertThat(fields.get(0).getSchema().getMemberSchema(), equalTo(Optional.empty()));
+    assertThat(fields.get(0).getSchema().isOptional(), equalTo(true));
   }
 
   @Test
@@ -155,8 +160,10 @@ public class EntityUtilTest {
     assertThat(fields, hasSize(2));
     assertThat(fields.get(0).getName(), equalTo("field1"));
     assertThat(fields.get(0).getSchema().getTypeName(), equalTo("INTEGER"));
+    assertThat(fields.get(0).getSchema().isOptional(), equalTo(true));
     assertThat(fields.get(1).getName(), equalTo("field2"));
     assertThat(fields.get(1).getSchema().getTypeName(), equalTo("BIGINT"));
+    assertThat(fields.get(1).getSchema().isOptional(), equalTo(true));
   }
 
   @Test
@@ -246,6 +253,7 @@ public class EntityUtilTest {
     assertThat(fields.get(0).getSchema().getTypeName(), equalTo(schemaName));
     assertThat(fields.get(0).getSchema().getFields(), equalTo(Optional.empty()));
     assertThat(fields.get(0).getSchema().getMemberSchema(), equalTo(Optional.empty()));
+    assertThat(fields.get(0).getSchema().isOptional(), equalTo(true));
     assertThat(fields.get(0).getType(), equalTo(Optional.empty()));
   }
 }

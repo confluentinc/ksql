@@ -69,19 +69,19 @@ public final class EntityUtil {
   private static final class Converter implements SqlTypeWalker.Visitor<SchemaInfo, FieldInfo> {
 
     public SchemaInfo visitType(final SqlType schema) {
-      return new SchemaInfo(schema.baseType(), null, null);
+      return new SchemaInfo(schema.baseType(), null, null, schema.isOptional());
     }
 
     public SchemaInfo visitArray(final SqlArray type, final SchemaInfo element) {
-      return new SchemaInfo(SqlBaseType.ARRAY, null, element);
+      return new SchemaInfo(SqlBaseType.ARRAY, null, element, type.isOptional());
     }
 
     public SchemaInfo visitMap(final SqlMap type, final SchemaInfo key, final SchemaInfo value) {
-      return new SchemaInfo(SqlBaseType.MAP, null, value);
+      return new SchemaInfo(SqlBaseType.MAP, null, value, type.isOptional());
     }
 
     public SchemaInfo visitStruct(final SqlStruct type, final List<? extends FieldInfo> fields) {
-      return new SchemaInfo(SqlBaseType.STRUCT, fields, null);
+      return new SchemaInfo(SqlBaseType.STRUCT, fields, null, type.isOptional());
     }
 
     public FieldInfo visitField(final Field field, final SchemaInfo type) {
@@ -93,7 +93,7 @@ public final class EntityUtil {
               SqlBaseType.DECIMAL,
               null,
               null,
-              type.toParametersMap()
+              type.toParametersMap(), type.isOptional()
       );
     }
   }

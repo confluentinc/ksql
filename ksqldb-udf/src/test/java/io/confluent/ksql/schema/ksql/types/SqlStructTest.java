@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.fail;
 
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
@@ -51,6 +52,20 @@ public class SqlStructTest {
           .addEqualityGroup(
               SqlStruct.builder().field("f0", SqlTypes.BIGINT).build()
           )
+          .addEqualityGroup(
+                  SqlStruct.builder().field("f0", SqlTypes.INTEGER.required())
+                          .build().required(),
+                  SqlStruct.builder().field("f0", SqlTypes.INTEGER.required())
+                          .build().required()
+          )
+          .addEqualityGroup(
+                  SqlStruct.builder().field("f1", SqlTypes.INTEGER.required())
+                          .build().required()
+          )
+          .addEqualityGroup(
+                  SqlStruct.builder().field("f0", SqlTypes.BIGINT.required())
+                          .build().required()
+          )
           .testEquals();
     }
 
@@ -58,6 +73,12 @@ public class SqlStructTest {
     public void shouldReturnSqlType() {
       assertThat(SqlStruct.builder().field("f0", SqlTypes.BIGINT).build().baseType(),
           is(SqlBaseType.STRUCT));
+      assertThat(SqlStruct.builder().field("f0", SqlTypes.BIGINT).build().isOptional(),
+              is(true));
+      assertThat(SqlStruct.builder().field("f0", SqlTypes.BIGINT).build().required().baseType(),
+              is(SqlBaseType.STRUCT));
+      assertThat(SqlStruct.builder().field("f0", SqlTypes.BIGINT).build().required().isOptional(),
+              is(false));
     }
 
     @Test
@@ -66,12 +87,16 @@ public class SqlStructTest {
       final SqlStruct struct = SqlStruct.builder()
           .field("f0", SqlTypes.BIGINT)
           .field("f1", SqlTypes.DOUBLE)
+          .field("f2", SqlTypes.BIGINT.required())
+          .field("f3", SqlTypes.DOUBLE.required())
           .build();
 
       // Then:
       assertThat(struct.fields(), contains(
           new Field("f0", SqlTypes.BIGINT, 0),
-          new Field("f1", SqlTypes.DOUBLE, 1)
+          new Field("f1", SqlTypes.DOUBLE, 1),
+          new Field("f2", SqlTypes.BIGINT.required(), 2),
+          new Field("f3", SqlTypes.DOUBLE.required(), 3)
       ));
     }
 
@@ -119,8 +144,14 @@ public class SqlStructTest {
           .field("F1", SqlTypes.array(SqlTypes.DOUBLE))
           .build();
 
+      final SqlStruct structRequired = SqlStruct.builder()
+              .field("f0", SqlTypes.BIGINT.required())
+              .field("F1", SqlTypes.array(SqlTypes.DOUBLE))
+              .build().required();
+
       // When:
       final String sql = struct.toString();
+      final String sqlRequired = structRequired.toString();
 
       // Then:
       assertThat(sql, is(
@@ -129,18 +160,27 @@ public class SqlStructTest {
               + ", `F1` " + SqlTypes.array(SqlTypes.DOUBLE)
               + ">"
       ));
+      assertThat(sqlRequired, is(
+              "STRUCT<"
+                      + "`f0` " + SqlTypes.BIGINT + " NOT NULL"
+                      + ", `F1` " + SqlTypes.array(SqlTypes.DOUBLE)
+                      + "> NOT NULL"
+      ));
     }
 
     @Test
     public void shouldImplementToStringForEmptyStruct() {
       // Given:
       final SqlStruct emptyStruct = SqlStruct.builder().build();
+      final SqlStruct emptyStructRequired = SqlStruct.builder().build().required();
 
       // When:
       final String sql = emptyStruct.toString();
+      final String sqlRequired = emptyStructRequired.toString();
 
       // Then:
       assertThat(sql, is("STRUCT< >"));
+      assertThat(sqlRequired, is("STRUCT< > NOT NULL"));
     }
 
     @Test
@@ -171,14 +211,18 @@ public class SqlStructTest {
       // Given:
       final SqlStruct schema = SqlTypes.struct()
           .field("f0", SqlTypes.BIGINT)
+          .field("f1", SqlTypes.BIGINT.required())
           .build();
 
       // When:
       final Optional<SqlStruct.Field> result = schema.field("f0");
+      final Optional<SqlStruct.Field> resultRequired = schema.field("f1");
 
       // Then:
       assertThat(result, is(not(Optional.empty())));
       assertThat(result.get().name(), is("f0"));
+      assertThat(resultRequired, is(not(Optional.empty())));
+      assertThat(resultRequired.get().name(), is("f1"));
     }
 
     @Test
@@ -186,6 +230,7 @@ public class SqlStructTest {
       // Given:
       final SqlStruct schema = SqlTypes.struct()
           .field("f0", SqlTypes.BIGINT)
+          .field("f1", SqlTypes.BIGINT.required())
           .build();
 
       // When:
@@ -200,6 +245,7 @@ public class SqlStructTest {
       // Given:
       final SqlStruct schema = SqlTypes.struct()
           .field("f0", SqlTypes.BIGINT)
+          .field("f1", SqlTypes.BIGINT.required())
           .build();
 
       // When:

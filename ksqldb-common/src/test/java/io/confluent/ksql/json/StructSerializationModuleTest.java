@@ -50,7 +50,7 @@ public class StructSerializationModuleTest {
       .field("ITEMID", Schema.INT64_SCHEMA)
       .field("NAME", Schema.STRING_SCHEMA)
       .field("CATEGORY", categorySchema)
-      .field("COST", DecimalUtil.builder(4, 2).build())
+      .field("COST", DecimalUtil.builder(4, 2).optional().build())
       .optional().build();
 
   private ObjectMapper objectMapper;

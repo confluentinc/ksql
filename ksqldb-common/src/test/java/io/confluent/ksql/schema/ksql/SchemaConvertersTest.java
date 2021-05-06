@@ -59,38 +59,64 @@ import org.junit.Test;
 public class SchemaConvertersTest {
 
   private static final Schema CONNECT_BOOLEAN_SCHEMA = SchemaBuilder.bool().optional().build();
+  private static final Schema CONNECT_BOOLEAN_REQUIRED_SCHEMA = SchemaBuilder.bool().required().build();
   private static final Schema CONNECT_INTEGER_SCHEMA = SchemaBuilder.int32().optional().build();
+  private static final Schema CONNECT_INTEGER_REQUIRED_SCHEMA = SchemaBuilder.int32().required().build();
   private static final Schema CONNECT_BIGINT_SCHEMA = SchemaBuilder.int64().optional().build();
+  private static final Schema CONNECT_BIGINT_REQUIRED_SCHEMA = SchemaBuilder.int64().required().build();
   private static final Schema CONNECT_DOUBLE_SCHEMA = SchemaBuilder.float64().optional().build();
+  private static final Schema CONNECT_DOUBLE_REQUIRED_SCHEMA = SchemaBuilder.float64().required().build();
   private static final Schema CONNECT_STRING_SCHEMA = SchemaBuilder.string().optional().build();
+  private static final Schema CONNECT_STRING_REQUIRED_SCHEMA = SchemaBuilder.string().required().build();
   private static final Schema CONNECT_TIMESTAMP_SCHEMA =
       org.apache.kafka.connect.data.Timestamp.builder().optional().schema();
 
   private static final BiMap<SqlType, Schema> SQL_TO_LOGICAL = ImmutableBiMap.<SqlType, Schema>builder()
       .put(SqlTypes.BOOLEAN, CONNECT_BOOLEAN_SCHEMA)
+      .put(SqlTypes.BOOLEAN.required(), CONNECT_BOOLEAN_REQUIRED_SCHEMA)
       .put(SqlTypes.INTEGER, CONNECT_INTEGER_SCHEMA)
+      .put(SqlTypes.INTEGER.required(), CONNECT_INTEGER_REQUIRED_SCHEMA)
       .put(SqlTypes.BIGINT, CONNECT_BIGINT_SCHEMA)
+      .put(SqlTypes.BIGINT.required(), CONNECT_BIGINT_REQUIRED_SCHEMA)
       .put(SqlTypes.DOUBLE, CONNECT_DOUBLE_SCHEMA)
+      .put(SqlTypes.DOUBLE.required(), CONNECT_DOUBLE_REQUIRED_SCHEMA)
       .put(SqlTypes.STRING, CONNECT_STRING_SCHEMA)
+      .put(SqlTypes.STRING.required(), CONNECT_STRING_REQUIRED_SCHEMA)
       .put(SqlTypes.TIMESTAMP, CONNECT_TIMESTAMP_SCHEMA)
       .put(SqlArray.of(SqlTypes.INTEGER), SchemaBuilder
           .array(Schema.OPTIONAL_INT32_SCHEMA)
           .optional()
           .build()
       )
-      .put(SqlDecimal.of(2, 1), DecimalUtil.builder(2, 1).build())
+      .put(SqlArray.of(SqlTypes.INTEGER.required()).required(), SchemaBuilder
+          .array(Schema.INT32_SCHEMA)
+          .required()
+          .build()
+      )
+      .put(SqlDecimal.of(2, 1), DecimalUtil.builder(2, 1).optional().build())
+      .put(SqlDecimal.of(2, 1).required(), DecimalUtil.builder(2, 1).required().build())
       .put(SqlMap.of(SqlTypes.BIGINT, SqlTypes.INTEGER), SchemaBuilder
           .map(Schema.OPTIONAL_INT64_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
           .optional()
           .build()
       )
+      .put(SqlMap.of(SqlTypes.BIGINT.required(), SqlTypes.INTEGER.required()).required(), SchemaBuilder
+          .map(Schema.INT64_SCHEMA, Schema.INT32_SCHEMA)
+          .required()
+          .build()
+      )
       .put(SqlStruct.builder()
-              .field("f0", SqlTypes.INTEGER)
-              .build(),
-          SchemaBuilder.struct()
-              .field("f0", Schema.OPTIONAL_INT32_SCHEMA)
-              .optional()
-              .build())
+          .field("f0", SqlTypes.INTEGER)
+          .build(), SchemaBuilder.struct()
+          .field("f0", Schema.OPTIONAL_INT32_SCHEMA)
+          .optional()
+          .build())
+      .put(SqlStruct.builder()
+          .field("f0", SqlTypes.INTEGER.required())
+          .build().required(), SchemaBuilder.struct()
+          .field("f0", Schema.INT32_SCHEMA)
+          .required()
+          .build())
       .build();
 
   private static final BiMap<SqlBaseType, Class<?>> SQL_TO_JAVA = ImmutableBiMap
@@ -129,6 +155,28 @@ public class SchemaConvertersTest {
               .build())
       .build();
 
+  private static final BiMap<SqlType, ParamType> SQL_TO_FUNCTION_REQUIRED = ImmutableBiMap
+          .<SqlType, ParamType>builder()
+          .put(SqlTypes.BOOLEAN.required(), ParamTypes.BOOLEAN)
+          .put(SqlTypes.INTEGER.required(), ParamTypes.INTEGER)
+          .put(SqlTypes.BIGINT.required(), ParamTypes.LONG)
+          .put(SqlTypes.DOUBLE.required(), ParamTypes.DOUBLE)
+          .put(SqlTypes.STRING.required(), ParamTypes.STRING)
+          .put(SqlTypes.TIMESTAMP.required(), ParamTypes.TIMESTAMP)
+          .put(SqlArray.of(SqlTypes.INTEGER.required()), ArrayType.of(ParamTypes.INTEGER))
+          .put(SqlDecimal.of(2, 1), ParamTypes.DECIMAL)
+          .put(
+                  SqlMap.of(SqlTypes.BIGINT.required(), SqlTypes.INTEGER),
+                  MapType.of(ParamTypes.LONG, ParamTypes.INTEGER)
+          )
+          .put(SqlStruct.builder()
+                          .field("f0", SqlTypes.INTEGER.required())
+                          .build().required(),
+                  StructType.builder()
+                          .field("f0", ParamTypes.INTEGER)
+                          .build())
+          .build();
+
   private static final Set<ParamType> REQUIRES_SCHEMA_SPEC = ImmutableSet.of(
       ParamTypes.DECIMAL
   );
@@ -136,6 +184,11 @@ public class SchemaConvertersTest {
   private static final Schema STRUCT_LOGICAL_TYPE = SchemaBuilder.struct()
       .field("F0", SchemaBuilder.int32().optional().build())
       .optional()
+      .build();
+
+  private static final Schema STRUCT_LOGICAL_TYPE_REQUIRED = SchemaBuilder.struct()
+      .field("F0", SchemaBuilder.int32().required().build())
+      .required()
       .build();
 
   private static final Schema NESTED_LOGICAL_TYPE = SchemaBuilder.struct()
@@ -146,15 +199,33 @@ public class SchemaConvertersTest {
       .optional()
       .build();
 
+  private static final Schema NESTED_LOGICAL_TYPE_REQUIRED = SchemaBuilder.struct()
+      .field("ARRAY", SchemaBuilder.array(STRUCT_LOGICAL_TYPE_REQUIRED).required().build())
+      .field("MAP",
+              SchemaBuilder.map(CONNECT_DOUBLE_REQUIRED_SCHEMA, STRUCT_LOGICAL_TYPE_REQUIRED).required().build())
+      .field("STRUCT", STRUCT_LOGICAL_TYPE_REQUIRED)
+      .required()
+      .build();
+
   private static final SqlType STRUCT_SQL_TYPE = SqlStruct.builder()
       .field("F0", SqlTypes.INTEGER)
       .build();
+
+  private static final SqlType STRUCT_SQL_TYPE_REQUIRED = SqlStruct.builder()
+          .field("F0", SqlTypes.INTEGER.required())
+          .build().required();
 
   private static final SqlType NESTED_SQL_TYPE = SqlStruct.builder()
       .field("ARRAY", SqlArray.of(STRUCT_SQL_TYPE))
       .field("MAP", SqlMap.of(SqlTypes.DOUBLE, STRUCT_SQL_TYPE))
       .field("STRUCT", STRUCT_SQL_TYPE)
       .build();
+
+  private static final SqlType NESTED_SQL_TYPE_REQUIRED = SqlStruct.builder()
+          .field("ARRAY", SqlArray.of(STRUCT_SQL_TYPE_REQUIRED).required())
+          .field("MAP", SqlMap.of(SqlTypes.DOUBLE.required(), STRUCT_SQL_TYPE_REQUIRED).required())
+          .field("STRUCT", STRUCT_SQL_TYPE_REQUIRED.required())
+          .build().required();
 
   @Test
   public void shouldHaveConnectTestsForAllSqlTypes() {
@@ -235,11 +306,13 @@ public class SchemaConvertersTest {
   @Test
   public void shouldConvertNestedComplexToSql() {
     assertThat(SchemaConverters.connectToSqlConverter().toSqlType(NESTED_LOGICAL_TYPE), is(NESTED_SQL_TYPE));
+    assertThat(SchemaConverters.connectToSqlConverter().toSqlType(NESTED_LOGICAL_TYPE_REQUIRED), is(NESTED_SQL_TYPE_REQUIRED));
   }
 
   @Test
   public void shouldConvertNestedComplexFromSql() {
     assertThat(SchemaConverters.sqlToConnectConverter().toConnectSchema(NESTED_SQL_TYPE), is(NESTED_LOGICAL_TYPE));
+    assertThat(SchemaConverters.sqlToConnectConverter().toConnectSchema(NESTED_SQL_TYPE_REQUIRED), is(NESTED_LOGICAL_TYPE_REQUIRED));
   }
 
   @Test
@@ -317,8 +390,30 @@ public class SchemaConvertersTest {
   }
 
   @Test
+  public void shouldCoverAllSqlToFunctionRequired() {
+    final Set<SqlBaseType> tested = SQL_TO_FUNCTION_REQUIRED.keySet().stream()
+            .map(SqlType::baseType)
+            .collect(Collectors.toSet());
+
+    final ImmutableSet<SqlBaseType> allTypes = ImmutableSet.copyOf(SqlBaseType.values());
+
+    assertThat("If this test fails then there has been a new SQL type added and this test "
+            + "file needs updating to cover that new type", tested, is(allTypes));
+  }
+
+  @Test
   public void shouldGetParamTypesForAllSqlTypes() {
     for (final Entry<SqlType, ParamType> entry : SQL_TO_FUNCTION.entrySet()) {
+      final SqlType sqlType = entry.getKey();
+      final ParamType javaType = entry.getValue();
+      final ParamType result = SchemaConverters.sqlToFunctionConverter().toFunctionType(sqlType);
+      assertThat(result, equalTo(javaType));
+    }
+  }
+
+  @Test
+  public void shouldGetParamTypesForAllSqlTypesRequired() {
+    for (final Entry<SqlType, ParamType> entry : SQL_TO_FUNCTION_REQUIRED.entrySet()) {
       final SqlType sqlType = entry.getKey();
       final ParamType javaType = entry.getValue();
       final ParamType result = SchemaConverters.sqlToFunctionConverter().toFunctionType(sqlType);
@@ -338,5 +433,4 @@ public class SchemaConvertersTest {
       assertThat(SchemaConverters.functionToSqlConverter().toSqlType(param), is(sqlType));
     }
   }
-
 }

@@ -16,9 +16,9 @@ public class SchemaInfoTest {
             SqlBaseType.DECIMAL,
             null,
             null,
-            ImmutableMap.of("precision", 10, "scale", 9)
+            ImmutableMap.of("precision", 10, "scale", 9), false
     );
-    assertThat(schemaInfo.toTypeString(), equalTo("DECIMAL(10, 9)"));
+    assertThat(schemaInfo.toTypeString(), equalTo("DECIMAL(10, 9) NOT NULL"));
   }
 
   @Test
@@ -26,8 +26,8 @@ public class SchemaInfoTest {
     final SchemaInfo schemaInfo= new SchemaInfo(
             SqlBaseType.DECIMAL,
             null,
-            null
+            null, false
     );
-    assertThat(schemaInfo.toTypeString(), equalTo("DECIMAL"));
+    assertThat(schemaInfo.toTypeString(), equalTo("DECIMAL NOT NULL"));
   }
 }

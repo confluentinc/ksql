@@ -31,12 +31,12 @@ public final class SqlPrimitiveType extends SqlType {
 
   private static final ImmutableMap<SqlBaseType, SqlPrimitiveType> TYPES =
       ImmutableMap.<SqlBaseType, SqlPrimitiveType>builder()
-          .put(SqlBaseType.BOOLEAN, new SqlPrimitiveType(SqlBaseType.BOOLEAN))
-          .put(SqlBaseType.INTEGER, new SqlPrimitiveType(SqlBaseType.INTEGER))
-          .put(SqlBaseType.BIGINT, new SqlPrimitiveType(SqlBaseType.BIGINT))
-          .put(SqlBaseType.DOUBLE, new SqlPrimitiveType(SqlBaseType.DOUBLE))
-          .put(SqlBaseType.STRING, new SqlPrimitiveType(SqlBaseType.STRING))
-          .put(SqlBaseType.TIMESTAMP, new SqlPrimitiveType(SqlBaseType.TIMESTAMP))
+          .put(SqlBaseType.BOOLEAN, new SqlPrimitiveType(SqlBaseType.BOOLEAN, true))
+          .put(SqlBaseType.INTEGER, new SqlPrimitiveType(SqlBaseType.INTEGER, true))
+          .put(SqlBaseType.BIGINT, new SqlPrimitiveType(SqlBaseType.BIGINT, true))
+          .put(SqlBaseType.DOUBLE, new SqlPrimitiveType(SqlBaseType.DOUBLE, true))
+          .put(SqlBaseType.STRING, new SqlPrimitiveType(SqlBaseType.STRING,true))
+          .put(SqlBaseType.TIMESTAMP, new SqlPrimitiveType(SqlBaseType.TIMESTAMP, true))
           .build();
 
   private static final ImmutableSet<String> PRIMITIVE_TYPE_NAMES = ImmutableSet.<String>builder()
@@ -73,8 +73,13 @@ public final class SqlPrimitiveType extends SqlType {
     return primitive;
   }
 
-  private SqlPrimitiveType(final SqlBaseType baseType) {
-    super(baseType);
+  @Override
+  public SqlPrimitiveType required() {
+    return new SqlPrimitiveType(this.baseType(), false);
+  }
+
+  private SqlPrimitiveType(final SqlBaseType baseType, final boolean optional) {
+    super(baseType, optional);
   }
 
   @Override
@@ -87,17 +92,18 @@ public final class SqlPrimitiveType extends SqlType {
     }
 
     final SqlPrimitiveType that = (SqlPrimitiveType) o;
-    return Objects.equals(this.baseType(), that.baseType());
+    return Objects.equals(this.baseType(), that.baseType())
+           && Objects.equals(this.isOptional(), that.isOptional());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(baseType());
+    return Objects.hash(baseType(), isOptional());
   }
 
   @Override
   public String toString() {
-    return baseType().toString();
+    return baseType().toString() + (!this.isOptional() ? " NOT NULL" : "");
   }
 
   @Override

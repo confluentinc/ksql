@@ -72,7 +72,6 @@ public final class DecimalUtil {
     validateParameters(precision, scale);
     return org.apache.kafka.connect.data.Decimal
         .builder(scale)
-        .optional()
         .parameter(PRECISION_FIELD, Integer.toString(precision));
   }
 

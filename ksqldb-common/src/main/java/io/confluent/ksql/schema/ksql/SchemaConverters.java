@@ -238,7 +238,8 @@ public final class SchemaConverters {
         throw new KsqlException("Unexpected schema type: " + schema);
       }
 
-      return handler.apply(schema);
+      return handler.andThen(i -> !schema.isOptional() ? i.required() : i)
+              .apply(schema);
     }
 
     private static SqlDecimal handleBytes(final Schema schema) {
@@ -268,11 +269,11 @@ public final class SchemaConverters {
 
     private static final Map<SqlBaseType, Function<SqlType, SchemaBuilder>> SQL_TO_CONNECT =
         ImmutableMap.<SqlBaseType, Function<SqlType, SchemaBuilder>>builder()
-            .put(SqlBaseType.STRING, t -> SchemaBuilder.string().optional())
-            .put(SqlBaseType.BOOLEAN, t -> SchemaBuilder.bool().optional())
-            .put(SqlBaseType.INTEGER, t -> SchemaBuilder.int32().optional())
-            .put(SqlBaseType.BIGINT, t -> SchemaBuilder.int64().optional())
-            .put(SqlBaseType.DOUBLE, t -> SchemaBuilder.float64().optional())
+            .put(SqlBaseType.STRING, t -> SchemaBuilder.string())
+            .put(SqlBaseType.BOOLEAN, t -> SchemaBuilder.bool())
+            .put(SqlBaseType.INTEGER, t -> SchemaBuilder.int32())
+            .put(SqlBaseType.BIGINT, t -> SchemaBuilder.int64())
+            .put(SqlBaseType.DOUBLE, t -> SchemaBuilder.float64())
             .put(SqlBaseType.DECIMAL, t -> ConnectFromSqlConverter.fromSqlDecimal((SqlDecimal) t))
             .put(SqlBaseType.ARRAY, t -> ConnectFromSqlConverter.fromSqlArray((SqlArray) t))
             .put(SqlBaseType.MAP, t -> ConnectFromSqlConverter.fromSqlMap((SqlMap) t))
@@ -296,7 +297,8 @@ public final class SchemaConverters {
         throw new KsqlException("Unexpected sql type: " + sqlType);
       }
 
-      return handler.apply(sqlType);
+      return handler.andThen(i -> sqlType.isOptional() ? i.optional() : i.required())
+              .apply(sqlType);
     }
 
     private static SchemaBuilder fromSqlDecimal(final SqlDecimal sqlDecimal) {
@@ -305,8 +307,7 @@ public final class SchemaConverters {
 
     private static SchemaBuilder fromSqlArray(final SqlArray sqlArray) {
       return SchemaBuilder
-          .array(connectType(sqlArray.getItemType()).build())
-          .optional();
+          .array(connectType(sqlArray.getItemType()).build());
     }
 
     private static SchemaBuilder fromSqlMap(final SqlMap sqlMap) {
@@ -314,8 +315,7 @@ public final class SchemaConverters {
           .map(
               connectType(sqlMap.getKeyType()).build(),
               connectType(sqlMap.getValueType()).build()
-          )
-          .optional();
+          );
     }
 
     private static SchemaBuilder fromSqlStruct(final SqlStruct struct) {
@@ -324,8 +324,7 @@ public final class SchemaConverters {
       struct.fields()
           .forEach(field -> builder.field(field.name(), connectType(field.type()).build()));
 
-      return builder
-          .optional();
+      return builder;
     }
   }
 
@@ -381,6 +380,16 @@ public final class SchemaConverters {
             .put(ParamTypes.LONG, SqlTypes.BIGINT)
             .put(ParamTypes.DOUBLE, SqlTypes.DOUBLE)
             .put(ParamTypes.TIMESTAMP, SqlTypes.TIMESTAMP)
+            .build();
+
+    private static final BiMap<ParamType, SqlType> FUNCTION_TO_SQL_REQUIRED =
+        ImmutableBiMap.<ParamType, SqlType>builder()
+            .put(ParamTypes.STRING, SqlTypes.STRING.required())
+            .put(ParamTypes.BOOLEAN, SqlTypes.BOOLEAN.required())
+            .put(ParamTypes.INTEGER, SqlTypes.INTEGER.required())
+            .put(ParamTypes.LONG, SqlTypes.BIGINT.required())
+            .put(ParamTypes.DOUBLE, SqlTypes.DOUBLE.required())
+            .put(ParamTypes.TIMESTAMP, SqlTypes.TIMESTAMP.required())
             .build();
 
     @Override
@@ -452,7 +461,10 @@ public final class SchemaConverters {
 
     @Override
     public ParamType toFunctionType(final SqlType sqlType) {
-      final ParamType paramType = FunctionToSql.FUNCTION_TO_SQL.inverse().get(sqlType);
+      final ParamType paramType = FunctionToSql.FUNCTION_TO_SQL.inverse()
+              .getOrDefault(sqlType,FunctionToSql.FUNCTION_TO_SQL_REQUIRED
+              .inverse().get(sqlType));
+
       if (paramType != null) {
         return paramType;
       }

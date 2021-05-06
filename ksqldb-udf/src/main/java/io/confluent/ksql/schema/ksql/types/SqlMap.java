@@ -28,11 +28,16 @@ public final class SqlMap extends SqlType {
   private final SqlType valueType;
 
   public static SqlMap of(final SqlType keyType, final SqlType valueType) {
-    return new SqlMap(keyType, valueType);
+    return new SqlMap(keyType, valueType, true);
   }
 
-  private SqlMap(final SqlType keyType, final SqlType valueType) {
-    super(SqlBaseType.MAP);
+  @Override
+  public SqlMap required() {
+    return new SqlMap(keyType, valueType, false);
+  }
+
+  private SqlMap(final SqlType keyType, final SqlType valueType, final boolean optional) {
+    super(SqlBaseType.MAP, optional);
     this.keyType = requireNonNull(keyType, "keyType");
     this.valueType = requireNonNull(valueType, "valueType");
   }
@@ -55,12 +60,13 @@ public final class SqlMap extends SqlType {
     }
     final SqlMap map = (SqlMap) o;
     return Objects.equals(keyType, map.keyType)
-        && Objects.equals(valueType, map.valueType);
+        && Objects.equals(valueType, map.valueType)
+        && Objects.equals(isOptional(), map.isOptional());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(keyType, valueType);
+    return Objects.hash(keyType, valueType, isOptional());
   }
 
   @Override
@@ -73,6 +79,7 @@ public final class SqlMap extends SqlType {
     return "MAP<"
         + keyType.toString(formatOptions) + ", "
         + valueType.toString(formatOptions)
-        + '>';
+        + '>'
+        + (!this.isOptional() ? " NOT NULL" : "");
   }
 }

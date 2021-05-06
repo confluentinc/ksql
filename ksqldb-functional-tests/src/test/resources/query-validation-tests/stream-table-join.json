@@ -9,7 +9,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join type: full-outer join not supported for stream-table join: TEST_STREAM [FULL] OUTER JOIN TEST_TABLE."
+        "message": "Invalid join type: full-outer join not supported for stream-table join. Got TEST_STREAM [FULL] OUTER JOIN TEST_TABLE."
       }
     },
     {
@@ -21,7 +21,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join order: table-stream joins are not supported; only stream-table joins: TEST_TABLE [INNER] JOIN TEST_STREAM."
+        "message": "Invalid join order: table-stream joins are not supported; only stream-table joins. Got TEST_TABLE [INNER] JOIN TEST_STREAM."
       }
     },
     {
@@ -33,7 +33,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join order: table-stream joins are not supported; only stream-table joins: TEST_TABLE LEFT [OUTER] JOIN TEST_STREAM."
+        "message": "Invalid join order: table-stream joins are not supported; only stream-table joins. Got TEST_TABLE LEFT [OUTER] JOIN TEST_STREAM."
       }
     },
     {
@@ -45,7 +45,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: stream-table joins require to join on the table's primary key: TEST_STREAM.ID1 = TEST_TABLE.F2."
+        "message": "Invalid join condition: stream-table joins require to join on the table's primary key. Got TEST_STREAM.ID1 = TEST_TABLE.F2."
       }
     },
     {
@@ -60,7 +60,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: stream-table joins require to join on the table's primary key: TEST_STREAM.ID1 = TEST_TABLE.F2."
+        "message": "Invalid join condition: stream-table joins require to join on the table's primary key. Got TEST_STREAM.ID1 = TEST_TABLE.F2."
       }
     }
   ]

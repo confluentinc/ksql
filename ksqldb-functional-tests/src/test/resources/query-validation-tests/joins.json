@@ -1697,7 +1697,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: joins on multiple conditions are not yet supported: ((L.A = R.A) AND (L.A = R.A))"
+        "message": "Invalid join condition: joins on multiple conditions are not yet supported. Got ((L.A = R.A) AND (L.A = R.A))."
       }
     },
     {

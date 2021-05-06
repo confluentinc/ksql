@@ -259,7 +259,7 @@ public class AnalyzerFunctionalTest {
     // Then:
     assertThat(
         e.getMessage(),
-        containsString("Invalid join condition: joins on multiple conditions are not yet supported: ((T1.COL0 = T2.COL0) AND (T1.COL0 = T2.COL0))")
+        containsString("Invalid join condition: joins on multiple conditions are not yet supported. Got ((T1.COL0 = T2.COL0) AND (T1.COL0 = T2.COL0)).")
     );
   }
 

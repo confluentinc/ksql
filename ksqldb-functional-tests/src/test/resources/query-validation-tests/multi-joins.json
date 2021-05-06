@@ -932,7 +932,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Invalid join order: table-stream joins are not supported; only stream-table joins: T2 [INNER] JOIN S1."
+        "message": "Invalid join order: table-stream joins are not supported; only stream-table joins. Got T2 [INNER] JOIN S1."
       }
     },
     {

@@ -596,7 +596,7 @@ public class LogicalPlanner {
         if (joinType.equals(JoinType.OUTER)) {
           throw new KsqlException(String.format(
                   "Invalid join type: "
-                      + "full-outer join not supported for stream-table join: %s %s %s.",
+                      + "full-outer join not supported for stream-table join. Got %s %s %s.",
                   joinInfo.getLeftSource().getDataSource().getName().text(),
                   joinType,
                   joinInfo.getRightSource().getDataSource().getName().text()
@@ -606,7 +606,8 @@ public class LogicalPlanner {
         if (joinOnNonKeyAttribute(rightExpression, rightNode)) {
           throw new KsqlException(String.format(
                   "Invalid join condition:"
-                      + " stream-table joins require to join on the table's primary key: %s = %s.",
+                      + " stream-table joins require to join on the table's primary key."
+                      + " Got %s = %s.",
                   leftExpression,
                   rightExpression
               ));
@@ -619,7 +620,7 @@ public class LogicalPlanner {
       if (rightNode.getNodeOutputType() == DataSourceType.KSTREAM) {
         throw new KsqlException(String.format(
                 "Invalid join order:"
-                  + " table-stream joins are not supported; only stream-table joins: %s %s %s.",
+                  + " table-stream joins are not supported; only stream-table joins. Got %s %s %s.",
                 joinInfo.getLeftSource().getDataSource().getName().text(),
                 joinType,
                 joinInfo.getRightSource().getDataSource().getName().text()
@@ -632,7 +633,7 @@ public class LogicalPlanner {
         throw new KsqlException(String.format(
                 "Invalid join condition:"
                     + " table-table joins require to join on the primary key of the right input"
-                    + " table: %s = %s.",
+                    + " table. Got %s = %s.",
                 leftExpression,
                 rightExpression
            ));
@@ -644,7 +645,7 @@ public class LogicalPlanner {
         // because a FK-join output table has the same PK as its left input table
         throw new KsqlException(String.format(
                 "Invalid join condition:"
-                    + " foreign-key table-table joins are not supported: %s = %s.",
+                    + " foreign-key table-table joins are not supported. Got %s = %s.",
                 leftExpression,
                 rightExpression
             ));
@@ -661,7 +662,7 @@ public class LogicalPlanner {
 
     final ColumnName joinAttributeName = simpleJoinExpression.getColumnName();
     final List<DataSourceNode> dataSourceNodes = node.getSourceNodes().collect(Collectors.toList());
-    final ColumnName singleAttributeKeyName;
+    final List<Column> keyColumns;
 
     // n-way join sub-tree (ie, not a leaf)
     if (isInnerNode(node)) {
@@ -694,22 +695,21 @@ public class LogicalPlanner {
         qualifiedNode = Iterables.getOnlyElement(allNodes);
       }
 
-      // we only support joins on single attributes so the key has a single field
-      // (this condition is already verified by `Analyzer#visitJoinedSource()`)
-      singleAttributeKeyName = Iterables.getOnlyElement(qualifiedNode.getSchema().key()).name();
+      keyColumns = qualifiedNode.getSchema().key();
     } else {
-      // leaf node:
-      // - we know we have single data source
-      // - we only support joins on single attributes so the key has a single field
-      //   (this condition is already verified by `Analyzer#visitJoinedSource()`)
-      singleAttributeKeyName =
-          Iterables.getOnlyElement(
-              Iterables.getOnlyElement(dataSourceNodes).getSchema().key()
-          ).name();
+      // leaf node: we know we have single data source
+      keyColumns = Iterables.getOnlyElement(dataSourceNodes).getSchema().key();
+    }
+
+    // we only support joins on single attributes
+    // - the given join expression is checked upfront, and thus we know it refers to a single column
+    // - thus, if the key has more than one column, the join is not on the key
+    if (keyColumns.size() > 1) {
+      return true;
     }
 
 
-    return !joinAttributeName.equals(singleAttributeKeyName);
+    return !joinAttributeName.equals(Iterables.getOnlyElement(keyColumns).name());
   }
 
   private boolean isInnerNode(final PlanNode node) {
@@ -799,7 +799,7 @@ public class LogicalPlanner {
           return Optional.empty();
 
         case 1:
-          return Optional.of(Iterables.getOnlyElement(foundInProjection));
+          return Optional.of(foundInProjection.get(0));
 
         default:
           final String keys = GrammaticalJoiner.and().join(foundInProjection);

@@ -334,7 +334,7 @@ class Analyzer {
             && isEqualityJoin(((LogicalBinaryExpression) joinExp).getLeft())
             && isEqualityJoin(((LogicalBinaryExpression) joinExp).getRight())) {
           throw new KsqlException(String.format(
-              "Invalid join condition: joins on multiple conditions are not yet supported: %s",
+              "Invalid join condition: joins on multiple conditions are not yet supported. Got %s.",
               joinExp
           ));
         }

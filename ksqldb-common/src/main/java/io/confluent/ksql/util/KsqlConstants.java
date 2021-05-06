@@ -44,8 +44,8 @@ public final class KsqlConstants {
 
   public static final String KSQL_SERVICE_ID_METRICS_TAG = "ksql_service_id";
   public static final String KSQL_PULL_QUERY_SOURCE_TAG = "ksql_pull_query_source";
-  public static final String KSQL_PULL_QUERY_PLAN_TYPE_TAG = "ksql_pull_query_plan_type";
-  public static final String KSQL_PULL_QUERY_ROUTING_TYPE_TAG = "ksql_pull_query_routing_type";
+  public static final String KSQL_QUERY_PLAN_TYPE_TAG = "query_plan_type";
+  public static final String KSQL_QUERY_ROUTING_TYPE_TAG = "query_routing_type";
 
   public enum KsqlQueryType {
     PERSISTENT,

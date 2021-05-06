@@ -51,7 +51,7 @@ public final class SelectionUtil {
    *
    * Essentially, we need to build a logical schema that mirrors the physical
    * schema until https://github.com/confluentinc/ksql/issues/6374 is addressed.
-   * That means that the keys must be ordered in the same was as the parent schema
+   * That means that the keys must be ordered in the same way as the parent schema
    * (e.g. if the source schema was K1 INT KEY, K2 INT KEY and the projection is
    * SELECT K2, K1 this method will produce an output schema that is K1, K2
    * despite the way that the keys were ordered in the projection) - see
@@ -60,7 +60,7 @@ public final class SelectionUtil {
    * But we cannot simply select all the keys and then the values, we must maintain
    * the interleaving of key and values because transient queries return all columns
    * to the user as "value columns". If someone issues a SELECT VALUE, * FROM FOO
-   * it is expected that X shows up _before_ the key fields. This means we need to
+   * it is expected that VALUE shows up _before_ the key fields. This means we need to
    * reorder the key columns within the list of projections without affecting the
    * relative order the keys/values.
    *
@@ -117,12 +117,12 @@ public final class SelectionUtil {
     int currKeyIdx = 0;
     for (final SelectExpression select : projection) {
       if (keyExpressionMembership.contains(select)) {
+        while (keyExpressions.get(currKeyIdx).isEmpty()) {
+          currKeyIdx++;
+        }
         final SelectExpression keyExp = keyExpressions.get(currKeyIdx).remove(0);
         final SqlType type = expressionTypeManager.getExpressionSqlType(keyExp.getExpression());
         builder.keyColumn(keyExp.getAlias(), type);
-        if (keyExpressions.get(currKeyIdx).isEmpty()) {
-          currKeyIdx++;
-        }
       } else {
         final Expression expression = select.getExpression();
         final SqlType type = expressionTypeManager.getExpressionSqlType(expression);

@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **47**
+Next KLIP number: **49**
 
 | KLIP                                                                                                                             |  Status  | Community Release | CP Release | Discussion PR                                                |
 |----------------------------------------------------------------------------------------------------------------------------------|:--------:|:-----------------:|:----------:|--------------------------------------------------------------|
@@ -88,4 +88,5 @@ Next KLIP number: **47**
 | [KLIP-45: Materializing Tables for Query](klip-45-materializing-tables-for-query.md)                                             | Proposal |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/6997) |
 | KLIP-46: DATE and TIME data type support                                                                                         | Proposal |        0.20.0     |            | [Discussion](https://github.com/confluentinc/ksql/pull/7417) |
 | KLIP-47: NON NULL columns and component types                                                                                    | Proposal |                   |            |                                                              |
+| KLIP-48: Schemas                                                                                    | Proposal |                   |            |                                                              |
 

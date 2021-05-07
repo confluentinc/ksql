@@ -38,23 +38,60 @@ Install-Package Kafka.DotNet.ksqlDB
 ```
 
 ```C#
-var ksqlDbUrl = @"http:\\localhost:8088";
-await using var context = new KSqlDBContext(contextOptions);
+using Kafka.DotNet.ksqlDB.KSql.Linq;
+using Kafka.DotNet.ksqlDB.KSql.Query;
+using Kafka.DotNet.ksqlDB.KSql.Query.Context;
+using Kafka.DotNet.ksqlDB.KSql.Query.Context.Options;
+using Kafka.DotNet.ksqlDB.KSql.Query.Options;
+using Kafka.DotNet.ksqlDB.KSql.RestApi.Parameters;
+using System;
+using System.Reactive.Concurrency;
+using System.Reactive.Linq;
+using System.Threading.Tasks;
 
-using var disposable = context.CreateStreamSet<Tweet>()
-  .Where(p => p.Message != "Hello world" || p.Id == 1)
-  .Where(p => p.RowTime >= 1510923225000) //AND RowTime >= 1510923225000
-  .Select(l => new { l.Id, l.Message, l.RowTime })
-  .Take(2)     
-  .ToObservable() // client side processing starts here lazily after subscription
-  .Delay(TimeSpan.FromSeconds(2)) // IObservable extensions
-  .ObserveOn(TaskPoolScheduler.Default)
-  .Subscribe(tweetMessage =>
+namespace Kafka.DotNet.ksqlDB
+{
+  public class Program
   {
-    Console.WriteLine($"{nameof(Tweet)}: {tweetMessage.Id} - {tweetMessage.Message}");
-    Console.WriteLine();
-  }, error => { Console.WriteLine($"Exception: {error.Message}"); }, () => Console.WriteLine("Completed"));
+    private static async Task Main() {
+      var ksqlDbUrl = @"http:\\localhost:8088";
+
+      var contextOptions = new KSqlDbContextOptionsBuilder()
+        .UseKSqlDb(ksqlDbUrl)
+        .SetupQueryStream(options =>
+        {
+          options.Properties[QueryParameters.AutoOffsetResetPropertyName] = AutoOffsetReset.Earliest.ToString().ToLower();
+        })
+        .Options;
+
+      await using var context = new KSqlDBContext(contextOptions);
+
+      using var disposable = context.CreateQueryStream<Tweet>()
+        .Where(p => p.Message != "Hello world" || p.Id == 1)
+        .Where(p => p.RowTime >= 1510923225000) //AND RowTime >= 1510923225000
+        .Select(l => new { l.Id, l.Message, l.RowTime })
+        .Take(2)     
+        .ToObservable() // client side processing starts here lazily after subscription
+        .Delay(TimeSpan.FromSeconds(2)) // IObservable extensions
+        .ObserveOn(TaskPoolScheduler.Default)
+        .Subscribe(tweetMessage =>
+        {
+          Console.WriteLine($"{nameof(Tweet)}: {tweetMessage.Id} - {tweetMessage.Message}");
+          Console.WriteLine();
+        }, error => { Console.WriteLine($"Exception: {error.Message}"); }, () => Console.WriteLine("Completed"));
+
+      Console.ReadKey();
+    }
+
+    public class Tweet : Record
+    {
+      public int Id { get; set; }
+      public string Message { get; set; }
+    }
+  }
+}
 ```
+
 C# code is translated into an Abstract Syntax Tree and the following KSQK is generated:
 ```KSQL
 SELECT Id, Message, RowTime 
@@ -94,7 +131,7 @@ This interface could be later inherited from IObservable to achieve parity with 
 
 [Unit tests project](https://github.com/tomasfabian/Joker/tree/master/Tests/Joker.Kafka.Tests) - work in progress 
 
-[Integration tests project](https://github.com/tomasfabian/Joker/tree/master/Tests/SqlTableDependency.Extensions.IntegrationTests) - work in progress
+[Integration tests project](https://github.com/tomasfabian/Joker/tree/master/Tests/Kafka.DotNet.ksqlDB.IntegrationTests) - work in progress
 
 ## Documentation Updates
 [Wiki](https://github.com/tomasfabian/Joker/wiki/Kafka.DotNet.ksqlDB---push-queries-LINQ-provider) - work in progress

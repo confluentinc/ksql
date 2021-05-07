@@ -708,7 +708,6 @@ public class LogicalPlanner {
       return true;
     }
 
-
     return !joinAttributeName.equals(Iterables.getOnlyElement(keyColumns).name());
   }
 
@@ -727,7 +726,6 @@ public class LogicalPlanner {
 
     throw new IllegalStateException("Unknown node type: " + node.getClass().getName());
   }
-
 
   private JoinKey buildJoinKey(final Join join) {
     final List<QualifiedColumnReferenceExp> viableKeyColumns = join.viableKeyColumns();

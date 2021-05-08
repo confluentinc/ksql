@@ -461,6 +461,31 @@ public class LogicalPlanner {
   }
 
   private PlanNode prepareSourceForJoin(
+      final JoinTree.Node node,
+      final PlanNode joinSource,
+      final String side,
+      final Expression joinExpression,
+      final boolean isForeignKeyJoin
+  ) {
+    if (node instanceof JoinTree.Join) {
+      return prepareSourceForJoin(
+          (JoinTree.Join) node,
+          joinSource,
+          side,
+          joinExpression,
+          isForeignKeyJoin
+      );
+    } else {
+      return prepareSourceForJoin(
+          (DataSourceNode) joinSource,
+          side,
+          joinExpression,
+          isForeignKeyJoin
+      );
+    }
+  }
+
+  private PlanNode prepareSourceForJoin(
       final DataSourceNode sourceNode,
       final String side,
       final Expression joinExpression,
@@ -547,11 +572,10 @@ public class LogicalPlanner {
       preRepartitionLeft = buildJoin((Join) root.getLeft(), prefix + "L_", isWindowed);
     } else {
       final JoinTree.Leaf leaf = (Leaf) root.getLeft();
-      final AliasedDataSource source = leaf.getSource();
       preRepartitionLeft = new DataSourceNode(
           new PlanNodeId("KafkaTopic_" + prefix + "Left"),
-          source.getDataSource(),
-          source.getAlias(),
+          leaf.getSource().getDataSource(),
+          leaf.getSource().getAlias(),
           isWindowed
       );
     }
@@ -561,11 +585,10 @@ public class LogicalPlanner {
       preRepartitionRight = buildJoin((Join) root.getRight(), prefix + "R_", isWindowed);
     } else {
       final JoinTree.Leaf leaf = (Leaf) root.getRight();
-      final AliasedDataSource source = leaf.getSource();
       preRepartitionRight = new DataSourceNode(
           new PlanNodeId("KafkaTopic_" + prefix + "Right"),
-          source.getDataSource(),
-          source.getAlias(),
+          leaf.getSource().getDataSource(),
+          leaf.getSource().getAlias(),
           isWindowed
       );
     }
@@ -578,41 +601,20 @@ public class LogicalPlanner {
 
     final boolean isForeignKeyJoin = false; // TODO
 
-    final PlanNode left;
-    if (root.getLeft() instanceof JoinTree.Join) {
-      left = prepareSourceForJoin(
-          (JoinTree.Join) root.getLeft(),
-          preRepartitionLeft,
-          prefix + "Left",
-          root.getInfo().getLeftJoinExpression(),
-          isForeignKeyJoin
-      );
-    } else {
-      left = prepareSourceForJoin(
-          (DataSourceNode) preRepartitionLeft,
-          prefix + "Left",
-          root.getInfo().getLeftJoinExpression(),
-          isForeignKeyJoin
-      );
-    }
-
-    final PlanNode right;
-    if (root.getRight() instanceof JoinTree.Join) {
-      right = prepareSourceForJoin(
-          (JoinTree.Join) root.getRight(),
-          preRepartitionRight,
-          prefix + "Right",
-          root.getInfo().getRightJoinExpression(),
-          isForeignKeyJoin
-      );
-    } else {
-      right = prepareSourceForJoin(
-          (DataSourceNode) preRepartitionRight,
-          prefix + "Right",
-          root.getInfo().getRightJoinExpression(),
-          isForeignKeyJoin
-      );
-    }
+    final PlanNode left = prepareSourceForJoin(
+        root.getLeft(),
+        preRepartitionLeft,
+        prefix + "Left",
+        root.getInfo().getLeftJoinExpression(),
+        isForeignKeyJoin
+    );
+    final PlanNode right = prepareSourceForJoin(
+        root.getRight(),
+        preRepartitionRight,
+        prefix + "Right",
+        root.getInfo().getRightJoinExpression(),
+        isForeignKeyJoin
+    );
 
     return new JoinNode(
         new PlanNodeId(prefix + "Join"),

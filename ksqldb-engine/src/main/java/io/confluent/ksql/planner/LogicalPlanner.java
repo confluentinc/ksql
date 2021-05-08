@@ -460,19 +460,11 @@ public class LogicalPlanner {
     return new FlatMapNode(new PlanNodeId("FlatMap"), sourcePlanNode, metaStore, analysis);
   }
 
-  private PlanNode buildSourceForJoin(
-      final AliasedDataSource source,
+  private PlanNode prepareSourceForJoin(
+      final DataSourceNode sourceNode,
       final String side,
-      final Expression joinExpression,
-      final boolean isWindowed
+      final Expression joinExpression
   ) {
-    final DataSourceNode sourceNode = new DataSourceNode(
-        new PlanNodeId("KafkaTopic_" + side),
-        source.getDataSource(),
-        source.getAlias(),
-        isWindowed
-    );
-
     // it is always safe to build the repartition node - this operation will be
     // a no-op if a repartition is not required. if the source is a table, and
     // a repartition is needed, then an exception will be thrown
@@ -493,11 +485,11 @@ public class LogicalPlanner {
     return buildInternalProjectNode(
         repartition,
         "PrependAlias" + side,
-        source.getAlias()
+        sourceNode.getAlias()
     );
   }
 
-  private PlanNode buildSourceForJoin(
+  private PlanNode prepareSourceForJoin(
       final Join join,
       final PlanNode joinedSource,
       final String side,
@@ -535,32 +527,32 @@ public class LogicalPlanner {
    * @return the PlanNode representing this Join Tree
    */
   private JoinNode buildJoin(final Join root, final String prefix, final boolean isWindowed) {
-    final PlanNode left;
+    final PlanNode preRepartitionLeft;
     if (root.getLeft() instanceof JoinTree.Join) {
-      left = buildSourceForJoin(
-          (JoinTree.Join) root.getLeft(),
-          buildJoin((Join) root.getLeft(), prefix + "L_", isWindowed),
-          prefix + "Left",
-          root.getInfo().getLeftJoinExpression()
-      );
+      preRepartitionLeft = buildJoin((Join) root.getLeft(), prefix + "L_", isWindowed);
     } else {
       final JoinTree.Leaf leaf = (Leaf) root.getLeft();
-      left = buildSourceForJoin(
-          leaf.getSource(), prefix + "Left", root.getInfo().getLeftJoinExpression(), isWindowed);
+      final AliasedDataSource source = leaf.getSource();
+      preRepartitionLeft = new DataSourceNode(
+          new PlanNodeId("KafkaTopic_" + prefix + "Left"),
+          source.getDataSource(),
+          source.getAlias(),
+          isWindowed
+      );
     }
 
-    final PlanNode right;
+    final PlanNode preRepartitionRight;
     if (root.getRight() instanceof JoinTree.Join) {
-      right = buildSourceForJoin(
-          (JoinTree.Join) root.getRight(),
-          buildJoin((Join) root.getRight(), prefix + "R_", isWindowed),
-          prefix + "Right",
-          root.getInfo().getRightJoinExpression()
-      );
+      preRepartitionRight = buildJoin((Join) root.getRight(), prefix + "R_", isWindowed);
     } else {
       final JoinTree.Leaf leaf = (Leaf) root.getRight();
-      right = buildSourceForJoin(
-          leaf.getSource(), prefix + "Right", root.getInfo().getRightJoinExpression(), isWindowed);
+      final AliasedDataSource source = leaf.getSource();
+      preRepartitionRight = new DataSourceNode(
+          new PlanNodeId("KafkaTopic_" + prefix + "Right"),
+          source.getDataSource(),
+          source.getAlias(),
+          isWindowed
+      );
     }
 
     verifyJoin(root.getInfo(), left, right);
@@ -568,6 +560,38 @@ public class LogicalPlanner {
     final boolean finalJoin = prefix.isEmpty();
 
     final JoinKey joinKey = buildJoinKey(root);
+
+    final PlanNode left;
+    if (root.getLeft() instanceof JoinTree.Join) {
+      left = prepareSourceForJoin(
+          (JoinTree.Join) root.getLeft(),
+          preRepartitionLeft,
+          prefix + "Left",
+          root.getInfo().getLeftJoinExpression()
+      );
+    } else {
+      left = prepareSourceForJoin(
+          (DataSourceNode) preRepartitionLeft,
+          prefix + "Left",
+          root.getInfo().getLeftJoinExpression()
+      );
+    }
+
+    final PlanNode right;
+    if (root.getRight() instanceof JoinTree.Join) {
+      right = prepareSourceForJoin(
+          (JoinTree.Join) root.getRight(),
+          preRepartitionRight,
+          prefix + "Right",
+          root.getInfo().getRightJoinExpression()
+      );
+    } else {
+      right = prepareSourceForJoin(
+          (DataSourceNode) preRepartitionRight,
+          prefix + "Right",
+          root.getInfo().getRightJoinExpression()
+      );
+    }
 
     return new JoinNode(
         new PlanNodeId(prefix + "Join"),

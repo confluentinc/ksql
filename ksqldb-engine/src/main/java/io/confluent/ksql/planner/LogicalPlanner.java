@@ -463,27 +463,35 @@ public class LogicalPlanner {
   private PlanNode prepareSourceForJoin(
       final DataSourceNode sourceNode,
       final String side,
-      final Expression joinExpression
+      final Expression joinExpression,
+      final boolean isForeignKeyJoin
   ) {
-    // it is always safe to build the repartition node - this operation will be
-    // a no-op if a repartition is not required. if the source is a table, and
-    // a repartition is needed, then an exception will be thrown
-    final VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> rewriter =
-        new VisitParentExpressionVisitor<Optional<Expression>, Context<Void>>(Optional.empty()) {
-          @Override
-          public Optional<Expression> visitQualifiedColumnReference(
-              final QualifiedColumnReferenceExp node,
-              final Context<Void> ctx
-          ) {
-            return Optional.of(new UnqualifiedColumnReferenceExp(node.getColumnName()));
-          }
-        };
+    final PlanNode preProjectNode;
+    if (isForeignKeyJoin) {
+      // we do not need to repartition for foreign key joins, as FK joins do not
+      // have co-partitioning requirements
+      preProjectNode = sourceNode;
+    } else {
+      // it is always safe to build the repartition node - this operation will be
+      // a no-op if a repartition is not required. if the source is a table, and
+      // a repartition is needed, then an exception will be thrown
+      final VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> rewriter =
+          new VisitParentExpressionVisitor<Optional<Expression>, Context<Void>>(Optional.empty()) {
+            @Override
+            public Optional<Expression> visitQualifiedColumnReference(
+                final QualifiedColumnReferenceExp node,
+                final Context<Void> ctx
+            ) {
+              return Optional.of(new UnqualifiedColumnReferenceExp(node.getColumnName()));
+            }
+          };
 
-    final PlanNode repartition =
-        buildInternalRepartitionNode(sourceNode, side, joinExpression, rewriter::process);
+      preProjectNode =
+          buildInternalRepartitionNode(sourceNode, side, joinExpression, rewriter::process);
+    }
 
     return buildInternalProjectNode(
-        repartition,
+        preProjectNode,
         "PrependAlias" + side,
         sourceNode.getAlias()
     );
@@ -493,8 +501,15 @@ public class LogicalPlanner {
       final Join join,
       final PlanNode joinedSource,
       final String side,
-      final Expression joinExpression
+      final Expression joinExpression,
+      final boolean isForeignKeyJoin
   ) {
+    // we do not need to repartition for foreign key joins, as FK joins do not
+    // have co-partitioning requirements
+    if (isForeignKeyJoin) {
+      return joinedSource;
+    }
+
     // we do not need to repartition if the joinExpression
     // is already part of the join equivalence set
     if (join.joinEquivalenceSet().contains(joinExpression)) {
@@ -561,19 +576,23 @@ public class LogicalPlanner {
 
     final JoinKey joinKey = buildJoinKey(root);
 
+    final boolean isForeignKeyJoin = false; // TODO
+
     final PlanNode left;
     if (root.getLeft() instanceof JoinTree.Join) {
       left = prepareSourceForJoin(
           (JoinTree.Join) root.getLeft(),
           preRepartitionLeft,
           prefix + "Left",
-          root.getInfo().getLeftJoinExpression()
+          root.getInfo().getLeftJoinExpression(),
+          isForeignKeyJoin
       );
     } else {
       left = prepareSourceForJoin(
           (DataSourceNode) preRepartitionLeft,
           prefix + "Left",
-          root.getInfo().getLeftJoinExpression()
+          root.getInfo().getLeftJoinExpression(),
+          isForeignKeyJoin
       );
     }
 
@@ -583,13 +602,15 @@ public class LogicalPlanner {
           (JoinTree.Join) root.getRight(),
           preRepartitionRight,
           prefix + "Right",
-          root.getInfo().getRightJoinExpression()
+          root.getInfo().getRightJoinExpression(),
+          isForeignKeyJoin
       );
     } else {
       right = prepareSourceForJoin(
           (DataSourceNode) preRepartitionRight,
           prefix + "Right",
-          root.getInfo().getRightJoinExpression()
+          root.getInfo().getRightJoinExpression(),
+          isForeignKeyJoin
       );
     }
 

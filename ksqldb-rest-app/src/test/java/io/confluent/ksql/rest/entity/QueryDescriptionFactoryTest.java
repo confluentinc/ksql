@@ -170,7 +170,8 @@ public class QueryDescriptionFactoryTest {
         processingLogger,
         0L,
         0L,
-        listener
+        listener,
+        Optional.empty()
     );
     persistentQuery.initialize();
 

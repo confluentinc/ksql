@@ -117,7 +117,8 @@ public class SandboxedPersistentQueryMetadataImplTest {
         processingLogger,
         0L,
         0L,
-        listener
+        listener,
+        Optional.empty()
     );
 
     query.initialize();

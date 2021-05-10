@@ -23,6 +23,7 @@ import io.confluent.ksql.execution.streams.materialization.MaterializationProvid
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
@@ -61,4 +62,6 @@ public interface PersistentQueryMetadata extends QueryMetadata {
   );
 
   Optional<MaterializationProvider>  getMaterializationProvider();
+
+  Optional<ScalablePushRegistry> getScalablePushRegistry();
 }

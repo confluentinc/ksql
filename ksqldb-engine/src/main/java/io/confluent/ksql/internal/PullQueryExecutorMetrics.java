@@ -631,7 +631,7 @@ public class PullQueryExecutorMetrics implements Closeable {
 
           final ImmutableMap<String, String> tags = ImmutableMap.<String, String>builder()
               .putAll(customMetricsTags)
-              .put(KsqlConstants.KSQL_PULL_QUERY_SOURCE_TAG, sourceType.name().toLowerCase())
+              .put(KsqlConstants.KSQL_QUERY_SOURCE_TAG, sourceType.name().toLowerCase())
               .put(KsqlConstants.KSQL_QUERY_PLAN_TYPE_TAG, planType.name().toLowerCase())
               .put(KsqlConstants.KSQL_QUERY_ROUTING_TYPE_TAG,
                   routingNodeType.name().toLowerCase())

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.planner;
 
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.AggregateAnalyzer;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
@@ -43,6 +44,7 @@ import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.function.udf.AsValue;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
@@ -59,6 +61,7 @@ import io.confluent.ksql.planner.plan.FinalProjectNode;
 import io.confluent.ksql.planner.plan.FlatMapNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.JoinNode.JoinKey;
+import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
@@ -70,6 +73,7 @@ import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.planner.plan.PullFilterNode;
 import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.planner.plan.SelectionUtil;
+import io.confluent.ksql.planner.plan.SingleSourcePlanNode;
 import io.confluent.ksql.planner.plan.SuppressNode;
 import io.confluent.ksql.planner.plan.UserRepartitionNode;
 import io.confluent.ksql.schema.ksql.Column;
@@ -559,6 +563,8 @@ public class LogicalPlanner {
           leaf.getSource(), prefix + "Right", root.getInfo().getRightJoinExpression(), isWindowed);
     }
 
+    verifyJoin(root.getInfo(), left, right);
+
     final boolean finalJoin = prefix.isEmpty();
 
     final JoinKey joinKey = buildJoinKey(root);
@@ -573,6 +579,152 @@ public class LogicalPlanner {
         root.getInfo().getWithinExpression(),
         ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG)
     );
+  }
+
+  private void verifyJoin(final JoinInfo joinInfo,
+                          final PlanNode leftNode,
+                          final PlanNode rightNode) {
+    final JoinType joinType = joinInfo.getType();
+    final Expression leftExpression = joinInfo.getLeftJoinExpression();
+    final Expression rightExpression = joinInfo.getRightJoinExpression();
+
+    if (leftNode.getNodeOutputType() == DataSourceType.KSTREAM) {
+      if (rightNode.getNodeOutputType() == DataSourceType.KTABLE) {
+
+        // stream-table join detected
+
+        if (joinType.equals(JoinType.OUTER)) {
+          throw new KsqlException(String.format(
+                  "Invalid join type: "
+                      + "full-outer join not supported for stream-table join. Got %s %s %s.",
+                  joinInfo.getLeftSource().getDataSource().getName().text(),
+                  joinType,
+                  joinInfo.getRightSource().getDataSource().getName().text()
+              ));
+        }
+
+        if (joinOnNonKeyAttribute(rightExpression, rightNode)) {
+          throw new KsqlException(String.format(
+                  "Invalid join condition:"
+                      + " stream-table joins require to join on the table's primary key."
+                      + " Got %s = %s.",
+                  leftExpression,
+                  rightExpression
+              ));
+        }
+      }
+
+      // stream-stream join detected: nothing to verify
+
+    } else {
+      if (rightNode.getNodeOutputType() == DataSourceType.KSTREAM) {
+        throw new KsqlException(String.format(
+                "Invalid join order:"
+                  + " table-stream joins are not supported; only stream-table joins. Got %s %s %s.",
+                joinInfo.getLeftSource().getDataSource().getName().text(),
+                joinType,
+                joinInfo.getRightSource().getDataSource().getName().text()
+            ));
+      }
+
+      // table-table join detected
+
+      if (joinOnNonKeyAttribute(rightExpression, rightNode)) {
+        throw new KsqlException(String.format(
+                "Invalid join condition:"
+                    + " table-table joins require to join on the primary key of the right input"
+                    + " table. Got %s = %s.",
+                leftExpression,
+                rightExpression
+           ));
+      }
+
+      if (joinOnNonKeyAttribute(leftExpression, leftNode)) {
+        // after we lift the n-way join restriction, we should be able to support FK-joins
+        // at any level in the join tree, even after we add right-deep/bushy join tree support,
+        // because a FK-join output table has the same PK as its left input table
+        throw new KsqlException(String.format(
+                "Invalid join condition:"
+                    + " foreign-key table-table joins are not supported. Got %s = %s.",
+                leftExpression,
+                rightExpression
+            ));
+      }
+    }
+  }
+
+  private boolean joinOnNonKeyAttribute(final Expression joinExpression,
+                                        final PlanNode node) {
+    if (!(joinExpression instanceof ColumnReferenceExp)) {
+      return true;
+    }
+    final ColumnReferenceExp simpleJoinExpression = (ColumnReferenceExp) joinExpression;
+
+    final ColumnName joinAttributeName = simpleJoinExpression.getColumnName();
+    final List<DataSourceNode> dataSourceNodes = node.getSourceNodes().collect(Collectors.toList());
+    final List<Column> keyColumns;
+
+    // n-way join sub-tree (ie, not a leaf)
+    if (isInnerNode(node)) {
+      final DataSourceNode qualifiedNode;
+
+      if (simpleJoinExpression.maybeQualifier().isPresent()) {
+        final SourceName qualifier = simpleJoinExpression.maybeQualifier().get();
+        final List<DataSourceNode> allNodes = dataSourceNodes.stream()
+            .filter(n -> n.getDataSource().getName().equals(qualifier))
+            .collect(Collectors.toList());
+
+        if (allNodes.size() != 1) {
+          throw new KsqlException(String.format(
+              "Join qualifier '%s' could not be resolved (either not found or not unique).",
+              qualifier
+          ));
+        }
+        qualifiedNode = Iterables.getOnlyElement(allNodes);
+      } else {
+        final List<DataSourceNode> allNodes = dataSourceNodes.stream()
+            .filter(n -> n.getSchema().findColumn(simpleJoinExpression.getColumnName()).isPresent())
+            .collect(Collectors.toList());
+
+        if (allNodes.size() != 1) {
+          throw new KsqlException(String.format(
+              "Join identifier '%s' could not be resolved (either not found or not unique).",
+              joinAttributeName
+          ));
+        }
+        qualifiedNode = Iterables.getOnlyElement(allNodes);
+      }
+
+      keyColumns = qualifiedNode.getSchema().key();
+    } else {
+      // leaf node: we know we have single data source
+      keyColumns = Iterables.getOnlyElement(dataSourceNodes).getSchema().key();
+    }
+
+    // we only support joins on single attributes
+    // - the given join expression is checked upfront, and thus we know it refers to a single column
+    // - thus, if the key has more than one column, the join is not on the key
+    if (keyColumns.size() > 1) {
+      return true;
+    }
+
+    return !joinAttributeName.equals(Iterables.getOnlyElement(keyColumns).name());
+  }
+
+  private boolean isInnerNode(final PlanNode node) {
+    if (node instanceof JoinNode) {
+      return true;
+    }
+
+    if (node instanceof DataSourceNode) {
+      return false;
+    }
+
+    if (node instanceof SingleSourcePlanNode) {
+      return isInnerNode(((SingleSourcePlanNode) node).getSource());
+    }
+
+    throw new IllegalStateException("Unknown node type: " + node.getClass().getName());
   }
 
   private JoinKey buildJoinKey(final Join join) {

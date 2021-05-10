@@ -106,12 +106,12 @@
       }
     },
     {
-      "name": "inner-inner with single expression in first - missing join columns in projection",
+      "name": "inner-inner with expression in first - missing join columns in projection",
       "statements": [
         "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');",
         "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT s1.V0, t2.V0, t3.V0 FROM S1 INNER JOIN T2 ON S1.ID = T2.ID + 1 INNER JOIN T3 ON S1.ID = T3.ID;"
+        "CREATE STREAM OUTPUT as SELECT s1.V0, t2.V0, t3.V0 FROM S1 INNER JOIN T2 ON S1.ID + 1 = T2.ID INNER JOIN T3 ON S1.ID = T3.ID;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -119,20 +119,7 @@
       }
     },
     {
-      "name": "inner-inner with double expression in first - missing join columns in projection",
-      "statements": [
-        "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
-        "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');",
-        "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT s1.V0, t2.V0, t3.V0 FROM S1 INNER JOIN T2 ON S1.ID + 1 = T2.ID + 1 INNER JOIN T3 ON S1.ID = T3.ID;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expressions S1.ID or T3.ID in its projection."
-      }
-    },
-    {
-      "name": "inner-inner with single expression in second - missing join columns in projection",
+      "name": "inner-inner with expression in second - missing join columns in projection",
       "statements": [
         "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -142,19 +129,6 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "The query used to build `OUTPUT` must include the join expression T3.ID in its projection."
-      }
-    },
-    {
-      "name": "inner-inner with double expression in second - missing join columns in projection",
-      "statements": [
-        "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
-        "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');",
-        "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT s1.V0, t2.V0, t3.V0 FROM S1 INNER JOIN T2 ON S1.ID = T2.ID INNER JOIN T3 ON S1.ID + 1 = T3.ID + 1;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expression ROWKEY in its projection."
       }
     },
     {
@@ -171,7 +145,7 @@
       }
     },
     {
-      "name": "left-left with single expression in first - missing join columns in projection",
+      "name": "left-left with expression in first - missing join columns in projection",
       "statements": [
         "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');",
@@ -184,55 +158,16 @@
       }
     },
     {
-      "name": "left-left with double expression in first - missing join columns in projection",
+      "name": "left-left with expression in second - missing join columns in projection",
       "statements": [
         "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');",
         "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT s1.V0, t2.V0, t3.V0 FROM S1 LEFT JOIN T2 ON S1.ID + 1 = T2.ID + 1 LEFT JOIN T3 ON S1.ID = T3.ID;"
+        "CREATE STREAM OUTPUT as SELECT s1.V0, t2.V0, t3.V0 FROM S1 LEFT JOIN T2 ON S1.ID = T2.ID LEFT JOIN T3 ON S1.ID + 1 = T3.ID;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expressions S1.ID or T3.ID in its projection."
-      }
-    },
-    {
-      "name": "left-left with single expression in second - missing join columns in projection",
-      "statements": [
-        "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
-        "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');",
-        "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT s1.V0, t2.V0, t3.V0 FROM S1 LEFT JOIN T2 ON S1.ID = T2.ID LEFT JOIN T3 ON S1.ID = T3.ID + 1;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expressions S1.ID or T2.ID in its projection."
-      }
-    },
-    {
-      "name": "left-left with double expression in second - missing join columns in projection",
-      "statements": [
-        "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
-        "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');",
-        "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT s1.V0, t2.V0, t3.V0 FROM S1 LEFT JOIN T2 ON S1.ID = T2.ID LEFT JOIN T3 ON S1.ID + 1 = T3.ID + 1;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expression ROWKEY in its projection."
-      }
-    },
-    {
-      "name": "full-full missing join expression in projection",
-      "statements": [
-        "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
-        "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');",
-        "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT s1.V0, t2.V0, t3.V0 FROM S1 FULL OUTER JOIN T2 ON S1.ID = T2.ID FULL OUTER JOIN T3 ON S1.ID = T3.ID;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "The query used to build `OUTPUT` must include the join expression ROWKEY in its projection."
+        "message": "The query used to build `OUTPUT` must include the join expression T3.ID in its projection."
       }
     },
     {
@@ -993,11 +928,11 @@
         "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
         "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT * FROM T2 JOIN T3 ON T2.ID = T3.ID JOIN S1 ON S1.ID = T2.ID;"
+        "CREATE STREAM OUTPUT as SELECT * FROM T2 JOIN T3 ON T2.ID = T3.ID JOIN S1 ON T2.ID = S1.ID;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Join between invalid operands requested: left type: KTABLE, right type: KSTREAM"
+        "message": "Invalid join order: table-stream joins are not supported; only stream-table joins. Got T2 [INNER] JOIN S1."
       }
     },
     {

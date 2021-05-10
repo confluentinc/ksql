@@ -71,6 +71,26 @@
       }
     },
     {
+      "name": "aliased join condition",
+      "statements": [
+        "CREATE STREAM left_stream (id INT KEY, b INT, c INT) WITH (kafka_topic='LEFT_TOPIC', value_format='JSON');",
+        "CREATE STREAM right_stream (id INT KEY, e INT, f INT) WITH (kafka_topic='RIGHT_TOPIC', value_format='JSON');",
+        "CREATE STREAM output AS SELECT ls.id, ls.b, ls.c, rs.e, rs.f FROM left_stream AS ls INNER JOIN right_stream AS rs WITHIN 10 SECONDS ON ls.id = rs.id;"
+      ],
+      "inputs": [
+        {"topic": "LEFT_TOPIC", "key": 0, "value": {"b": 1, "c": 2}, "timestamp": 10},
+        {"topic": "RIGHT_TOPIC", "key": 0, "value": {"e": -1, "f": -2}, "timestamp": 11}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"B": 1, "C": 2, "E": -1, "F": -2}, "timestamp":  11}
+      ],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
+      }
+    },
+    {
       "name": "aliased join key",
       "statements": [
         "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
@@ -1233,18 +1253,6 @@
       }
     },
     {
-      "name": "to table using something other than key column",
-      "statements": [
-        "CREATE STREAM S (K STRING KEY, ID bigint) WITH (kafka_topic='S', value_format='JSON');",
-        "CREATE TABLE NO_KEY (K STRING PRIMARY KEY, ID bigint, NAME string) WITH (kafka_topic='NO_KEY', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT s.id, name FROM S JOIN NO_KEY t ON s.id = t.id;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Cannot repartition a TABLE source. If this is a join, make sure that the criteria uses the TABLE's key column K instead of [ID]"
-      }
-    },
-    {
       "name": "stream to stream wrapped single field value schema on inputs",
       "statements": [
         "CREATE STREAM S1 (ID BIGINT KEY, NAME STRING) WITH (kafka_topic='S1', value_format='JSON');",
@@ -1645,6 +1653,54 @@
       }
     },
     {
+      "name": "Should fail on ambiguous join attribute",
+      "statements": [
+        "CREATE TABLE left_table (id BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, id2, f1, f2 FROM left_table JOIN right_table ON id = id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Exception while preparing statement: Line: 3, Col: 84: Column 'ID' is ambiguous. Could be LEFT_TABLE.ID or RIGHT_TABLE.ID."
+      }
+    },
+    {
+      "name": "Should fail on unknown qualifier -- left join attribute",
+      "statements": [
+        "CREATE TABLE left_table (id BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, id2, f1, f2 FROM left_table JOIN right_table ON unknown.id = id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Failed to prepare statement: 'UNKNOWN' is not a valid stream/table name or alias."
+      }
+    },
+    {
+      "name": "Should fail on unknown qualifier -- right join attribute",
+      "statements": [
+        "CREATE TABLE left_table (id BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE right_table (id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT id1, id2, f1, f2 FROM left_table JOIN right_table ON id = unknown.id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Failed to prepare statement: 'UNKNOWN' is not a valid stream/table name or alias."
+      }
+    },
+    {
+      "name": "should not allow complex join conditions",
+      "statements": [
+        "CREATE STREAM L (A INT KEY, B INT, C INT) WITH (kafka_topic='LEFT', value_format='JSON');",
+        "CREATE STREAM R (A INT KEY, B INT, C INT) WITH (kafka_topic='RIGHT', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM L INNER JOIN R WITHIN 10 SECONDS ON L.A = R.A AND L.A = R.A;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join condition: joins on multiple conditions are not yet supported. Got ((L.A = R.A) AND (L.A = R.A))."
+      }
+    },
+    {
       "name": "unqualified join criteria",
       "statements": [
         "CREATE STREAM TEST (LEFT_ID BIGINT KEY, NAME varchar) WITH (kafka_topic='left_topic', value_format='JSON');",
@@ -1701,18 +1757,6 @@
             "schema": "S_SF BIGINT KEY, S_K STRING, T_ID BIGINT, T_TF INT, S_ROWTIME BIGINT, T_ROWTIME BIGINT"
           }
         ]
-      }
-    },
-    {
-      "name": "on non-key table column",
-      "statements": [
-        "CREATE STREAM INPUT_STREAM (ID BIGINT KEY, SF BIGINT) WITH (kafka_topic='stream_topic', value_format='JSON');",
-        "CREATE TABLE INPUT_TABLE (K BIGINT PRIMARY KEY, ID BIGINT, TF INT) WITH (kafka_topic='table_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT_STREAM S JOIN INPUT_TABLE T on S.ID = T.ID;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Cannot repartition a TABLE source. If this is a join, make sure that the criteria uses the TABLE's key column K instead of [ID]"
       }
     },
     {
@@ -3096,7 +3140,7 @@
       "statements": [
         "CREATE TABLE T1 (ID INT PRIMARY KEY, VAL STRING) WITH (kafka_topic='t1', key_format='AVRO', value_format='JSON');",
         "CREATE TABLE T2 (ID BIGINT PRIMARY KEY, FOO INT) WITH (kafka_topic='t2', key_format='AVRO', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT T2.ID, T1.VAL FROM T1 JOIN T2 ON T1.ID = T2.ID;"
+        "CREATE TABLE OUTPUT AS SELECT T2.ID, T1.VAL FROM T1 JOIN T2 ON T1.ID = T2.ID;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -3233,18 +3277,6 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Implicit repartitioning of windowed sources is not supported. See https://github.com/confluentinc/ksql/issues/4385."
-      }
-    },
-    {
-      "name": "stream-table key-to-key with necessary repartition - SR-enabled key format",
-      "statements": [
-        "CREATE TABLE T (ID INT PRIMARY KEY, VAL INT) WITH (kafka_topic='t', key_format='AVRO', value_format='JSON');",
-        "CREATE STREAM S (ID INT KEY, FOO INT) WITH (kafka_topic='s', key_format='AVRO', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT S.ID, VAL FROM S JOIN T ON S.ID = T.VAL;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Cannot repartition a TABLE source. If this is a join, make sure that the criteria uses the TABLE's key column ID instead of [VAL]"
       }
     }
   ]

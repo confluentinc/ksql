@@ -113,8 +113,24 @@ public class QueryAnonymizerTest {
   }
 
   @Test
+  public void shouldAnonymizeSelectStatementCorrectly() {
+    Assert.assertEquals("SELECT * FROM source1;",
+        anon.anonymize("SELECT * FROM S1;"));
+  }
+
+  @Test
   public void shouldAnonymizeExplainStatementCorrectly() {
-    Assert.assertEquals("EXPLAIN query", anon.anonymize("EXPLAIN my_query;"));
+    Assert.assertEquals("EXPLAIN query;", anon.anonymize("EXPLAIN my_query;"));
+    Assert.assertEquals("EXPLAIN SELECT * FROM source1;",
+        anon.anonymize("EXPLAIN SELECT * from S1;"));
+  }
+
+  @Test
+  public void shouldAnonymizeJoinStatementsCorrectly() {
+    final String output = anon.anonymize("INSERT INTO OUTPUT SELECT col1, col2, col3"
+        + " FROM SOURCE1 S1 JOIN SOURCE2 S2 WITHIN 1 SECOND ON col1.k=col2.k;");
+
+    Approvals.verify(output);
   }
 
   @Test

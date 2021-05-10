@@ -285,7 +285,7 @@ public class PullQueryMetricsTest {
     final Metrics metrics = pullMetrics.getMetrics();
     final Map<String, String> tags = ImmutableMap.<String, String>builder()
         .putAll(CUSTOM_TAGS_WITH_SERVICE_ID)
-        .put(KsqlConstants.KSQL_PULL_QUERY_SOURCE_TAG, sourceType.name().toLowerCase())
+        .put(KsqlConstants.KSQL_QUERY_SOURCE_TAG, sourceType.name().toLowerCase())
         .put(KsqlConstants.KSQL_QUERY_PLAN_TYPE_TAG, planType.name().toLowerCase())
         .put(KsqlConstants.KSQL_QUERY_ROUTING_TYPE_TAG, routingNodeType.name().toLowerCase())
         .build();

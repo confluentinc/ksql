@@ -593,13 +593,12 @@ public class LogicalPlanner {
       );
     }
 
-    verifyJoin(root.getInfo(), left, right);
+    final boolean isForeignKeyJoin =
+        verifyJoin(root.getInfo(), preRepartitionLeft, preRepartitionRight);
 
     final boolean finalJoin = prefix.isEmpty();
 
     final JoinKey joinKey = buildJoinKey(root);
-
-    final boolean isForeignKeyJoin = false; // TODO
 
     final PlanNode left = prepareSourceForJoin(
         root.getLeft(),
@@ -628,7 +627,10 @@ public class LogicalPlanner {
     );
   }
 
-  private void verifyJoin(final JoinInfo joinInfo,
+  /**
+   * @return whether this is a foreign key join or not
+   */
+  private boolean verifyJoin(final JoinInfo joinInfo,
                           final PlanNode leftNode,
                           final PlanNode rightNode) {
     final JoinType joinType = joinInfo.getType();
@@ -687,17 +689,26 @@ public class LogicalPlanner {
       }
 
       if (joinOnNonKeyAttribute(leftExpression, leftNode)) {
+        // foreign key join detected
+
         // after we lift the n-way join restriction, we should be able to support FK-joins
         // at any level in the join tree, even after we add right-deep/bushy join tree support,
         // because a FK-join output table has the same PK as its left input table
-        throw new KsqlException(String.format(
-                "Invalid join condition:"
-                    + " foreign-key table-table joins are not supported. Got %s = %s.",
-                leftExpression,
-                rightExpression
-            ));
+
+        if (ksqlConfig.getBoolean(KsqlConfig.KSQL_FOREIGN_KEY_JOINS_ENABLED)) {
+          return true;
+        } else {
+          throw new KsqlException(String.format(
+              "Invalid join condition:"
+                  + " foreign-key table-table joins are not supported. Got %s = %s.",
+              leftExpression,
+              rightExpression
+          ));
+        }
       }
     }
+
+    return false;
   }
 
   private boolean joinOnNonKeyAttribute(final Expression joinExpression,

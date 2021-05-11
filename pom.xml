@@ -138,6 +138,7 @@
         <io.confluent.ksql.version>7.0.0-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
         <mockito.version>3.8.0</mockito.version>
+        <dependency.check.version>6.1.6</dependency.check.version>
     </properties>
 
     <dependencyManagement>

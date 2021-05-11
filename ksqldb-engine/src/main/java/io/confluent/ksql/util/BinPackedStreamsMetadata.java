@@ -34,10 +34,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -53,9 +51,9 @@ public class BinPackedStreamsMetadata {
   private KafkaStreams kafkaStreams;
   private ImmutableMap<String, Object> streamsProperties;
   private final QueryMetadataImpl.TimeBoundedQueue queryErrors;
-  private final List<QueryMetadata.Listener> listeners;
   private final Map<String, Topology> queryMap;
-  private final Set<SourceName> sources;
+  private final Map<QueryId, Set<SourceName>> sources;
+  private final Map<QueryId, QueryMetadata.Listener> listeners;
 
   public BinPackedStreamsMetadata(final KafkaStreamsBuilder kafkaStreamsBuilder,
                                   final int maxQueryErrorsQueueSize) {
@@ -63,19 +61,22 @@ public class BinPackedStreamsMetadata {
     kafkaStreams = kafkaStreamsBuilder.build(null, streamsProperties);
     queryErrors
         = new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
-    listeners = new ArrayList<>();
     queryMap = new HashMap<>();
-    sources = new HashSet<>();
+    sources = new HashMap<>();
+    listeners = new HashMap<>();
   }
 
   public void addQuery(final QueryErrorClassifier errorClassifier,
                        final Map<String, Object> streamsProperties,
-                       final Set<SourceName> sources) {
+                       final Set<SourceName> sources,
+                       final QueryId queryId,
+                       final QueryMetadata.Listener listener) {
     this.errorClassifier = errorClassifier;
     this.streamsProperties =
         ImmutableMap.copyOf(
             Objects.requireNonNull(streamsProperties, "streamsProperties"));
-    this.sources.addAll(sources);
+    this.sources.put(queryId, sources);
+    this.listeners.put(queryId, listener);
   }
 
   protected StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
@@ -98,8 +99,8 @@ public class BinPackedStreamsMetadata {
               Throwables.getStackTraceAsString(e),
               errorType
           );
-      for (QueryMetadata.Listener listener: listeners) {
-        listener.onError(queryError);
+      for (Map.Entry<QueryId, QueryMetadata.Listener> listener: listeners.entrySet()) {
+        listener.getValue().onError(listener.getKey(), queryError);
       }
       queryErrors.add(queryError);
       LOG.error(
@@ -110,10 +111,6 @@ public class BinPackedStreamsMetadata {
       );
     }
     return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.REPLACE_THREAD;
-  }
-
-  public void addListener(QueryMetadata.Listener listener) {
-    listeners.add(listener);
   }
 
   public KafkaStreams getKafkaStreams() {
@@ -142,7 +139,10 @@ public class BinPackedStreamsMetadata {
   }
 
   public void stop(final QueryId queryId) {
-    kafkaStreams.removeTopology(queryId);
+    queryMap.remove(queryId.toString());
+    sources.remove(queryId);
+    listeners.remove(queryId);
+    kafkaStreams.removeTopology(queryId.toString());
   }
 
   public void restart(final QueryId queryId) {

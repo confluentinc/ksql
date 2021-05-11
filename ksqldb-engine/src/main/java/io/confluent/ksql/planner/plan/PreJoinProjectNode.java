@@ -87,7 +87,11 @@ public class PreJoinProjectNode extends ProjectNode implements JoiningNode {
       return joiningSource.get().getPreferredKeyFormat();
     }
 
-    return Optional.of(getSourceKeyFormat());
+    final KeyFormat sourceKeyFormat =
+        Iterators.getOnlyElement(getSourceNodes().iterator())
+            .getDataSource().getKsqlTopic().getKeyFormat();
+
+    return Optional.of(sourceKeyFormat);
   }
 
   @Override
@@ -121,12 +125,6 @@ public class PreJoinProjectNode extends ProjectNode implements JoiningNode {
     });
 
     return super.validateColumns(builder.build());
-  }
-
-  // Only safe to call this if joiningSource is empty.
-  private KeyFormat getSourceKeyFormat() {
-    return Iterators.getOnlyElement(getSourceNodes().iterator())
-        .getDataSource().getKsqlTopic().getKeyFormat();
   }
 
   private static ImmutableBiMap<ColumnName, ColumnName> buildAliasMapping(

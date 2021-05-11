@@ -81,7 +81,6 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
-import scala.collection.immutable.IntMap;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 final class QueryExecutor {
@@ -284,8 +283,7 @@ final class QueryExecutor {
     final boolean useBinPacked = true;
     if (useBinPacked) {
       BinPackedStreamsMetadata binPackedStreamsMetadata = getStream(sources);
-      binPackedStreamsMetadata.addQuery(classifier, streamsProperties, sources, queryId, listener);
-      return new BinPackedPersistentQueryMetadataImpl(
+      BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata = new BinPackedPersistentQueryMetadataImpl(
           statementText,
           querySchema.logicalSchema(),
           querySchema,
@@ -300,8 +298,11 @@ final class QueryExecutor {
           materializationProviderBuilder,
           physicalPlan,
           getUncaughtExceptionProcessingLogger(queryId),
-          sinkDataSource
+          sinkDataSource,
+          listener
       );
+      binPackedStreamsMetadata.addQuery(classifier, streamsProperties, binPackedPersistentQueryMetadata, queryId);
+      return binPackedPersistentQueryMetadata;
     } else {
 
       return new PersistentQueryMetadataImpl(
@@ -334,7 +335,7 @@ final class QueryExecutor {
 
   private BinPackedStreamsMetadata getStream(final Set<SourceName> sources) {
     for (BinPackedStreamsMetadata binPackedStreamsMetadata: streams) {
-      if (binPackedStreamsMetadata.getSources().stream().noneMatch(sources::contains)) {
+      if (binPackedStreamsMetadata.getMetadata().stream().noneMatch(sources::contains)) {
         return binPackedStreamsMetadata;
       }
     }

@@ -22,6 +22,24 @@
       }
     },
     {
+      "name": "multi-key columns reordered",
+      "statements": [
+        "CREATE STREAM INPUT (id int KEY, age int KEY, name STRING) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT age, id, NAME FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic":  "test_topic", "key": {"id": 1, "age": 20}, "value": {"name": "a"}}
+      ],
+      "outputs": [
+        {"topic":  "OUTPUT", "key": {"ID": 1, "AGE": 20}, "value": {"NAME": "a"}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID INT KEY, AGE INT KEY, NAME STRING"}
+        ]
+      }
+    },
+    {
       "name": "value column",
       "statements": [
         "CREATE STREAM INPUT (id int KEY, name STRING) WITH (kafka_topic='test_topic', value_format='JSON');",

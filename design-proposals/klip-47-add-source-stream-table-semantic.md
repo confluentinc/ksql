@@ -15,11 +15,12 @@ when a user creates a table the DB creates the corresponding files on disk and o
 User may write data into those tables via `INSERT INTO` statements and/or modify/delete existing data 
 via `UPDATE` and `DELETE` statements. However, the table will be not changed by any other means. 
 
-For ksqlDB, the setup is quite differently. Specifically, user could create the database based on 
-the topics stored in Kafka as the source of truth. The defined database could be mutable by 
-using `INSERT` command to populate data into it, which will then pollute the original data source.
-Secondly, when calling `CREATE TABLE`, the actual data is neither materialized nor 
-ready for interactive queries to access. To address these gaps, we would like to add:
+For ksqlDB, the setup is quite differently. Specifically, user could create the table based on 
+the topics stored in Kafka as the source of truth. However, since there is no clear ownership, the defined table 
+could be mutated by using `INSERT` command to populate data into it. The insertion will pollute the original data source, 
+which was supposed to be owned by upstream such as a CDC pipeline that populates the topic.
+Secondly, when calling `CREATE TABLE`, the actual data is neither materialized nor ready for interactive queries to access. 
+To address these gaps, we would like to add:
 
 * Syntax to add read-only stream/table as `CREATE SOURCE STREAM/TABLE` to make the data source as read-only. Any 
 insertion command will be rejected, with an example error response as:
@@ -28,9 +29,9 @@ insertion command will be rejected, with an example error response as:
 Error: insertion into source stream/table is not allowed
 ```   
 
-* In addition, the `CREATE SOURCE TABLE` will materialize the input source topic into a stream 
-instance which would generate a RocksDB instance for interactive queries.
-
+* In addition, the `CREATE SOURCE TABLE` will become a persistent query instead of just a metadata operation like 
+`CREATE TABLE`, `CREATE STREAM`, or `CREATE SOURCE STREAM`. Source table will materialize the input topic data as 
+a RocksDB instance for interactive queries in the KsqlDB servers.
 
 ## What is in scope
 * Add `CREATE SOURCE STREAM/TABLE` syntax to KSQL
@@ -47,16 +48,18 @@ instance which would generate a RocksDB instance for interactive queries.
 ### Semantic Change
 We shall first add optional keyword `SOURCE` into the KSQL codebase, by adding the new syntax to `sqlBase.g4` for:
 * createStream
-* createStreamAs
 * createTable
-* createTableAs
 
+with the sample syntax as:
+```
+CREATE (OR REPLACE)? (SOURCE)? TABLE (IF NOT EXISTS)?...
+```
 Then inside `AstBuilder#visitCreateStream` and `AstBuilder#visitCreateTable`, the built classes for stream/table 
 instances would be `CreateStream` and `CreateTable`, which are the only two subclasses of `CreateSource`. It makes sense 
 to add the `SOURCE` as a flag into `CreateSource`, and let `AstBuilder` pass the flag into the struct 
 for later stage reference of read-only.
 
-In addition, when user calls `DESCRIBE ... EXTENDED`, the read-only attribute shall be displayed for stream/table. 
+Additionally, when user calls `DESCRIBE ... EXTENDED`, the read-only attribute shall be displayed for stream/table. 
 
 ### Make Source Stream/Table Read-only
 We plan to add restriction check into the `DistributingExecutor#throwIfInsertOnReadOnlyTopic` or create a similar function, 
@@ -68,7 +71,9 @@ creating a persistent query. To bypass this check, we need to provide a concrete
 inject a dummy query plan in `EngineExecutor#plan` phase, when the statement is a CreateTable statement with `SOURCE` tag.
 
 In addition, when user tries to show all the running queries, the materialization query should also be displayed as it takes 
-part of the computation resource. This would be a special type of running query without `SELECT` clause.
+part of the computation resource. This would be a special type of running query without `SELECT` clause or a query id, as it 
+should be only associated with source table, and user could choose to `DROP` the entire table if they don't want to use resource 
+to do the materialization.
 
 Here comes a precaution we might be aware. The original `CREATE TABLE` command does not need materialization, so there is 
 no enforcement for primary key. However, in order to let pull query run on the materialized state, the store must be keyed so that 
@@ -87,8 +92,8 @@ of #1 is low, and the expected code change to enforce this constraint should be 
 * Create source table/stream, which makes the data source read-only:
 
 ```roomsql
-CREATE SOURCE STREAM stream_name (COL1 INT, COL2 STRING) AS ...
-CREATE SOURCE TABLE table_name (ID INT KEY, COL1 INT) AS ...
+CREATE SOURCE STREAM stream_name (COL1 INT, COL2 STRING) WITH ...
+CREATE SOURCE TABLE table_name (ID INT PRIMARY KEY, COL1 INT) WITH ...
 ```
 
 ## Test plan
@@ -96,6 +101,7 @@ The new semantics will be tested as:
 
 * Unit testing for modular changes
 * QTTs with the new source table/stream syntax, including insertion failure and successful materialization
+* Tests for `DESCRIBE` sources
 
 ## LOEs and Delivery Milestones
 The estimated work time will be spent as follows (to implement and review):
@@ -104,11 +110,12 @@ The estimated work time will be spent as follows (to implement and review):
 3. Reject insertion to `SOURCE` table/stream takes a week
 4. Display read-only attributes on `DESCRIBE ... EXTENDED` 3 days 
 5. Source table materialization takes a week
-6. Documentation changes takes 3 days
-7. Integration testing takes 2 weeks
+6. Add pull query access for source table takes about 3 days
+7. Documentation changes takes 3 days
+8. Integration testing takes 2 weeks
 
 There will be 3 milestones, first is the completion of syntax addition (#1), which marks the start 
-point of splitting the work between engineers. Second milestone will be the feature complete ($2~5), and 
+point of splitting the work between engineers. Second milestone will be the feature complete (#2~6), and 
 the last one will be documentation and tests complete.
 
 ## Documentation Updates
@@ -116,7 +123,7 @@ the last one will be documentation and tests complete.
 * Add a new doc page as `docs/developer-guide/ksqldb-reference/source-stream.md`
 
 ## Compatibility Implications
-This is a new feature in CTAS and CSAS, which has no backward compatibility issue. 
+This is a new feature in CT and CS, which has no backward compatibility issue. 
 
 ## Security Implications
 None

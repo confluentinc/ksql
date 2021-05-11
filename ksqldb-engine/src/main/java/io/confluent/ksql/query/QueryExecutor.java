@@ -284,7 +284,7 @@ final class QueryExecutor {
     final boolean useBinPacked = true;
     if (useBinPacked) {
       BinPackedStreamsMetadata binPackedStreamsMetadata = getStream(sources);
-      binPackedStreamsMetadata.addQuery(classifier, streamsProperties, sources);
+      binPackedStreamsMetadata.addQuery(classifier, streamsProperties, sources, queryId, listener);
       return new BinPackedPersistentQueryMetadataImpl(
           statementText,
           querySchema.logicalSchema(),

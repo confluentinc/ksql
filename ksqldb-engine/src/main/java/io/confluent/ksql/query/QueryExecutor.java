@@ -81,6 +81,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
+import scala.collection.immutable.IntMap;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 final class QueryExecutor {
@@ -145,13 +146,12 @@ final class QueryExecutor {
     );
     this.streams = new ArrayList<>();
 
-    for (int i = 0; i < 8; i++) {
-      BinPackedStreamsMetadata stream = new BinPackedStreamsMetadata(
-          kafkaStreamsBuilder,
-          config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE)
-      );
-      streams.add(stream);
-    }
+    BinPackedStreamsMetadata stream = new BinPackedStreamsMetadata(
+        kafkaStreamsBuilder,
+        config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE)
+    );
+    streams.add(stream);
+
   }
 
   TransientQueryMetadata buildTransientQuery(
@@ -284,7 +284,7 @@ final class QueryExecutor {
     final boolean useBinPacked = true;
     if (useBinPacked) {
       BinPackedStreamsMetadata binPackedStreamsMetadata = getStream(sources);
-      binPackedStreamsMetadata.addQuery(classifier, streamsProperties);
+      binPackedStreamsMetadata.addQuery(classifier, streamsProperties, sources);
       return new BinPackedPersistentQueryMetadataImpl(
           statementText,
           querySchema.logicalSchema(),
@@ -333,8 +333,17 @@ final class QueryExecutor {
   }
 
   private BinPackedStreamsMetadata getStream(final Set<SourceName> sources) {
-    //TODO: find streams app with no conflicting sources
-    return streams.get(0);
+    for (BinPackedStreamsMetadata binPackedStreamsMetadata: streams) {
+      if (binPackedStreamsMetadata.getSources().stream().noneMatch(sources::contains)) {
+        return binPackedStreamsMetadata;
+      }
+    }
+    BinPackedStreamsMetadata stream = new BinPackedStreamsMetadata(
+        kafkaStreamsBuilder,
+        config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE)
+    );
+    streams.add(stream);
+    return stream;
   }
 
   private ProcessingLogger getUncaughtExceptionProcessingLogger(final QueryId queryId) {

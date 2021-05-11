@@ -131,6 +131,8 @@ public class KsqlConfig extends AbstractConfig {
       + "'CREATE STREAM S AS ...' will create a topic 'thing-S', where as the statement "
       + "'CREATE STREAM S WITH(KAFKA_TOPIC = 'foo') AS ...' will create a topic 'foo'.";
 
+  public static final String KSQL_FOREIGN_KEY_JOINS_ENABLED = "ksql.joins.foreign.key.enable";
+
   public static final String KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG =
       "ksql.query.persistent.active.limit";
   private static final int KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT = Integer.MAX_VALUE;
@@ -789,6 +791,12 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT,
             Importance.MEDIUM,
             KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DOC
+        ).define(
+            KSQL_FOREIGN_KEY_JOINS_ENABLED,
+            Type.BOOLEAN,
+            false,
+            Importance.MEDIUM,
+            "Feature flag for foreign key joins, currently under development."
         ).define(
             KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG,
             Type.LONG,

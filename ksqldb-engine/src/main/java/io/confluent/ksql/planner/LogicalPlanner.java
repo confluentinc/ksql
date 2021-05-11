@@ -460,49 +460,81 @@ public class LogicalPlanner {
     return new FlatMapNode(new PlanNodeId("FlatMap"), sourcePlanNode, metaStore, analysis);
   }
 
-  private PlanNode buildSourceForJoin(
-      final AliasedDataSource source,
+  private PlanNode prepareSourceForJoin(
+      final JoinTree.Node node,
+      final PlanNode joinSource,
       final String side,
       final Expression joinExpression,
-      final boolean isWindowed
+      final boolean isForeignKeyJoin
   ) {
-    final DataSourceNode sourceNode = new DataSourceNode(
-        new PlanNodeId("KafkaTopic_" + side),
-        source.getDataSource(),
-        source.getAlias(),
-        isWindowed
-    );
+    if (node instanceof JoinTree.Join) {
+      return prepareSourceForJoin(
+          (JoinTree.Join) node,
+          joinSource,
+          side,
+          joinExpression,
+          isForeignKeyJoin
+      );
+    } else {
+      return prepareSourceForJoin(
+          (DataSourceNode) joinSource,
+          side,
+          joinExpression,
+          isForeignKeyJoin
+      );
+    }
+  }
 
-    // it is always safe to build the repartition node - this operation will be
-    // a no-op if a repartition is not required. if the source is a table, and
-    // a repartition is needed, then an exception will be thrown
-    final VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> rewriter =
-        new VisitParentExpressionVisitor<Optional<Expression>, Context<Void>>(Optional.empty()) {
-          @Override
-          public Optional<Expression> visitQualifiedColumnReference(
-              final QualifiedColumnReferenceExp node,
-              final Context<Void> ctx
-          ) {
-            return Optional.of(new UnqualifiedColumnReferenceExp(node.getColumnName()));
-          }
-        };
+  private PlanNode prepareSourceForJoin(
+      final DataSourceNode sourceNode,
+      final String side,
+      final Expression joinExpression,
+      final boolean isForeignKeyJoin
+  ) {
+    final PlanNode preProjectNode;
+    if (isForeignKeyJoin) {
+      // we do not need to repartition for foreign key joins, as FK joins do not
+      // have co-partitioning requirements
+      preProjectNode = sourceNode;
+    } else {
+      // it is always safe to build the repartition node - this operation will be
+      // a no-op if a repartition is not required. if the source is a table, and
+      // a repartition is needed, then an exception will be thrown
+      final VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> rewriter =
+          new VisitParentExpressionVisitor<Optional<Expression>, Context<Void>>(Optional.empty()) {
+            @Override
+            public Optional<Expression> visitQualifiedColumnReference(
+                final QualifiedColumnReferenceExp node,
+                final Context<Void> ctx
+            ) {
+              return Optional.of(new UnqualifiedColumnReferenceExp(node.getColumnName()));
+            }
+          };
 
-    final PlanNode repartition =
-        buildInternalRepartitionNode(sourceNode, side, joinExpression, rewriter::process);
+      preProjectNode =
+          buildInternalRepartitionNode(sourceNode, side, joinExpression, rewriter::process);
+    }
 
     return buildInternalProjectNode(
-        repartition,
+        preProjectNode,
         "PrependAlias" + side,
-        source.getAlias()
+        sourceNode.getAlias()
     );
   }
 
-  private PlanNode buildSourceForJoin(
+  private PlanNode prepareSourceForJoin(
       final Join join,
       final PlanNode joinedSource,
       final String side,
-      final Expression joinExpression
+      final Expression joinExpression,
+      final boolean isForeignKeyJoin
   ) {
+    // we do not need to repartition for foreign key joins, as FK joins do not
+    // have co-partitioning requirements
+    if (isForeignKeyJoin) {
+      return joinedSource;
+    }
+
     // we do not need to repartition if the joinExpression
     // is already part of the join equivalence set
     if (join.joinEquivalenceSet().contains(joinExpression)) {
@@ -535,39 +567,53 @@ public class LogicalPlanner {
    * @return the PlanNode representing this Join Tree
    */
   private JoinNode buildJoin(final Join root, final String prefix, final boolean isWindowed) {
-    final PlanNode left;
+    final PlanNode preRepartitionLeft;
     if (root.getLeft() instanceof JoinTree.Join) {
-      left = buildSourceForJoin(
-          (JoinTree.Join) root.getLeft(),
-          buildJoin((Join) root.getLeft(), prefix + "L_", isWindowed),
-          prefix + "Left",
-          root.getInfo().getLeftJoinExpression()
-      );
+      preRepartitionLeft = buildJoin((Join) root.getLeft(), prefix + "L_", isWindowed);
     } else {
       final JoinTree.Leaf leaf = (Leaf) root.getLeft();
-      left = buildSourceForJoin(
-          leaf.getSource(), prefix + "Left", root.getInfo().getLeftJoinExpression(), isWindowed);
+      preRepartitionLeft = new DataSourceNode(
+          new PlanNodeId("KafkaTopic_" + prefix + "Left"),
+          leaf.getSource().getDataSource(),
+          leaf.getSource().getAlias(),
+          isWindowed
+      );
     }
 
-    final PlanNode right;
+    final PlanNode preRepartitionRight;
     if (root.getRight() instanceof JoinTree.Join) {
-      right = buildSourceForJoin(
-          (JoinTree.Join) root.getRight(),
-          buildJoin((Join) root.getRight(), prefix + "R_", isWindowed),
-          prefix + "Right",
-          root.getInfo().getRightJoinExpression()
-      );
+      preRepartitionRight = buildJoin((Join) root.getRight(), prefix + "R_", isWindowed);
     } else {
       final JoinTree.Leaf leaf = (Leaf) root.getRight();
-      right = buildSourceForJoin(
-          leaf.getSource(), prefix + "Right", root.getInfo().getRightJoinExpression(), isWindowed);
+      preRepartitionRight = new DataSourceNode(
+          new PlanNodeId("KafkaTopic_" + prefix + "Right"),
+          leaf.getSource().getDataSource(),
+          leaf.getSource().getAlias(),
+          isWindowed
+      );
     }
 
-    verifyJoin(root.getInfo(), left, right);
+    final boolean isForeignKeyJoin =
+        verifyJoin(root.getInfo(), preRepartitionLeft, preRepartitionRight);
 
     final boolean finalJoin = prefix.isEmpty();
 
     final JoinKey joinKey = buildJoinKey(root);
+
+    final PlanNode left = prepareSourceForJoin(
+        root.getLeft(),
+        preRepartitionLeft,
+        prefix + "Left",
+        root.getInfo().getLeftJoinExpression(),
+        isForeignKeyJoin
+    );
+    final PlanNode right = prepareSourceForJoin(
+        root.getRight(),
+        preRepartitionRight,
+        prefix + "Right",
+        root.getInfo().getRightJoinExpression(),
+        isForeignKeyJoin
+    );
 
     return new JoinNode(
         new PlanNodeId(prefix + "Join"),
@@ -581,9 +627,14 @@ public class LogicalPlanner {
     );
   }
 
-  private void verifyJoin(final JoinInfo joinInfo,
-                          final PlanNode leftNode,
-                          final PlanNode rightNode) {
+  /**
+   * @return whether this is a foreign key join or not
+   */
+  private boolean verifyJoin(
+      final JoinInfo joinInfo,
+      final PlanNode leftNode,
+      final PlanNode rightNode
+  ) {
     final JoinType joinType = joinInfo.getType();
     final Expression leftExpression = joinInfo.getLeftJoinExpression();
     final Expression rightExpression = joinInfo.getRightJoinExpression();
@@ -640,17 +691,26 @@ public class LogicalPlanner {
       }
 
       if (joinOnNonKeyAttribute(leftExpression, leftNode)) {
+        // foreign key join detected
+
         // after we lift the n-way join restriction, we should be able to support FK-joins
         // at any level in the join tree, even after we add right-deep/bushy join tree support,
         // because a FK-join output table has the same PK as its left input table
-        throw new KsqlException(String.format(
-                "Invalid join condition:"
-                    + " foreign-key table-table joins are not supported. Got %s = %s.",
-                leftExpression,
-                rightExpression
-            ));
+
+        if (ksqlConfig.getBoolean(KsqlConfig.KSQL_FOREIGN_KEY_JOINS_ENABLED)) {
+          return true;
+        } else {
+          throw new KsqlException(String.format(
+              "Invalid join condition:"
+                  + " foreign-key table-table joins are not supported. Got %s = %s.",
+              leftExpression,
+              rightExpression
+          ));
+        }
       }
     }
+
+    return false;
   }
 
   private boolean joinOnNonKeyAttribute(final Expression joinExpression,

@@ -70,6 +70,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   private final ProcessingLogger processingLogger;
   private final ExecutionStep<?> physicalPlan;
   private final PhysicalSchema resultSchema;
+  private final Listener listener;
 
   private static final Ticker CURRENT_TIME_MILLIS_TICKER = new Ticker() {
     @Override
@@ -100,8 +101,8 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
           materializationProviderBuilder,
       final ExecutionStep<?> physicalPlan,
       final ProcessingLogger processingLogger,
-      final DataSource sinkDataSource
-                                             ) {
+      final DataSource sinkDataSource,
+      final Listener listener) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementString = Objects.requireNonNull(statementString, "statementString");
     this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");
@@ -122,6 +123,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.resultSchema = requireNonNull(schema, "schema");
     this.materializationProviderBuilder =
         requireNonNull(materializationProviderBuilder, "materializationProviderBuilder");
+    this.listener = requireNonNull(listener, "listen");
   }
 
   @Override
@@ -312,5 +314,9 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   public void start() {
     everStarted = true;
     binPackedStreamsMetadata.start(queryId);
+  }
+
+  Listener getListener() {
+    return listener;
   }
 }

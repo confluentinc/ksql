@@ -630,9 +630,11 @@ public class LogicalPlanner {
   /**
    * @return whether this is a foreign key join or not
    */
-  private boolean verifyJoin(final JoinInfo joinInfo,
-                          final PlanNode leftNode,
-                          final PlanNode rightNode) {
+  private boolean verifyJoin(
+      final JoinInfo joinInfo,
+      final PlanNode leftNode,
+      final PlanNode rightNode
+  ) {
     final JoinType joinType = joinInfo.getType();
     final Expression leftExpression = joinInfo.getLeftJoinExpression();
     final Expression rightExpression = joinInfo.getRightJoinExpression();

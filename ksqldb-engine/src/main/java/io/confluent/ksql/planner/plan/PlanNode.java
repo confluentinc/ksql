@@ -17,7 +17,9 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -35,6 +37,7 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.GrammaticalJoiner;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -192,10 +195,13 @@ public abstract class PlanNode {
       final LogicalSchema schema
   ) {
     // When doing a `select *` key columns should be at the front of the column list
-    // but are added at the back during processing for performance reasons.
+    // but are added at the back during processing for performance reasons. Furthermore,
+    // the keys should be selected in the same order as they appear in the source.
     // Switch them around here:
-    final Stream<Column> keys = columns.stream()
-        .filter(c -> schema.isKeyColumn(c.name()));
+    final ImmutableMap<ColumnName, Column> columnsByName = Maps.uniqueIndex(columns, Column::name);
+    final Stream<Column> keys = schema.key().stream()
+        .map(key -> columnsByName.get(key.name()))
+        .filter(Objects::nonNull);
 
     final Stream<Column> windowBounds = columns.stream()
         .filter(c -> SystemColumns.isWindowBound(c.name()));

@@ -1,4 +1,4 @@
-# KLIP 47 - Add Source Stream/Table Semantic 
+# KLIP 49 - Add Source Stream/Table Semantic 
 
 **Author**: Boyang Chen (@boyang) | 
 **Release Target**: TBD | 

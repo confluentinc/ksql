@@ -227,10 +227,6 @@ public class QueryMetadataImpl implements QueryMetadata {
     return kafkaStreams.state();
   }
 
-  public boolean isError() {
-    return !queryErrors.toImmutableList().isEmpty();
-  }
-
   public String getExecutionPlan() {
     return executionPlan;
   }

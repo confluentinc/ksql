@@ -44,7 +44,7 @@ ksqlDB will internally repartition the data.
     messages. The use case will determine if these ordering guarantees are
     acceptable.
 
-Joins to tables must use the table's PRIMARY KEY as the join criteria: none primary key joins are 
+Joins to tables must use the table's PRIMARY KEY as the join criteria: non-key joins are 
 [not yet supported](https://github.com/confluentinc/ksql/issues/4424).
 For more information, see [Join Event Streams with ksqlDB](../joins/join-streams-and-tables.md).
 

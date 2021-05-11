@@ -17,6 +17,8 @@ package io.confluent.ksql.util;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryErrorClassifier;
@@ -35,6 +37,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -50,26 +53,29 @@ public class BinPackedStreamsMetadata {
   private KafkaStreams kafkaStreams;
   private ImmutableMap<String, Object> streamsProperties;
   private final QueryMetadataImpl.TimeBoundedQueue queryErrors;
-  private final List<QueryMetadata.Listener> listeners;\
+  private final List<QueryMetadata.Listener> listeners;
   private final Map<String, Topology> queryMap;
-
+  private final Set<SourceName> sources;
 
   public BinPackedStreamsMetadata(final KafkaStreamsBuilder kafkaStreamsBuilder,
                                   final int maxQueryErrorsQueueSize) {
     this.kafkaStreamsBuilder = kafkaStreamsBuilder;
-    this.kafkaStreams = kafkaStreamsBuilder.build(null, streamsProperties);
-    this.queryErrors
+    kafkaStreams = kafkaStreamsBuilder.build(null, streamsProperties);
+    queryErrors
         = new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
-    this.listeners = new ArrayList<>();
-    this.queryMap = new HashMap<>();
+    listeners = new ArrayList<>();
+    queryMap = new HashMap<>();
+    sources = new HashSet<>();
   }
 
   public void addQuery(final QueryErrorClassifier errorClassifier,
-                       final Map<String, Object> streamsProperties) {
+                       final Map<String, Object> streamsProperties,
+                       final Set<SourceName> sources) {
     this.errorClassifier = errorClassifier;
     this.streamsProperties =
         ImmutableMap.copyOf(
             Objects.requireNonNull(streamsProperties, "streamsProperties"));
+    this.sources.addAll(sources);
   }
 
   protected StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
@@ -101,7 +107,7 @@ public class BinPackedStreamsMetadata {
           Thread.currentThread().getName(),
           errorType,
           e
-               );
+      );
     }
     return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.REPLACE_THREAD;
   }
@@ -155,7 +161,7 @@ public class BinPackedStreamsMetadata {
 
   public void close(final QueryId queryId) {
     queryMap.remove(queryId.toString());
-    kafkaStreams.removeTopology(queryId);
+    kafkaStreams.removeTopology(queryId.toString());
   }
 
   public void start(final QueryId queryId) {
@@ -181,5 +187,9 @@ public class BinPackedStreamsMetadata {
 
   public List<QueryError> getQueryErrors() {
     return queryErrors.toImmutableList();
+  }
+
+  public Set<SourceName> getSources() {
+    return ImmutableSet.copyOf(sources);
   }
 }

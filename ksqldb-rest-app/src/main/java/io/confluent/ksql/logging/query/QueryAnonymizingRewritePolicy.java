@@ -31,7 +31,7 @@ public final class QueryAnonymizingRewritePolicy implements RewritePolicy {
     final String clusterNamespace =
         config.getString(KsqlConfig.KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE);
     this.namespace =
-        clusterNamespace.isEmpty()
+        clusterNamespace == null || clusterNamespace.isEmpty()
             ? config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
             : clusterNamespace;
     this.anonymizeQueries = config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED);

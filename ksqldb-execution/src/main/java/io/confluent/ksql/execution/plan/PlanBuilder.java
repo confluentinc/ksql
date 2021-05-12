@@ -82,4 +82,9 @@ public interface PlanBuilder {
   <K> KTableHolder<K> visitTableSuppress(TableSuppress<K> tableSuppress, PlanInfo planInfo);
 
   <K> KTableHolder<K> visitTableTableJoin(TableTableJoin<K> tableTableJoin, PlanInfo planInfo);
+
+  <KLeftT, KRightT> KTableHolder<KLeftT> visitForeignKeyTableTableJoin(
+      ForeignKeyTableTableJoin<KLeftT, KRightT> foreignKeyTableTableJoin,
+      PlanInfo planInfo
+  );
 }

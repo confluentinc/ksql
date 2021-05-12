@@ -130,6 +130,12 @@ public class PlanInfoExtractor {
     return visitJoinStep(tableTableJoin);
   }
 
+  public <KLeftT, KRightT> PlanInfo visitForeignKeyTableTableJoin(
+      final ForeignKeyTableTableJoin<KLeftT, KRightT> foreignKeyTableTableJoin) {
+
+    return visitJoinStep(foreignKeyTableTableJoin);
+  }
+
   private PlanInfo visitSourceStep(final ExecutionStep<?> step) {
     return new PlanInfo(step);
   }

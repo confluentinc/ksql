@@ -21,6 +21,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
+import io.confluent.ksql.execution.plan.ForeignKeyTableTableJoin;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
@@ -315,6 +316,23 @@ public final class ExecutionStepFactory {
         new ExecutionStepPropertiesV1(queryContext),
         joinType,
         keyColName,
+        left,
+        right
+    );
+  }
+
+  public static <KLeftT, KRightT> ForeignKeyTableTableJoin<KLeftT, KRightT>
+      foreignKeyTableTableJoin(final QueryContext.Stacker stacker,
+                               final JoinType joinType,
+                               final ColumnName leftJoinColumnName,
+                               final ExecutionStep<KTableHolder<KLeftT>> left,
+                               final ExecutionStep<KTableHolder<KRightT>> right
+  ) {
+    final QueryContext queryContext = stacker.getQueryContext();
+    return new ForeignKeyTableTableJoin<>(
+        new ExecutionStepPropertiesV1(queryContext),
+        joinType,
+        leftJoinColumnName,
         left,
         right
     );

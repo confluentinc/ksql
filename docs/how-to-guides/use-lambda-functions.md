@@ -90,13 +90,13 @@ Insert some values into `stream1`.
 INSERT INTO stream1 (
   id, lambda_map
 ) VALUES (
-  3, MAP("hello":= 15, "goodbye":= -5)
+  3, MAP('hello':= 15, 'goodbye':= -5)
 );
 ```
 
-Query the output.
+Query the output. Make sure to set `auto.offset.reset = earliest`.
 ```sql
-SELECT * FROM output AS final_output;
+SELECT * FROM output AS final_output EMIT CHANGES;
 ```
 
 Your output should resemble:
@@ -112,33 +112,33 @@ Your output should resemble:
 The following example creates a stream with a column type `ARRAY<INTEGER>` and applies the `reduce` lambda 
 invocation function.
 ```sql
-CREATE STREAM stream1 (
+CREATE STREAM stream2 (
   id INT,
   lambda_arr ARRAY<INTEGER>
 ) WITH (
-  kafka_topic = 'stream1',
+  kafka_topic = 'stream2',
   partitions = 1,
   value_format = 'avro'
 );
 
-CREATE STREAM output AS
+CREATE STREAM output2 AS
   SELECT id, 
   REDUCE(lambda_arr, 2, (s, x) => ceil(x/s)) 
-  FROM stream1
+  FROM stream2
   EMIT CHANGES;
 ```
-Insert some values into `stream1`.
+Insert some values into `stream2`.
 ```sql
-INSERT INTO stream1 (
+INSERT INTO stream2 (
   id, lambda_arr
 ) VALUES (
-  1, ARRAY(2, 3, 4, 5)
+  1, ARRAY[2, 3, 4, 5]
 );
 ```
 
-Query the output.
+Query the output. Make sure to set `auto.offset.reset = earliest`.
 ```sql
-SELECT * FROM output AS final_output;
+SELECT * FROM output2 AS final_output EMIT CHANGES;
 ```
 
 You should see something similar to:
@@ -153,33 +153,33 @@ You should see something similar to:
 Create a stream with a column type `MAP<STRING, INTEGER>`and apply the `filter` lambda 
 invocation function. 
 ```sql
-CREATE STREAM stream1 (
+CREATE STREAM stream3 (
   id INT,
   lambda_map MAP<STRING, INTEGER>
 ) WITH (
-  kafka_topic = 'stream1',
+  kafka_topic = 'stream3',
   partitions = 1,
   value_format = 'avro'
 );
 
-CREATE STREAM output AS
+CREATE STREAM output3 AS
   SELECT id, 
   FILTER(lambda_map, (k, v) => instr(k, 'name') > 0 AND v != 0) 
-  FROM stream1
+  FROM stream3
   EMIT CHANGES;
 ```
-Insert some values into `stream1`.
+Insert some values into `stream3`.
 ```sql
-INSERT INTO stream1 (
-  id, lambda_arr
+INSERT INTO stream3 (
+  id, lambda_map
 ) VALUES (
-  1, MAP("first name":= 15, "middle":= 25, "last name":= 0, "alt name":= 33)
+  1, MAP('first name':= 15, 'middle':= 25, 'last name':= 0, 'alt name':= 33)
 );
 ```
 
-Query the output.
+Query the output. Make sure to set `auto.offset.reset = earliest`.
 ```sql
-SELECT * FROM output AS final_output;
+SELECT * FROM output3 AS final_output EMIT CHANGES;
 ```
 
 Your output should resemble:
@@ -194,33 +194,33 @@ Your output should resemble:
 the following example creates a stream with a column type `MAP<STRING, ARRAY<DECIMAL(2,3)>` and applies the `transform` 
 lambda invocation function with a nested `transform` lambda invocation function.
 ```sql
-CREATE STREAM stream1 (
+CREATE STREAM stream4 (
   id INT,
   lambda_map MAP<STRING, ARRAY<DECIMAL(2,3)>>
 ) WITH (
-  kafka_topic = 'stream1',
+  kafka_topic = 'stream4',
   partitions = 1,
   value_format = 'avro'
 );
 
-CREATE STREAM output AS
+CREATE STREAM output4 AS
   SELECT id, 
   TRANSFORM(lambda_map, (k, v) => concat(k, '_new')  (k, v) => transform(v, x => round(x))) 
-  FROM stream1
+  FROM stream4
   EMIT CHANGES;
 ```
-Insert some values into `stream1`.
+Insert some values into `stream4`.
 ```sql
-INSERT INTO stream1 (
-  id, lambda_arr
+INSERT INTO stream4 (
+  id, lambda_map
 ) VALUES (
-  1, MAP("Mary":= ARRAY[1.23, 3.65, 8.45], "Jose":= ARRAY[5.23, 1.65]})
+  1, MAP('Mary':= ARRAY[1.23, 3.65, 8.45], 'Jose':= ARRAY[5.23, 1.65]})
 );
 ```
 
-Query the output.
+Query the output. Make sure to set `auto.offset.reset = earliest`.
 ```sql
-SELECT * FROM output AS final_output;
+SELECT * FROM output4 AS final_output EMIT CHANGES;
 ```
 
 Your output should resemble:

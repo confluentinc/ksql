@@ -35,8 +35,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Pojo for holding data about the schemas and formats in use at the different stages within a
@@ -55,8 +53,6 @@ import org.slf4j.LoggerFactory;
  * between releases.
  */
 public final class QuerySchemas {
-  private static final Logger LOG = LoggerFactory.getLogger(QuerySchemas.class);
-
   private static final String EMPTY_TOPIC_NAME = "";
 
   private static final ValueFormat NONE_VALUE_FORMAT = ValueFormat.of(
@@ -71,6 +67,9 @@ public final class QuerySchemas {
 
   // Maps topic name -> (map of key/value flag -> set of logger name prefixes)
   private final Map<String, Map<Boolean, Set<String>>> topicsToLoggers = new HashMap<>();
+
+  private static final boolean KEY_LOGGER_TYPE = true;
+  private static final boolean VALUE_LOGGER_TYPE = false;
 
   /**
    * Called when creating a key serde.
@@ -133,6 +132,60 @@ public final class QuerySchemas {
     return Collections.unmodifiableMap(loggerToSchemas);
   }
 
+  private SchemaInfo getKeySchemaInfo(final Map<Boolean, Set<String>> kvLoggerNames,
+                                      final String topicName) {
+    final Set<String> topicNames = kvLoggerNames.getOrDefault(KEY_LOGGER_TYPE, ImmutableSet.of());
+
+    if (topicNames.size() != 1) {
+      final String result = topicNames.size() == 0 ? "Zero" : "Multiple";
+
+      throw new IllegalStateException(result + " key logger names registered for topic."
+          + System.lineSeparator()
+          + "topic: " + topicName
+          + "loggers: " + topicNames
+      );
+    }
+
+    return loggerToSchemas.get(Iterables.getOnlyElement(topicNames));
+  }
+
+  private SchemaInfo getValueSchemaInfo(final Map<Boolean, Set<String>> kvLoggerNames,
+                                        final String topicName) {
+    final Set<String> topicNames = kvLoggerNames.getOrDefault(VALUE_LOGGER_TYPE, ImmutableSet.of());
+
+    // NO_VALUE_SCHEMA_FOUND is returned if no value topic has been detected yet. This happens
+    // when a null value (delete) was processed in the topic as the first record. The internal
+    // serde from the value topic does not call the TrackSerde, which can't track the format type
+    // for the topic.
+    final SchemaInfo valueInfo = loggerToSchemas.getOrDefault(
+        Iterables.getFirst(topicNames, EMPTY_TOPIC_NAME),
+        NO_VALUE_SCHEMA_FOUND);
+
+    if (topicNames.size() > 1) {
+      final Optional<ValueFormat> firstValueFormat = valueInfo.valueFormat();
+
+      // Multiple value topics names may be detected. This happens with left/outer joins. The left
+      // and right streams share a state store which share one changelog topic with different
+      // value formats. The track code, though, is only used for QTT which always executes joins
+      // with same value formats. We only make sure all formats are the same so we return one
+      // SchemaInfo.
+      for (final String name : topicNames) {
+        final Optional<ValueFormat> nextValueFormat = loggerToSchemas.getOrDefault(
+            name, NO_VALUE_SCHEMA_FOUND).valueFormat();
+
+        if (!firstValueFormat.equals(nextValueFormat)) {
+          throw new IllegalStateException("Multiple value logger names registered for topic."
+              + System.lineSeparator()
+              + "topic: " + topicName
+              + "loggers: " + topicNames
+          );
+        }
+      }
+    }
+
+    return valueInfo;
+  }
+
   /**
    * Builds complete SchemaInfo for a topic:
    */
@@ -142,36 +195,8 @@ public final class QuerySchemas {
       throw new IllegalArgumentException("Unknown topic: " + topicName);
     }
 
-    final Set<String> keyLoggerNames = kvLoggerNames.getOrDefault(true, ImmutableSet.of());
-    if (keyLoggerNames.size() != 1) {
-      final String result = keyLoggerNames.size() == 0 ? "Zero" : "Multiple";
-
-      throw new IllegalStateException(result + " key logger names registered for topic."
-          + System.lineSeparator()
-          + "topic: " + topicName
-          + "loggers: " + keyLoggerNames
-      );
-    }
-
-    final Set<String> valueTopicNames = kvLoggerNames.getOrDefault(false, ImmutableSet.of());
-    if (valueTopicNames.size() > 1) {
-      LOG.debug("Multiple value logger names registered for topic."
-          + System.lineSeparator()
-          + "topic: " + topicName
-          + "loggers: " + valueTopicNames
-      );
-    }
-
-    final SchemaInfo keyInfo = loggerToSchemas.get(Iterables.getOnlyElement(keyLoggerNames));
-
-    // If valueTopicsNames has multiple logger names, then takes only the first logger found.
-    // Multiple loggers may be caused by a topic that has multiple value formats, i.e. the shared
-    // outer store from left/outer joins supports multiple value formats. Currently, the
-    // getTopicInfo() method is only called by ksqldb-functional-tests, which uses the same
-    // value format on both left/right joins.
-    final SchemaInfo valueInfo = loggerToSchemas.getOrDefault(
-        Iterables.getFirst(valueTopicNames, EMPTY_TOPIC_NAME),
-        NO_VALUE_SCHEMA_FOUND);
+    final SchemaInfo keyInfo = getKeySchemaInfo(kvLoggerNames, topicName);
+    final SchemaInfo valueInfo = getValueSchemaInfo(kvLoggerNames, topicName);
 
     if (keyInfo == null || valueInfo == null) {
       throw new IllegalStateException("Incomplete schema info for topic."

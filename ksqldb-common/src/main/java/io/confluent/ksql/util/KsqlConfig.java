@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import static io.confluent.ksql.configdef.ConfigValidators.zeroOrPositive;
+import static org.apache.kafka.streams.StreamsConfig.InternalConfig.ENABLE_KSTREAMS_OUTER_JOIN_SPURIOUS_RESULTS_FIX;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
@@ -543,7 +544,7 @@ public class KsqlConfig extends AbstractConfig {
             StreamsConfig.OPTIMIZE),
           // Disable KAFKA-10847 fix on older topologies
           new CompatibilityBreakingStreamsConfig(
-            StreamsConfig.InternalConfig.ENABLE_KSTREAMS_OUTER_JOIN_SPURIOUS_RESULTS_FIX,
+            ENABLE_KSTREAMS_OUTER_JOIN_SPURIOUS_RESULTS_FIX,
             false,
             true)
   );
@@ -565,8 +566,7 @@ public class KsqlConfig extends AbstractConfig {
     }
 
     private boolean isInternal(final String name) {
-      return
-          name.equals(StreamsConfig.InternalConfig.ENABLE_KSTREAMS_OUTER_JOIN_SPURIOUS_RESULTS_FIX);
+      return name.equals(ENABLE_KSTREAMS_OUTER_JOIN_SPURIOUS_RESULTS_FIX);
     }
 
 

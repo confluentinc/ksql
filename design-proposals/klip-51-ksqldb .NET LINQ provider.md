@@ -1,4 +1,4 @@
-﻿# KLIP 45 - ksqlDB LINQ provider
+﻿# KLIP 51 - ksqlDB LINQ provider
 
 **Author**: Tomas Fabian (tomasfabian) | 
 **Release Target**: ksqldb 0.14.0 | 
@@ -17,7 +17,7 @@ To avoid heavy weight reflection this project treats code as data with the help 
 ## What is in scope
 
 - A new client is being implemented in C# and will support execution and streaming of push queries with type safe LINQ syntax.
-- [Proof of concept project](https://github.com/tomasfabian/Joker/tree/master/Samples/Kafka/Kafka.DotNet.ksqlDB.Sample)
+- [Proof of concept project](https://github.com/tomasfabian/Kafka.DotNet.ksqlDB/tree/main/Samples)
 
 ## What is not in scope
 
@@ -32,7 +32,7 @@ Increased development productivity in dotnet environment using C# with api compa
 or in process [reactive extensions](http://rxwiki.wikidot.com/101samples).
 
 ## Public APIS
-
+Nuget package manager:
 ```
 Install-Package Kafka.DotNet.ksqlDB
 ```
@@ -92,7 +92,7 @@ namespace Kafka.DotNet.ksqlDB
 }
 ```
 
-C# code is translated into an Abstract Syntax Tree and the following KSQK is generated:
+C# code is translated into an Abstract Syntax Tree and the following KSQL is generated:
 ```KSQL
 SELECT Id, Message, RowTime 
 FROM Tweets
@@ -129,9 +129,9 @@ This interface could be later inherited from IObservable to achieve parity with 
 
 ## Test plan
 
-[Unit tests project](https://github.com/tomasfabian/Joker/tree/master/Tests/Joker.Kafka.Tests) - work in progress 
+[Unit tests project](https://github.com/tomasfabian/Kafka.DotNet.ksqlDB/tree/main/Tests/Kafka.DotNet.ksqlDB.Tests) - work in progress 
 
-[Integration tests project](https://github.com/tomasfabian/Joker/tree/master/Tests/Kafka.DotNet.ksqlDB.IntegrationTests) - work in progress
+[Integration tests project](https://github.com/tomasfabian/Kafka.DotNet.ksqlDB/tree/main/Tests/Kafka.DotNet.ksqlDB.IntegrationTests) - work in progress
 
 ## Documentation Updates
 [Wiki](https://github.com/tomasfabian/Joker/wiki/Kafka.DotNet.ksqlDB---push-queries-LINQ-provider) - work in progress

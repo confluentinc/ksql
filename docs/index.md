@@ -9,6 +9,8 @@ keywords: ksqldb
 [ksqlDB](https://ksqldb.io/) is an event streaming database purpose-built to help developers create
 stream processing applications on top of {{ site.aktm }}.
 
+[Get Started](https://ksqldb.io/quickstart.html){ .md-button .md-button--top-level }
+
 ## Try it
 
 <div class="cards">

@@ -17,7 +17,6 @@ package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
-import java.util.function.Function;
 
 public class ForeignKeyJoinParams<KRightT> {
   private final KsqlKeyExtractor<KRightT> keyExtractor;

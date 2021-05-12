@@ -98,12 +98,13 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
     final ForeignKeyTableTableJoin<?, ?> that = (ForeignKeyTableTableJoin<?, ?>) o;
     return Objects.equals(properties, that.properties)
         && joinType == that.joinType
+        && Objects.equals(leftJoinColumnName, that.leftJoinColumnName)
         && Objects.equals(leftSource, that.leftSource)
         && Objects.equals(rightSource, that.rightSource);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(properties, joinType, leftSource, rightSource);
+    return Objects.hash(properties, joinType, leftJoinColumnName, leftSource, rightSource);
   }
 }

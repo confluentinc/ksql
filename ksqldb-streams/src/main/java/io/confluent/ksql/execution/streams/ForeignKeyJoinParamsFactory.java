@@ -54,7 +54,7 @@ public final class ForeignKeyJoinParamsFactory {
       final LogicalSchema leftSchema,
       final ColumnName leftJoinColumnName) {
 
-    final Optional<Column> leftJoinColumn = leftSchema.findColumn(leftJoinColumnName);
+    final Optional<Column> leftJoinColumn = leftSchema.findValueColumn(leftJoinColumnName);
     if (!leftJoinColumn.isPresent()) {
       throw new IllegalStateException("Could not find join column in left input table.");
     }

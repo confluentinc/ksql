@@ -28,15 +28,13 @@ public class JoinParamsFactoryTest {
       .valueColumn(ColumnName.of("R_K"), SqlTypes.STRING) // Copy of key in value
       .build();
 
-  private JoinParams joinParams;
-
   @Test
   public void shouldBuildCorrectLeftKeyedSchema() {
     // Given:
     final ColumnName keyName = Iterables.getOnlyElement(LEFT_SCHEMA.key()).name();
 
     // When:
-    joinParams = JoinParamsFactory.create(keyName, LEFT_SCHEMA, RIGHT_SCHEMA);
+    final JoinParams joinParams = JoinParamsFactory.create(keyName, LEFT_SCHEMA, RIGHT_SCHEMA);
 
     // Then:
     assertThat(joinParams.getSchema(), is(LogicalSchema.builder()
@@ -57,7 +55,7 @@ public class JoinParamsFactoryTest {
     final ColumnName keyName = Iterables.getOnlyElement(RIGHT_SCHEMA.key()).name();
 
     // When:
-    joinParams = JoinParamsFactory.create(keyName, LEFT_SCHEMA, RIGHT_SCHEMA);
+    final JoinParams joinParams = JoinParamsFactory.create(keyName, LEFT_SCHEMA, RIGHT_SCHEMA);
 
     // Then:
     assertThat(joinParams.getSchema(), is(LogicalSchema.builder()
@@ -78,7 +76,7 @@ public class JoinParamsFactoryTest {
     final ColumnName keyName = ColumnName.of("OTHER");
 
     // When:
-    joinParams = JoinParamsFactory.create(keyName, LEFT_SCHEMA, RIGHT_SCHEMA);
+    final JoinParams joinParams = JoinParamsFactory.create(keyName, LEFT_SCHEMA, RIGHT_SCHEMA);
 
     // Then:
     assertThat(joinParams.getSchema(), is(LogicalSchema.builder()

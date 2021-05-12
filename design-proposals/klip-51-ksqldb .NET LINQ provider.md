@@ -49,7 +49,7 @@ using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 
-namespace Kafka.DotNet.ksqlDB
+namespace Example
 {
   public class Program
   {
@@ -103,7 +103,7 @@ LIMIT 2;
 
 Supported are also aggregations and base type functions, windows and joins.
 
-[Projects location](https://github.com/tomasfabian/Joker/tree/master/Joker.Kafka)
+[Projects location](https://github.com/tomasfabian/Kafka.DotNet.ksqlDB)
 
 ## Design
 

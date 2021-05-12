@@ -44,6 +44,21 @@ public class QueryAnonymizingRewritePolicyTest {
   }
 
   @Test
+  public void shouldUseClusterNameAsNamespaceIfMissing() {
+    when(config.getBoolean(KsqlConfig.KSQL_QUERYANONYMIZER_ENABLED)).thenReturn(true);
+    when(config.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("meowcluster");
+    when(config.getString(KsqlConfig.KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE))
+        .thenReturn("");
+
+    policy = new QueryAnonymizingRewritePolicy(config);
+    assertEquals("meowcluster", policy.getNamespace());
+
+    when(config.getString(KsqlConfig.KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE)).thenReturn(null);
+    policy = new QueryAnonymizingRewritePolicy(config);
+    assertEquals("meowcluster", policy.getNamespace());
+  }
+
+  @Test
   public void shouldReplaceAQueryWithRewritten() {
     // when
     final LoggingEvent loggingEvent =

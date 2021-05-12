@@ -22,9 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@code MissingTopicClassifier} classifies errors by querying the broker
- * to check that all topics that the query relies on being accessible exist
- * and are accessible
+ * {@code MissingTopicClassifier} classifies missing source topic exceptions as user error
  */
 public class MissingTopicClassifier implements QueryErrorClassifier {
 

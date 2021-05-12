@@ -41,6 +41,9 @@ public enum SqlBaseType {
    * @return true if this type can be implicitly cast to the supplied type.
    */
   public boolean canImplicitlyCast(final SqlBaseType to) {
+    if (to == null) {
+      return false;
+    }
     final boolean canCastNumber = (isNumber() && to.isNumber() && this.ordinal() <= to.ordinal());
     final boolean canCastTimestamp = this.equals(STRING) && to.equals(TIMESTAMP);
     return this.equals(to) || canCastNumber || canCastTimestamp;

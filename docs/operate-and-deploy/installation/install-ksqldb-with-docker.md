@@ -23,7 +23,7 @@ configuration with the `-e` or `--env` flags in the `docker run`
 command.
 
 For a complete list of ksqlDB parameters, see
-[ksqlDB Configuration Parameter Reference](server-config/config-reference.md).
+[ksqlDB Configuration Parameter Reference](/reference/server-configuration).
 
 In most cases, to assign a ksqlDB configuration parameter in a container,
 you prepend the parameter name with `KSQL_` and substitute the
@@ -65,7 +65,7 @@ docker run -d \
   -e KSQL_BOOTSTRAP_SERVERS=localhost:9092 \
   -e KSQL_LISTENERS=http://0.0.0.0:8088/ \
   -e KSQL_KSQL_SERVICE_ID=ksql_service_2_ \
-  confluentinc/ksqldb-server:{{ site.release }}
+  confluentinc/ksqldb-server:{{ site.ksqldbversion }}
 ```
 
 `KSQL_BOOTSTRAP_SERVERS`
@@ -82,6 +82,11 @@ docker run -d \
 
 :   A list of URIs, including the protocol, that the broker listens on.
     If you are using IPv6, set to `http://[::]:8088`.
+
+`KSQL_CLASSPATH`
+
+:   The classpath to use for the server, which can contain any additional
+    JARs that you may need to run your plugins and UDFs.
 
 In interactive mode, a ksqlDB CLI instance running outside of Docker can
 connect to the ksqlDB server running in Docker.
@@ -103,7 +108,7 @@ docker run -d \
   -e KSQL_BOOTSTRAP_SERVERS=localhost:9092 \
   -e KSQL_KSQL_SERVICE_ID=ksql_standalone_1_ \
   -e KSQL_KSQL_QUERIES_FILE=/path/in/container/queries.sql \
-  confluentinc/ksqldb-server:{{ site.release }}
+  confluentinc/ksqldb-server:{{ site.ksqldbversion }}
 ```
 
 `KSQL_BOOTSTRAP_SERVERS`
@@ -120,6 +125,11 @@ docker run -d \
 
 :   A file that specifies predefined SQL queries.
 
+`KSQL_CLASSPATH`
+
+:   The classpath to use for the server, which can contain any additional
+    JARs that you may need to run your plugins and UDFs.
+
 ### Connect ksqlDB Server to a secure Kafka Cluster, like Confluent Cloud
 
 ksqlDB Server runs outside of your {{ site.ak }} clusters, so you need to
@@ -131,7 +141,7 @@ Run a ksqlDB Server that uses a secure connection to a {{ site.ak }} cluster:
 ```bash
 docker run -d \
   -p 127.0.0.1:8088:8088 \
-  -e KSQL_BOOTSTRAP_SERVERS=REMOVED_SERVER1:9092,REMOVED_SERVER2:9093,REMOVED_SERVER3:9094 \
+  -e KSQL_BOOTSTRAP_SERVERS=REMOTE_SERVER1:9092,REMOTE_SERVER2:9093,REMOTE_SERVER3:9094 \
   -e KSQL_LISTENERS=http://0.0.0.0:8088/ \
   -e KSQL_KSQL_SERVICE_ID=default_ \
   -e KSQL_KSQL_SINK_REPLICAS=3 \
@@ -140,7 +150,7 @@ docker run -d \
   -e KSQL_SECURITY_PROTOCOL=SASL_SSL \
   -e KSQL_SASL_MECHANISM=PLAIN \
   -e KSQL_SASL_JAAS_CONFIG="org.apache.kafka.common.security.plain.PlainLoginModule required username=\"<username>\" password=\"<strong-password>\";" \
-  confluentinc/ksqldb-server:{{ site.release }}
+  confluentinc/ksqldb-server:{{ site.ksqldbversion }}
 ```
 
 `KSQL_BOOTSTRAP_SERVERS`
@@ -207,7 +217,7 @@ docker run -d \
   -v /path/on/host:/path/in/container/ \
   -e KSQL_BOOTSTRAP_SERVERS=localhost:9092 \
   -e KSQL_OPTS="-Dksql.service.id=ksql_service_3_  -Dksql.queries.file=/path/in/container/queries.sql" \
-  confluentinc/ksqldb-server:{{ site.release }}
+  confluentinc/ksqldb-server:{{ site.ksqldbversion }}
 ```
 
 `KSQL_BOOTSTRAP_SERVERS`
@@ -258,6 +268,35 @@ KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
 KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
 ```
 
+### Mount Volumes
+
+Various features (plugins, UDFs, embedded connectors) may require that you mount
+volumes to the docker image. To do this, follow [the official docker documentation](https://docs.docker.com/storage/volumes/).
+
+As an example using `docker-compose`, you can mount a udf directory and use it like this:
+
+```yaml
+  ksqldb-server:
+    image: confluentinc/ksqldb-server:{{ site.ksqldbversion }}
+    hostname: ksqldb-server
+    container_name: ksqldb-server
+    depends_on:
+      - broker
+      - schema-registry
+    ports:
+      - "8088:8088"
+    volumes:
+      - "./extensions/:/opt/ksqldb-udfs"
+    environment:
+      KSQL_LISTENERS: "http://0.0.0.0:8088"
+      KSQL_BOOTSTRAP_SERVERS: "broker:9092"
+      KSQL_KSQL_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+      KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
+      KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
+      # Configuration for UDFs
+      KSQL_KSQL_EXTENSION_DIR: "/opt/ksqldb-udfs"
+```
+
 ksqlDB Command-line Interface (CLI)
 -----------------------------------
 
@@ -281,7 +320,7 @@ that's running in a different container.
 docker run -d -p 10.0.0.11:8088:8088 \
   -e KSQL_BOOTSTRAP_SERVERS=localhost:9092 \
   -e KSQL_OPTS="-Dksql.service.id=ksql_service_3_  -Dlisteners=http://0.0.0.0:8088/" \  
-  confluentinc/ksqldb-server:{{ site.release }}
+  confluentinc/ksqldb-server:{{ site.ksqldbversion }}
 
 # Connect the ksqlDB CLI to the server.
 docker run -it confluentinc/ksqldb-cli ksql http://10.0.0.11:8088 
@@ -312,7 +351,7 @@ ls /path/on/host/ksql-cli.properties
 
 docker run -it \
   -v /path/on/host/:/path/in/container  \
-  confluentinc/ksqldb-cli:{{ site.release }} ksql http://10.0.0.11:8088 \
+  confluentinc/ksqldb-cli:{{ site.ksqldbversion }} ksql http://10.0.0.11:8088 \
   --config-file /path/in/container/ksql-cli.properties
 ```
 
@@ -322,7 +361,7 @@ Run a ksqlDB CLI instance in a container and connect to a remote ksqlDB
 Server host:
 
 ```bash
-docker run -it confluentinc/ksqldb-cli:{{ site.release }} ksql \
+docker run -it confluentinc/ksqldb-cli:{{ site.ksqldbversion }} ksql \
   http://ec2-blah.us-blah.compute.amazonaws.com:8080
 ```
 
@@ -332,7 +371,7 @@ Your output should resemble:
 ... 
 Copyright 2017-2020 Confluent Inc.
 
-CLI v{{ site.release }}, Server v{{ site.release }} located at http://ec2-blah.us-blah.compute.amazonaws.com:8080
+CLI v{{ site.ksqldbversion }}, Server v{{ site.ksqldbversion }} located at http://ec2-blah.us-blah.compute.amazonaws.com:8080
 
 Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 
@@ -409,8 +448,8 @@ Discover the default command that the container runs when it launches,
 which is either `Entrypoint` or `Cmd`:
 
 ```bash
-docker inspect --format={% raw %}'{{.Config.Entrypoint}}'{% endraw %} confluentinc/ksqldb-server:{{ site.release }}
-docker inspect --format={% raw %}'{{.Config.Cmd}}'{% endraw %} confluentinc/ksqldb-server:{{ site.release }}
+docker inspect --format={% raw %}'{{.Config.Entrypoint}}'{% endraw %} confluentinc/ksqldb-server:{{ site.ksqldbversion }}
+docker inspect --format={% raw %}'{{.Config.Cmd}}'{% endraw %} confluentinc/ksqldb-server:{{ site.ksqldbversion }}
 ```
 
 Your output should resemble:
@@ -431,7 +470,7 @@ a directory and downloads a tar archive into it.
 
 ```yaml
 ksql-server:
-  image: confluentinc/ksqldb-server:{{ site.release }}
+  image: confluentinc/ksqldb-server:{{ site.ksqldbversion }}
   depends_on:
     - kafka
   environment:
@@ -466,7 +505,7 @@ the environment to a desired state.
 
 ```yaml
 ksql-cli:
-  image: confluentinc/ksqldb-cli:{{ site.release }}
+  image: confluentinc/ksqldb-cli:{{ site.ksqldbversion }}
   depends_on:
     - ksql-server
   volumes:

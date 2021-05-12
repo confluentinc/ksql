@@ -42,7 +42,7 @@ public interface Locator {
    * @return the list of nodes, that can potentially serve the key.
    */
   List<KsqlPartitionLocation> locate(
-      List<GenericKey> keys,
+      List<KsqlKey> keys,
       RoutingOptions routingOptions,
       RoutingFilterFactory routingFilterFactory
   );
@@ -76,6 +76,17 @@ public interface Locator {
      * @return the keys associated with the data we want to access, if any. Keys may not be present
      *     for queries which don't enumerate them up front, such as range queries.
      */
-    Optional<Set<GenericKey>> getKeys();
+    Optional<Set<KsqlKey>> getKeys();
+  }
+
+  /**
+   * Wrapper around a GenericKey
+   */
+  interface KsqlKey {
+
+    /**
+     * Gets the key associated with this KsqlKey
+     */
+    GenericKey getKey();
   }
 }

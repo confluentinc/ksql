@@ -18,7 +18,7 @@ package io.confluent.ksql.execution.streams;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamSelectKeyV1;
@@ -42,7 +42,7 @@ public final class StreamSelectKeyBuilderV1 {
   ) {
     final LogicalSchema sourceSchema = stream.getSchema();
 
-    final ExpressionMetadata expression = buildExpressionEvaluator(
+    final CompiledExpression expression = buildExpressionEvaluator(
         selectKey,
         buildContext,
         sourceSchema
@@ -72,7 +72,7 @@ public final class StreamSelectKeyBuilderV1 {
     );
   }
 
-  private static ExpressionMetadata buildExpressionEvaluator(
+  private static CompiledExpression buildExpressionEvaluator(
       final StreamSelectKeyV1 selectKey,
       final RuntimeBuildContext buildContext,
       final LogicalSchema sourceSchema

@@ -35,10 +35,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class QueryStreamWriter implements StreamingOutput {
+  private static final int WRITE_TIMEOUT_MS = 10 * 60000;
 
   private static final Logger log = LoggerFactory.getLogger(QueryStreamWriter.class);
 
@@ -125,6 +128,11 @@ class QueryStreamWriter implements StreamingOutput {
     }
   }
 
+  @Override
+  public int getWriteTimeoutMs() {
+    return WRITE_TIMEOUT_MS;
+  }
+
   private StreamedRow buildHeader() {
     final QueryId queryId = queryMetadata.getQueryId();
 
@@ -177,12 +185,13 @@ class QueryStreamWriter implements StreamingOutput {
     }
   }
 
-  private class StreamsExceptionHandler implements Thread.UncaughtExceptionHandler {
+  private class StreamsExceptionHandler implements StreamsUncaughtExceptionHandler {
     @Override
-    public void uncaughtException(final Thread thread, final Throwable exception) {
-      streamsException = exception instanceof Exception
-          ? (Exception) exception
-          : new RuntimeException(exception);
+    public StreamThreadExceptionResponse handle(final Throwable throwable) {
+      streamsException = throwable instanceof Exception
+              ? (Exception) throwable
+              : new RuntimeException(throwable);
+      return StreamThreadExceptionResponse.SHUTDOWN_CLIENT;
     }
   }
 

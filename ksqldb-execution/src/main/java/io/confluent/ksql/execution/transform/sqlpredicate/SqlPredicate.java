@@ -19,8 +19,8 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.execution.transform.KsqlProcessingContext;
 import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -33,7 +33,7 @@ import java.util.Optional;
 public final class SqlPredicate {
 
   private final Expression filterExpression;
-  private final ExpressionMetadata evaluator;
+  private final ExpressionEvaluator evaluator;
 
   public SqlPredicate(
       final Expression filterExpression,
@@ -55,7 +55,7 @@ public final class SqlPredicate {
 
   public SqlPredicate(
       final Expression filterExpression,
-      final ExpressionMetadata evaluator
+      final ExpressionEvaluator evaluator
   ) {
     this.filterExpression = requireNonNull(filterExpression, "filterExpression");
     this.evaluator = requireNonNull(evaluator, "evaluator");

@@ -1,0 +1,40 @@
+[ {
+  "@type" : "queryDescription",
+  "statementText" : "statement",
+  "queryDescription" : {
+    "id" : "id",
+    "statementText" : "statement",
+    "windowType" : null,
+    "fields" : [ {
+      "name" : "name",
+      "schema" : {
+        "type" : "STRING",
+        "fields" : [ ],
+        "memberSchema" : null
+      }
+    } ],
+    "sources" : [ "source" ],
+    "sinks" : [ "sink" ],
+    "topology" : "topology",
+    "executionPlan" : "executionPlan",
+    "overriddenProperties" : {
+      "overridden.prop" : 42
+    },
+    "ksqlHostQueryStatus" : {
+      "foo:123" : "ERROR"
+    },
+    "queryType" : "PERSISTENT",
+    "queryErrors" : [ {
+      "timestamp" : 1596644936314,
+      "errorMessage" : "error",
+      "type" : "SYSTEM"
+    } ],
+    "tasksMetadata" : [ {
+      "taskId" : "test",
+      "topicOffsets" : [ ],
+      "timeCurrentIdlingStarted" : null
+    } ],
+    "state" : "ERROR"
+  },
+  "warnings" : [ ]
+} ]

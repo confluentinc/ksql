@@ -20,7 +20,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
@@ -116,7 +116,7 @@ public class KsqlAuthorizationValidatorFactoryTest {
 
     // Then:
     assertThat(validator, is(Optional.empty()));
-    verifyZeroInteractions(adminClient);
+    verifyNoMoreInteractions(adminClient);
   }
 
   @Test
@@ -138,7 +138,7 @@ public class KsqlAuthorizationValidatorFactoryTest {
     assertThat(validator.get(), is(instanceOf(KsqlAuthorizationValidatorImpl.class)));
     assertThat(((KsqlAuthorizationValidatorImpl)validator.get()).getAccessValidator(),
         is(instanceOf(KsqlBackendAccessValidator.class)));
-    verifyZeroInteractions(adminClient);
+    verifyNoMoreInteractions(adminClient);
   }
 
   @Test
@@ -160,7 +160,7 @@ public class KsqlAuthorizationValidatorFactoryTest {
     assertThat(validator.get(), is(instanceOf(KsqlAuthorizationValidatorImpl.class)));
     assertThat(((KsqlAuthorizationValidatorImpl)validator.get()).getAccessValidator(),
         is(instanceOf(KsqlCacheAccessValidator.class)));
-    verifyZeroInteractions(adminClient);
+    verifyNoMoreInteractions(adminClient);
   }
 
   @Test

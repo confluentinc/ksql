@@ -18,6 +18,7 @@ package io.confluent.ksql.api;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.api.utils.RowGenerator;
@@ -53,6 +54,7 @@ public class TestEndpoints implements Endpoints {
   private List<KsqlEntity> ksqlEndpointResponse;
   private String lastSql;
   private JsonObject lastProperties;
+  private JsonObject lastSessionVariables;
   private String lastTarget;
   private Set<TestQueryPublisher> queryPublishers = new HashSet<>();
   private int acksBeforePublisherError = -1;
@@ -64,8 +66,9 @@ public class TestEndpoints implements Endpoints {
 
   @Override
   public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
-      final JsonObject properties, final Context context, final WorkerExecutor workerExecutor,
-      final ApiSecurityContext apiSecurityContext) {
+      final JsonObject properties, JsonObject sessionVariables, final Context context, final WorkerExecutor workerExecutor,
+      final ApiSecurityContext apiSecurityContext,
+      final MetricsCallbackHolder metricsCallbackHolder) {
     CompletableFuture<QueryPublisher> completableFuture = new CompletableFuture<>();
     if (createQueryPublisherException != null) {
       createQueryPublisherException.fillInStackTrace();
@@ -73,6 +76,7 @@ public class TestEndpoints implements Endpoints {
     } else {
       this.lastSql = sql;
       this.lastProperties = properties;
+      this.lastSessionVariables = sessionVariables;
       this.lastApiSecurityContext = apiSecurityContext;
       final boolean push = sql.toLowerCase().contains("emit changes");
       final int limit = extractLimit(sql);
@@ -120,6 +124,7 @@ public class TestEndpoints implements Endpoints {
       final ApiSecurityContext apiSecurityContext) {
     this.lastSql = request.getKsql();
     this.lastProperties = new JsonObject(request.getConfigOverrides());
+    this.lastSessionVariables = new JsonObject(request.getSessionVariables());
     this.lastApiSecurityContext = apiSecurityContext;
     CompletableFuture<EndpointResponse> cf = new CompletableFuture<>();
 
@@ -143,7 +148,7 @@ public class TestEndpoints implements Endpoints {
   public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
       WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
       ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest,
-      KsqlMediaType mediaType) {
+      KsqlMediaType mediaType, final MetricsCallbackHolder metricsCallbackHolder) {
     return null;
   }
 
@@ -170,6 +175,12 @@ public class TestEndpoints implements Endpoints {
   @Override
   public CompletableFuture<EndpointResponse> executeStatus(String type, String entity,
       String action, ApiSecurityContext apiSecurityContext) {
+    return null;
+  }
+
+  @Override
+  public CompletableFuture<EndpointResponse> executeIsValidProperty(String property,
+      WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext) {
     return null;
   }
 
@@ -230,6 +241,10 @@ public class TestEndpoints implements Endpoints {
 
   public synchronized JsonObject getLastProperties() {
     return lastProperties;
+  }
+
+  public synchronized JsonObject getLastSessionVariables() {
+    return lastSessionVariables;
   }
 
   public synchronized Set<TestQueryPublisher> getQueryPublishers() {

@@ -24,17 +24,12 @@ import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.parsetools.RecordParser;
-import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class StreamQueryResponseHandler
     extends QueryResponseHandler<CompletableFuture<StreamedQueryResult>> {
-
-  private static final Logger log = LoggerFactory.getLogger(StreamQueryResponseHandler.class);
 
   private StreamedQueryResultImpl queryResult;
   private Map<String, Integer> columnNameToIndex;
@@ -47,9 +42,12 @@ public class StreamQueryResponseHandler
 
   @Override
   protected void handleMetadata(final QueryResponseMetadata queryResponseMetadata) {
-    this.queryResult = new StreamedQueryResultImpl(context, queryResponseMetadata.queryId,
-        Collections.unmodifiableList(queryResponseMetadata.columnNames),
-        RowUtil.columnTypesFromStrings(queryResponseMetadata.columnTypes));
+    this.queryResult = new StreamedQueryResultImpl(
+        context,
+        queryResponseMetadata.queryId,
+        queryResponseMetadata.columnNames,
+        RowUtil.columnTypesFromStrings(queryResponseMetadata.columnTypes)
+    );
     this.columnNameToIndex = RowUtil.valueToIndexMap(queryResponseMetadata.columnNames);
     cf.complete(queryResult);
   }
@@ -77,7 +75,6 @@ public class StreamQueryResponseHandler
     } else if (json instanceof JsonObject) {
       final JsonObject error = (JsonObject) json;
       queryResult.handleError(new KsqlException(
-          error.getInteger("error_code"),
           error.getString("message")
       ));
     } else {

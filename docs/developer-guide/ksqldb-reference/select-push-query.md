@@ -15,9 +15,9 @@ Synopsis
 ```sql
 SELECT select_expr [, ...]
   FROM from_item
-  [ LEFT JOIN join_table ON join_criteria ]
+  [[ LEFT | FULL | INNER ] JOIN join_item ON [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ] join_criteria]*
   [ WINDOW window_expression ]
-  [ WHERE condition ]
+  [ WHERE where_condition ]
   [ GROUP BY grouping_expression ]
   [ HAVING having_expression ]
   EMIT [ output_refinement ]
@@ -56,7 +56,11 @@ In the previous statements, `from_item` is one of the following:
 -   `from_item LEFT JOIN from_item ON join_condition`
 
 The WHERE clause can refer to any column defined for a stream or table,
-including the `ROWTIME` pseudo column.
+including the `ROWTIME` pseudo column. `where_condition` is an expression that evaluates to true
+for each record selected.
+
+In the WHERE expression, you can use any operator that ksqlDB supports.
+See [Operators in ksqlDB](../../developer-guide/ksqldb-reference/operators.md)
 
 Example
 -------
@@ -184,6 +188,31 @@ SELECT windowstart, windowend, item_id, SUM(quantity)
   WINDOW SESSION (20 SECONDS)
   GROUP BY item_id
   EMIT CHANGES;
+```
+
+#### WITHIN
+
+!!! note
+    Stream-Stream joins must have a WITHIN clause specified.
+
+The WITHIN clause lets you specify a time range in a windowed join. When you
+join two streams, you must specify a WITHIN clause for matching records that
+both occur within a specified time interval.
+
+Here's an example stream-stream-stream join that combines `orders`, `payments` and `shipments`
+streams. The resulting ``shipped_orders`` stream contains all orders paid within 1 hour of when
+the order was placed, and shipped within 2 hours of the payment being received.
+
+```sql
+   CREATE STREAM shipped_orders AS
+     SELECT 
+        o.id as orderId 
+        o.itemid as itemId,
+        s.id as shipmentId,
+        p.id as paymentId
+     FROM orders o
+        INNER JOIN payments p WITHIN 1 HOURS ON p.id = o.id
+        INNER JOIN shipments s WITHIN 2 HOURS ON s.id = o.id;
 ```
 
 #### Out-of-order events

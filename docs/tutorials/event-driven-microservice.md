@@ -1,3 +1,11 @@
+---
+layout: page
+title: Event-driven microservice 
+tagline: Learn how to create an event-driven microservice by using ksqlDB
+description: Use ksqlDB to create an event-driven microservice that identifies suspicious activity and notifies customers
+keywords: microservice
+---
+
 # Event-driven microservice
 
 ## What is it?
@@ -42,7 +50,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   broker:
-    image: confluentinc/cp-enterprise-kafka:{{ site.cprelease }}
+    image: confluentinc/cp-kafka:{{ site.cprelease }}
     hostname: broker
     container_name: broker
     depends_on:
@@ -73,7 +81,7 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:2181'
 
   ksqldb-server:
-    image: confluentinc/ksqldb-server:{{ site.release }}
+    image: confluentinc/ksqldb-server:{{ site.ksqldbversion }}
     hostname: ksqldb-server
     container_name: ksqldb-server
     depends_on:
@@ -92,19 +100,17 @@ services:
       KSQL_CONNECT_BOOTSTRAP_SERVERS: "broker:9092"
       KSQL_CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
       KSQL_CONNECT_VALUE_CONVERTER: "io.confluent.connect.avro.AvroConverter"
-      KSQL_CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
       KSQL_CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
-      KSQL_CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
-      KSQL_CONNECT_CONFIG_STORAGE_TOPIC: "ksql-connect-configs"
-      KSQL_CONNECT_OFFSET_STORAGE_TOPIC: "ksql-connect-offsets"
-      KSQL_CONNECT_STATUS_STORAGE_TOPIC: "ksql-connect-statuses"
+      KSQL_CONNECT_CONFIG_STORAGE_TOPIC: "_ksql-connect-configs"
+      KSQL_CONNECT_OFFSET_STORAGE_TOPIC: "_ksql-connect-offsets"
+      KSQL_CONNECT_STATUS_STORAGE_TOPIC: "_ksql-connect-statuses"
       KSQL_CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
       KSQL_CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
       KSQL_CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
       KSQL_CONNECT_PLUGIN_PATH: "/usr/share/kafka/plugins"
 
   ksqldb-cli:
-    image: confluentinc/ksqldb-cli:{{ site.release }}
+    image: confluentinc/ksqldb-cli:{{ site.ksqldbversion }}
     container_name: ksqldb-cli
     depends_on:
       - broker

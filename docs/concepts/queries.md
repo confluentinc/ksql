@@ -1,3 +1,11 @@
+---
+layout: page
+title: Queries
+tagline: Query streaming data
+description: Learn how to query streaming data in ksqlDB
+keywords: query, persistent, push, pull
+---
+
 There are three kinds of queries in ksqlDB: persistent, push, and pull.
 Each gives you different ways to work with rows of events.
 
@@ -67,9 +75,8 @@ the API responds with a single response.
 ### Pull query features and limitations
 
 - Pull queries are expressed using a strict subset of ANSI SQL.
-- Pull queries are currently available only against materialized aggregate
-  tables, which means tables that are created by using a persistent query
-  with a GROUP BY clause.
+- You can execute pull queries on any derived table created by using the
+  CREATE TABLE AS SELECT statement.
 - For non-windowed aggregations, pull queries only support looking up events
   by key.
 - WHERE clauses must have constraints that encompass all key column(s) for non-windowed tables.

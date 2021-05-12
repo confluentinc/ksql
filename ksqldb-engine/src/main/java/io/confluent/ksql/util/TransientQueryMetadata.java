@@ -27,13 +27,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 import org.apache.kafka.streams.Topology;
 
 /**
  * Metadata of a transient query, e.g. {@code SELECT * FROM FOO;}.
  */
-public class TransientQueryMetadata extends QueryMetadata {
+public class TransientQueryMetadata extends QueryMetadataImpl {
 
   public enum ResultType {
     STREAM,
@@ -43,7 +42,7 @@ public class TransientQueryMetadata extends QueryMetadata {
 
   private final BlockingRowQueue rowQueue;
   private final ResultType resultType;
-  private final AtomicBoolean isRunning = new AtomicBoolean(true);
+  final AtomicBoolean isRunning = new AtomicBoolean(true);
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public TransientQueryMetadata(
@@ -57,10 +56,12 @@ public class TransientQueryMetadata extends QueryMetadata {
       final KafkaStreamsBuilder kafkaStreamsBuilder,
       final Map<String, Object> streamsProperties,
       final Map<String, Object> overriddenProperties,
-      final Consumer<QueryMetadata> closeCallback,
       final long closeTimeout,
       final int maxQueryErrorsQueueSize,
-      final ResultType resultType
+      final ResultType resultType,
+      final long retryBackoffInitialMs,
+      final long retryBackoffMaxMs,
+      final Listener listener
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
@@ -73,15 +74,26 @@ public class TransientQueryMetadata extends QueryMetadata {
         kafkaStreamsBuilder,
         streamsProperties,
         overriddenProperties,
-        closeCallback,
         closeTimeout,
         new QueryId(queryApplicationId),
         QueryErrorClassifier.DEFAULT_CLASSIFIER,
-        maxQueryErrorsQueueSize
+        maxQueryErrorsQueueSize,
+        retryBackoffInitialMs,
+        retryBackoffMaxMs,
+        listener
     );
     this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
     this.resultType = Objects.requireNonNull(resultType, "resultType");
-    this.onStop(ignored -> isRunning.set(false));
+  }
+
+  public TransientQueryMetadata(
+      final TransientQueryMetadata original,
+      final BlockingRowQueue rowQueue,
+      final Listener listener
+  ) {
+    super(original, listener);
+    this.rowQueue = Objects.requireNonNull(rowQueue, "rowQueue");
+    this.resultType = original.resultType;
   }
 
   public boolean isRunning() {
@@ -124,13 +136,6 @@ public class TransientQueryMetadata extends QueryMetadata {
   }
 
   @Override
-  public void stop() {
-    // for transient queries, anytime they are stopped
-    // we should also fully clean them up
-    close();
-  }
-
-  @Override
   public void close() {
     // To avoid deadlock, close the queue first to ensure producer side isn't blocked trying to
     // write to the blocking queue, otherwise super.close call can deadlock:
@@ -138,5 +143,6 @@ public class TransientQueryMetadata extends QueryMetadata {
 
     // Now safe to close:
     super.close();
+    this.isRunning.set(false);
   }
 }

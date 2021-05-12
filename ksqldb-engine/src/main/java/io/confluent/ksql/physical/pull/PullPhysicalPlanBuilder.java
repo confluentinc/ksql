@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.physical.pull;
 
-import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -26,6 +25,8 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
 import io.confluent.ksql.physical.pull.operators.AbstractPhysicalOperator;
 import io.confluent.ksql.physical.pull.operators.DataSourceOperator;
 import io.confluent.ksql.physical.pull.operators.KeyedTableLookupOperator;
@@ -37,10 +38,11 @@ import io.confluent.ksql.physical.pull.operators.WindowedTableScanOperator;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
+import io.confluent.ksql.planner.plan.LookupConstraint;
+import io.confluent.ksql.planner.plan.NonKeyConstraint;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PullFilterNode;
-import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds;
 import io.confluent.ksql.planner.plan.PullProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlException;
@@ -48,7 +50,6 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * Traverses the logical plan top-down and creates a physical plan for pull queries.
@@ -66,8 +67,9 @@ public class PullPhysicalPlanBuilder {
   private final QueryId queryId;
   private final Materialization mat;
 
-  private List<GenericKey> keys;
-  private Optional<WindowBounds> windowBounds;
+  private List<LookupConstraint> lookupConstraints;
+  private PullPhysicalPlanType pullPhysicalPlanType;
+  private PullSourceType pullSourceType;
   private boolean seenSelectOperator = false;
 
   public PullPhysicalPlanBuilder(
@@ -145,7 +147,9 @@ public class PullPhysicalPlanBuilder {
         rootPhysicalOp,
         (rootPhysicalOp).getLogicalNode().getSchema(),
         queryId,
-        keys,
+        lookupConstraints,
+        pullPhysicalPlanType,
+        pullSourceType,
         mat,
         dataSourceOperator);
   }
@@ -165,8 +169,7 @@ public class PullPhysicalPlanBuilder {
   }
 
   private SelectOperator translateFilterNode(final PullFilterNode logicalNode) {
-    keys = logicalNode.getKeyValues();
-    windowBounds = logicalNode.getWindowBounds();
+    lookupConstraints = logicalNode.getLookupConstraints();
 
     final ProcessingLogger logger = processingLogContext
         .getLoggerFactory()
@@ -180,18 +183,28 @@ public class PullPhysicalPlanBuilder {
   private AbstractPhysicalOperator translateDataSourceNode(
       final DataSourceNode logicalNode
   ) {
+    boolean isTableScan = false;
     if (!seenSelectOperator) {
-      keys = Collections.emptyList();
+      lookupConstraints = Collections.emptyList();
+      isTableScan = true;
+    } else if (lookupConstraints.stream().anyMatch(lc -> lc instanceof NonKeyConstraint)) {
+      isTableScan = true;
+    }
+    pullSourceType = logicalNode.isWindowed()
+        ? PullSourceType.WINDOWED : PullSourceType.NON_WINDOWED;
+    if (isTableScan) {
+      pullPhysicalPlanType = PullPhysicalPlanType.TABLE_SCAN;
       if (!logicalNode.isWindowed()) {
         return new TableScanOperator(mat, logicalNode);
       } else {
         return new WindowedTableScanOperator(mat, logicalNode);
       }
     }
+    pullPhysicalPlanType = PullPhysicalPlanType.KEY_LOOKUP;
     if (!logicalNode.isWindowed()) {
       return new KeyedTableLookupOperator(mat, logicalNode);
     } else {
-      return new KeyedWindowedTableLookupOperator(mat, logicalNode, windowBounds.get());
+      return new KeyedWindowedTableLookupOperator(mat, logicalNode);
     }
   }
 
@@ -200,9 +213,15 @@ public class PullPhysicalPlanBuilder {
   }
 
   private KsqlException notMaterializedException(final SourceName sourceTable) {
+    final String tableName = sourceTable.text();
     return new KsqlException(
-        "Can't pull from " + sourceTable + " as it's not a materialized table."
-            + PullQueryValidator.PULL_QUERY_SYNTAX_HELP
+        "The " + sourceTable + " table isn't queryable. To derive a queryable table, "
+                + "you can do 'CREATE TABLE QUERYABLE_"
+                + tableName
+                + " AS SELECT * FROM "
+                + tableName
+                + "'."
+                + PullQueryValidator.PULL_QUERY_SYNTAX_HELP
     );
   }
 

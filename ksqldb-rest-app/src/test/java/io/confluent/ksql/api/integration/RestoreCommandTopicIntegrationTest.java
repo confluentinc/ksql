@@ -40,8 +40,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.serialization.ByteArraySerializer;
-import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -72,7 +70,6 @@ import java.util.stream.Collectors;
 @Category({IntegrationTest.class})
 public class RestoreCommandTopicIntegrationTest {
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
-  private static final Serializer<byte[]> BYTES_SERIALIZER = new ByteArraySerializer();
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain

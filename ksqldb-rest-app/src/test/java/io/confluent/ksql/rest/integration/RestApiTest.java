@@ -22,6 +22,9 @@ import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_U
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.ops;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
+import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
+import static io.vertx.core.http.HttpMethod.POST;
+import static io.vertx.core.http.HttpVersion.HTTP_2;
 import static org.apache.kafka.common.acl.AclOperation.ALL;
 import static org.apache.kafka.common.acl.AclOperation.CREATE;
 import static org.apache.kafka.common.acl.AclOperation.DESCRIBE;
@@ -40,9 +43,12 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
+import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.integration.IntegrationTestHarness;
+import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
@@ -50,8 +56,11 @@ import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlMediaType;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.Queries;
+import io.confluent.ksql.rest.entity.QueryStreamArgs;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
@@ -74,6 +83,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.MediaType;
@@ -147,6 +157,11 @@ public class RestApiTest {
               )
               .withAcl(
                   NORMAL_USER,
+                  resource(TOPIC, "Y"),
+                  ops(ALL)
+              )
+              .withAcl(
+                  NORMAL_USER,
                   resource(TOPIC, AGG_TABLE),
                   ops(ALL)
               )
@@ -178,6 +193,9 @@ public class RestApiTest {
 
   @ClassRule
   public static final RuleChain CHAIN = RuleChain.outerRule(TEST_HARNESS).around(REST_APP);
+
+  @Rule
+  public final Retry retry = Retry.of(5, AssertionError.class, 3, TimeUnit.SECONDS);
 
   @Rule
   public final Timeout timeout = Timeout.seconds(60);
@@ -215,7 +233,9 @@ public class RestApiTest {
 
   @AfterClass
   public static void classTearDown() {
+    System.out.println("TEARING DOWN CLASS");
     REST_APP.getPersistentQueries().forEach(str -> makeKsqlRequest("TERMINATE " + str + ";"));
+    System.out.println("DONE TEARING DOWN CLASS");
   }
 
   @Test
@@ -228,7 +248,7 @@ public class RestApiTest {
     );
 
     // Then:
-    assertThat(messages, hasSize(HEADER + LIMIT));
+    assertThat(messages, hasSize(HEADER + LIMIT + 1));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0), is("["
         + "{\"name\":\"PAGEID\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
@@ -253,7 +273,7 @@ public class RestApiTest {
     );
 
     // Then:
-    assertThat(messages, hasSize(HEADER + LIMIT));
+    assertThat(messages, hasSize(HEADER + LIMIT + 1));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0), is("["
         + "{\"name\":\"VAL\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}}"
@@ -276,7 +296,7 @@ public class RestApiTest {
     );
 
     // Then:
-    assertThat(messages, hasSize(HEADER + LIMIT));
+    assertThat(messages, hasSize(HEADER + LIMIT + 1));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0), is("["
         + "{\"name\":\"PAGEID\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
@@ -301,7 +321,7 @@ public class RestApiTest {
     );
 
     // Then:
-    assertThat(messages, hasSize(HEADER + LIMIT));
+    assertThat(messages, hasSize(HEADER + LIMIT + 1));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0), is("["
         + "{\"name\":\"VAL\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}}"
@@ -490,7 +510,7 @@ public class RestApiTest {
     );
 
     // Then:
-    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 2));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
         is("["
@@ -511,7 +531,7 @@ public class RestApiTest {
     );
 
     // Then:
-    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 2));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
         is("["
@@ -532,7 +552,7 @@ public class RestApiTest {
     );
 
     // Then:
-    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 2));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
         is("["
@@ -552,7 +572,7 @@ public class RestApiTest {
     );
 
     // Then:
-    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 2));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
         is("["
@@ -584,7 +604,7 @@ public class RestApiTest {
   }
 
   @Test
-  public void shouldExecutePullQueryOverRestHttp2() {
+  public void shouldFailToExecutePullQueryOverRestHttp2() {
     // Given
     final KsqlRequest request = new KsqlRequest(
         "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
@@ -592,22 +612,36 @@ public class RestApiTest {
         Collections.emptyMap(),
         null
     );
-    final Supplier<List<String>> call = () -> {
-      final String response = rawRestRequest(
+    final Supplier<Integer> call = () -> {
+      return rawRestRequest(
           HttpVersion.HTTP_2, HttpMethod.POST, "/query", request
-      ).body().toString();
-      return Arrays.asList(response.split(System.lineSeparator()));
+      ).statusCode();
     };
 
     // When:
-    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
+    assertThatEventually(call, is(METHOD_NOT_ALLOWED.code()));
+  }
 
-    // Then:
-    assertThat(messages, hasSize(HEADER + 1));
-    assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\""));
-    assertThat(messages.get(0),
-        endsWith("\",\"schema\":\"`COUNT` BIGINT, `USERID` STRING KEY\"}},"));
-    assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}}]"));
+  @Test
+  public void shouldExecutePullQueryOverHttp2QueryStream() {
+      QueryStreamArgs queryStreamArgs = new QueryStreamArgs(
+          "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
+          Collections.emptyMap(), Collections.emptyMap());
+
+      QueryResponse[] queryResponse = new QueryResponse[1];
+      assertThatEventually(() -> {
+        try {
+          HttpResponse<Buffer> resp = RestIntegrationTestUtil.rawRestRequest(REST_APP,
+              HTTP_2, POST,
+              "/query-stream", queryStreamArgs, "application/vnd.ksqlapi.delimited.v1",
+              Optional.empty());
+          queryResponse[0] = new QueryResponse(resp.body().toString());
+          return queryResponse[0].rows.size();
+        } catch (Throwable t) {
+          return Integer.MAX_VALUE;
+        }
+      }, is(1));
+      assertThat(queryResponse[0].rows.get(0).getList(), is(ImmutableList.of(1, "USER_1")));
   }
 
   @Test
@@ -630,7 +664,7 @@ public class RestApiTest {
         MediaType.APPLICATION_JSON);
 
     // Then:
-    assertThat(messages, hasSize(LIMIT));
+    assertThat(messages, hasSize(LIMIT + 1));
   }
 
   @Test
@@ -650,6 +684,23 @@ public class RestApiTest {
 
     // Then:
     assertThat("Expected topic X to be deleted", !topicExists("X"));
+  }
+
+  @Test
+  public void shouldCreateStreamWithVariableSubstitution() {
+    // Given:
+    // When:
+    makeKsqlRequestWithVariables(
+        "CREATE STREAM ${name} AS SELECT * FROM " + PAGE_VIEW_STREAM + " WHERE USERID='${id}';",
+        ImmutableMap.of("id", "USER_1", "name", "Y")
+    );
+
+    // Then:
+    final List<String> query = ((Queries) makeKsqlRequest("SHOW QUERIES;").get(0))
+        .getQueries().stream().map(q -> q.getQueryString())
+        .filter(q -> q.contains("WHERE (PAGEVIEW_KSTREAM.USERID = 'USER_1')"))
+        .collect(Collectors.toList());
+    assertThat(query.size(), is(1));
   }
 
   @Test
@@ -677,8 +728,12 @@ public class RestApiTest {
     return serviceContext;
   }
 
-  private static void makeKsqlRequest(final String sql) {
-    RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
+  private static List<KsqlEntity> makeKsqlRequest(final String sql) {
+    return RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
+  }
+
+  private static void makeKsqlRequestWithVariables(final String sql, final Map<String, Object> variables) {
+    RestIntegrationTestUtil.makeKsqlRequestWithVariables(REST_APP, sql, variables);
   }
 
   private static String rawRestQueryRequest(final String sql, final String mediaType) {

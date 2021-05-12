@@ -16,12 +16,13 @@
 package io.confluent.ksql.function;
 
 import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
 
 @FunctionalInterface
 public interface SchemaProvider {
 
-  SqlType resolve(List<ParamType> parameters, List<SqlType> arguments);
+  SqlType resolve(List<ParamType> parameters, List<SqlArgument> arguments);
 
 }

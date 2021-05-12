@@ -58,7 +58,9 @@ public final class KsqlEngineTestUtil {
         "test_instance_",
         metaStore,
         (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
-        new SequentialQueryIdGenerator()
+        new SequentialQueryIdGenerator(),
+        new KsqlConfig(Collections.emptyMap()),
+        Collections.emptyList()
     );
   }
 
@@ -66,7 +68,8 @@ public final class KsqlEngineTestUtil {
       final ServiceContext serviceContext,
       final MutableMetaStore metaStore,
       final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory,
-      final QueryIdGenerator queryIdGenerator
+      final QueryIdGenerator queryIdGenerator,
+      final KsqlConfig ksqlConfig
   ) {
     return new KsqlEngine(
         serviceContext,
@@ -74,7 +77,9 @@ public final class KsqlEngineTestUtil {
         "test_instance_",
         metaStore,
         engineMetricsFactory,
-        queryIdGenerator
+        queryIdGenerator,
+        ksqlConfig,
+        Collections.emptyList()
     );
   }
 

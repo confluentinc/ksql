@@ -1,3 +1,10 @@
+---
+layout: page
+title: Schema Inference
+tagline: ksqlDB and Confluent Schema Registry integration
+description: ksqlDB integrates with Confluent Schema Registry to read and write schemas as needed 
+keywords: serialization, schema, schema registry, json, avro, delimited
+---
 ## Schema Inference
 
 For supported [serialization formats](/reference/serialization),

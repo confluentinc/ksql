@@ -90,7 +90,7 @@ which by default is located at
 deployment.
 
 For more information, see
-[ksqlDB Configuration Parameter Reference](../operate-and-deploy/installation/server-config/config-reference.md).
+[ksqlDB Configuration Parameter Reference](/reference/server-configuration).
 
 If your ksqlDB Server is deployed in a Docker container, you can enable 
 exactly-once by passing in the corresponding environment variable, for example:
@@ -101,7 +101,7 @@ docker run -d \
   -e KSQL_KSQL_STREAMS_PROCESSING_GUARANTEE=exactly_once \
   -e KSQL_BOOTSTRAP_SERVERS=localhost:9092 \
   … 
-  confluentinc/ksqldb-server:{{ site.release }}
+  confluentinc/ksqldb-server:{{ site.ksqldbversion }}
 ```
 
 For more information, see

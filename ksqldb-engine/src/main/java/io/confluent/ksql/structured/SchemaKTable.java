@@ -121,13 +121,15 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final List<ColumnName> keyColumnNames,
       final List<SelectExpression> selectExpressions,
       final Stacker contextStacker,
-      final PlanBuildContext buildContext
+      final PlanBuildContext buildContext,
+      final FormatInfo valueFormat
   ) {
     final TableSelect<K> step = ExecutionStepFactory.tableMapValues(
         contextStacker,
         sourceTableStep,
         keyColumnNames,
-        selectExpressions
+        selectExpressions,
+        InternalFormats.of(keyFormat, valueFormat)
     );
 
     return new SchemaKTable<>(
@@ -185,7 +187,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
 
     final KeyFormat newKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
         forceInternalKeyFormat.orElse(keyFormat),
-        keyExpression.size() == 1
+        toSqlTypes(keyExpression),
+        false // logical schema changes are not supported
     );
 
     final ExecutionStep<KTableHolder<K>> step = ExecutionStepFactory.tableSelectKey(
@@ -224,7 +227,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     // the key format directly (as opposed to the logic in SchemaKStream)
     final KeyFormat groupedKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
         KeyFormat.nonWindowed(keyFormat.getFormatInfo(), keyFormat.getFeatures()),
-        groupByExpressions.size() == 1
+        toSqlTypes(groupByExpressions),
+        true
     );
 
     final TableGroupBy<K> step = ExecutionStepFactory.tableGroupBy(

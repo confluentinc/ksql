@@ -520,6 +520,60 @@ SLICE(col1, from, to)
 Slices a list based on the supplied indices. The indices start at 1 and
 include both endpoints.
 
+## Invocation Functions
+
+Apply lambda functions to collections.
+
+### `TRANSFORM`
+
+Since: 0.17.0
+
+```sql
+TRANSFORM(array, x => ...)
+
+TRANSFORM(map, (k,v) => ..., (k,v) => ...)
+```
+
+Transform a collection by using a lambda function.
+
+If the collection is an array, the lambda function must have one input argument.
+
+If the collection is a map, two lambda functions must be provided, and both lambdas must have two arguments: a map entry key and a map entry value.
+
+### `Reduce`
+
+Since: 0.17.0
+
+```sql
+REDUCE(array, state, (s, x) => ...)
+
+REDUCE(map, state, (s, k, v) => ...)
+```
+
+Reduce a collection starting from an initial state.
+
+If the collection is an array, the lambda function must have two input arguments.
+
+If the collection is a map, the lambda function must have three input arguments.
+
+If the state is `null`, the result is `null`.
+
+### `Filter`
+
+Since: 0.17.0
+
+```sql
+FILTER(array, x => ...)
+
+FILTER(map, (k,v) => ...)
+```
+
+Filter a collection with a lambda function.
+
+If the collection is an array, the lambda function must have one input argument.
+
+If the collection is a map, the lambda function must have two input arguments.
+
 ## Strings
 
 ### `CHR`
@@ -1004,6 +1058,19 @@ If the provided `expression` is NULL, returns `altValue`, otherwise, returns `ex
 Where the parameter type is a complex type, for example `ARRAY` or `STRUCT`, the contents of the
 complex type are not inspected.
 
+### `NULLIF`
+
+Since: -
+
+```sql
+NULLIF(expression1, expression2)
+```
+
+Returns NULL if `expression1` is equal to `expression2`; otherwise, returns `expression1`.
+
+If the parameter type is a complex type, for example, `ARRAY` or `STRUCT`, the contents of the
+complex type are not inspected.
+
 ## Date and time
 
 ### `UNIX_DATE`
@@ -1022,11 +1089,15 @@ may differ depending on the local time of different ksqlDB Server instances.
 Since: 0.6.0
 
 ```sql
-UNIX_TIMESTAMP()
+UNIX_TIMESTAMP([timestamp])
 ```
 
-Gets the Unix timestamp in milliseconds, represented as a BIGINT. The returned
-timestamp may differ depending on the local time of different ksqlDB Server instances.
+If `UNIX_TIMESTAMP` is called with the timestamp parameter, the function returns the TIMESTAMP
+value as a BIGINT value representing the number of milliseconds since `1970-01-01T00:00:00 UTC`.
+
+If the `timestamp` parameter is not provided, it returns the current Unix timestamp in milliseconds,
+represented as a BIGINT. The returned timestamp may differ depending on the local time of different
+ksqlDB Server instances.
 
 ### `DATETOSTRING`
 
@@ -1060,6 +1131,8 @@ quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
 
 Since: -
 
+Deprecated since 0.16.0 (use PARSE_TIMESTAMP)
+
 ```sql
 STRINGTOTIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
 ```
@@ -1081,6 +1154,8 @@ more information on timestamp formats, see
 
 Since: -
 
+Deprecated since 0.16.0 (use FORMAT_TIMESTAMP)
+
 ```sql
 TIMESTAMPTOSTRING(ROWTIME, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
 ```
@@ -1092,10 +1167,78 @@ timestamp format can be escaped with two
 successive single quotes, `''`, for example:
 `'yyyy-MM-dd''T''HH:mm:ssX'`.
 TIMEZONE is an optional parameter and it is a
-java.util.TimeZone ID format, for example: "UTC",
+`java.util.TimeZone` ID format, for example: "UTC",
 "America/Los_Angeles", "PDT", "Europe/London". For
 more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `FORMAT_TIMESTAMP`
+
+```sql
+FORMAT_TIMESTAMP(timestamp, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
+```
+
+Converts a TIMESTAMP value into the string representation of the timestamp in the given format.
+Single quotes in the timestamp format can be escaped with two successive single quotes, `''`, for
+example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
+
+TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, for example: "UTC",
+"America/Los_Angeles", "PDT", "Europe/London". For more information on timestamp formats, see
+[DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `PARSE_TIMESTAMP`
+
+```sql
+PARSE_TIMESTAMP(col1, 'yyyy-MM-dd HH:mm:ss.SSS' [, TIMEZONE])
+```
+
+Converts a string value in the given format into the TIMESTAMP value. Single quotes in the timestamp
+format can be escaped with two successive single quotes, `''`, for example: `'yyyy-MM-dd''T''HH:mm:ssX'`.
+
+TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, for example: "UTC",
+"America/Los_Angeles", "PDT", "Europe/London". For more information on timestamp formats, see
+[DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `CONVERT_TZ`
+
+```sql
+CONVERT_TZ(col1, 'from_timezone', 'to_timezone')
+```
+
+Converts a TIMESTAMP value from `from_timezone` to `to_timezone`. `from_timezone` and
+`to_timezone` are `java.util.TimeZone` ID formats, for example: "UTC", "America/Los_Angeles",
+"PDT","Europe/London". For more information on timestamp formats,
+see [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `FROM_UNIXTIME`
+
+```sql
+FROM_UNIXTIME(milliseconds)
+```
+
+Converts a BIGINT millisecond timestamp value into a TIMESTAMP value.
+
+### TIMESTAMPADD
+
+Since: 0.17
+
+```sql
+TIMESTAMPADD(unit, interval, COL0)
+```
+
+Adds an interval to a timestamp. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+### TIMESTAMPSUB
+
+Since: 0.17
+
+```sql
+TIMESTAMPSUB(unit, interval, COL0)
+```
+
+Subtracts an interval from a timestamp. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
 
 ## URLs
 

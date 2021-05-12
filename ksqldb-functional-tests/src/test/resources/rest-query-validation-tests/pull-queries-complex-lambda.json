@@ -1,0 +1,101 @@
+{
+  "comments": [
+    "Pull Query tests covering the use of advanced lambda functions."
+  ],
+  "tests": [
+    {
+      "name": "transform a map with array values",
+      "statements": [
+        "CREATE TABLE TEST (ID BIGINT PRIMARY KEY, VALUE MAP<STRING, ARRAY<INT>>) WITH (kafka_topic='test_topic', value_format='AVRO');",
+        "CREATE TABLE MAT_TABLE AS SELECT ID, VALUE FROM TEST;",
+        "SELECT ID, TRANSFORM(TRANSFORM(VALUE, (x,y) => x, (x,y) => FIlTER(y, z => z < 5)), (x,y) => UCASE(x) , (k,v) => ARRAY_MAX(v)) as FILTERED_TRANSFORMED from MAT_TABLE;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"value":  {"a": [2,null,5,4], "b": [-1,-2]}}},
+        {"topic": "test_topic", "key": 1, "value": {"value":  {"c": [null,null,-1], "t": [3, 1]}}},
+        {"topic": "test_topic", "key": 2, "value": {"value":  {"d": [4], "q": [0, 0]}}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` BIGINT KEY, `FILTERED_TRANSFORMED` MAP<STRING, INTEGER>"}},
+          {"row":{"columns":[1, {"C": -1, "T":  3}]}},
+          {"row":{"columns":[2, {"D": 4, "Q": 0}]}},
+          {"row":{"columns":[0, {"A": 4, "B": -1}]}}
+        ]}
+      ]
+    },
+    {
+      "name": "complex lambda",
+      "statements": [
+        "CREATE TABLE TEST (ID STRING PRIMARY KEY, MAPPING MAP<STRING, ARRAY<INTEGER>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MAT_TABLE AS SELECT ID, MAPPING FROM TEST;",
+        "SELECT ID, TRANSFORM(FILTER(MAPPING, (a, b) => LEN(a) > 2 AND REDUCE(b, 0, (c, d) => c+d) < 20), (X,Y) => LPAD(x, REDUCE(Y, 2, (s, k) => ABS(ABS(k)-s)), 'a'), (X,Y) => REDUCE(ARRAY_UNION(Y, TRANSFORM(Y, z => z*3)), 0, (e, f) => e+f)) AS OUTPUT FROM MAT_TABLE;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "one", "value": {"MAPPING": {"a": [2,4,5], "bcd": [-5,7]}}},
+        {"topic": "test_topic", "key": "two", "value": {"MAPPING": {"hello": [200,4,5], "hey": [14, -3, -15, 3], "wow": [2, 3, 4]}}},
+        {"topic": "test_topic", "key": "three", "value": {"MAPPING": {"a": null, "bcdefg": [-15,72]}}},
+        {"topic": "test_topic", "key": "four", "value": {"MAPPING": null}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `OUTPUT` MAP<STRING, INTEGER>"}},
+          {"row":{"columns":["three", {}]}},
+          {"row":{"columns":["two", {"hey": -4, "w": 36}]}},
+          {"row":{"columns":["four", null]}},
+          {"row":{"columns":["one", {"abcd": 8}]}}
+        ]}
+      ]
+    },
+    {
+      "name": "reduce an array of maps",
+      "statements": [
+        "CREATE TABLE TEST (ID STRING PRIMARY KEY, arraying ARRAY<MAP<STRING, INTEGER>>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE MAT_TABLE AS SELECT ID, arraying FROM TEST;",
+        "SELECT ID, reduce(arraying, 5, (s, a) => s + REDUCE(TRANSFORM(FILTER(a, (x, y) => len(x) > 5 AND y % 2 != 0), (e, f) => concat(e, 'leah'), (g, h) => h + len(g)), 0, (s2,r, b) => s2+2*b)) AS OUTPUT FROM MAT_TABLE;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "one", "value": {"arraying": [{"to be or not to be": 15}, {"hello": 25}]}},
+        {"topic": "test_topic", "key": "two", "value": {"arraying": [{"goodmorning": 23, "gn": 12}, {"woooooow": 9}]}},
+        {"topic": "test_topic", "key": "three", "value": {"arraying": [{"a": null, "bcdefg": 4}]}},
+        {"topic": "test_topic", "key": "four", "value": {"arraying": null}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` STRING KEY, `OUTPUT` INTEGER"}},
+          {"row":{"columns":["three", 5]}},
+          {"row":{"columns":["two", 107]}},
+          {"row":{"columns":["four", 5]}},
+          {"row":{"columns":["one", 71]}}
+        ]}
+      ]
+    },
+    {
+      "name": "lambdas - compatible array elements",
+      "statements": [
+        "CREATE TABLE INPUT (ID ARRAY<BIGINT> PRIMARY KEY, int_value INT) WITH (kafka_topic='test_topic', format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ID, int_value FROM INPUT;",
+        "SELECT ID, TRANSFORM(ID, x => ARRAY[null, ARRAY[int_value, x - 2], ARRAY[int_value, x + 1]]) as structs FROM AGGREGATE;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": [1, 2], "value": {"int_value":  10}},
+        {"topic": "test_topic", "timestamp": 12365, "key": [3, 4], "value": {"int_value":  0}}
+      ],
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`ID` ARRAY<BIGINT> KEY, `STRUCTS` ARRAY<ARRAY<ARRAY<BIGINT>>>"}},
+          {"row":{"columns":[[3, 4], [[null, [0, 1], [0, 4]], [null, [0, 2], [0, 5]]]]}},
+          {"row":{"columns":[[1, 2], [[null, [10, -1], [10, 2]], [null, [10, 0], [10, 3]]]]}}
+        ]}
+      ]
+    }
+  ]
+}

@@ -331,7 +331,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "JOINs on multiple conditions are not yet supported: ((S1.K = S2.K) AND (S1.K2 = S2.K2))"
+        "message": "Invalid join condition: joins on multiple conditions are not yet supported. Got ((S1.K = S2.K) AND (S1.K2 = S2.K2))."
       }
     },
     {
@@ -343,7 +343,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Cannot repartition a TABLE source. If this is a join, joins on tables with multiple columns is not yet supported."
+        "message": "Invalid join condition: stream-table joins require to join on the table's primary key. Got S.K = T.K."
       }
     }
   ]

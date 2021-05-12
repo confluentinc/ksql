@@ -18,6 +18,7 @@ package io.confluent.ksql.planner.plan;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isA;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
@@ -41,6 +42,7 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.planner.PullPlannerOptions;
 import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds;
 import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds.WindowRange;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -83,6 +85,8 @@ public class PullFilterNodeTest {
   private MetaStore metaStore;
   @Mock
   private KsqlConfig ksqlConfig;
+  @Mock
+  private PullPlannerOptions plannerOptions;
 
   @Before
   public void setUp() {
@@ -104,16 +108,19 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        false
+        false,
+        plannerOptions
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(false));
-    assertThat(filterNode.getWindowBounds(), is(Optional.empty()));
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.empty()));
   }
 
   @Test
@@ -134,7 +141,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
+            false,
+            plannerOptions
         ));
 
     // Then:
@@ -156,16 +164,60 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        false
+        false,
+        plannerOptions
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(-1))));
     assertThat(filterNode.isWindowed(), is(false));
-    assertThat(filterNode.getWindowBounds(), is(Optional.empty()));
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(-1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldExtractKeyValueFromExpressionEquals_multipleDisjuncts() {
+    // Given:
+    final Expression keyExp1 = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+        new IntegerLiteral(1)
+    );
+    final Expression keyExp2 = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+        new IntegerLiteral(2)
+    );
+    final Expression expression = new LogicalBinaryExpression(
+        LogicalBinaryExpression.Type.OR,
+        keyExp1,
+        keyExp2
+    );
+    PullFilterNode filterNode = new PullFilterNode(
+        NODE_ID,
+        source,
+        expression,
+        metaStore,
+        ksqlConfig,
+        false,
+        plannerOptions);
+
+    // When:
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
+
+    // Then:
+    assertThat(filterNode.isWindowed(), is(false));
+    assertThat(keys.size(), is(2));
+    final KeyConstraint keyConstraint1 = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint1.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint1.getWindowBounds(), is(Optional.empty()));
+    final KeyConstraint keyConstraint2 = (KeyConstraint) keys.get(1);
+    assertThat(keyConstraint2.getKey(), is(GenericKey.genericKey(2)));
+    assertThat(keyConstraint2.getWindowBounds(), is(Optional.empty()));
   }
 
   @Test
@@ -183,16 +235,21 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        false
-    );
+        false,
+        plannerOptions);
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1),GenericKey.genericKey(2))));
     assertThat(filterNode.isWindowed(), is(false));
-    assertThat(filterNode.getWindowBounds(), is(Optional.empty()));
+    assertThat(keys.size(), is(2));
+    final KeyConstraint keyConstraint0 = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint0.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint0.getWindowBounds(), is(Optional.empty()));
+    final KeyConstraint keyConstraint1 = (KeyConstraint) keys.get(1);
+    assertThat(keyConstraint1.getKey(), is(GenericKey.genericKey(2)));
+    assertThat(keyConstraint1.getWindowBounds(), is(Optional.empty()));
   }
 
   // We should refactor the WindowBounds class to encompass the functionality around
@@ -211,18 +268,19 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(filterNode.getWindowBounds(), is(Optional.of(
-        new WindowBounds()
-    )));
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(new WindowBounds())));
   }
 
   @Test
@@ -249,17 +307,19 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(
                 null, null, Range.downTo(Instant.ofEpochMilli(2), BoundType.OPEN)),
@@ -292,17 +352,19 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(
                 null, null, Range.downTo(Instant.ofEpochMilli(2), BoundType.CLOSED)),
@@ -335,17 +397,19 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(
                 null, Range.upTo(Instant.ofEpochMilli(2), BoundType.OPEN), null),
@@ -378,17 +442,19 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(
                 null, Range.upTo(Instant.ofEpochMilli(2), BoundType.CLOSED), null),
@@ -421,21 +487,23 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(),
             new WindowRange(
-              null, null, Range.downTo(Instant.ofEpochMilli(2), BoundType.OPEN))
+                null, null, Range.downTo(Instant.ofEpochMilli(2), BoundType.OPEN))
         )
     )));
   }
@@ -464,17 +532,19 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(),
             new WindowRange(
@@ -507,17 +577,19 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(),
             new WindowRange(
@@ -550,17 +622,19 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(),
             new WindowRange(
@@ -593,17 +667,19 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(),
             new WindowRange(
@@ -647,17 +723,19 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(
                 null,
@@ -695,17 +773,19 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
-    final Optional<WindowBounds> windowBounds = filterNode.getWindowBounds();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1))));
     assertThat(filterNode.isWindowed(), is(true));
-    assertThat(windowBounds, is(Optional.of(
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1)));
+    assertThat(keyConstraint.getWindowBounds(), is(Optional.of(
         new WindowBounds(
             new WindowRange(
                 null, null, Range.downTo(Instant.ofEpochMilli(1577836800_000L), BoundType.OPEN)),
@@ -739,14 +819,98 @@ public class PullFilterNodeTest {
         expression,
         metaStore,
         ksqlConfig,
-        true
+        true,
+        plannerOptions
     );
 
     // When:
-    final List<GenericKey> keys = filterNode.getKeyValues();
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
 
     // Then:
-    assertThat(keys, is(ImmutableList.of(GenericKey.genericKey(1, 2))));
+    assertThat(keys.size(), is(1));
+    final KeyConstraint keyConstraint = (KeyConstraint) keys.get(0);
+    assertThat(keyConstraint.getKey(), is(GenericKey.genericKey(1, 2)));
+  }
+
+  @Test
+  public void shouldThrowKeyExpressionThatDoestCoverKey() {
+    // Given:
+    when(source.getSchema()).thenReturn(INPUT_SCHEMA);
+    final Expression expression = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("WINDOWSTART")),
+        new IntegerLiteral(1234)
+    );
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> new PullFilterNode(
+            NODE_ID,
+            source,
+            expression,
+            metaStore,
+            ksqlConfig,
+            true,
+            plannerOptions
+        ));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("WHERE clause missing key column for disjunct: "
+        + "(WINDOWSTART = 1234)"));
+  }
+
+  @Test
+  public void shouldExtractConstraintForSpecialCol_tableScan() {
+    // Given:
+    when(plannerOptions.getTableScansEnabled()).thenReturn(true);
+    when(source.getSchema()).thenReturn(INPUT_SCHEMA);
+    final Expression expression = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("WINDOWSTART")),
+        new IntegerLiteral(1234)
+    );
+
+    // Then:
+    expectTableScan(expression, true);
+  }
+
+  @Test
+  public void shouldThrowKeyExpressionThatDoestCoverKey_multipleDisjuncts() {
+    // Given:
+    when(source.getSchema()).thenReturn(INPUT_SCHEMA);
+    final Expression keyExp1 = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("WINDOWSTART")),
+        new IntegerLiteral(1)
+    );
+    final Expression keyExp2 = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+        new IntegerLiteral(2)
+    );
+    final Expression expression = new LogicalBinaryExpression(
+        LogicalBinaryExpression.Type.OR,
+        keyExp1,
+        keyExp2
+    );
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> new PullFilterNode(
+            NODE_ID,
+            source,
+            expression,
+            metaStore,
+            ksqlConfig,
+            true,
+            plannerOptions
+        ));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("WHERE clause missing key column for disjunct: "
+        + "(WINDOWSTART = 1)"));
   }
 
 
@@ -769,13 +933,28 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
-        ));
+            false,
+            plannerOptions));
 
     // Then:
     assertThat(e.getMessage(), containsString(
         "Multi-column sources must specify every key in the WHERE clause. "
             + "Specified: [`K1`] Expected: [`K1` INTEGER KEY, `K2` INTEGER KEY]"));
+  }
+
+  @Test
+  public void shouldExtractConstraintForMultiKeyExpressionsThatDontCoverAllKeys_tableScan() {
+    // Given:
+    when(plannerOptions.getTableScansEnabled()).thenReturn(true);
+    when(source.getSchema()).thenReturn(MULTI_KEY_SCHEMA);
+    final Expression expression = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K1")),
+        new IntegerLiteral(1)
+    );
+
+    // Then:
+    expectTableScan(expression, false);
   }
 
 
@@ -797,11 +976,12 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
+            false,
+            plannerOptions
         ));
 
     // Then:
-    assertThat(e.getMessage(), containsString("Bound on non-key column `C1`."));
+    assertThat(e.getMessage(), containsString("Bound on non-existent column `C1`."));
   }
 
   @Test
@@ -818,7 +998,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
+            false,
+            plannerOptions
         ));
 
     // Then:
@@ -844,11 +1025,27 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
+            false,
+            plannerOptions
         ));
 
     // Then:
     assertThat(e.getMessage(), containsString("Bound on key columns '[`K` INTEGER KEY]' must currently be '='."));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldExtractConstraintWithLiteralRange_tableScan() {
+    // Given:
+    when(plannerOptions.getTableScansEnabled()).thenReturn(true);
+    final Expression expression = new ComparisonExpression(
+        Type.GREATER_THAN,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+        new IntegerLiteral(1)
+    );
+
+    // Then:
+    expectTableScan(expression, false);
   }
 
   @Test
@@ -880,11 +1077,13 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
+            false,
+            plannerOptions
         ));
 
     // Then:
-    assertThat(e.getMessage(), containsString("The IN predicate cannot be combined with other comparisons"));
+    assertThat(e.getMessage(), containsString("An equality condition on the key column cannot be "
+        + "combined with other comparisons"));
   }
 
   @Test
@@ -905,7 +1104,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
+            false,
+            plannerOptions
         ));
 
     // Then:
@@ -936,7 +1136,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
+            false,
+            plannerOptions
         ));
 
     // Then:
@@ -944,7 +1145,7 @@ public class PullFilterNodeTest {
   }
 
   @Test
-  public void shouldThrowOnMultiKeyExpressions() {
+  public void shouldThrowOnMultipleKeyExpressions() {
     // Given:
     final Expression expression1 = new ComparisonExpression(
         Type.EQUAL,
@@ -971,11 +1172,79 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
+            false,
+            plannerOptions
         ));
 
     // Then:
     assertThat(e.getMessage(), containsString("An equality condition on the key column cannot be combined with other comparisons"));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldExtractConstraintWithMultipleKeyExpressions_tableScan() {
+    // Given:
+    when(plannerOptions.getTableScansEnabled()).thenReturn(true);
+    final Expression expression1 = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+        new IntegerLiteral(1)
+    );
+    final Expression expression2 = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
+        new IntegerLiteral(2)
+    );
+    final Expression expression  = new LogicalBinaryExpression(
+        LogicalBinaryExpression.Type.AND,
+        expression1,
+        expression2
+    );
+
+    // Then:
+    expectTableScan(expression, false);
+  }
+
+  @Test
+  public void shouldThrowOnNonKeyCol() {
+    // Given:
+    final Expression expression = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("COL0")),
+        new StringLiteral("abc")
+    );
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> new PullFilterNode(
+            NODE_ID,
+            source,
+            expression,
+            metaStore,
+            ksqlConfig,
+            false,
+            plannerOptions
+        ));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("WHERE clause missing key column for disjunct: "
+        + "(COL0 = 'abc')"));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldExtractConstraintWithNonKeyCol_tableScan() {
+    // Given:
+    when(plannerOptions.getTableScansEnabled()).thenReturn(true);
+    final Expression expression = new ComparisonExpression(
+        Type.EQUAL,
+        new UnqualifiedColumnReferenceExp(ColumnName.of("COL0")),
+        new StringLiteral("abc")
+    );
+
+    // Then:
+    expectTableScan(expression, false);
   }
 
   @Test
@@ -1006,7 +1275,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
+            false,
+            plannerOptions
         ));
 
     // Then:
@@ -1041,11 +1311,13 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            true
+            true,
+            plannerOptions
         ));
 
     // Then:
-    assertThat(e.getMessage(), containsString("Window bounds must be an INT, BIGINT or STRING containing a datetime."));
+    assertThat(e.getMessage(), containsString("Window bounds must resolve to an INT, BIGINT, or "
+        + "STRING containing a datetime."));
   }
 
 
@@ -1088,7 +1360,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            true
+            true,
+            plannerOptions
         ));
 
     // Then:
@@ -1134,7 +1407,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            true
+            true,
+            plannerOptions
         ));
 
     // Then:
@@ -1169,7 +1443,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            true
+            true,
+            plannerOptions
         ));
 
     // Then:
@@ -1215,7 +1490,8 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            true
+            true,
+            plannerOptions
         ));
 
     // Then:
@@ -1250,11 +1526,33 @@ public class PullFilterNodeTest {
             expression,
             metaStore,
             ksqlConfig,
-            false
+            false,
+            plannerOptions
         ));
 
     // Then:
     assertThat(e.getMessage(), containsString("Cannot use WINDOWSTART/WINDOWEND on non-windowed source."));
   }
 
+  @SuppressWarnings("unchecked")
+  private void expectTableScan(final Expression expression, final boolean windowed) {
+    // Given:
+    PullFilterNode filterNode = new PullFilterNode(
+        NODE_ID,
+        source,
+        expression,
+        metaStore,
+        ksqlConfig,
+        windowed,
+        plannerOptions
+    );
+
+    // When:
+    final List<LookupConstraint> keys = filterNode.getLookupConstraints();
+
+    // Then:
+    assertThat(filterNode.isWindowed(), is(windowed));
+    assertThat(keys.size(), is(1));
+    assertThat(keys.get(0), isA((Class) NonKeyConstraint.class));
+  }
 }

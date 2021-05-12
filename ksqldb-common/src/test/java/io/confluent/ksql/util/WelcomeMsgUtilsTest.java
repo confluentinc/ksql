@@ -57,11 +57,11 @@ public class WelcomeMsgUtilsTest {
         + "                  =      |   <\\__ \\ (_| | | |_| | |_) |     =\n"
         + "                  =      |_|\\_\\___/\\__, |_|____/|____/      =\n"
         + "                  =                   |_|                   =\n"
-        + "                  =  Event Streaming Database purpose-built =\n"
+        + "                  =        The Database purpose-built       =\n"
         + "                  =        for stream processing apps       =\n"
         + "                  ===========================================\n"
         + "\n"
-        + "Copyright 2017-2020 Confluent Inc.\n"
+        + "Copyright 2017-2021 Confluent Inc.\n"
         + "\n")
     );
   }
@@ -72,7 +72,7 @@ public class WelcomeMsgUtilsTest {
     WelcomeMsgUtils.displayWelcomeMessage(35, realPrintWriter);
 
     // Then:
-    assertThat(stringWriter.toString(), is("ksqlDB, Copyright 2017-2020 Confluent Inc.\n\n"));
+    assertThat(stringWriter.toString(), is("ksqlDB, Copyright 2017-2021 Confluent Inc.\n\n"));
   }
 
   @Test

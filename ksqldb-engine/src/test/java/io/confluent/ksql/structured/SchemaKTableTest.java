@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.structured;
 
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -87,6 +88,7 @@ import io.confluent.ksql.serde.SerdeFeature;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
+import io.confluent.ksql.serde.json.JsonFormat;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
@@ -159,6 +161,10 @@ public class SchemaKTableTest {
   private KsqlTopic topic;
   @Mock
   private PlanInfo planInfo;
+  @Mock
+  private MaterializationInfo.Builder materializationBuilder;
+  @Mock
+  private FormatInfo internalFormats;
 
   @Before
   public void init() {
@@ -206,7 +212,7 @@ public class SchemaKTableTest {
   private ExecutionStep buildSourceStep(final LogicalSchema schema, final KTable kTable) {
     final ExecutionStep sourceStep = mock(ExecutionStep.class);
     when(sourceStep.build(any(), eq(planInfo))).thenReturn(
-        KTableHolder.unmaterialized(kTable, schema, executionKeyFactory));
+        KTableHolder.materialized(kTable, schema, executionKeyFactory, materializationBuilder));
     return sourceStep;
   }
 
@@ -280,7 +286,8 @@ public class SchemaKTableTest {
         ImmutableList.of(ColumnName.of("K")),
         projectNode.getSelectExpressions(),
         childContextStacker,
-        buildContext
+        buildContext,
+        internalFormats
     );
 
     // Then:
@@ -403,7 +410,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable<?> projectedSchemaKStream = initialSchemaKTable.select(ImmutableList.of(),
-        projectNode.getSelectExpressions(), childContextStacker, buildContext);
+        projectNode.getSelectExpressions(), childContextStacker, buildContext, internalFormats);
 
     // Then:
     assertThat(projectedSchemaKStream.getSchema(),
@@ -426,7 +433,8 @@ public class SchemaKTableTest {
         ImmutableList.of(),
         projectNode.getSelectExpressions(),
         childContextStacker,
-        buildContext
+        buildContext,
+        internalFormats
     );
 
     // Then:
@@ -565,7 +573,7 @@ public class SchemaKTableTest {
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
                 Formats.of(
-                    initialSchemaKTable.keyFormat.getFormatInfo(),
+                    FormatInfo.of(JsonFormat.NAME), // key format is updated to supported multiple grouping expressions
                     valueFormat.getFormatInfo(),
                     SerdeFeatures.of(),
                     SerdeFeatures.of()

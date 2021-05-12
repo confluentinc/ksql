@@ -17,6 +17,7 @@ package io.confluent.ksql.planner.plan;
 
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -44,7 +45,7 @@ public class PreJoinProjectNode extends ProjectNode implements JoiningNode {
   private final ImmutableList<SelectExpression> selectExpressions;
   private final ImmutableBiMap<ColumnName, ColumnName> aliases;
   private final LogicalSchema schema;
-  private final JoiningNode joiningSource;
+  private final Optional<JoiningNode> joiningSource;
 
   public PreJoinProjectNode(
       final PlanNodeId id,
@@ -59,7 +60,16 @@ public class PreJoinProjectNode extends ProjectNode implements JoiningNode {
     ));
     this.aliases = buildAliasMapping(selectExpressions);
     this.schema = buildSchema(alias, source.getSchema());
-    this.joiningSource = (JoiningNode) source;
+    if (source instanceof JoiningNode) {
+      this.joiningSource = Optional.of((JoiningNode) source);
+    } else {
+      if (!(source instanceof DataSourceNode)) {
+        throw new IllegalStateException(
+            "PreJoinProjectNode preceded by non-DataSourceNode non-JoiningNode: "
+                + source.getClass());
+      }
+      this.joiningSource = Optional.empty();
+    }
   }
 
   @Override
@@ -73,12 +83,20 @@ public class PreJoinProjectNode extends ProjectNode implements JoiningNode {
 
   @Override
   public Optional<KeyFormat> getPreferredKeyFormat() {
-    return joiningSource.getPreferredKeyFormat();
+    if (joiningSource.isPresent()) {
+      return joiningSource.get().getPreferredKeyFormat();
+    }
+
+    final KeyFormat sourceKeyFormat =
+        Iterators.getOnlyElement(getSourceNodes().iterator())
+            .getDataSource().getKsqlTopic().getKeyFormat();
+
+    return Optional.of(sourceKeyFormat);
   }
 
   @Override
   public void setKeyFormat(final KeyFormat format) {
-    joiningSource.setKeyFormat(format);
+    joiningSource.ifPresent(source -> source.setKeyFormat(format));
   }
 
   @Override

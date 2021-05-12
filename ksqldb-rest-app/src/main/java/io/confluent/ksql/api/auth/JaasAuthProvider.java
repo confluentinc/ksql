@@ -96,6 +96,7 @@ public class JaasAuthProvider implements AuthProvider {
 
     server.getWorkerExecutor().executeBlocking(
         p -> getUser(contextName, username, password, allowedRoles, p),
+        false,
         resultHandler
     );
   }

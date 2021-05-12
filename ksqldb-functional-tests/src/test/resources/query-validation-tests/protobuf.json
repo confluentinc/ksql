@@ -161,7 +161,7 @@
       }
     },
     {
-      "name": "protobuf inference - partital schema",
+      "name": "protobuf inference - partial schema",
       "statements": [
         "CREATE STREAM INPUT (K STRING KEY) WITH (kafka_topic='input', value_format='PROTOBUF');",
         "CREATE STREAM OUTPUT AS SELECT * FROM input;"
@@ -170,18 +170,18 @@
         {
           "name": "input",
           "valueFormat": "PROTOBUF",
-          "valueSchema": "syntax = \"proto3\"; message ConfluentDefault1 {bool c1 = 1; int32 c2 = 2; int64 c3 = 3; double c4 = 4; string c5 = 5;}"
+          "valueSchema" : "syntax = \"proto3\"; import \"confluent/type/decimal.proto\"; message ConfluentDefault1 {bool c1 = 1; int32 c2 = 2; int64 c3 = 3; double c4 = 4; string c5 = 5; confluent.type.Decimal c6 = 6 [(confluent.field_meta) = { params: [{ value: \"4\", key: \"precision\" }, { value: \"2\", key: \"scale\" }]}];}"
         }
       ],
       "inputs": [
-        {"topic": "input", "key": "a", "value": {"c1": true, "c2": 1, "c3": 400000000000, "c4": 1.284765648, "c5": "hello"}}
+        {"topic": "input", "key": "a", "value": {"c1": true, "c2": 1, "c3": 400000000000, "c4": 1.284765648, "c5": "hello", "c6": 10.01 }}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "a", "value": {"C1": true, "C2": 1, "C3": 400000000000, "C4": 1.284765648, "C5": "hello"}}
+        {"topic": "OUTPUT", "key": "a", "value": {"C1": true, "C2": 1, "C3": 400000000000, "C4": 1.284765648, "C5": "hello", "C6":  10.01 }}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "K STRING KEY, C1 BOOLEAN, C2 INT, C3 BIGINT, C4 DOUBLE, C5 STRING"}
+          {"name": "OUTPUT", "type": "stream", "schema": "K STRING KEY, C1 BOOLEAN, C2 INT, C3 BIGINT, C4 DOUBLE, C5 STRING, C6 DECIMAL(4,2)"}
         ]
       }
     },

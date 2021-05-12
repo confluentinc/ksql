@@ -79,6 +79,21 @@ public class CollectListUdafTest {
   }
 
   @Test
+  public void shouldRespectSizeLimitString() {
+    final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
+    ((Configurable) udaf).configure(ImmutableMap.of(CollectListUdaf.LIMIT_CONFIG, "10"));
+
+    List<Integer> runningList = udaf.initialize();
+    for (int i = 1; i < 25; i++) {
+      runningList = udaf.aggregate(i, runningList);
+    }
+    assertThat(runningList, hasSize(10));
+    assertThat(runningList, hasItem(1));
+    assertThat(runningList, hasItem(10));
+    assertThat(runningList, not(hasItem(11)));
+  }
+
+  @Test
   public void shouldIgnoreNegativeLimit() {
     final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
     ((Configurable) udaf).configure(ImmutableMap.of(CollectListUdaf.LIMIT_CONFIG, -10));

@@ -44,12 +44,12 @@ public final class WelcomeMsgUtils {
         "=      |   <\\__ \\ (_| | | |_| | |_) |     =",
         "=      |_|\\_\\___/\\__, |_|____/|____/      =",
         "=                   |_|                   =",
-        "=  Event Streaming Database purpose-built =",
+        "=        The Database purpose-built       =",
         "=        for stream processing apps       =",
         "==========================================="
     };
 
-    final String copyrightMsg = "Copyright 2017-2020 Confluent Inc.";
+    final String copyrightMsg = "Copyright 2017-2021 Confluent Inc.";
 
     final Integer logoWidth = Arrays.stream(lines)
         .map(String::length)

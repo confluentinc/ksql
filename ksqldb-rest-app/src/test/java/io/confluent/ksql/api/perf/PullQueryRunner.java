@@ -25,6 +25,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.reactive.BufferedPublisher;
@@ -118,9 +119,11 @@ public class PullQueryRunner extends BasePerfRunner {
     @Override
     public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
         final JsonObject properties,
+        final JsonObject sessionVariables,
         final Context context,
         final WorkerExecutor workerExecutor,
-        final ApiSecurityContext apiSecurityContext) {
+        final ApiSecurityContext apiSecurityContext,
+        final MetricsCallbackHolder metricsCallbackHolder) {
       PullQueryPublisher publisher = new PullQueryPublisher(context, DEFAULT_ROWS);
       publishers.add(publisher);
       return CompletableFuture.completedFuture(publisher);
@@ -152,7 +155,7 @@ public class PullQueryRunner extends BasePerfRunner {
     public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
         WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
         ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest,
-        KsqlMediaType mediaType) {
+        KsqlMediaType mediaType, final MetricsCallbackHolder metricsCallbackHolder) {
       return null;
     }
 
@@ -176,6 +179,12 @@ public class PullQueryRunner extends BasePerfRunner {
     @Override
     public CompletableFuture<EndpointResponse> executeStatus(String type, String entity,
         String action, ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeIsValidProperty(String property,
+        WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext) {
       return null;
     }
 

@@ -32,8 +32,9 @@ import java.util.concurrent.ExecutionException;
     name = "stringtodate",
     category = FunctionCategory.DATE_TIME,
     author = KsqlConstants.CONFLUENT_AUTHOR,
-    description = "Converts a string representation of a date into an integer representing"
-        + " days since epoch using the given format pattern."
+    description = "Converts a string representation of a date in the given format"
+        + " into the number of days since 1970-01-01 00:00:00 UTC/GMT."
+        + " The system default time zone is used when no time zone is explicitly provided."
         + " Note this is the format Kafka Connect uses to represent dates with no time component."
         + " The format pattern should be in the format expected by"
         + " java.time.format.DateTimeFormatter"
@@ -45,8 +46,8 @@ public class StringToDate {
           .maximumSize(1000)
           .build(CacheLoader.from(DateTimeFormatter::ofPattern));
 
-  @Udf(description = "Converts formattedDate, a string representation of a date into"
-      + " an integer representing days since epoch using the given formatPattern.")
+  @Udf(description = "Converts a string representation of a date in the given format"
+      + " into the number of days since 1970-01-01 00:00:00 UTC/GMT.")
   public int stringToDate(
       @UdfParameter(
           description = "The string representation of a date.") final String formattedDate,

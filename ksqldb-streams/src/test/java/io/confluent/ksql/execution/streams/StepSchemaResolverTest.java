@@ -110,6 +110,8 @@ public class StepSchemaResolverTest {
   private Formats formats;
   @Mock
   private KsqlConfig config;
+  @Mock
+  private Optional<Formats> internalFormats;
 
   private StepSchemaResolver resolver;
 
@@ -438,7 +440,8 @@ public class StepSchemaResolverTest {
         ImmutableList.of(
             add("JUICE", "ORANGE", "APPLE"),
             ref("PLANTAIN", "BANANA"),
-            ref("CITRUS", "ORANGE"))
+            ref("CITRUS", "ORANGE")),
+            internalFormats
     );
 
     // When:
@@ -465,7 +468,8 @@ public class StepSchemaResolverTest {
         ImmutableList.of(
             add("JUICE", "ORANGE", "APPLE"),
             ref("PLANTAIN", "BANANA"),
-            ref("CITRUS", "ORANGE"))
+            ref("CITRUS", "ORANGE")),
+            internalFormats
     );
 
     // When:

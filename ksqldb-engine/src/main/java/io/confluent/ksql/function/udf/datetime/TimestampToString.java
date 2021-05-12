@@ -33,8 +33,9 @@ import java.util.concurrent.ExecutionException;
     name = "timestamptostring",
     category = FunctionCategory.DATE_TIME,
     author = KsqlConstants.CONFLUENT_AUTHOR,
-    description = "Converts a BIGINT millisecond timestamp value into"
+    description = "Converts a number of milliseconds since 1970-01-01 00:00:00 UTC/GMT into"
         + " the string representation of the timestamp in the given format."
+        + " The system default time zone is used when no time zone is explicitly provided."
 )
 public class TimestampToString {
 
@@ -43,16 +44,16 @@ public class TimestampToString {
           .maximumSize(1000)
           .build(CacheLoader.from(DateTimeFormatter::ofPattern));
 
-  @Udf(description = "Converts a BIGINT millisecond timestamp value into the"
+  @Udf(description = "Converts a number of milliseconds since 1970-01-01 00:00:00 UTC/GMT into the"
       + " string representation of the timestamp in the given format. Single quotes in the"
-      + " timestamp format can be escaped with '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'"
+      + " timestamp format can be escaped with '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'."
       + " The system default time zone is used when no time zone is explicitly provided."
       + " The format pattern should be in the format expected"
       + " by java.time.format.DateTimeFormatter")
   public String timestampToString(
       @UdfParameter(
           description = "Milliseconds since"
-              + " January 1, 1970, 00:00:00 GMT.") final long epochMilli,
+              + " January 1, 1970, 00:00:00 UTC/GMT.") final long epochMilli,
       @UdfParameter(
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern) {
@@ -70,13 +71,13 @@ public class TimestampToString {
 
   }
 
-  @Udf(description = "Converts a BIGINT millisecond timestamp value into the"
+  @Udf(description = "Converts a number of milliseconds since 1970-01-01 00:00:00 UTC/GMT into the"
       + " string representation of the timestamp in the given format. Single quotes in the"
       + " timestamp format can be escaped with '', for example: 'yyyy-MM-dd''T''HH:mm:ssX'")
   public String timestampToString(
       @UdfParameter(
           description = "Milliseconds since"
-              + " January 1, 1970, 00:00:00 GMT.") final long epochMilli,
+              + " January 1, 1970, 00:00:00 UTC/GMT.") final long epochMilli,
       @UdfParameter(
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern,

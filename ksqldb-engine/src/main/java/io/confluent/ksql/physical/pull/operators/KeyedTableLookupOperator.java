@@ -17,6 +17,7 @@ package io.confluent.ksql.physical.pull.operators;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericKey;
+import io.confluent.ksql.execution.streams.materialization.Locator.KsqlKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.Row;
@@ -43,6 +44,7 @@ public class KeyedTableLookupOperator
   private Iterator<KsqlPartitionLocation> partitionLocationIterator;
   private KsqlPartitionLocation nextLocation;
   private GenericKey nextKey;
+  private long returnedRows = 0;
 
   public KeyedTableLookupOperator(
       final Materialization mat,
@@ -60,7 +62,7 @@ public class KeyedTableLookupOperator
       if (!nextLocation.getKeys().isPresent()) {
         throw new IllegalStateException("Table lookup queries should be done with keys");
       }
-      keyIterator = nextLocation.getKeys().get().iterator();
+      keyIterator = nextLocation.getKeys().get().stream().map(KsqlKey::getKey).iterator();
       if (keyIterator.hasNext()) {
         nextKey = keyIterator.next();
         resultIterator = mat.nonWindowed()
@@ -85,7 +87,7 @@ public class KeyedTableLookupOperator
         if (!nextLocation.getKeys().isPresent()) {
           throw new IllegalStateException("Table lookup queries should be done with keys");
         }
-        keyIterator = nextLocation.getKeys().get().iterator();
+        keyIterator = nextLocation.getKeys().get().stream().map(KsqlKey::getKey).iterator();
       }
       nextKey = keyIterator.next();
       resultIterator = mat.nonWindowed()
@@ -94,6 +96,7 @@ public class KeyedTableLookupOperator
           .orElse(ImmutableList.of()).iterator();
     }
 
+    returnedRows++;
     return resultIterator.next();
   }
 
@@ -136,5 +139,10 @@ public class KeyedTableLookupOperator
   public void setPartitionLocations(final List<KsqlPartitionLocation> locations) {
     Objects.requireNonNull(locations, "locations");
     partitionLocations = locations;
+  }
+
+  @Override
+  public long getReturnedRowCount() {
+    return returnedRows;
   }
 }

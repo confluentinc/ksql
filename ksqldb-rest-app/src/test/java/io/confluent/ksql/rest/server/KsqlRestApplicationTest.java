@@ -27,15 +27,13 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.engine.QueryMonitor;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -55,6 +53,7 @@ import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlSecurityContext;
@@ -135,15 +134,13 @@ public class KsqlRestApplicationTest {
   @Mock
   private EndpointResponse response;
   @Mock
-  private QueryMonitor queryMonitor;
-  @Mock
   private DenyListPropertyValidator denyListPropertyValidator;
-  @Mock
-  private SchemaRegistryClient schemaRegistryClient;
   @Mock
   private RoutingFilterFactory routingFilterFactory;
   @Mock
   private RateLimiter rateLimiter;
+  @Mock
+  private ConcurrencyLimiter concurrencyLimiter;
   @Mock
   private HARouting haRouting;
 
@@ -158,7 +155,7 @@ public class KsqlRestApplicationTest {
   private final ArgumentCaptor<KsqlSecurityContext> securityContextArgumentCaptor =
       ArgumentCaptor.forClass(KsqlSecurityContext.class);
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   @Before
   public void setUp() {
     when(processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE))
@@ -226,15 +223,6 @@ public class KsqlRestApplicationTest {
 
     // Then:
     verify(securityExtension).close();
-  }
-
-  @Test
-  public void shouldCloseQueryMonitorOnClose() {
-    // When:
-    app.shutdown();
-
-    // then:
-    verify(queryMonitor).close();
   }
 
   @Test
@@ -324,15 +312,6 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
-  public void shouldStartQueryMonitor() {
-    // When:
-    app.startKsql(ksqlConfig);
-
-    // Then:
-    verify(queryMonitor).start();
-  }
-
-  @Test
   public void shouldCreateLogTopicBeforeSendingCreateStreamRequest() {
     // When:
     app.startKsql(ksqlConfig);
@@ -391,7 +370,7 @@ public class KsqlRestApplicationTest {
   public void shouldCheckPreconditionsBeforeUsingServiceContext() {
     // Given:
     when(precondition2.checkPrecondition(any(), any())).then(a -> {
-      verifyZeroInteractions(serviceContext);
+      verifyNoMoreInteractions(serviceContext);
       return Optional.empty();
     });
 
@@ -413,7 +392,7 @@ public class KsqlRestApplicationTest {
     errors.add(error1);
     errors.add(error2);
     when(precondition2.checkPrecondition(any(), any())).then(a -> {
-      verifyZeroInteractions(serviceContext);
+      verifyNoMoreInteractions(serviceContext);
       return Optional.ofNullable(errors.isEmpty() ? null : errors.remove());
     });
 
@@ -502,11 +481,11 @@ public class KsqlRestApplicationTest {
         Optional.of(heartbeatAgent),
         Optional.of(lagReportingAgent),
         vertx,
-        queryMonitor,
         denyListPropertyValidator,
         Optional.empty(),
         routingFilterFactory,
         rateLimiter,
+        concurrencyLimiter,
         haRouting,
         Optional.empty()
     );

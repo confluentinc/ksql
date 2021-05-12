@@ -46,6 +46,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
@@ -90,8 +91,6 @@ public class QueryDescriptionFactoryTest {
   private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
 
   @Mock
-  private Consumer<QueryMetadata> queryCloseCallback;
-  @Mock
   private KafkaStreamsBuilder kafkaStreamsBuilder;
   @Mock
   private KafkaStreams queryStreams;
@@ -109,6 +108,8 @@ public class QueryDescriptionFactoryTest {
   private DataSource sinkDataSource;
   @Mock
   private ProcessingLogger processingLogger;
+  @Mock
+  private QueryMetadata.Listener listener;
 
   private QueryMetadata transientQuery;
   private PersistentQueryMetadata persistentQuery;
@@ -119,6 +120,7 @@ public class QueryDescriptionFactoryTest {
   public void setUp() {
     when(topology.describe()).thenReturn(topologyDescription);
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(queryStreams);
+    when(queryStreams.localThreadsMetadata()).thenReturn(Collections.emptySet());
 
     when(sinkTopic.getKeyFormat()).thenReturn(
         KeyFormat.nonWindowed(FormatInfo.of(FormatFactory.KAFKA.name()), SerdeFeatures.of()));
@@ -136,15 +138,18 @@ public class QueryDescriptionFactoryTest {
         kafkaStreamsBuilder,
         STREAMS_PROPS,
         PROP_OVERRIDES,
-        queryCloseCallback,
         closeTimeout,
         10,
-        ResultType.STREAM
+        ResultType.STREAM,
+        0L,
+        0L,
+        listener
     );
+    transientQuery.initialize();
 
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());
 
-    persistentQuery = new PersistentQueryMetadata(
+    persistentQuery = new PersistentQueryMetadataImpl(
         SQL_TEXT,
         PhysicalSchema.from(PERSISTENT_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
         SOURCE_NAMES,
@@ -158,13 +163,17 @@ public class QueryDescriptionFactoryTest {
         new QuerySchemas(),
         STREAMS_PROPS,
         PROP_OVERRIDES,
-        queryCloseCallback,
         closeTimeout,
         QueryErrorClassifier.DEFAULT_CLASSIFIER,
         physicalPlan,
         10,
-        processingLogger
+        processingLogger,
+        0L,
+        0L,
+        listener,
+        Optional.empty()
     );
+    persistentQuery.initialize();
 
     persistentQueryDescription = QueryDescriptionFactory.forQueryMetadata(persistentQuery, STATUS_MAP);
   }
@@ -270,11 +279,14 @@ public class QueryDescriptionFactoryTest {
         kafkaStreamsBuilder,
         STREAMS_PROPS,
         PROP_OVERRIDES,
-        queryCloseCallback,
         closeTimeout,
         10,
-        ResultType.STREAM
+        ResultType.STREAM,
+        0L,
+        0L,
+        listener
     );
+    transientQuery.initialize();
 
     // When:
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());
@@ -306,11 +318,14 @@ public class QueryDescriptionFactoryTest {
         kafkaStreamsBuilder,
         STREAMS_PROPS,
         PROP_OVERRIDES,
-        queryCloseCallback,
         closeTimeout,
         10,
-        ResultType.STREAM
+        ResultType.STREAM,
+        0L,
+        0L,
+        listener
     );
+    transientQuery.initialize();
 
     // When:
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());

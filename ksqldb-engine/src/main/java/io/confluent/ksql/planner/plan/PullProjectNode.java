@@ -18,14 +18,17 @@ package io.confluent.ksql.planner.plan;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.interpreter.InterpretedExpressionFactory;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.planner.Projection;
+import io.confluent.ksql.planner.PullPlannerOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -65,8 +68,9 @@ public class PullProjectNode extends ProjectNode {
   private final ImmutableList<SelectExpression> selectExpressions;
   private final LogicalSchema outputSchema;
   private final LogicalSchema intermediateSchema;
-  private final List<ExpressionMetadata> compiledSelectExpressions;
+  private final List<ExpressionEvaluator> compiledSelectExpressions;
   private final RewrittenAnalysis analysis;
+  private final PullPlannerOptions pullPlannerOptions;
   private final boolean isSelectStar;
   private final boolean addAdditionalColumnsToIntermediateSchema;
 
@@ -77,11 +81,13 @@ public class PullProjectNode extends ProjectNode {
       final MetaStore metaStore,
       final KsqlConfig ksqlConfig,
       final RewrittenAnalysis analysis,
-      final boolean isWindowed
+      final boolean isWindowed,
+      final PullPlannerOptions pullPlannerOptions
   ) {
     super(id, source);
     this.projection = Projection.of(selectItems);
     this.analysis = Objects.requireNonNull(analysis, "analysis");
+    this.pullPlannerOptions = Objects.requireNonNull(pullPlannerOptions, "pullPlannerOptions");
     this.selectExpressions = ImmutableList.copyOf(SelectionUtil
         .buildSelectExpressions(getSource(), projection.selectItems(), Optional.empty()));
     this.isSelectStar = isSelectStar();
@@ -96,13 +102,11 @@ public class PullProjectNode extends ProjectNode {
         ? Collections.emptyList()
         : selectExpressions
         .stream()
-        .map(selectExpression -> CodeGenRunner.compileExpression(
-            selectExpression.getExpression(),
-            "Select",
-            intermediateSchema,
-            ksqlConfig,
-            metaStore
-        ))
+        .map(selectExpression ->
+            getExpressionEvaluator(
+                selectExpression.getExpression(), intermediateSchema, metaStore, ksqlConfig,
+                pullPlannerOptions)
+        )
         .collect(ImmutableList.toImmutableList());
   }
 
@@ -116,7 +120,7 @@ public class PullProjectNode extends ProjectNode {
     return selectExpressions;
   }
 
-  public List<ExpressionMetadata> getCompiledSelectExpressions() {
+  public List<ExpressionEvaluator> getCompiledSelectExpressions() {
     if (isSelectStar) {
       throw new IllegalStateException("Select expressions aren't compiled for select star");
     }
@@ -180,7 +184,8 @@ public class PullProjectNode extends ProjectNode {
         getSource().getSchema().isKeyColumn(cn)
     );
 
-    return hasSystemColumns || hasKeyColumns;
+    // Select * also requires keys, in case it's not explicitly mentioned
+    return hasSystemColumns || hasKeyColumns || isSelectStar;
   }
 
   private boolean isSelectStar() {
@@ -240,5 +245,30 @@ public class PullProjectNode extends ProjectNode {
       }
     }
     return schemaBuilder.build();
+  }
+
+  private static ExpressionEvaluator getExpressionEvaluator(
+      final Expression expression,
+      final LogicalSchema schema,
+      final MetaStore metaStore,
+      final KsqlConfig ksqlConfig,
+      final PullPlannerOptions pullPlannerOptions) {
+
+    if (pullPlannerOptions.getInterpreterEnabled()) {
+      return InterpretedExpressionFactory.create(
+          expression,
+          schema,
+          metaStore,
+          ksqlConfig
+      );
+    } else {
+      return CodeGenRunner.compileExpression(
+          expression,
+          "Select",
+          schema,
+          ksqlConfig,
+          metaStore
+      );
+    }
   }
 }

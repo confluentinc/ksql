@@ -5,7 +5,7 @@ tagline:  Serialize and deserialize data with ksqlDB
 description: Learn how to control serialization and deserialization in ksqlDB queries
 ---
 
-The term _serialization format_ refers to the manner in which an event's raw bytes
+The term _serialization format_ refers to the manner in which a record's raw bytes
 are translated to and from information structures that ksqlDB can understand
 at runtime. ksqlDB offers several mechanisms for controlling serialization
 and deserialization.
@@ -152,9 +152,9 @@ This data format supports all SQL
 
 There are two JSON formats, `JSON` and `JSON_SR`. Both support serializing and
 deserializing JSON data. The latter offers integration with the {{ site.sr }},
-registering and retrieving JSON schemas. The former does not. Though the `JSON`
-does support reading data written by the `JSON_SR` format, (which prefixes the
-JSON data with a magic byte and schema id).
+registering and retrieving JSON schemas while the former does not. These two
+formats are _not_ byte compatible (you cannot read data produced by one by the
+other).
 
 The JSON formats supports all SQL [data types](/reference/sql/data-types).
 By itself, JSON doesn't support a map type, so ksqlDB serializes `MAP` types as
@@ -393,12 +393,12 @@ Connect Converter classes you would need to use to write the key to
 Kafka, read the key from Kafka, or use to configure Apache Connect to
 work with the `KAFKA` format, respectively.
 
-| SQL Field Type  | Kafka Type                     | Kafka Serializer                                          | Kafka Deserializer                                          | Connect Converter                                   |
-|------------------|--------------------------------|-----------------------------------------------------------|-------------------------------------------------------------|-----------------------------------------------------|
-| INT / INTEGER    | A 32-bit signed integer        | `org.apache.kafka.common.serialization.IntegerSerializer` | `org.apache.kafka.common.serialization.IntegerDeserializer` | `org.apache.kafka.connect.storage.IntegerConverter` |
-| BIGINT           | A 64-bit signed integer        | `org.apache.kafka.common.serialization.LongSerializer`    | `org.apache.kafka.common.serialization.LongDeserializer`    | `org.apache.kafka.connect.storage.LongConverter`    |
-| DOUBLE           | A 64-bit floating point number | `org.apache.kafka.common.serialization.DoubleSerializer`  | `org.apache.kafka.common.serialization.DoubleDeserializer`  | `org.apache.kafka.connect.storage.DoubleConverter`  |
-| STRING / VARCHAR | A UTF-8 encoded text string    | `org.apache.kafka.common.serialization.StringSerializer`  | `org.apache.kafka.common.serialization.StringDeserializer`  | `org.apache.kafka.connect.storage.StringConverter`  |
+| SQL Field Type   | Kafka Type                       | Kafka Serializer                                          | Kafka Deserializer                                          | Connect Converter                                      |
+|------------------|----------------------------------|-----------------------------------------------------------|-------------------------------------------------------------|--------------------------------------------------------|
+| INT / INTEGER    | A 32-bit signed integer          | `org.apache.kafka.common.serialization.IntegerSerializer` | `org.apache.kafka.common.serialization.IntegerDeserializer` | `org.apache.kafka.connect.converters.IntegerConverter` |
+| BIGINT           | A 64-bit signed integer          | `org.apache.kafka.common.serialization.LongSerializer`    | `org.apache.kafka.common.serialization.LongDeserializer`    | `org.apache.kafka.connect.converters.LongConverter`    |
+| DOUBLE           | A 64-bit floating point number   | `org.apache.kafka.common.serialization.DoubleSerializer`  | `org.apache.kafka.common.serialization.DoubleDeserializer`  | `org.apache.kafka.connect.converters.DoubleConverter`  |
+| STRING / VARCHAR | A UTF-8 encoded text string      | `org.apache.kafka.common.serialization.StringSerializer`  | `org.apache.kafka.common.serialization.StringDeserializer`  | `org.apache.kafka.connect.storage.StringConverter`     |
 
 
 Because the format supports only primitive types, you can only use it
@@ -521,7 +521,7 @@ CREATE TABLE TRADES (
 If a statement doesn't set the value wrapping explicitly, ksqlDB uses the
 system default, which is defined by `ksql.persistence.wrap.single.values`.
 You can change the system default, if the format supports it. For more information, see
-[ksql.persistence.wrap.single.values](../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencewrapsinglevalues).
+[ksql.persistence.wrap.single.values](/reference/server-configuration#ksqlpersistencewrapsinglevalues).
 
 !!! important
       ksqlDB treats `null` keys and values as a special case. We recommend
@@ -589,7 +589,7 @@ CREATE STREAM y WITH(WRAP_SINGLE_VALUE=false) AS SELECT f0 FROM x EMIT CHANGES;
 If a statement doesn't set the value wrapping explicitly, ksqlDB uses the
 system default, defined by `ksql.persistence.wrap.single.values`, if the format supports it. 
 You can change the system default. For more information, see
-[ksql.persistence.wrap.single.values](../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencewrapsinglevalues).
+[ksql.persistence.wrap.single.values](/reference/server-configuration#ksqlpersistencewrapsinglevalues).
 
 !!! important
       ksqlDB treats `null` keys and values as a special case. We recommended
@@ -647,4 +647,4 @@ CREATE STREAM BAD_SINK WITH(WRAP_SINGLE_VALUE=true) AS SELECT ID, COST FROM S EM
 
 - Blog post: [I’ve Got the Key, I’ve Got the Secret. Here’s How Keys Work in ksqlDB 0.10](https://www.confluent.io/blog/ksqldb-0-10-updates-key-columns/)
 
-[1]: ../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencedefaultformatkey
+[1]: /reference/server-configuration#ksqlpersistencedefaultformatkey

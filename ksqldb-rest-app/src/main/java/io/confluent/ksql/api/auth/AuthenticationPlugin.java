@@ -35,7 +35,8 @@ public interface AuthenticationPlugin {
    *
    * @param routingContext The routing context
    * @param workerExecutor The worker executor
-   * @return A CompletableFuture representing the result of the authentication
+   * @return A CompletableFuture representing the result of the authentication containing either
+   *         the principal (on successful authentication) or null (on unsuccessful authentication)
    */
   CompletableFuture<Principal> handleAuth(RoutingContext routingContext,
       WorkerExecutor workerExecutor);

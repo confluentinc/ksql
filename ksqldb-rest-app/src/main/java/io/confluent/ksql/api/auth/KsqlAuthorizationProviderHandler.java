@@ -57,6 +57,7 @@ public class KsqlAuthorizationProviderHandler implements Handler<RoutingContext>
 
     workerExecutor.<Void>executeBlocking(
         promise -> authorize(promise, routingContext),
+        false,
         ar -> handleAuthorizeResult(ar, routingContext));
   }
 

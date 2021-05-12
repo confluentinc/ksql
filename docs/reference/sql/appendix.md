@@ -31,14 +31,14 @@ The following table shows all keywords in the language.
 | `DECIMAL`      | decimal numeric type                  |                                                                      |
 | `DEFINE`       | define a variable                     | `DEFINE name = 'Tom Sawyer';`                                        |
 | `DELETE`       | remove a {{ site.ak}} topic           | `DROP TABLE <table-name> DELETE TOPIC;`                              |
-| `DESCRIBE`     | list details for an object            | `DESCRIBE PAGEVIEWS;`                                                |
+| `DESCRIBE`     | list details for object(s)            | `DESCRIBE PAGEVIEWS;`                                                |
 | `DROP`         | delete an object                      | `DROP CONNECTOR <connector-name>;`                                   |
 | `ELSE`         | condition in `WHEN` statement         | `CASE WHEN units<2 THEN 'sm' WHEN units<4 THEN 'med' ELSE 'large' …` |
 | `EMIT`         | specify push query                    | `SELECT * FROM users EMIT CHANGES;`                                  |
 | `END`          | close a `CASE` block                  | `SELECT CASE WHEN condition THEN result [ WHEN … THEN … ] … END`     |
 | `EXISTS`       | test whether object exists            | `DROP STREAM IF EXISTS <stream-name>;`                               |
 | `EXPLAIN`      | show execution plan                   | `EXPLAIN <query-name>;` or `EXPLAIN <expression>;`                   |
-| `EXTENDED`     | list details for an object            | `DESCRIBE EXTENDED <stream-name>;`                                   |
+| `EXTENDED`     | list details for object(s)            | `DESCRIBE <stream-name> EXTENDED;`                                   |
 | `FALSE`        | Boolean value of false                |                                                                      |
 | `FROM`         | specify record source for queries     | `SELECT * FROM users;`                                               |
 | `FULL`         | specify `FULL JOIN`                   | `CREATE TABLE t AS SELECT * FROM l FULL OUTER JOIN r ON l.ID = r.ID;`|

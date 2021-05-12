@@ -24,6 +24,7 @@ import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
@@ -55,6 +56,24 @@ public interface SimpleKsqlClient {
       String sql,
       Map<String, ?> configOverrides,
       Map<String, ?> requestProperties
+  );
+
+  /**
+   * Send pull query request to remote Ksql server.  This version of makeQueryRequest allows
+   * consuming the rows as they stream in rather than aggregating them all in one list.
+   * @param serverEndPoint the remote destination
+   * @param sql the pull query statement
+   * @param configOverrides the config overrides provided by the client
+   * @param requestProperties the request metadata provided by the server
+   * @param rowConsumer A consumer that's fed lists of rows as they stream in
+   * @return the number of rows returned by pull query
+   */
+  RestResponse<Integer> makeQueryRequest(
+      URI serverEndPoint,
+      String sql,
+      Map<String, ?> configOverrides,
+      Map<String, ?> requestProperties,
+      Consumer<List<StreamedRow>> rowConsumer
   );
 
   /**

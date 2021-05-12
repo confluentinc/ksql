@@ -151,9 +151,9 @@ public class StreamStreamJoinBuilderTest {
     when(right.build(any(), eq(planInfo))).thenReturn(
         new KStreamHolder<>(rightKStream, RIGHT_SCHEMA, executionKeyFactory));
 
-    when(leftKStream.leftJoin(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
-    when(leftKStream.outerJoin(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
-    when(leftKStream.join(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
+    when(leftKStream.leftJoin(any(KStream.class), any(KsqlValueJoiner.class), any(), any(StreamJoined.class))).thenReturn(resultKStream);
+    when(leftKStream.outerJoin(any(KStream.class), any(KsqlValueJoiner.class), any(), any(StreamJoined.class))).thenReturn(resultKStream);
+    when(leftKStream.join(any(KStream.class), any(KsqlValueJoiner.class), any(), any(StreamJoined.class))).thenReturn(resultKStream);
 
     planBuilder = new KSPlanBuilder(
         buildContext,

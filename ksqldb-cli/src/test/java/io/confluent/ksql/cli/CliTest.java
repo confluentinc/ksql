@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -57,6 +58,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
+import io.confluent.ksql.rest.client.KsqlUnsupportedServerException;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -448,7 +450,7 @@ public class CliTest {
     assertThatEventually(() -> terminal.getOutputString(),
         containsString("Failed to Describe Kafka Topic(s): [${topicName}]"));
     assertThatEventually(() -> terminal.getOutputString(),
-        containsString("Caused by: This server does not host this topic-partition."));
+        containsString("Caused by: The request attempted to perform an operation on an invalid topic."));
   }
 
   @Test
@@ -517,7 +519,6 @@ public class CliTest {
     assertRunCommand("set 'ksql.streams.max.request.size' = '1048576';", is(EMPTY_RESULT));
     assertRunCommand("set 'ksql.streams.consumer.max.poll.records' = '500';", is(EMPTY_RESULT));
     assertRunCommand("set 'ksql.streams.enable.auto.commit' = 'true';", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.service.id' = 'assertPrint';", is(EMPTY_RESULT));
 
     assertRunCommand("unset 'application.id';", is(EMPTY_RESULT));
     assertRunCommand("unset 'producer.batch.size';", is(EMPTY_RESULT));
@@ -529,7 +530,6 @@ public class CliTest {
     assertRunCommand("unset 'ksql.streams.max.request.size';", is(EMPTY_RESULT));
     assertRunCommand("unset 'ksql.streams.consumer.max.poll.records';", is(EMPTY_RESULT));
     assertRunCommand("unset 'ksql.streams.enable.auto.commit';", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.service.id';", is(EMPTY_RESULT));
 
     assertRunListCommand("properties", hasRows(
         // SERVER OVERRIDES:
@@ -907,6 +907,79 @@ public class CliTest {
   }
 
   @Test
+  public void shouldFailOnUnsupportedCpServerVersion() throws Exception {
+    givenRunInteractivelyWillExit();
+
+    final KsqlRestClient mockRestClient = givenMockRestClient("5.5.0-0");
+
+    assertThrows(
+        KsqlUnsupportedServerException.class,
+        () -> new Cli(1L, 1L, mockRestClient, console)
+            .runInteractively()
+    );
+  }
+
+  @Test
+  public void shouldFailOnUnsupportedStandaloneServerVersion() throws Exception {
+    givenRunInteractivelyWillExit();
+
+    final KsqlRestClient mockRestClient = givenMockRestClient("0.9.0-0");
+
+    assertThrows(
+        KsqlUnsupportedServerException.class,
+        () -> new Cli(1L, 1L, mockRestClient, console)
+            .runInteractively()
+    );
+  }
+
+  @Test
+  public void shouldPrintWarningOnDifferentCpServerVersion() throws Exception {
+    givenRunInteractivelyWillExit();
+
+    final KsqlRestClient mockRestClient = givenMockRestClient("6.0.0-0");
+
+    new Cli(1L, 1L, mockRestClient, console)
+        .runInteractively();
+
+    assertThat(
+        terminal.getOutputString(),
+        containsString("WARNING: CLI and server version don't match."
+            + " This may lead to unexpected errors.")
+    );
+  }
+
+  @Test
+  public void shouldPrintWarningOnDifferentStandaloneServerVersion() throws Exception {
+    givenRunInteractivelyWillExit();
+
+    final KsqlRestClient mockRestClient = givenMockRestClient("0.10.0-0");
+
+    new Cli(1L, 1L, mockRestClient, console)
+        .runInteractively();
+
+    assertThat(
+        terminal.getOutputString(),
+        containsString("WARNING: CLI and server version don't match."
+            + " This may lead to unexpected errors.")
+    );
+  }
+
+  @Test
+  public void shouldPrintWarningOnUnknownServerVersion() throws Exception {
+    givenRunInteractivelyWillExit();
+
+    final KsqlRestClient mockRestClient = givenMockRestClient("bad-version");
+
+    new Cli(1L, 1L, mockRestClient, console)
+        .runInteractively();
+
+    assertThat(
+        terminal.getOutputString(),
+        containsString("WARNING: Could not identify server version.")
+    );
+  }
+
+  @Test
   public void shouldListFunctions() {
     assertRunListCommand("functions", hasRows(
         row("TIMESTAMPTOSTRING", "DATE / TIME"),
@@ -920,9 +993,11 @@ public class CliTest {
     final String expectedOutput =
         "Name        : TIMESTAMPTOSTRING\n"
             + "Author      : Confluent\n"
-            + "Overview    : Converts a BIGINT millisecond timestamp value into the string"
-            + " representation of the \n"
-            + "              timestamp in the given format.\n"
+            + "Overview    : Converts a number of milliseconds since 1970-01-01 00:00:00 UTC/GMT "
+            + "into the string \n"
+            + "              representation of the timestamp in the given format. The system "
+            + "default time zone is \n"
+            + "              used when no time zone is explicitly provided.\n"
             + "Type        : SCALAR\n"
             + "Jar         : internal\n"
             + "Variations  :";
@@ -935,16 +1010,17 @@ public class CliTest {
     final String expectedVariation =
         "\tVariation   : TIMESTAMPTOSTRING(epochMilli BIGINT, formatPattern VARCHAR)\n" +
                 "\tReturns     : VARCHAR\n" +
-                "\tDescription : Converts a BIGINT millisecond timestamp value into the string" +
-                " representation of the \n" +
-                "                timestamp in the given format. Single quotes in the timestamp" +
-                " format can be escaped \n" +
-                "                with '', for example: 'yyyy-MM-dd''T''HH:mm:ssX' The system" +
-                " default time zone is \n" +
-                "                used when no time zone is explicitly provided. The format" +
-                " pattern should be in the \n" +
-                "                format expected by java.time.format.DateTimeFormatter\n" +
-                "\tepochMilli  : Milliseconds since January 1, 1970, 00:00:00 GMT.\n" +
+                "\tDescription : Converts a number of milliseconds since 1970-01-01 00:00:00 "
+              + "UTC/GMT into the string \n" +
+                "                representation of the timestamp in the given format. Single "
+              + "quotes in the timestamp \n" +
+                "                format can be escaped with '', for example: "
+              + "'yyyy-MM-dd''T''HH:mm:ssX'. The system \n" +
+                "                default time zone is used when no time zone is explicitly "
+              + "provided. The format \n" +
+                "                pattern should be in the format expected by "
+              + "java.time.format.DateTimeFormatter\n" +
+                "\tepochMilli  : Milliseconds since January 1, 1970, 00:00:00 UTC/GMT.\n" +
                 "\tformatPattern: The format pattern should be in the format expected by \n" +
                 "                 java.time.format.DateTimeFormatter.";
 
@@ -1084,6 +1160,21 @@ public class CliTest {
     // Then:
     assertThat(terminal.getOutputString(),
         containsString("Created query with ID CSAS_SHOULDRUNCOMMAND"));
+  }
+
+  @Test
+  public void shouldThrowWhenTryingToSetDeniedProperty() throws Exception {
+    // Given
+    final KsqlRestClient mockRestClient = givenMockRestClient();
+    when(mockRestClient.makeIsValidRequest("ksql.service.id"))
+        .thenReturn(RestResponse.erroneous(
+            NOT_ACCEPTABLE.code(),
+            new KsqlErrorMessage(Errors.toErrorCode(NOT_ACCEPTABLE.code()),
+                "Property cannot be set")));
+
+    // When:
+    assertThrows(IllegalArgumentException.class, () ->
+        localCli.handleLine("set 'ksql.service.id'='test';"));
   }
 
   @Test
@@ -1266,11 +1357,15 @@ public class CliTest {
   }
 
   private KsqlRestClient givenMockRestClient() throws Exception {
+    return givenMockRestClient("100.0.0-0");
+  }
+
+  private KsqlRestClient givenMockRestClient(final String serverVersion) throws Exception {
     final KsqlRestClient mockRestClient = mock(KsqlRestClient.class);
 
     when(mockRestClient.getServerInfo()).thenReturn(RestResponse.successful(
         OK.code(),
-        new ServerInfo("1.x", "testClusterId", "testServiceId", "status")
+        new ServerInfo(serverVersion, "testClusterId", "testServiceId", "status")
     ));
 
     when(mockRestClient.getServerAddress()).thenReturn(new URI("http://someserver:8008"));
@@ -1323,7 +1418,7 @@ public class CliTest {
   @SuppressWarnings({"unchecked", "rawtypes"})
   private static Matcher<String>[] prependWithKey(final String key, final List<?> values) {
 
-    final Matcher<String>[] allMatchers = new Matcher[values.size() + 1];
+    final Matcher[] allMatchers = new Matcher[values.size() + 1];
     allMatchers[0] = is(key);
 
     for (int idx = 0; idx != values.size(); ++idx) {

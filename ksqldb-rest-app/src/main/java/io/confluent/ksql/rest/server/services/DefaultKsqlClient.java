@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,12 +95,35 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties
   ) {
+
     final KsqlTarget target = sharedClient
         .target(serverEndPoint)
         .properties(configOverrides);
 
     final RestResponse<List<StreamedRow>> resp = getTarget(target, authHeader)
         .postQueryRequest(sql, requestProperties, Optional.empty());
+
+    if (resp.isErroneous()) {
+      return RestResponse.erroneous(resp.getStatusCode(), resp.getErrorMessage());
+    }
+
+    return RestResponse.successful(resp.getStatusCode(), resp.getResponse());
+  }
+
+  @Override
+  public RestResponse<Integer> makeQueryRequest(
+      final URI serverEndPoint,
+      final String sql,
+      final Map<String, ?> configOverrides,
+      final Map<String, ?> requestProperties,
+      final Consumer<List<StreamedRow>> rowConsumer
+  ) {
+    final KsqlTarget target = sharedClient
+        .target(serverEndPoint)
+        .properties(configOverrides);
+
+    final RestResponse<Integer> resp = getTarget(target, authHeader)
+        .postQueryRequest(sql, requestProperties, Optional.empty(), rowConsumer);
 
     if (resp.isErroneous()) {
       return RestResponse.erroneous(resp.getStatusCode(), resp.getErrorMessage());

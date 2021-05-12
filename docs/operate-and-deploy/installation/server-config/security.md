@@ -1084,7 +1084,7 @@ Change-log and repartition topics
     All changelog and repartition topics are prefixed with
     `_confluent-ksql-<ksql.service.id>` where `ksql.service.id` defaults
     to `default_`, (for more information, see
-    [ksql.service.id](config-reference.md#ksqlserviceid)), and postfixed with
+    [ksql.service.id](/reference/server-configuration#ksqlserviceid)), and postfixed with
     either `-changelog` or `-repartition`, respectively.
 
 Consumer groups

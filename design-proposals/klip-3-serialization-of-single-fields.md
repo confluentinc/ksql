@@ -21,7 +21,7 @@ The collective term _record_ is used to refer to JSON _objects_ and Avro _record
 The term _non-record_ is used to refer to any other types.
 
 A row in KSQL has a logical schema made up of multiple fields. Fields within the row's
-schema are persisted to either the key or value of the underlying Kafka message. 
+schema are persisted to either the key or value of the underlying Kafka record. 
 In this sense the key and value also have a logical schema.  
 
 The term _single field schema_ is used to describe a key or value logical schema where 
@@ -678,8 +678,8 @@ Single field (un)wrapping
 Controlling deserializing of single fields
 ==========================================
 
-When KSQL deserializes a Kafka message into a row, the key is deserialized into
-the key field(s) and the message's value is deserialized into the value field(s).
+When KSQL deserializes a Kafka record into a row, the key is deserialized into
+the key field(s) and the record's value is deserialized into the value field(s).
 
 By default, KSQL expects any key with a single-field schema to have been 
 serialized as an anonymous value, not as a named field within a record, as 
@@ -746,9 +746,9 @@ can also be changed. For more information, see the
 Controlling serialization of single fields
 ==========================================
 
-When KSQL serializes a row into a Kafka message, the key field(s) are serialized 
-into the message's key, and any value field(s) are serialized into the 
-message's value. 
+When KSQL serializes a row into a Kafka record, the key field(s) are serialized 
+into the record's key, and any value field(s) are serialized into the 
+record's value. 
 
 By default, if the key has only a single field, KSQL will serialize the 
 single field as an anonymous value, rather than as a named field within a 

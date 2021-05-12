@@ -32,6 +32,7 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -80,6 +81,7 @@ public class WSQueryEndpointTest {
         Optional.empty(),
         mock(RoutingFilterFactory.class),
         mock(RateLimiter.class),
+        mock(ConcurrencyLimiter.class),
         mock(HARouting.class),
         Optional.empty()
     );

@@ -91,9 +91,9 @@ public class VariableSubstitutorTest {
         Pair.of("DESCRIBE ${backQuotedIdentifier};", "DESCRIBE `_id_`;"),
 
         // DESCRIBE EXTENDED
-        Pair.of("DESCRIBE EXTENDED ${identifier};", "DESCRIBE EXTENDED _id_;"),
-        Pair.of("DESCRIBE EXTENDED ${quotedIdentifier};", "DESCRIBE EXTENDED \"_id_\";"),
-        Pair.of("DESCRIBE EXTENDED ${backQuotedIdentifier};", "DESCRIBE EXTENDED `_id_`;"),
+        Pair.of("DESCRIBE ${identifier} EXTENDED;", "DESCRIBE _id_ EXTENDED;"),
+        Pair.of("DESCRIBE ${quotedIdentifier} EXTENDED;", "DESCRIBE \"_id_\" EXTENDED;"),
+        Pair.of("DESCRIBE ${backQuotedIdentifier} EXTENDED;", "DESCRIBE `_id_` EXTENDED;"),
 
         // DESCRIBE FUNCTION
         Pair.of("DESCRIBE FUNCTION ${identifier};", "DESCRIBE FUNCTION _id_;"),
@@ -238,6 +238,20 @@ public class VariableSubstitutorTest {
 
     // When/Then
     assertThrowOnInvalidVariables(statements, variablesMap);
+  }
+
+  @Test
+  public void shouldSubstituteVariablesInString() {
+    // Given
+    final Map<String, String> variablesMap = new ImmutableMap.Builder<String, String>() {{
+      put("event", "birthday");
+    }}.build();
+
+    // When
+    final String substituted = VariableSubstitutor.substitute("Happy ${event} to you!", variablesMap);
+
+    // Then
+    assertThat(substituted, equalTo("Happy birthday to you!"));
   }
 
   private void assertReplacedStatements(

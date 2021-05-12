@@ -16,21 +16,24 @@
 package io.confluent.ksql.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThan;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
+import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
@@ -41,14 +44,14 @@ import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Set;
-import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -56,6 +59,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class QueryMetadataTest {
 
+  private static long RETRY_BACKOFF_INITIAL_MS = 1;
+  private static long RETRY_BACKOFF_MAX_MS = 10;
   private static final String QUERY_APPLICATION_ID = "Query1";
   private static final QueryId QUERY_ID = new QueryId("queryId");
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
@@ -73,22 +78,23 @@ public class QueryMetadataTest {
   @Mock
   private KafkaStreams kafkaStreams;
   @Mock
-  private QueryStateListener listener;
-  @Mock
-  private Consumer<QueryMetadata> closeCallback;
+  private QueryMetadataImpl.Listener listener;
   @Mock
   private QueryErrorClassifier classifier;
+  @Captor
+  private ArgumentCaptor<KafkaStreams.StateListener> streamsListenerCaptor;
   @Mock
-  private QueryStateListener queryStateListener;
+  private Ticker ticker;
 
-  private QueryMetadata query;
+  private QueryMetadataImpl query;
 
   @Before
   public void setup() {
     when(kafkaStreamsBuilder.build(topoplogy, Collections.emptyMap())).thenReturn(kafkaStreams);
     when(classifier.classify(any())).thenReturn(Type.UNKNOWN);
+    when(kafkaStreams.state()).thenReturn(State.NOT_RUNNING);
 
-    query = new QueryMetadata(
+    query = new QueryMetadataImpl(
         "foo",
         SOME_SCHEMA,
         SOME_SOURCES,
@@ -98,67 +104,48 @@ public class QueryMetadataTest {
         kafkaStreamsBuilder,
         Collections.emptyMap(),
         Collections.emptyMap(),
-        closeCallback,
         closeTimeout,
         QUERY_ID,
         classifier,
-        10){
+        10,
+        0L,
+        0L,
+        listener
+    ){
     };
+    query.initialize();
   }
 
   @Test
-  public void shouldSetInitialStateWhenListenerAdd() {
+  public void shouldSetInitialStateWhenStarted() {
     // Given:
     when(kafkaStreams.state()).thenReturn(State.CREATED);
-
-    // When:
-    query.setQueryStateListener(listener);
-
-    // Then:
-    verify(listener).onChange(State.CREATED, State.CREATED);
-  }
-
-  @Test
-  public void shouldGetUptimeFromStateListener() {
-    // Given:
-    when(kafkaStreams.state()).thenReturn(State.RUNNING);
-    when(listener.uptime()).thenReturn(5L);
-
-    // When:
-    query.setQueryStateListener(listener);
-
-    // Then:
-    assertThat(query.uptime(), is(5L));
-  }
-
-  @Test
-  public void shouldReturnZeroUptimeIfNoStateListenerSet() {
-    // When/Then:
-    assertThat(query.uptime(), is(0L));
-  }
-
-  @Test
-  public void shouldConnectAnyListenerToStreamAppOnStart() {
-    // Given:
-    query.setQueryStateListener(listener);
 
     // When:
     query.start();
 
     // Then:
-    verify(kafkaStreams).setStateListener(listener);
+    verify(listener).onStateChange(query, State.CREATED, State.CREATED);
   }
 
   @Test
-  public void shouldCloseAnyListenerOnClose() {
-    // Given:
-    query.setQueryStateListener(listener);
+  public void shouldConnectAnyListenerToStreamAppOnInitialize() {
+    // When:
+    verify(kafkaStreams).setStateListener(streamsListenerCaptor.capture());
+    final KafkaStreams.StateListener streamsListener = streamsListenerCaptor.getValue();
+    streamsListener.onChange(State.CREATED, State.RUNNING);
 
+    // Then:
+    verify(listener).onStateChange(query, State.CREATED, State.RUNNING);
+  }
+
+  @Test
+  public void shouldNotifyAnyListenerOnClose() {
     // When:
     query.close();
 
     // Then:
-    verify(listener).close();
+    verify(listener).onClose(query);
   }
 
   @Test
@@ -179,27 +166,9 @@ public class QueryMetadataTest {
     query.close();
 
     // Then:
-    final InOrder inOrder = inOrder(kafkaStreams, closeCallback);
+    final InOrder inOrder = inOrder(kafkaStreams, listener);
     inOrder.verify(kafkaStreams).close(Duration.ofMillis(closeTimeout));
-    inOrder.verify(closeCallback).accept(query);
-  }
-
-  @Test
-  public void shouldNotCallCloseCallbackOnStop() {
-    // When:
-    query.stop();
-
-    // Then:
-    verifyNoMoreInteractions(closeCallback);
-  }
-
-  @Test
-  public void shouldCallKafkaStreamsCloseOnStop() {
-    // When:
-    query.stop();
-
-    // Then:
-    verify(kafkaStreams).close(Duration.ofMillis(closeTimeout));
+    inOrder.verify(listener).onClose(query);
   }
 
   @Test
@@ -211,15 +180,6 @@ public class QueryMetadataTest {
     final InOrder inOrder = inOrder(kafkaStreams);
     inOrder.verify(kafkaStreams).close(Duration.ofMillis(closeTimeout));
     inOrder.verify(kafkaStreams).cleanUp();
-  }
-
-  @Test
-  public void shouldNotCleanUpKStreamsAppOnStop() {
-    // When:
-    query.stop();
-
-    // Then:
-    verify(kafkaStreams, never()).cleanUp();
   }
 
   @Test
@@ -235,37 +195,103 @@ public class QueryMetadataTest {
   @Test
   public void shouldNotifyQueryStateListenerOnError() {
     // Given:
-    query.setQueryStateListener(queryStateListener);
     when(classifier.classify(any())).thenReturn(Type.USER);
 
     // When:
-    query.uncaughtHandler(Thread.currentThread(), new RuntimeException("oops"));
+    query.uncaughtHandler(new RuntimeException("oops"));
 
     // Then:
-    verify(queryStateListener).onError(argThat(q -> q.getType().equals(Type.USER)));
+    verify(listener).onError(same(query), argThat(q -> q.getType().equals(Type.USER)));
   }
 
   @Test
   public void shouldNotifyQueryStateListenerOnErrorEvenIfClassifierFails() {
     // Given:
-    query.setQueryStateListener(queryStateListener);
     final RuntimeException thrown = new RuntimeException("bar");
     when(classifier.classify(any())).thenThrow(thrown);
 
     // When:
-    try {
-      query.uncaughtHandler(Thread.currentThread(), new RuntimeException("foo"));
-      Assert.fail("uncaught handler should have thrown");
-    } catch (final RuntimeException e) {
-      assertThat(e, equalTo(thrown));
-    }
+    query.uncaughtHandler(new RuntimeException("foo"));
+
 
     // Then:
-    verify(queryStateListener).onError(argThat(q -> q.getType().equals(Type.UNKNOWN)));
+    verify(listener).onError(same(query), argThat(q -> q.getType().equals(Type.UNKNOWN)));
   }
 
   @Test
   public void shouldReturnPersistentQueryTypeByDefault() {
     assertThat(query.getQueryType(), is(KsqlQueryType.PERSISTENT));
   }
+
+  @Test
+  public void shouldRetryEventStartWithInitialValues() {
+    // Given:
+    final long now = 20;
+    when(ticker.read()).thenReturn(now);
+
+    // When:
+    final QueryMetadataImpl.RetryEvent retryEvent = new QueryMetadataImpl.RetryEvent(
+            QUERY_ID,
+            RETRY_BACKOFF_INITIAL_MS,
+            RETRY_BACKOFF_MAX_MS,
+            ticker
+    );
+
+    // Then:
+    assertThat(retryEvent.getNumRetries(), is(0));
+    assertThat(retryEvent.nextRestartTimeMs(), is(now + RETRY_BACKOFF_INITIAL_MS));
+  }
+
+  @Test
+  public void shouldRetryEventRestartAndIncrementBackoffTime() {
+    // Given:
+    final long now = 20;
+    when(ticker.read()).thenReturn(now);
+
+    // When:
+    final QueryMetadataImpl.RetryEvent retryEvent = new QueryMetadataImpl.RetryEvent(
+            QUERY_ID,
+            RETRY_BACKOFF_INITIAL_MS,
+            RETRY_BACKOFF_MAX_MS,
+            ticker
+    );
+
+    retryEvent.backOff();
+
+    // Then:
+    assertThat(retryEvent.getNumRetries(), is(1));
+    assertThat(retryEvent.nextRestartTimeMs(), is(now + RETRY_BACKOFF_INITIAL_MS * 2));
+  }
+
+  @Test
+  public void shouldRetryEventRestartAndNotExceedBackoffMaxTime() {
+    // Given:
+    final long now = 20;
+    when(ticker.read()).thenReturn(now);
+
+    // When:
+    final QueryMetadataImpl.RetryEvent retryEvent = new QueryMetadataImpl.RetryEvent(
+            QUERY_ID,
+            RETRY_BACKOFF_INITIAL_MS,
+            RETRY_BACKOFF_MAX_MS,
+            ticker
+    );
+    retryEvent.backOff();
+    retryEvent.backOff();
+
+    // Then:
+    assertThat(retryEvent.getNumRetries(), is(2));
+    assertThat(retryEvent.nextRestartTimeMs(), lessThan(now + RETRY_BACKOFF_MAX_MS));
+  }
+
+  @Test
+  public void shouldEvictBasedOnTime() {
+    // Given:
+    final QueryMetadataImpl.TimeBoundedQueue queue = new QueryMetadataImpl.TimeBoundedQueue(Duration.ZERO, 1);
+    queue.add(new QueryError(System.currentTimeMillis(), "test", Type.SYSTEM));
+
+    //Then:
+    assertThat(queue.toImmutableList().size(), is(0));
+  }
+
 }

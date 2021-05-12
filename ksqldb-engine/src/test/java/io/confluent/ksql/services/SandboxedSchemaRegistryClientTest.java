@@ -18,7 +18,7 @@ package io.confluent.ksql.services;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
@@ -63,6 +63,7 @@ public final class SandboxedSchemaRegistryClientTest {
           .ignore("testCompatibility", String.class, ParsedSchema.class)
           .ignore("deleteSubject", String.class)
           .ignore("getAllSubjects")
+          .ignore("getVersion", String.class, ParsedSchema.class)
           .build();
     }
 
@@ -147,7 +148,7 @@ public final class SandboxedSchemaRegistryClientTest {
       sandboxedClient.deleteSubject("some subject");
 
       // Then:
-      verifyZeroInteractions(delegate);
+      verifyNoMoreInteractions(delegate);
     }
 
     @Test
@@ -157,7 +158,19 @@ public final class SandboxedSchemaRegistryClientTest {
       sandboxedClient.register("some subject", schema, 1, 1);
 
       // Then:
-      verifyZeroInteractions(delegate);
+      verifyNoMoreInteractions(delegate);
+    }
+
+    @Test
+    public void shouldGetVersion() throws Exception {
+      // Given:
+      when(delegate.getVersion("some subject", schema)).thenReturn(6);
+
+      // When:
+      final int version = sandboxedClient.getVersion("some subject", schema);
+
+      // Then:
+      assertThat(version, is(6));
     }
   }
 }

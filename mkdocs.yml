@@ -46,6 +46,7 @@ nav:
     - Time and Windows: concepts/time-and-windows-in-ksqldb-queries.md
     - User-defined functions: concepts/functions.md
     - Connectors: concepts/connectors.md
+    - Lambda Functions: concepts/lambda-functions.md
     - Apache Kafka primer: concepts/apache-kafka-primer.md
   - How-to guides:
       - Synopsis: how-to-guides/index.md
@@ -58,6 +59,7 @@ nav:
       - Use a custom timestamp column: how-to-guides/use-a-custom-timestamp-column.md
       - Test an application: how-to-guides/test-an-app.md
       - Substitute variables: how-to-guides/substitute-variables.md
+      - Transforming columns with structured data: how-to-guides/use-lambda-functions.md
   - Tutorials:
       - Synopsis: tutorials/index.md
       - Materialized cache: tutorials/materialized.md
@@ -75,13 +77,15 @@ nav:
           - Server Configuration:
               - Configure ksqlDB Server: operate-and-deploy/installation/server-config/index.md
               - Configure ksqlDB for Avro, Protobuf, and JSON schemas: operate-and-deploy/installation/server-config/avro-schema.md
-              - Configuration Parameter Reference: operate-and-deploy/installation/server-config/config-reference.md
               - Configure Security for ksqlDB: operate-and-deploy/installation/server-config/security.md
           - Upgrade ksqlDB: operate-and-deploy/installation/upgrading.md
+      - Manage metadata schemas: operate-and-deploy/migrations-tool.md
+      - Logging: operate-and-deploy/logging.md
       - Monitoring: operate-and-deploy/monitoring.md
       - Exactly once semantics: operate-and-deploy/exactly-once-semantics.md
       - Schema Registry integration: operate-and-deploy/schema-registry-integration.md
       - Plan Capacity: operate-and-deploy/capacity-planning.md
+      - Performance Guidelines: operate-and-deploy/performance-guidelines.md
       - KSQL and ksqlDB: operate-and-deploy/ksql-vs-ksqldb.md
       - Changelog: operate-and-deploy/changelog.md
   - Reference:
@@ -136,14 +140,16 @@ nav:
       - Scalar functions: developer-guide/ksqldb-reference/scalar-functions.md
       - Aggregation functions: developer-guide/ksqldb-reference/aggregate-functions.md
       - Table Functions: developer-guide/ksqldb-reference/table-functions.md
+    - Server configuration: reference/server-configuration.md
     - Metrics: reference/metrics.md
     - REST API:
       - REST API Index: developer-guide/api.md # old reference topic, rename file to index.md
-      - Introspect query status: developer-guide/ksqldb-rest-api/status-endpoint.md
-      - Introspect server status: developer-guide/ksqldb-rest-api/info-endpoint.md
       - Execute a statement: developer-guide/ksqldb-rest-api/ksql-endpoint.md
       - Run a query: developer-guide/ksqldb-rest-api/query-endpoint.md
       - Run push and pull queries: developer-guide/ksqldb-rest-api/streaming-endpoint.md
+      - Introspect query status: developer-guide/ksqldb-rest-api/status-endpoint.md
+      - Introspect server status: developer-guide/ksqldb-rest-api/info-endpoint.md
+      - Introspect cluster status: developer-guide/ksqldb-rest-api/cluster-status-endpoint.md
       - Terminate a cluster: developer-guide/ksqldb-rest-api/terminate-endpoint.md
     - Clients:
       - Synopsis: developer-guide/ksqldb-clients/index.md
@@ -152,6 +158,7 @@ nav:
     - Processing log: reference/processing-log.md
     - Serialization: reference/serialization.md
     - User-defined functions: reference/user-defined-functions.md
+    - Migrations tool configuration: reference/migrations-tool-configuration.md
 
 markdown_extensions:
     - toc:
@@ -188,6 +195,7 @@ plugins:
             concepts/ksqldb-architecture.md: operate-and-deploy/how-it-works.md
             concepts/ksqldb-and-kafka-streams.md: operate-and-deploy/how-it-works.md
             concepts/upgrades.md: how-to-guides/update-a-running-persistent-query.md
+            concepts/performance-guidelines.md: operate-and-deploy/performance-guidelines.md
 
             tutorials/examples.md: how-to-guides/index.md
             tutorials/embedded-connect.md: how-to-guides/use-connector-management.md
@@ -204,6 +212,10 @@ plugins:
             developer-guide/implement-a-udf.md: how-to-guides/create-a-user-defined-function.md
             developer-guide/serialization.md: reference/serialization.md
             developer-guide/syntax-reference.md: reference/index.md
+            developer-guide/ksqldb-rest-api.md: developer-guide/api.md
+            developer-guide/index.md: reference/index.md
+
+            operate-and-deploy/installation/server-config/config-reference.md: reference/server-configuration.md
 
 extra:
     site:
@@ -235,12 +247,12 @@ extra:
         zk: ZooKeeper
 
         # Build-related string tokens
-        kafkaversion: 2.7
-        ksqldbversion: 0.15.0
-        kstreamsbetatag: 6.1.0-beta201006024150
-        release: 0.15.0
-        cprelease: 6.1.0
-        releasepostbranch: 6.1.0-post
+        kafkaversion: 2.8
+        ksqldbversion: 0.17.0
+        kstreamsbetatag: 6.2.0-beta210310224144-cp8
+        kstreamsbetabuild: 1
+        cprelease: 6.2.0
+        releasepostbranch: 6.2.0-post
         scalaversion: 2.13
         voluble_version: 0.3.1
         jdbc_connector_version: 10.0.0

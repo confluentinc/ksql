@@ -172,6 +172,10 @@ public final class KsqlRestClient implements Closeable {
     return target().getStatus(commandId);
   }
 
+  public RestResponse<Boolean> makeIsValidRequest(final String propertyName) {
+    return target().getIsValidRequest(propertyName);
+  }
+
   public RestResponse<StreamPublisher<StreamedRow>> makeQueryRequestStreamed(final String ksql,
       final Long commandSeqNum) {
     return target().postQueryRequestStreamed(ksql, Optional.ofNullable(commandSeqNum));

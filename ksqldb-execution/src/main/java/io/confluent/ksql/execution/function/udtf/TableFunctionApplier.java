@@ -19,7 +19,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.RecordProcessingError;
@@ -32,13 +32,13 @@ import java.util.List;
 public class TableFunctionApplier {
 
   private final KsqlTableFunction tableFunction;
-  private final ImmutableList<ExpressionMetadata> parameterExtractors;
+  private final ImmutableList<CompiledExpression> parameterExtractors;
   private final String nullMsg;
   private final String exceptionMsg;
 
   public TableFunctionApplier(
       final KsqlTableFunction tableFunction,
-      final List<ExpressionMetadata> parameterExtractors
+      final List<CompiledExpression> parameterExtractors
   ) {
     this.tableFunction = requireNonNull(tableFunction);
     this.parameterExtractors = ImmutableList.copyOf(requireNonNull(parameterExtractors));

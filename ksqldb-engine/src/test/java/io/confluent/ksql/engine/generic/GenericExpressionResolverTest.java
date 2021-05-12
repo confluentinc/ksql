@@ -32,7 +32,7 @@ import org.junit.Test;
 
 /**
  * NOTE: most of the functional test coverage is in DefaultSqlValueCoercerTest
- * or ExpressionMetadataTest, this test class just covers the functionality
+ * or CompiledExpressionTest, this test class just covers the functionality
  * in the GenericExpressionResolver
  */
 public class GenericExpressionResolverTest {
@@ -56,7 +56,8 @@ public class GenericExpressionResolverTest {
     ));
 
     // When:
-    final Object o = new GenericExpressionResolver(type, FIELD_NAME, registry, config, "insert value").resolve(exp);
+    final Object o = new GenericExpressionResolver(type, FIELD_NAME, registry, config,
+        "insert value", false).resolve(exp);
 
     // Then:
     assertThat(o, is(new Struct(
@@ -71,7 +72,8 @@ public class GenericExpressionResolverTest {
     final Expression exp = new NullLiteral();
 
     // When:
-    final Object o = new GenericExpressionResolver(type, FIELD_NAME, registry, config, "insert value").resolve(exp);
+    final Object o = new GenericExpressionResolver(type, FIELD_NAME, registry, config,
+        "insert value", false).resolve(exp);
 
     // Then:
     assertThat(o, Matchers.nullValue());
@@ -86,7 +88,8 @@ public class GenericExpressionResolverTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new GenericExpressionResolver(type, FIELD_NAME, registry, config, "insert value").resolve(exp));
+        () -> new GenericExpressionResolver(type, FIELD_NAME, registry, config,
+            "insert value", false).resolve(exp));
 
     // Then:
     assertThat(e.getMessage(), containsString("Expected type ARRAY<INTEGER> for field `FOO` but got INTEGER(1)"));
@@ -101,7 +104,8 @@ public class GenericExpressionResolverTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new GenericExpressionResolver(type, FIELD_NAME, registry, config, "insert value").resolve(exp));
+        () -> new GenericExpressionResolver(type, FIELD_NAME, registry, config, "insert value",
+            false).resolve(exp));
 
     // Then:
     assertThat(e.getMessage(), containsString("Timestamp format must be yyyy-mm-ddThh:mm:ss[.S]"));
@@ -114,7 +118,8 @@ public class GenericExpressionResolverTest {
     final Expression exp = new StringLiteral("2021-01-09T04:40:02");
 
     // When:
-    Object o = new GenericExpressionResolver(type, FIELD_NAME, registry, config, "insert value").resolve(exp);
+    Object o = new GenericExpressionResolver(type, FIELD_NAME, registry, config, "insert value",
+        false).resolve(exp);
 
     // Then:
     assertTrue(o instanceof Timestamp);

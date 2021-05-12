@@ -20,6 +20,7 @@ import static io.confluent.ksql.util.LimitedProxyBuilder.noParams;
 
 import io.confluent.ksql.util.LimitedProxyBuilder;
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerGroupMetadata;
 
 /**
  * A limited consumer that can be used while trying out operations.
@@ -36,6 +37,7 @@ final class SandboxedConsumer {
         .swallow("close", anyParams())
         .swallow("wakeup", noParams())
         .swallow("unsubscribe", noParams())
+        .swallow("groupMetadata", noParams(), new ConsumerGroupMetadata("group"))
         .build();
   }
 

@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.physical.pull.operators;
+package io.confluent.ksql.physical.common.operators;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
@@ -89,7 +89,7 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
       return null;
     }
 
-    final GenericRow intermediate = PullPhysicalOperatorUtil.getIntermediateRow(
+    final GenericRow intermediate = PhysicalOperatorUtil.getIntermediateRow(
         row, logicalNode.getAddAdditionalColumnsToIntermediateSchema());
 
     if (logicalNode.getIsSelectStar()) {

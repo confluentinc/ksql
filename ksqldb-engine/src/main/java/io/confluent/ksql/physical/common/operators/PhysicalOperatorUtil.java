@@ -13,16 +13,16 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.physical.pull.operators;
+package io.confluent.ksql.physical.common.operators;
 
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.TableRow;
 import java.util.List;
 
-final class PullPhysicalOperatorUtil {
+final class PhysicalOperatorUtil {
 
-  private PullPhysicalOperatorUtil() {
+  private PhysicalOperatorUtil() {
 
   }
 

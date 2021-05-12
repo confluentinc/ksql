@@ -85,6 +85,7 @@ import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
+import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -199,11 +200,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
-
-import javax.xml.transform.Source;
 
 @SuppressWarnings({"unchecked", "SameParameterValue"})
 @RunWith(MockitoJUnitRunner.class)
@@ -272,7 +273,7 @@ public class KsqlResourceTest {
   private static final int APPLICATION_PORT = 9099;
   private static final String APPLICATION_SERVER = "http://" + APPLICATION_HOST + ":" + APPLICATION_PORT;
 
-  private KsqlConfig ksqlConfig;
+  public KsqlConfig ksqlConfig;
   private KsqlRestConfig ksqlRestConfig;
   private FakeKafkaTopicClient kafkaTopicClient;
   private FakeKafkaConsumerGroupClient kafkaConsumerGroupClient;
@@ -2487,6 +2488,16 @@ public class KsqlResourceTest {
     assertThat(response.getEntity(), instanceOf(KsqlStatementErrorMessage.class));
     assertThat(((KsqlStatementErrorMessage) response.getEntity()).getMessage(),
         containsString("deny override"));
+  }
+
+  @Test
+  public void QueryLoggerShouldReceiveStatementsWhenHandleKsqlStatement() {
+    try (MockedStatic<QueryLogger> logger = Mockito.mockStatic(QueryLogger.class)) {
+      ksqlResource.handleKsqlStatements(securityContext, VALID_EXECUTABLE_REQUEST);
+
+      logger.verify(() -> QueryLogger.info("Query created",
+          VALID_EXECUTABLE_REQUEST.getKsql()), times(1));
+    }
   }
 
   @Test

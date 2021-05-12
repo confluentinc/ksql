@@ -20,6 +20,7 @@ import static java.util.regex.Pattern.compile;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.DescribeFunction;
@@ -289,6 +290,9 @@ public class KsqlResource implements KsqlConfigurable {
           ),
           request.getKsql()
       );
+
+      // log validated statements for query anonymization
+      statements.forEach(s -> QueryLogger.info("Query created", s.getStatementText()));
 
       final KsqlEntityList entities = handler.execute(
           securityContext,

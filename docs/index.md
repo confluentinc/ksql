@@ -9,6 +9,8 @@ keywords: ksqldb
 [ksqlDB](https://ksqldb.io/) is a database purpose-built
 for stream processing applications on top of {{ site.aktm }}.
 
+[Get Started](https://ksqldb.io/quickstart.html){ .md-button .md-button--top-level }
+
 ## Try it
 
 <div class="cards">

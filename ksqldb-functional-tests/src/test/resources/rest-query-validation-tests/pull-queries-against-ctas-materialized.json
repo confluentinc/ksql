@@ -805,43 +805,6 @@
       ]
     },
     {
-      "name": "persistent query with COMPLEX filter on all columns + GROUPBY + projection - pull query table scan and single key lookup - single partition",
-      "statements": [
-        "CREATE TABLE INPUT (ID INT PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE NEW_INPUT AS SELECT COUNT(ID) AS NUM_STUDENTS, GRADE FROM INPUT WHERE (ID > 12 AND GRADE IN ('A', 'D')) OR RANK < 2 GROUP BY GRADE;",
-        "SELECT * FROM NEW_INPUT;",
-        "SELECT * FROM NEW_INPUT WHERE NUM_STUDENTS=1;"
-
-      ],
-      "inputs": [
-        {"topic": "test_topic", "timestamp": 12333, "key": 9, "value": {"GRADE": "F", "RANK": 0}},
-        {"topic": "test_topic", "timestamp": 12346, "key": 11, "value": {"GRADE": "A", "RANK": 1}},
-        {"topic": "test_topic", "timestamp": 12345, "key": 10, "value": {"GRADE": "B", "RANK": 2}},
-        {"topic": "test_topic", "timestamp": 12389, "key": 12, "value": {"GRADE": "C", "RANK": 3}},
-        {"topic": "test_topic", "timestamp": 12397, "key": 14, "value": {"GRADE": "A", "RANK": 4}},
-        {"topic": "test_topic", "timestamp": 12478, "key": 15, "value": {"GRADE": "B", "RANK": 5}},
-        {"topic": "test_topic", "timestamp": 12378, "key": 16, "value": {"GRADE": "A", "RANK": 6}},
-        {"topic": "test_topic", "timestamp": 12378, "key": 18, "value": {"GRADE": "D", "RANK": 7}}
-      ],
-      "responses": [
-        {"admin": {"@type": "currentStatus"}},
-        {"admin": {"@type": "currentStatus"}},
-        {"query": [
-          {"header":{"schema":"`GRADE` STRING KEY, `NUM_STUDENTS` BIGINT"}},
-          {"row":{"columns":["D",1]}},
-          {"row":{"columns":["A",3]}},
-          {"row":{"columns":["F",1]}}
-
-        ]},
-        {"query": [
-          {"header":{"schema":"`GRADE` STRING KEY, `NUM_STUDENTS` BIGINT"}},
-          {"row":{"columns":["D",1]}},
-          {"row":{"columns":["F",1]}}
-
-        ]}
-      ]
-    },
-    {
       "name": "persistent query with COMPLEX filter on all columns + GROUPBY + HAVING + projection +++ pull query table scan and single key lookup",
       "statements": [
         "CREATE TABLE INPUT (ID INT PRIMARY KEY, GRADE STRING, RANK INT) WITH (kafka_topic='test_topic', value_format='JSON');",

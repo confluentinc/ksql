@@ -24,7 +24,8 @@ import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.impl.BlockingQueryPublisher;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
-import io.confluent.ksql.api.server.PushQueryHandle;
+import io.confluent.ksql.api.server.MetricsCallbackHolder;
+import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.query.BlockingRowQueue;
@@ -48,6 +49,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import org.reactivestreams.Subscriber;
 
 public class QueryStreamRunner extends BasePerfRunner {
@@ -96,12 +98,14 @@ public class QueryStreamRunner extends BasePerfRunner {
     @Override
     public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
         final JsonObject properties,
+        final JsonObject sessionVariables,
         final Context context,
         final WorkerExecutor workerExecutor,
-        final ApiSecurityContext apiSecurityContext) {
+        final ApiSecurityContext apiSecurityContext,
+        final MetricsCallbackHolder metricsCallbackHolder) {
       QueryStreamPublisher publisher = new QueryStreamPublisher(context,
           server.getWorkerExecutor());
-      publisher.setQueryHandle(new TestQueryHandle());
+      publisher.setQueryHandle(new TestQueryHandle(), false);
       publishers.add(publisher);
       publisher.start();
       return CompletableFuture.completedFuture(publisher);
@@ -137,7 +141,8 @@ public class QueryStreamRunner extends BasePerfRunner {
         CompletableFuture<Void> connectionClosedFuture,
         ApiSecurityContext apiSecurityContext,
         Optional<Boolean> isInternalRequest,
-        KsqlMediaType mediaType) {
+        KsqlMediaType mediaType,
+        final MetricsCallbackHolder metricsCallbackHolder) {
       return null;
     }
 
@@ -161,6 +166,12 @@ public class QueryStreamRunner extends BasePerfRunner {
     @Override
     public CompletableFuture<EndpointResponse> executeStatus(String type, String entity,
         String action, ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeIsValidProperty(String property,
+        WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext) {
       return null;
     }
 
@@ -207,7 +218,7 @@ public class QueryStreamRunner extends BasePerfRunner {
     }
   }
 
-  private static class TestQueryHandle implements PushQueryHandle {
+  private static class TestQueryHandle implements QueryHandle {
 
     private final TransientQueryQueue queue = new TransientQueryQueue(OptionalInt.empty());
 
@@ -224,6 +235,10 @@ public class QueryStreamRunner extends BasePerfRunner {
     @Override
     public BlockingRowQueue getQueue() {
       return queue;
+    }
+
+    @Override
+    public void onException(Consumer<Throwable> onException) {
     }
 
     @Override
@@ -252,9 +267,9 @@ public class QueryStreamRunner extends BasePerfRunner {
     }
 
     @Override
-    public void setQueryHandle(final PushQueryHandle queryHandle) {
+    public void setQueryHandle(final QueryHandle queryHandle, boolean isPullQuery) {
       this.queue = (TransientQueryQueue) queryHandle.getQueue();
-      super.setQueryHandle(queryHandle);
+      super.setQueryHandle(queryHandle, isPullQuery);
     }
 
     public void close() {

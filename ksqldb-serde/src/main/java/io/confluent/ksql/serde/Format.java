@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -141,4 +142,11 @@ public interface Format {
       boolean isKey
   );
 
+  /**
+   * Check whether given sql type is supported by this format.
+   *
+   * @param type given sql key type
+   * @return true if the given sql type is supported
+   */
+  boolean supportsKeyType(SqlType type);
 }

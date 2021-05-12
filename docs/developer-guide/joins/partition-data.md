@@ -187,7 +187,7 @@ sides.
 ksqlDB checks this part of the co-partitioning requirement and rejects any join
 where the partition counts differ.
 
-Use the `DESCRIBE EXTENDED <source name>` command in the CLI to determine the
+Use the `DESCRIBE <source name> EXTENDED` command in the CLI to determine the
 Kafka topic under a source, and use the SHOW TOPICS command in the CLI to list
 topics and their partition counts.
 

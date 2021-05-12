@@ -17,7 +17,8 @@ package io.confluent.ksql.api.impl;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
-import io.confluent.ksql.api.server.PushQueryHandle;
+import io.confluent.ksql.api.server.MetricsCallbackHolder;
+import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -31,11 +32,18 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.pull.HARouting;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.query.BlockingRowQueue;
-import io.confluent.ksql.rest.entity.TableRows;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.LocalCommands;
+import io.confluent.ksql.rest.server.resources.streaming.PullQueryConfigPlannerOptions;
 import io.confluent.ksql.rest.server.resources.streaming.PullQueryConfigRoutingOptions;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
+import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.services.ServiceContext;
@@ -51,33 +59,41 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.utils.Time;
 
 public class QueryEndpoint {
 
   private final KsqlEngine ksqlEngine;
   private final KsqlConfig ksqlConfig;
+  private final KsqlRestConfig ksqlRestConfig;
   private final RoutingFilterFactory routingFilterFactory;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RateLimiter rateLimiter;
+  private final ConcurrencyLimiter pullConcurrencyLimiter;
   private final HARouting routing;
   private final Optional<LocalCommands> localCommands;
 
   public QueryEndpoint(
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
+      final KsqlRestConfig ksqlRestConfig,
       final RoutingFilterFactory routingFilterFactory,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RateLimiter rateLimiter,
+      final ConcurrencyLimiter pullConcurrencyLimiter,
       final HARouting routing,
       final Optional<LocalCommands> localCommands
   ) {
     this.ksqlEngine = ksqlEngine;
     this.ksqlConfig = ksqlConfig;
+    this.ksqlRestConfig = ksqlRestConfig;
     this.routingFilterFactory = routingFilterFactory;
     this.pullQueryMetrics = pullQueryMetrics;
     this.rateLimiter = rateLimiter;
+    this.pullConcurrencyLimiter = pullConcurrencyLimiter;
     this.routing = routing;
     this.localCommands = localCommands;
   }
@@ -85,19 +101,21 @@ public class QueryEndpoint {
   public QueryPublisher createQueryPublisher(
       final String sql,
       final JsonObject properties,
+      final JsonObject sessionVariables,
       final Context context,
       final WorkerExecutor workerExecutor,
-      final ServiceContext serviceContext) {
-    final long startTimeNanos = Time.SYSTEM.nanoseconds();
+      final ServiceContext serviceContext,
+      final MetricsCallbackHolder metricsCallbackHolder) {
     // Must be run on worker as all this stuff is slow
     VertxUtils.checkIsWorker();
 
-    final ConfiguredStatement<Query> statement = createStatement(sql, properties.getMap());
+    final ConfiguredStatement<Query> statement = createStatement(
+        sql, properties.getMap(), sessionVariables.getMap());
 
     if (statement.getStatement().isPullQuery()) {
       return createPullQueryPublisher(
-          context, serviceContext, routingFilterFactory, statement, pullQueryMetrics,
-          startTimeNanos);
+          context, serviceContext, statement, pullQueryMetrics, workerExecutor,
+          metricsCallbackHolder);
     } else {
       return createPushQueryPublisher(context, serviceContext, statement, workerExecutor);
     }
@@ -111,12 +129,20 @@ public class QueryEndpoint {
   ) {
     final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
 
+    if (QueryCapacityUtil.exceedsPushQueryCapacity(ksqlEngine, ksqlRestConfig)) {
+      QueryCapacityUtil.throwTooManyActivePushQueriesException(
+              ksqlEngine,
+              ksqlRestConfig,
+              statement.getStatementText()
+      );
+    }
+
     final TransientQueryMetadata queryMetadata = ksqlEngine
         .executeQuery(serviceContext, statement, true);
 
     localCommands.ifPresent(lc -> lc.write(queryMetadata));
 
-    publisher.setQueryHandle(new KsqlQueryHandle(queryMetadata));
+    publisher.setQueryHandle(new KsqlQueryHandle(queryMetadata), false);
 
     return publisher;
   }
@@ -124,11 +150,34 @@ public class QueryEndpoint {
   private QueryPublisher createPullQueryPublisher(
       final Context context,
       final ServiceContext serviceContext,
-      final RoutingFilterFactory routingFilterFactory,
       final ConfiguredStatement<Query> statement,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-      final long startTimeNanos
+      final WorkerExecutor workerExecutor,
+      final MetricsCallbackHolder metricsCallbackHolder
   ) {
+    // First thing, set the metrics callback so that it gets called, even if we hit an error
+    final AtomicReference<PullQueryResult> resultForMetrics = new AtomicReference<>(null);
+    metricsCallbackHolder.setCallback((statusCode, requestBytes, responseBytes, startTimeNanos) -> {
+      pullQueryMetrics.ifPresent(metrics -> {
+        metrics.recordStatusCode(statusCode);
+        metrics.recordRequestSize(requestBytes);
+        final PullQueryResult r = resultForMetrics.get();
+        final PullSourceType sourceType = Optional.ofNullable(r).map(
+            PullQueryResult::getSourceType).orElse(PullSourceType.UNKNOWN);
+        final PullPhysicalPlanType planType = Optional.ofNullable(r).map(
+            PullQueryResult::getPlanType).orElse(PullPhysicalPlanType.UNKNOWN);
+        final RoutingNodeType routingNodeType = Optional.ofNullable(r).map(
+            PullQueryResult::getRoutingNodeType).orElse(RoutingNodeType.UNKNOWN);
+        metrics.recordResponseSize(responseBytes, sourceType, planType, routingNodeType);
+        metrics.recordLatency(startTimeNanos, sourceType, planType, routingNodeType);
+        metrics.recordRowsReturned(
+            Optional.ofNullable(r).map(PullQueryResult::getTotalRowsReturned).orElse(0L),
+            sourceType, planType, routingNodeType);
+        metrics.recordRowsProcessed(
+            Optional.ofNullable(r).map(PullQueryResult::getTotalRowsProcessed).orElse(0L),
+            sourceType, planType, routingNodeType);
+      });
+    });
 
     final RoutingOptions routingOptions = new PullQueryConfigRoutingOptions(
         ksqlConfig,
@@ -136,35 +185,43 @@ public class QueryEndpoint {
         ImmutableMap.of()
     );
 
+    final PullQueryConfigPlannerOptions plannerOptions = new PullQueryConfigPlannerOptions(
+        ksqlConfig,
+        statement.getSessionConfig().getOverrides()
+    );
+
     PullQueryExecutionUtil.checkRateLimit(rateLimiter);
+    final Decrementer decrementer = pullConcurrencyLimiter.increment();
 
-    final PullQueryResult result = ksqlEngine.executePullQuery(
-        serviceContext,
-        statement,
-        routing,
-        routingFilterFactory,
-        routingOptions,
-        pullQueryMetrics
-    );
+    try {
+      final PullQueryResult result = ksqlEngine.executePullQuery(
+          serviceContext,
+          statement,
+          routing,
+          routingOptions,
+          plannerOptions,
+          pullQueryMetrics,
+          false
+      );
 
-    pullQueryMetrics.ifPresent(p -> p.recordLatency(startTimeNanos));
+      resultForMetrics.set(result);
+      result.onCompletionOrException((v, throwable) -> {
+        decrementer.decrementAtMostOnce();
+      });
 
-    final TableRows tableRows = new TableRows(
-        statement.getStatementText(),
-        result.getQueryId(),
-        result.getSchema(),
-        result.getTableRows());
+      final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
 
-    return new PullQueryPublisher(
-        context,
-        tableRows,
-        colNamesFromSchema(tableRows.getSchema().columns()),
-        colTypesFromSchema(tableRows.getSchema().columns())
-    );
+      publisher.setQueryHandle(new KsqlPullQueryHandle(result, pullQueryMetrics), true);
+
+      return publisher;
+    } catch (Throwable t) {
+      decrementer.decrementAtMostOnce();
+      throw t;
+    }
   }
 
   private ConfiguredStatement<Query> createStatement(final String queryString,
-      final Map<String, Object> properties) {
+      final Map<String, Object> properties, final Map<String, Object> sessionVariables) {
     final List<ParsedStatement> statements = ksqlEngine.parse(queryString);
     if ((statements.size() != 1)) {
       throw new KsqlStatementException(
@@ -172,7 +229,12 @@ public class QueryEndpoint {
               .format("Expected exactly one KSQL statement; found %d instead", statements.size()),
           queryString);
     }
-    final PreparedStatement<?> ps = ksqlEngine.prepare(statements.get(0));
+    final PreparedStatement<?> ps = ksqlEngine.prepare(
+        statements.get(0),
+        sessionVariables.entrySet()
+            .stream()
+            .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().toString()))
+    );
     final Statement statement = ps.getStatement();
     if (!(statement instanceof Query)) {
       throw new KsqlStatementException("Not a query", queryString);
@@ -196,7 +258,7 @@ public class QueryEndpoint {
         .collect(Collectors.toList());
   }
 
-  private static class KsqlQueryHandle implements PushQueryHandle {
+  private static class KsqlQueryHandle implements QueryHandle {
 
     private final TransientQueryMetadata queryMetadata;
 
@@ -227,6 +289,65 @@ public class QueryEndpoint {
     @Override
     public BlockingRowQueue getQueue() {
       return queryMetadata.getRowQueue();
+    }
+
+    @Override
+    public void onException(final Consumer<Throwable> onException) {
+      // We don't try to do anything on exception for push queries, but rely on the
+      // existing exception handling
+    }
+  }
+
+  private static class KsqlPullQueryHandle implements QueryHandle {
+
+    private final PullQueryResult result;
+    private final Optional<PullQueryExecutorMetrics>  pullQueryMetrics;
+    private final CompletableFuture<Void> future = new CompletableFuture<>();
+
+    KsqlPullQueryHandle(final PullQueryResult result,
+        final Optional<PullQueryExecutorMetrics> pullQueryMetrics) {
+      this.result = Objects.requireNonNull(result);
+      this.pullQueryMetrics = Objects.requireNonNull(pullQueryMetrics);
+    }
+
+    @Override
+    public List<String> getColumnNames() {
+      return colNamesFromSchema(result.getSchema().columns());
+    }
+
+    @Override
+    public List<String> getColumnTypes() {
+      return colTypesFromSchema(result.getSchema().columns());
+    }
+
+    @Override
+    public void start() {
+      try {
+        result.start();
+        result.onException(future::completeExceptionally);
+        result.onCompletion(future::complete);
+      } catch (Exception e) {
+        pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1, result.getSourceType(),
+            result.getPlanType(), result.getRoutingNodeType()));
+      }
+    }
+
+    @Override
+    public void stop() {
+      result.stop();
+    }
+
+    @Override
+    public BlockingRowQueue getQueue() {
+      return result.getPullQueryQueue();
+    }
+
+    @Override
+    public void onException(final Consumer<Throwable> onException) {
+      future.exceptionally(t -> {
+        onException.accept(t);
+        return null;
+      });
     }
   }
 }

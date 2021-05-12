@@ -1,5 +1,115 @@
 # Change Log
 
+## [0.17.0](https://github.com/confluentinc/ksql/releases/tag/v0.17.0-ksqldb) (2021-04-26)
+
+### Features
+
+* adds support for lambda functions ([#6955](https://github.com/confluentinc/ksql/pull/6955)) ([1b39ab5](https://github.com/confluentinc/ksql/commit/1b39ab56360612d385554d61c137814655dbf4b9)), ([#6868](https://github.com/confluentinc/ksql/pull/6868)) ([dd3f365](https://github.com/confluentinc/ksql/commit/dd3f365eba725c77cca63f9196dac174394ecb58)), ([#7075](https://github.com/confluentinc/ksql/pull/7075)) ([d6529a3](https://github.com/confluentinc/ksql/commit/d6529a32d4d280a0b8c66c56228dedfc45a2bf03)), ([#7148](https://github.com/confluentinc/ksql/pull/7148)) ([c8f745e](https://github.com/confluentinc/ksql/commit/c8f745e8ac8f034661234ec7334009df4b50aac1)), ([#6966](https://github.com/confluentinc/ksql/pull/6966)) ([d09c99e](https://github.com/confluentinc/ksql/commit/d09c99edb29485182e5b18f0612eae338daa41e1)), ([#7056](https://github.com/confluentinc/ksql/pull/7056)) ([1a042cd](https://github.com/confluentinc/ksql/commit/1a042cd2bb9babc52a7aa071638aa408a1e47b73)), ([#6994](https://github.com/confluentinc/ksql/pull/6994)) ([563ff9b](https://github.com/confluentinc/ksql/commit/563ff9b91a9095045c1597a7008359439a8a217c))
+* Adds ability to bypass cache for pull queries ([#6891](https://github.com/confluentinc/ksql/pull/6891)) ([4b3bc96](https://github.com/confluentinc/ksql/commit/4b3bc96830fbea8051cfaf4e9d27c4399032813f))
+* Allows pull queries with generic WHERE clauses ([#6939](https://github.com/confluentinc/ksql/pull/6939)) ([c3fe8a1](https://github.com/confluentinc/ksql/commit/c3fe8a1aaf17c40f1205374f13a633ca6ebdbe19))
+* Adds an expression interpreter to improve pull query performance ([#7006](https://github.com/confluenchtinc/ksql/pull/7006)) ([5d2cd83](https://github.com/confluentinc/ksql/commit/5d2cd8398ba5ae09abf0a1edb47113028aa8e0b7))
+* implements migrations tool and corresponding commands ([#6988](https://github.com/confluentinc/ksql/pull/6988)) ([8bdb09a](https://github.com/confluentinc/ksql/commit/8bdb09a2751365966cf5a4a1436276d7a3e0d9e1)), ([#7161](https://github.com/confluentinc/ksql/pull/7161)) ([2c614cd](https://github.com/confluentinc/ksql/commit/2c614cd80aeae81c71107de16fbf2649ce222b1c)), ([#7190](https://github.com/confluentinc/ksql/pull/7190)) ([4151bae](https://github.com/confluentinc/ksql/commit/4151bae93632b9b2ed425db093051d4b58bffa7d)), ([#7137](https://github.com/confluentinc/ksql/pull/7137)) ([608cb5e](https://github.com/confluentinc/ksql/commit/608cb5eabb13cfc65bd6388993a5912da5f6b764)), ([#7099](https://github.com/confluentinc/ksql/pull/7099)) ([a75c355](https://github.com/confluentinc/ksql/commit/a75c355943ff819aaecc6c73702d138efcf6c089)), ([#7153](https://github.com/confluentinc/ksql/pull/7153)) ([2e546b6](https://github.com/confluentinc/ksql/commit/2e546b625d7beaf83645f742839cff44d6e1bc62)), ([#7133](https://github.com/confluentinc/ksql/pull/7133)) ([c91e23c](https://github.com/confluentinc/ksql/commit/c91e23c0f99b71912cecc00149d07b367d5c81cd)), ([#7145](https://github.com/confluentinc/ksql/pull/7145)) ([956e799](https://github.com/confluentinc/ksql/commit/956e799e70cf23e7450302888609bd35d2b56823)), ([#7087](https://github.com/confluentinc/ksql/pull/7087)) ([d4cf400](https://github.com/confluentinc/ksql/commit/d4cf400cb77e7a9dd0d7810e7de53562197f32fa))
+* add maven wrapper ([#7307](https://github.com/confluentinc/ksql/pull/7307)) ([d0ab425](https://github.com/confluentinc/ksql/commit/d0ab4253d243d11783b8f81fba20fb7fae77038a))
+* CLI should fail for unsupported server version ([#7097](https://github.com/confluentinc/ksql/pull/7097)) ([a0745b9](https://github.com/confluentinc/ksql/commit/a0745b9e1a855be5be3c4cf5c2ffc7e384d29105))
+* Add timestamp arithmetic functionality ([#6901](https://github.com/confluentinc/ksql/pull/6901)) ([e2c06dc](https://github.com/confluentinc/ksql/commit/e2c06dc47c594215bc956fe29c5a1619508012af))
+* added script to export antlr tokens to use in frontend editor ([#7118](https://github.com/confluentinc/ksql/pull/7118)) ([7e1c180](https://github.com/confluentinc/ksql/commit/7e1c1808e535c43c9d5991e24bb8490909b46c13))
+* makes tables queryable through efficient and flexible table scans ([#7155](https://github.com/confluentinc/ksql/pull/7155)) ([71becea](https://github.com/confluentinc/ksql/commit/71becea4a1fe193004d0e480df70ac30e0a8bc0a)), ([#7188](https://github.com/confluentinc/ksql/pull/7188)) ([55f5403](https://github.com/confluentinc/ksql/commit/55f5403eab223ca727ca5a6d4efb10b06b1dd97b)), ([#7085](https://github.com/confluentinc/ksql/pull/7085)) ([65d0df1](https://github.com/confluentinc/ksql/commit/65d0df1c49cd38a208cf16ee05af19559e688787))
+* limit the number of active push queries everywhere using "ksql.max.push.queries" config ([#7109](https://github.com/confluentinc/ksql/pull/7109)) ([906f4c5](https://github.com/confluentinc/ksql/commit/906f4c5dee491cfe1366e70b1f06bd45b280f51c))
+* classify authorization exception as user error ([#7061](https://github.com/confluentinc/ksql/pull/7061)) ([a74b77c](https://github.com/confluentinc/ksql/commit/a74b77c15e30319bf98b3d686cf127e97ed44154))
+
+### Bug Fixes
+
+* check for null inputs for various timestamp functions ([#7180](https://github.com/confluentinc/ksql/pull/7180)) ([42496c1](https://github.com/confluentinc/ksql/commit/42496c17b7bb4d2122a62e32d91b1ff321d71433))
+* Ensures BaseSubscriber.makeRequest is called on context in PollableSubscriber ([#7212](https://github.com/confluentinc/ksql/pull/7212)) ([da67bd9](https://github.com/confluentinc/ksql/commit/da67bd91062a58e93842579f0919092245ab630f))
+* fix the cache max bytes buffering check ([#7181](https://github.com/confluentinc/ksql/pull/7181)) ([f383800](https://github.com/confluentinc/ksql/commit/f3838002fc4c8c085a3f62bfd34073e232416de4))
+* get all available restore commands even on poll timeout ([#6985](https://github.com/confluentinc/ksql/pull/6985)) ([28a7ba9](https://github.com/confluentinc/ksql/commit/28a7ba9a3d05a821eea702dcfaff046463a5394c))
+* ksql.service.id should not be usable as a query parameter ([#7192](https://github.com/confluentinc/ksql/pull/7192)) ([cc5cd81](https://github.com/confluentinc/ksql/commit/cc5cd81cadc7fb8fb7cbf34c9e98a3a567df746e))
+* Make pull query metrics apply only to pull and not also push ([#6944](https://github.com/confluentinc/ksql/pull/6944)) ([1db18b3](https://github.com/confluentinc/ksql/commit/1db18b3e8b161ae7315db67917bb1f5d89da8c2a))
+* prevent IOB when printing topics with a key/value with an empty string ([#7162](https://github.com/confluentinc/ksql/pull/7162)) ([177d0db](https://github.com/confluentinc/ksql/commit/177d0dbff72adcded82f9da9f9637b23fc6ffa3c))
+* Pull Queries: Avoids KsqlConfig copy with overrides since this is very inefficient ([#7193](https://github.com/confluentinc/ksql/pull/7193)) ([b36a3ce](https://github.com/confluentinc/ksql/commit/b36a3ce7d02dbeec7740d32801d443c4d7bca1e2))
+* update default kafka log4j appender configs for sync sends ([#7078](https://github.com/confluentinc/ksql/pull/7078)) ([8bc16b3](https://github.com/confluentinc/ksql/commit/8bc16b3f8b6d6a785f65c73c510180db443ef4aa))
+
+
+## [0.16.0](https://github.com/confluentinc/ksql/releases/tag/v0.16.0-ksqldb) (Not released publicly, build hiccups)
+
+### Features
+
+* **client:** add getInfo method to java client ([#7030](https://github.com/confluentinc/ksql/pull/7030)) ([b09f003](https://github.com/confluentinc/ksql/commit/b09f003f31e45080301f65d329b132fe71eeb78b))
+* add describe option to list streams/tables ([#6827](https://github.com/confluentinc/ksql/pull/6827)) ([26e3dea](https://github.com/confluentinc/ksql/commit/26e3deab8242df235f0541e7d2c90df5ed17b815))
+* add functions to support use of timestamp data type ([#6852](https://github.com/confluentinc/ksql/pull/6852)) ([2cee618](https://github.com/confluentinc/ksql/commit/2cee618ef8ca8a24768e0f7b1b88ccd2e5364248))
+* add standard deviation udf ([#6845](https://github.com/confluentinc/ksql/pull/6845)) ([f2fdbb3](https://github.com/confluentinc/ksql/commit/f2fdbb389d06aafc808493fe009719f202351728))
+* display precision and scale when describing DECIMAL columns ([#6872](https://github.com/confluentinc/ksql/pull/6872)) ([fb89998](https://github.com/confluentinc/ksql/commit/fb89998ede01922a4741448f37c7064aa966147e))
+* enable decimal for Protobuf ([#6884](https://github.com/confluentinc/ksql/pull/6884)) ([6b5877c](https://github.com/confluentinc/ksql/commit/6b5877c2910023263421b247824af4eadb7db640))
+* Make pull queries streamed asynchronously ([#6813](https://github.com/confluentinc/ksql/pull/6813)) ([b69e3f8](https://github.com/confluentinc/ksql/commit/b69e3f8e459c3d0a055ec0738ae71e58bda7b28c))
+* make UDAFs configurable and remove limit on COLLECT_LIST/SET ([#6851](https://github.com/confluentinc/ksql/pull/6851)) ([63ae169](https://github.com/confluentinc/ksql/commit/63ae169ab753aab980f0ee4cbf52fbe34291418d))
+* Rewrites pull query WHERE clause to be in DNF and allow more expressions  ([#6874](https://github.com/confluentinc/ksql/pull/6874)) ([b8e0c99](https://github.com/confluentinc/ksql/commit/b8e0c991a982229afd6d42dc8752a29a35fa937e))
+* Support timestamp protobuf serde ([#6927](https://github.com/confluentinc/ksql/pull/6927)) ([5ea1ce4](https://github.com/confluentinc/ksql/commit/5ea1ce4c9129260272608aa8d8263e22a23a9188))
+* timestamp support - casting, comparisons and serde ([#6806](https://github.com/confluentinc/ksql/pull/6806)) ([a27df46](https://github.com/confluentinc/ksql/commit/a27df465040bf3aa409ca34509c0117fadf8982a))
+
+
+
+### Bug Fixes
+
+* client/server SSL settings fail when 'ssl.key.password' is set ([#6763](https://github.com/confluentinc/ksql/pull/6763)) ([3e48540](https://github.com/confluentinc/ksql/commit/3e48540fbe1a02ed02faa667e424b225f9d7ba20))
+* do not log data on JSON deserialization errors (MINOR) ([#6930](https://github.com/confluentinc/ksql/pull/6930)) ([1834da6](https://github.com/confluentinc/ksql/commit/1834da678cf86e7cb333d57a9c97d1884d09d7af))
+* ff-4240-upgrade httpclient version ([#6935](https://github.com/confluentinc/ksql/pull/6935)) ([19f4d63](https://github.com/confluentinc/ksql/commit/19f4d632bc4c854904f366b359d4bf70a6f54d6d))
+* fix how the buffer limit check evaluates streams config ([#6876](https://github.com/confluentinc/ksql/pull/6876)) ([ad1cc2a](https://github.com/confluentinc/ksql/commit/ad1cc2aca3b3a51f6f9e3aee86b1f41de449ae15))
+* format cast arguments with passed context (6.0.x) ([#7032](https://github.com/confluentinc/ksql/pull/7032)) ([8c0d93d](https://github.com/confluentinc/ksql/commit/8c0d93db4ad94f820639ccb993dbc53a81175e53))
+* make formattimestamp and parsetimestamp default to utc ([#6954](https://github.com/confluentinc/ksql/pull/6954)) ([a5ea98a](https://github.com/confluentinc/ksql/commit/a5ea98affd13b99d17c21832c09394e45b1f86ac))
+* Make Select * avoid code gen for projections ([#6846](https://github.com/confluentinc/ksql/pull/6846)) ([0896b85](https://github.com/confluentinc/ksql/commit/0896b856a86c1f7b212d8b5ebe3f9140f5679cd6))
+* npe when getting topic configs ([#6946](https://github.com/confluentinc/ksql/pull/6946)) ([5e026d4](https://github.com/confluentinc/ksql/commit/5e026d4ad9d02629566593705e79d568296e96bd))
+* remove mutable subscriber field on an endpoint ([#6905](https://github.com/confluentinc/ksql/pull/6905)) ([98c7d73](https://github.com/confluentinc/ksql/commit/98c7d735c2506a0204ecce8d8861f07eb62d968d))
+* use the right name for fallback subject for transient queries ([#6821](https://github.com/confluentinc/ksql/pull/6821)) ([d044d64](https://github.com/confluentinc/ksql/commit/d044d645cefe6aba9ae495a47b3051413e55ff29)), closes [#6817](https://github.com/confluentinc/ksql/issues/6817)
+
+
+## [0.15.0](https://github.com/confluentinc/ksql/releases/tag/v0.15.0-ksqldb) (2021-01-20)
+
+### Highlights
+
+* expose support for array and struct keys ([#6722](https://github.com/confluentinc/ksql/pull/6722)) ([c7fc2b0](https://github.com/confluentinc/ksql/commit/c7fc2b0df7b64bcd0370054eb9c82d2880a2de53))
+* support PARTITION BY on multiple expressions ([#6803](https://github.com/confluentinc/ksql/pull/6803)) ([5a6b48e](https://github.com/confluentinc/ksql/commit/5a6b48efa63f0a0f007021c8cd73c71165b483fa))
+* ungate support for multi-column GROUP BY ([#6786](https://github.com/confluentinc/ksql/pull/6786)) ([9900623](https://github.com/confluentinc/ksql/commit/9900623bdc669ad46c0321ef9f4989454bcd1108))
+
+### Features
+
+* expose AVRO and JSON_SR as key formats ([#6694](https://github.com/confluentinc/ksql/pull/6694)) ([07dc0c7](https://github.com/confluentinc/ksql/commit/07dc0c7ec138914d85e46d72a2aec45f6798cc46))
+* support PROTOBUF keys ([#6692](https://github.com/confluentinc/ksql/pull/6692)) ([821faac](https://github.com/confluentinc/ksql/commit/821faacda8382fce1b74e4517dfd6ab704e93d46))
+* add partitions to PRINT TOPIC output ([#6641](https://github.com/confluentinc/ksql/pull/6641)) ([1f4eff8](https://github.com/confluentinc/ksql/commit/1f4eff89b18e847db6f4c428f2474b5bd4bad391))
+* Adds logging for every request to ksqlDB ([#6615](https://github.com/confluentinc/ksql/pull/6615)) ([57b0c91](https://github.com/confluentinc/ksql/commit/57b0c91380754e1de36527bd3254f67d42b9083e))
+* optional `KAFKA_TOPIC` ([862c59e](https://github.com/confluentinc/ksql/commit/862c59e9c7eaa3ed06a9e75055db3cebe0ba0d89))
+* support table joins on key format mismatch ([#6708](https://github.com/confluentinc/ksql/pull/6708)) ([989e52b](https://github.com/confluentinc/ksql/commit/989e52b241dc906289ac1607a4049ee1704a346a))
+* cli to show tombstones in transient query output ([#6462](https://github.com/confluentinc/ksql/pull/6462)) ([ef3039a](https://github.com/confluentinc/ksql/commit/ef3039a078b7814efd5bdec932af4a42ba11ee71))
+* new syntax to interact with session variables (define/undefine/show variables) ([#6474](https://github.com/confluentinc/ksql/pull/6474)) ([df98ef4](https://github.com/confluentinc/ksql/commit/df98ef4f26451656c051125383137a969d2292ee))
+* terminate persistent query on DROP command ([#6143](https://github.com/confluentinc/ksql/pull/6143)) ([b5ac1bd](https://github.com/confluentinc/ksql/commit/b5ac1bd6f156447f9109545bacf3d74644000e75))
+* update ksql restore command to skip incompatible commands if flag set ([#6524](https://github.com/confluentinc/ksql/pull/6524)) ([4d0c997](https://github.com/confluentinc/ksql/commit/4d0c997ad2f2889941fa6dcc8dd2e9d3e4e27d7d))
+
+### Bug Fixes
+
+* catch stack overflow error when parsing/preparing statements ([#6727](https://github.com/confluentinc/ksql/pull/6727)) ([37371cc](https://github.com/confluentinc/ksql/commit/37371cc427e93a3b7518587a6c817d7b390b2003))
+* change locate() error message for a more user-friendly message ([#6709](https://github.com/confluentinc/ksql/pull/6709)) ([e6ba436](https://github.com/confluentinc/ksql/commit/e6ba436536a10678eb9cbafa150c3fd0501d31ab))
+* CREATE IF NOT EXISTS does not work at all ([#6073](https://github.com/confluentinc/ksql/pull/6073)) ([6edf7ec](https://github.com/confluentinc/ksql/commit/6edf7ec27aa346198d2548287b1f9f11b9729a3b))
+* don't create threads per request ([#6665](https://github.com/confluentinc/ksql/pull/6665)) ([132d50d](https://github.com/confluentinc/ksql/commit/132d50d7b1ee953d07dfa304e8b5eb7a7b705291))
+* fix error categorization on NPE from streams ([#6655](https://github.com/confluentinc/ksql/pull/6655)) ([db6ad5b](https://github.com/confluentinc/ksql/commit/db6ad5b0ea14604e11cee8e2045c5b60b9c259d2))
+* Fixes bug in latests-by-offset when using nulls and sessions windows ([#6699](https://github.com/confluentinc/ksql/pull/6699)) ([8ff52ca](https://github.com/confluentinc/ksql/commit/8ff52ca3e178c55e285e74f806d12f9d7f8f921c))
+* include 'ksql.streams.topic.*' prefix properties on LIST PROPERTIES output ([#6753](https://github.com/confluentinc/ksql/pull/6753)) ([8071af2](https://github.com/confluentinc/ksql/commit/8071af2385edd6e3bc5968c51197bf4983beb8da))
+* LDAP Authentication ([#6800](https://github.com/confluentinc/ksql/pull/6800)) ([1db8b5b](https://github.com/confluentinc/ksql/commit/1db8b5b67ad0b642130023915b7c26b4fd6a9e51))
+* Makes response codes rate limited as well as prints a message when it is hit ([#6701](https://github.com/confluentinc/ksql/pull/6701)) ([bdec3dd](https://github.com/confluentinc/ksql/commit/bdec3dd647c61c69ac7fff4c5e01b085070bc5bd))
+* Removes orphaned topics from transient queries ([#6714](https://github.com/confluentinc/ksql/pull/6714)) ([06d6e3e](https://github.com/confluentinc/ksql/commit/06d6e3e7b6aafa659de5273af1244987d3f9b3ab))
+* throw error message on create source with no value columns ([#6680](https://github.com/confluentinc/ksql/pull/6680)) ([14465a2](https://github.com/confluentinc/ksql/commit/14465a270d8249d5ea47fc1e6319eddd5eee5a48))
+* allow reserved keywords on variables names ([#6572](https://github.com/confluentinc/ksql/pull/6572)) ([2da360a](https://github.com/confluentinc/ksql/commit/2da360adfaf96832ef9ad46717b627bff4418d59))
+* Bypass window store cache when doing windowed pull queries ([#6548](https://github.com/confluentinc/ksql/pull/6548)) ([8f84e41](https://github.com/confluentinc/ksql/commit/8f84e417654fa1ee19ee2407587452405c447c21))
+* cannot reference variables in DEFINE statement ([#6573](https://github.com/confluentinc/ksql/pull/6573)) ([ee31fde](https://github.com/confluentinc/ksql/commit/ee31fde6fa98ce2ab4581487d2d962bc793f3e88))
+* Check for index before removing value in undo of COLLECT_LIST ([#6603](https://github.com/confluentinc/ksql/pull/6603)) ([2d92144](https://github.com/confluentinc/ksql/commit/2d92144b379b842bf205695cc9ce48342c19e333))
+* propagate null-valued records in repartition ([#6647](https://github.com/confluentinc/ksql/pull/6647)) ([d3007f2](https://github.com/confluentinc/ksql/commit/d3007f255567d1457dc6755bc75f174be1ca3538))
+* (minor) don't use deprecated jersey calls ([#6732](https://github.com/confluentinc/ksql/pull/6732)) ([a44b3e9](https://github.com/confluentinc/ksql/commit/a44b3e98abb188802dc61fd9cee99a53b6b1eea8))
+* use Java's Base64 instead of jersey's ([#6702](https://github.com/confluentinc/ksql/pull/6702)) ([f9fb523](https://github.com/confluentinc/ksql/commit/f9fb523499da72dd8eb8bfc8c724a655222ecbdb))
+
+
+### BREAKING CHANGES
+
+* Queries with GROUP BY clauses that contain multiple grouping expressions now result in multiple key columns, one for each grouping expression, rather than a single key column that is the string-concatenation of the grouping expressions. Note that this new behavior (and breaking change) apply only to new queries; existing queries will continue to run uninterrupted with the previous behavior, even across ksqlDB server upgrades.
+* stream-table key-to-key joins on mismatched formats will now repartition the table (right hand side) instead of the stream. Old enqueued commands will not be affected, so this change should remain invisible to the end-user.
+
 ## [0.14.0](https://github.com/confluentinc/ksql/releases/tag/v0.14.0-ksqldb) (2020-10-28)
 
 

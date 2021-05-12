@@ -40,6 +40,7 @@ import io.confluent.ksql.api.TestQueryPublisher;
 import io.confluent.ksql.api.client.QueryInfo.QueryType;
 import io.confluent.ksql.api.client.exception.KsqlClientException;
 import io.confluent.ksql.api.client.exception.KsqlException;
+import io.confluent.ksql.api.client.impl.ConnectorTypeImpl;
 import io.confluent.ksql.api.client.impl.StreamedQueryResultImpl;
 import io.confluent.ksql.api.client.util.ClientTestUtil;
 import io.confluent.ksql.api.client.util.ClientTestUtil.TestSubscriber;
@@ -73,12 +74,14 @@ import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
+import io.confluent.ksql.rest.entity.SimpleConnectorInfo;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TypeList;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
+import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.vertx.core.json.JsonArray;
@@ -99,7 +102,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -128,6 +130,8 @@ public class ClientTest extends BaseApiTest {
   protected static final String EXECUTE_STATEMENT_USAGE_DOC = "The executeStatement() method is only "
       + "for 'CREATE', 'CREATE ... AS SELECT', 'DROP', 'TERMINATE', and 'INSERT INTO ... AS "
       + "SELECT' statements. ";
+  protected static final org.apache.kafka.connect.runtime.rest.entities.ConnectorType SOURCE_TYPE =
+      org.apache.kafka.connect.runtime.rest.entities.ConnectorType.SOURCE;
 
   protected Client javaClient;
 
@@ -336,7 +340,7 @@ public class ClientTest extends BaseApiTest {
     // When
     final Exception e = assertThrows(
         IllegalStateException.class,
-        () -> streamedQueryResult.poll()
+        streamedQueryResult::poll
     );
 
     // Then
@@ -356,7 +360,7 @@ public class ClientTest extends BaseApiTest {
     CountDownLatch pollReturned = new CountDownLatch(1);
     new Thread(() -> {
       // This poll() call blocks as there are no more rows to be returned
-      final Row row = StreamedQueryResultImpl.pollWithCallback(streamedQueryResult, () -> pollStarted.countDown());
+      final Row row = StreamedQueryResultImpl.pollWithCallback(streamedQueryResult, pollStarted::countDown);
       assertThat(row, is(nullValue()));
       pollReturned.countDown();
     }).start();
@@ -645,7 +649,7 @@ public class ClientTest extends BaseApiTest {
     assertThatEventually(acksSubscriber::getValues, hasSize(INSERT_ROWS.size()));
     assertThat(acksSubscriber.getError(), is(nullValue()));
     for (int i = 0; i < INSERT_ROWS.size(); i++) {
-      assertThat(acksSubscriber.getValues().get(i).seqNum(), is(Long.valueOf(i)));
+      assertThat(acksSubscriber.getValues().get(i).seqNum(), is((long) i));
     }
     assertThat(acksSubscriber.isCompleted(), is(false));
 
@@ -687,8 +691,8 @@ public class ClientTest extends BaseApiTest {
 
     // When:
     final AcksPublisher acksPublisher = javaClient.streamInserts("test-stream", insertsPublisher).get();
-    for (int i = 0; i < INSERT_ROWS.size(); i++) {
-      insertsPublisher.accept(INSERT_ROWS.get(i));
+    for (KsqlObject insertRow : INSERT_ROWS) {
+      insertsPublisher.accept(insertRow);
     }
 
     TestSubscriber<InsertAck> acksSubscriber = subscribeAndWait(acksPublisher);
@@ -704,7 +708,7 @@ public class ClientTest extends BaseApiTest {
 
     assertThatEventually(acksSubscriber::getValues, hasSize(INSERT_ROWS.size() - 1));
     for (int i = 0; i < INSERT_ROWS.size() - 1; i++) {
-      assertThat(acksSubscriber.getValues().get(i).seqNum(), is(Long.valueOf(i)));
+      assertThat(acksSubscriber.getValues().get(i).seqNum(), is((long) i));
     }
     assertThatEventually(acksSubscriber::getError, is(notNullValue()));
 
@@ -779,6 +783,31 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString("Received 500 response from server"));
     assertThat(e.getCause().getMessage(), containsString("something bad"));
+  }
+
+  @Test
+  public void shouldExecuteSingleStatementWithMultipleSemicolons() throws Exception {
+    // Given
+    final CommandStatusEntity entity = new CommandStatusEntity(
+        "CREATE STREAM FOO AS CONCAT(A, 'wow;') FROM `BAR`;  ",
+        new CommandId("STREAM", "FOO", "CREATE"),
+        new CommandStatus(
+            CommandStatus.Status.SUCCESS,
+            "Success"
+        ),
+        0L
+    );
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    final Map<String, Object> properties = ImmutableMap.of("auto.offset.reset", "earliest");
+
+    // When
+    final ExecuteStatementResult result = javaClient.executeStatement("CREATE STREAM FOO AS CONCAT(A, `wow;`) FROM `BAR`;  ", properties).get();
+
+    // Then
+    assertThat(testEndpoints.getLastSql(), is("CREATE STREAM FOO AS CONCAT(A, `wow;`) FROM `BAR`;  "));
+    assertThat(testEndpoints.getLastProperties(), is(new JsonObject().put("auto.offset.reset", "earliest")));
+    assertThat(result.queryId(), is(Optional.empty()));
   }
 
   @Test
@@ -990,7 +1019,7 @@ public class ClientTest extends BaseApiTest {
         new QueryDescription(new QueryId("id"), "sql", Optional.empty(),
             Collections.emptyList(), Collections.emptySet(), Collections.emptySet(), "topology",
             "executionPlan", Collections.emptyMap(), Collections.emptyMap(),
-            KsqlQueryType.PERSISTENT, Collections.emptyList()));
+            KsqlQueryType.PERSISTENT, Collections.emptyList(), Collections.emptySet()));
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When
@@ -1062,7 +1091,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
     assertThat(e.getCause().getMessage(),
-        containsString("does not currently support listing connectors"));
+        containsString("Use the listConnectors() method instead"));
   }
 
   @Test
@@ -1074,7 +1103,7 @@ public class ClientTest extends BaseApiTest {
             "name",
             new ConnectorState("state", "worker", "msg"),
             Collections.emptyList(),
-            ConnectorType.SOURCE),
+            SOURCE_TYPE),
         Collections.emptyList(), Collections.singletonList("topic"), Collections.emptyList());
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
@@ -1088,14 +1117,14 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
     assertThat(e.getCause().getMessage(),
-        containsString("does not currently support 'DESCRIBE <CONNECTOR>' statements"));
+        containsString("Use the describeConnector() method instead"));
   }
 
   @Test
   public void shouldFailToCreateConnectorViaExecuteStatement() {
     // Given
     final CreateConnectorEntity entity = new CreateConnectorEntity("create connector;",
-        new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), ConnectorType.SOURCE));
+        new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), SOURCE_TYPE));
     testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
 
     // When
@@ -1109,7 +1138,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC));
     assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
     assertThat(e.getCause().getMessage(),
-        containsString("does not currently support 'CREATE CONNECTOR' statements"));
+        containsString("Use the createConnector() method instead"));
   }
 
   @Test
@@ -1129,7 +1158,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_REQUEST_ACCEPTED_DOC));
     assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
     assertThat(e.getCause().getMessage(),
-        containsString("does not currently support 'DROP CONNECTOR' statements"));
+        containsString("Use the dropConnector() method instead"));
   }
 
   @Test
@@ -1148,8 +1177,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(e.getCause(), instanceOf(KsqlClientException.class));
     assertThat(e.getCause().getMessage(), containsString(EXECUTE_STATEMENT_USAGE_DOC));
     assertThat(e.getCause().getMessage(),
-        containsString("does not currently support statements for creating, dropping, "
-            + "listing, or describing connectors"));
+        containsString("Use the createConnector, dropConnector, describeConnector or listConnectors methods instead"));
   }
 
   @Test
@@ -1390,6 +1418,231 @@ public class ClientTest extends BaseApiTest {
     assertThat(description.getSourceConstraints(), hasItems("s1", "s2"));
   }
 
+  @Test
+  public void shouldGetServerInfo() throws Exception {
+    final ServerInfo serverInfo = javaClient.serverInfo().get();
+    assertThat(serverInfo.getServerVersion(), is(AppInfo.getVersion()));
+    assertThat(serverInfo.getKsqlServiceId(), is("ksql-service-id"));
+    assertThat(serverInfo.getKafkaClusterId(), is("kafka-cluster-id"));
+  }
+
+  @Test
+  public void shouldListConnectors() throws Exception {
+    // Given:
+    final ConnectorList entity = new ConnectorList(
+        "list connectors;", Collections.emptyList(), Collections.singletonList(new SimpleConnectorInfo("name", SOURCE_TYPE, "class", "state")));
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    final List<io.confluent.ksql.api.client.ConnectorInfo> connectors = javaClient.listConnectors().get();
+    // Then:
+    assertThat(connectors.size(), is(1));
+    assertThat(connectors.get(0).state(), is("state"));
+    assertThat(connectors.get(0).name(), is("name"));
+    assertThat(connectors.get(0).type(), is(new ConnectorTypeImpl("SOURCE")));
+  }
+
+  @Test
+  public void shouldDescribeConnector() throws Exception {
+    // Given:
+    final ConnectorDescription entity = new ConnectorDescription("describe connector;",
+        "connectorClass",
+        new ConnectorStateInfo(
+            "name",
+            new ConnectorState("state", "worker", "msg"),
+            Collections.emptyList(),
+            SOURCE_TYPE),
+        Collections.emptyList(), Collections.singletonList("topic"), Collections.emptyList());
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    final io.confluent.ksql.api.client.ConnectorDescription connector = javaClient.describeConnector("name").get();
+
+    // Then:
+    assertThat(connector.state(), is("state"));
+    assertThat(connector.className(), is("connectorClass"));
+    assertThat(connector.type(), is(new ConnectorTypeImpl("SOURCE")));
+    assertThat(connector.sources().size(), is(0));
+    assertThat(connector.topics().size(), is(1));
+    assertThat(connector.topics().get(0), is("topic"));
+  }
+
+  @Test
+  public void shouldCreateConnector() throws Exception {
+    // Given
+    final CreateConnectorEntity entity = new CreateConnectorEntity("create connector;",
+        new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), SOURCE_TYPE));
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.createConnector("name", true, Collections.emptyMap()).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("CREATE SOURCE CONNECTOR name WITH ();"));
+  }
+
+  @Test
+  public void shouldDropConnector() throws Exception {
+    // Given
+    final DropConnectorEntity entity = new DropConnectorEntity("drop connector;", "name");
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.dropConnector("name").get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSql(), is("drop connector name;"));
+  }
+
+  @Test
+  public void shouldStoreVariables() {
+    // When:
+    javaClient.define("a", "aaa");
+    javaClient.define("a", "a");
+    javaClient.define("b", 5);
+    javaClient.define("c", "c");
+    javaClient.undefine("c");
+    javaClient.undefine("d");
+
+    // Then:
+    assertThat(javaClient.getVariables().size(), is(2));
+    assertThat(javaClient.getVariables().get("a"), is("a"));
+    assertThat(javaClient.getVariables().get("b"), is(5));
+  }
+
+  @Test
+  public void shouldSendSessionVariablesToKsqlEndpoint() throws Exception {
+    // Given:
+    javaClient.define("a", "a");
+    final CommandStatusEntity entity = new CommandStatusEntity(
+        "CSAS;",
+        new CommandId("STREAM", "FOO", "CREATE"),
+        new CommandStatus(
+            CommandStatus.Status.SUCCESS,
+            "Success",
+            Optional.of(new QueryId("CSAS_0"))
+        ),
+        0L
+    );
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.executeStatement("CSAS;").get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("a", "a")));
+  }
+
+  @Test
+  public void shouldSendSessionVariablesWithExecuteQuery() throws Exception {
+    // Given
+    javaClient.define("a", "a");
+
+    // When
+    javaClient.executeQuery("query;").get();
+
+    // Then
+    assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("a", "a")));
+  }
+
+  @Test
+  public void shouldSendSessionVariablesWithStreamQuery() throws Exception {
+    // Given
+    javaClient.define("a", "a");
+
+    // When
+    javaClient.streamQuery("query;").get();
+
+    // Then
+    assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("a", "a")));
+  }
+
+  @Test
+  public void shouldSendSessionVariablesWithDescribeSource() throws Exception {
+    // Given
+    javaClient.define("a", "a");
+    final io.confluent.ksql.rest.entity.SourceDescription sd =
+        new io.confluent.ksql.rest.entity.SourceDescription(
+            "name",
+            Optional.of(WindowType.TUMBLING),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            "TABLE",
+            "",
+            "",
+            "",
+            false,
+            "KAFKA",
+            "JSON",
+            "topic",
+            4,
+            1,
+            "sql",
+            Collections.emptyList(),
+            ImmutableList.of("s1", "s2")
+        );
+    final SourceDescriptionEntity entity = new SourceDescriptionEntity(
+        "describe source;", sd, Collections.emptyList());
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    javaClient.describeSource("source").get();
+
+    // Then
+    assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("a", "a")));
+  }
+
+  @Test
+  public void shouldSendSessionVariablesWithCreateConnector() throws Exception {
+    // Given
+    javaClient.define("a", "a");
+    final CreateConnectorEntity entity = new CreateConnectorEntity("create connector;",
+        new ConnectorInfo("name", Collections.emptyMap(), Collections.emptyList(), SOURCE_TYPE));
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.createConnector("name", true, Collections.emptyMap()).get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("a", "a")));
+  }
+
+  @Test
+  public void shouldSendSessionVariablesWithDescribeConnector() throws Exception {
+    // Given:
+    javaClient.define("a", "a");
+    final ConnectorDescription entity = new ConnectorDescription("describe connector;",
+        "connectorClass",
+        new ConnectorStateInfo(
+            "name",
+            new ConnectorState("state", "worker", "msg"),
+            Collections.emptyList(),
+            SOURCE_TYPE),
+        Collections.emptyList(), Collections.singletonList("topic"), Collections.emptyList());
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.describeConnector("name").get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("a", "a")));
+  }
+
+  @Test
+  public void shouldSendSessionVariablesWithDropConnector() throws Exception {
+    // Given:
+    javaClient.define("a", "a");
+    final DropConnectorEntity entity = new DropConnectorEntity("drop connector;", "name");
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When:
+    javaClient.dropConnector("name").get();
+
+    // Then:
+    assertThat(testEndpoints.getLastSessionVariables(), is(new JsonObject().put("a", "a")));
+  }
+
   protected Client createJavaClient() {
     return Client.create(createJavaClientOptions(), vertx);
   }
@@ -1457,7 +1710,7 @@ public class ClientTest extends BaseApiTest {
     assertThat(row.getString("f_str"), is("foo" + index));
     assertThat(row.getInteger("f_int"), is(index));
     assertThat(row.getBoolean("f_bool"), is(index % 2 == 0));
-    assertThat(row.getLong("f_long"), is(Long.valueOf(index) * index));
+    assertThat(row.getLong("f_long"), is(((long) index) * index));
     assertThat(row.getDouble("f_double"), is(index + 0.1111));
     assertThat(row.getDecimal("f_decimal"), is(BigDecimal.valueOf(index + 0.1)));
     final KsqlArray arrayVal = row.getKsqlArray("f_array");

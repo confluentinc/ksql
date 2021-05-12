@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericKey;
+import io.confluent.ksql.execution.streams.materialization.Locator.KsqlKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
@@ -33,6 +34,7 @@ import io.confluent.ksql.planner.plan.DataSourceNode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -54,19 +56,35 @@ public class KeyedTableLookupOperatorTest {
   @Mock
   private DataSourceNode logicalNode;
   @Mock
-  private GenericKey KEY1;
+  private KsqlKey KEY1;
   @Mock
-  private GenericKey KEY2;
+  private KsqlKey KEY2;
   @Mock
-  private GenericKey KEY3;
+  private KsqlKey KEY3;
   @Mock
-  private GenericKey KEY4;
+  private KsqlKey KEY4;
+  @Mock
+  private GenericKey GKEY1;
+  @Mock
+  private GenericKey GKEY2;
+  @Mock
+  private GenericKey GKEY3;
+  @Mock
+  private GenericKey GKEY4;
   @Mock
   private Row ROW1;
   @Mock
   private Row ROW3;
   @Mock
   private Row ROW4;
+
+  @Before
+  public void setUp() {
+    when(KEY1.getKey()).thenReturn(GKEY1);
+    when(KEY2.getKey()).thenReturn(GKEY2);
+    when(KEY3.getKey()).thenReturn(GKEY3);
+    when(KEY4.getKey()).thenReturn(GKEY4);
+  }
 
   @Test
   public void shouldLookupRowsForSingleKey() {
@@ -83,10 +101,10 @@ public class KeyedTableLookupOperatorTest {
 
     final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(materialization, logicalNode);
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
-    when(materialization.nonWindowed().get(KEY1, 1)).thenReturn(Optional.of(ROW1));
-    when(materialization.nonWindowed().get(KEY2, 2)).thenReturn(Optional.empty());
-    when(materialization.nonWindowed().get(KEY3, 3)).thenReturn(Optional.of(ROW3));
-    when(materialization.nonWindowed().get(KEY4, 3)).thenReturn(Optional.of(ROW4));
+    when(materialization.nonWindowed().get(GKEY1, 1)).thenReturn(Optional.of(ROW1));
+    when(materialization.nonWindowed().get(GKEY2, 2)).thenReturn(Optional.empty());
+    when(materialization.nonWindowed().get(GKEY3, 3)).thenReturn(Optional.of(ROW3));
+    when(materialization.nonWindowed().get(GKEY4, 3)).thenReturn(Optional.of(ROW4));
 
 
     lookupOperator.setPartitionLocations(singleKeyPartitionLocations);
@@ -97,6 +115,7 @@ public class KeyedTableLookupOperatorTest {
     assertThat(lookupOperator.next(), is(ROW3));
     assertThat(lookupOperator.next(), is(ROW4));
     assertThat(lookupOperator.next(), is(nullValue()));
+    assertThat(lookupOperator.getReturnedRowCount(), is(3L));
   }
 
   @Test
@@ -110,9 +129,9 @@ public class KeyedTableLookupOperatorTest {
 
     final KeyedTableLookupOperator lookupOperator = new KeyedTableLookupOperator(materialization, logicalNode);
     when(materialization.nonWindowed()).thenReturn(nonWindowedTable);
-    when(materialization.nonWindowed().get(KEY1, 1)).thenReturn(Optional.of(ROW1));
-    when(materialization.nonWindowed().get(KEY3, 3)).thenReturn(Optional.of(ROW3));
-    when(materialization.nonWindowed().get(KEY4, 3)).thenReturn(Optional.of(ROW4));
+    when(materialization.nonWindowed().get(GKEY1, 1)).thenReturn(Optional.of(ROW1));
+    when(materialization.nonWindowed().get(GKEY3, 3)).thenReturn(Optional.of(ROW3));
+    when(materialization.nonWindowed().get(GKEY4, 3)).thenReturn(Optional.of(ROW4));
     lookupOperator.setPartitionLocations(multipleKeysPartitionLocations);
     lookupOperator.open();
 
@@ -121,5 +140,6 @@ public class KeyedTableLookupOperatorTest {
     assertThat(lookupOperator.next(), is(ROW3));
     assertThat(lookupOperator.next(), is(ROW4));
     assertThat(lookupOperator.next(), is(nullValue()));
+    assertThat(lookupOperator.getReturnedRowCount(), is(3L));
   }
 }

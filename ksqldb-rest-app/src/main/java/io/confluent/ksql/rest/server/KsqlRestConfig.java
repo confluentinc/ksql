@@ -227,7 +227,7 @@ public class KsqlRestConfig extends AbstractConfig {
       "A class the implementing " + ErrorMessages.class.getSimpleName() + " interface."
       + "This allows the KSQL server to return pluggable error messages.";
 
-  static final String KSQL_SERVER_ENABLE_UNCAUGHT_EXCEPTION_HANDLER =
+  public static final String KSQL_SERVER_ENABLE_UNCAUGHT_EXCEPTION_HANDLER =
       KSQL_CONFIG_PREFIX + "server.exception.uncaught.handler.enable";
 
   private static final String KSQL_SERVER_UNCAUGHT_EXCEPTION_HANDLER_DOC =
@@ -701,7 +701,7 @@ public class KsqlRestConfig extends AbstractConfig {
     return getPropertiesWithOverrides(COMMAND_CONSUMER_PREFIX);
   }
 
-  Map<String, Object> getCommandProducerProperties() {
+  public Map<String, Object> getCommandProducerProperties() {
     return getPropertiesWithOverrides(COMMAND_PRODUCER_PREFIX);
   }
 

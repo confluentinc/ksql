@@ -16,6 +16,7 @@
 package io.confluent.ksql.physical.pull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -26,30 +27,32 @@ import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartition
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.entity.StreamedRow.Header;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlRequestConfig;
-import io.confluent.ksql.util.KsqlServerException;
-import io.confluent.ksql.util.KsqlStatementException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,17 +63,15 @@ public final class HARouting implements AutoCloseable {
 
   private final ExecutorService executorService;
   private final RoutingFilterFactory routingFilterFactory;
-  private final ServiceContext serviceContext;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RouteQuery routeQuery;
 
   public HARouting(
       final RoutingFilterFactory routingFilterFactory,
-      final ServiceContext serviceContext,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final KsqlConfig ksqlConfig
   ) {
-    this(routingFilterFactory, serviceContext, pullQueryMetrics, ksqlConfig,
+    this(routingFilterFactory, pullQueryMetrics, ksqlConfig,
          HARouting::executeOrRouteQuery);
   }
 
@@ -78,14 +79,12 @@ public final class HARouting implements AutoCloseable {
   @VisibleForTesting
   HARouting(
       final RoutingFilterFactory routingFilterFactory,
-      final ServiceContext serviceContext,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final KsqlConfig ksqlConfig,
       final RouteQuery routeQuery
   ) {
     this.routingFilterFactory =
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.executorService = Executors.newFixedThreadPool(
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG),
         new ThreadFactoryBuilder().setNameFormat("pull-query-executor-%d").build());
@@ -98,13 +97,15 @@ public final class HARouting implements AutoCloseable {
     executorService.shutdown();
   }
 
-  public PullQueryResult handlePullQuery(
+  public CompletableFuture<Void> handlePullQuery(
+      final ServiceContext serviceContext,
       final PullPhysicalPlan pullPhysicalPlan,
       final ConfiguredStatement<Query> statement,
       final RoutingOptions routingOptions,
       final LogicalSchema outputSchema,
-      final QueryId queryId
-  ) throws InterruptedException {
+      final QueryId queryId,
+      final PullQueryQueue pullQueryQueue
+  ) {
     final List<KsqlPartitionLocation> locations = pullPhysicalPlan.getMaterialization().locator()
         .locate(
             pullPhysicalPlan.getKeys(),
@@ -117,17 +118,35 @@ public final class HARouting implements AutoCloseable {
     if (anyPartitionsEmpty) {
       LOG.debug("Unable to execute pull query: {}. All nodes are dead or exceed max allowed lag.",
                 statement.getStatementText());
-      throw new MaterializationException(String.format(
-          "Unable to execute pull query %s. All nodes are dead or exceed max allowed lag.",
-          statement.getStatementText()));
+      throw new MaterializationException("Unable to execute pull query. "
+          + "All nodes are dead or exceed max allowed lag.");
     }
 
-    // The source nodes associated with each of the rows
-    final List<KsqlNode> sourceNodes = new ArrayList<>();
-    // Each of the table rows returned, aggregated across nodes
-    final List<List<?>> tableRows = new ArrayList<>();
-    // Each of the schemas returned, grouped by node
-    final Map<KsqlNode, List<LogicalSchema>> schemasByHost = new HashMap<>();
+    final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
+    executorService.submit(() -> {
+      try {
+        executeRounds(serviceContext, pullPhysicalPlan, statement, routingOptions, outputSchema,
+            queryId, locations, pullQueryQueue);
+        completableFuture.complete(null);
+      } catch (Throwable t) {
+        completableFuture.completeExceptionally(t);
+      }
+    });
+
+    return completableFuture;
+  }
+
+  private void executeRounds(
+      final ServiceContext serviceContext,
+      final PullPhysicalPlan pullPhysicalPlan,
+      final ConfiguredStatement<Query> statement,
+      final RoutingOptions routingOptions,
+      final LogicalSchema outputSchema,
+      final QueryId queryId,
+      final List<KsqlPartitionLocation> locations,
+      final PullQueryQueue pullQueryQueue
+  ) throws InterruptedException {
+    // The remaining partition locations to retrieve without error
     List<KsqlPartitionLocation> remainingLocations = ImmutableList.copyOf(locations);
     // For each round, each set of partition location objects is grouped by host, and all
     // keys associated with that host are batched together. For any requests that fail,
@@ -147,13 +166,13 @@ public final class HARouting implements AutoCloseable {
 
       // Make requests to each host, specifying the partitions we're interested in from
       // this host.
-      final Map<KsqlNode, Future<PullQueryResult>> futures = new LinkedHashMap<>();
+      final Map<KsqlNode, Future<RoutingResult>> futures = new LinkedHashMap<>();
       for (Map.Entry<KsqlNode, List<KsqlPartitionLocation>> entry : groupedByHost.entrySet()) {
         final KsqlNode node = entry.getKey();
         futures.put(node, executorService.submit(
             () -> routeQuery.routeQuery(
                 node, entry.getValue(), statement, serviceContext, routingOptions,
-                pullQueryMetrics, pullPhysicalPlan, outputSchema, queryId)
+                pullQueryMetrics, pullPhysicalPlan, outputSchema, queryId, pullQueryQueue)
         ));
       }
 
@@ -161,31 +180,27 @@ public final class HARouting implements AutoCloseable {
       // the locations to the nextRoundRemaining list.
       final ImmutableList.Builder<KsqlPartitionLocation> nextRoundRemaining
           = ImmutableList.builder();
-      for (Map.Entry<KsqlNode, Future<PullQueryResult>> entry : futures.entrySet()) {
-        final Future<PullQueryResult> future = entry.getValue();
+      for (Map.Entry<KsqlNode, Future<RoutingResult>> entry : futures.entrySet()) {
+        final Future<RoutingResult> future = entry.getValue();
         final KsqlNode node = entry.getKey();
+        RoutingResult routingResult = null;
         try {
-          final PullQueryResult result = future.get();
-          result.getSourceNodes().ifPresent(sourceNodes::addAll);
-          schemasByHost.putIfAbsent(node, new ArrayList<>());
-          schemasByHost.get(node).add(result.getSchema());
-          tableRows.addAll(result.getTableRows());
+          routingResult = future.get();
         } catch (ExecutionException e) {
-          LOG.warn("Error routing query {} to host {} at timestamp {} with exception {}",
-                   statement.getStatementText(), node, System.currentTimeMillis(), e.getCause());
+          throw new MaterializationException("Unable to execute pull query", e);
+        }
+        if (routingResult == RoutingResult.STANDBY_FALLBACK) {
           nextRoundRemaining.addAll(groupedByHost.get(node));
+        } else {
+          Preconditions.checkState(routingResult == RoutingResult.SUCCESS);
         }
       }
       remainingLocations = nextRoundRemaining.build();
 
       // If there are no partition locations remaining, then we're done.
       if (remainingLocations.size() == 0) {
-        final LogicalSchema schema = validateSchemas(schemasByHost);
-        return new PullQueryResult(
-            tableRows,
-            sourceNodes.isEmpty() ? Optional.empty() : Optional.of(sourceNodes),
-            schema,
-            queryId);
+        pullQueryQueue.close();
+        return;
       }
     }
   }
@@ -207,9 +222,7 @@ public final class HARouting implements AutoCloseable {
     for (KsqlPartitionLocation location : locations) {
       // If one of the partitions required is out of nodes, then we cannot continue.
       if (round >= location.getNodes().size()) {
-        throw new MaterializationException(String.format(
-            "Unable to execute pull query: %s. Exhausted standby hosts to try.",
-            statement.getStatementText()));
+        throw new MaterializationException("Exhausted standby hosts to try.");
       }
       final KsqlNode nextHost = location.getNodes().get(round);
       groupedByHost.computeIfAbsent(nextHost, h -> new ArrayList<>()).add(location);
@@ -219,21 +232,22 @@ public final class HARouting implements AutoCloseable {
 
   @VisibleForTesting
   interface RouteQuery {
-    PullQueryResult routeQuery(
+    RoutingResult routeQuery(
         KsqlNode node,
         List<KsqlPartitionLocation> locations,
         ConfiguredStatement<Query> statement,
         ServiceContext serviceContext,
         RoutingOptions routingOptions,
         Optional<PullQueryExecutorMetrics> pullQueryMetrics,
-         PullPhysicalPlan pullPhysicalPlan,
-         LogicalSchema outputSchema,
-         QueryId queryId
+        PullPhysicalPlan pullPhysicalPlan,
+        LogicalSchema outputSchema,
+        QueryId queryId,
+        PullQueryQueue pullQueryQueue
     );
   }
 
   @VisibleForTesting
-  static PullQueryResult executeOrRouteQuery(
+  static RoutingResult executeOrRouteQuery(
       final KsqlNode node,
       final List<KsqlPartitionLocation> locations,
       final ConfiguredStatement<Query> statement,
@@ -242,57 +256,61 @@ public final class HARouting implements AutoCloseable {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final PullPhysicalPlan pullPhysicalPlan,
       final LogicalSchema outputSchema,
-      final QueryId queryId
+      final QueryId queryId,
+      final PullQueryQueue pullQueryQueue
   ) {
-    List<List<?>> rows = null;
+    final BiFunction<List<?>, LogicalSchema, PullQueryRow> rowFactory = (rawRow, schema) ->
+        new PullQueryRow(rawRow, schema, Optional.ofNullable(
+            routingOptions.getIsDebugRequest() ? node : null));
     if (node.isLocal()) {
       try {
         LOG.debug("Query {} executed locally at host {} at timestamp {}.",
                   statement.getStatementText(), node.location(), System.currentTimeMillis());
         pullQueryMetrics
             .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordLocalRequests(1));
-        rows = pullPhysicalPlan.execute(locations);
+        pullPhysicalPlan.execute(locations, pullQueryQueue,  rowFactory);
+        return RoutingResult.SUCCESS;
+      } catch (StandbyFallbackException e) {
+        LOG.warn("Error executing query locally at node {}. Falling back to standby state which "
+                + "may return stale results", node, e.getCause());
+        return RoutingResult.STANDBY_FALLBACK;
       } catch (Exception e) {
-        LOG.error("Error executing query {} locally at node {} with exception {}",
-                 statement.getStatementText(), node, e.getCause());
         throw new KsqlException(
-            String.format("Error executing query %s locally at node %s",
-                          statement.getStatementText(), node),
+            String.format("Error executing query locally at node %s: %s", node.location(),
+                e.getMessage()),
             e
         );
       }
     } else {
       try {
         LOG.debug("Query {} routed to host {} at timestamp {}.",
-                  statement.getStatementText(), node.location(), System.currentTimeMillis());
+            statement.getStatementText(), node.location(), System.currentTimeMillis());
         pullQueryMetrics
             .ifPresent(queryExecutorMetrics -> queryExecutorMetrics.recordRemoteRequests(1));
-        rows = forwardTo(node, locations, statement, serviceContext);
+        forwardTo(node, locations, statement, serviceContext, pullQueryQueue, rowFactory,
+            outputSchema);
+        return RoutingResult.SUCCESS;
+      } catch (StandbyFallbackException e) {
+        LOG.warn("Error forwarding query to node {}. Falling back to standby state which may "
+                + "return stale results", node.location(), e.getCause());
+        return RoutingResult.STANDBY_FALLBACK;
       } catch (Exception e) {
-        LOG.error("Error forwarding query {} to node {} with exception {}",
-                  statement.getStatementText(), node, e.getCause());
         throw new KsqlException(
-            String.format("Error forwarding query %s to node %s",
-                          statement.getStatementText(), node),
+            String.format("Error forwarding query to node %s: %s", node.location(), e.getMessage()),
             e
         );
       }
     }
-    final Optional<List<KsqlNode>> debugNodes = Optional.ofNullable(
-        routingOptions.getIsDebugRequest()
-            ? Collections.nCopies(rows.size(), node) : null);
-    return new PullQueryResult(
-        rows,
-        debugNodes,
-        outputSchema,
-        queryId);
   }
 
-  private static List<List<?>> forwardTo(
+  private static void forwardTo(
       final KsqlNode owner,
       final List<KsqlPartitionLocation> locations,
       final ConfiguredStatement<Query> statement,
-      final ServiceContext serviceContext
+      final ServiceContext serviceContext,
+      final PullQueryQueue pullQueryQueue,
+      final BiFunction<List<?>, LogicalSchema, PullQueryRow> rowFactory,
+      final LogicalSchema outputSchema
   ) {
 
     // Specify the partitions we specifically want to read.  This will prevent reading unintended
@@ -305,75 +323,123 @@ public final class HARouting implements AutoCloseable {
         KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING, true,
         KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true,
         KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_PARTITIONS, partitions);
-    final RestResponse<List<StreamedRow>> response = serviceContext
-        .getKsqlClient()
-        .makeQueryRequest(
-            owner.location(),
-            statement.getStatementText(),
-            statement.getSessionConfig().getOverrides(),
-            requestProperties
-        );
+    final RestResponse<Integer> response;
+
+    try {
+      response = serviceContext
+          .getKsqlClient()
+          .makeQueryRequest(
+              owner.location(),
+              statement.getStatementText(),
+              statement.getSessionConfig().getOverrides(),
+              requestProperties,
+              streamedRowsHandler(owner, pullQueryQueue, rowFactory, outputSchema)
+          );
+    } catch (Exception e) {
+      // If we threw some explicit exception, then let it bubble up. All of the row handling is
+      // wrapped in a KsqlException, so any intentional exception or bug will be surfaced.
+      final KsqlException ksqlException = causedByKsqlException(e);
+      if (ksqlException != null) {
+        throw ksqlException;
+      }
+      // If we get some kind of unknown error, we assume it's network or other error from the
+      // KsqlClient and try standbys
+      throw new StandbyFallbackException(String.format(
+          "Forwarding pull query request [%s, %s] failed with error %s ",
+          statement.getSessionConfig().getOverrides(), requestProperties,
+          e.getMessage()), e);
+    }
 
     if (response.isErroneous()) {
-      throw new KsqlServerException(String.format(
-          "Forwarding pull query request [%s, %s, %s] to node %s failed with error %s ",
-          statement.getStatement(), statement.getSessionConfig().getOverrides(), requestProperties,
-          owner, response.getErrorMessage()));
+      throw new KsqlException(String.format(
+          "Forwarding pull query request [%s, %s] failed with error %s ",
+          statement.getSessionConfig().getOverrides(), requestProperties,
+          response.getErrorMessage()));
     }
 
-    final List<StreamedRow> streamedRows = response.getResponse();
-    if (streamedRows.isEmpty()) {
-      throw new KsqlServerException(String.format(
-          "Forwarding pull query request [%s, %s, %s] to node %s failed due to invalid "
+    final int numRows = response.getResponse();
+    if (numRows == 0) {
+      throw new KsqlException(String.format(
+          "Forwarding pull query request [%s, %s] failed due to invalid "
               + "empty response from forwarding call, expected a header row.",
-          statement.getStatement(), statement.getSessionConfig().getOverrides(), requestProperties,
-          owner));
+          statement.getSessionConfig().getOverrides(), requestProperties));
     }
-
-    final List<List<?>> rows = new ArrayList<>();
-
-    for (final StreamedRow row : streamedRows.subList(1, streamedRows.size())) {
-      if (row.getErrorMessage().isPresent()) {
-        throw new KsqlStatementException(
-            row.getErrorMessage().get().getMessage(),
-            statement.getStatementText()
-        );
-      }
-
-      if (!row.getRow().isPresent()) {
-        throw new KsqlServerException(String.format(
-            "Forwarding pull query request [%s, %s, %s] to node %s failed due to "
-                + "missing row data.",
-            statement.getStatement(), statement.getSessionConfig().getOverrides(),
-            requestProperties, owner));
-      }
-
-      rows.add(row.getRow().get().getColumns());
-    }
-
-    return rows;
   }
 
-  private LogicalSchema validateSchemas(final Map<KsqlNode, List<LogicalSchema>> schemasByNode) {
-    LogicalSchema compareAgainst = null;
-    KsqlNode host = null;
-    for (Entry<KsqlNode, List<LogicalSchema>> entry: schemasByNode.entrySet()) {
-      final KsqlNode node = entry.getKey();
-      final List<LogicalSchema> schemas = entry.getValue();
-      if (compareAgainst == null) {
-        compareAgainst = schemas.get(0);
-        host = node;
+  private static KsqlException causedByKsqlException(final Exception e) {
+    Throwable throwable = e;
+    while (throwable != null) {
+      if (throwable instanceof KsqlException) {
+        return (KsqlException) throwable;
       }
-      for (LogicalSchema s : schemas) {
-        if (!s.equals(compareAgainst)) {
-          throw new KsqlException(String.format(
-              "Schemas %s from host %s differs from schema %s from hosts %s",
-              s, node, compareAgainst, host));
+      throwable = throwable.getCause();
+    }
+    return null;
+  }
+
+  private static Consumer<List<StreamedRow>> streamedRowsHandler(
+      final KsqlNode owner,
+      final PullQueryQueue pullQueryQueue,
+      final BiFunction<List<?>, LogicalSchema, PullQueryRow> rowFactory,
+      final LogicalSchema outputSchema
+  ) {
+    final AtomicInteger processedRows = new AtomicInteger(0);
+    final AtomicReference<Header> header = new AtomicReference<>();
+    return streamedRows -> {
+      try {
+        if (streamedRows == null || streamedRows.isEmpty()) {
+          return;
         }
+        final List<PullQueryRow> rows = new ArrayList<>();
+
+        // If this is the first row overall, skip the header
+        final int previousProcessedRows = processedRows.getAndAdd(streamedRows.size());
+        for (int i = 0; i < streamedRows.size(); i++) {
+          final StreamedRow row = streamedRows.get(i);
+          if (i == 0 && previousProcessedRows == 0) {
+            final Optional<Header> optionalHeader = row.getHeader();
+            optionalHeader.ifPresent(h -> validateSchema(outputSchema, h.getSchema(), owner));
+            optionalHeader.ifPresent(header::set);
+            continue;
+          }
+
+          if (row.getErrorMessage().isPresent()) {
+            // If we receive an error that's not a network error, we let that bubble up.
+            throw new KsqlException(row.getErrorMessage().get().getMessage());
+          }
+
+          if (!row.getRow().isPresent()) {
+            throw new KsqlException("Missing row data on row " + i + " of chunk");
+          }
+
+          final List<?> r = row.getRow().get().getColumns();
+          Preconditions.checkNotNull(header.get());
+          rows.add(rowFactory.apply(r, header.get().getSchema()));
+        }
+
+        if (!pullQueryQueue.acceptRows(rows)) {
+          LOG.error("Failed to queue all rows");
+        }
+      } catch (Exception e) {
+        throw new KsqlException("Error handling streamed rows: " + e.getMessage(), e);
       }
-    }
-    return compareAgainst;
+    };
   }
 
+  private static void validateSchema(
+      final LogicalSchema expectedSchema,
+      final LogicalSchema forwardedSchema,
+      final KsqlNode forwardedNode
+  ) {
+    if (!forwardedSchema.equals(expectedSchema)) {
+      throw new KsqlException(String.format(
+          "Schemas %s from host %s differs from schema %s",
+          forwardedSchema, forwardedNode, expectedSchema));
+    }
+  }
 
+  private enum RoutingResult {
+    SUCCESS,
+    STANDBY_FALLBACK
+  }
 }

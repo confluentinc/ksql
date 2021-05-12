@@ -18,6 +18,7 @@ package io.confluent.ksql.api.spi;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
@@ -51,7 +52,8 @@ public interface Endpoints {
    * @return A CompletableFuture representing the future result of the operation
    */
   CompletableFuture<QueryPublisher> createQueryPublisher(String sql, JsonObject properties,
-      Context context, WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext);
+      JsonObject sessionVariables, Context context, WorkerExecutor workerExecutor,
+      ApiSecurityContext apiSecurityContext, MetricsCallbackHolder metricsCallbackHolder);
 
   /**
    * Create a subscriber which will receive a stream of inserts from the API server and process
@@ -83,7 +85,8 @@ public interface Endpoints {
       KsqlRequest request, WorkerExecutor workerExecutor,
       CompletableFuture<Void> connectionClosedFuture, ApiSecurityContext apiSecurityContext,
       Optional<Boolean> isInternalRequest,
-      KsqlMediaType mediaType);
+      KsqlMediaType mediaType,
+      MetricsCallbackHolder metricsCallbackHolder);
 
   CompletableFuture<EndpointResponse> executeInfo(ApiSecurityContext apiSecurityContext);
 
@@ -94,6 +97,9 @@ public interface Endpoints {
 
   CompletableFuture<EndpointResponse> executeStatus(String type, String entity, String action,
       ApiSecurityContext apiSecurityContext);
+
+  CompletableFuture<EndpointResponse> executeIsValidProperty(String property,
+      WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext);
 
   CompletableFuture<EndpointResponse> executeAllStatuses(ApiSecurityContext apiSecurityContext);
 

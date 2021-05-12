@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.udf.UdfMetadata;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -58,31 +59,31 @@ public class UdafAggregateFunctionFactoryTest {
   public void shouldAppendInitParamTypesWhenLookingUpFunction() {
     // When:
     functionFactory.createAggregateFunction(
-        ImmutableList.of(SqlTypes.STRING),
+        ImmutableList.of(SqlArgument.of(SqlTypes.STRING)),
         new AggregateFunctionInitArguments(0, ImmutableMap.of(), ImmutableList.of(1))
     );
 
     // Then:
-    verify(functionIndex).getFunction(ImmutableList.of(SqlTypes.STRING, SqlTypes.INTEGER));
+    verify(functionIndex).getFunction(ImmutableList.of(SqlArgument.of(SqlTypes.STRING), (SqlArgument.of(SqlTypes.INTEGER))));
   }
 
   @Test
   public void shouldHandleNullLiteralParams() {
     // When:
     functionFactory.createAggregateFunction(
-        ImmutableList.of(SqlTypes.STRING),
+        ImmutableList.of(SqlArgument.of(SqlTypes.STRING)),
         new AggregateFunctionInitArguments(0, ImmutableMap.of(), Arrays.asList(null, 5L))
     );
 
     // Then:
-    verify(functionIndex).getFunction(Arrays.asList(SqlTypes.STRING, null, SqlTypes.BIGINT));
+    verify(functionIndex).getFunction(Arrays.asList(SqlArgument.of(SqlTypes.STRING), null, SqlArgument.of(SqlTypes.BIGINT)));
   }
 
   @Test
   public void shouldHandleInitParamsOfAllPrimitiveTypes() {
     // When:
     functionFactory.createAggregateFunction(
-        ImmutableList.of(SqlTypes.STRING),
+        ImmutableList.of(SqlArgument.of(SqlTypes.STRING)),
         new AggregateFunctionInitArguments(0, ImmutableMap.of(), ImmutableList.of(true, 1, 1L, 1.0d, "s"))
     );
 
@@ -94,7 +95,7 @@ public class UdafAggregateFunctionFactoryTest {
     // When:
     final Exception e = assertThrows(KsqlFunctionException.class,
         () -> functionFactory.createAggregateFunction(
-            ImmutableList.of(SqlTypes.STRING),
+            ImmutableList.of(SqlArgument.of(SqlTypes.STRING)),
             new AggregateFunctionInitArguments(0, ImmutableMap.of(), ImmutableList.of(BigDecimal.ONE))
         )
     );

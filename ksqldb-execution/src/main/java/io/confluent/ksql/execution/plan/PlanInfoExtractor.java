@@ -135,17 +135,17 @@ public class PlanInfoExtractor {
   }
 
   private PlanInfo visitRepartitionStep(final ExecutionStep<?> step) {
-    final PlanInfo sourceInfo = (PlanInfo) step.getSources().get(0).extractPlanInfo(this);
+    final PlanInfo sourceInfo = step.getSources().get(0).extractPlanInfo(this);
     return sourceInfo.setIsRepartitionedInPlan();
   }
 
   private PlanInfo visitJoinStep(final ExecutionStep<?> step) {
-    final PlanInfo leftInfo = (PlanInfo) step.getSources().get(0).extractPlanInfo(this);
-    final PlanInfo rightInfo = (PlanInfo) step.getSources().get(1).extractPlanInfo(this);
+    final PlanInfo leftInfo = step.getSources().get(0).extractPlanInfo(this);
+    final PlanInfo rightInfo = step.getSources().get(1).extractPlanInfo(this);
     return leftInfo.merge(rightInfo);
   }
 
   private PlanInfo visitSingleSourceStep(final ExecutionStep<?> step) {
-    return (PlanInfo) step.getSources().get(0).extractPlanInfo(this);
+    return step.getSources().get(0).extractPlanInfo(this);
   }
 }

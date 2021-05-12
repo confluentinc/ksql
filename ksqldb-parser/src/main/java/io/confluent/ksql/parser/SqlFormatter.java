@@ -39,6 +39,8 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DefineVariable;
+import io.confluent.ksql.parser.tree.DescribeStreams;
+import io.confluent.ksql.parser.tree.DescribeTables;
 import io.confluent.ksql.parser.tree.DropStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
@@ -50,6 +52,7 @@ import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.JoinedSource;
+import io.confluent.ksql.parser.tree.ListConnectorPlugins;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
@@ -430,6 +433,31 @@ public final class SqlFormatter {
     @Override
     protected Void visitListTables(final ListTables node, final Integer context) {
       builder.append("SHOW TABLES");
+      if (node.getShowExtended()) {
+        visitExtended();
+      }
+      return null;
+    }
+
+    @Override
+    protected Void visitListConnectorPlugins(
+        final ListConnectorPlugins node, final Integer context) {
+      builder.append("SHOW CONNECTOR PLUGINS");
+      return null;
+    }
+
+    @Override
+    protected Void visitDescribeStreams(final DescribeStreams node, final Integer context) {
+      builder.append("DESCRIBE STREAMS");
+      if (node.getShowExtended()) {
+        visitExtended();
+      }
+      return null;
+    }
+
+    @Override
+    protected Void visitDescribeTables(final DescribeTables node, final Integer context) {
+      builder.append("DESCRIBE TABLES");
       if (node.getShowExtended()) {
         visitExtended();
       }

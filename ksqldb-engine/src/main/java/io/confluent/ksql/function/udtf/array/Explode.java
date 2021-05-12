@@ -19,6 +19,7 @@ import io.confluent.ksql.function.FunctionCategory;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.function.udtf.Udtf;
 import io.confluent.ksql.function.udtf.UdtfDescription;
+import io.confluent.ksql.schema.ksql.SqlArgument;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConstants;
@@ -51,8 +52,8 @@ public class Explode {
   }
 
   @UdfSchemaProvider
-  public SqlType provideSchema(final List<SqlType> params) {
-    final SqlType argType = params.get(0);
+  public SqlType provideSchema(final List<SqlArgument> params) {
+    final SqlType argType = params.get(0).getSqlTypeOrThrow();
     if (!(argType instanceof SqlArray)) {
       throw new KsqlException("explode should be provided with an ARRAY");
     }

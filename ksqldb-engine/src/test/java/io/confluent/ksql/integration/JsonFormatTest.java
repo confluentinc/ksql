@@ -106,7 +106,10 @@ public class JsonFormatTest {
         ProcessingLogContext.create(),
         functionRegistry,
         ServiceInfo.create(ksqlConfig),
-        new SequentialQueryIdGenerator());
+        new SequentialQueryIdGenerator(),
+        ksqlConfig,
+        Collections.emptyList()
+    );
 
     topicClient = serviceContext.getTopicClient();
     metaStore = ksqlEngine.getMetaStore();

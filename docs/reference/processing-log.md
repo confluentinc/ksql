@@ -24,7 +24,7 @@ writing the processing log to {{ site.ak }} and consuming it as ksqlDB stream.
     for the server logs, assign the `log4j.appender.kafka_appender.Topic`
     and `log4j.logger.io.confluent.ksql` configuration settings in the ksqlDB
     Server config file. For more information, see
-    [ksqlDB Server Log Settings](/operate-and-deploy/installation/server-config/config-reference#ksqldb-server-log-settings).
+    [ksqlDB Server Log Settings](../../operate-and-deploy/installation/server-config/).
 
 ## Logger Names
 
@@ -48,11 +48,39 @@ Execution plan
 
 ## Configuration Using Log4J
 
-Internally, the log uses log4j to write entries, so you can configure it
-just like you would the normal ksqlDB log. All entries are written under
-the `processing` logger hierarchy. The following example shows how to
-configure the processing log to emit all events at ERROR level or higher
-to an appender that writes to stdout:
+Internally, the log uses Log4J to write entries, so you can configure it
+just like you configure the normal ksqlDB log.
+
+- For local deployments, edit the
+[log4j.properties](https://github.com/confluentinc/ksql/blob/master/config/log4j.properties)
+config file to assign Log4J properties.
+- For Docker deployments, set the corresponding environment variables. For more
+  information, see
+  [Configure ksqlDB with Docker](../operate-and-deploy/installation/install-ksqldb-with-docker/#enable-the-ksqldb-processing-log)
+  and [Configure Docker Logging](https://docs.confluent.io/platform/current/installation/docker/operations/logging.html#log4j-log-levels).
+
+All entries are written under the `processing` logger hierarchy.
+
+Internally, the log uses Log4J to write entries, so you can configure it
+just like you configure the normal ksqlDB log.
+
+Internally, the log uses Log4J to write entries, so you can configure it
+just like you configure the normal ksqlDB log.
+
+- For local deployments, edit the
+[log4j.properties](https://github.com/confluentinc/ksql/blob/master/config/log4j.properties)
+config file to assign Log4J properties.
+- For Docker deployments, set the corresponding environment variables. For more
+  information, see
+  [Configure ksqlDB with Docker](../operate-and-deploy/installation/install-ksqldb-with-docker/#enable-the-ksqldb-processing-log)
+  and [Configure Docker Logging](https://docs.confluent.io/platform/current/installation/docker/operations/logging.html#log4j-log-levels).
+
+All entries are written under the `processing` logger hierarchy.
+
+Restart the ksqlDB Server for your configuration changes to take effect.
+
+The following example shows how to configure the processing log to emit all
+events at ERROR level or higher to an appender that writes to `stdout`:
 
 ```properties
 log4j.appender.stdout=org.apache.log4j.ConsoleAppender
@@ -62,12 +90,30 @@ log4j.logger.processing=ERROR, stdout
 log4j.additivity.processing=false
 ```
 
-Restart the ksqlDB Server for the configuration change to take effect.
+If you're using a Docker deployment, set the following environment variables
+in your docker-compose.yml:
+
+```properties
+environment:
+    # --- ksqlDB Server log config ---
+    KSQL_LOG4J_ROOT_LOGLEVEL: "ERROR"
+    KSQL_LOG4J_LOGGERS: "org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR"
+    # --- ksqlDB processing log config ---
+    KSQL_LOG4J_PROCESSING_LOG_BROKERLIST: kafka:29092
+    KSQL_LOG4J_PROCESSING_LOG_TOPIC: <ksql-processing-log-topic-name>
+    KSQL_KSQL_LOGGING_PROCESSING_TOPIC_NAME: <ksql-processing-log-topic-name>
+    KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
+    KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
+```
+
+For the full Docker example configuration, see the
+[Multi-node ksqlDB and Kafka Connect clusters](https://github.com/confluentinc/demo-scene/blob/master/multi-cluster-connect-and-ksql/docker-compose.yml)
+demo.
 
 ## Processing Log Security
 
 By default, the record-processing log doesn't log any actual row data.
-To help you debug, you can enable including row data in log messages by
+To help you debug, you can enable including row data in log records by
 setting the ksqlDB property `ksql.logging.processing.rows.include` to
 `true`.
 
@@ -77,14 +123,16 @@ also important to set `log4j.additivity.processing=false` as shown in
 the previous example, to ensure that processing log events are not
 forwarded to appenders configured for the other ksqlDB loggers.
 
-You can disable the log completely by setting the level to OFF:
+You can disable the log completely by setting the level to OFF in the
+[log4j.properties](https://github.com/confluentinc/ksql/blob/master/config/log4j.properties)
+file:
 
 ```properties
 log4j.logger.processing=OFF
 ```
 
 !!! note
-    To enable security for the ksqlDB Processing Log, assign log4j properties
+    To enable security for the ksqlDB Processing Log, assign Log4J properties
     as shown in
     [log4j-secure.properties](https://github.com/confluentinc/cp-demo/blob/master/scripts/helper/log4j-secure.properties).
 
@@ -144,7 +192,7 @@ message.deserializationError.topic (STRING)
 
 message.recordProcessingError (STRUCT)
 
-:   The contents of a message with type 1 (RECORD_PROCESSING_ERROR).
+:   The contents of a record with type 1 (RECORD_PROCESSING_ERROR).
     Logged when ksqlDB hits an error when processing a record, for
     example, an unexpected null value when evaluating an operator in a
     SELECT clause.
@@ -294,37 +342,38 @@ You can query the stream just like you would any other ksqlDB stream.
 You can also create the stream yourself by issuing the following DDL statement:
 
 ```sql
-ksql> CREATE STREAM PROCESSING_LOG_STREAM (
-         LOGGER STRING,
-         LEVEL STRING,
-         `TIME` BIGINT,
-         MESSAGE STRUCT<
-             `TYPE` INTEGER,
-             deserializationError STRUCT<
-                 target STRING,
-                 errorMessage STRING,
-                 recordB64 STRING,
-                 cause ARRAY<STRING>,
-                `topic` STRING>,
-             recordProcessingError STRUCT<
-                 errorMessage STRING,
-                 record STRING,
-                 cause ARRAY<STRING>>,
-             productionError STRUCT<
-                 errorMessage STRING>,
-             serializationError STRUCT<
-                 target STRING,
-                 errorMessage STRING,
-                 record STRING,
-                 cause ARRAY<STRING>,
-                `topic` STRING>>,
-             kafkaStreamsError STRUCT<
-                 threadName STRING,
-                 errorMessage STRING,
-                 cause ARRAY<STRING>)
-         WITH (KAFKA_TOPIC='processing_log_topic', VALUE_FORMAT='JSON');
+CREATE STREAM PROCESSING_LOG_STREAM (
+   LOGGER STRING,
+   LEVEL STRING,
+   `TIME` BIGINT,
+   MESSAGE STRUCT<
+       `TYPE` INTEGER,
+       deserializationError STRUCT<
+           target STRING,
+           errorMessage STRING,
+           recordB64 STRING,
+           cause ARRAY<STRING>,
+          `topic` STRING>,
+       recordProcessingError STRUCT<
+           errorMessage STRING,
+           record STRING,
+           cause ARRAY<STRING>>,
+       productionError STRUCT<
+           errorMessage STRING>,
+       serializationError STRUCT<
+           target STRING,
+           errorMessage STRING,
+           record STRING,
+           cause ARRAY<STRING>,
+          `topic` STRING>>,
+       kafkaStreamsError STRUCT<
+           threadName STRING,
+           errorMessage STRING,
+           cause ARRAY<STRING>>)
+   WITH (KAFKA_TOPIC='processing_log_topic', VALUE_FORMAT='JSON');
 ```
 
->Note: Processing log stream auto-creation is supported for
-interactive mode only. Enabling this setting in headless mode causes
-a warning to be printed to the server log.
+!!! note
+    Processing log stream auto-creation is supported for
+    interactive mode only. Enabling this setting in headless mode causes
+    a warning to be printed to the server log.

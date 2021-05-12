@@ -64,4 +64,21 @@ public class DenyListPropertyValidatorTest {
         "anything", "v2"
     ));
   }
+
+  @Test
+  public void shouldThrowOnKsqlServiceIdProperty() {
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> validator.validateAll(ImmutableMap.of(
+            "ksql.service.id", "v1"
+        ))
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "One or more properties overrides set locally are prohibited by the KSQL server "
+            + "(use UNSET to reset their default value): [ksql.service.id]"
+    ));
+  }
 }

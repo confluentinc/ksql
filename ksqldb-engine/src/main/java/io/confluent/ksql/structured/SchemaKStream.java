@@ -39,11 +39,13 @@ import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
+import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
@@ -57,6 +59,8 @@ import io.confluent.ksql.util.Repartitioning;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
 import org.apache.kafka.streams.kstream.JoinWindows;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -71,6 +75,7 @@ public class SchemaKStream<K> {
   final FunctionRegistry functionRegistry;
   final LogicalSchema schema;
   private final ExecutionStep<KStreamHolder<K>> sourceStep;
+  private final ExpressionTypeManager typeManager;
 
   SchemaKStream(
       final ExecutionStep<KStreamHolder<K>> sourceStep,
@@ -84,6 +89,7 @@ public class SchemaKStream<K> {
     this.schema = Objects.requireNonNull(schema, "schema");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
+    this.typeManager = new ExpressionTypeManager(schema, functionRegistry);
   }
 
   public SchemaKStream<K> into(
@@ -139,7 +145,8 @@ public class SchemaKStream<K> {
       final List<ColumnName> keyColumnNames,
       final List<SelectExpression> selectExpressions,
       final Stacker contextStacker,
-      final PlanBuildContext buildContext
+      final PlanBuildContext buildContext,
+      final FormatInfo valueFormat
   ) {
     final StreamSelect<K> step = ExecutionStepFactory.streamSelect(
         contextStacker,
@@ -342,7 +349,8 @@ public class SchemaKStream<K> {
         resolveSchema(step),
         SerdeFeaturesFactory.sanitizeKeyFormat(
             newKeyFormat,
-            keyExpression.size() == 1),
+            toSqlTypes(keyExpression),
+            true),
         ksqlConfig,
         functionRegistry
     );
@@ -372,7 +380,8 @@ public class SchemaKStream<K> {
 
     final KeyFormat sanitizedKeyFormat = SerdeFeaturesFactory.sanitizeKeyFormat(
         rekeyedFormat,
-        groupByExpressions.size() == 1
+        toSqlTypes(groupByExpressions),
+        true
     );
     final StreamGroupBy<K> source = ExecutionStepFactory.streamGroupBy(
         contextStacker,
@@ -384,10 +393,14 @@ public class SchemaKStream<K> {
     return new SchemaKGroupedStream(
         source,
         resolveSchema(source),
-        rekeyedFormat,
+        sanitizedKeyFormat,
         ksqlConfig,
         functionRegistry
     );
+  }
+
+  protected List<SqlType> toSqlTypes(final List<Expression> expressions) {
+    return expressions.stream().map(typeManager::getExpressionSqlType).collect(Collectors.toList());
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})

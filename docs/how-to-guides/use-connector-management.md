@@ -1,3 +1,11 @@
+---
+layout: page
+title: How to use connector management
+tagline: Use connectors to get external data for ksqlDB apps
+description: Use SQL syntax to create connectors in your ksqlDB application 
+keywords: connector
+---
+
 # How to use connector management
 
 ## Context
@@ -120,7 +128,7 @@ services:
     ports:
       - "8088:8088"
     volumes:
-      - "./confluent-hub-components/debezium-debezium-connector-mysql:/usr/share/kafka/plugins/debezium-mysql"
+      - "./confluent-hub-components:/usr/share/kafka/plugins"
     environment:
       KSQL_LISTENERS: "http://0.0.0.0:8088"
       KSQL_BOOTSTRAP_SERVERS: "broker:9092"

@@ -71,7 +71,7 @@ INSTALL_X=install -D -m 755
 
 install: build
 	# Safety precatuion to avoid removing of root dir when DESTDIR or PREFIX is not set, for wathever reason
-	if [[ $(DESTDIR)$(PREFIX) != /tmp/confluent/* ]]; then echo "DESTDIR=$(DESTDIR) or PREFIX=$(PREFIX) is weird" ; exit 1 ; fi
+	if [[ "$(DESTDIR)$(PREFIX)" =~ ^/usr* ]] || [[ "$(DESTDIR)$(PREFIX)" == / ]] || [[ "$(DESTDIR)$(PREFIX)" == ""  ]]; then echo "DESTDIR=$(DESTDIR) or PREFIX=$(PREFIX) is weird"; exit 1 ; fi
 	rm -rf $(DESTDIR)$(PREFIX)
 	mkdir -p $(DESTDIR)$(PREFIX)
 	mkdir -p $(DESTDIR)$(BINPATH)

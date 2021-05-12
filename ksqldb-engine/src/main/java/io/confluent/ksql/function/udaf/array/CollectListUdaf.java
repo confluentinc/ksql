@@ -74,7 +74,13 @@ public final class CollectListUdaf {
     @Override
     public void configure(final Map<String, ?> map) {
       final Object limit = map.get(LIMIT_CONFIG);
-      this.limit = (limit == null) ? this.limit : ((Number) limit).intValue();
+      if (limit != null) {
+        if (limit instanceof Number) {
+          this.limit = ((Number) limit).intValue();
+        } else if (limit instanceof String) {
+          this.limit = Integer.parseInt((String) limit);
+        }
+      }
 
       if (this.limit < 0) {
         this.limit = Integer.MAX_VALUE;

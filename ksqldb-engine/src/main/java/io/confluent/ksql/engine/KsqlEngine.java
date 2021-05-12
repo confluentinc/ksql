@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.ServiceInfo;
-import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
@@ -28,6 +27,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -37,11 +37,13 @@ import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
+import io.confluent.ksql.planner.PullPlannerOptions;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -77,7 +79,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
       final ServiceInfo serviceInfo,
-      final QueryIdGenerator queryIdGenerator
+      final QueryIdGenerator queryIdGenerator,
+      final KsqlConfig ksqlConfig,
+      final List<QueryEventListener> queryEventListeners
   ) {
     this(
         serviceContext,
@@ -90,7 +94,10 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             serviceInfo.customMetricsTags(),
             serviceInfo.metricsExtension()
         ),
-        queryIdGenerator);
+        queryIdGenerator,
+        ksqlConfig,
+        queryEventListeners
+    );
   }
 
   public KsqlEngine(
@@ -99,19 +106,27 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final String serviceId,
       final MutableMetaStore metaStore,
       final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory,
-      final QueryIdGenerator queryIdGenerator
+      final QueryIdGenerator queryIdGenerator,
+      final KsqlConfig ksqlConfig,
+      final List<QueryEventListener> queryEventListeners
   ) {
     this.cleanupService = new QueryCleanupService();
     this.orphanedTransientQueryCleaner = new OrphanedTransientQueryCleaner(this.cleanupService);
+    this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
+    this.engineMetrics = engineMetricsFactory.apply(this);
     this.primaryContext = EngineContext.create(
         serviceContext,
         processingLogContext,
         metaStore,
         queryIdGenerator,
-        cleanupService
+        cleanupService,
+        ksqlConfig,
+        ImmutableList.<QueryEventListener>builder()
+            .addAll(queryEventListeners)
+            .add(engineMetrics.getQueryEventListener())
+            .add(new CleanupListener(cleanupService, serviceContext))
+            .build()
     );
-    this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
-    this.engineMetrics = engineMetricsFactory.apply(this);
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
     this.aggregateMetricsCollector.scheduleAtFixedRate(
         () -> {
@@ -130,31 +145,31 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   public int numberOfLiveQueries() {
-    return primaryContext.getAllLiveQueries().size();
+    return primaryContext.getQueryRegistry().getAllLiveQueries().size();
   }
 
   @Override
   public Optional<PersistentQueryMetadata> getPersistentQuery(final QueryId queryId) {
-    return primaryContext.getPersistentQuery(queryId);
+    return primaryContext.getQueryRegistry().getPersistentQuery(queryId);
   }
 
   @Override
   public List<PersistentQueryMetadata> getPersistentQueries() {
-    return ImmutableList.copyOf(primaryContext.getPersistentQueries().values());
+    return ImmutableList.copyOf(primaryContext.getQueryRegistry().getPersistentQueries().values());
   }
 
   @Override
   public Set<QueryId> getQueriesWithSink(final SourceName sourceName) {
-    return primaryContext.getQueriesWithSink(sourceName);
+    return primaryContext.getQueryRegistry().getQueriesWithSink(sourceName);
   }
 
   @Override
   public List<QueryMetadata> getAllLiveQueries() {
-    return primaryContext.getAllLiveQueries();
+    return primaryContext.getQueryRegistry().getAllLiveQueries();
   }
 
   public boolean hasActiveQueries() {
-    return !primaryContext.getPersistentQueries().isEmpty();
+    return !primaryContext.getQueryRegistry().getPersistentQueries().isEmpty();
   }
 
   @Override
@@ -215,7 +230,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ExecuteResult result = EngineExecutor
           .create(primaryContext, serviceContext, plan.getConfig())
           .execute(plan.getPlan());
-      result.getQuery().ifPresent(this::registerQuery);
       return result;
     } catch (final KsqlStatementException e) {
       throw e;
@@ -253,9 +267,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final TransientQueryMetadata query = EngineExecutor
           .create(primaryContext, serviceContext, statement.getSessionConfig())
           .executeQuery(statement, excludeTombstones);
-
-      registerQuery(query);
-      primaryContext.registerQuery(query, false);
       return query;
     } catch (final KsqlStatementException e) {
       throw e;
@@ -270,9 +281,10 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
       final HARouting routing,
-      final RoutingFilterFactory routingFilterFactory,
       final RoutingOptions routingOptions,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+      final PullPlannerOptions plannerOptions,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final boolean startImmediately
   ) {
     return EngineExecutor
         .create(
@@ -283,9 +295,10 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         .executePullQuery(
             statement,
             routing,
-            routingFilterFactory,
             routingOptions,
-            pullQueryMetrics
+            plannerOptions,
+            pullQueryMetrics,
+            startImmediately
         );
   }
 
@@ -293,8 +306,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
    * @param closeQueries whether or not to clean up the local state for any running queries
    */
   public void close(final boolean closeQueries) {
-    primaryContext.getAllLiveQueries()
-      .forEach(closeQueries ? QueryMetadata::close : QueryMetadata::stop);
+    primaryContext.getQueryRegistry().close(closeQueries);
 
     try {
       cleanupService.stopAsync().awaitTerminated(30, TimeUnit.SECONDS);
@@ -334,8 +346,32 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         || statement instanceof Query;
   }
 
-  private void registerQuery(final QueryMetadata query) {
-    engineMetrics.registerQuery(query);
-  }
+  private static final class CleanupListener implements QueryEventListener {
+    final QueryCleanupService cleanupService;
+    final ServiceContext serviceContext;
 
+    private CleanupListener(
+        final QueryCleanupService cleanupService,
+        final ServiceContext serviceContext) {
+      this.cleanupService = cleanupService;
+      this.serviceContext = serviceContext;
+    }
+
+    @Override
+    public void onClose(
+        final QueryMetadata query
+    ) {
+      final String applicationId = query.getQueryApplicationId();
+      if (query.hasEverBeenStarted()) {
+        cleanupService.addCleanupTask(
+            new QueryCleanupService.QueryCleanupTask(
+                serviceContext,
+                applicationId,
+                query instanceof TransientQueryMetadata
+            ));
+      }
+
+      StreamsErrorCollector.notifyApplicationClose(applicationId);
+    }
+  }
 }

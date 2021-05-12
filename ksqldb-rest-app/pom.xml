@@ -23,7 +23,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksqldb-parent</artifactId>
-        <version>6.2.0-0</version>
+        <version>7.0.0-0</version>
     </parent>
 
     <artifactId>ksqldb-rest-app</artifactId>
@@ -35,7 +35,6 @@
         <cli.main-class>${main-class}</cli.main-class>
         <docker.skip-build>true</docker.skip-build>
         <docker.skip-test>true</docker.skip-test>
-        <netty-tcnative-version>2.0.29.Final</netty-tcnative-version>
     </properties>
 
     <dependencies>
@@ -130,7 +129,6 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-tcnative-boringssl-static</artifactId>
-            <version>${netty-tcnative-version}</version>
         </dependency>
 
         <dependency>
@@ -174,6 +172,14 @@
             <groupId>com.kjetland</groupId>
             <artifactId>mbknor-jackson-jsonschema_${kafka.scala.version}</artifactId>
             <version>1.0.39</version>
+            <scope>test</scope>
+        </dependency>
+
+
+        <dependency>
+            <groupId>org.jeasy</groupId>
+            <artifactId>easy-random-core</artifactId>
+            <version>4.2.0</version>
             <scope>test</scope>
         </dependency>
 

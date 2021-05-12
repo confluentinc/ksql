@@ -1,6 +1,13 @@
+---
+layout: page
+title: Metrics
+tagline: JMX metrics for monitoring ksqlDB
+description: ksqlDB has many JMX metrics to monitor what its servers are doing 
+keywords: metrics, jmx, monitor
+---
 # Metrics
 
-ksqlDB emits a variety of JMX metrics to help you understand
+ksqlDB emits a variety of JMX metrics to help you understand and
 [monitor](../operate-and-deploy/monitoring.md) what its servers are
 doing. This reference describes each metric and grouping.
 
@@ -9,116 +16,116 @@ doing. This reference describes each metric and grouping.
 Metrics that describe the full set of persistent queries on a given server.
 
 ```
-io.confluent.ksql.metrics:type=ksql-engine-query-stats
+io.confluent.ksql.metrics:type=_confluent-ksql-engine-query-stats,ksql_service_id=<ksql.service.id>
 ```
 
 ### Attributes
 
 **Number of persistent queries**
 
-`_confluent-ksql-default_num-persistent-queries`
+`num-persistent-queries`
 
 The current number of persistent queries running in this engine.
 
 **Number of active queries**
 
-`_confluent-ksql-default_num-active-queries`
+`num-active-queries`
 
 The current number of active queries running in this engine.
 
 **Number of running queries**
 
-`_confluent-ksql-default_ksql-engine-query-stats-RUNNING-queries`
+`RUNNING-queries`
 
 Count of queries in `RUNNING` state.
 
 **Number of idle queries**
 
-`_confluent-ksql-default_num-idle-queries`
+`num-idle-queries`
 
 Number of inactive queries.
 
 **Number of not running queries**
 
-`_confluent-ksql-default_ksql-engine-query-stats-NOT_RUNNING-queries`
+`NOT_RUNNING-queries`
 
 Count of queries in `NOT_RUNNING` state.
 
 **Number of rebalancing queries**
 
-`_confluent-ksql-default_ksql-engine-query-stats-REBALANCING-queries`
+`REBALANCING-queries`
 
 Count of queries in `REBALANCING` state.
 
 **Number of created queries**
 
-`_confluent-ksql-default_ksql-engine-query-stats-CREATED-queries`
+`CREATED-queries`
 
 Count of queries in `CREATED` state.
 
 **Number of pending shutdown queries**
 
-`_confluent-ksql-default_ksql-engine-query-stats-PENDING_SHUTDOWN-queries`
+`PENDING_SHUTDOWN-queries`
 
 Count of queries in `PENDING_SHUTDOWN` state.
 
 **Number of error queries**
 
-`_confluent-ksql-default_ksql-engine-query-stats-ERROR-queries`
+`ERROR-queries`
 
 Count of queries in `ERROR` state.
 
 **Total bytes consumed**
 
-`_confluent-ksql-default_bytes-consumed-total`
+`bytes-consumed-total`
 
 The total number of bytes consumed across all queries.
 
 **Minimum messages consumed**
 
-`_confluent-ksql-default_messages-consumed-min`
+`messages-consumed-min`
 
 Min msgs consumed by query.
 
 **Maximum messages consumed**
 
-`_confluent-ksql-default_messages-consumed-max`
+`messages-consumed-max`
 
 Max msgs consumed by query.
 
 **Average messages consumed**
 
-`_confluent-ksql-default_messages-consumed-avg`
+`messages-consumed-avg`
 
 Mean msgs consumed by query.
 
 **Messages consumed per second**
 
-`_confluent-ksql-default_messages-consumed-per-sec`
+`messages-consumed-per-sec`
 
 The number of messages consumed per second across all queries.
 
 **Messages consumed total**
 
-`_confluent-ksql-default_messages-consumed-total`
+`messages-consumed-total`
 
 The total number of messages consumed across all queries.
 
 **Messages produced per second**
 
-`_confluent-ksql-default_messages-produced-per-sec`
+`messages-produced-per-sec`
 
 The number of messages produced per second across all queries.
 
 **Error rate**
 
-`_confluent-ksql-default_error-rate`
+`error-rate`
 
 The number of messages that were consumed but not processed. Messages may not be processed if, for instance, the message contents could not be deserialized due to an incompatible schema. Alternately, a consumed message may not have been produced, hence being effectively dropped. Such messages would also be counted toward the error rate.
 
 **Liveness indicator**
 
-`_confluent-ksql-default_liveness-indicator`
+`liveness-indicator`
 
 A metric with constant value `1` indicating the server is up and emitting metrics.
 
@@ -215,7 +222,7 @@ directly. These metrics are omitted from this reference to avoid redundancy.
 Metrics that describe the activity of pull queries on each server.
 
 ```
-io.confluent.ksql.metrics:type=_confluent-ksql-default_pull-query
+io.confluent.ksql.metrics:type=_confluent-ksql-pull-query
 ```
 
 !!! info
@@ -366,7 +373,7 @@ Metrics that describe the health of the `CommandRunner` thread, which
 enables each node to participate in distributed computation.
 
 ```
-io.confluent.ksql.metrics:type=_confluent-ksql-default_ksql-rest-app-command-runner
+io.confluent.ksql.metrics:type=_confluent-ksql-rest-app-command-runner
 ```
 
 ### Attributes

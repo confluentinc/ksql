@@ -174,4 +174,25 @@ public class SqlTypeParserTest {
         "Value must be integer for command: DECIMAL(SCALE)"
     ));
   }
+
+  @Test
+  public void shouldThrowMeaningfulErrorOnBadStructDeclaration() {
+    // Given:
+    final String schemaString = "STRUCT<foo VARCHAR,>";
+
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> parser.parse(schemaString)
+    );
+
+    // Then:
+    System.out.println(e.getMessage());
+    assertThat(e.getMessage(), containsString(
+        "Failed to parse: STRUCT<foo VARCHAR,>"
+    ));
+    assertThat(e.getCause().getMessage(), containsString(
+        "line 1:20: mismatched input '>'"
+    ));
+  }
 }

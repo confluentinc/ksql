@@ -90,6 +90,11 @@ select.version::-ms-expand {
     margin: 5px;
 }
 
+.card > a {
+    color: inherit;
+    text-decoration: underline;
+}
+
 ul.card-items {
     margin-left: 0;
     list-style-type: none;
@@ -106,17 +111,6 @@ ul.card-items li {
 
 .card-more {
     align-self: flex-start;
-}
-
-.tutorial-begin {
-    display: flex;
-    flex-flow: row nowrap;
-}
-
-.tutorial-begin a {
-    align-self: center;
-    margin: auto;
-    transform: translateX(-20px);
 }
 
 .card.tutorial {
@@ -142,6 +136,12 @@ ul.card-items li {
 
 .card.getting-started {
     border-top: 3.5px solid #ef5762;
+}
+
+.card.how-to-videos > ul {
+    columns: 2;
+    -webkit-columns: 2;
+    -moz-columns: 2;
 }
 
 .card.concepts {

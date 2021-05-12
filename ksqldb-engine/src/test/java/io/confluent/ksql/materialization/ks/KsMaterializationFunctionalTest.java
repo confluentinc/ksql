@@ -172,26 +172,6 @@ public class KsMaterializationFunctionalTest {
     initializeKsql(ksqlContext);
   }
 
-  @After
-  public void after() {
-    toClose.forEach(QueryMetadata::close);
-  }
-
-  @Test
-  public void shouldReturnEmptyIfNotMaterializedTable() {
-    // Given:
-    final PersistentQueryMetadata query = executeQuery(
-        "CREATE TABLE " + output + " AS"
-            + " SELECT * FROM " + USER_TABLE + ";"
-    );
-
-    // When:
-    final Optional<Materialization> result = query.getMaterialization(queryId, contextStacker);
-
-    // Then:
-    assertThat(result, is(Optional.empty()));
-  }
-
   @Test
   public void shouldReturnEmptyIfNotMaterializedStream() {
     // Given:

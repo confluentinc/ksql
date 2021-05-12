@@ -1081,6 +1081,7 @@ public class DefaultSqlValueCoercerTest {
         .put(SqlBaseType.TIMESTAMP, new Timestamp(1535792475000L))
         .build();
 
+    @SuppressWarnings("fallthrough")
     static Object instanceFor(final SqlType from, final SqlType to) {
       switch (from.baseType()) {
         case ARRAY:

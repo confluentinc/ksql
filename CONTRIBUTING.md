@@ -12,7 +12,7 @@ If you have any questions about how to contribute, either [create a GH issue](ht
 To build and run KSQL locally, run the following commands:
 
 ```shell
-$ mvn clean package -DskipTests
+$ ./mvnw clean package -DskipTests -DversionFilter
 $ ./bin/ksql-server-start -daemon config/ksql-server.properties
 $ ./bin/ksql
 ```
@@ -30,7 +30,7 @@ drop the `-daemon` switch, and start the CLI in a second console.
 To build and test changes locally, run the following commands:
 
 ```shell
-$ mvn verify
+$ ./mvnw verify
 ```
 
 ### Testing docker image
@@ -252,3 +252,9 @@ Once enabled, commitlint will reject commits with improperly formatted commit me
    git push origin --force feature-xxx
    ```
 
+### Backporting Commits
+
+There might be times when a certain commit needs to be backported to a previous ksqlDB release (either community
+edition or confluent edition). In these situations, cherry-pick individual commits to the previous
+branches (do _not_ squash multiple commits and move them as one because our changelog generation tool
+does not handle squashed commits properly).

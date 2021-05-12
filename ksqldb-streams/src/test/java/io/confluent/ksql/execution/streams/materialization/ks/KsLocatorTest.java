@@ -35,6 +35,7 @@ import io.confluent.ksql.execution.streams.RoutingFilter;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.execution.streams.RoutingOptions;
+import io.confluent.ksql.execution.streams.materialization.Locator.KsqlKey;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlPartitionLocation;
 import io.confluent.ksql.execution.streams.materialization.MaterializationException;
@@ -52,6 +53,9 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyQueryMetadata;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.TopologyDescription;
+import org.apache.kafka.streams.TopologyDescription.Subtopology;
 import org.apache.kafka.streams.state.HostInfo;
 import org.apache.kafka.streams.state.StreamsMetadata;
 import org.junit.Before;
@@ -71,27 +75,42 @@ public class KsLocatorTest {
   private static final GenericKey SOME_KEY1 = GenericKey.genericKey(2);
   private static final GenericKey SOME_KEY2 = GenericKey.genericKey(3);
   private static final GenericKey SOME_KEY3 = GenericKey.genericKey(4);
+  private static final KsqlKey KEY = new TestKey(SOME_KEY);
+  private static final KsqlKey KEY1 = new TestKey(SOME_KEY1);
+  private static final KsqlKey KEY2 = new TestKey(SOME_KEY2);
+  private static final KsqlKey KEY3 = new TestKey(SOME_KEY3);
   private static final KsqlHostInfo ACTIVE_HOST = new KsqlHostInfo("remoteHost", 2345);
   private static final KsqlHostInfo STANDBY_HOST1 = new KsqlHostInfo("standby1", 1234);
   private static final KsqlHostInfo STANDBY_HOST2 = new KsqlHostInfo("standby2", 5678);
   private static final HostInfo ACTIVE_HOST_INFO = new HostInfo("remoteHost", 2345);
   private static final HostInfo STANDBY_HOST_INFO1 = new HostInfo("standby1", 1234);
   private static final HostInfo STANDBY_HOST_INFO2 = new HostInfo("standby2", 5678);
-  private static final TopicPartition TOPIC_PARTITION1 = new TopicPartition("foo", 0);
-  private static final TopicPartition TOPIC_PARTITION2 = new TopicPartition("foo", 1);
-  private static final TopicPartition TOPIC_PARTITION3 = new TopicPartition("foo", 2);
+  private static final String TOPIC_NAME = "foo";
+  private static final String FULL_TOPIC_NAME = APPLICATION_ID + "-" + TOPIC_NAME;
+  private static final String BAD_TOPIC_NAME = "bar";
+  private static final TopicPartition TOPIC_PARTITION1 = new TopicPartition(FULL_TOPIC_NAME, 0);
+  private static final TopicPartition TOPIC_PARTITION2 = new TopicPartition(FULL_TOPIC_NAME, 1);
+  private static final TopicPartition TOPIC_PARTITION3 = new TopicPartition(FULL_TOPIC_NAME, 2);
+  private static final TopicPartition BAD_TOPIC_PARTITION1 = new TopicPartition(BAD_TOPIC_NAME, 0);
+  private static final TopicPartition BAD_TOPIC_PARTITION2 = new TopicPartition(BAD_TOPIC_NAME, 1);
+  private static final TopicPartition BAD_TOPIC_PARTITION3 = new TopicPartition(BAD_TOPIC_NAME, 2);
   private static final StreamsMetadata HOST1_STREAMS_MD1 = new StreamsMetadata(ACTIVE_HOST_INFO,
-      ImmutableSet.of("state_store"), ImmutableSet.of(TOPIC_PARTITION1),
-      ImmutableSet.of("state_store"), ImmutableSet.of(TOPIC_PARTITION2, TOPIC_PARTITION3));
+      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION1, BAD_TOPIC_PARTITION3),
+      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION2, TOPIC_PARTITION3,
+      BAD_TOPIC_PARTITION1, BAD_TOPIC_PARTITION2));
   private static final StreamsMetadata HOST1_STREAMS_MD2 = new StreamsMetadata(STANDBY_HOST_INFO1,
-      ImmutableSet.of("state_store"), ImmutableSet.of(TOPIC_PARTITION2),
-      ImmutableSet.of("state_store"), ImmutableSet.of(TOPIC_PARTITION1, TOPIC_PARTITION3));
+      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION2, BAD_TOPIC_PARTITION1),
+      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION1, TOPIC_PARTITION3,
+      BAD_TOPIC_PARTITION2, BAD_TOPIC_PARTITION3));
   private static final StreamsMetadata HOST1_STREAMS_MD3 = new StreamsMetadata(STANDBY_HOST_INFO2,
-      ImmutableSet.of("state_store"), ImmutableSet.of(TOPIC_PARTITION3),
-      ImmutableSet.of("state_store"), ImmutableSet.of(TOPIC_PARTITION1, TOPIC_PARTITION2));
+      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION3, BAD_TOPIC_PARTITION2),
+      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION1, TOPIC_PARTITION2,
+      BAD_TOPIC_PARTITION1, BAD_TOPIC_PARTITION3));
 
   @Mock
   private KafkaStreams kafkaStreams;
+  @Mock
+  private Topology topology;
   @Mock
   private KeyQueryMetadata keyQueryMetadata;
   @Mock
@@ -102,6 +121,14 @@ public class KsLocatorTest {
   private RoutingFilter activeFilter;
   @Mock
   private RoutingOptions routingOptions;
+  @Mock
+  private TopologyDescription description;
+  @Mock
+  private Subtopology sub1;
+  @Mock
+  private TopologyDescription.Source source;
+  @Mock
+  private TopologyDescription.Processor processor;
 
   private KsLocator locator;
   private KsqlNode activeNode;
@@ -116,7 +143,7 @@ public class KsLocatorTest {
 
   @Before
   public void setUp() {
-    locator = new KsLocator(STORE_NAME, kafkaStreams, keySerializer, LOCAL_HOST_URL,
+    locator = new KsLocator(STORE_NAME, kafkaStreams, topology, keySerializer, LOCAL_HOST_URL,
         APPLICATION_ID);
 
     activeNode = locator.asNode(ACTIVE_HOST);
@@ -165,7 +192,7 @@ public class KsLocatorTest {
     // When:
     final Exception e = assertThrows(
         MaterializationException.class,
-        () -> locator.locate(ImmutableList.of(SOME_KEY), routingOptions, routingFilterFactoryActive)
+        () -> locator.locate(ImmutableList.of(KEY), routingOptions, routingFilterFactoryActive)
     );
 
     // Then:
@@ -179,7 +206,7 @@ public class KsLocatorTest {
     getActiveAndStandbyMetadata();
 
     // When:
-    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
+    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
         routingFilterFactoryActive);
 
     // Then:
@@ -203,7 +230,7 @@ public class KsLocatorTest {
         .thenReturn(true);
 
     // When:
-    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(SOME_KEY),
+    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY),
         routingOptions, routingFilterFactoryActive);
 
     // Then:
@@ -223,7 +250,7 @@ public class KsLocatorTest {
         .thenReturn(true);
 
     // When:
-    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
+    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
         routingFilterFactoryActive);
 
     // Then:
@@ -243,7 +270,7 @@ public class KsLocatorTest {
         .thenReturn(true);
 
     // When:
-    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
+    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
         routingFilterFactoryActive);
 
     // Then:
@@ -263,7 +290,7 @@ public class KsLocatorTest {
         .thenReturn(true);
 
     // When:
-    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
+    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
         routingFilterFactoryActive);
 
     // Then:
@@ -284,7 +311,7 @@ public class KsLocatorTest {
         .thenReturn(true);
 
     // When:
-    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
+    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
         routingFilterFactoryActive);
 
     // Then:
@@ -299,7 +326,7 @@ public class KsLocatorTest {
     getActiveAndStandbyMetadata();
 
     // When:
-    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
+    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
         routingFilterFactoryActive);
 
     // Then:
@@ -314,7 +341,7 @@ public class KsLocatorTest {
     getActiveAndStandbyMetadata();
 
     // When:
-    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
+    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
         routingFilterFactoryStandby);
 
     // Then:
@@ -332,7 +359,7 @@ public class KsLocatorTest {
         .thenReturn(false);
 
     // When:
-    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
+    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
         routingFilterFactoryStandby);
 
     // Then:
@@ -351,7 +378,7 @@ public class KsLocatorTest {
         .thenReturn(false);
 
     // When:
-    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(SOME_KEY), routingOptions,
+    final List<KsqlPartitionLocation> result = locator.locate(ImmutableList.of(KEY), routingOptions,
         routingFilterFactoryStandby);
 
     // Then:
@@ -370,22 +397,22 @@ public class KsLocatorTest {
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(
-        ImmutableList.of(SOME_KEY, SOME_KEY1, SOME_KEY2, SOME_KEY3), routingOptions,
+        ImmutableList.of(KEY, KEY1, KEY2, KEY3), routingOptions,
         routingFilterFactoryStandby);
 
     // Then:
     assertThat(result.size(), is(3));
-    assertThat(result.get(0).getKeys().get(), contains(SOME_KEY, SOME_KEY2));
+    assertThat(result.get(0).getKeys().get(), contains(KEY, KEY2));
     List<KsqlNode> nodeList = result.get(0).getNodes();
     assertThat(nodeList.size(), is(2));
     assertThat(nodeList.get(0), is(activeNode));
     assertThat(nodeList.get(1), is(standByNode1));
-    assertThat(result.get(1).getKeys().get(), contains(SOME_KEY1));
+    assertThat(result.get(1).getKeys().get(), contains(KEY1));
     nodeList = result.get(1).getNodes();
     assertThat(nodeList.size(), is(2));
     assertThat(nodeList.get(0), is(standByNode1));
     assertThat(nodeList.get(1), is(activeNode));
-    assertThat(result.get(2).getKeys().get(), contains(SOME_KEY3));
+    assertThat(result.get(2).getKeys().get(), contains(KEY3));
     nodeList = result.get(2).getNodes();
     assertThat(nodeList.size(), is(2));
     assertThat(nodeList.get(0), is(activeNode));
@@ -395,9 +422,13 @@ public class KsLocatorTest {
   @Test
   public void shouldFindAllPartitionsWhenNoKeys() {
     // Given:
+    when(topology.describe()).thenReturn(description);
+    when(description.subtopologies()).thenReturn(ImmutableSet.of(sub1));
+    when(sub1.nodes()).thenReturn(ImmutableSet.of(source, processor));
+    when(source.topicSet()).thenReturn(ImmutableSet.of(TOPIC_NAME));
+    when(processor.stores()).thenReturn(ImmutableSet.of(STORE_NAME));
     when(kafkaStreams.allMetadataForStore(any()))
         .thenReturn(ImmutableList.of(HOST1_STREAMS_MD1, HOST1_STREAMS_MD2, HOST1_STREAMS_MD3));
-    getActiveStandbyMetadata(SOME_KEY, 0, ACTIVE_HOST_INFO, STANDBY_HOST_INFO1);
 
     // When:
     final List<KsqlPartitionLocation> result = locator.locate(
@@ -467,6 +498,24 @@ public class KsLocatorTest {
       return new URL("http://somehost:1234");
     } catch (final MalformedURLException e) {
       throw new AssertionError("Failed to build URL", e);
+    }
+  }
+
+  private static class TestKey implements KsqlKey {
+
+    private final GenericKey genericKey;
+
+    public TestKey(final GenericKey genericKey) {
+      this.genericKey = genericKey;
+    }
+
+    @Override
+    public GenericKey getKey() {
+      return genericKey;
+    }
+
+    public String toString() {
+      return genericKey.toString();
     }
   }
 }

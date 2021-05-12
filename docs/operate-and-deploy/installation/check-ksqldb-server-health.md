@@ -13,7 +13,7 @@ Check the streams, tables, and queries on the ksqlDB Server that you're
 connected to by using the DESCRIBE EXTENDED and EXPLAIN statements
 in the ksqlDB CLI.
 
--   Run SHOW STREAMS or SHOW TABLES, then run `DESCRIBE EXTENDED <stream|table>`.
+-   Run SHOW STREAMS or SHOW TABLES, then run `DESCRIBE <stream|table> EXTENDED`.
 -   Run SHOW QUERIES, then run `EXPLAIN <query-name>`.
 
 Check a ksqlDB Server running in a native deployment
@@ -35,7 +35,7 @@ ps -aux | grep ksql
 Your output should resemble:
 
 ```
-jim       2540  5.2  2.3 8923244 387388 tty2   Sl   07:48   0:33 /usr/lib/jvm/java-8-oracle/bin/java -cp /home/jim/confluent-{{ site.release }}/share/java/monitoring-interceptors/* ...
+jim       2540  5.2  2.3 8923244 387388 tty2   Sl   07:48   0:33 /usr/lib/jvm/java-8-oracle/bin/java -cp /home/jim/confluent-{{ site.ksqldbversion }}/share/java/monitoring-interceptors/* ...
 ```
 
 If the process status of the JVM isn't `Sl` or `Ssl`, the ksqlDB server

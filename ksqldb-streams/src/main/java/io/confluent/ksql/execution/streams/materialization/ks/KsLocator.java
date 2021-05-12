@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.kafka.streams.processor.internals.StreamsMetadataState.UNKNOWN_HOST;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import com.google.errorprone.annotations.Immutable;
@@ -47,6 +48,11 @@ import java.util.stream.Stream;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyQueryMetadata;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.TopologyDescription;
+import org.apache.kafka.streams.TopologyDescription.Processor;
+import org.apache.kafka.streams.TopologyDescription.Source;
+import org.apache.kafka.streams.TopologyDescription.Subtopology;
 import org.apache.kafka.streams.state.HostInfo;
 import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
@@ -62,6 +68,7 @@ public final class KsLocator implements Locator {
   private static final Logger LOG = LoggerFactory.getLogger(KsLocator.class);
   private final String stateStoreName;
   private final KafkaStreams kafkaStreams;
+  private final Topology topology;
   private final Serializer<GenericKey> keySerializer;
   private final URL localHost;
   private final String applicationId;
@@ -69,11 +76,13 @@ public final class KsLocator implements Locator {
   KsLocator(
       final String stateStoreName,
       final KafkaStreams kafkaStreams,
+      final Topology topology,
       final Serializer<GenericKey> keySerializer,
       final URL localHost,
       final String applicationId
   ) {
     this.kafkaStreams = requireNonNull(kafkaStreams, "kafkaStreams");
+    this.topology = requireNonNull(topology, "topology");
     this.keySerializer = requireNonNull(keySerializer, "keySerializer");
     this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
     this.localHost = requireNonNull(localHost, "localHost");
@@ -82,7 +91,7 @@ public final class KsLocator implements Locator {
 
   @Override
   public List<KsqlPartitionLocation> locate(
-      final List<GenericKey> keys,
+      final List<KsqlKey> keys,
       final RoutingOptions routingOptions,
       final RoutingFilterFactory routingFilterFactory
   ) {
@@ -102,7 +111,7 @@ public final class KsLocator implements Locator {
       final HostInfo activeHost = partitionMetadata.getActiveHost();
       final Set<HostInfo> standByHosts = partitionMetadata.getStandbyHosts();
       final int partition = partitionMetadata.getPartition();
-      final Optional<Set<GenericKey>> partitionKeys = partitionMetadata.getKeys();
+      final Optional<Set<KsqlKey>> partitionKeys = partitionMetadata.getKeys();
 
       // For a given partition, find the ordered, filtered list of hosts to consider
       final List<KsqlNode> filteredHosts = getFilteredHosts(routingOptions, routingFilterFactory,
@@ -122,16 +131,16 @@ public final class KsLocator implements Locator {
    * @return The metadata associated with the keys
    */
   private List<PartitionMetadata> getMetadataForKeys(
-      final List<GenericKey> keys,
+      final List<KsqlKey> keys,
       final Set<Integer> filterPartitions
   ) {
     // Maintain request order for reproducibility by using a LinkedHashMap, even though it's
     // not a guarantee of the API.
     final Map<Integer, KeyQueryMetadata> metadataByPartition = new LinkedHashMap<>();
-    final Map<Integer, Set<GenericKey>> keysByPartition = new HashMap<>();
-    for (GenericKey key : keys) {
+    final Map<Integer, Set<KsqlKey>> keysByPartition = new HashMap<>();
+    for (KsqlKey key : keys) {
       final KeyQueryMetadata metadata = kafkaStreams
-          .queryMetadataForKey(stateStoreName, key, keySerializer);
+          .queryMetadataForKey(stateStoreName, key.getKey(), keySerializer);
 
       // Fail fast if Streams not ready. Let client handle it
       if (metadata == KeyQueryMetadata.NOT_AVAILABLE) {
@@ -174,16 +183,36 @@ public final class KsLocator implements Locator {
    */
   private List<PartitionMetadata>  getMetadataForAllPartitions(
       final Set<Integer> filterPartitions) {
+    // It's important that we consider only the source topics for the subtopology that contains the
+    // state store. Otherwise, we'll be given the wrong partition -> host mappings.
+    // The underlying state store has a number of partitions that is the MAX of the number of
+    // partitions of all source topics of the subtopology.  Since partition X of all source topics
+    // of the particular subtopology will map to the same host, we can collect partition -> host
+    // for these topics to find the locations of each partition of the state store.
+    final Set<String> sourceTopicSuffixes = findSubtopologySourceTopicSuffixes();
     final Map<Integer, HostInfo> activeHostByPartition = new HashMap<>();
     final Map<Integer, Set<HostInfo>> standbyHostsByPartition = new HashMap<>();
     for (final StreamsMetadata streamsMetadata : kafkaStreams.allMetadataForStore(stateStoreName)) {
       streamsMetadata.topicPartitions().forEach(
-          tp -> activeHostByPartition.put(tp.partition(), streamsMetadata.hostInfo()));
+          tp -> {
+            if (sourceTopicSuffixes.stream().anyMatch(suffix -> tp.topic().endsWith(suffix))) {
+              activeHostByPartition.compute(tp.partition(), (partition, hostInfo) -> {
+                if (hostInfo != null && !streamsMetadata.hostInfo().equals(hostInfo)) {
+                  throw new IllegalStateException("Should only be one active host per partition");
+                }
+                return streamsMetadata.hostInfo();
+              });
+            }
+          });
 
       streamsMetadata.standbyTopicPartitions().forEach(
           tp -> {
-            standbyHostsByPartition.computeIfAbsent(tp.partition(), p -> new HashSet<>());
-            standbyHostsByPartition.get(tp.partition()).add(streamsMetadata.hostInfo());
+            // Ideally, we'd also throw an exception if we found a mis-mapping for the standbys, but
+            // with multiple per partition, we can't easy sanity check.
+            if (sourceTopicSuffixes.stream().anyMatch(suffix -> tp.topic().endsWith(suffix))) {
+              standbyHostsByPartition.computeIfAbsent(tp.partition(), p -> new HashSet<>());
+              standbyHostsByPartition.get(tp.partition()).add(streamsMetadata.hostInfo());
+            }
           });
     }
 
@@ -205,6 +234,41 @@ public final class KsLocator implements Locator {
           new PartitionMetadata(activeHost, standbyHosts, partition, Optional.empty()));
     }
     return metadataList;
+  }
+
+  /**
+   * For the particular state store, this finds the subtopology which contains that store, and
+   * then finds the input topics for the subtopology by finding the source nodes. These topics are
+   * then used for checking against all the metadata for the state store and used to find the
+   * active and standby hosts for the topics. Without doing this check, incorrect assignments could
+   * be chosen since different subtopologies can be run by different hosts.
+   */
+  private Set<String> findSubtopologySourceTopicSuffixes() {
+    for (final Subtopology subtopology : topology.describe().subtopologies()) {
+      boolean containsStateStore = false;
+      for (final TopologyDescription.Node node : subtopology.nodes()) {
+        if (node instanceof Processor) {
+          final Processor processor = (Processor) node;
+          if (processor.stores().contains(stateStoreName)) {
+            containsStateStore = true;
+          }
+        }
+      }
+
+      if (!containsStateStore) {
+        continue;
+      }
+
+      for (final TopologyDescription.Node node : subtopology.nodes()) {
+        if (node instanceof Source) {
+          final Source source = (Source) node;
+          Preconditions.checkNotNull(source.topicSet(), "Expecting topic set, not regex");
+          return source.topicSet();
+        }
+      }
+      throw new IllegalStateException("Failed to find source with topics");
+    }
+    throw new IllegalStateException("Failed to find state store " + stateStoreName);
   }
 
   /**
@@ -344,18 +408,18 @@ public final class KsLocator implements Locator {
 
   @VisibleForTesting
   public static final class PartitionLocation implements KsqlPartitionLocation {
-    private final Optional<Set<GenericKey>> keys;
+    private final Optional<Set<KsqlKey>> keys;
     private final int partition;
     private final List<KsqlNode> nodes;
 
-    public PartitionLocation(final Optional<Set<GenericKey>> keys, final int partition,
+    public PartitionLocation(final Optional<Set<KsqlKey>> keys, final int partition,
                              final List<KsqlNode> nodes) {
       this.keys = keys;
       this.partition = partition;
       this.nodes = nodes;
     }
 
-    public Optional<Set<GenericKey>> getKeys() {
+    public Optional<Set<KsqlKey>> getKeys() {
       return keys;
     }
 
@@ -383,13 +447,13 @@ public final class KsLocator implements Locator {
     private final HostInfo activeHost;
     private final Set<HostInfo> standbyHosts;
     private final int partition;
-    private final Optional<Set<GenericKey>> keys;
+    private final Optional<Set<KsqlKey>> keys;
 
     PartitionMetadata(
         final HostInfo activeHost,
         final Set<HostInfo> standbyHosts,
         final int partition,
-        final Optional<Set<GenericKey>> keys
+        final Optional<Set<KsqlKey>> keys
     ) {
       this.activeHost = activeHost;
       this.standbyHosts = standbyHosts;
@@ -421,7 +485,7 @@ public final class KsLocator implements Locator {
     /**
      * @return the set of keys associated with the partition, if they exist
      */
-    public Optional<Set<GenericKey>> getKeys() {
+    public Optional<Set<KsqlKey>> getKeys() {
       return keys;
     }
   }

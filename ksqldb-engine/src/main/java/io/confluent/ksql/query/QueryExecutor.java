@@ -44,6 +44,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -52,6 +53,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -65,7 +67,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -75,7 +77,7 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-public final class QueryExecutor {
+final class QueryExecutor {
 
   private static final String KSQL_THREAD_EXCEPTION_UNCAUGHT_LOGGER
       = "ksql.logger.thread.exception.uncaught";
@@ -86,22 +88,19 @@ public final class QueryExecutor {
   private final ServiceContext serviceContext;
   private final FunctionRegistry functionRegistry;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
-  private final Consumer<QueryMetadata> queryCloseCallback;
   private final StreamsBuilder streamsBuilder;
   private final MaterializationProviderBuilderFactory materializationProviderBuilderFactory;
 
-  public QueryExecutor(
+  QueryExecutor(
       final SessionConfig config,
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
-      final FunctionRegistry functionRegistry,
-      final Consumer<QueryMetadata> queryCloseCallback) {
+      final FunctionRegistry functionRegistry) {
     this(
         config,
         processingLogContext,
         serviceContext,
         functionRegistry,
-        queryCloseCallback,
         new KafkaStreamsBuilderImpl(
             Objects.requireNonNull(serviceContext, "serviceContext").getKafkaClientSupplier()),
         new StreamsBuilder(),
@@ -110,7 +109,8 @@ public final class QueryExecutor {
             serviceContext,
             new KsMaterializationFactory(),
             new KsqlMaterializationFactory(processingLogContext)
-        ));
+        )
+    );
   }
 
   @VisibleForTesting
@@ -119,7 +119,6 @@ public final class QueryExecutor {
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
       final FunctionRegistry functionRegistry,
-      final Consumer<QueryMetadata> queryCloseCallback,
       final KafkaStreamsBuilder kafkaStreamsBuilder,
       final StreamsBuilder streamsBuilder,
       final MaterializationProviderBuilderFactory materializationProviderBuilderFactory
@@ -131,10 +130,6 @@ public final class QueryExecutor {
     );
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
-    this.queryCloseCallback = Objects.requireNonNull(
-        queryCloseCallback,
-        "queryCloseCallback"
-    );
     this.kafkaStreamsBuilder = Objects.requireNonNull(kafkaStreamsBuilder, "kafkaStreamsBuilder");
     this.streamsBuilder = Objects.requireNonNull(streamsBuilder, "streamsBuilder");
     this.materializationProviderBuilderFactory = Objects.requireNonNull(
@@ -143,7 +138,7 @@ public final class QueryExecutor {
     );
   }
 
-  public TransientQueryMetadata buildTransientQuery(
+  TransientQueryMetadata buildTransientQuery(
       final String statementText,
       final QueryId queryId,
       final Set<SourceName> sources,
@@ -152,7 +147,8 @@ public final class QueryExecutor {
       final LogicalSchema schema,
       final OptionalInt limit,
       final Optional<WindowInfo> windowInfo,
-      final boolean excludeTombstones
+      final boolean excludeTombstones,
+      final QueryMetadata.Listener listener
   ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
     final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
@@ -178,10 +174,12 @@ public final class QueryExecutor {
         kafkaStreamsBuilder,
         streamsProperties,
         config.getOverrides(),
-        queryCloseCallback,
         ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
-        resultType
+        resultType,
+        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
+        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
+        listener
     );
   }
 
@@ -192,13 +190,39 @@ public final class QueryExecutor {
     return Optional.empty();
   }
 
-  public PersistentQueryMetadata buildPersistentQuery(
+  @SuppressWarnings("unchecked")
+  private static Optional<ScalablePushRegistry> applyScalablePushProcessor(
+      final LogicalSchema schema,
+      final Object result,
+      final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
+      final boolean windowed,
+      final Map<String, Object> streamsProperties,
+      final KsqlConfig ksqlConfig
+  ) {
+    if (!ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_ENABLED)) {
+      return Optional.empty();
+    }
+    final KStream<?, GenericRow> stream;
+    if (result instanceof KTableHolder) {
+      stream = ((KTableHolder<?>) result).getTable().toStream();
+    } else {
+      stream = ((KStreamHolder<?>) result).getStream();
+    }
+    final Optional<ScalablePushRegistry> registry = ScalablePushRegistry.create(schema,
+        allPersistentQueries, windowed, streamsProperties);
+    registry.ifPresent(r -> stream.process(registry.get()));
+    return registry;
+  }
+
+  PersistentQueryMetadata buildPersistentQuery(
       final String statementText,
       final QueryId queryId,
       final DataSource sinkDataSource,
       final Set<SourceName> sources,
       final ExecutionStep<?> physicalPlan,
-      final String planSummary
+      final String planSummary,
+      final QueryMetadata.Listener listener,
+      final Supplier<List<PersistentQueryMetadata>> allPersistentQueries
   ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
 
@@ -213,6 +237,12 @@ public final class QueryExecutor {
 
     final RuntimeBuildContext runtimeBuildContext = buildContext(applicationId, queryId);
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
+    // Creates a ProcessorSupplier, a ScalablePushRegistry, to apply to the topology, if
+    // scalable push queries are enabled.
+    final Optional<ScalablePushRegistry> scalablePushRegistry
+        = applyScalablePushProcessor(querySchema.logicalSchema(), result, allPersistentQueries,
+        sinkDataSource.getKsqlTopic().getKeyFormat().isWindowed(),
+        streamsProperties, ksqlConfig);
     final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
 
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
@@ -225,12 +255,13 @@ public final class QueryExecutor {
                 applicationId
             ));
 
-    final QueryErrorClassifier topicClassifier = new MissingTopicClassifier(applicationId);
+    final QueryErrorClassifier userErrorClassifiers = new MissingTopicClassifier(applicationId)
+        .and(new AuthorizationClassifier(applicationId));
     final QueryErrorClassifier classifier = buildConfiguredClassifiers(ksqlConfig, applicationId)
-        .map(topicClassifier::and)
-        .orElse(topicClassifier);
+        .map(userErrorClassifiers::and)
+        .orElse(userErrorClassifiers);
 
-    return new PersistentQueryMetadata(
+    return new PersistentQueryMetadataImpl(
         statementText,
         querySchema,
         sources,
@@ -244,12 +275,15 @@ public final class QueryExecutor {
         runtimeBuildContext.getSchemas(),
         streamsProperties,
         config.getOverrides(),
-        queryCloseCallback,
         ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
         classifier,
         physicalPlan,
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
-        getUncaughtExceptionProcessingLogger(queryId)
+        getUncaughtExceptionProcessingLogger(queryId),
+        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
+        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
+        listener,
+        scalablePushRegistry
     );
   }
 

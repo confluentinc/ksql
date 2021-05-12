@@ -21,6 +21,7 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.function.Function;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
@@ -42,6 +43,9 @@ public final class SessionStoreCacheBypass {
   private static final Field STORE_NAME_FIELD;
   private static final Field STORE_TYPE_FIELD;
   static final Field SERDES_FIELD;
+  private static final String STORE_UNAVAILABLE_MESSAGE = "State store is not available anymore "
+          + "and may have been migrated to another instance; "
+          + "please re-discover its location from the state metadata.";
 
   static {
     try {
@@ -69,30 +73,96 @@ public final class SessionStoreCacheBypass {
     );
   }
 
-  @SuppressWarnings("unchecked")
+  interface SessionStoreCacheBypassFetcherRange {
+
+    KeyValueIterator<Windowed<GenericKey>, GenericRow> fetchRange(
+            ReadOnlySessionStore<GenericKey, GenericRow> store,
+            GenericKey keyFrom,
+            GenericKey keyTo
+    );
+  }
+
+  /*
+  This method is used for single key lookups. It calls the fetchUncached method.
+   */
   public static KeyValueIterator<Windowed<GenericKey>, GenericRow> fetch(
       final ReadOnlySessionStore<GenericKey, GenericRow> store,
       final GenericKey key
   ) {
     Objects.requireNonNull(key, "key can't be null");
+    final List<ReadOnlySessionStore<GenericKey, GenericRow>> stores = getStores(store);
+    final Function<ReadOnlySessionStore<GenericKey, GenericRow>,
+            KeyValueIterator<Windowed<GenericKey>, GenericRow>> fetchFunc
+            = sessionStore -> fetchUncached(sessionStore, key);
+    return findFirstNonEmptyIterator(stores, fetchFunc);
+  }
 
-    final StateStoreProvider provider;
-    final String storeName;
-    final QueryableStoreType<ReadOnlySessionStore<GenericKey, GenericRow>> storeType;
-    try {
-      provider = (StateStoreProvider) PROVIDER_FIELD.get(store);
-      storeName = (String) STORE_NAME_FIELD.get(store);
-      storeType = (QueryableStoreType<ReadOnlySessionStore<GenericKey, GenericRow>>)
-          STORE_TYPE_FIELD.get(store);
-    } catch (final IllegalAccessException e) {
-      throw new RuntimeException("Stream internals changed unexpectedly!", e);
+  /*
+  This method is used for single key lookups. It is invoked by the fetch method
+   */
+  private static KeyValueIterator<Windowed<GenericKey>, GenericRow> fetchUncached(
+      final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore,
+      final GenericKey key
+  ) {
+    if (!(sessionStore instanceof MeteredSessionStore)) {
+      throw new IllegalStateException("Expecting a MeteredSessionStore");
+    } else {
+      final StateSerdes<GenericKey, GenericRow> serdes = getSerdes(sessionStore);
+      final Bytes rawKey = Bytes.wrap(serdes.rawKey(key));
+      final SessionStore<Bytes, byte[]> wrapped = getInnermostStore(sessionStore);
+      final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetch(rawKey);
+      return new DeserializingIterator(fetch, serdes);
     }
-    final List<ReadOnlySessionStore<GenericKey, GenericRow>> stores
-        = provider.stores(storeName, storeType);
+  }
+
+  /*
+  This method is used for range queries. It calls the fetchRangeUncached method.
+   */
+  public static KeyValueIterator<Windowed<GenericKey>, GenericRow> fetchRange(
+          final ReadOnlySessionStore<GenericKey, GenericRow> store,
+          final GenericKey keyFrom,
+          final GenericKey keyTo
+  ) {
+    Objects.requireNonNull(keyFrom, "lower key can't be null");
+    Objects.requireNonNull(keyTo, "upper key can't be null");
+
+    final List<ReadOnlySessionStore<GenericKey, GenericRow>> stores = getStores(store);
+    final Function<ReadOnlySessionStore<GenericKey, GenericRow>,
+            KeyValueIterator<Windowed<GenericKey>, GenericRow>> fetchFunc
+            = sessionStore -> fetchRangeUncached(sessionStore, keyFrom, keyTo);
+    return findFirstNonEmptyIterator(stores, fetchFunc);
+  }
+
+  /*
+  This method is used for range queries. It is invoked by the fetchRange method
+   */
+  private static KeyValueIterator<Windowed<GenericKey>, GenericRow> fetchRangeUncached(
+          final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore,
+          final GenericKey keyFrom,
+          final GenericKey keyTo
+  ) {
+    if (!(sessionStore instanceof MeteredSessionStore)) {
+      throw new IllegalStateException("Expecting a MeteredSessionStore");
+    } else {
+
+      final StateSerdes<GenericKey, GenericRow> serdes = getSerdes(sessionStore);
+      final Bytes rawKeyFrom = Bytes.wrap(serdes.rawKey(keyFrom));
+      final Bytes rawKeyTo = Bytes.wrap(serdes.rawKey(keyTo));
+      final SessionStore<Bytes, byte[]> wrapped = getInnermostStore(sessionStore);
+      final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetch(rawKeyFrom, rawKeyTo);
+      return new DeserializingIterator(fetch, serdes);
+    }
+  }
+
+  private static KeyValueIterator<Windowed<GenericKey>, GenericRow> findFirstNonEmptyIterator(
+          final List<ReadOnlySessionStore<GenericKey, GenericRow>> stores,
+          final Function<ReadOnlySessionStore<GenericKey, GenericRow>,
+                  KeyValueIterator<Windowed<GenericKey>, GenericRow>> fetchFunc
+  ) {
     for (final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore : stores) {
       try {
         final KeyValueIterator<Windowed<GenericKey>, GenericRow> result
-            = fetchUncached(sessionStore, key);
+                = fetchFunc.apply(sessionStore);
         // returns the first non-empty iterator
         if (!result.hasNext()) {
           result.close();
@@ -100,46 +170,57 @@ public final class SessionStoreCacheBypass {
           return result;
         }
       } catch (final InvalidStateStoreException e) {
-        throw new InvalidStateStoreException(
-            "State store is not available anymore and may have been migrated to another instance; "
-                + "please re-discover its location from the state metadata.", e);
+        throw new InvalidStateStoreException(STORE_UNAVAILABLE_MESSAGE, e);
       }
     }
     return new EmptyKeyValueIterator();
   }
 
   @SuppressWarnings("unchecked")
-  private static KeyValueIterator<Windowed<GenericKey>, GenericRow> fetchUncached(
-      final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore,
-      final GenericKey key
-  ) {
-    if (sessionStore instanceof MeteredSessionStore) {
-      final StateSerdes<GenericKey, GenericRow> serdes;
-      try {
-        serdes = (StateSerdes<GenericKey, GenericRow>) SERDES_FIELD.get(sessionStore);
-      } catch (final IllegalAccessException e) {
-        throw new RuntimeException("Stream internals changed unexpectedly!", e);
-      }
+  private static StateSerdes<GenericKey, GenericRow> getSerdes(
+          final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore
+  ) throws RuntimeException {
+    try {
+      return (StateSerdes<GenericKey, GenericRow>) SERDES_FIELD.get(sessionStore);
+    } catch (final IllegalAccessException e) {
+      throw new RuntimeException("Stream internals changed unexpectedly!", e);
+    }
+  }
 
-      final Bytes rawKey = Bytes.wrap(serdes.rawKey(key));
-      SessionStore<Bytes, byte[]> wrapped
-          = ((MeteredSessionStore<GenericKey, GenericRow>) sessionStore).wrapped();
-      // Unwrap state stores until we get to the last SessionStore, which is past the caching
-      // layer.
-      while (wrapped instanceof WrappedStateStore) {
-        final StateStore store = ((WrappedStateStore<?, ?, ?>) wrapped).wrapped();
-        // A RocksDBSessionStore wraps a SegmentedBytesStore, which isn't a SessionStore, so
-        // we just store there.
-        if (!(store instanceof SessionStore)) {
-          break;
-        }
-        wrapped = (SessionStore<Bytes, byte[]>) store;
+  @SuppressWarnings("unchecked")
+  private static SessionStore<Bytes, byte[]> getInnermostStore(
+          final ReadOnlySessionStore<GenericKey, GenericRow> sessionStore
+  ) {
+    SessionStore<Bytes, byte[]> wrapped
+            = ((MeteredSessionStore<GenericKey, GenericRow>) sessionStore).wrapped();
+    // Unwrap state stores until we get to the last SessionStore, which is past the caching
+    // layer.
+    while (wrapped instanceof WrappedStateStore) {
+      final StateStore store = ((WrappedStateStore<?, ?, ?>) wrapped).wrapped();
+      // A RocksDBSessionStore wraps a SegmentedBytesStore, which isn't a SessionStore, so
+      // we just store there.
+      if (!(store instanceof SessionStore)) {
+        break;
       }
-      // now we have the innermost layer of the store.
-      final KeyValueIterator<Windowed<Bytes>, byte[]> fetch = wrapped.fetch(rawKey);
-      return new DeserializingIterator(fetch, serdes);
-    } else {
-      throw new IllegalStateException("Expecting a MeteredSessionStore");
+      wrapped = (SessionStore<Bytes, byte[]>) store;
+    }
+    // now we have the innermost layer of the store.
+    return wrapped;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static List<ReadOnlySessionStore<GenericKey, GenericRow>> getStores(
+          final ReadOnlySessionStore<GenericKey, GenericRow> store
+  ) {
+    final QueryableStoreType<ReadOnlySessionStore<GenericKey, GenericRow>> storeType;
+    try {
+      final StateStoreProvider provider = (StateStoreProvider) PROVIDER_FIELD.get(store);
+      final String storeName = (String) STORE_NAME_FIELD.get(store);
+      storeType = (QueryableStoreType<ReadOnlySessionStore<GenericKey, GenericRow>>)
+              STORE_TYPE_FIELD.get(store);
+      return provider.stores(storeName, storeType);
+    } catch (final IllegalAccessException e) {
+      throw new RuntimeException("Stream internals changed unexpectedly!", e);
     }
   }
 

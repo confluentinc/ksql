@@ -22,9 +22,12 @@ import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.parser.tree.DescribeFunction;
+import io.confluent.ksql.parser.tree.DescribeStreams;
+import io.confluent.ksql.parser.tree.DescribeTables;
 import io.confluent.ksql.parser.tree.DropConnector;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.InsertValues;
+import io.confluent.ksql.parser.tree.ListConnectorPlugins;
 import io.confluent.ksql.parser.tree.ListConnectors;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListProperties;
@@ -61,10 +64,13 @@ public enum CustomExecutors {
   LIST_TOPICS(ListTopics.class, ListTopicsExecutor::execute),
   LIST_STREAMS(ListStreams.class, ListSourceExecutor::streams),
   LIST_TABLES(ListTables.class, ListSourceExecutor::tables),
+  DESCRIBE_STREAMS(DescribeStreams.class, ListSourceExecutor::describeStreams),
+  DESCRIBE_TABLES(DescribeTables.class, ListSourceExecutor::describeTables),
   LIST_FUNCTIONS(ListFunctions.class, ListFunctionsExecutor::execute),
   LIST_QUERIES(ListQueries.class, ListQueriesExecutor::execute),
   LIST_PROPERTIES(ListProperties.class, ListPropertiesExecutor::execute),
   LIST_CONNECTORS(ListConnectors.class, ListConnectorsExecutor::execute),
+  LIST_CONNECTOR_PLUGINS(ListConnectorPlugins.class, ListConnectorPluginsExecutor::execute),
   LIST_TYPES(ListTypes.class, ListTypesExecutor::execute),
   LIST_VARIABLES(ListVariables.class, ListVariablesExecutor::execute),
 

@@ -65,6 +65,7 @@ public class KsqlRequestTest {
       + "\"" + KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST + "\":true,"
       + "\"" + KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING + "\":true"
       + "},"
+      + "\"sessionVariables\":{},"
       + "\"commandSequenceNumber\":2}";
   private static final String A_JSON_REQUEST_WITH_NULL_COMMAND_NUMBER = "{"
       + "\"ksql\":\"sql\","
@@ -77,6 +78,7 @@ public class KsqlRequestTest {
       + "\"" + KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST + "\":true,"
       + "\"" + KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING + "\":true"
       + "},"
+      + "\"sessionVariables\":{},"
       + "\"commandSequenceNumber\":null}";
 
   private static final ImmutableMap<String, Object> SOME_PROPS = ImmutableMap.of(
@@ -107,6 +109,13 @@ public class KsqlRequestTest {
   public void shouldHandleNullProps() {
     assertThat(
         new KsqlRequest("sql", null, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER).getConfigOverrides(),
+        is(Collections.emptyMap()));
+  }
+
+  @Test
+  public void shouldHandleNullSessionVariables() {
+    assertThat(
+        new KsqlRequest("sql", SOME_PROPS, Collections.emptyMap(), null, SOME_COMMAND_NUMBER).getSessionVariables(),
         is(Collections.emptyMap()));
   }
 
@@ -150,7 +159,7 @@ public class KsqlRequestTest {
     final String jsonRequest = serialize(A_REQUEST);
 
     // Then:
-    assertThat(jsonRequest, is(A_JSON_REQUEST_WITH_NULL_COMMAND_NUMBER));
+    assertThat(deserialize(jsonRequest), is(deserialize(A_JSON_REQUEST_WITH_NULL_COMMAND_NUMBER)));
   }
 
   @Test
@@ -159,19 +168,22 @@ public class KsqlRequestTest {
     final String jsonRequest = serialize(A_REQUEST_WITH_COMMAND_NUMBER);
 
     // Then:
-    assertThat(jsonRequest, is(A_JSON_REQUEST_WITH_COMMAND_NUMBER));
+    assertThat(deserialize(jsonRequest), is(deserialize(A_JSON_REQUEST_WITH_COMMAND_NUMBER)));
   }
 
   @Test
   public void shouldImplementHashCodeAndEqualsCorrectly() {
     new EqualsTester()
         .addEqualityGroup(new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER),
-            new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER))
+            new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER),
+            new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, ImmutableMap.of(), SOME_COMMAND_NUMBER),
+            new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, null, SOME_COMMAND_NUMBER))
         .addEqualityGroup(
             new KsqlRequest("different-sql", SOME_PROPS, SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER))
         .addEqualityGroup(
             new KsqlRequest("sql", ImmutableMap.of(), SOME_REQUEST_PROPS, SOME_COMMAND_NUMBER))
         .addEqualityGroup(new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, null))
+        .addEqualityGroup(new KsqlRequest("sql", SOME_PROPS, SOME_REQUEST_PROPS, ImmutableMap.of("", ""), null))
         .testEquals();
   }
 

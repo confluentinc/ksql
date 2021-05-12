@@ -22,7 +22,14 @@ topics.
 - [Configure ksqlDB Server](installation/server-config/index.md)
 - [Configure ksqlDB CLI](installation/cli-config.md)
 - [Configure Security](installation/server-config/security.md)
-- [ksqlDB Configuration Parameter Reference](installation/server-config/config-reference.md)
+- [ksqlDB Configuration Parameter Reference](/reference/server-configuration)
+
+Performance guidelines
+----------------------
+
+Learn how to tune your ksqlDB applications for the best performance.
+
+- [Performance Guidelines](/operate-and-deploy/performance-guidelines)
 
 Health Checks
 -------------
@@ -31,7 +38,7 @@ Health Checks
   `http://<server>:8088/info` and a basic server health check endpoint at
   `http://<server>:8088/healthcheck`.
 - Check runtime stats for the ksqlDB server that you are connected to
-  via `DESCRIBE EXTENDED <stream or table>` and
+  via `DESCRIBE <stream or table> EXTENDED` and
   `EXPLAIN <name of query>`.
 
 For more information, see
@@ -42,6 +49,13 @@ Capacity Planning
 
 The [Capacity Planning guide](capacity-planning.md)
 describes how to size your ksqlDB clusters.
+
+Managing metadata schemas
+-------------------------
+
+Use the [ksqlDB migrations tool](migrations-tool.md)
+to manage your ksqlDB clusters' metadata schemas, including
+the creation, deletion, and updating of streams, tables, and queries.
 
 Troubleshooting
 ---------------

@@ -26,11 +26,13 @@ import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
+import io.confluent.ksql.util.QueryMetadata.Listener;
 import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
 import org.junit.Before;
 import org.junit.Test;
@@ -65,11 +67,15 @@ public class TransientQueryMetadataTest {
   private Map<String, Object> overrides;
   @Mock
   private Consumer<QueryMetadata> closeCallback;
+  @Mock
+  private Listener listener;
+
   private TransientQueryMetadata query;
 
   @Before
   public void setUp()  {
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
+    when(kafkaStreams.state()).thenReturn(State.NOT_RUNNING);
 
     query = new TransientQueryMetadata(
         SQL,
@@ -82,11 +88,14 @@ public class TransientQueryMetadataTest {
         kafkaStreamsBuilder,
         props,
         overrides,
-        closeCallback,
         CLOSE_TIMEOUT,
         10,
-        ResultType.STREAM
+        ResultType.STREAM,
+        0L,
+        0L,
+        listener
     );
+    query.initialize();
   }
 
   @Test
@@ -101,22 +110,6 @@ public class TransientQueryMetadataTest {
     final InOrder inOrder = inOrder(rowQueue, kafkaStreams);
     inOrder.verify(rowQueue).close();
     inOrder.verify(kafkaStreams).close(any());
-  }
-
-  @Test
-  public void shouldCallCloseOnStop() {
-    // Given:
-    query.start();
-
-    // When:
-    query.stop();
-
-    // Then:
-    final InOrder inOrder = inOrder(rowQueue, kafkaStreams, closeCallback);
-    inOrder.verify(rowQueue).close();
-    inOrder.verify(kafkaStreams).close(any());
-    inOrder.verify(kafkaStreams).cleanUp();
-    inOrder.verify(closeCallback).accept(query);
   }
 
   @Test

@@ -54,6 +54,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueryMetadataImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collections;
 import java.util.List;
@@ -177,6 +178,8 @@ public class QueryExecutorTest {
   private KStreamHolder<Struct> streamHolder;
   @Mock
   private SessionConfig config;
+  @Mock
+  private QueryMetadata.Listener queryListener;
   @Captor
   private ArgumentCaptor<Map<String, Object>> propertyCaptor;
 
@@ -196,7 +199,8 @@ public class QueryExecutorTest {
     when(materializationBuilder.build()).thenReturn(materializationInfo);
     when(materializationInfo.getStateStoreSchema()).thenReturn(aggregationSchema);
     when(materializationInfo.stateStoreName()).thenReturn(STORE_NAME);
-    when(ksMaterializationFactory.create(any(), any(), any(), any(), any(), any(), any(), any()))
+    when(ksMaterializationFactory.create(any(), any(), any(), any(), any(), any(), any(), any(),
+        any()))
         .thenReturn(Optional.of(ksMaterialization));
     when(ksqlMaterializationFactory.create(any(), any(), any(), any())).thenReturn(materialization);
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
@@ -216,7 +220,6 @@ public class QueryExecutorTest {
         processingLogContext,
         serviceContext,
         functionRegistry,
-        closeCallback,
         kafkaStreamsBuilder,
         streamsBuilder,
         new MaterializationProviderBuilderFactory(
@@ -242,8 +245,10 @@ public class QueryExecutorTest {
         TRANSIENT_SINK_SCHEMA,
         LIMIT,
         Optional.empty(),
-        false
+        false,
+        queryListener
     );
+    queryMetadata.initialize();
 
     // Then:
     assertThat(queryMetadata.getStatementString(), equalTo(STATEMENT_TEXT));
@@ -271,8 +276,11 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
+        SUMMARY,
+        queryListener,
+        Collections::emptyList
     );
+    queryMetadata.initialize();
 
     // Then:
     assertThat(queryMetadata.getStatementString(), equalTo(STATEMENT_TEXT));
@@ -298,8 +306,11 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
+        SUMMARY,
+        queryListener,
+        Collections::emptyList
     );
+    queryMetadata.initialize();
     queryMetadata.start();
 
     // Then:
@@ -315,8 +326,11 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
+        SUMMARY,
+        queryListener,
+        Collections::emptyList
     );
+    queryMetadata.initialize();
     queryMetadata.start();
 
     // When:
@@ -335,14 +349,17 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
-    );
+        SUMMARY,
+        queryListener,
+        Collections::emptyList
+    ).initialize();
 
     // Then:
     final Map<String, Object> properties = capturedStreamsProperties();
     verify(ksMaterializationFactory).create(
         eq(STORE_NAME),
         same(kafkaStreams),
+        same(topology),
         same(aggregationSchema),
         any(),
         eq(Optional.empty()),
@@ -361,8 +378,11 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
+        SUMMARY,
+        queryListener,
+        Collections::emptyList
     );
+    queryMetadata.initialize();
     queryMetadata.start();
 
     // When:
@@ -388,8 +408,11 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
+        SUMMARY,
+        queryListener,
+        Collections::emptyList
     );
+    queryMetadata.initialize();
 
     // When:
     final Optional<Materialization> result = queryMetadata.getMaterialization(QUERY_ID, stacker);
@@ -407,8 +430,10 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
-    );
+        SUMMARY,
+        queryListener,
+        Collections::emptyList
+    ).initialize();
 
     // Then:
     assertThat(
@@ -427,8 +452,10 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
-    );
+        SUMMARY,
+        queryListener,
+        Collections::emptyList
+    ).initialize();
 
     // Then:
     final Map<String, Object> streamsProperties = capturedStreamsProperties();
@@ -456,8 +483,11 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
+        SUMMARY,
+        queryListener,
+        Collections::emptyList
     );
+    queryMetadata.initialize();
     queryMetadata.start();
 
     // Then:
@@ -515,8 +545,10 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
-    );
+        SUMMARY,
+        queryListener,
+        Collections::emptyList
+    ).initialize();
 
     // Then:
     assertPropertiesContainDummyInterceptors();
@@ -539,8 +571,10 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
-    );
+        SUMMARY,
+        queryListener,
+        Collections::emptyList
+    ).initialize();
 
     // Then:
     assertPropertiesContainDummyInterceptors();
@@ -564,8 +598,10 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
-    );
+        SUMMARY,
+        queryListener,
+        Collections::emptyList
+    ).initialize();
 
     // Then:
     final Map<String, Object> streamsProperties = capturedStreamsProperties();
@@ -593,8 +629,10 @@ public class QueryExecutorTest {
         sink,
         SOURCES,
         physicalPlan,
-        SUMMARY
-    );
+        SUMMARY,
+        queryListener,
+        Collections::emptyList
+    ).initialize();
 
     // Then:
     final Map<String, Object> streamsProps = capturedStreamsProperties();

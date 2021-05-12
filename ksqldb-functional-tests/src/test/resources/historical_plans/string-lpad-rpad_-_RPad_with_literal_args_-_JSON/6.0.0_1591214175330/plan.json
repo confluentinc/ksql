@@ -1,11 +1,11 @@
 {
   "plan" : [ {
     "@type" : "ksqlPlanV1",
-    "statementText" : "CREATE STREAM INPUT (ID STRING KEY, FOO STRING) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');",
+    "statementText" : "CREATE STREAM INPUT (ID STRING KEY) WITH (KAFKA_TOPIC='test_topic', VALUE_FORMAT='JSON');",
     "ddlCommand" : {
       "@type" : "createStreamV1",
       "sourceName" : "INPUT",
-      "schema" : "`ID` STRING KEY, `FOO` STRING",
+      "schema" : "`ID` STRING KEY",
       "topicName" : "test_topic",
       "formats" : {
         "keyFormat" : {
@@ -60,7 +60,7 @@
                 "format" : "JSON"
               }
             },
-            "sourceSchema" : "`ID` STRING KEY, `FOO` STRING"
+            "sourceSchema" : "`ID` STRING KEY"
           },
           "keyColumnNames" : [ "ID" ],
           "selectExpressions" : [ "RPAD('foo', 7, 'Bar') AS RESULT" ]

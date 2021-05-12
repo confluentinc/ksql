@@ -131,6 +131,8 @@ public class KsqlConfig extends AbstractConfig {
       + "'CREATE STREAM S AS ...' will create a topic 'thing-S', where as the statement "
       + "'CREATE STREAM S WITH(KAFKA_TOPIC = 'foo') AS ...' will create a topic 'foo'.";
 
+  public static final String KSQL_FOREIGN_KEY_JOINS_ENABLED = "ksql.joins.foreign.key.enable";
+
   public static final String KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG =
       "ksql.query.persistent.active.limit";
   private static final int KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DEFAULT = Integer.MAX_VALUE;
@@ -153,6 +155,17 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_WRAP_SINGLE_VALUES =
       "ksql.persistence.wrap.single.values";
+
+  public static final String KSQL_QUERYANONYMIZER_ENABLED =
+      "ksql.queryanonymizer.logs_enabled";
+  private static final String KSQL_QUERYANONYMIZER_ENABLED_DOC =
+      "This defines whether we log anonymized queries out of query logger or if we log them"
+      + "in plain text. Defaults to true";
+  public static final String KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE =
+      "ksql.queryanonymizer.cluster_namespace";
+  private static final String KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE_DOC =
+      "Namespace used in the query anonymization process, representing cluster id and "
+          + "organization id respectively. For example, 'clusterid.orgid'.";
 
   public static final String KSQL_CUSTOM_METRICS_TAGS = "ksql.metrics.tags.custom";
   private static final String KSQL_CUSTOM_METRICS_TAGS_DOC =
@@ -230,7 +243,14 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_QUERY_PULL_MAX_QPS_CONFIG = "ksql.query.pull.max.qps";
   public static final Integer KSQL_QUERY_PULL_MAX_QPS_DEFAULT = Integer.MAX_VALUE;
   public static final String KSQL_QUERY_PULL_MAX_QPS_DOC = "The maximum qps allowed for pull "
-      + "queries. Once the limit is hit, queries will fail immediately";
+      + "queries on this host. Once the limit is hit, queries will fail immediately";
+
+  public static final String KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_CONFIG
+      = "ksql.query.pull.max.concurrent.requests";
+  public static final Integer KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DEFAULT = Integer.MAX_VALUE;
+  public static final String KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DOC =
+      "The maximum number of concurrent requests allowed for pull "
+      + "queries on this host. Once the limit is hit, queries will fail immediately";
 
   public static final String KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG
       = "ksql.query.pull.thread.pool.size";
@@ -244,10 +264,32 @@ public class KsqlConfig extends AbstractConfig {
       "Config to enable full table scans for pull queries";
   public static final boolean KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DEFAULT = false;
 
+  public static final String KSQL_QUERY_PULL_INTERPRETER_ENABLED
+      = "ksql.query.pull.interpreter.enabled";
+  public static final String KSQL_QUERY_PULL_INTERPRETER_ENABLED_DOC =
+      "Enables whether we use the interpreter for expression evaluation for pull queries, or the"
+          + "default code generator. They should produce the same results, but the interpreter is"
+          + " much faster for short-lived queries.";
+  public static final boolean KSQL_QUERY_PULL_INTERPRETER_ENABLED_DEFAULT = true;
+
+  public static final String KSQL_QUERY_PUSH_SCALABLE_ENABLED
+      = "ksql.query.push.scalable.enabled";
+  public static final String KSQL_QUERY_PUSH_SCALABLE_ENABLED_DOC =
+      "Enables whether scalable push queries are enabled. Scalable push queries require no window "
+          + "functions, aggregations, or joins, but may include projections and filters.";
+  public static final boolean KSQL_QUERY_PUSH_SCALABLE_ENABLED_DEFAULT = false;
+
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
       "When casting a SQLType to string, if false, use String.valueof(), else if true use"
           + "Objects.toString()";
+
+  public static final String KSQL_NESTED_ERROR_HANDLING_CONFIG =
+      "ksql.nested.error.set.null";
+  public static final String KSQL_NESTED_ERROR_HANDLING_CONFIG_DOC =
+      "If there is a processing error in an element of a map, struct or array, if true set only the"
+          + " failing element to null and preserve the rest of the value, else if false, set the"
+          + " the entire value to null.";
 
   public static final String KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG =
       "ksql.streams.shutdown.timeout.ms";
@@ -330,6 +372,13 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SUPPRESS_ENABLED_DOC =
       "Feature flag for suppression, specifically EMIT FINAL";
 
+  public static final String KSQL_LAMBDAS_ENABLED = "ksql.lambdas.enabled";
+  public static final Boolean KSQL_LAMBDAS_ENABLED_DEFAULT = true;
+  public static final String KSQL_LAMBDAS_ENABLED_DOC =
+      "Feature flag for lambdas. Default is true. If true, lambdas are processed normally, "
+          + "if false, new lambda queries won't be processed but any existing lambda "
+          + "queries are unaffected.";
+
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES = "ksql.suppress.buffer.size.bytes";
   public static final Long KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT = -1L;
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DOC =
@@ -387,16 +436,27 @@ public class KsqlConfig extends AbstractConfig {
     CURRENT
   }
 
-  public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
-      = ImmutableList.of(new CompatibilityBreakingConfigDef(
-          KSQL_STRING_CASE_CONFIG_TOGGLE,
-          Type.BOOLEAN,
-          false,
-          true,
-          Importance.LOW,
-          Optional.empty(),
-          KSQL_STRING_CASE_CONFIG_TOGGLE_DOC
-      ));
+  public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS =
+      ImmutableList.of(
+          new CompatibilityBreakingConfigDef(
+              KSQL_STRING_CASE_CONFIG_TOGGLE,
+              Type.BOOLEAN,
+              false,
+              true,
+              Importance.LOW,
+              Optional.empty(),
+              KSQL_STRING_CASE_CONFIG_TOGGLE_DOC
+          ),
+          new CompatibilityBreakingConfigDef(
+              KSQL_NESTED_ERROR_HANDLING_CONFIG,
+              Type.BOOLEAN,
+              false,
+              true,
+              Importance.LOW,
+              Optional.empty(),
+              KSQL_NESTED_ERROR_HANDLING_CONFIG_DOC
+          )
+      );
 
   public static class CompatibilityBreakingConfigDef {
 
@@ -667,6 +727,18 @@ public class KsqlConfig extends AbstractConfig {
             ConfigDef.Importance.LOW,
             KSQL_CUSTOM_METRICS_TAGS_DOC
         ).define(
+            KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE,
+            ConfigDef.Type.STRING,
+            null,
+            ConfigDef.Importance.LOW,
+            KSQL_QUERYANONYMIZER_CLUSTER_NAMESPACE_DOC
+        ).define(
+            KSQL_QUERYANONYMIZER_ENABLED,
+            ConfigDef.Type.BOOLEAN,
+            true,
+            ConfigDef.Importance.LOW,
+            KSQL_QUERYANONYMIZER_ENABLED_DOC
+        ).define(
             KSQL_CUSTOM_METRICS_EXTENSION,
             ConfigDef.Type.CLASS,
             null,
@@ -720,6 +792,12 @@ public class KsqlConfig extends AbstractConfig {
             Importance.MEDIUM,
             KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_DOC
         ).define(
+            KSQL_FOREIGN_KEY_JOINS_ENABLED,
+            Type.BOOLEAN,
+            false,
+            Importance.MEDIUM,
+            "Feature flag for foreign key joins, currently under development."
+        ).define(
             KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG,
             Type.LONG,
             KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT,
@@ -762,7 +840,7 @@ public class KsqlConfig extends AbstractConfig {
         .define(
             KSQL_QUERY_PULL_METRICS_ENABLED,
             Type.BOOLEAN,
-            false,
+            true,
             Importance.LOW,
             KSQL_QUERY_PULL_METRICS_ENABLED_DOC
         )
@@ -772,6 +850,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_MAX_QPS_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PULL_MAX_QPS_DOC
+        )
+        .define(
+            KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_CONFIG,
+            Type.INT,
+            KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_DOC
         )
         .define(
             KSQL_QUERY_PULL_THREAD_POOL_SIZE_CONFIG,
@@ -786,6 +871,20 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PULL_TABLE_SCAN_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PULL_INTERPRETER_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PULL_INTERPRETER_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_INTERPRETER_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_SCALABLE_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PUSH_SCALABLE_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_SCALABLE_ENABLED_DOC
         )
         .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,
@@ -877,6 +976,12 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT_DEFAULT,
             Importance.LOW,
             KSQL_TOTAL_CACHE_MAX_BYTES_BUFFERING_TRANSIENT_DOC
+        ).define(
+            KSQL_LAMBDAS_ENABLED,
+            Type.BOOLEAN,
+            KSQL_LAMBDAS_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_LAMBDAS_ENABLED_DOC
         )
         .withClientSslSupport();
 

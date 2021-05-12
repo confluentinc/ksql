@@ -138,10 +138,18 @@ class HighAvailabilityTestUtil {
   }
 
   static void waitForStreamsMetadataToInitialize(
-      final TestKsqlRestApp restApp, List<KsqlHostInfoEntity> hosts, String queryId
+      final TestKsqlRestApp restApp, List<KsqlHostInfoEntity> hosts
+  ) {
+    waitForStreamsMetadataToInitialize(restApp, hosts, Optional.empty());
+  }
+
+  static void waitForStreamsMetadataToInitialize(
+      final TestKsqlRestApp restApp, List<KsqlHostInfoEntity> hosts,
+      final Optional<BasicCredentials> credentials
   ) {
     while (true) {
-      ClusterStatusResponse clusterStatusResponse = HighAvailabilityTestUtil.sendClusterStatusRequest(restApp);
+      ClusterStatusResponse clusterStatusResponse
+          = HighAvailabilityTestUtil.sendClusterStatusRequest(restApp, credentials);
       List<KsqlHostInfoEntity> initialized = hosts.stream()
           .filter(hostInfo -> Optional.ofNullable(
               clusterStatusResponse
@@ -392,9 +400,22 @@ class HighAvailabilityTestUtil {
     RestIntegrationTestUtil.makeKsqlRequest(restApp, sql, Optional.empty());
   }
 
+  public static void makeAdminRequest(
+      final TestKsqlRestApp restApp,
+      final String sql,
+      final Optional<BasicCredentials> userCreds
+  ) {
+    RestIntegrationTestUtil.makeKsqlRequest(restApp, sql, userCreds);
+  }
+
   public static List<KsqlEntity> makeAdminRequestWithResponse(
       TestKsqlRestApp restApp, final String sql) {
     return RestIntegrationTestUtil.makeKsqlRequest(restApp, sql, Optional.empty());
+  }
+
+  public static List<KsqlEntity> makeAdminRequestWithResponse(
+      TestKsqlRestApp restApp, final String sql, final Optional<BasicCredentials> userCreds) {
+    return RestIntegrationTestUtil.makeKsqlRequest(restApp, sql, userCreds);
   }
 
   public static List<StreamedRow> makePullQueryRequest(
@@ -410,6 +431,16 @@ class HighAvailabilityTestUtil {
       final Map<String, ?> properties
   ) {
     return RestIntegrationTestUtil.makeQueryRequest(target, sql, Optional.empty(),
+        properties, ImmutableMap.of(KsqlRequestConfig.KSQL_DEBUG_REQUEST, true));
+  }
+
+  public static List<StreamedRow> makePullQueryRequest(
+      final TestKsqlRestApp target,
+      final String sql,
+      final Map<String, ?> properties,
+      final Optional<BasicCredentials> userCreds
+  ) {
+    return RestIntegrationTestUtil.makeQueryRequest(target, sql, userCreds,
         properties, ImmutableMap.of(KsqlRequestConfig.KSQL_DEBUG_REQUEST, true));
   }
 }

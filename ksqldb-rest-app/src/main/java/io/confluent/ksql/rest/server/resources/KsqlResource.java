@@ -64,6 +64,7 @@ import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.net.URL;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -237,6 +238,22 @@ public class KsqlResource implements KsqlConfigurable {
     }
   }
 
+  public EndpointResponse isValidProperty(final String property) {
+    try {
+      final Map<String, Object> properties = new HashMap<>();
+      properties.put(property, "");
+      denyListPropertyValidator.validateAll(properties);
+
+      return EndpointResponse.ok(true);
+    } catch (final KsqlException e) {
+      LOG.info("Processed unsuccessfully, reason: ", e);
+      return errorHandler.generateResponse(e, Errors.badRequest(e));
+    } catch (final Exception e) {
+      LOG.info("Processed unsuccessfully, reason: ", e);
+      throw e;
+    }
+  }
+
   public EndpointResponse handleKsqlStatements(
       final KsqlSecurityContext securityContext,
       final KsqlRequest request
@@ -267,7 +284,8 @@ public class KsqlResource implements KsqlConfigurable {
               configProperties,
               localHost,
               localUrl,
-              requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST)
+              requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST),
+              request.getSessionVariables()
           ),
           request.getKsql()
       );
@@ -279,7 +297,8 @@ public class KsqlResource implements KsqlConfigurable {
               configProperties,
               localHost,
               localUrl,
-              requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST)
+              requestConfig.getBoolean(KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST),
+              request.getSessionVariables()
           )
       );
 
@@ -289,16 +308,16 @@ public class KsqlResource implements KsqlConfigurable {
           commandRunnerWarning);
       return EndpointResponse.ok(entities);
     } catch (final KsqlRestException e) {
-      LOG.info("Processed unsuccessfully: " + request + ", reason: " + e.getMessage());
+      LOG.info("Processed unsuccessfully: " + request + ", reason: ", e);
       throw e;
     } catch (final KsqlStatementException e) {
-      LOG.info("Processed unsuccessfully: " + request + ", reason: " + e.getMessage());
+      LOG.info("Processed unsuccessfully: " + request + ", reason: ", e);
       return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
-      LOG.info("Processed unsuccessfully: " + request + ", reason: " + e.getMessage());
+      LOG.info("Processed unsuccessfully: " + request + ", reason: ", e);
       return errorHandler.generateResponse(e, Errors.badRequest(e));
     } catch (final Exception e) {
-      LOG.info("Processed unsuccessfully: " + request + ", reason: " + e.getMessage());
+      LOG.info("Processed unsuccessfully: " + request + ", reason: ", e);
       return errorHandler.generateResponse(
           e, Errors.serverErrorForStatement(e, request.getKsql()));
     }

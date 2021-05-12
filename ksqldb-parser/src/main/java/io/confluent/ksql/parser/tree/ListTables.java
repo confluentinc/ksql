@@ -15,53 +15,22 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
-
 import com.google.errorprone.annotations.Immutable;
+
 import io.confluent.ksql.parser.NodeLocation;
-import java.util.Objects;
+
 import java.util.Optional;
 
 @Immutable
-public class ListTables extends Statement {
+public class ListTables extends StatementWithExtendedClause {
 
-  private final boolean showExtended;
 
   public ListTables(final Optional<NodeLocation> location, final boolean showExtended) {
-    super(location);
-    this.showExtended = showExtended;
-  }
-
-  public boolean getShowExtended() {
-    return showExtended;
+    super(location, showExtended);
   }
 
   @Override
   public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
     return visitor.visitListTables(this, context);
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final ListTables that = (ListTables) o;
-    return showExtended == that.showExtended;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(showExtended);
-  }
-
-  @Override
-  public String toString() {
-    return toStringHelper(this)
-        .add("showExtended", showExtended)
-        .toString();
   }
 }

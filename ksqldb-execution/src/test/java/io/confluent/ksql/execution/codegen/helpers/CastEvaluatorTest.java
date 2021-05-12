@@ -690,6 +690,7 @@ public class CastEvaluatorTest {
         .put(SqlBaseType.TIMESTAMP, new Timestamp(500))
         .build();
 
+    @SuppressWarnings("fallthrough")
     static Object instanceFor(final SqlType type, final SqlType to) {
       switch (type.baseType()) {
         case ARRAY:
@@ -729,6 +730,7 @@ public class CastEvaluatorTest {
           if (to.baseType() == TIMESTAMP) {
             return "2020-05-26T07:59:58.000";
           }
+          // Intentional fall through
         default:
           final Object instance = INSTANCES.get(type.baseType());
           assertThat(

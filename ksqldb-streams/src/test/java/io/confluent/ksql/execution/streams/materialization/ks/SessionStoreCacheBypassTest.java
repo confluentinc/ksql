@@ -50,7 +50,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SessionStoreCacheBypassTest {
 
   private static final GenericKey SOME_KEY = GenericKey.genericKey(1);
+  private static final GenericKey SOME_OTHER_KEY = GenericKey.genericKey(2);
+
   private static final byte[] BYTES = new byte[] {'a', 'b'};
+  private static final byte[] OTHER_BYTES = new byte[] {'c', 'd'};
 
   @Mock
   private QueryableStoreType<ReadOnlySessionStore<GenericKey, GenericRow>>
@@ -78,7 +81,7 @@ public class SessionStoreCacheBypassTest {
   }
 
   @Test
-  public void shouldCallUnderlyingStore() throws IllegalAccessException {
+  public void shouldCallUnderlyingStoreSingleKey() throws IllegalAccessException {
     when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredSessionStore));
     SERDES_FIELD.set(meteredSessionStore, serdes);
     when(serdes.rawKey(any())).thenReturn(BYTES);
@@ -89,6 +92,20 @@ public class SessionStoreCacheBypassTest {
 
     SessionStoreCacheBypass.fetch(store, SOME_KEY);
     verify(sessionStore).fetch(new Bytes(BYTES));
+  }
+
+  @Test
+  public void shouldCallUnderlyingStoreRangeQuery() throws IllegalAccessException {
+    when(provider.stores(any(), any())).thenReturn(ImmutableList.of(meteredSessionStore));
+    SERDES_FIELD.set(meteredSessionStore, serdes);
+    when(serdes.rawKey(any())).thenReturn(BYTES, OTHER_BYTES);
+    when(meteredSessionStore.wrapped()).thenReturn(wrappedSessionStore);
+    when(wrappedSessionStore.wrapped()).thenReturn(sessionStore);
+    when(sessionStore.fetch(any(), any())).thenReturn(storeIterator);
+    when(storeIterator.hasNext()).thenReturn(false);
+
+    SessionStoreCacheBypass.fetchRange(store, SOME_KEY, SOME_OTHER_KEY);
+    verify(sessionStore).fetch(new Bytes(BYTES), new Bytes(OTHER_BYTES));
   }
 
   @Test

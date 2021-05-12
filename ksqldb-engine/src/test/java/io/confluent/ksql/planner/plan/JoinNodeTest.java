@@ -438,7 +438,7 @@ public class JoinNodeTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Full outer joins between streams and tables are not supported."));
+        "Invalid join type encountered: [FULL] OUTER JOIN"));
   }
 
   @Test

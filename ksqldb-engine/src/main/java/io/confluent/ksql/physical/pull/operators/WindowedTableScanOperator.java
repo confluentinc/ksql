@@ -39,6 +39,7 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
   private Iterator<WindowedRow> resultIterator;
   private Iterator<KsqlPartitionLocation> partitionLocationIterator;
   private KsqlPartitionLocation nextLocation;
+  private long returnedRows = 0;
 
   public WindowedTableScanOperator(
       final Materialization mat,
@@ -78,6 +79,7 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
           .get(nextLocation.getPartition(), Range.all(), Range.all());
     }
 
+    returnedRows++;
     return resultIterator.next();
   }
 
@@ -120,5 +122,10 @@ public class WindowedTableScanOperator extends AbstractPhysicalOperator
   public void setPartitionLocations(final List<KsqlPartitionLocation> locations) {
     Objects.requireNonNull(locations, "locations");
     partitionLocations = locations;
+  }
+
+  @Override
+  public long getReturnedRowCount() {
+    return returnedRows;
   }
 }

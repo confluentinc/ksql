@@ -2,12 +2,12 @@
 layout: page
 title: ksqlDB Overview
 tagline: What is ksqlDB?
-description: Learn about ksqlDB, the event streaming database for creating stream processing applications with Apache Kafka®.
+description: Learn about ksqlDB, the database for creating stream processing applications with Apache Kafka®.
 keywords: ksqldb
 ---
 
-[ksqlDB](https://ksqldb.io/) is an event streaming database purpose-built to help developers create
-stream processing applications on top of {{ site.aktm }}.
+[ksqlDB](https://ksqldb.io/) is a database purpose-built
+for stream processing applications on top of {{ site.aktm }}.
 
 ## Try it
 
@@ -94,6 +94,23 @@ stream processing applications on top of {{ site.aktm }}.
       <li><a href="https://www.youtube.com/watch?v=D5QMqapzX8o">Building a movie rating app</a></li>
       <li><a href="https://www.youtube.com/watch?v=4odZGWl-yZo">Stream data from AWS to Azure</a></li>
       <li><a href="https://www.youtube.com/watch?v=ad02yDTAZx0">Transform and sink events to JDBC</a></li>
+      <li><a href="https://www.youtube.com/watch?v=2fUOi9wJPhk&ab_channel=RobinMoffatt">Building a streaming data pipeline</a></li>
+    </ul>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card getting-started how-to-videos">
+    <strong>How to</strong>
+    <ul class="card-items">
+      <li><a href="https://www.youtube.com/watch?v=scpbbl71CD8&list=PL5T99fPsK7pqrn7Ff-k4wdoZFlCH0EGC1&index=1&ab_channel=RobinMoffatt">Handle time</a></li>
+      <li><a href="https://www.youtube.com/watch?v=5NoU7D4OGA0&list=PL5T99fPsK7pqrn7Ff-k4wdoZFlCH0EGC1&index=2&ab_channel=RobinMoffatt">Split and merge streams</a></li>
+      <li><a href="https://www.youtube.com/watch?v=sLAztA-rt74&list=PL5T99fPsK7pqrn7Ff-k4wdoZFlCH0EGC1&index=3&ab_channel=RobinMoffatt">Change serialization formats</a></li>
+      <li><a href="https://www.youtube.com/watch?v=MLSrnBTSGlQ&list=PL5T99fPsK7pqrn7Ff-k4wdoZFlCH0EGC1&index=4&ab_channel=RobinMoffatt">Connect to external systems</a></li>
+      <li><a href="https://www.youtube.com/watch?v=_-j7aKE0kl0&list=PL5T99fPsK7pqrn7Ff-k4wdoZFlCH0EGC1&index=5&ab_channel=RobinMoffatt">Create a stateful table</a></li>
+      <li><a href="https://www.youtube.com/watch?v=_0Ktp2eB-as&list=PL5T99fPsK7pqrn7Ff-k4wdoZFlCH0EGC1&index=6&ab_channel=RobinMoffatt">Join streams and tables</a></li>
+      <li><a href="https://www.youtube.com/watch?v=7pH5KEQiYYo&list=PL5T99fPsK7pqrn7Ff-k4wdoZFlCH0EGC1&index=7&ab_channel=RobinMoffatt">Manipulate schemas</a></li>
+      <li><a href="https://www.youtube.com/watch?v=TfX70zBHyPM&list=PL5T99fPsK7pqrn7Ff-k4wdoZFlCH0EGC1&index=8&ab_channel=RobinMoffatt">Filter rows</a></li>
     </ul>
   </div>
 </div>

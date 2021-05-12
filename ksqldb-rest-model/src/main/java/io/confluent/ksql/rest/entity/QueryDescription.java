@@ -29,6 +29,7 @@ import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -50,6 +51,7 @@ public class QueryDescription {
   private final Map<KsqlHostInfoEntity, KsqlQueryStatus> ksqlHostQueryStatus;
   private final KsqlQueryType queryType;
   private final List<QueryError> queryErrors;
+  private final Set<StreamsTaskMetadata> tasksMetadata;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @SuppressWarnings("WeakerAccess") // Invoked via reflection
@@ -67,7 +69,8 @@ public class QueryDescription {
       @JsonProperty("ksqlHostQueryStatus") final Map<KsqlHostInfoEntity, KsqlQueryStatus>
           ksqlHostQueryStatus,
       @JsonProperty("queryType") final KsqlQueryType queryType,
-      @JsonProperty("queryErrors") final List<QueryError> queryErrors
+      @JsonProperty("queryErrors") final List<QueryError> queryErrors,
+      @JsonProperty("tasksMetadata") final Set<StreamsTaskMetadata> tasksMetadata
   ) {
     this.id = Objects.requireNonNull(id, "id");
     this.statementText = Objects.requireNonNull(statementText, "statementText");
@@ -83,6 +86,7 @@ public class QueryDescription {
         new HashMap<>(Objects.requireNonNull(ksqlHostQueryStatus, "ksqlHostQueryStatus"));
     this.queryType = Objects.requireNonNull(queryType, "queryType");
     this.queryErrors = new ArrayList<>(Objects.requireNonNull(queryErrors, "queryErrors"));
+    this.tasksMetadata = new HashSet<>(Objects.requireNonNull(tasksMetadata));
   }
 
   public QueryId getId() {
@@ -119,6 +123,14 @@ public class QueryDescription {
 
   public Map<String, Object> getOverriddenProperties() {
     return overriddenProperties;
+  }
+
+  public void updateTaskMetadata(final Set<StreamsTaskMetadata> updatedMetadata) {
+    tasksMetadata.addAll(updatedMetadata);
+  }
+
+  public ImmutableSet<StreamsTaskMetadata> getTasksMetadata() {
+    return ImmutableSet.copyOf(tasksMetadata);
   }
 
   // kept for backwards compatibility
@@ -173,7 +185,8 @@ public class QueryDescription {
         && Objects.equals(overriddenProperties, that.overriddenProperties)
         && Objects.equals(ksqlHostQueryStatus, that.ksqlHostQueryStatus)
         && Objects.equals(queryType, that.queryType)
-        && Objects.equals(queryErrors, that.queryErrors);
+        && Objects.equals(queryErrors, that.queryErrors)
+        && Objects.equals(tasksMetadata, that.tasksMetadata);
   }
 
   @Override
@@ -190,7 +203,8 @@ public class QueryDescription {
         overriddenProperties,
         ksqlHostQueryStatus,
         queryType,
-        queryErrors
+        queryErrors,
+        tasksMetadata
     );
   }
 }

@@ -1,5 +1,6 @@
 package io.confluent.ksql.execution.streams;
 
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import static io.confluent.ksql.execution.plan.StreamStreamJoin.LEGACY_KEY_COL;
 import static io.confluent.ksql.schema.ksql.SystemColumns.ROWKEY_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -71,6 +72,8 @@ public class TableTableJoinBuilderTest {
   private ExecutionKeyFactory<Struct> executionKeyFactory;
   @Mock
   private PlanInfo planInfo;
+  @Mock
+  private MaterializationInfo.Builder materializationBuilder;
 
   private PlanBuilder planBuilder;
   private TableTableJoin<Struct> join;
@@ -79,9 +82,9 @@ public class TableTableJoinBuilderTest {
   @Before
   public void init() {
     when(left.build(any(), eq(planInfo))).thenReturn(
-        KTableHolder.unmaterialized(leftKTable, LEFT_SCHEMA, executionKeyFactory));
+        KTableHolder.materialized(leftKTable, LEFT_SCHEMA, executionKeyFactory, materializationBuilder));
     when(right.build(any(), eq(planInfo))).thenReturn(
-        KTableHolder.unmaterialized(rightKTable, RIGHT_SCHEMA, executionKeyFactory));
+        KTableHolder.materialized(rightKTable, RIGHT_SCHEMA, executionKeyFactory, materializationBuilder));
 
     when(leftKTable.leftJoin(any(KTable.class), any())).thenReturn(resultKTable);
     when(leftKTable.outerJoin(any(KTable.class), any())).thenReturn(resultKTable);

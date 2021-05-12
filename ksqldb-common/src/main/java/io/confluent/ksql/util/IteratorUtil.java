@@ -24,9 +24,11 @@ public final class IteratorUtil {
   private IteratorUtil() {}
 
   public static <T> Iterator<T> onComplete(final Iterator<T> iterator, final Runnable runnable) {
-    return new IteratorWithCallbacks<T>(iterator, runnable);
+    return new IteratorWithCallbacks<>(iterator, runnable);
   }
 
+  @SuppressWarnings("varargs")
+  @SafeVarargs
   public static <T> Iterator<T> of(final T... elements) {
     return ImmutableList.copyOf(elements).iterator();
   }

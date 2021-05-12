@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.execution.streams;
 
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -33,9 +33,9 @@ public interface SqlPredicateFactory {
 
   default SqlPredicate create(
       Expression filterExpression,
-      ExpressionMetadata expressionMetadata
+      ExpressionEvaluator expressionEvaluator
   ) {
-    return new SqlPredicate(filterExpression, expressionMetadata);
+    return new SqlPredicate(filterExpression, expressionEvaluator);
   }
 
 }

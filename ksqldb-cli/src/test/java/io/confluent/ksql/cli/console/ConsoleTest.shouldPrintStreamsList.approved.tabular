@@ -1,0 +1,6 @@
+
+ Stream Name | Kafka Topic | Key Format | Value Format | Windowed 
+------------------------------------------------------------------
+ A           | t1          | JSON       | JSON         | true     
+ B           | t2          | KAFKA      | AVRO         | false    
+------------------------------------------------------------------

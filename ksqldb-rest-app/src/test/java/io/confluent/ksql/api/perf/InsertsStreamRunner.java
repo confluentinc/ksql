@@ -18,6 +18,7 @@ package io.confluent.ksql.api.perf;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.server.InsertResult;
 import io.confluent.ksql.api.server.InsertsStreamSubscriber;
+import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.reactive.BaseSubscriber;
@@ -160,9 +161,11 @@ public class InsertsStreamRunner extends BasePerfRunner {
     @Override
     public CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
         final JsonObject properties,
+        final JsonObject sessionVariables,
         final Context context,
         final WorkerExecutor workerExecutor,
-        final ApiSecurityContext apiSecurityContext) {
+        final ApiSecurityContext apiSecurityContext,
+        final MetricsCallbackHolder metricsCallbackHolder) {
       return null;
     }
 
@@ -192,7 +195,7 @@ public class InsertsStreamRunner extends BasePerfRunner {
     public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
         WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
         ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest,
-        KsqlMediaType mediaType) {
+        KsqlMediaType mediaType, final MetricsCallbackHolder metricsCallbackHolder) {
       return null;
     }
 
@@ -216,6 +219,12 @@ public class InsertsStreamRunner extends BasePerfRunner {
     @Override
     public CompletableFuture<EndpointResponse> executeStatus(String type, String entity,
         String action, ApiSecurityContext apiSecurityContext) {
+      return null;
+    }
+
+    @Override
+    public CompletableFuture<EndpointResponse> executeIsValidProperty(String property,
+        WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext) {
       return null;
     }
 

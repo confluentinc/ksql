@@ -213,4 +213,19 @@ public abstract class VisitParentExpressionVisitor<R, C> implements ExpressionVi
   public R visitCast(final Cast node, final C context) {
     return visitExpression(node, context);
   }
+
+  @Override
+  public R visitLambdaExpression(final LambdaFunctionCall node, final C context) {
+    return visitExpression(node, context);
+  }
+
+  @Override
+  public R visitLambdaVariable(final LambdaVariable node, final C context) {
+    return visitExpression(node, context);
+  }
+
+  @Override
+  public R visitIntervalUnit(final IntervalUnit node, final C context) {
+    return visitExpression(node, context);
+  }
 }

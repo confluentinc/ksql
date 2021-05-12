@@ -22,9 +22,12 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -37,12 +40,15 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
+import io.confluent.ksql.util.QueryMetadata.Listener;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -81,13 +87,13 @@ public class PersistentQueryMetadataTest {
   @Mock
   private Map<String, Object> overrides;
   @Mock
-  private Consumer<QueryMetadata> closeCallback;
-  @Mock
   private QueryErrorClassifier queryErrorClassifier;
   @Mock
   private ExecutionStep<?> physicalPlan;
   @Mock
   private ProcessingLogger processingLogger;
+  @Mock
+  private Listener listener;
 
   private PersistentQueryMetadata query;
 
@@ -95,10 +101,11 @@ public class PersistentQueryMetadataTest {
   public void setUp()  {
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
     when(physicalSchema.logicalSchema()).thenReturn(mock(LogicalSchema.class));
-    when(materializationProviderBuilder.apply(kafkaStreams))
+    when(materializationProviderBuilder.apply(kafkaStreams, topology))
         .thenReturn(Optional.of(materializationProvider));
+    when(kafkaStreams.state()).thenReturn(State.NOT_RUNNING);
 
-    query = new PersistentQueryMetadata(
+    query = new PersistentQueryMetadataImpl(
         SQL,
         physicalSchema,
         Collections.emptySet(),
@@ -112,16 +119,22 @@ public class PersistentQueryMetadataTest {
         schemas,
         props,
         overrides,
-        closeCallback,
         CLOSE_TIMEOUT,
         queryErrorClassifier,
         physicalPlan,
         10,
-        processingLogger
+        processingLogger,
+        0L,
+        0L,
+        listener,
+        Optional.empty()
     );
+
+    query.initialize();
   }
 
   @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldCloseKafkaStreamsOnStop() {
     // When:
     query.stop();
@@ -129,18 +142,45 @@ public class PersistentQueryMetadataTest {
     // Then:
     final InOrder inOrder = inOrder(kafkaStreams);
     inOrder.verify(kafkaStreams).close(any());
+    inOrder.verify(kafkaStreams).state();
     inOrder.verifyNoMoreInteractions();
   }
 
   @Test
-  @SuppressWarnings("deprecation") // https://github.com/confluentinc/ksql/issues/6639
+  public void shouldNotCallCloseCallbackOnStop() {
+    // When:
+    query.stop();
+
+    // Then:
+    verify(listener, times(0)).onClose(query);
+  }
+
+  @Test
+  public void shouldCallKafkaStreamsCloseOnStop() {
+    // When:
+    query.stop();
+
+    // Then:
+    verify(kafkaStreams).close(Duration.ofMillis(CLOSE_TIMEOUT));
+  }
+
+  @Test
+  public void shouldNotCleanUpKStreamsAppOnStop() {
+    // When:
+    query.stop();
+
+    // Then:
+    verify(kafkaStreams, never()).cleanUp();
+  }
+
+  @Test
   public void shouldRestartKafkaStreams() {
     final KafkaStreams newKafkaStreams = mock(KafkaStreams.class);
     final MaterializationProvider newMaterializationProvider = mock(MaterializationProvider.class);
 
     // Given:
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(newKafkaStreams);
-    when(materializationProviderBuilder.apply(newKafkaStreams))
+    when(materializationProviderBuilder.apply(newKafkaStreams, topology))
         .thenReturn(Optional.of(newMaterializationProvider));
 
     // When:
@@ -150,7 +190,7 @@ public class PersistentQueryMetadataTest {
     final InOrder inOrder = inOrder(kafkaStreams, newKafkaStreams);
     inOrder.verify(kafkaStreams).close(any());
     inOrder.verify(newKafkaStreams).setUncaughtExceptionHandler(
-        any(Thread.UncaughtExceptionHandler.class));
+        any(StreamsUncaughtExceptionHandler.class));
     inOrder.verify(newKafkaStreams).start();
 
     assertThat(query.getKafkaStreams(), is(newKafkaStreams));
@@ -179,7 +219,7 @@ public class PersistentQueryMetadataTest {
     when(queryErrorClassifier.classify(error)).thenReturn(QueryError.Type.SYSTEM);
 
     // When:
-    query.uncaughtHandler(thread, error);
+    query.uncaughtHandler(error);
 
     // Then:
     verify(processingLogger).error(errorMessageCaptor.capture());

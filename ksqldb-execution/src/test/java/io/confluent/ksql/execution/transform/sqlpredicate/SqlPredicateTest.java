@@ -26,7 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -76,7 +76,7 @@ public class SqlPredicateTest {
   @Mock
   private Expression filterExpression;
   @Mock
-  private ExpressionMetadata evaluator;
+  private CompiledExpression evaluator;
 
   private SqlPredicate predicate;
 

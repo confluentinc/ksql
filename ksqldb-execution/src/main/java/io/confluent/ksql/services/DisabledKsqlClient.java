@@ -24,6 +24,7 @@ import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * A KSQL client implementation for use when communication with other nodes is not supported.
@@ -51,6 +52,17 @@ public final class DisabledKsqlClient implements SimpleKsqlClient {
       final String sql,
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties
+  ) {
+    throw new UnsupportedOperationException("KSQL client is disabled");
+  }
+
+  @Override
+  public RestResponse<Integer> makeQueryRequest(
+      final URI serverEndPoint,
+      final String sql,
+      final Map<String, ?> configOverrides,
+      final Map<String, ?> requestProperties,
+      final Consumer<List<StreamedRow>> rowConsumer
   ) {
     throw new UnsupportedOperationException("KSQL client is disabled");
   }

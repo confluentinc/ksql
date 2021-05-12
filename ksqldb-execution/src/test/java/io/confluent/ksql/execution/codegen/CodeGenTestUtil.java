@@ -3,9 +3,12 @@ package io.confluent.ksql.execution.codegen;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.List;
+import org.apache.commons.lang3.ArrayUtils;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 public final class CodeGenTestUtil {
@@ -136,7 +139,7 @@ public final class CodeGenTestUtil {
 
     public Object rawEvaluate(final List<?> args) throws Exception {
       try {
-        return ee.evaluate(args == null ? new Object[]{null} : args.toArray());
+        return ee.evaluate(ArrayUtils.addAll(args == null ? new Object[]{null} : args.toArray(), null, null, null));
       } catch (final InvocationTargetException e) {
         throw e.getTargetException() instanceof Exception
             ? (Exception) e.getTargetException()

@@ -67,7 +67,21 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 public class JoinNode extends PlanNode implements JoiningNode {
 
   public enum JoinType {
-    INNER, LEFT, OUTER
+    INNER, LEFT, OUTER;
+
+    @Override
+    public String toString() {
+      switch (this) {
+        case INNER:
+          return "[INNER] JOIN";
+        case LEFT:
+          return "LEFT [OUTER] JOIN";
+        case OUTER:
+          return "[FULL] OUTER JOIN";
+        default:
+          throw new IllegalStateException();
+      }
+    }
   }
 
   private final JoinType joinType;
@@ -292,13 +306,8 @@ public class JoinNode extends PlanNode implements JoiningNode {
       );
     }
 
-    Joiner<?> getJoiner(final DataSourceType leftType,
-        final DataSourceType rightType) {
-
-      return joinerMap.getOrDefault(new Pair<>(leftType, rightType), () -> {
-        throw new KsqlException("Join between invalid operands requested: left type: "
-            + leftType + ", right type: " + rightType);
-      }).get();
+    Joiner<?> getJoiner(final DataSourceType leftType, final DataSourceType rightType) {
+      return joinerMap.get(new Pair<>(leftType, rightType)).get();
     }
   }
 
@@ -434,8 +443,6 @@ public class JoinNode extends PlanNode implements JoiningNode {
               JoiningNode.getValueFormatForSource(joinNode.left).getFormatInfo(),
               contextStacker
           );
-        case OUTER:
-          throw new KsqlException("Full outer joins between streams and tables are not supported.");
 
         default:
           throw new KsqlException("Invalid join type encountered: " + joinNode.joinType);

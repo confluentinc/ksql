@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.equalToIgnoringCase;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.stringContainsInOrder;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
@@ -36,8 +37,16 @@ import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.WarningEntity;
+import java.io.ByteArrayOutputStream;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -47,6 +56,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.connect.json.JsonConverter;
+import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.apache.kafka.connect.storage.StringConverter;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -54,6 +64,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -65,6 +76,7 @@ public class ConnectIntegrationTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConnectIntegrationTest.class);
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
+  private  static final long TIMEOUT_NS = 120000000000L;
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
@@ -92,6 +104,7 @@ public class ConnectIntegrationTest {
         .put("offset.storage.replication.factor", "1")
         .put("status.storage.replication.factor", "1")
         .put("config.storage.replication.factor", "1")
+        .put("value.converter.schemas.enable", "false")
         .build()
     );
     CONNECT.startAsync();
@@ -112,7 +125,7 @@ public class ConnectIntegrationTest {
   }
 
   @After
-  public void afterRun() {
+  public void afterRun() throws UnsupportedEncodingException {
     Iterators.consumingIterator(connectNames.iterator())
         .forEachRemaining(
             name -> ksqlRestClient.makeKsqlRequest("DROP CONNECTOR `" + name + "`;"));
@@ -122,6 +135,8 @@ public class ConnectIntegrationTest {
             .get(0)).getConnectors(),
         Matchers.empty()
     );
+
+    System.setOut(new PrintStream(new FileOutputStream(FileDescriptor.out), true, "UTF-8"));
   }
 
   @Test
@@ -239,7 +254,70 @@ public class ConnectIntegrationTest {
         containsString("Connector mock-connector already exists"));
   }
 
+  @Test
+  public void shouldReadTimestampsFromConnect() {
+    // Given:
+    create("mock-source", ImmutableMap.<String, String> builder()
+        .put("connector.class", "org.apache.kafka.connect.tools.VerifiableSourceConnector")
+        .put("topic", "foo")
+        .put("throughput", "5")
+        .put("id", "123")
+        .put("topic.creation.default.replication.factor", "1")
+        .put("topic.creation.default.partitions", "1")
+        .build());
+
+    final long start = System.nanoTime();
+    RestResponse<KsqlEntityList> response;
+    do {
+      response = ksqlRestClient.makeKsqlRequest("CREATE STREAM FOO (PAYLOAD TIMESTAMP) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='DELIMITED');");
+    } while(!response.isSuccessful() && System.nanoTime() - start < TIMEOUT_NS);
+
+    // When:
+    final RestResponse<List<StreamedRow>> queryFoo = ksqlRestClient.makeQueryRequest("SELECT * FROM FOO EMIT CHANGES LIMIT 1;", 1L);
+
+    // Then:
+    assertThat("successfully queried FOO", queryFoo.isSuccessful());
+    assertThat(queryFoo.getResponse().get(1).getRow().get().getColumns().get(0), is("1970-01-01T00:00:00.000"));
+  }
+
+  @Test
+  @Ignore
+  public void shouldWriteTimestampsToConnect() throws UnsupportedEncodingException {
+    // Given:
+    ksqlRestClient.makeKsqlRequest("CREATE STREAM BAR (PAYLOAD TIMESTAMP) WITH (KAFKA_TOPIC='bar', value_format='JSON', PARTITIONS=1);");
+    ksqlRestClient.makeKsqlRequest("INSERT INTO BAR VALUES ('1970-01-01T00:00:00');");
+
+    // When:
+    create("mock-sink", ImmutableMap.<String, String> builder()
+        .put("connector.class", "org.apache.kafka.connect.tools.VerifiableSinkConnector")
+        .put("topics", "BAR")
+        .put("id", "456")
+        .put("value.converter.schemas.enable", "false")
+        .build(), ConnectorType.SINK);
+
+    // Then:
+    Iterable<String> sinkOutputParts = Arrays.asList(
+        "{\"task\":null,\"seqno\":{\"PAYLOAD\":0},\"offset\":0,\"time_ms\":",
+        ",\"name\":\"mock-sink\",\"topic\":\"BAR\""
+    );
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    System.setOut(new PrintStream(out, true, "UTF-8"));
+    assertThatEventually("checks the values received by the connector", () -> {
+          try {
+            return out.toString("UTF-8");
+          } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            return "";
+          }
+        },
+        stringContainsInOrder(sinkOutputParts), TIMEOUT_NS, TimeUnit.NANOSECONDS);
+  }
+
   private void create(final String name, final Map<String, String> properties) {
+    create(name, properties, ConnectorType.SOURCE);
+  }
+
+  private void create(final String name, final Map<String, String> properties, ConnectorType type) {
     connectNames.add(name);
     final String withClause = Joiner.on(",")
         .withKeyValueSeparator("=")
@@ -248,7 +326,7 @@ public class ConnectIntegrationTest {
             e -> "'" + e.getValue() + "'")));
 
     final RestResponse<KsqlEntityList> response = ksqlRestClient.makeKsqlRequest(
-        "CREATE SOURCE CONNECTOR `" + name + "` WITH(" + withClause + ");");
+        "CREATE " + type + " CONNECTOR `" + name + "` WITH(" + withClause + ");");
     LOG.info("Got response from Connect: {}", response);
   }
 

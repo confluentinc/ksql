@@ -10,5 +10,4 @@ Homepage: http://confluent.io
 Package: confluent-ksqldb
 Architecture: all
 Depends: ${misc:Depends}, adduser
-Provides: community-ksqldb (= 0.14.0)
 Description: Streaming SQL engine for Apache Kafka.

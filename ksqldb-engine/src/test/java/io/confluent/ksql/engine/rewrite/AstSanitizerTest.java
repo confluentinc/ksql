@@ -24,10 +24,16 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
+import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
@@ -36,6 +42,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
@@ -150,6 +157,23 @@ public class AstSanitizerTest {
   }
 
   @Test
+  public void shouldThrowIfLambdasAreDisabled() {
+    // Given:
+    final Statement stmt =
+        givenQuery("SELECT transform(arr, x => x+1) FROM TEST1;");
+
+    // When:
+    final Exception e = assertThrows(
+        UnsupportedOperationException.class,
+        () -> AstSanitizer.sanitize(stmt, META_STORE, false)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), containsString(
+        "Lambdas are not enabled at this time."));
+  }
+
+  @Test
   public void shouldAddQualifierForColumnReference() {
     // Given:
     final Statement stmt = givenQuery("SELECT COL0 FROM TEST1;");
@@ -194,6 +218,126 @@ public class AstSanitizerTest {
         new SingleColumn(
             column(TEST1_NAME, "COL5"), Optional.of(ColumnName.of("COL5")))
     ))));
+  }
+
+  @Test
+  public void shouldAllowDuplicateLambdaArgumentInSeparateExpression() {
+    // Given:
+    final Statement stmt = givenQuery(
+        "SELECT TRANSFORM_ARRAY(Col4, X => X + 5, (X,Y) => Y + 5) FROM TEST1;");
+
+    // When:
+    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new SingleColumn(
+            new FunctionCall(
+                FunctionName.of("TRANSFORM_ARRAY"),
+                ImmutableList.of(
+                    column(TEST1_NAME, "COL4"),
+                    new LambdaFunctionCall(
+                        ImmutableList.of("X"),
+                        new ArithmeticBinaryExpression(
+                            Operator.ADD,
+                            new LambdaVariable("X"),
+                            new IntegerLiteral(5))
+                    ),
+                    new LambdaFunctionCall(
+                        ImmutableList.of("X", "Y"),
+                        new ArithmeticBinaryExpression(
+                            Operator.ADD,
+                            new LambdaVariable("Y"),
+                            new IntegerLiteral(5))
+                    )
+                )
+            ),
+            Optional.of(ColumnName.of("KSQL_COL_0")))
+    ))));
+  }
+
+  @Test
+  public void shouldAllowNestedLambdaFunctionsWithoutDuplicate() {
+    // Given:
+    final Statement stmt = givenQuery(
+        "SELECT TRANSFORM_ARRAY(Col4, (X,Y,Z) => TRANSFORM_MAP(Col4, Q => 4, H => 5), (X,Y,Z) => 0) FROM TEST1;");
+
+    // When:
+    final Query result = (Query) AstSanitizer.sanitize(stmt, META_STORE);
+
+    // Then:
+    assertThat(result.getSelect(), is(new Select(ImmutableList.of(
+        new SingleColumn(
+            new FunctionCall(
+                FunctionName.of("TRANSFORM_ARRAY"),
+                ImmutableList.of(
+                    column(TEST1_NAME, "COL4"),
+                    new LambdaFunctionCall(
+                        ImmutableList.of("X", "Y", "Z"),
+                        new FunctionCall(
+                            FunctionName.of("TRANSFORM_MAP"),
+                            ImmutableList.of(
+                                column(TEST1_NAME, "COL4"),
+                                new LambdaFunctionCall(
+                                    ImmutableList.of("Q"),
+                                    new IntegerLiteral(4)
+                                ),
+                                new LambdaFunctionCall(
+                                    ImmutableList.of("H"),
+                                    new IntegerLiteral(5)
+                                )
+                            )
+                        )
+                    ),
+                    new LambdaFunctionCall(
+                        ImmutableList.of("X", "Y", "Z"),
+                        new IntegerLiteral(0)
+                    )
+                )
+            ),
+            Optional.of(ColumnName.of("KSQL_COL_0")))
+    ))));
+  }
+
+  @Test
+  public void shouldThrowOnColumnNamesUsedForLambdaArguments() {
+    // Given:
+    final Statement stmt = givenQuery(
+        "SELECT TRANSFORM_ARRAY(Col4, Col0 => Col0 + 5) FROM TEST1;");
+
+    final Exception e = assertThrows(
+        KsqlException.class,
+        () -> AstSanitizer.sanitize(stmt, META_STORE)
+    );
+
+    // Then:
+    assertThat(e.getMessage(),
+        containsString("Lambda function argument can't be a column name: COL0"));
+
+  }
+
+  @Test
+  public void shouldThrowOnDuplicateLambdaArgumentsInNestedLambda() {
+    // Given:
+    final Statement stmt1 = givenQuery(
+        "SELECT TRANSFORM_ARRAY(Col4, X => TRANSFORM_ARRAY(Col4, X => X)) FROM TEST1;");
+    final Statement stmt2 = givenQuery(
+        "SELECT TRANSFORM_ARRAY(Col4, (X,Y,Z) => TRANSFORM_MAP(Col4, Q => TRANSFORM_ARRAY(Col4, T => T, X => X))) FROM TEST1;");
+
+    final Exception e1 = assertThrows(
+        KsqlException.class,
+        () -> AstSanitizer.sanitize(stmt1, META_STORE)
+    );
+    final Exception e2 = assertThrows(
+        KsqlException.class,
+        () -> AstSanitizer.sanitize(stmt2, META_STORE)
+    );
+
+    // Then:
+    assertThat(e1.getMessage(),
+        containsString("Reusing lambda arguments in nested lambda is not allowed"));
+    assertThat(e2.getMessage(),
+        containsString("Reusing lambda arguments in nested lambda is not allowed"));
   }
 
   @Test

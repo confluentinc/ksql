@@ -16,7 +16,7 @@
 package io.confluent.ksql.rest.server;
 
 import static java.util.Objects.requireNonNull;
-import static org.easymock.EasyMock.niceMock;
+import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -227,13 +227,24 @@ public class TestKsqlRestApp extends ExternalResource {
   }
 
   public void closePersistentQueries() {
-    try (final KsqlRestClient client = buildKsqlClient()) {
+    closePersistentQueries(Optional.empty());
+  }
+
+  public void closePersistentQueries(final Optional<BasicCredentials> credentials) {
+    try (final KsqlRestClient client = buildKsqlClient(credentials)) {
       terminateQueries(getPersistentQueries(client), client);
     }
   }
 
   public void dropSourcesExcept(final String... exceptSources) {
-    try (final KsqlRestClient client = buildKsqlClient()) {
+    dropSourcesExcept(Optional.empty(), exceptSources);
+  }
+
+  public void dropSourcesExcept(
+      final Optional<BasicCredentials> credential,
+      final String... exceptSources
+  ) {
+    try (final KsqlRestClient client = buildKsqlClient(credential)) {
 
       final Set<String> except = Arrays.stream(exceptSources)
           .map(String::toUpperCase)
@@ -300,7 +311,7 @@ public class TestKsqlRestApp extends ExternalResource {
       ksqlRestApplication = KsqlRestApplication.buildApplication(
           metricsPrefix,
           ksqlRestConfig,
-          (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
+          (booleanSupplier) -> mock(VersionCheckerAgent.class),
           3,
           serviceContext.get(),
           () -> serviceContext.get().getSchemaRegistryClient(),
@@ -487,7 +498,7 @@ public class TestKsqlRestApp extends ExternalResource {
         visited.add(s);
 
         final RestResponse<KsqlEntityList> res =
-            makeKsqlRequest(client, "DESCRIBE EXTENDED `" + s + "`;");
+            makeKsqlRequest(client, "DESCRIBE `" + s + "` EXTENDED;");
 
         if (res.isErroneous()) {
           throw new AssertionError("Failed to describe stream " + s + "."

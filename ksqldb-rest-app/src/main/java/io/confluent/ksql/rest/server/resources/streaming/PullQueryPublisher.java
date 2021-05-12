@@ -18,159 +18,173 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.PullQueryExecutionUtil;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
-import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.HARouting;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullQueryResult;
-import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.entity.TableRows;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.util.KeyValue;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
   private final KsqlEngine ksqlEngine;
   private final ServiceContext serviceContext;
+  private final ListeningScheduledExecutorService exec;
   private final ConfiguredStatement<Query> query;
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final long startTimeNanos;
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
+  private final ConcurrencyLimiter concurrencyLimiter;
   private final HARouting routing;
 
   @VisibleForTesting
   PullQueryPublisher(
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,
+      final ListeningScheduledExecutorService exec,
       final ConfiguredStatement<Query> query,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final long startTimeNanos,
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
+      final ConcurrencyLimiter concurrencyLimiter,
       final HARouting routing
   ) {
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
+    this.exec = requireNonNull(exec, "exec");
     this.query = requireNonNull(query, "query");
     this.pullQueryMetrics = pullQueryMetrics;
     this.startTimeNanos = startTimeNanos;
     this.routingFilterFactory = requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = requireNonNull(rateLimiter, "rateLimiter");
+    this.concurrencyLimiter = concurrencyLimiter;
     this.routing = requireNonNull(routing, "routing");
   }
 
   @Override
   public synchronized void subscribe(final Subscriber<Collection<StreamedRow>> subscriber) {
-    final PullQuerySubscription subscription = new PullQuerySubscription(
-        subscriber,
-        () -> {
-          final RoutingOptions routingOptions = new PullQueryConfigRoutingOptions(
-              query.getSessionConfig().getConfig(false),
-              query.getSessionConfig().getOverrides(),
-              ImmutableMap.of()
-          );
-
-          PullQueryExecutionUtil.checkRateLimit(rateLimiter);
-
-          final PullQueryResult result = ksqlEngine.executePullQuery(
-              serviceContext,
-              query,
-              routing,
-              routingFilterFactory,
-              routingOptions,
-              pullQueryMetrics
-          );
-
-          pullQueryMetrics.ifPresent(pullQueryExecutorMetrics -> pullQueryExecutorMetrics
-              .recordLatency(startTimeNanos));
-          return result;
-        },
-        query
+    final RoutingOptions routingOptions = new PullQueryConfigRoutingOptions(
+        query.getSessionConfig().getConfig(false),
+        query.getSessionConfig().getOverrides(),
+        ImmutableMap.of()
     );
 
-    subscriber.onSubscribe(subscription);
+    final PullQueryConfigPlannerOptions plannerOptions = new PullQueryConfigPlannerOptions(
+        query.getSessionConfig().getConfig(false),
+        query.getSessionConfig().getOverrides()
+    );
+
+    PullQueryExecutionUtil.checkRateLimit(rateLimiter);
+    final Decrementer decrementer = concurrencyLimiter.increment();
+
+    PullQueryResult result = null;
+    try {
+      result = ksqlEngine.executePullQuery(
+          serviceContext,
+          query,
+          routing,
+          routingOptions,
+          plannerOptions,
+          pullQueryMetrics,
+          true
+      );
+
+      final PullQueryResult finalResult = result;
+      result.onCompletionOrException((v, throwable) -> {
+        decrementer.decrementAtMostOnce();
+
+        pullQueryMetrics.ifPresent(m -> {
+          recordMetrics(m, Optional.of(finalResult));
+        });
+      });
+
+      final PullQuerySubscription subscription = new PullQuerySubscription(
+          exec, subscriber, result);
+
+      subscriber.onSubscribe(subscription);
+    } catch (Throwable t) {
+      decrementer.decrementAtMostOnce();
+
+      if (result == null) {
+        pullQueryMetrics.ifPresent(m -> recordMetrics(m, Optional.empty()));
+      }
+      throw t;
+    }
   }
 
-  private static final class PullQuerySubscription implements Flow.Subscription {
+  private void recordMetrics(
+      final PullQueryExecutorMetrics metrics, final Optional<PullQueryResult> result) {
+    final PullSourceType sourceType = result.map(
+        PullQueryResult::getSourceType).orElse(PullSourceType.UNKNOWN);
+    final PullPhysicalPlanType planType = result.map(
+        PullQueryResult::getPlanType).orElse(PullPhysicalPlanType.UNKNOWN);
+    final RoutingNodeType routingNodeType = result.map(
+        PullQueryResult::getRoutingNodeType).orElse(RoutingNodeType.UNKNOWN);
+    metrics.recordLatency(startTimeNanos, sourceType, planType, routingNodeType);
+    metrics.recordRowsReturned(result.map(PullQueryResult::getTotalRowsReturned).orElse(0L),
+        sourceType, planType, routingNodeType);
+    metrics.recordRowsProcessed(result.map(PullQueryResult::getTotalRowsProcessed).orElse(0L),
+        sourceType, planType, routingNodeType);
+  }
+
+  private static final class PullQuerySubscription
+      extends PollingSubscription<Collection<StreamedRow>> {
 
     private final Subscriber<Collection<StreamedRow>> subscriber;
-    private final Callable<PullQueryResult> executor;
-    private final ConfiguredStatement<Query> query;
-    private boolean done = false;
+    private final PullQueryResult result;
 
     private PullQuerySubscription(
+        final ListeningScheduledExecutorService exec,
         final Subscriber<Collection<StreamedRow>> subscriber,
-        final Callable<PullQueryResult> executor,
-        final ConfiguredStatement<Query> query
+        final PullQueryResult result
     ) {
+      super(exec, subscriber, result.getSchema());
       this.subscriber = requireNonNull(subscriber, "subscriber");
-      this.executor = requireNonNull(executor, "executor");
-      this.query = requireNonNull(query, "query");
+      this.result = requireNonNull(result, "result");
+
+      result.onCompletion(v -> setDone());
+      result.onException(this::setError);
     }
 
     @Override
-    public void request(final long n) {
-      Preconditions.checkArgument(n == 1, "number of requested items must be 1");
-
-      if (done) {
-        return;
-      }
-
-      done = true;
-
-      try {
-        final PullQueryResult result = executor.call();
-        final TableRows entity = new TableRows(
-            query.getStatementText(),
-            result.getQueryId(),
-            result.getSchema(),
-            result.getTableRows());
-        final Optional<List<KsqlHostInfoEntity>> hosts = result.getSourceNodes()
-            .map(list -> list.stream().map(KsqlNode::location)
-                .map(location -> new KsqlHostInfoEntity(location.getHost(), location.getPort()))
-                .collect(Collectors.toList()));
-
-        subscriber.onSchema(entity.getSchema());
-
-        hosts.ifPresent(h -> Preconditions.checkState(h.size() == entity.getRows().size()));
-        final List<StreamedRow> rows = IntStream.range(0, entity.getRows().size())
-            .mapToObj(i -> Pair.of(
-                PullQuerySubscription.toGenericRow(entity.getRows().get(i)),
-                hosts.map(h -> h.get(i))))
-            .map(pair -> StreamedRow.pullRow(pair.getLeft(), pair.getRight()))
-            .collect(Collectors.toList());
-
-        subscriber.onNext(rows);
-        subscriber.onComplete();
-      } catch (final Exception e) {
-        subscriber.onError(e);
+    Collection<StreamedRow> poll() {
+      final List<KeyValue<List<?>, GenericRow>> rows = Lists.newLinkedList();
+      result.getPullQueryQueue().drainTo(rows);
+      if (rows.isEmpty()) {
+        return null;
+      } else {
+        return rows.stream()
+            .map(kv -> StreamedRow.pushRow(kv.value()))
+            .collect(Collectors.toCollection(Lists::newLinkedList));
       }
     }
 
     @Override
-    public void cancel() {
-    }
-
-    private static GenericRow toGenericRow(final List<?> values) {
-      return new GenericRow().appendAll(values);
+    void close() {
+      result.stop();
     }
   }
 }

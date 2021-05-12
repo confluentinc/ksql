@@ -33,6 +33,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -77,6 +78,9 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 
+import io.confluent.ksql.util.SandboxedPersistentQueryMetadataImpl;
+import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -853,7 +857,7 @@ public class KsqlEngineTest {
   public void shouldNotFailIfAvroSchemaEvolvable() {
     // Given:
     final Schema evolvableSchema = SchemaBuilder
-        .record("Test").fields()
+        .record("KsqlDataSourceSchema").fields()
         .nullableInt("f1", 1)
         .endRecord();
 
@@ -943,6 +947,43 @@ public class KsqlEngineTest {
 
     // Then:
     verify(topicClient).deleteInternalTopics(query.getQueryApplicationId());
+  }
+
+  @Test
+  public void shouldCreateSandboxWithSandboxedQueryMetadata() {
+    // Given:
+    final QueryMetadata transientQ = KsqlEngineTestUtil.executeQuery(
+        serviceContext,
+        ksqlEngine,
+        "select * from test1 EMIT CHANGES;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+    final QueryMetadata persistentQ = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream banana as select * from test1 EMIT CHANGES;",
+        KSQL_CONFIG, Collections.emptyMap()
+    ).get(0);
+
+    // When:
+    final KsqlExecutionContext sandbox = ksqlEngine.createSandbox(serviceContext);
+
+    // Then:
+    assertThat(sandbox.getAllLiveQueries().size(), is(2));
+    assertSandboxHasQuery(sandbox, transientQ);
+    assertSandboxHasQuery(sandbox, persistentQ);
+  }
+
+  private void assertSandboxHasQuery(final KsqlExecutionContext sandbox, final QueryMetadata q) {
+    for (final QueryMetadata sq : sandbox.getAllLiveQueries()) {
+      if (sq.getQueryId().equals(q.getQueryId())) {
+        if (q instanceof TransientQueryMetadata) {
+          assertTrue(sq instanceof SandboxedTransientQueryMetadata);
+        } else {
+          assertTrue(sq instanceof SandboxedPersistentQueryMetadataImpl);
+        }
+      }
+    }
   }
 
   @Test
@@ -1130,6 +1171,50 @@ public class KsqlEngineTest {
     query.close();
 
     // Then:
+    awaitCleanupComplete();
+    verify(topicClient, never()).deleteInternalTopics(any());
+  }
+
+  @Test
+  public void shouldNotCleanUpInternalTopicsOnReplace() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream s1 with (value_format = 'avro') as select * from test1;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+
+    // When:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create or replace stream s1 with (value_format = 'avro') as select *, 'foo' from test1;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+
+
+    // Then:
+    awaitCleanupComplete();
+    verify(topicClient, never()).deleteInternalTopics(any());
+  }
+
+  @Test
+  public void shouldNotCleanUpInternalTopicsOnSandboxQueryClose() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream s1 with (value_format = 'avro') as select * from test1;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+    final KsqlExecutionContext sandbox = ksqlEngine.createSandbox(serviceContext);
+
+    // When:
+    sandbox.getPersistentQueries().forEach(PersistentQueryMetadata::close);
+
+    // Then:
+    awaitCleanupComplete();
     verify(topicClient, never()).deleteInternalTopics(any());
   }
 

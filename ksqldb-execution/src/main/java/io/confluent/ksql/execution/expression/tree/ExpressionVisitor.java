@@ -87,4 +87,9 @@ public interface ExpressionVisitor<R, C> {
 
   R visitWhenClause(WhenClause exp, C context);
 
+  R visitLambdaExpression(LambdaFunctionCall exp, C context);
+
+  R visitLambdaVariable(LambdaVariable exp, C context);
+
+  R visitIntervalUnit(IntervalUnit exp, C context);
 }

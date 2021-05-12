@@ -22,9 +22,12 @@ import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.parser.tree.DescribeFunction;
+import io.confluent.ksql.parser.tree.DescribeStreams;
+import io.confluent.ksql.parser.tree.DescribeTables;
 import io.confluent.ksql.parser.tree.DropConnector;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.InsertValues;
+import io.confluent.ksql.parser.tree.ListConnectorPlugins;
 import io.confluent.ksql.parser.tree.ListConnectors;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListProperties;
@@ -75,10 +78,13 @@ public enum CustomValidators {
   LIST_TOPICS(ListTopics.class, StatementValidator.NO_VALIDATION),
   LIST_STREAMS(ListStreams.class, StatementValidator.NO_VALIDATION),
   LIST_TABLES(ListTables.class, StatementValidator.NO_VALIDATION),
+  DESCRIBE_STREAMS(DescribeStreams.class, StatementValidator.NO_VALIDATION),
+  DESCRIBE_TABLES(DescribeTables.class, StatementValidator.NO_VALIDATION),
   LIST_FUNCTIONS(ListFunctions.class, StatementValidator.NO_VALIDATION),
   LIST_QUERIES(ListQueries.class, StatementValidator.NO_VALIDATION),
   LIST_PROPERTIES(ListProperties.class, StatementValidator.NO_VALIDATION),
   LIST_CONNECTORS(ListConnectors.class, StatementValidator.NO_VALIDATION),
+  LIST_CONNECTOR_PLUGINS(ListConnectorPlugins.class, StatementValidator.NO_VALIDATION),
   LIST_TYPES(ListTypes.class, StatementValidator.NO_VALIDATION),
   CREATE_CONNECTOR(CreateConnector.class, StatementValidator.NO_VALIDATION),
   DROP_CONNECTOR(DropConnector.class, StatementValidator.NO_VALIDATION),

@@ -34,6 +34,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * A KSQL client implementation that sends requests to KsqlResource directly, rather than going
@@ -78,6 +79,17 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
       final String sql,
       final Map<String, ?> configOverrides,
       final Map<String, ?> requestProperties
+  ) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public RestResponse<Integer> makeQueryRequest(
+      final URI serverEndpoint,
+      final String sql,
+      final Map<String, ?> configOverrides,
+      final Map<String, ?> requestProperties,
+      final Consumer<List<StreamedRow>> rowConsumer
   ) {
     throw new UnsupportedOperationException();
   }

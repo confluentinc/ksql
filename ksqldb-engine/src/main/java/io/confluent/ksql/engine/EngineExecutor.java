@@ -17,6 +17,8 @@ package io.confluent.ksql.engine;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
+import com.google.common.base.Throwables;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
@@ -24,7 +26,6 @@ import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -40,17 +41,23 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlanBuilder;
+import io.confluent.ksql.physical.pull.PullQueryQueuePopulator;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
+import io.confluent.ksql.planner.PullPlannerOptions;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.query.QueryExecutor;
+import io.confluent.ksql.query.PullQueryQueue;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.QueryRegistry;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -62,10 +69,13 @@ import io.confluent.ksql.util.PlanSummary;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Executor of {@code PreparedStatement} within a specific {@code EngineContext} and using a
@@ -80,6 +90,8 @@ import java.util.stream.Collectors;
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 final class EngineExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
+  private static final Logger LOG = LoggerFactory.getLogger(EngineExecutor.class);
 
   private final EngineContext engineContext;
   private final ServiceContext serviceContext;
@@ -137,7 +149,6 @@ final class EngineExecutor {
    * Evaluates a pull query by first analyzing it, then building the logical plan and finally
    * the physical plan. The execution is then done using the physical plan in a pipelined manner.
    * @param statement The pull query
-   * @param routingFilterFactory The filters used for HA routing
    * @param routingOptions Configuration parameters used for HA routing
    * @param pullQueryMetrics JMX metrics
    * @return the rows that are the result of evaluating the pull query
@@ -145,15 +156,19 @@ final class EngineExecutor {
   PullQueryResult executePullQuery(
       final ConfiguredStatement<Query> statement,
       final HARouting routing,
-      final RoutingFilterFactory routingFilterFactory,
       final RoutingOptions routingOptions,
-      final Optional<PullQueryExecutorMetrics> pullQueryMetrics
+      final PullPlannerOptions pullPlannerOptions,
+      final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
+      final boolean startImmediately
   ) {
 
     if (!statement.getStatement().isPullQuery()) {
       throw new IllegalArgumentException("Executor can only handle pull queries");
     }
     final SessionConfig sessionConfig = statement.getSessionConfig();
+    PullSourceType sourceType = null;
+    PullPhysicalPlanType planType = null;
+    RoutingNodeType routingNodeType = null;
 
     try {
       final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(engineContext.getMetaStore(), "");
@@ -161,18 +176,69 @@ final class EngineExecutor {
           queryAnalyzer.analyze(statement.getStatement(), Optional.empty()),
           new PullQueryExecutionUtil.ColumnReferenceRewriter()::process
       );
+      // Do not set sessionConfig.getConfig to true! The copying is inefficient and slows down pull
+      // query performance significantly.  Instead use PullPlannerOptions which check overrides
+      // deliberately.
       final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
       final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
-          statement, analysis, ksqlConfig);
+          statement, analysis, ksqlConfig, pullPlannerOptions);
       final PullPhysicalPlan physicalPlan = buildPullPhysicalPlan(
           logicalPlan,
           analysis
       );
-      return routing.handlePullQuery(
+      sourceType = physicalPlan.getSourceType();
+      planType = physicalPlan.getPlanType();
+      // If we ever change how many hops a request can do, we'll need to update this for correct
+      // metrics.
+      routingNodeType = routingOptions.getIsSkipForwardRequest()
+          ? RoutingNodeType.REMOTE_NODE : RoutingNodeType.SOURCE_NODE;
+      final PullQueryQueue pullQueryQueue = new PullQueryQueue();
+      final PullQueryQueuePopulator populator = () -> routing.handlePullQuery(
+          serviceContext,
           physicalPlan, statement, routingOptions, physicalPlan.getOutputSchema(),
-          physicalPlan.getQueryId());
+          physicalPlan.getQueryId(), pullQueryQueue);
+      final PullQueryResult result = new PullQueryResult(physicalPlan.getOutputSchema(), populator,
+          physicalPlan.getQueryId(), pullQueryQueue, pullQueryMetrics, physicalPlan.getSourceType(),
+          physicalPlan.getPlanType(), routingNodeType, physicalPlan::getRowsReadFromDataSource);
+      if (startImmediately) {
+        result.start();
+      }
+      return result;
     } catch (final Exception e) {
-      pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1));
+      final PullSourceType finalSourceType = sourceType;
+      final PullPhysicalPlanType finalPlanType = planType;
+      final RoutingNodeType finalRoutingNodeType = routingNodeType;
+      pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1,
+          Optional.ofNullable(finalSourceType).orElse(PullSourceType.UNKNOWN),
+          Optional.ofNullable(finalPlanType).orElse(PullPhysicalPlanType.UNKNOWN),
+          Optional.ofNullable(finalRoutingNodeType).orElse(RoutingNodeType.UNKNOWN)));
+
+      final String stmtLower = statement.getStatementText().toLowerCase(Locale.ROOT);
+      final String messageLower = e.getMessage().toLowerCase(Locale.ROOT);
+      final String stackLower = Throwables.getStackTraceAsString(e).toLowerCase(Locale.ROOT);
+
+      // do not include the statement text in the default logs as it may contain sensitive
+      // information - the exception which is returned to the user below will contain
+      // the contents of the query
+      if (messageLower.contains(stmtLower) || stackLower.contains(stmtLower)) {
+        final StackTraceElement loc = Iterables
+            .getLast(Throwables.getCausalChain(e))
+            .getStackTrace()[0];
+        LOG.error("Failure to execute pull query {} {}, not logging the error message since it "
+            + "contains the query string, which may contain sensitive information. If you "
+            + "see this LOG message, please submit a GitHub ticket and we will scrub "
+            + "the statement text from the error at {}",
+            routingOptions.debugString(),
+            pullPlannerOptions.debugString(),
+            loc);
+      } else {
+        LOG.error("Failure to execute pull query. {} {}",
+            routingOptions.debugString(),
+            pullPlannerOptions.debugString(),
+            e);
+      }
+      LOG.debug("Failed pull query text {}, {}", statement.getStatementText(), e);
+
       throw new KsqlStatementException(
           e.getMessage() == null
               ? "Server Error" + Arrays.toString(e.getStackTrace())
@@ -192,15 +258,16 @@ final class EngineExecutor {
     final ExecutorPlans plans = planQuery(statement, statement.getStatement(),
         Optional.empty(), Optional.empty());
     final KsqlBareOutputNode outputNode = (KsqlBareOutputNode) plans.logicalPlan.getNode().get();
-    final QueryExecutor executor = engineContext.createQueryExecutor(config, serviceContext);
-
     engineContext.createQueryValidator().validateQuery(
         config,
         plans.physicalPlan,
-        engineContext.getAllLiveQueries()
+        engineContext.getQueryRegistry().getAllLiveQueries()
     );
-
-    return executor.buildTransientQuery(
+    return engineContext.getQueryRegistry().createTransientQuery(
+        config,
+        serviceContext,
+        engineContext.getProcessingLogContext(),
+        engineContext.getMetaStore(),
         statement.getStatementText(),
         plans.physicalPlan.getQueryId(),
         getSourceNames(outputNode),
@@ -247,7 +314,7 @@ final class EngineExecutor {
           outputNode
       );
 
-      validateQuery(outputNode.getNodeOutputType(), statement);
+      validateResultType(outputNode.getNodeOutputType(), statement);
 
       final QueryPlan queryPlan = new QueryPlan(
           getSourceNames(outputNode),
@@ -259,7 +326,7 @@ final class EngineExecutor {
       engineContext.createQueryValidator().validateQuery(
           config,
           plans.physicalPlan,
-          engineContext.getAllLiveQueries()
+          engineContext.getQueryRegistry().getAllLiveQueries()
       );
 
       return KsqlPlan.queryPlanCurrent(
@@ -299,7 +366,8 @@ final class EngineExecutor {
         withQueryId
     );
 
-    if (withQueryId.isPresent() && engineContext.getPersistentQuery(queryId).isPresent()) {
+    if (withQueryId.isPresent()
+        && engineContext.getQueryRegistry().getPersistentQuery(queryId).isPresent()) {
       throw new KsqlException(String.format("Query ID '%s' already exists.", queryId));
     }
 
@@ -315,10 +383,11 @@ final class EngineExecutor {
   private LogicalPlanNode buildAndValidateLogicalPlan(
       final ConfiguredStatement<?> statement,
       final ImmutableAnalysis analysis,
-      final KsqlConfig config
+      final KsqlConfig config,
+      final PullPlannerOptions pullPlannerOptions
   ) {
     final OutputNode outputNode = new LogicalPlanner(config, analysis, engineContext.getMetaStore())
-        .buildPullLogicalPlan();
+        .buildPullLogicalPlan(pullPlannerOptions);
     return new LogicalPlanNode(
         statement.getStatementText(),
         Optional.of(outputNode)
@@ -414,7 +483,7 @@ final class EngineExecutor {
     }
   }
 
-  private static void validateQuery(
+  private static void validateResultType(
       final DataSourceType dataSourceType,
       final ConfiguredStatement<?> statement
   ) {
@@ -468,22 +537,20 @@ final class EngineExecutor {
       final String statementText,
       final boolean createAsQuery
   ) {
-    final QueryExecutor executor = engineContext.createQueryExecutor(
+    final QueryRegistry queryRegistry = engineContext.getQueryRegistry();
+    return queryRegistry.createOrReplacePersistentQuery(
         config,
-        serviceContext
-    );
-
-    final PersistentQueryMetadata queryMetadata = executor.buildPersistentQuery(
+        serviceContext,
+        engineContext.getProcessingLogContext(),
+        engineContext.getMetaStore(),
         statementText,
         queryPlan.getQueryId(),
         engineContext.getMetaStore().getSource(queryPlan.getSink()),
         queryPlan.getSources(),
         queryPlan.getPhysicalPlan(),
-        buildPlanSummary(queryPlan.getQueryId(), queryPlan.getPhysicalPlan())
+        buildPlanSummary(queryPlan.getQueryId(), queryPlan.getPhysicalPlan()),
+        createAsQuery
     );
-
-    engineContext.registerQuery(queryMetadata, createAsQuery);
-    return queryMetadata;
   }
 
   private String buildPlanSummary(final QueryId queryId, final ExecutionStep<?> plan) {

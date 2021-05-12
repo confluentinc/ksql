@@ -1,0 +1,13 @@
+[ {
+  "@type" : "connector_list",
+  "statementText" : "statement",
+  "warnings" : [ ],
+  "connectors" : [ {
+    "name" : "foo",
+    "type" : "source",
+    "className" : "clazz",
+    "state" : "STATUS"
+  }, {
+    "name" : "bar"
+  } ]
+} ]

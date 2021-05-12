@@ -693,11 +693,21 @@ public class LogicalPlanner {
       if (joinOnNonKeyAttribute(leftExpression, leftNode)) {
         // foreign key join detected
 
-        // after we lift the n-way join restriction, we should be able to support FK-joins
-        // at any level in the join tree, even after we add right-deep/bushy join tree support,
-        // because a FK-join output table has the same PK as its left input table
-
         if (ksqlConfig.getBoolean(KsqlConfig.KSQL_FOREIGN_KEY_JOINS_ENABLED)) {
+
+          // after we lift this n-way join restriction, we should be able to support FK-joins
+          // at any level in the join tree, even after we add right-deep/bushy join tree support,
+          // because a FK-join output table has the same PK as its left input table
+          if (!(leftNode instanceof DataSourceNode)
+              || !(rightNode instanceof DataSourceNode)) {
+            throw new KsqlException(String.format(
+                "Invalid join condition: foreign-key table-table joins are not "
+                    + "supported as part of n-way joins. Got %s = %s.",
+                leftExpression,
+                rightExpression
+            ));
+          }
+
           return true;
         } else {
           throw new KsqlException(String.format(

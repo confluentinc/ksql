@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **51**
+Next KLIP number: **52**
 
 | KLIP                                                                                                                             |  Status  | Community Release | CP Release | Discussion PR                                                |
 |----------------------------------------------------------------------------------------------------------------------------------|:--------:|:-----------------:|:----------:|--------------------------------------------------------------|
@@ -91,3 +91,4 @@ Next KLIP number: **51**
 | KLIP-48: Schemas                                                                                                                 | Proposal |                   |            |                                                              |
 | KLIP-49: Add source stream/table semantic                                                                                        | Proposal |                   |            |                                                              |
 | KLIP-50: Partition and offset in ksqlDB                                                                                          | Proposal |      0.23.0       |            | [Discussion](https://github.com/confluentinc/ksql/pull/7505) |
+| [KLIP-51: ksqlDB .NET LINQ provider](klip-51-ksqldb .NET LINQ provider.md)                                                       | Proposal |                   |            | [Discussion](https://github.com/confluentinc/ksql/pull/6883) |

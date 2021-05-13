@@ -17,6 +17,7 @@ package io.confluent.ksql.api.client;
 
 import io.confluent.ksql.api.client.impl.ClientImpl;
 import io.vertx.core.Vertx;
+import java.io.Closeable;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -25,7 +26,7 @@ import org.reactivestreams.Publisher;
 /**
  * A client that connects to a specific ksqlDB server.
  */
-public interface Client {
+public interface Client extends Closeable {
 
   /**
    * Executes a query (push or pull) and returns the results one row at a time.

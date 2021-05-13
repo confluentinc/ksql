@@ -630,11 +630,13 @@ public class LogicalPlanner {
   /**
    * @return whether this is a foreign key join or not
    */
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   private boolean verifyJoin(
       final JoinInfo joinInfo,
       final PlanNode leftNode,
       final PlanNode rightNode
   ) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     final JoinType joinType = joinInfo.getType();
     final Expression leftExpression = joinInfo.getLeftJoinExpression();
     final Expression rightExpression = joinInfo.getRightJoinExpression();

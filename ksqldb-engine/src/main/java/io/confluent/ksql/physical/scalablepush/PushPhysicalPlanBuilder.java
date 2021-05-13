@@ -160,7 +160,7 @@ public class PushPhysicalPlanBuilder {
     final ScalablePushRegistry scalablePushRegistry =
         persistentQueryMetadata.getScalablePushRegistry()
         .orElseThrow(() -> new IllegalStateException("Scalable push registry cannot be found"));
-    return new PeekStreamOperator(scalablePushRegistry, logicalNode);
+    return new PeekStreamOperator(scalablePushRegistry, logicalNode, queryId);
   }
 
   private QueryId uniqueQueryId() {

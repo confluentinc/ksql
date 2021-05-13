@@ -10,6 +10,7 @@ import io.confluent.ksql.execution.streams.materialization.TableRow;
 import io.confluent.ksql.physical.scalablepush.ProcessingQueue;
 import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.planner.plan.DataSourceNode;
+import io.confluent.ksql.query.QueryId;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -19,6 +20,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PeekStreamOperatorTest {
+
+  private static final QueryId QUERY_ID = new QueryId("foo");
 
   @Mock
   private ScalablePushRegistry registry;
@@ -36,7 +39,7 @@ public class PeekStreamOperatorTest {
   @Test
   public void shouldGetRowsFromOperator() {
     // Given:
-    final PeekStreamOperator locator = new PeekStreamOperator(registry, dataSourceNode);
+    final PeekStreamOperator locator = new PeekStreamOperator(registry, dataSourceNode, QUERY_ID);
     locator.setNewRowCallback(newRowCallback);
 
     // When:

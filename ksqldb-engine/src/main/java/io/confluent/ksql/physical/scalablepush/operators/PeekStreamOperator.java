@@ -20,6 +20,7 @@ import io.confluent.ksql.physical.scalablepush.ProcessingQueue;
 import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.PlanNode;
+import io.confluent.ksql.query.QueryId;
 import java.util.List;
 
 /**
@@ -34,11 +35,12 @@ public class PeekStreamOperator extends AbstractPhysicalOperator implements Push
 
   public PeekStreamOperator(
       final ScalablePushRegistry scalablePushRegistry,
-      final DataSourceNode logicalNode
+      final DataSourceNode logicalNode,
+      final QueryId queryId
   ) {
     this.scalablePushRegistry = scalablePushRegistry;
     this.logicalNode = logicalNode;
-    this.processingQueue = new ProcessingQueue();
+    this.processingQueue = new ProcessingQueue(queryId);
   }
 
   @Override

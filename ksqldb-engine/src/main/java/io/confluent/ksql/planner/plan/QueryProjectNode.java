@@ -62,7 +62,7 @@ import java.util.stream.Collectors;
  * part else add them to the value part.
  * </ul>
  */
-public class PullProjectNode extends ProjectNode {
+public class QueryProjectNode extends ProjectNode {
 
   private final Projection projection;
   private final ImmutableList<SelectExpression> selectExpressions;
@@ -74,7 +74,7 @@ public class PullProjectNode extends ProjectNode {
   private final boolean isSelectStar;
   private final boolean addAdditionalColumnsToIntermediateSchema;
 
-  public PullProjectNode(
+  public QueryProjectNode(
       final PlanNodeId id,
       final PlanNode source,
       final List<SelectItem> selectItems,
@@ -93,7 +93,7 @@ public class PullProjectNode extends ProjectNode {
     this.isSelectStar = isSelectStar();
     this.addAdditionalColumnsToIntermediateSchema = shouldAddAdditionalColumnsInSchema();
     this.outputSchema = buildOutputSchema(metaStore);
-    this.intermediateSchema = PullLogicalPlanUtil.buildIntermediateSchema(
+    this.intermediateSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
           source.getSchema(),
           addAdditionalColumnsToIntermediateSchema,
           isWindowed

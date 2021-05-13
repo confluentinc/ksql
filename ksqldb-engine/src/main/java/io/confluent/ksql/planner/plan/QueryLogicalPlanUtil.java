@@ -17,9 +17,9 @@ package io.confluent.ksql.planner.plan;
 
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 
-final class PullLogicalPlanUtil {
+final class QueryLogicalPlanUtil {
 
-  private PullLogicalPlanUtil(){
+  private QueryLogicalPlanUtil(){
 
   }
 

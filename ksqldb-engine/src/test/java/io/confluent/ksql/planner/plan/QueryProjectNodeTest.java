@@ -51,7 +51,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class PullProjectNodeTest {
+public class QueryProjectNodeTest {
 
   private static final PlanNodeId NODE_ID = new PlanNodeId("1");
   private static final ColumnName K = ColumnName.of("K");
@@ -113,7 +113,7 @@ public class PullProjectNodeTest {
     when(analysis.getSelectColumnNames()).thenReturn(ImmutableSet.of(ColumnName.of("K")));
 
     // When:
-    final PullProjectNode projectNode = new PullProjectNode(
+    final QueryProjectNode projectNode = new QueryProjectNode(
         NODE_ID,
         source,
         selects,
@@ -137,7 +137,7 @@ public class PullProjectNodeTest {
     when(analysis.getSelectColumnNames()).thenReturn(ImmutableSet.of(ColumnName.of("K")));
 
     // When:
-    final PullProjectNode projectNode = new PullProjectNode(
+    final QueryProjectNode projectNode = new QueryProjectNode(
         NODE_ID,
         source,
         selects,
@@ -160,7 +160,7 @@ public class PullProjectNodeTest {
     when(keyFormat.isWindowed()).thenReturn(false);
 
     // When:
-    final PullProjectNode projectNode = new PullProjectNode(
+    final QueryProjectNode projectNode = new QueryProjectNode(
         NODE_ID,
         source,
         selects,
@@ -182,7 +182,7 @@ public class PullProjectNodeTest {
     when(keyFormat.isWindowed()).thenReturn(false);
 
     // When:
-    final PullProjectNode projectNode = new PullProjectNode(
+    final QueryProjectNode projectNode = new QueryProjectNode(
         NODE_ID,
         source,
         selects,
@@ -217,7 +217,7 @@ public class PullProjectNodeTest {
         .add((new SingleColumn(K_REF, Optional.of(K)))).build();
 
     // When:
-    final PullProjectNode projectNode = new PullProjectNode(
+    final QueryProjectNode projectNode = new QueryProjectNode(
         NODE_ID,
         source,
         selects,
@@ -254,7 +254,7 @@ public class PullProjectNodeTest {
         .add((new SingleColumn(COL0_REF, Optional.of(COL0)))).build();
 
     // When:
-    final PullProjectNode projectNode = new PullProjectNode(
+    final QueryProjectNode projectNode = new QueryProjectNode(
         NODE_ID,
         source,
         selects,
@@ -283,7 +283,7 @@ public class PullProjectNodeTest {
     when(analysis.getSelectColumnNames()).thenReturn(ImmutableSet.of());
 
     // When:
-    final PullProjectNode projectNode = new PullProjectNode(
+    final QueryProjectNode projectNode = new QueryProjectNode(
         NODE_ID,
         source,
         selects,

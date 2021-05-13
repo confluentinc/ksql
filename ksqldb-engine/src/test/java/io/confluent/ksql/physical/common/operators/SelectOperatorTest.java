@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.physical.pull.operators;
+package io.confluent.ksql.physical.common.operators;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -31,7 +31,7 @@ import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.planner.plan.PullFilterNode;
+import io.confluent.ksql.planner.plan.QueryFilterNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -96,7 +96,7 @@ public class SelectOperatorTest {
   @Mock
   private SqlPredicate sqlPredicate;
   @Mock
-  private PullFilterNode logicalNode;
+  private QueryFilterNode logicalNode;
 
   @Test
   public void shouldSelectKeyNonWindowed() {

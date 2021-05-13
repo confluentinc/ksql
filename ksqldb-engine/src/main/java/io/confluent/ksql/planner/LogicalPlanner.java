@@ -70,8 +70,8 @@ import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.PreJoinProjectNode;
 import io.confluent.ksql.planner.plan.PreJoinRepartitionNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.planner.plan.PullFilterNode;
-import io.confluent.ksql.planner.plan.PullProjectNode;
+import io.confluent.ksql.planner.plan.QueryFilterNode;
+import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.planner.plan.SelectionUtil;
 import io.confluent.ksql.planner.plan.SingleSourcePlanNode;
 import io.confluent.ksql.planner.plan.SuppressNode;
@@ -200,7 +200,7 @@ public class LogicalPlanner {
 
       validator.validateFilterExpression(whereExpression);
 
-      currentNode = new PullFilterNode(
+      currentNode = new QueryFilterNode(
           new PlanNodeId("WhereFilter"),
           currentNode,
           whereExpression,
@@ -210,11 +210,11 @@ public class LogicalPlanner {
           pullPlannerOptions);
     } else {
       if (!pullPlannerOptions.getTableScansEnabled()) {
-        throw PullFilterNode.invalidWhereClauseException("Missing WHERE clause", isWindowed);
+        throw QueryFilterNode.invalidWhereClauseException("Missing WHERE clause", isWindowed);
       }
     }
 
-    currentNode = new PullProjectNode(
+    currentNode = new QueryProjectNode(
         new PlanNodeId("Project"),
         currentNode,
         analysis.getSelectItems(),

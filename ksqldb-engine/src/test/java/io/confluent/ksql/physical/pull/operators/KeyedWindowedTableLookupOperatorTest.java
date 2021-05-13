@@ -32,7 +32,7 @@ import io.confluent.ksql.execution.streams.materialization.WindowedRow;
 import io.confluent.ksql.execution.streams.materialization.ks.KsLocator;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KeyConstraint.KeyConstraintKey;
-import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds;
+import io.confluent.ksql.planner.plan.QueryFilterNode.WindowBounds;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;

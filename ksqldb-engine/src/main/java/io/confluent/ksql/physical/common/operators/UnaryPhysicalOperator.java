@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.physical.pull.operators;
+package io.confluent.ksql.physical.common.operators;
 
 /**
  * Represents a physical operator of the physical plan that has a single child.

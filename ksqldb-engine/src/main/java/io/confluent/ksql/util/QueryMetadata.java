@@ -43,8 +43,6 @@ public interface QueryMetadata {
 
   KafkaStreams.State getState();
 
-  boolean isError();
-
   String getExecutionPlan();
 
   String getQueryApplicationId();

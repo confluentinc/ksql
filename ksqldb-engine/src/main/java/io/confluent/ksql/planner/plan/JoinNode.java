@@ -86,6 +86,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
 
   private final JoinType joinType;
   private final JoinKey joinKey;
+  private final Optional<ColumnName> leftForeignKeyColumn;
   private final boolean finalJoin;
   private final PlanNode left;
   private final PlanNode right;
@@ -99,6 +100,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
       final PlanNodeId id,
       final JoinType joinType,
       final JoinKey joinKey,
+      final Optional<ColumnName> leftForeignKeyColumn,
       final boolean finalJoin,
       final PlanNode left,
       final PlanNode right,
@@ -111,9 +113,10 @@ public class JoinNode extends PlanNode implements JoiningNode {
         Optional.empty()
     );
 
-    this.schema = buildJoinSchema(joinKey, left, right);
     this.joinType = requireNonNull(joinType, "joinType");
     this.joinKey = requireNonNull(joinKey, "joinKey");
+    this.schema = buildJoinSchema(joinKey, left, right);
+    this.leftForeignKeyColumn = requireNonNull(leftForeignKeyColumn, "leftForeignKeyColumn");
     this.finalJoin = finalJoin;
     this.left = requireNonNull(left, "left");
     this.leftJoining = (JoiningNode) left;
@@ -136,6 +139,10 @@ public class JoinNode extends PlanNode implements JoiningNode {
         .orElseGet(this::getDefaultSourceKeyFormat);
 
     setKeyFormat(joinKeyFormat);
+  }
+
+  public Optional<ColumnName> getLeftForeignKeyColumn() {
+    return leftForeignKeyColumn;
   }
 
   @Override

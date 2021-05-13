@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -30,13 +31,21 @@ import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.JoinTree.Join;
 import io.confluent.ksql.planner.JoinTree.Leaf;
 import io.confluent.ksql.planner.JoinTree.Node;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
+import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.util.KsqlException;
+
+import java.util.Arrays;
 import java.util.List;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -51,6 +60,10 @@ public class JoinTreeTest {
   @Mock(name = "c") private AliasedDataSource c;
   @Mock(name = "d") private AliasedDataSource d;
 
+  @Mock private DataSource da;
+  @Mock private DataSource db;
+  @Mock private DataSource dc;
+
   @Mock private JoinInfo j1;
   @Mock private JoinInfo j2;
 
@@ -64,11 +77,31 @@ public class JoinTreeTest {
   @Mock private QualifiedColumnReferenceExp col3;
   @Mock private QualifiedColumnReferenceExp col4;
 
+  private Column keyCol1;
+  private Column keyCol2;
+  private Column keyCol3;
+  private Column keyCol4;
+
   @Before
   public void setUp() {
     when(a.getAlias()).thenReturn(SourceName.of("a"));
     when(b.getAlias()).thenReturn(SourceName.of("b"));
     when(c.getAlias()).thenReturn(SourceName.of("c"));
+    when(a.getDataSource()).thenReturn(da);
+    when(b.getDataSource()).thenReturn(db);
+    when(c.getDataSource()).thenReturn(dc);
+
+    when(col1.getColumnName()).thenReturn(ColumnName.of("col1"));
+    when(col2.getColumnName()).thenReturn(ColumnName.of("col2"));
+    when(col3.getColumnName()).thenReturn(ColumnName.of("col3"));
+    when(col4.getColumnName()).thenReturn(ColumnName.of("col4"));
+
+    // I need to generate this previous to call them in the thenReturn() mocks, otherwise I
+    // get errors that stubbing was incomplete
+    keyCol1 = asKey(col1);
+    keyCol2 = asKey(col2);
+    keyCol3 = asKey(col3);
+    keyCol4 = asKey(col4);
   }
 
   @Test
@@ -340,6 +373,9 @@ public class JoinTreeTest {
     when(j2.getLeftSource()).thenReturn(a);
     when(j2.getRightSource()).thenReturn(c);
 
+    when(da.getSchema()).thenReturn(keySchema(keyCol1));
+    when(dc.getSchema()).thenReturn(keySchema(keyCol2));
+
     when(j1.getType()).thenReturn(JoinType.OUTER);
     when(j2.getLeftJoinExpression()).thenReturn(col1);
     when(j2.getRightJoinExpression()).thenReturn(col2);
@@ -360,6 +396,10 @@ public class JoinTreeTest {
     when(j1.getRightSource()).thenReturn(b);
     when(j2.getLeftSource()).thenReturn(a);
     when(j2.getRightSource()).thenReturn(c);
+
+    when(da.getSchema()).thenReturn(keySchema(keyCol1));
+    when(db.getSchema()).thenReturn(keySchema(keyCol2));
+    when(dc.getSchema()).thenReturn(keySchema(keyCol3));
 
     when(j1.getLeftJoinExpression()).thenReturn(col1);
     when(j1.getRightJoinExpression()).thenReturn(col2);
@@ -385,6 +425,11 @@ public class JoinTreeTest {
     when(j2.getLeftSource()).thenReturn(a);
     when(j2.getRightSource()).thenReturn(c);
 
+    when(da.getSchema()).thenReturn(keySchema(keyCol1));
+    when(db.getSchema()).thenReturn(keySchema(keyCol2));
+    when(da.getSchema()).thenReturn(keySchema(keyCol3));
+    when(dc.getSchema()).thenReturn(keySchema(keyCol4));
+
     when(j1.getLeftJoinExpression()).thenReturn(col1);
     when(j1.getRightJoinExpression()).thenReturn(col2);
     when(j2.getLeftJoinExpression()).thenReturn(col3);
@@ -408,6 +453,8 @@ public class JoinTreeTest {
     when(j1.getRightSource()).thenReturn(b);
     when(j2.getLeftSource()).thenReturn(a);
     when(j2.getRightSource()).thenReturn(c);
+
+    when(db.getSchema()).thenReturn(keySchema(keyCol2));
 
     when(j1.getLeftJoinExpression()).thenReturn(e1);
     when(j1.getRightJoinExpression()).thenReturn(col2);
@@ -433,6 +480,8 @@ public class JoinTreeTest {
     when(j2.getLeftSource()).thenReturn(a);
     when(j2.getRightSource()).thenReturn(c);
 
+    when(db.getSchema()).thenReturn(keySchema(keyCol2));
+
     when(j1.getLeftJoinExpression()).thenReturn(e1);
     when(j1.getRightJoinExpression()).thenReturn(col2);
     when(j2.getLeftJoinExpression()).thenReturn(e2);
@@ -457,6 +506,8 @@ public class JoinTreeTest {
     when(j2.getLeftSource()).thenReturn(a);
     when(j2.getRightSource()).thenReturn(c);
 
+    when(da.getSchema()).thenReturn(keySchema(keyCol1));
+
     when(j1.getLeftJoinExpression()).thenReturn(e1);
     when(j1.getRightJoinExpression()).thenReturn(e2);
     when(j2.getLeftJoinExpression()).thenReturn(col1);
@@ -473,4 +524,14 @@ public class JoinTreeTest {
     assertThat(keys, contains(col1));
   }
 
+  private LogicalSchema keySchema(final Column... keyColumns) {
+    return LogicalSchema.builder()
+        .keyColumns(Arrays.asList(keyColumns))
+        .build();
+  }
+
+  private Column asKey(final QualifiedColumnReferenceExp columnRef) {
+    return Column.of(columnRef.getColumnName(), mock(SqlPrimitiveType.class),
+        Column.Namespace.KEY, 0);
+  }
 }

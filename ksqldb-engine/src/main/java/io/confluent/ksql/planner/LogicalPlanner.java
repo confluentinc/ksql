@@ -600,6 +600,11 @@ public class LogicalPlanner {
 
     final JoinKey joinKey = buildJoinKey(root);
 
+    Optional<ColumnName> leftJoinNonKeyColumn = Optional.empty();
+    if (isForeignKeyJoin) {
+      leftJoinNonKeyColumn = getLeftJoinNonKeyColumn(root);
+    }
+
     final PlanNode left = prepareSourceForJoin(
         root.getLeft(),
         preRepartitionLeft,
@@ -619,12 +624,30 @@ public class LogicalPlanner {
         new PlanNodeId(prefix + "Join"),
         root.getInfo().getType(),
         joinKey.rewriteWith(refRewriter::process),
+        leftJoinNonKeyColumn,
         finalJoin,
         left,
         right,
         root.getInfo().getWithinExpression(),
         ksqlConfig.getString(KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG)
     );
+  }
+
+  private Optional<ColumnName> getLeftJoinNonKeyColumn(final Join join) {
+    // This method is called after the verifyJoin() has detected a FK join. This code does not
+    // check for values are in the right order. It is assumed verifyJoin() already checked them
+    // and failed in case they are not valid.
+
+    // What if expression is not ColumnReferenceExp?
+    final ColumnReferenceExp columnReference =
+        (ColumnReferenceExp) join.getInfo().getLeftJoinExpression();
+
+    final Optional<SourceName> qualifier = columnReference.maybeQualifier();
+    final ColumnName columnName = columnReference.getColumnName();
+
+    return Optional.of(qualifier.isPresent()
+        ? ColumnNames.generatedJoinColumnAlias(qualifier.get(), columnName)
+        : columnName);
   }
 
   /**

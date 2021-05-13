@@ -273,7 +273,7 @@ public class KsqlResourceTest {
   private static final int APPLICATION_PORT = 9099;
   private static final String APPLICATION_SERVER = "http://" + APPLICATION_HOST + ":" + APPLICATION_PORT;
 
-  public KsqlConfig ksqlConfig;
+  private KsqlConfig ksqlConfig;
   private KsqlRestConfig ksqlRestConfig;
   private FakeKafkaTopicClient kafkaTopicClient;
   private FakeKafkaConsumerGroupClient kafkaConsumerGroupClient;

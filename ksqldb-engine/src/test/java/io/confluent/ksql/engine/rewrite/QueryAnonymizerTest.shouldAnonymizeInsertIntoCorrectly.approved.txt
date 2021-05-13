@@ -1,1 +1,1 @@
-INSERT INTO stream1 SELECT column1, column2, column3 FROM stream2 WHERE column1='0' AND column2='[string]' AND column3='[string]';
+INSERT INTO stream1 SELECT column1, column2, column3 FROM source1 WHERE column1='0' AND column2='[string]' AND column3='[string]';

@@ -12,12 +12,15 @@
 
 package io.confluent.ksql.engine.rewrite;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.AstBuilder;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.SqlBaseBaseVisitor;
+import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.SqlBaseParser.AliasedRelationContext;
 import io.confluent.ksql.parser.SqlBaseParser.AlterOptionContext;
 import io.confluent.ksql.parser.SqlBaseParser.AlterSourceContext;
 import io.confluent.ksql.parser.SqlBaseParser.BooleanDefaultContext;
@@ -41,6 +44,11 @@ import io.confluent.ksql.parser.SqlBaseParser.GroupByContext;
 import io.confluent.ksql.parser.SqlBaseParser.InsertIntoContext;
 import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
+import io.confluent.ksql.parser.SqlBaseParser.JoinRelationContext;
+import io.confluent.ksql.parser.SqlBaseParser.JoinWindowSizeContext;
+import io.confluent.ksql.parser.SqlBaseParser.JoinWindowWithBeforeAndAfterContext;
+import io.confluent.ksql.parser.SqlBaseParser.JoinedSourceContext;
+import io.confluent.ksql.parser.SqlBaseParser.LeftJoinContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListConnectorsContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListFunctionsContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListPropertiesContext;
@@ -51,20 +59,24 @@ import io.confluent.ksql.parser.SqlBaseParser.ListTypesContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListVariablesContext;
 import io.confluent.ksql.parser.SqlBaseParser.LogicalBinaryContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumericLiteralContext;
+import io.confluent.ksql.parser.SqlBaseParser.OuterJoinContext;
 import io.confluent.ksql.parser.SqlBaseParser.PartitionByContext;
 import io.confluent.ksql.parser.SqlBaseParser.PrintTopicContext;
 import io.confluent.ksql.parser.SqlBaseParser.QueryContext;
 import io.confluent.ksql.parser.SqlBaseParser.RegisterTypeContext;
+import io.confluent.ksql.parser.SqlBaseParser.RelationDefaultContext;
 import io.confluent.ksql.parser.SqlBaseParser.SelectItemContext;
 import io.confluent.ksql.parser.SqlBaseParser.SelectSingleContext;
 import io.confluent.ksql.parser.SqlBaseParser.SetPropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.ShowColumnsContext;
 import io.confluent.ksql.parser.SqlBaseParser.SingleExpressionContext;
+import io.confluent.ksql.parser.SqlBaseParser.SingleJoinWindowContext;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.StatementsContext;
 import io.confluent.ksql.parser.SqlBaseParser.StringLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.TableElementContext;
 import io.confluent.ksql.parser.SqlBaseParser.TableElementsContext;
+import io.confluent.ksql.parser.SqlBaseParser.TableNameContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.TerminateQueryContext;
@@ -73,6 +85,7 @@ import io.confluent.ksql.parser.SqlBaseParser.UndefineVariableContext;
 import io.confluent.ksql.parser.SqlBaseParser.UnquotedIdentifierContext;
 import io.confluent.ksql.parser.SqlBaseParser.UnsetPropertyContext;
 import io.confluent.ksql.parser.SqlBaseParser.ValueExpressionContext;
+import io.confluent.ksql.parser.SqlBaseParser.WithinExpressionContext;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -102,6 +115,7 @@ public class QueryAnonymizer {
     private int columnCount = 1;
     private int tableCount = 1;
     private int udfCount = 1;
+    private int sourceCount = 1;
     private final Hashtable<String, String> anonTable = new Hashtable<>();
 
     @Override
@@ -111,25 +125,35 @@ public class QueryAnonymizer {
         final String statement = visitSingleStatement(stmtContext);
         statementList.add(statement);
       }
-      return StringUtils.join(statementList, "");
+      return StringUtils.join(statementList, "\n");
     }
 
     @Override
     public String visitSingleStatement(final SingleStatementContext context) {
-      return visit(context.statement());
+      return String.format("%s;", visit(context.statement()));
     }
 
     @Override
     public String visitType(final TypeContext context) {
       if (context.type().isEmpty()) {
-        return context.getText();
+        return getTypeName(context);
       }
+
+      // get type name
+      String typeName = "STRUCT";
+      if (context.MAP() != null) {
+        typeName = "MAP";
+      } else if (context.ARRAY() != null) {
+        typeName = "ARRAY";
+      }
+
+      // get type list
       final List<String> typeList = new ArrayList<>();
       for (TypeContext typeContext : context.type()) {
         typeList.add(visit(typeContext));
       }
 
-      return String.format("STRUCT<%s>", StringUtils.join(typeList, ", "));
+      return String.format("%s<%s>", typeName, StringUtils.join(typeList, ", "));
     }
 
     @Override
@@ -151,16 +175,15 @@ public class QueryAnonymizer {
       }
       stringBuilder.append(String.format(" (%s)", StringUtils.join(alterOptions, ", ")));
 
-      return String.format("%s;", stringBuilder);
+      return stringBuilder.toString();
     }
 
     @Override
     public String visitAlterOption(final AlterOptionContext context) {
       final String columnName = context.identifier().getText();
       final String anonColumnName = getAnonColumnName(columnName);
-      final String typeName = context.type().getText();
 
-      return String.format("ADD COLUMN %1$s %2$s", anonColumnName, typeName);
+      return String.format("ADD COLUMN %1$s %2$s", anonColumnName, visit(context.type()));
     }
 
     @Override
@@ -175,7 +198,7 @@ public class QueryAnonymizer {
       // anonymize type
       stringBuilder.append(String.format(" type AS %s", visit(context.type())));
 
-      return String.format("%s;", stringBuilder);
+      return stringBuilder.toString();
     }
 
     @Override
@@ -202,7 +225,7 @@ public class QueryAnonymizer {
         stringBuilder.append(visit(context.tableProperties()));
       }
 
-      return String.format("%s;", stringBuilder);
+      return stringBuilder.toString();
     }
 
     @Override
@@ -220,10 +243,10 @@ public class QueryAnonymizer {
 
       // anonymize with query
       if (context.query() != null) {
-        stringBuilder.append(String.format(" SELECT %s", getQuery(context.query(), true)));
+        stringBuilder.append(String.format(" %s", visit(context.query())));
       }
 
-      return String.format("%s;", stringBuilder);
+      return stringBuilder.toString();
     }
 
     @Override
@@ -253,7 +276,7 @@ public class QueryAnonymizer {
       }
       stringBuilder.append(String.format(" VALUES (%s)", StringUtils.join(values, " ,")));
 
-      return String.format("%s;", stringBuilder);
+      return stringBuilder.toString();
     }
 
     @Override
@@ -269,7 +292,7 @@ public class QueryAnonymizer {
 
       stringBuilder.append(" CONNECTORS");
 
-      return String.format("%s;", stringBuilder);
+      return stringBuilder.toString();
     }
 
     @Override
@@ -281,31 +304,31 @@ public class QueryAnonymizer {
         stringBuilder.append(" EXTENDED");
       }
 
-      return String.format("%s;", stringBuilder);
+      return stringBuilder.toString();
     }
 
     @Override
     public String visitListFunctions(final ListFunctionsContext context) {
       final TerminalNode listOrVisit = context.LIST() != null ? context.LIST() : context.SHOW();
-      return String.format("%s FUNCTIONS;", listOrVisit.toString());
+      return String.format("%s FUNCTIONS", listOrVisit.toString());
     }
 
     @Override
     public String visitListProperties(final ListPropertiesContext context) {
       final TerminalNode listOrVisit = context.LIST() != null ? context.LIST() : context.SHOW();
-      return String.format("%s PROPERTIES;", listOrVisit.toString());
+      return String.format("%s PROPERTIES", listOrVisit.toString());
     }
 
     @Override
     public String visitListTypes(final ListTypesContext context) {
       final TerminalNode listOrVisit = context.LIST() != null ? context.LIST() : context.SHOW();
-      return String.format("%s TYPES;", listOrVisit.toString());
+      return String.format("%s TYPES", listOrVisit.toString());
     }
 
     @Override
     public String visitListVariables(final ListVariablesContext context) {
       final TerminalNode listOrVisit = context.LIST() != null ? context.LIST() : context.SHOW();
-      return String.format("%s VARIABLES;", listOrVisit.toString());
+      return String.format("%s VARIABLES", listOrVisit.toString());
     }
 
     @Override
@@ -317,7 +340,7 @@ public class QueryAnonymizer {
         stringBuilder.append(" EXTENDED");
       }
 
-      return String.format("%s;", stringBuilder);
+      return stringBuilder.toString();
     }
 
     @Override
@@ -335,17 +358,17 @@ public class QueryAnonymizer {
         stringBuilder.append(" EXTENDED");
       }
 
-      return String.format("%s;", stringBuilder);
+      return stringBuilder.toString();
     }
 
     @Override
     public String visitDescribeFunction(final DescribeFunctionContext context) {
-      return "DESCRIBE FUNCTION function;";
+      return "DESCRIBE FUNCTION function";
     }
 
     @Override
     public String visitDescribeConnector(final DescribeConnectorContext context) {
-      return "DESCRIBE CONNECTOR connector;";
+      return "DESCRIBE CONNECTOR connector";
     }
 
     @Override
@@ -364,15 +387,15 @@ public class QueryAnonymizer {
         stringBuilder.append(" LIMIT '0'");
       }
 
-      return String.format("%s;", stringBuilder);
+      return stringBuilder.toString();
     }
 
     @Override
     public String visitTerminateQuery(final TerminateQueryContext context) {
       if (context.ALL() != null) {
-        return "TERMINATE ALL;";
+        return "TERMINATE ALL";
       }
-      return "TERMINATE query;";
+      return "TERMINATE query";
     }
 
 
@@ -384,7 +407,7 @@ public class QueryAnonymizer {
         stringBuilder.append("EXTENDED");
       }
 
-      return String.format("%s;", stringBuilder);
+      return stringBuilder.toString();
     }
 
     @Override
@@ -403,34 +426,39 @@ public class QueryAnonymizer {
         stringBuilder.append(" EXTENDED");
       }
 
-      return String.format("%s;", stringBuilder);
+      return stringBuilder.toString();
     }
 
     @Override
     public String visitSetProperty(final SetPropertyContext context) {
       final String propertyName = context.STRING(0).getText();
-      return String.format("SET %s='[string]';", propertyName);
+      return String.format("SET %s='[string]'", propertyName);
     }
 
     @Override
     public String visitUnsetProperty(final UnsetPropertyContext context) {
       final String propertyName = context.STRING().getText();
-      return String.format("UNSET %s;", propertyName);
+      return String.format("UNSET %s", propertyName);
     }
 
     @Override
     public String visitDefineVariable(final DefineVariableContext context) {
-      return "DEFINE variable='[string]';";
+      return "DEFINE variable='[string]'";
     }
 
     @Override
     public String visitUndefineVariable(final UndefineVariableContext context) {
-      return "UNDEFINE variable;";
+      return "UNDEFINE variable";
     }
 
     @Override
     public String visitExplain(final ExplainContext context) {
-      return "EXPLAIN query";
+      if (context.identifier() != null) {
+        return "EXPLAIN query";
+      }
+
+      final String subQuery = visit(context.statement());
+      return String.format("EXPLAIN %s", subQuery);
     }
 
     @Override
@@ -459,8 +487,13 @@ public class QueryAnonymizer {
     public String visitBooleanDefault(final BooleanDefaultContext context) {
       final String columnName = context.getChild(0).getChild(0).getText();
       final String anonColumnName = getAnonColumnName(columnName);
-      final String anonValue = visit(context.getChild(0).getChild(1));
-      return String.format("%1$s=%2$s", anonColumnName, anonValue);
+
+      if (context.getChild(0).getChild(1) != null) {
+        final String anonValue = visit(context.getChild(0).getChild(1));
+        return String.format("%1$s=%2$s", anonColumnName, anonValue);
+      }
+
+      return anonColumnName;
     }
 
     @Override
@@ -528,10 +561,10 @@ public class QueryAnonymizer {
 
       // rest of query
       if (context.query() != null) {
-        stringBuilder.append(String.format(" AS SELECT %s", getQuery(context.query(), true)));
+        stringBuilder.append(String.format(" AS %s", visit(context.query())));
       }
 
-      return String.format("%s;", stringBuilder);
+      return stringBuilder.toString();
     }
 
     @Override
@@ -564,7 +597,7 @@ public class QueryAnonymizer {
         stringBuilder.append(visit(context.tableProperties()));
       }
 
-      return String.format("%s;", stringBuilder);
+      return stringBuilder.toString();
     }
 
     @Override
@@ -594,10 +627,10 @@ public class QueryAnonymizer {
 
       // rest of query
       if (context.query() != null) {
-        stringBuilder.append(String.format(" AS SELECT %s", getQuery(context.query(), false)));
+        stringBuilder.append(String.format(" AS %s", visit(context.query())));
       }
 
-      return String.format("%s;", stringBuilder);
+      return stringBuilder.toString();
     }
 
     @Override
@@ -630,7 +663,7 @@ public class QueryAnonymizer {
         stringBuilder.append(visit(context.tableProperties()));
       }
 
-      return String.format("%s;", stringBuilder);
+      return stringBuilder.toString();
     }
 
     @Override
@@ -645,10 +678,18 @@ public class QueryAnonymizer {
 
     @Override
     public String visitTableElement(final TableElementContext context) {
+      final StringBuilder stringBuilder = new StringBuilder();
       final String columnName = ParserUtil.getIdentifierText(context.identifier());
       final String newName = getAnonColumnName(columnName);
+      stringBuilder.append(String.format("%1$s %2$s", newName, visit(context.type())));
 
-      return String.format("%1$s %2$s", newName, context.type().getText());
+      if (context.PRIMARY() != null) {
+        stringBuilder.append(" PRIMARY");
+      }
+      if (context.KEY() != null) {
+        stringBuilder.append(" KEY");
+      }
+      return stringBuilder.toString();
     }
 
     @Override
@@ -684,7 +725,7 @@ public class QueryAnonymizer {
         stringBuilder.append(" DELETE TOPIC");
       }
 
-      return String.format("%s;", stringBuilder);
+      return stringBuilder.toString();
     }
 
     @Override
@@ -703,7 +744,7 @@ public class QueryAnonymizer {
         stringBuilder.append(" DELETE TOPIC");
       }
 
-      return String.format("%s;", stringBuilder);
+      return stringBuilder.toString();
     }
 
     @Override
@@ -716,7 +757,7 @@ public class QueryAnonymizer {
 
       stringBuilder.append("connector");
 
-      return String.format("%s;", stringBuilder);
+      return stringBuilder.toString();
     }
 
     @Override
@@ -729,24 +770,26 @@ public class QueryAnonymizer {
 
       stringBuilder.append("type");
 
-      return String.format("%s;", stringBuilder);
+      return stringBuilder.toString();
     }
 
-    private String getQuery(final QueryContext context, final boolean isStream) {
-      final StringBuilder stringBuilder = new StringBuilder();
+    @Override
+    public String visitQuery(final QueryContext context) {
+      final StringBuilder stringBuilder = new StringBuilder("SELECT ");
 
       // visit as select items
       final List<String> selectItemList = new ArrayList<>();
       for (SelectItemContext selectItem : context.selectItem()) {
-        selectItemList.add(visit(selectItem));
+        if (selectItem.getText().equals("*")) {
+          selectItemList.add("*");
+        } else {
+          selectItemList.add(visit(selectItem));
+        }
       }
       stringBuilder.append(StringUtils.join(selectItemList, ", "));
 
       // visit from statement
-      final String streamTableName = context.from.getText();
-      final String anonStreamTableName =
-          !isStream ? getAnonTableName(streamTableName) : getAnonStreamName(streamTableName);
-      stringBuilder.append(String.format(" FROM %s", anonStreamTableName));
+      stringBuilder.append(String.format(" FROM %s", visit(context.from)));
 
       // visit where statement
       if (context.where != null) {
@@ -771,6 +814,117 @@ public class QueryAnonymizer {
       return stringBuilder.toString();
     }
 
+    @Override
+    public String visitAliasedRelation(final AliasedRelationContext context) {
+      return visit(context.relationPrimary());
+    }
+
+    @Override
+    public String visitRelationDefault(final RelationDefaultContext context) {
+      return getAnonSourceName(context.getText());
+    }
+
+    @Override
+    public String visitTableName(final TableNameContext context) {
+      return getAnonSourceName(context.getText());
+    }
+
+    @Override
+    public String visitJoinRelation(final JoinRelationContext context) {
+      final String left = visit(context.left);
+      final ImmutableList<String> rights = context
+          .joinedSource()
+          .stream()
+          .map(this::visitJoinedSource)
+          .collect(ImmutableList.toImmutableList());
+
+      return String.format("%s %s", left, String.join(" ", rights));
+    }
+
+    @Override
+    public String visitJoinedSource(final JoinedSourceContext context) {
+      final StringBuilder stringBuilder = new StringBuilder();
+
+      // get join type
+      final SqlBaseParser.JoinTypeContext joinTypeContext = context.joinType();
+      if (joinTypeContext instanceof LeftJoinContext) {
+        stringBuilder.append("LEFT OUTER ");
+      } else if (joinTypeContext instanceof OuterJoinContext) {
+        stringBuilder.append("FULL OUTER ");
+      } else {
+        stringBuilder.append("INNER ");
+      }
+
+      // right side of join
+      final String right = visit(context.aliasedRelation());
+      stringBuilder.append(String.format("JOIN %s", right));
+
+      // visit within expression
+      if (context.joinWindow() != null) {
+        stringBuilder.append(visitWithinExpression(context.joinWindow().withinExpression()));
+      }
+
+      // visit join on
+      stringBuilder.append("ON anonKey1=anonKey2");
+
+      return stringBuilder.toString();
+    }
+
+    private static String visitWithinExpression(final WithinExpressionContext context) {
+      final StringBuilder stringBuilder = new StringBuilder(" WITHIN ");
+
+      if (context instanceof SingleJoinWindowContext) {
+        final SqlBaseParser.SingleJoinWindowContext singleWithin
+            = (SqlBaseParser.SingleJoinWindowContext) context;
+
+        stringBuilder.append(getSizeAndUnitFromJoinWindowSize(singleWithin.joinWindowSize()));
+      } else if (context instanceof JoinWindowWithBeforeAndAfterContext) {
+        final SqlBaseParser.JoinWindowWithBeforeAndAfterContext beforeAndAfterJoinWindow
+            = (SqlBaseParser.JoinWindowWithBeforeAndAfterContext) context;
+
+        final String before =
+            getSizeAndUnitFromJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(0));
+        final String after =
+            getSizeAndUnitFromJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(1));
+        stringBuilder.append(String.format("(%s, %s)", before, after));
+      } else {
+        throw new RuntimeException("Expecting either a single join window, ie \"WITHIN 10 "
+            + "seconds\", or a join window with before and after specified, "
+            + "ie. \"WITHIN (10 seconds, 20 seconds)");
+      }
+
+      return stringBuilder.toString();
+    }
+
+    private static String getSizeAndUnitFromJoinWindowSize(
+        final JoinWindowSizeContext joinWindowSize
+    ) {
+      return String.format("%s %s ",
+          "'0'", joinWindowSize.windowUnit().getText().toUpperCase());
+    }
+
+    private String getTypeName(final TypeContext context) {
+      if (context.DECIMAL() != null) {
+        return "DECIMAL";
+      }
+      switch (context.getText().toUpperCase()) {
+        case ("BOOLEAN"):
+        case ("INTEGER"):
+        case ("INT"):
+        case ("BIGINT"):
+        case ("DOUBLE"):
+        case ("STRING"):
+        case ("VARCHAR"):
+          return context.getText().toUpperCase();
+        default:
+          return "CUSTOM_TYPE";
+      }
+    }
+
+    private String getAnonSourceName(final String originName) {
+      return getAnonName(originName, "source", sourceCount++);
+    }
+
     private String getAnonUdfName(final String originName) {
       return getAnonName(originName, "udf", udfCount++);
     }
@@ -788,12 +942,12 @@ public class QueryAnonymizer {
     }
 
     private String getAnonName(final String originName, final String genericName, final int count) {
-      if (anonTable.containsKey(originName)) {
-        return anonTable.get(originName);
+      if (anonTable.containsKey(originName + genericName)) {
+        return anonTable.get(originName + genericName);
       }
 
       final String newName = String.format("%s%d", genericName, count);
-      anonTable.put(originName, newName);
+      anonTable.put(originName + genericName, newName);
       return newName;
     }
   }

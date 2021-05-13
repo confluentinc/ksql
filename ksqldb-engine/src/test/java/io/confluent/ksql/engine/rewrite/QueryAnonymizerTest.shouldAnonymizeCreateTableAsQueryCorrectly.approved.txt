@@ -1,1 +1,1 @@
-CREATE TABLE table1 AS SELECT column1, column2, column3 FROM table2 WHERE column1='0' AND column2='[string]' AND column3='[string]';
+CREATE TABLE table1 AS SELECT column1, column2, column3 FROM source1 WHERE column1='0' AND column2='[string]' AND column3='[string]';

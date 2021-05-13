@@ -43,8 +43,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.planner.PullPlannerOptions;
-import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds;
-import io.confluent.ksql.planner.plan.PullFilterNode.WindowBounds.WindowRange;
+import io.confluent.ksql.planner.plan.QueryFilterNode.WindowBounds;
+import io.confluent.ksql.planner.plan.QueryFilterNode.WindowBounds.WindowRange;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -59,7 +59,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class PullFilterNodeTest {
+public class QueryFilterNodeTest {
 
   private static final PlanNodeId NODE_ID = new PlanNodeId("1");
   private static final ColumnName K = ColumnName.of("K");
@@ -102,7 +102,7 @@ public class PullFilterNodeTest {
         new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
         new IntegerLiteral(1)
     );
-    PullFilterNode filterNode = new PullFilterNode(
+    QueryFilterNode filterNode = new QueryFilterNode(
         NODE_ID,
         source,
         expression,
@@ -135,7 +135,7 @@ public class PullFilterNodeTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new PullFilterNode(
+        () -> new QueryFilterNode(
             NODE_ID,
             source,
             expression,
@@ -158,7 +158,7 @@ public class PullFilterNodeTest {
         new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
         new ArithmeticUnaryExpression(Optional.empty(), Sign.MINUS, new IntegerLiteral(1))
     );
-    PullFilterNode filterNode = new PullFilterNode(
+    QueryFilterNode filterNode = new QueryFilterNode(
         NODE_ID,
         source,
         expression,
@@ -197,7 +197,7 @@ public class PullFilterNodeTest {
         keyExp1,
         keyExp2
     );
-    PullFilterNode filterNode = new PullFilterNode(
+    QueryFilterNode filterNode = new QueryFilterNode(
         NODE_ID,
         source,
         expression,
@@ -229,7 +229,7 @@ public class PullFilterNodeTest {
             ImmutableList.of(new IntegerLiteral(1), new IntegerLiteral(2))
         )
     );
-    PullFilterNode filterNode = new PullFilterNode(
+    QueryFilterNode filterNode = new QueryFilterNode(
         NODE_ID,
         source,
         expression,
@@ -262,7 +262,7 @@ public class PullFilterNodeTest {
         new UnqualifiedColumnReferenceExp(ColumnName.of("K")),
         new IntegerLiteral(1)
     );
-    PullFilterNode filterNode = new PullFilterNode(
+    QueryFilterNode filterNode = new QueryFilterNode(
         NODE_ID,
         source,
         expression,
@@ -301,7 +301,7 @@ public class PullFilterNodeTest {
         keyExp,
         windowStart
     );
-    PullFilterNode filterNode = new PullFilterNode(
+    QueryFilterNode filterNode = new QueryFilterNode(
         NODE_ID,
         source,
         expression,
@@ -346,7 +346,7 @@ public class PullFilterNodeTest {
         keyExp,
         windowStart
     );
-    PullFilterNode filterNode = new PullFilterNode(
+    QueryFilterNode filterNode = new QueryFilterNode(
         NODE_ID,
         source,
         expression,
@@ -391,7 +391,7 @@ public class PullFilterNodeTest {
         keyExp,
         windowStart
     );
-    PullFilterNode filterNode = new PullFilterNode(
+    QueryFilterNode filterNode = new QueryFilterNode(
         NODE_ID,
         source,
         expression,
@@ -436,7 +436,7 @@ public class PullFilterNodeTest {
         keyExp,
         windowStart
     );
-    PullFilterNode filterNode = new PullFilterNode(
+    QueryFilterNode filterNode = new QueryFilterNode(
         NODE_ID,
         source,
         expression,
@@ -481,7 +481,7 @@ public class PullFilterNodeTest {
         keyExp,
         windowStart
     );
-    PullFilterNode filterNode = new PullFilterNode(
+    QueryFilterNode filterNode = new QueryFilterNode(
         NODE_ID,
         source,
         expression,
@@ -526,7 +526,7 @@ public class PullFilterNodeTest {
         keyExp,
         windowStart
     );
-    PullFilterNode filterNode = new PullFilterNode(
+    QueryFilterNode filterNode = new QueryFilterNode(
         NODE_ID,
         source,
         expression,
@@ -571,7 +571,7 @@ public class PullFilterNodeTest {
         keyExp,
         windowStart
     );
-    PullFilterNode filterNode = new PullFilterNode(
+    QueryFilterNode filterNode = new QueryFilterNode(
         NODE_ID,
         source,
         expression,
@@ -616,7 +616,7 @@ public class PullFilterNodeTest {
         keyExp,
         windowStart
     );
-    PullFilterNode filterNode = new PullFilterNode(
+    QueryFilterNode filterNode = new QueryFilterNode(
         NODE_ID,
         source,
         expression,
@@ -661,7 +661,7 @@ public class PullFilterNodeTest {
         keyExp,
         windowStart
     );
-    PullFilterNode filterNode = new PullFilterNode(
+    QueryFilterNode filterNode = new QueryFilterNode(
         NODE_ID,
         source,
         expression,
@@ -717,7 +717,7 @@ public class PullFilterNodeTest {
         expressionA,
         windowEnd
     );
-    PullFilterNode filterNode = new PullFilterNode(
+    QueryFilterNode filterNode = new QueryFilterNode(
         NODE_ID,
         source,
         expression,
@@ -767,7 +767,7 @@ public class PullFilterNodeTest {
         keyExp,
         windowStart
     );
-    PullFilterNode filterNode = new PullFilterNode(
+    QueryFilterNode filterNode = new QueryFilterNode(
         NODE_ID,
         source,
         expression,
@@ -813,7 +813,7 @@ public class PullFilterNodeTest {
         expression1,
         expression2
     );
-    PullFilterNode filterNode = new PullFilterNode(
+    QueryFilterNode filterNode = new QueryFilterNode(
         NODE_ID,
         source,
         expression,
@@ -845,7 +845,7 @@ public class PullFilterNodeTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new PullFilterNode(
+        () -> new QueryFilterNode(
             NODE_ID,
             source,
             expression,
@@ -898,7 +898,7 @@ public class PullFilterNodeTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new PullFilterNode(
+        () -> new QueryFilterNode(
             NODE_ID,
             source,
             expression,
@@ -927,7 +927,7 @@ public class PullFilterNodeTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new PullFilterNode(
+        () -> new QueryFilterNode(
             NODE_ID,
             source,
             expression,
@@ -970,7 +970,7 @@ public class PullFilterNodeTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new PullFilterNode(
+        () -> new QueryFilterNode(
             NODE_ID,
             source,
             expression,
@@ -992,7 +992,7 @@ public class PullFilterNodeTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new PullFilterNode(
+        () -> new QueryFilterNode(
             NODE_ID,
             source,
             expression,
@@ -1019,7 +1019,7 @@ public class PullFilterNodeTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new PullFilterNode(
+        () -> new QueryFilterNode(
             NODE_ID,
             source,
             expression,
@@ -1071,7 +1071,7 @@ public class PullFilterNodeTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new PullFilterNode(
+        () -> new QueryFilterNode(
             NODE_ID,
             source,
             expression,
@@ -1098,7 +1098,7 @@ public class PullFilterNodeTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new PullFilterNode(
+        () -> new QueryFilterNode(
             NODE_ID,
             source,
             expression,
@@ -1130,7 +1130,7 @@ public class PullFilterNodeTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new PullFilterNode(
+        () -> new QueryFilterNode(
             NODE_ID,
             source,
             expression,
@@ -1166,7 +1166,7 @@ public class PullFilterNodeTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new PullFilterNode(
+        () -> new QueryFilterNode(
             NODE_ID,
             source,
             expression,
@@ -1217,7 +1217,7 @@ public class PullFilterNodeTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new PullFilterNode(
+        () -> new QueryFilterNode(
             NODE_ID,
             source,
             expression,
@@ -1269,7 +1269,7 @@ public class PullFilterNodeTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new PullFilterNode(
+        () -> new QueryFilterNode(
             NODE_ID,
             source,
             expression,
@@ -1305,7 +1305,7 @@ public class PullFilterNodeTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new PullFilterNode(
+        () -> new QueryFilterNode(
             NODE_ID,
             source,
             expression,
@@ -1354,7 +1354,7 @@ public class PullFilterNodeTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new PullFilterNode(
+        () -> new QueryFilterNode(
             NODE_ID,
             source,
             expression,
@@ -1401,7 +1401,7 @@ public class PullFilterNodeTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new PullFilterNode(
+        () -> new QueryFilterNode(
             NODE_ID,
             source,
             expression,
@@ -1437,7 +1437,7 @@ public class PullFilterNodeTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new PullFilterNode(
+        () -> new QueryFilterNode(
             NODE_ID,
             source,
             expression,
@@ -1484,7 +1484,7 @@ public class PullFilterNodeTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new PullFilterNode(
+        () -> new QueryFilterNode(
             NODE_ID,
             source,
             expression,
@@ -1520,7 +1520,7 @@ public class PullFilterNodeTest {
     // When:
     final KsqlException e = assertThrows(
         KsqlException.class,
-        () -> new PullFilterNode(
+        () -> new QueryFilterNode(
             NODE_ID,
             source,
             expression,
@@ -1537,7 +1537,7 @@ public class PullFilterNodeTest {
   @SuppressWarnings("unchecked")
   private void expectTableScan(final Expression expression, final boolean windowed) {
     // Given:
-    PullFilterNode filterNode = new PullFilterNode(
+    QueryFilterNode filterNode = new QueryFilterNode(
         NODE_ID,
         source,
         expression,

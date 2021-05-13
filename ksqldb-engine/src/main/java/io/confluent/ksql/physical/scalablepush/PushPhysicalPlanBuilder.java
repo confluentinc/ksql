@@ -30,17 +30,17 @@ import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.planner.plan.PullFilterNode;
-import io.confluent.ksql.planner.plan.PullProjectNode;
+import io.confluent.ksql.planner.plan.QueryFilterNode;
+import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.vertx.core.Context;
 import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Traverses the logical plan top-down and creates a physical plan for pull queries.
- * The pull query must access a table that is materialized in a state store.
+ * Traverses the logical plan top-down and creates a physical plan for scalable push queries.
  * The logical plan should consist of Project, Filter and DataSource nodes only.
  */
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -88,10 +88,10 @@ public class PushPhysicalPlanBuilder {
     AbstractPhysicalOperator rootPhysicalOp = null;
     while (true) {
       AbstractPhysicalOperator currentPhysicalOp = null;
-      if (currentLogicalNode instanceof PullProjectNode) {
-        currentPhysicalOp = translateProjectNode((PullProjectNode)currentLogicalNode);
-      } else if (currentLogicalNode instanceof PullFilterNode) {
-        currentPhysicalOp = translateFilterNode((PullFilterNode) currentLogicalNode);
+      if (currentLogicalNode instanceof QueryProjectNode) {
+        currentPhysicalOp = translateProjectNode((QueryProjectNode)currentLogicalNode);
+      } else if (currentLogicalNode instanceof QueryFilterNode) {
+        currentPhysicalOp = translateFilterNode((QueryFilterNode) currentLogicalNode);
       } else if (currentLogicalNode instanceof DataSourceNode) {
         currentPhysicalOp = translateDataSourceNode(
             (DataSourceNode) currentLogicalNode);
@@ -130,7 +130,7 @@ public class PushPhysicalPlanBuilder {
         context);
   }
 
-  private ProjectOperator translateProjectNode(final PullProjectNode logicalNode) {
+  private ProjectOperator translateProjectNode(final QueryProjectNode logicalNode) {
     final ProcessingLogger logger = processingLogContext
         .getLoggerFactory()
         .getLogger(
@@ -144,7 +144,7 @@ public class PushPhysicalPlanBuilder {
     );
   }
 
-  private SelectOperator translateFilterNode(final PullFilterNode logicalNode) {
+  private SelectOperator translateFilterNode(final QueryFilterNode logicalNode) {
     final ProcessingLogger logger = processingLogContext
         .getLoggerFactory()
         .getLogger(
@@ -164,6 +164,6 @@ public class PushPhysicalPlanBuilder {
   }
 
   private QueryId uniqueQueryId() {
-    return new QueryId("query_" + System.currentTimeMillis());
+    return new QueryId("SCALABLE_PUSH_QUERY_" + Math.abs(ThreadLocalRandom.current().nextLong()));
   }
 }

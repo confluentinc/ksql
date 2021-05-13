@@ -64,8 +64,8 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PullFilterNode extends SingleSourcePlanNode {
-  private static final Logger LOG = LoggerFactory.getLogger(PullFilterNode.class);
+public class QueryFilterNode extends SingleSourcePlanNode {
+  private static final Logger LOG = LoggerFactory.getLogger(QueryFilterNode.class);
 
   private static final Set<Type> VALID_WINDOW_BOUND_COMPARISONS = ImmutableSet.of(
       Type.EQUAL,
@@ -93,7 +93,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
   private final PullPlannerOptions pullPlannerOptions;
   private final boolean requiresTableScan;
 
-  public PullFilterNode(
+  public QueryFilterNode(
       final PlanNodeId id,
       final PlanNode source,
       final Expression predicate,
@@ -126,7 +126,7 @@ public class PullFilterNode extends SingleSourcePlanNode {
 
     // Compiling expression into byte code/interpreting the expression
     this.addAdditionalColumnsToIntermediateSchema = shouldAddAdditionalColumnsInSchema();
-    this.intermediateSchema = PullLogicalPlanUtil.buildIntermediateSchema(
+    this.intermediateSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
         source.getSchema().withoutPseudoAndKeyColsInValue(),
         addAdditionalColumnsToIntermediateSchema, isWindowed);
     compiledWhereClause = getExpressionEvaluator(

@@ -23,8 +23,8 @@ import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.planner.plan.PullFilterNode;
-import io.confluent.ksql.planner.plan.PullProjectNode;
+import io.confluent.ksql.planner.plan.QueryFilterNode;
+import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
@@ -55,9 +55,9 @@ public class PushPhysicalPlanBuilderTest {
   @Mock
   private KsqlBareOutputNode ksqlBareOutputNode;
   @Mock
-  private PullProjectNode projectNode;
+  private QueryProjectNode projectNode;
   @Mock
-  private PullFilterNode filterNode;
+  private QueryFilterNode filterNode;
   @Mock
   private DataSourceNode dataSourceNode;
   @Mock

@@ -26,7 +26,7 @@ import io.confluent.ksql.execution.transform.select.SelectValueMapperFactory;
 import io.confluent.ksql.execution.transform.select.SelectValueMapperFactory.SelectValueMapperFactorySupplier;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.planner.plan.PullProjectNode;
+import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.ArrayList;
@@ -38,7 +38,7 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
 
   private final ProcessingLogger logger;
   private final SelectValueMapperFactorySupplier selectValueMapperFactorySupplier;
-  private final PullProjectNode logicalNode;
+  private final QueryProjectNode logicalNode;
 
   private AbstractPhysicalOperator child;
   private TableRow row;
@@ -46,7 +46,7 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
 
   public ProjectOperator(
       final ProcessingLogger logger,
-      final PullProjectNode logicalNode
+      final QueryProjectNode logicalNode
   ) {
     this(
         logger,
@@ -58,7 +58,7 @@ public class ProjectOperator extends AbstractPhysicalOperator implements UnaryPh
   @VisibleForTesting
   ProjectOperator(
       final ProcessingLogger logger,
-      final PullProjectNode logicalNode,
+      final QueryProjectNode logicalNode,
       final SelectValueMapperFactorySupplier selectValueMapperFactorySupplier
   ) {
     this.logger = Objects.requireNonNull(logger, "logger");

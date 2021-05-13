@@ -42,8 +42,8 @@ import io.confluent.ksql.planner.plan.LookupConstraint;
 import io.confluent.ksql.planner.plan.NonKeyConstraint;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.planner.plan.PullFilterNode;
-import io.confluent.ksql.planner.plan.PullProjectNode;
+import io.confluent.ksql.planner.plan.QueryFilterNode;
+import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -109,10 +109,10 @@ public class PullPhysicalPlanBuilder {
     AbstractPhysicalOperator rootPhysicalOp = null;
     while (true) {
       AbstractPhysicalOperator currentPhysicalOp = null;
-      if (currentLogicalNode instanceof PullProjectNode) {
-        currentPhysicalOp = translateProjectNode((PullProjectNode)currentLogicalNode);
-      } else if (currentLogicalNode instanceof PullFilterNode) {
-        currentPhysicalOp = translateFilterNode((PullFilterNode) currentLogicalNode);
+      if (currentLogicalNode instanceof QueryProjectNode) {
+        currentPhysicalOp = translateProjectNode((QueryProjectNode)currentLogicalNode);
+      } else if (currentLogicalNode instanceof QueryFilterNode) {
+        currentPhysicalOp = translateFilterNode((QueryFilterNode) currentLogicalNode);
         seenSelectOperator = true;
       } else if (currentLogicalNode instanceof DataSourceNode) {
         currentPhysicalOp = translateDataSourceNode(
@@ -154,7 +154,7 @@ public class PullPhysicalPlanBuilder {
         dataSourceOperator);
   }
 
-  private ProjectOperator translateProjectNode(final PullProjectNode logicalNode) {
+  private ProjectOperator translateProjectNode(final QueryProjectNode logicalNode) {
     final ProcessingLogger logger = processingLogContext
         .getLoggerFactory()
         .getLogger(
@@ -168,7 +168,7 @@ public class PullPhysicalPlanBuilder {
     );
   }
 
-  private SelectOperator translateFilterNode(final PullFilterNode logicalNode) {
+  private SelectOperator translateFilterNode(final QueryFilterNode logicalNode) {
     lookupConstraints = logicalNode.getLookupConstraints();
 
     final ProcessingLogger logger = processingLogContext

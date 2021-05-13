@@ -26,14 +26,14 @@ import io.confluent.ksql.execution.transform.KsqlTransformer;
 import io.confluent.ksql.execution.transform.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.planner.plan.PullFilterNode;
+import io.confluent.ksql.planner.plan.QueryFilterNode;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
 public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhysicalOperator {
 
-  private final PullFilterNode logicalNode;
+  private final QueryFilterNode logicalNode;
   private final ProcessingLogger logger;
   private final SqlPredicate predicate;
 
@@ -41,13 +41,13 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
   private KsqlTransformer<Object, Optional<GenericRow>> transformer;
   private TableRow row;
 
-  public SelectOperator(final PullFilterNode logicalNode, final ProcessingLogger logger) {
+  public SelectOperator(final QueryFilterNode logicalNode, final ProcessingLogger logger) {
     this(logicalNode, logger, SqlPredicate::new);
   }
 
   @VisibleForTesting
   SelectOperator(
-      final PullFilterNode logicalNode,
+      final QueryFilterNode logicalNode,
       final ProcessingLogger logger,
       final SqlPredicateFactory predicateFactory
   ) {

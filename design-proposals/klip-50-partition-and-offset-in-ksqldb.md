@@ -27,7 +27,7 @@ guaranteed to uniquely identify a specific message.
 * Desired pull query semantics (specifically, that these metadata will not be available 
   by default and must instead be copied into the message value to be accessible)
 * Other semantics, such as whether these metadata will be included in source descriptions
-  or `PRINT TOPIC` commands, or allowed in `INSERT VALUES` statements
+  or allowed in `INSERT VALUES` statements
 * Compatibility implications for existing ksqlDB queries
 * High-level implementation strategy
 
@@ -36,13 +36,18 @@ guaranteed to uniquely identify a specific message.
 * [Exposing Kafka message headers in ksqlDB](https://github.com/confluentinc/ksql/issues/1940).
   We would like to do this in the future but we'll have a separate KLIP for this as it's a
   larger discussion.
+* Updating the output of `PRINT TOPIC` commands include offset (partition is already included).
+  This could be nice to do but is orthogonal to this KLIP for exposing additional
+  metadata for queries.
 
 ## Value/Return
 
 ksqlDB will expose message partition and offset as pseudocolumns similar to the `ROWTIME`
 pseudocolumn that exists today. Users will be able to select the partition and offset in
 transient queries, persistent queries, and also use the metadata in filters and UDFs.
-(See ["Public APIS"](#public-apis) below for example syntax.)
+
+In all cases, `ROWPARTITION` and `ROWOFFSET` will represent the partition and
+offset of messages from the _source_ topic, rather than the output/sink topic.
 
 This will allow users to more easily inspect data and debug ksqlDB queries:
 ```
@@ -84,6 +89,13 @@ also be allowed in `WHERE`, `GROUP BY`, and `PARTITION BY` clauses, though use c
 for the latter two are probably limited. `ROWPARTITION` and `ROWOFFSET` will also be
 allowed in UDFs.
 
+In all cases, `ROWPARTITION` and `ROWOFFSET` will represent the partition and
+offset of messages from the _source_ topic, rather than the output/sink topic.
+Otherwise, it would not be possible for these metedata fields to be used to filter
+or limit processing to a specific set of messages. (It's also not possible for a
+continuous query to predict the sink topic offset corresponding to a message, in
+order to be written as part of the message.)
+
 ### Pull Queries
 
 Today, users are able to select the `ROWTIME` pseudocolumn as part of pull queries:
@@ -114,14 +126,16 @@ definitely wouldn't be available.)
 If a user really wants to make partition and/or offset information available for pull
 queries, they can choose to explicitly include the source partition and offset as
 part of the query that materializes their table and query for partition/offset as
-value columns as part of their pull query.
+value columns as part of their pull query:
+```
+CREATE TABLE table_with_metadata AS SELECT *, ROWPARTITION AS partition, ROWOFFSET AS offset FROM source_table;
+SELECT col1, col2, partition, offset FROM table_with_metadata WHERE my_key='foo';
+```
 
 ### Other semantics
 
 Similar to `ROWTIME`, the new `ROWPARTITION` and `ROWOFFSET` pseudocolumns will not 
 be included in the list of columns returned as part of a source description.
-
-`ROWPARTITION` and `ROWOFFSET` will also not be added to the output of `PRINT TOPIC` commands.
 
 Unlike `ROWTIME`, the new `ROWPARTITION` and `ROWOFFSET` pseudocolumns will not
 be allowed as part of `INSERT VALUES` statements. It does not make sense for users
@@ -219,6 +233,11 @@ Implementation steps are:
 
 The [docs page on pseudocolumns](https://docs.ksqldb.io/en/latest/reference/sql/data-definition/#pseudocolumns)
 will be updated to reflect the addition of `ROWPARTITION` and `ROWOFFSET`.
+
+We will also add a section explaining that, in contrast to `ROWTIME`, the 
+`ROWPARTITION` and `ROWOFFSET` pseudocolumns may not be queried as part of pull
+queries, but there is a workaround for users who want this capability
+(see the example in the [section on "Pull Queries"](#pull-queries) above).
 
 ## Compatibility Implications
 

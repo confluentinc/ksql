@@ -67,8 +67,8 @@ import java.util.Optional;
 @SuppressWarnings("MethodMayBeStatic") // Methods can not be used in HANDLERS is static.
 public final class StepSchemaResolver {
   @SuppressWarnings("rawtypes")
-  private static final HandlerMaps.ClassHandlerMapR2<ExecutionStep, StepSchemaResolver,
-      LogicalSchema, LogicalSchema> HANDLERS
+  private static final HandlerMaps.ClassHandlerMapR2
+      <ExecutionStep, StepSchemaResolver, LogicalSchema, LogicalSchema> HANDLERS
           = HandlerMaps.forClass(ExecutionStep.class)
       .withArgTypes(StepSchemaResolver.class, LogicalSchema.class)
       .withReturnType(LogicalSchema.class)

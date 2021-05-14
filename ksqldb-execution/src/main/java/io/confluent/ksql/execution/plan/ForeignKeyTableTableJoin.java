@@ -16,7 +16,9 @@ package io.confluent.ksql.execution.plan;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
@@ -33,12 +35,13 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
   private final ExecutionStep<KTableHolder<KLeftT>> leftSource;
   private final ExecutionStep<KTableHolder<KRightT>> rightSource;
 
+  @JsonCreator
   public ForeignKeyTableTableJoin(
-      final ExecutionStepPropertiesV1 props,
-      final JoinType joinType,
-      final ColumnName leftJoinColumnName,
-      final ExecutionStep<KTableHolder<KLeftT>> leftSource,
-      final ExecutionStep<KTableHolder<KRightT>> rightSource
+      @JsonProperty(value = "properties", required = true) final ExecutionStepPropertiesV1 props,
+      @JsonProperty(value = "joinType", required = true) final JoinType joinType,
+      @JsonProperty(value = "leftJoinColumnName", required = true) final ColumnName leftJoinColumnName,
+      @JsonProperty(value = "leftSource", required = true) final ExecutionStep<KTableHolder<KLeftT>> leftSource,
+      @JsonProperty(value = "rightSource", required = true) final ExecutionStep<KTableHolder<KRightT>> rightSource
   ) {
     this.properties = requireNonNull(props, "props");
     this.joinType = requireNonNull(joinType, "joinType");

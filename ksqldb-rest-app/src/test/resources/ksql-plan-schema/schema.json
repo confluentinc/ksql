@@ -1044,6 +1044,35 @@
       "title" : "tableTableJoinV1",
       "required" : [ "@type", "properties", "joinType", "leftSource", "rightSource" ]
     },
+    "ForeignKeyTableTableJoin" : {
+      "type" : "object",
+      "additionalProperties" : false,
+      "properties" : {
+        "@type" : {
+          "type" : "string",
+          "enum" : [ "fkTableTableJoinV1" ],
+          "default" : "fkTableTableJoinV1"
+        },
+        "properties" : {
+          "$ref" : "#/definitions/ExecutionStepPropertiesV1"
+        },
+        "joinType" : {
+          "type" : "string",
+          "enum" : [ "INNER", "LEFT", "OUTER" ]
+        },
+        "leftJoinColumnName" : {
+          "type" : "string"
+        },
+        "leftSource" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        },
+        "rightSource" : {
+          "$ref" : "#/definitions/ExecutionStep"
+        }
+      },
+      "title" : "fkTableTableJoinV1",
+      "required" : [ "@type", "properties", "joinType", "leftJoinColumnName", "leftSource", "rightSource" ]
+    },
     "RefinementInfo" : {
       "type" : "object",
       "additionalProperties" : false,
@@ -1108,6 +1137,8 @@
         "$ref" : "#/definitions/TableSuppress"
       }, {
         "$ref" : "#/definitions/TableTableJoin"
+      }, {
+        "$ref" : "#/definitions/ForeignKeyTableTableJoin"
       } ]
     }
   }

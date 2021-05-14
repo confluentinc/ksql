@@ -147,6 +147,14 @@ public class ForeignKeyTableTableJoinBuilderTest {
     assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
+  // this is actually a PK-PK join and the logical planner would not compile a FK-join plan
+  // for this case atm
+  // however, from a physical plan POV this should still work, so we would like to keep this test
+  //
+  // it might be possible to actually change the logical planner to compile a PK-PK join as
+  // FK-join if input tables are not co-partitioned (instead of throwing an error an rejecting
+  // the query), ie, if key-format or partition-count do not match -- it's an open question
+  // if it would be a good idea to do this though
   @Test
   public void shouldDoLeftJoinOnKey() {
     // Given:
@@ -204,6 +212,14 @@ public class ForeignKeyTableTableJoinBuilderTest {
     assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
   }
 
+  // this is actually a PK-PK join and the logical planner would not compile a FK-join plan
+  // for this case atm
+  // however, from a physical plan POV this should still work, so we would like to keep this test
+  //
+  // it might be possible to actually change the logical planner to compile a PK-PK join as
+  // FK-join if input tables are not co-partitioned (instead of throwing an error an rejecting
+  // the query), ie, if key-format or partition-count do not match -- it's an open question
+  // if it would be a good idea to do this though
   @Test
   public void shouldDoInnerJoinOnKey() {
     // Given:

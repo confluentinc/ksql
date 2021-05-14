@@ -49,7 +49,7 @@ public final class TableTableJoinBuilder {
         result = left.getTable().outerJoin(right.getTable(), joinParams.getJoiner());
         break;
       default:
-        throw new IllegalStateException("invalid join type");
+        throw new IllegalStateException("invalid join type: " + join.getJoinType());
     }
 
     return KTableHolder.unmaterialized(

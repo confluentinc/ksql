@@ -53,7 +53,8 @@ import javax.annotation.Nonnull;
     @Type(value = TableSelectKey.class, name = "tableSelectKeyV1"),
     @Type(value = TableSink.class, name = "tableSinkV1"),
     @Type(value = TableSuppress.class, name = "tableSuppressV1"),
-    @Type(value = TableTableJoin.class, name = "tableTableJoinV1")
+    @Type(value = TableTableJoin.class, name = "tableTableJoinV1"),
+    @Type(value = ForeignKeyTableTableJoin.class, name = "fkTableTableJoinV1")
 })
 @Immutable
 public interface ExecutionStep<S> {

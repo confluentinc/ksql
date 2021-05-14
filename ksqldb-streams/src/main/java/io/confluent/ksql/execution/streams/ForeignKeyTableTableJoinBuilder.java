@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -54,7 +54,7 @@ public final class ForeignKeyTableTableJoinBuilder {
         );
         break;
       default:
-        throw new IllegalStateException("invalid join type");
+        throw new IllegalStateException("invalid join type: " + join.getJoinType());
     }
 
     return KTableHolder.unmaterialized(

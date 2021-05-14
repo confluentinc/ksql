@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -31,6 +31,9 @@ public final class ForeignKeyJoinParamsFactory {
       final LogicalSchema leftSchema,
       final LogicalSchema rightSchema
   ) {
+    if (rightSchema.key().size() != 1) {
+      throw new IllegalStateException("rightSchema must have single column key");
+    }
     return new ForeignKeyJoinParams<>(
         createKeyExtractor(leftSchema, leftJoinColumnName),
         new KsqlValueJoiner(leftSchema.value().size(), rightSchema.value().size(), 0),
@@ -58,6 +61,7 @@ public final class ForeignKeyJoinParamsFactory {
     if (!leftJoinColumn.isPresent()) {
       throw new IllegalStateException("Could not find join column in left input table.");
     }
+
     return new KsqlKeyExtractor<>(leftJoinColumn.get().index());
   }
 }

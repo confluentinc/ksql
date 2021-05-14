@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -575,7 +575,7 @@ public class StepSchemaResolverTest {
     when(tableFunction.getReturnType(any())).thenReturn(returnType);
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   private void givenAggregateFunction(final String name, final SqlType returnType) {
     final KsqlAggregateFunction aggregateFunction = mock(KsqlAggregateFunction.class);
     when(functionRegistry.getAggregateFunction(eq(FunctionName.of(name)), any(), any()))

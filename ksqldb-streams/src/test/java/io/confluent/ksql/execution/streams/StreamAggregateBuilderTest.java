@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -203,7 +203,7 @@ public class StreamAggregateBuilderTest {
   private StreamAggregate aggregate;
   private StreamWindowedAggregate windowedAggregate;
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   @Before
   public void init() {
     when(sourceStep.build(any(), eq(planInfo))).thenReturn(KGroupedStreamHolder.of(groupedStream, INPUT_SCHEMA));
@@ -234,7 +234,7 @@ public class StreamAggregateBuilderTest {
     );
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   private void givenUnwindowedAggregate() {
     when(materializedFactory.<GenericKey, KeyValueStore<Bytes, byte[]>>create(any(), any(), any()))
         .thenReturn(materialized);
@@ -250,7 +250,7 @@ public class StreamAggregateBuilderTest {
     );
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   private void givenTimeWindowedAggregate() {
     when(materializedFactory.<GenericKey, WindowStore<Bytes, byte[]>>create(any(), any(), any(), any()))
         .thenReturn(timeWindowMaterialized);
@@ -298,7 +298,7 @@ public class StreamAggregateBuilderTest {
     );
   }
 
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   private void givenSessionWindowedAggregate() {
     when(materializedFactory.<GenericKey, SessionStore<Bytes, byte[]>>create(any(), any(), any(), any()))
         .thenReturn(sessionWindowMaterialized);

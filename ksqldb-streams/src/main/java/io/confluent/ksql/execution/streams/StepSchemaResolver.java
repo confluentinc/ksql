@@ -19,6 +19,7 @@ import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.CompiledExpression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.ForeignKeyTableTableJoin;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamAggregate;
@@ -66,9 +67,9 @@ import java.util.Optional;
 @SuppressWarnings("MethodMayBeStatic") // Methods can not be used in HANDLERS is static.
 public final class StepSchemaResolver {
   @SuppressWarnings("rawtypes")
-  private static final HandlerMaps.ClassHandlerMapR2
-      <ExecutionStep, StepSchemaResolver, LogicalSchema, LogicalSchema> HANDLERS
-      = HandlerMaps.forClass(ExecutionStep.class)
+  private static final HandlerMaps.ClassHandlerMapR2<ExecutionStep, StepSchemaResolver,
+      LogicalSchema, LogicalSchema> HANDLERS
+          = HandlerMaps.forClass(ExecutionStep.class)
       .withArgTypes(StepSchemaResolver.class, LogicalSchema.class)
       .withReturnType(LogicalSchema.class)
       .put(StreamAggregate.class, StepSchemaResolver::handleStreamAggregate)
@@ -99,12 +100,13 @@ public final class StepSchemaResolver {
   @SuppressWarnings("rawtypes")
   private static final HandlerMaps.ClassHandlerMapR2
       <ExecutionStep, StepSchemaResolver, JoinSchemas, LogicalSchema> JOIN_HANDLERS
-      = HandlerMaps.forClass(ExecutionStep.class)
+          = HandlerMaps.forClass(ExecutionStep.class)
       .withArgTypes(StepSchemaResolver.class, JoinSchemas.class)
       .withReturnType(LogicalSchema.class)
       .put(StreamTableJoin.class, StepSchemaResolver::handleStreamTableJoin)
       .put(StreamStreamJoin.class, StepSchemaResolver::handleStreamStreamJoin)
       .put(TableTableJoin.class, StepSchemaResolver::handleTableTableJoin)
+      .put(ForeignKeyTableTableJoin.class, StepSchemaResolver::handleForeignKeyTableTableJoin)
       .build();
 
   private final KsqlConfig ksqlConfig;
@@ -301,6 +303,13 @@ public final class StepSchemaResolver {
       final TableTableJoin<?> step
   ) {
     return handleJoin(schemas, step.getKeyColName());
+  }
+
+  private LogicalSchema handleForeignKeyTableTableJoin(
+      final JoinSchemas schemas,
+      final ForeignKeyTableTableJoin<?, ?> step
+  ) {
+    return ForeignKeyJoinParamsFactory.createSchema(schemas.left, schemas.right);
   }
 
   private LogicalSchema handleJoin(

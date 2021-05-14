@@ -1,7 +1,20 @@
+/*
+ * Copyright 2021 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package io.confluent.ksql.execution.streams;
 
-import static io.confluent.ksql.execution.plan.StreamStreamJoin.LEGACY_KEY_COL;
-import static io.confluent.ksql.schema.ksql.SystemColumns.ROWKEY_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,7 +36,6 @@ import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.PlanInfo;
-import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -268,28 +280,6 @@ public class ForeignKeyTableTableJoinBuilderTest {
             .build())
     );
   }
-
-  // not sure what "legacy schema" is and if we need to support it?
-//  @Test
-//  public void shouldReturnCorrectLegacySchema() {
-//    // Given:
-//    join = new TableTableJoin<>(
-//        new ExecutionStepPropertiesV1(ctx),
-//        JoinType.INNER,
-//        ColumnName.of(LEGACY_KEY_COL),
-//        left,
-//        right
-//    );
-//
-//    // When:
-//    final KTableHolder<Struct> result = join.build(planBuilder, planInfo);
-//
-//    // Then:
-//    assertThat(
-//        result.getSchema(),
-//        is(JoinParamsFactory.create(ROWKEY_NAME, LEFT_SCHEMA, RIGHT_SCHEMA).getSchema())
-//    );
-//  }
 
   private void givenLeftJoin(final ExecutionStep<KTableHolder<Struct>> left,
                              final ColumnName leftJoinColumnName) {

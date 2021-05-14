@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.ForeignKeyTableTableJoin;
 import io.confluent.ksql.execution.plan.SourceStep;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamFilter;
@@ -93,6 +94,7 @@ public class PlanSummary {
           .put(TableSelectKey.class, "REKEY")
           .put(TableSink.class, "SINK")
           .put(TableTableJoin.class, "JOIN")
+          .put(ForeignKeyTableTableJoin.class, "JOIN")
           .put(TableSource.class, "SOURCE")
           .put(TableSuppress.class, "SUPPRESS")
           .put(WindowedTableSource.class, "SOURCE")

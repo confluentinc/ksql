@@ -16,37 +16,42 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.plan.ForeignKeyTableTableJoin;
 import io.confluent.ksql.execution.plan.KTableHolder;
-import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import org.apache.kafka.streams.kstream.KTable;
 
-public final class TableTableJoinBuilder {
+public final class ForeignKeyTableTableJoinBuilder {
 
-  private TableTableJoinBuilder() {
+  private ForeignKeyTableTableJoinBuilder() {
   }
 
-  public static <K> KTableHolder<K> build(
-      final KTableHolder<K> left,
-      final KTableHolder<K> right,
-      final TableTableJoin<K> join
+  public static <KLeftT, KRightT> KTableHolder<KLeftT> build(
+      final KTableHolder<KLeftT> left,
+      final KTableHolder<KRightT> right,
+      final ForeignKeyTableTableJoin<KLeftT, KRightT> join
   ) {
     final LogicalSchema leftSchema = left.getSchema();
     final LogicalSchema rightSchema = right.getSchema();
 
-    final JoinParams joinParams = JoinParamsFactory
-        .create(join.getKeyColName(), leftSchema, rightSchema);
+    final ForeignKeyJoinParams<KRightT> joinParams = ForeignKeyJoinParamsFactory
+        .create(join.getLeftJoinColumnName(), leftSchema, rightSchema);
 
-    final KTable<K, GenericRow> result;
+    final KTable<KLeftT, GenericRow> result;
     switch (join.getJoinType()) {
       case LEFT:
-        result = left.getTable().leftJoin(right.getTable(), joinParams.getJoiner());
+        result = left.getTable().leftJoin(
+            right.getTable(),
+            joinParams.getKeyExtractor(),
+            joinParams.getJoiner()
+        );
         break;
       case INNER:
-        result = left.getTable().join(right.getTable(), joinParams.getJoiner());
-        break;
-      case OUTER:
-        result = left.getTable().outerJoin(right.getTable(), joinParams.getJoiner());
+        result = left.getTable().join(
+            right.getTable(),
+            joinParams.getKeyExtractor(),
+            joinParams.getJoiner()
+        );
         break;
       default:
         throw new IllegalStateException("invalid join type: " + join.getJoinType());
@@ -55,6 +60,7 @@ public final class TableTableJoinBuilder {
     return KTableHolder.unmaterialized(
             result,
             joinParams.getSchema(),
-            left.getExecutionKeyFactory());
+            left.getExecutionKeyFactory()
+    );
   }
 }

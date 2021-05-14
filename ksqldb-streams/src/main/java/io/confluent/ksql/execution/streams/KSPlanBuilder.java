@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericKey;
+import io.confluent.ksql.execution.plan.ForeignKeyTableTableJoin;
 import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KStreamHolder;
@@ -397,5 +398,17 @@ public final class KSPlanBuilder implements PlanBuilder {
     final KTableHolder<K> left = tableTableJoin.getLeftSource().build(this, planInfo);
     final KTableHolder<K> right = tableTableJoin.getRightSource().build(this, planInfo);
     return TableTableJoinBuilder.build(left, right, tableTableJoin);
+  }
+
+  @Override
+  public <KLeftT, KRightT> KTableHolder<KLeftT> visitForeignKeyTableTableJoin(
+      final ForeignKeyTableTableJoin<KLeftT, KRightT> foreignKeyTableTableJoin,
+      final PlanInfo planInfo) {
+
+    final KTableHolder<KLeftT> left =
+        foreignKeyTableTableJoin.getLeftSource().build(this, planInfo);
+    final KTableHolder<KRightT> right =
+        foreignKeyTableTableJoin.getRightSource().build(this, planInfo);
+    return ForeignKeyTableTableJoinBuilder.build(left, right, foreignKeyTableTableJoin);
   }
 }

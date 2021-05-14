@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -52,7 +52,6 @@ import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -92,7 +91,6 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-
 
 public class SourceBuilderTest {
 
@@ -202,7 +200,7 @@ public class SourceBuilderTest {
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Before
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public void setup() {
     when(buildContext.getApplicationId()).thenReturn("appid");
     when(buildContext.getStreamsBuilder()).thenReturn(streamsBuilder);
@@ -797,7 +795,8 @@ public class SourceBuilderTest {
   ) {
     streamSource.build(planBuilder, planInfo);
     verify(kStream).transformValues(transformSupplierCaptor.capture());
-    final ValueTransformerWithKey transformer = transformSupplierCaptor.getValue().get();
+    final ValueTransformerWithKey<K, GenericRow, GenericRow> transformer =
+        (ValueTransformerWithKey<K, GenericRow, GenericRow>) transformSupplierCaptor.getValue().get();
     transformer.init(processorCtx);
     return transformer;
   }
@@ -808,7 +807,8 @@ public class SourceBuilderTest {
   ) {
     streamSource.build(planBuilder, planInfo);
     verify(kTable).transformValues(transformSupplierCaptor.capture());
-    final ValueTransformerWithKey transformer = transformSupplierCaptor.getValue().get();
+    final ValueTransformerWithKey<K, GenericRow, GenericRow> transformer =
+        (ValueTransformerWithKey<K, GenericRow, GenericRow>) transformSupplierCaptor.getValue().get();
     transformer.init(processorCtx);
     return transformer;
   }

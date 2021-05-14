@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -82,4 +82,9 @@ public interface PlanBuilder {
   <K> KTableHolder<K> visitTableSuppress(TableSuppress<K> tableSuppress, PlanInfo planInfo);
 
   <K> KTableHolder<K> visitTableTableJoin(TableTableJoin<K> tableTableJoin, PlanInfo planInfo);
+
+  <KLeftT, KRightT> KTableHolder<KLeftT> visitForeignKeyTableTableJoin(
+      ForeignKeyTableTableJoin<KLeftT, KRightT> foreignKeyTableTableJoin,
+      PlanInfo planInfo
+  );
 }

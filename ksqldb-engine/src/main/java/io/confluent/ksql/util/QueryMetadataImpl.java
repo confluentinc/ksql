@@ -175,7 +175,8 @@ public class QueryMetadataImpl implements QueryMetadata {
   ) {
     QueryError.Type errorType = Type.UNKNOWN;
     try {
-      QueryLogger.error("Query exception", this.statementString);
+      QueryLogger.error(String.format("Uncaught exception in query %s", e),
+          this.statementString);
       errorType = errorClassifier.classify(e);
     } catch (final Exception classificationException) {
       LOG.error("Error classifying unhandled exception", classificationException);

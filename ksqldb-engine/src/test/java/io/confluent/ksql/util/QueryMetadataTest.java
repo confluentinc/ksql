@@ -222,11 +222,12 @@ public class QueryMetadataTest {
   }
 
   @Test
-  public void QueryLoggerShouldReceiveStatementsWhenUncaughtHandler() {
+  public void queryLoggerShouldReceiveStatementsWhenUncaughtHandler() {
     try (MockedStatic<QueryLogger> logger = Mockito.mockStatic(QueryLogger.class)) {
       query.uncaughtHandler(new RuntimeException("foo"));
 
-      logger.verify(() -> QueryLogger.error("Query exception",
+      logger.verify(() ->
+          QueryLogger.error("Uncaught exception in query java.lang.RuntimeException: foo",
           "foo"), times(1));
     }
   }

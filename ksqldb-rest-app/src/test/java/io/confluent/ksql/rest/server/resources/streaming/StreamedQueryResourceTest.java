@@ -359,7 +359,7 @@ public class StreamedQueryResourceTest {
   }
 
   @Test
-  public void QueryLoggerShouldReceiveStatementsWhenHandleKsqlStatement() {
+  public void queryLoggerShouldReceiveStatementsWhenHandleKsqlStatement() {
     try (MockedStatic<QueryLogger> logger = Mockito.mockStatic(QueryLogger.class)) {
       testResource.streamQuery(
           securityContext,

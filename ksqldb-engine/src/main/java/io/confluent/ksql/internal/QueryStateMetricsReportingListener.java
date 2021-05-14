@@ -17,7 +17,6 @@ package io.confluent.ksql.internal;
 
 import com.google.common.base.Ticker;
 import io.confluent.ksql.engine.QueryEventListener;
-import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryId;

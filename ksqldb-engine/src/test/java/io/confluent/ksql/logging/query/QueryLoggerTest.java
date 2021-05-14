@@ -33,7 +33,7 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class QueryLoggerTest {
   @Mock public KsqlConfig config;
-  private TestAppender testAppender = new TestAppender();
+  private final TestAppender testAppender = new TestAppender();
 
   @Before
   public void setUp() throws Exception {

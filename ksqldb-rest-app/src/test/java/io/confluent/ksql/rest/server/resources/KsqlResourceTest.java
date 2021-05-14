@@ -2491,12 +2491,34 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void QueryLoggerShouldReceiveStatementsWhenHandleKsqlStatement() {
+  public void queryLoggerShouldReceiveStatementsWhenHandleKsqlStatement() {
     try (MockedStatic<QueryLogger> logger = Mockito.mockStatic(QueryLogger.class)) {
       ksqlResource.handleKsqlStatements(securityContext, VALID_EXECUTABLE_REQUEST);
 
       logger.verify(() -> QueryLogger.info("Query created",
           VALID_EXECUTABLE_REQUEST.getKsql()), times(1));
+    }
+  }
+
+  @Test
+  public void queryLoggerShouldReceiveTerminateStatementsWhenHandleKsqlStatementWithTerminate() {
+    // Given:
+    final PersistentQueryMetadata queryMetadata = createQuery(
+        "CREATE STREAM test_explain AS SELECT * FROM test_stream;",
+        emptyMap());
+    final String terminateSql = "TERMINATE " + queryMetadata.getQueryId() + ";";
+
+    // When:
+    try (MockedStatic<QueryLogger> logger = Mockito.mockStatic(QueryLogger.class)) {
+      ksqlResource.handleKsqlStatements(securityContext, new KsqlRequest(
+          terminateSql,
+          ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
+          emptyMap(),
+          0L));
+
+      // Then:
+      logger.verify(() -> QueryLogger.info("Query terminated",
+          terminateSql), times(1));
     }
   }
 

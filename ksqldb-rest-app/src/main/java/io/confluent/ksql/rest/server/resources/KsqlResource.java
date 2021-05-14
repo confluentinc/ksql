@@ -292,7 +292,14 @@ public class KsqlResource implements KsqlConfigurable {
       );
 
       // log validated statements for query anonymization
-      statements.forEach(s -> QueryLogger.info("Query created", s.getStatementText()));
+      statements.forEach(s -> {
+        if (s.getStatementText().toLowerCase().contains("terminate")
+            || s.getStatementText().toLowerCase().contains("drop")) {
+          QueryLogger.info("Query terminated", s.getStatementText());
+        } else {
+          QueryLogger.info("Query created", s.getStatementText());
+        }
+      });
 
       final KsqlEntityList entities = handler.execute(
           securityContext,

@@ -23,9 +23,7 @@ import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -264,31 +262,15 @@ final class JoinTree {
       return Streams
           .concat(
               left.viableKeyColumns().stream(),
-              emptyIfNonKeyColumn(info.getLeftJoinExpression(), info.getLeftSource()),
+              Stream.of(info.getLeftJoinExpression()),
               right.viableKeyColumns().stream(),
-              emptyIfNonKeyColumn(info.getRightJoinExpression(), info.getRightSource())
+              Stream.of(info.getRightJoinExpression())
           )
           .filter(e -> e instanceof QualifiedColumnReferenceExp)
           .map(QualifiedColumnReferenceExp.class::cast)
           .distinct()
           .filter(equiv::contains)
           .collect(Collectors.toList());
-    }
-
-    private Stream<Expression> emptyIfNonKeyColumn(final Expression expression,
-                                                   final AliasedDataSource aliasedDataSource) {
-      if (!(expression instanceof QualifiedColumnReferenceExp)) {
-        return Stream.empty();
-      }
-
-      final QualifiedColumnReferenceExp columnReference = (QualifiedColumnReferenceExp) expression;
-      final ColumnName columnName =  columnReference.getColumnName();
-      final List<Column> keyColumns = aliasedDataSource.getDataSource().getSchema().key();
-
-      final boolean isKeyColumn = keyColumns.stream().map(Column::name)
-          .anyMatch(key -> key.equals(columnName));
-
-      return isKeyColumn ? Stream.of(expression) : Stream.empty();
     }
 
     @Override

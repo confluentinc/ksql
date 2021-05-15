@@ -593,38 +593,33 @@ public class LogicalPlanner {
       );
     }
 
-    final boolean isForeignKeyJoin =
+    final Optional<ColumnName> fkColumnName =
         verifyJoin(root.getInfo(), preRepartitionLeft, preRepartitionRight);
 
     final boolean finalJoin = prefix.isEmpty();
 
-    final JoinKey joinKey = buildJoinKey(root);
-
-    Optional<ColumnName> leftJoinNonKeyColumn = Optional.empty();
-    if (isForeignKeyJoin) {
-      leftJoinNonKeyColumn = getLeftJoinNonKeyColumn(root);
-    }
+    final JoinKey joinKey = buildJoinKey(root, fkColumnName);
 
     final PlanNode left = prepareSourceForJoin(
         root.getLeft(),
         preRepartitionLeft,
         prefix + "Left",
         root.getInfo().getLeftJoinExpression(),
-        isForeignKeyJoin
+        fkColumnName.isPresent()
     );
     final PlanNode right = prepareSourceForJoin(
         root.getRight(),
         preRepartitionRight,
         prefix + "Right",
         root.getInfo().getRightJoinExpression(),
-        isForeignKeyJoin
+        fkColumnName.isPresent()
     );
 
     return new JoinNode(
         new PlanNodeId(prefix + "Join"),
         root.getInfo().getType(),
         joinKey.rewriteWith(refRewriter::process),
-        leftJoinNonKeyColumn,
+        fkColumnName,
         finalJoin,
         left,
         right,
@@ -633,28 +628,11 @@ public class LogicalPlanner {
     );
   }
 
-  private Optional<ColumnName> getLeftJoinNonKeyColumn(final Join join) {
-    // This method is called after the verifyJoin() has detected a FK join. This code does not
-    // check for values are in the right order. It is assumed verifyJoin() already checked them
-    // and failed in case they are not valid.
-
-    // What if expression is not ColumnReferenceExp?
-    final ColumnReferenceExp columnReference =
-        (ColumnReferenceExp) join.getInfo().getLeftJoinExpression();
-
-    final Optional<SourceName> qualifier = columnReference.maybeQualifier();
-    final ColumnName columnName = columnReference.getColumnName();
-
-    return Optional.of(qualifier.isPresent()
-        ? ColumnNames.generatedJoinColumnAlias(qualifier.get(), columnName)
-        : columnName);
-  }
-
   /**
-   * @return whether this is a foreign key join or not
+   * @return the foreign key ColumnName if this is a foreign key join
    */
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
-  private boolean verifyJoin(
+  private Optional<ColumnName> verifyJoin(
       final JoinInfo joinInfo,
       final PlanNode leftNode,
       final PlanNode rightNode
@@ -733,7 +711,14 @@ public class LogicalPlanner {
             ));
           }
 
-          return true;
+          if (!(leftExpression instanceof ColumnReferenceExp)) {
+            throw new KsqlException(String.format(
+                "Invalid join condition: foreign-key table-table joins with expressions "
+                    + "are not supported. Got %s = %s."
+            ));
+          }
+
+          return Optional.of(((ColumnReferenceExp) leftExpression).getColumnName());
         } else {
           throw new KsqlException(String.format(
               "Invalid join condition:"
@@ -745,7 +730,7 @@ public class LogicalPlanner {
       }
     }
 
-    return false;
+    return Optional.empty();
   }
 
   private boolean joinOnNonKeyAttribute(final Expression joinExpression,
@@ -822,7 +807,7 @@ public class LogicalPlanner {
     throw new IllegalStateException("Unknown node type: " + node.getClass().getName());
   }
 
-  private JoinKey buildJoinKey(final Join join) {
+  private JoinKey buildJoinKey(final Join join, final Optional<ColumnName> fkColumnName) {
     final List<QualifiedColumnReferenceExp> viableKeyColumns = join.viableKeyColumns();
     if (viableKeyColumns.isEmpty()) {
       return JoinKey.syntheticColumn();
@@ -831,6 +816,7 @@ public class LogicalPlanner {
     final Projection projection = Projection.of(analysis.original().getSelectItems());
 
     final List<QualifiedColumnReferenceExp> availableKeyColumns = viableKeyColumns.stream()
+        .filter(k -> !fkColumnName.isPresent() || !fkColumnName.get().equals(k.getColumnName()))
         .filter(projection::containsExpression)
         .collect(Collectors.toList());
 

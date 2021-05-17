@@ -35,12 +35,16 @@ a RocksDB instance for interactive queries in the KsqlDB servers.
 
 ## What is in scope
 * Add `CREATE SOURCE STREAM/TABLE` syntax to KSQL
-* `DESCRIBE ... EXTENDED` should show source streams and tables as read-only  
+* `DESCRIBE ...` should show source streams and tables as read-only  
 * Add materialization of the `source table` to make it pull-query accessible
 * Make source stream/table immutable from KSQL by rejecting insertion requests
+* Prevent `DROP` command from deleting source stream/table backed up topic
  
 
 ## What is not in scope
+* We shall not attempt to have data materialization for general `CREATE TABLE` command as default. The reasoning is 
+that we lack user feedback around a massive change, and it's preferable to start giving user the option to try out 
+materialized table and see if that is a good alternative or not. 
 * We will not add role-based write permission for source stream/table in v1, even though it seems to be useful.
 
 ## Design
@@ -65,6 +69,9 @@ Additionally, when user calls `DESCRIBE ... EXTENDED`, the read-only attribute s
 We plan to add restriction check into the `DistributingExecutor#throwIfInsertOnReadOnlyTopic` or create a similar function, 
 which could verify whether the given stream/table is read-only. If so, the insertion will be rejected.
 
+Additionally, when calling `DROP` command on a source stream/table, the underlying topic should not be deleted as the source 
+stream/table has no ownership of the input data. See this [issue](https://github.com/confluentinc/ksql/issues/3585) for more context. 
+
 ### Source Table Materialization
 In the call `EngineExecutor#execute`, we will check whether given plan has a `queryPlan` before deciding to proceed 
 creating a persistent query. To bypass this check, we need to provide a concrete query plan within the input plan. We would 
@@ -74,19 +81,6 @@ In addition, when user tries to show all the running queries, the materializatio
 part of the computation resource. This would be a special type of running query without `SELECT` clause or a query id, as it 
 should be only associated with source table, and user could choose to `DROP` the entire table if they don't want to use resource 
 to do the materialization.
-
-Here comes a precaution we might be aware. The original `CREATE TABLE` command does not need materialization, so there is 
-no enforcement for primary key. However, in order to let pull query run on the materialized state, the store must be keyed so that 
-pull query could use the primary key for access.  
-
-To enforce primary key on the `CREATE SOURCE TABLE` command, we have 3 options:
-1. `AstBuilder` could verify that at least one `TableElement` contains primary key, otherwise the plan fails.
-2. `LogicalPlanner#buildPersistentLogicalPlan` could verify the plan node and see whether it needs materialization 
-but has no defined primary key.
-3. Create an injector similar to `TopicCreateInjector`, which could be used to validate things through `RequestValidator`
-
-In long-term, we don't want to bloat `AstBuilder` with all the logical constraint checks. In the short-term, the complexity 
-of #1 is low, and the expected code change to enforce this constraint should be low, so we would pick #1. 
 
 ## Public APIS
 * Create source table/stream, which makes the data source read-only:
@@ -126,4 +120,8 @@ the last one will be documentation and tests complete.
 This is a new feature in CT and CS, which has no backward compatibility issue. 
 
 ## Security Implications
-None
+This is not a security feature, and it is allowed to `CREATE SOURCE TABLE` over an existing topic that is 
+being used by other tables, without any affection to the ownership. In the long term, we will have a full 
+RBAC-like model for KSQL, which is logistic to create multiple tables on the same topic with different user roles.
+The admin could create the table with write access, while a consumer role should be only allowed to create 
+read-only tables.

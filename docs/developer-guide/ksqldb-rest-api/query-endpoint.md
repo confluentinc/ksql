@@ -15,8 +15,8 @@ the response is streamed until the client closes the connection.
 !!! note
       This endpoint was proposed to be deprecated as part of 
       [KLIP-15](https://github.com/confluentinc/ksql/blob/master/design-proposals/klip-15-new-api-and-client.md)
-      in favor of the new `HTTP/2` [`/query-stream`](developer-guide/ksqldb-rest-api/streaming-endpoint).
-      The deprecation itself is not yet scheduled, but if you are able to use HTTP/2,
+      in favor of the new `HTTP/2` [`/query-stream`](/developer-guide/ksqldb-rest-api/streaming-endpoint).
+      The deprecation itself is not yet scheduled, but if you are able to use `HTTP/2`,
       you are recommended to favor `/query-stream`.
 
 ## POST /query

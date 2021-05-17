@@ -31,8 +31,10 @@ import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.rest.RestConfig;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Base64;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -48,7 +50,6 @@ import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
-import org.glassfish.jersey.internal.util.Base64;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -185,7 +186,8 @@ public class BasicAuthFunctionalTest {
   }
 
   private static String buildBasicAuthHeader(final String userName, final String password) {
-    return Base64.encodeAsString(userName + ":" + password);
+    final String creds = userName + ":" + password;
+    return Base64.getEncoder().encodeToString(creds.getBytes(Charset.defaultCharset()));
   }
 
   private static String createJaasConfigContent() {

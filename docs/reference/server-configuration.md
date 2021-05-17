@@ -71,6 +71,11 @@ The connect worker configuration file, if spinning up {{ site.kconnect }}
 alongside the ksqlDB server. Don't set this property if you're using
 an external `ksql.connect.url`.
 
+## `ksql.extension.dir`
+
+The directory in which ksqlDB looks for UDFs. The default value
+is the `ext` directory relative to ksqlDB's current working directory.
+
 ## `ksql.fail.on.deserialization.error`
 
 **Per query:** yes
@@ -105,6 +110,15 @@ to your ksqlDB Server properties file:
 ```properties
 ksql.fail.on.production.error=false
 ```
+
+## `ksql.functions.<UDF Name>.<UDF Config>`
+
+Makes custom configuration values available to the UDF specified by name.
+For example, if a UDF is named "formula", you can pass a config
+to that UDF by specifying the `ksql.functions.formula.base.value` property.
+Access the property in the UDF's `configure` method
+by using its full name, `ksql.functions.formula.base.value`. This example
+is explored in detail [here](/how-to-guides/create-a-user-defined-function/).
 
 ## `ksql.functions.collect_list.limit`
 

@@ -116,7 +116,7 @@ ksql.fail.on.production.error=false
 Makes custom configuration values available to the UDF specified by name.
 For example, if a UDF is named "formula", then you can pass a config
 to that UDF by specifying the property `ksql.functions.formula.base.value`.
-Within the UDF's `configure` method, it will have access to the propery
+Access the property in the UDF's `configure` method
 by the full name, `ksql.funcitons.formula.base.value`. This example
 is explored in detail [here](/how-to-guides/create-a-user-defined-function/).
 

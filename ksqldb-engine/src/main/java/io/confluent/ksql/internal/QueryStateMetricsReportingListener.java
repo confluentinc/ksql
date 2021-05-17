@@ -66,12 +66,22 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
 
   @Override
   public void onStateChange(final QueryMetadata query, final State before, final State after) {
-    perQuery.get(query.getQueryId()).onChange(before, after);
+    // this may be called after the query is deregistered, because shutdown is ansynchronous and
+    // may time out. when ths happens, the shutdown thread in streams may call this method.
+    final PerQueryListener listener = perQuery.get(query.getQueryId());
+    if (listener != null) {
+      listener.onChange(before, after);
+    }
   }
 
   @Override
   public void onError(final QueryMetadata query, final QueryError error) {
-    perQuery.get(query.getQueryId()).onError(error);
+    // this may be called after the query is deregistered, because shutdown is ansynchronous and
+    // may time out. when ths happens, the shutdown thread in streams may call this method.
+    final PerQueryListener listener = perQuery.get(query.getQueryId());
+    if (listener != null) {
+      listener.onError(error);
+    }
   }
 
   @Override

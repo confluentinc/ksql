@@ -100,6 +100,26 @@ public class QueryStateMetricsReportingListenerTest {
   }
 
   @Test
+  public void shouldGracefullyHandleStateCallbackAfterDeregister() {
+    // Given:
+    listener.onCreate(serviceContext, metaStore, query);
+    listener.onDeregister(query);
+
+    // When/Then(don't throw)
+    listener.onStateChange(query, State.RUNNING, State.NOT_RUNNING);
+  }
+
+  @Test
+  public void shouldGracefullyHandleErrorCallbackAfterDeregister() {
+    // Given:
+    listener.onCreate(serviceContext, metaStore, query);
+    listener.onDeregister(query);
+
+    // When/Then(don't throw)
+    listener.onError(query, new QueryError(123, "foo", Type.USER));
+  }
+
+  @Test
   public void shouldAddMetricWithSuppliedPrefix() {
     // Given:
     final String groupPrefix = "some-prefix-";

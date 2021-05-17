@@ -73,7 +73,7 @@ an external `ksql.connect.url`.
 
 ## `ksql.extension.dir`
 
-The directory in which ksqlDB will look for UDFs. The default value
+The directory in which ksqlDB looks for UDFs. The default value
 is the `ext` directory relative to the ksqlDB's current working directory.
 
 ## `ksql.fail.on.deserialization.error`

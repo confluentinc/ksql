@@ -322,7 +322,7 @@ public class JoinNodeTest {
     setupStream(right, rightSchemaKStream);
 
     final JoinNode joinNode =
-        new JoinNode(nodeId, OUTER, joinKey,          true, left, right, WITHIN_EXPRESSION, "KAFKA");
+        new JoinNode(nodeId, OUTER, joinKey, true, left, right, WITHIN_EXPRESSION, "KAFKA");
 
     // When:
     joinNode.buildStream(planBuildContext);

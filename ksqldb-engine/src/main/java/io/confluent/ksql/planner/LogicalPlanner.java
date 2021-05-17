@@ -819,17 +819,12 @@ public class LogicalPlanner {
             .map(c -> new QualifiedColumnReferenceExp(alias, c.name()))
             .collect(Collectors.toList());
 
-    final QualifiedColumnReferenceExp keyColumn = leftSourceKeys.get(0);
-
-    final ColumnName keyColumnName = ColumnNames
-        .generatedJoinColumnAlias(keyColumn.getQualifier(), keyColumn.getColumnName());
-
     final ColumnName foreignKeyColumnName = columnRef.maybeQualifier().isPresent()
         ? ColumnNames.generatedJoinColumnAlias(
             columnRef.maybeQualifier().get(), columnRef.getColumnName())
         : columnRef.getColumnName();
 
-    return JoinKey.foreignKeyColumn(keyColumnName, foreignKeyColumnName, leftSourceKeys);
+    return JoinKey.foreignKeyColumn(foreignKeyColumnName, leftSourceKeys);
   }
 
   private JoinKey buildJoinKey(final Join join) {

@@ -532,11 +532,10 @@ public class JoinNode extends PlanNode implements JoiningNode {
     }
 
     static JoinKey foreignKeyColumn(
-        final ColumnName keyColumn,
         final ColumnName foreignKeyColumn,
         final Collection<QualifiedColumnReferenceExp> viableKeyColumns
     ) {
-      return ForeignJoinKey.of(keyColumn, foreignKeyColumn, viableKeyColumns);
+      return ForeignJoinKey.of(foreignKeyColumn, viableKeyColumns);
     }
 
     /**
@@ -696,20 +695,16 @@ public class JoinNode extends PlanNode implements JoiningNode {
   }
 
   private static final class ForeignJoinKey implements JoinKey {
-    private final ColumnName keyColumn;
     private final ColumnName foreignKeyColumn;
     private final ImmutableList<? extends ColumnReferenceExp> leftSourceKeyColumns;
 
-    static JoinKey of(final ColumnName keyColumn,
-                      final ColumnName foreignKeyColumn,
+    static JoinKey of(final ColumnName foreignKeyColumn,
                       final Collection<QualifiedColumnReferenceExp> leftSourceKeyColumns) {
-      return new ForeignJoinKey(keyColumn, foreignKeyColumn, leftSourceKeyColumns);
+      return new ForeignJoinKey(foreignKeyColumn, leftSourceKeyColumns);
     }
 
-    private ForeignJoinKey(final ColumnName keyColumn,
-                           final ColumnName foreignKeyColumn,
+    private ForeignJoinKey(final ColumnName foreignKeyColumn,
                            final Collection<? extends ColumnReferenceExp> viableKeyColumns) {
-      this.keyColumn = requireNonNull(keyColumn, "keyColumn");
       this.foreignKeyColumn = requireNonNull(foreignKeyColumn, "foreignKeyColumn");
       this.leftSourceKeyColumns = ImmutableList
           .copyOf(requireNonNull(viableKeyColumns, "viableKeyColumns"));
@@ -737,7 +732,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
 
     @Override
     public ColumnName resolveKeyName(final PlanNode left, final PlanNode right) {
-      return keyColumn;
+      throw new UnsupportedOperationException("Should not be called with foreign key joins.");
     }
 
     @Override
@@ -747,7 +742,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
           .map(e -> ExpressionTreeRewriter.rewriteWith(plugin, e))
           .collect(Collectors.toList());
 
-      return new ForeignJoinKey(keyColumn, foreignKeyColumn, rewrittenViable);
+      return new ForeignJoinKey(foreignKeyColumn, rewrittenViable);
     }
 
     public ColumnName getForeignKeyColumn() {

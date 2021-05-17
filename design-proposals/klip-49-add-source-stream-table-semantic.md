@@ -63,7 +63,7 @@ instances would be `CreateStream` and `CreateTable`, which are the only two subc
 to add the `SOURCE` as a flag into `CreateSource`, and let `AstBuilder` pass the flag into the struct 
 for later stage reference of read-only.
 
-Additionally, when user calls `DESCRIBE ... EXTENDED`, the read-only attribute shall be displayed for stream/table. 
+Additionally, when user calls `DESCRIBE ...`, the read-only attribute shall be displayed for stream/table. 
 
 ### Make Source Stream/Table Read-only
 We plan to add restriction check into the `DistributingExecutor#throwIfInsertOnReadOnlyTopic` or create a similar function, 
@@ -78,9 +78,17 @@ creating a persistent query. To bypass this check, we need to provide a concrete
 inject a dummy query plan in `EngineExecutor#plan` phase, when the statement is a CreateTable statement with `SOURCE` tag.
 
 In addition, when user tries to show all the running queries, the materialization query should also be displayed as it takes 
-part of the computation resource. This would be a special type of running query without `SELECT` clause or a query id, as it 
+part of the computation resource. This would be a special type of running "query" without `SELECT` clause or a query id, as it 
 should be only associated with source table, and user could choose to `DROP` the entire table if they don't want to use resource 
-to do the materialization.
+to do the materialization, but could not hold the source table reference while terminating the underlying task.
+
+#### Pull Query Support
+One of the motivation for table materialization is to support pull query, but it comes with a need for having the underlying 
+table partitioned by the primary key, in order to ensure pull query works. Here the debate was that whether we should enforce 
+a repartition of the input topic blindly to guarantee that it is using the primary key as expected for sharding. The current plan 
+would be not worrying about the undefined user behavior during the source table primary key construction here, but instead just 
+assume they gave us a well-partitioned input topic whose materialization is ready for pull query. This aligns with our original expectation 
+of a SOURCE TABLE as well, where KSQL should not have extra mutation or tweak on the original data unless specified via CTAS or other query.  
 
 ## Public APIS
 * Create source table/stream, which makes the data source read-only:
@@ -94,7 +102,7 @@ CREATE SOURCE TABLE table_name (ID INT PRIMARY KEY, COL1 INT) WITH ...
 The new semantics will be tested as:
 
 * Unit testing for modular changes
-* QTTs with the new source table/stream syntax, including insertion failure and successful materialization
+* QTTs with the new source table/stream syntax, including insertion failure, `DROP` command integrity and successful materialization
 * Tests for `DESCRIBE` sources
 
 ## LOEs and Delivery Milestones
@@ -102,7 +110,8 @@ The estimated work time will be spent as follows (to implement and review):
 1. Add `SOURCE` syntax for both stream/table takes a week
 2. Make changes in Metastore and CreateSource for read-only sources takes a week to review
 3. Reject insertion to `SOURCE` table/stream takes a week
-4. Display read-only attributes on `DESCRIBE ... EXTENDED` 3 days 
+3. Avoid `DROP` command to delete underlying topics takes 2 days
+4. Display read-only attributes on `DESCRIBE ...` 3 days 
 5. Source table materialization takes a week
 6. Add pull query access for source table takes about 3 days
 7. Documentation changes takes 3 days

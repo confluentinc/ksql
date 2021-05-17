@@ -222,7 +222,7 @@ public class SchemaKStream<K> {
     );
   }
 
-  public SchemaKStream<K> join(
+  public SchemaKStream<K> innerJoin(
       final SchemaKTable<K> schemaKTable,
       final ColumnName keyColName,
       final FormatInfo leftValueFormat,
@@ -248,7 +248,7 @@ public class SchemaKStream<K> {
     );
   }
 
-  public SchemaKStream<K> join(
+  public SchemaKStream<K> innerJoin(
       final SchemaKStream<K> otherSchemaKStream,
       final ColumnName keyColName,
       final JoinWindows joinWindows,

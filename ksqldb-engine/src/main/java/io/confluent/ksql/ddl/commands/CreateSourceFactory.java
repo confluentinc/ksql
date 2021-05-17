@@ -94,7 +94,7 @@ public final class CreateSourceFactory {
 
   public CreateStreamCommand createStreamCommand(final KsqlStructuredDataOutputNode outputNode) {
     return new CreateStreamCommand(
-        outputNode.getIntoSourceName(),
+        outputNode.getSinkName().get(),
         outputNode.getSchema(),
         outputNode.getTimestampColumn(),
         outputNode.getKsqlTopic().getKafkaTopicName(),
@@ -136,7 +136,7 @@ public final class CreateSourceFactory {
 
   public CreateTableCommand createTableCommand(final KsqlStructuredDataOutputNode outputNode) {
     return new CreateTableCommand(
-        outputNode.getIntoSourceName(),
+        outputNode.getSinkName().get(),
         outputNode.getSchema(),
         outputNode.getTimestampColumn(),
         outputNode.getKsqlTopic().getKafkaTopicName(),

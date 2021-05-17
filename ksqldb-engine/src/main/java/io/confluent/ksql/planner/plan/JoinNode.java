@@ -214,15 +214,59 @@ public class JoinNode extends PlanNode implements JoiningNode {
   @Override
   void validateKeyPresent(final SourceName sinkName, final Projection projection) {
 
-    final boolean atLeastOneKey = joinKey.getAllViableKeys(schema).stream()
-        .anyMatch(projection::containsExpression);
+    if (joinKey.isForeignKey()) {
+      final DataSource leftInputTable = getLeftmostSourceNode().getDataSource();
+      final SourceName leftInputTableName = leftInputTable.getName();
+      final List<Column> leftInputTableKeys = leftInputTable.getSchema().key();
+      final List<Column> missingKeys =
+          leftInputTableKeys.stream().filter(
+              k -> !projection.containsExpression(
+                    new QualifiedColumnReferenceExp(leftInputTableName, k.name()))
+                  && !projection.containsExpression(new UnqualifiedColumnReferenceExp(
+                      ColumnNames.generatedJoinColumnAlias(leftInputTableName, k.name())
+                  ))
+          ).collect(Collectors.toList());
 
-    if (!atLeastOneKey) {
-      final boolean synthetic = joinKey.isSynthetic();
-      final List<? extends Expression> viable = joinKey.getOriginalViableKeys(schema);
+      if (!missingKeys.isEmpty()) {
+        throwMissingKeyColumnException(missingKeys, leftInputTableName);
+      }
+    } else {
+      final boolean atLeastOneKey = joinKey.getAllViableKeys(schema).stream()
+          .anyMatch(projection::containsExpression);
 
-      throwKeysNotIncludedError(sinkName, "join expression", viable, false, synthetic);
+      if (!atLeastOneKey) {
+        final boolean synthetic = joinKey.isSynthetic();
+        final List<? extends Expression> viable = joinKey.getOriginalViableKeys(schema);
+
+        throwKeysNotIncludedError(sinkName, "join expression", viable, false, synthetic);
+      }
     }
+  }
+
+  private static void throwMissingKeyColumnException(
+      final List<Column> missingKeys,
+      final SourceName leftInputTableName
+  ) {
+    final String columnString = missingKeys.size() == 1 ? "column" : "columns";
+    final String plainInputTableName = leftInputTableName.text();
+    // column names may be represented as `TABLENAME_COLUMNNAME`
+    final int tablePrefixLength = plainInputTableName.length() + 1;
+    throw new KsqlException(String.format(
+        "Primary key %s missing in projection."
+            + " For foreign-key table-table joins, the projection must include"
+            + " all primary key columns from the left input table (%s)."
+            + " Missing %s: %s.",
+        columnString,
+        leftInputTableName,
+        columnString,
+        missingKeys.stream()
+            .map(c -> c.name().text())
+            .map(name -> name.startsWith(plainInputTableName)
+                ? name.substring(tablePrefixLength)
+                : name)
+            .map(name -> String.format("`%s`", name))
+            .collect(Collectors.joining(", "))
+    ));
   }
 
   @Override
@@ -395,7 +439,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
               contextStacker
           );
         case INNER:
-          return leftStream.join(
+          return leftStream.innerJoin(
               rightStream,
               joinNode.getKeyColumnName(),
               joinNode.withinExpression.get().joinWindow(),
@@ -440,7 +484,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
           );
 
         case INNER:
-          return leftStream.join(
+          return leftStream.innerJoin(
               rightTable,
               joinNode.getKeyColumnName(),
               JoiningNode.getValueFormatForSource(joinNode.left).getFormatInfo(),
@@ -475,18 +519,41 @@ public class JoinNode extends PlanNode implements JoiningNode {
       final SchemaKTable<K> leftTable = buildTable(joinNode.getLeft());
       final SchemaKTable<K> rightTable = buildTable(joinNode.getRight());
 
+      final JoinKey joinKey = joinNode.joinKey;
+
       switch (joinNode.joinType) {
         case LEFT:
-          return leftTable.leftJoin(
-              rightTable,
-              joinNode.getKeyColumnName(),
-              contextStacker);
+          if (joinKey.isForeignKey()) {
+            return leftTable.foreignKeyLeftJoin(
+                rightTable,
+                ((ForeignJoinKey) joinKey).getForeignKeyColumn(),
+                contextStacker
+            );
+          } else {
+            return leftTable.leftJoin(
+                rightTable,
+                joinNode.getKeyColumnName(),
+                contextStacker
+            );
+          }
         case INNER:
-          return leftTable.join(
-              rightTable,
-              joinNode.getKeyColumnName(),
-              contextStacker);
+          if (joinKey.isForeignKey()) {
+            return leftTable.foreignKeyInnerJoin(
+                rightTable,
+                ((ForeignJoinKey) joinKey).getForeignKeyColumn(),
+                contextStacker
+            );
+          } else {
+            return leftTable.innerJoin(
+                rightTable,
+                joinNode.getKeyColumnName(),
+                contextStacker
+            );
+          }
         case OUTER:
+          if (joinKey.isForeignKey()) {
+            throw new IllegalStateException("Outer-join not supported by FK-joins.");
+          }
           return leftTable.outerJoin(
               rightTable,
               joinNode.getKeyColumnName(),
@@ -722,12 +789,12 @@ public class JoinNode extends PlanNode implements JoiningNode {
 
     @Override
     public List<? extends Expression> getOriginalViableKeys(final LogicalSchema schema) {
-      return leftSourceKeyColumns;
+      throw new UnsupportedOperationException("Should not be called with foreign key joins.");
     }
 
     @Override
     public List<? extends Expression> getAllViableKeys(final LogicalSchema schema) {
-      return leftSourceKeyColumns;
+      throw new UnsupportedOperationException("Should not be called with foreign key joins.");
     }
 
     @Override

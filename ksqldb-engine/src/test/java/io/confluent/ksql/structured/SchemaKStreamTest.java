@@ -483,7 +483,7 @@ public class SchemaKStreamTest {
 
     final List<Pair<JoinType, StreamTableJoin>> cases = ImmutableList.of(
         Pair.of(JoinType.LEFT, initialSchemaKStream::leftJoin),
-        Pair.of(JoinType.INNER, initialSchemaKStream::join)
+        Pair.of(JoinType.INNER, initialSchemaKStream::innerJoin)
     );
 
     for (final Pair<JoinType, StreamTableJoin> testcase : cases) {
@@ -519,7 +519,7 @@ public class SchemaKStreamTest {
 
     final List<Pair<JoinType, StreamTableJoin>> cases = ImmutableList.of(
         Pair.of(JoinType.LEFT, initialSchemaKStream::leftJoin),
-        Pair.of(JoinType.INNER, initialSchemaKStream::join)
+        Pair.of(JoinType.INNER, initialSchemaKStream::innerJoin)
     );
 
     for (final Pair<JoinType, StreamTableJoin> testcase : cases) {

@@ -295,7 +295,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, `R_ID` STRING, `NAME` STRING, `F1` STRING"}
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, `R_ID` BIGINT, `NAME` STRING, `F1` STRING"}
         ]
       }
     },
@@ -330,7 +330,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, `R_ID` STRING, `NAME` STRING, `F1` STRING"}
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, `R_ID` BIGINT, `NAME` STRING, `F1` STRING"}
         ]
       }
     },
@@ -611,7 +611,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, L_ID_2 BIGINT KEY, `R_ID` STRING, `NAME` STRING, `F1` STRING"}
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, L_ID_2 BIGINT KEY, `R_ID` BIGINT, `NAME` STRING, `F1` STRING"}
         ]
       }
     },
@@ -646,12 +646,12 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, L_ID_2 BIGINT KEY, `R_ID` STRING, `NAME` STRING, `F1` STRING"}
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, L_ID_2 BIGINT KEY, `R_ID` BIGINT, `NAME` STRING, `F1` STRING"}
         ]
       }
     },
     {
-      "name": "fails on partial left source key",
+      "name": "fails on partial left source key in projection",
       "properties": {
         "ksql.joins.foreign.key.enable": true
       },
@@ -706,7 +706,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, `R_ID` STRING, `NAME` STRING, `F1` STRING"}
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT KEY, `R_ID` BIGINT, `NAME` STRING, `F1` STRING"}
         ]
       }
     },

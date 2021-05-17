@@ -31,6 +31,7 @@ import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
+import io.confluent.ksql.execution.streams.ForeignKeyJoinParamsFactory;
 import io.confluent.ksql.execution.streams.JoinParamsFactory;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -86,7 +87,6 @@ public class JoinNode extends PlanNode implements JoiningNode {
 
   private final JoinType joinType;
   private final JoinKey joinKey;
-  private final Optional<ColumnName> leftForeignKeyColumn;
   private final boolean finalJoin;
   private final PlanNode left;
   private final PlanNode right;
@@ -100,7 +100,6 @@ public class JoinNode extends PlanNode implements JoiningNode {
       final PlanNodeId id,
       final JoinType joinType,
       final JoinKey joinKey,
-      final Optional<ColumnName> leftForeignKeyColumn,
       final boolean finalJoin,
       final PlanNode left,
       final PlanNode right,
@@ -115,8 +114,9 @@ public class JoinNode extends PlanNode implements JoiningNode {
 
     this.joinType = requireNonNull(joinType, "joinType");
     this.joinKey = requireNonNull(joinKey, "joinKey");
-    this.schema = buildJoinSchema(joinKey, left, right);
-    this.leftForeignKeyColumn = requireNonNull(leftForeignKeyColumn, "leftForeignKeyColumn");
+    this.schema = joinKey.isForeignKey()
+        ? ForeignKeyJoinParamsFactory.createSchema(left.getSchema(), right.getSchema())
+        : buildJoinSchema(joinKey, left, right);
     this.finalJoin = finalJoin;
     this.left = requireNonNull(left, "left");
     this.leftJoining = (JoiningNode) left;
@@ -139,10 +139,6 @@ public class JoinNode extends PlanNode implements JoiningNode {
         .orElseGet(this::getDefaultSourceKeyFormat);
 
     setKeyFormat(joinKeyFormat);
-  }
-
-  public Optional<ColumnName> getLeftForeignKeyColumn() {
-    return leftForeignKeyColumn;
   }
 
   @Override
@@ -535,10 +531,23 @@ public class JoinNode extends PlanNode implements JoiningNode {
       return SyntheticJoinKey.of();
     }
 
+    static JoinKey foreignKeyColumn(
+        final ColumnName keyColumn,
+        final ColumnName foreignKeyColumn,
+        final Collection<QualifiedColumnReferenceExp> viableKeyColumns
+    ) {
+      return ForeignJoinKey.of(keyColumn, foreignKeyColumn, viableKeyColumns);
+    }
+
     /**
      * @return {@code true} if the join key is synthetic.
      */
     boolean isSynthetic();
+
+    /**
+     * @return {@code true} if the join key is a foreign-key join.
+     */
+    boolean isForeignKey();
 
     /**
      * @param schema the join schema.
@@ -597,6 +606,11 @@ public class JoinNode extends PlanNode implements JoiningNode {
     }
 
     @Override
+    public boolean isForeignKey() {
+      return false;
+    }
+
+    @Override
     public List<? extends Expression> getAllViableKeys(final LogicalSchema schema) {
       return ImmutableList.<Expression>builder()
           .addAll(viableKeyColumns)
@@ -641,6 +655,11 @@ public class JoinNode extends PlanNode implements JoiningNode {
     }
 
     @Override
+    public boolean isForeignKey() {
+      return false;
+    }
+
+    @Override
     public List<? extends Expression> getAllViableKeys(final LogicalSchema schema) {
       return getOriginalViableKeys(schema);
     }
@@ -673,6 +692,66 @@ public class JoinNode extends PlanNode implements JoiningNode {
         final BiFunction<Expression, Context<Void>, Optional<Expression>> plugin
     ) {
       return this;
+    }
+  }
+
+  private static final class ForeignJoinKey implements JoinKey {
+    private final ColumnName keyColumn;
+    private final ColumnName foreignKeyColumn;
+    private final ImmutableList<? extends ColumnReferenceExp> leftSourceKeyColumns;
+
+    static JoinKey of(final ColumnName keyColumn,
+                      final ColumnName foreignKeyColumn,
+                      final Collection<QualifiedColumnReferenceExp> leftSourceKeyColumns) {
+      return new ForeignJoinKey(keyColumn, foreignKeyColumn, leftSourceKeyColumns);
+    }
+
+    private ForeignJoinKey(final ColumnName keyColumn,
+                           final ColumnName foreignKeyColumn,
+                           final Collection<? extends ColumnReferenceExp> viableKeyColumns) {
+      this.keyColumn = requireNonNull(keyColumn, "keyColumn");
+      this.foreignKeyColumn = requireNonNull(foreignKeyColumn, "foreignKeyColumn");
+      this.leftSourceKeyColumns = ImmutableList
+          .copyOf(requireNonNull(viableKeyColumns, "viableKeyColumns"));
+    }
+
+    @Override
+    public boolean isSynthetic() {
+      return false;
+    }
+
+    @Override
+    public boolean isForeignKey() {
+      return true;
+    }
+
+    @Override
+    public List<? extends Expression> getOriginalViableKeys(final LogicalSchema schema) {
+      return leftSourceKeyColumns;
+    }
+
+    @Override
+    public List<? extends Expression> getAllViableKeys(final LogicalSchema schema) {
+      return leftSourceKeyColumns;
+    }
+
+    @Override
+    public ColumnName resolveKeyName(final PlanNode left, final PlanNode right) {
+      return keyColumn;
+    }
+
+    @Override
+    public JoinKey rewriteWith(
+        final BiFunction<Expression, Context<Void>, Optional<Expression>> plugin) {
+      final List<? extends ColumnReferenceExp> rewrittenViable = leftSourceKeyColumns.stream()
+          .map(e -> ExpressionTreeRewriter.rewriteWith(plugin, e))
+          .collect(Collectors.toList());
+
+      return new ForeignJoinKey(keyColumn, foreignKeyColumn, rewrittenViable);
+    }
+
+    public ColumnName getForeignKeyColumn() {
+      return foreignKeyColumn;
     }
   }
 }

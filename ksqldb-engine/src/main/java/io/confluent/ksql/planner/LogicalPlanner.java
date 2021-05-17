@@ -593,12 +593,17 @@ public class LogicalPlanner {
       );
     }
 
-    final Optional<ColumnName> fkColumnName =
+    final Optional<ColumnReferenceExp> fkColumnName =
         verifyJoin(root.getInfo(), preRepartitionLeft, preRepartitionRight);
 
     final boolean finalJoin = prefix.isEmpty();
 
-    final JoinKey joinKey = buildJoinKey(root, fkColumnName);
+    final JoinKey joinKey;
+    if (fkColumnName.isPresent()) {
+      joinKey = buildForeignJoinKey(root, fkColumnName.get());
+    } else {
+      joinKey = buildJoinKey(root);
+    }
 
     final PlanNode left = prepareSourceForJoin(
         root.getLeft(),
@@ -619,7 +624,6 @@ public class LogicalPlanner {
         new PlanNodeId(prefix + "Join"),
         root.getInfo().getType(),
         joinKey.rewriteWith(refRewriter::process),
-        fkColumnName,
         finalJoin,
         left,
         right,
@@ -629,10 +633,10 @@ public class LogicalPlanner {
   }
 
   /**
-   * @return the foreign key ColumnName if this is a foreign key join
+   * @return the foreign key column if this is a foreign key join
    */
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
-  private Optional<ColumnName> verifyJoin(
+  private Optional<ColumnReferenceExp> verifyJoin(
       final JoinInfo joinInfo,
       final PlanNode leftNode,
       final PlanNode rightNode
@@ -718,7 +722,7 @@ public class LogicalPlanner {
             ));
           }
 
-          return Optional.of(((ColumnReferenceExp) leftExpression).getColumnName());
+          return Optional.of(((ColumnReferenceExp) leftExpression));
         } else {
           throw new KsqlException(String.format(
               "Invalid join condition:"
@@ -807,7 +811,28 @@ public class LogicalPlanner {
     throw new IllegalStateException("Unknown node type: " + node.getClass().getName());
   }
 
-  private JoinKey buildJoinKey(final Join join, final Optional<ColumnName> fkColumnName) {
+  private JoinKey buildForeignJoinKey(final Join join, final ColumnReferenceExp columnRef) {
+    final AliasedDataSource leftSource = join.getInfo().getLeftSource();
+    final SourceName alias = leftSource.getAlias();
+    final List<QualifiedColumnReferenceExp> leftSourceKeys =
+        leftSource.getDataSource().getSchema().key().stream()
+            .map(c -> new QualifiedColumnReferenceExp(alias, c.name()))
+            .collect(Collectors.toList());
+
+    final QualifiedColumnReferenceExp keyColumn = leftSourceKeys.get(0);
+
+    final ColumnName keyColumnName = ColumnNames
+        .generatedJoinColumnAlias(keyColumn.getQualifier(), keyColumn.getColumnName());
+
+    final ColumnName foreignKeyColumnName = columnRef.maybeQualifier().isPresent()
+        ? ColumnNames.generatedJoinColumnAlias(
+            columnRef.maybeQualifier().get(), columnRef.getColumnName())
+        : columnRef.getColumnName();
+
+    return JoinKey.foreignKeyColumn(keyColumnName, foreignKeyColumnName, leftSourceKeys);
+  }
+
+  private JoinKey buildJoinKey(final Join join) {
     final List<QualifiedColumnReferenceExp> viableKeyColumns = join.viableKeyColumns();
     if (viableKeyColumns.isEmpty()) {
       return JoinKey.syntheticColumn();
@@ -816,7 +841,6 @@ public class LogicalPlanner {
     final Projection projection = Projection.of(analysis.original().getSelectItems());
 
     final List<QualifiedColumnReferenceExp> availableKeyColumns = viableKeyColumns.stream()
-        .filter(k -> !fkColumnName.isPresent() || !fkColumnName.get().equals(k.getColumnName()))
         .filter(projection::containsExpression)
         .collect(Collectors.toList());
 

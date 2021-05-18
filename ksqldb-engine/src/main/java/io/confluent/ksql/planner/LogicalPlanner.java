@@ -699,8 +699,8 @@ public class LogicalPlanner {
 
           if (joinInfo.getType().equals(JoinType.OUTER)) {
             throw new KsqlException(String.format(
-                "Invalid join type: "
-                    + "full-outer join not supported for foreign-key table-table join."
+                "Invalid join type:"
+                    + " full-outer join not supported for foreign-key table-table join."
                     + " Got %s %s %s.",
                 joinInfo.getLeftSource().getDataSource().getName().text(),
                 joinType,

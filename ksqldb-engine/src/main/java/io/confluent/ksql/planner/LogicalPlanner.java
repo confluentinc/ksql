@@ -593,26 +593,31 @@ public class LogicalPlanner {
       );
     }
 
-    final boolean isForeignKeyJoin =
+    final Optional<ColumnReferenceExp> fkColumnName =
         verifyJoin(root.getInfo(), preRepartitionLeft, preRepartitionRight);
 
     final boolean finalJoin = prefix.isEmpty();
 
-    final JoinKey joinKey = buildJoinKey(root);
+    final JoinKey joinKey;
+    if (fkColumnName.isPresent()) {
+      joinKey = buildForeignJoinKey(root, fkColumnName.get());
+    } else {
+      joinKey = buildJoinKey(root);
+    }
 
     final PlanNode left = prepareSourceForJoin(
         root.getLeft(),
         preRepartitionLeft,
         prefix + "Left",
         root.getInfo().getLeftJoinExpression(),
-        isForeignKeyJoin
+        fkColumnName.isPresent()
     );
     final PlanNode right = prepareSourceForJoin(
         root.getRight(),
         preRepartitionRight,
         prefix + "Right",
         root.getInfo().getRightJoinExpression(),
-        isForeignKeyJoin
+        fkColumnName.isPresent()
     );
 
     return new JoinNode(
@@ -628,10 +633,10 @@ public class LogicalPlanner {
   }
 
   /**
-   * @return whether this is a foreign key join or not
+   * @return the foreign key column if this is a foreign key join
    */
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
-  private boolean verifyJoin(
+  private Optional<ColumnReferenceExp> verifyJoin(
       final JoinInfo joinInfo,
       final PlanNode leftNode,
       final PlanNode rightNode
@@ -710,7 +715,14 @@ public class LogicalPlanner {
             ));
           }
 
-          return true;
+          if (!(leftExpression instanceof ColumnReferenceExp)) {
+            throw new KsqlException(String.format(
+                "Invalid join condition: foreign-key table-table joins with expressions "
+                    + "are not supported. Got %s = %s."
+            ));
+          }
+
+          return Optional.of(((ColumnReferenceExp) leftExpression));
         } else {
           throw new KsqlException(String.format(
               "Invalid join condition:"
@@ -722,7 +734,7 @@ public class LogicalPlanner {
       }
     }
 
-    return false;
+    return Optional.empty();
   }
 
   private boolean joinOnNonKeyAttribute(final Expression joinExpression,
@@ -797,6 +809,22 @@ public class LogicalPlanner {
     }
 
     throw new IllegalStateException("Unknown node type: " + node.getClass().getName());
+  }
+
+  private JoinKey buildForeignJoinKey(final Join join, final ColumnReferenceExp columnRef) {
+    final AliasedDataSource leftSource = join.getInfo().getLeftSource();
+    final SourceName alias = leftSource.getAlias();
+    final List<QualifiedColumnReferenceExp> leftSourceKeys =
+        leftSource.getDataSource().getSchema().key().stream()
+            .map(c -> new QualifiedColumnReferenceExp(alias, c.name()))
+            .collect(Collectors.toList());
+
+    final ColumnName foreignKeyColumnName = columnRef.maybeQualifier().isPresent()
+        ? ColumnNames.generatedJoinColumnAlias(
+            columnRef.maybeQualifier().get(), columnRef.getColumnName())
+        : columnRef.getColumnName();
+
+    return JoinKey.foreignKeyColumn(foreignKeyColumnName, leftSourceKeys);
   }
 
   private JoinKey buildJoinKey(final Join join) {

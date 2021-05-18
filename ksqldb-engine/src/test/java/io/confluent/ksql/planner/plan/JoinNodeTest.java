@@ -344,8 +344,8 @@ public class JoinNodeTest {
     when(left.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(right.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
 
-    final JoinNode joinNode = new JoinNode(nodeId, INNER, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, INNER, joinKey,       true, left,
+        right, empty(), "KAFKA");
 
     // When:
     final Exception e = assertThrows(
@@ -364,8 +364,8 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey,        true, left,
+        right, empty(), "KAFKA");
 
     // When:
     joinNode.buildStream(planBuildContext);
@@ -385,8 +385,8 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey,       true, left,
+        right, empty(), "KAFKA");
 
     // When:
     joinNode.buildStream(planBuildContext);
@@ -406,8 +406,8 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(nodeId, INNER, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, INNER, joinKey,       true, left,
+        right, empty(),"KAFKA");
 
     // When:
     joinNode.buildStream(planBuildContext);
@@ -427,8 +427,8 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey,       true, left,
+        right, empty(), "KAFKA");
 
     // When:
     final Exception e = assertThrows(
@@ -450,8 +450,8 @@ public class JoinNodeTest {
     final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
 
     final JoinNode joinNode =
-        new JoinNode(nodeId, OUTER, joinKey, true, left, right, Optional.of(withinExpression),
-            "KAFKA");
+        new JoinNode(nodeId, OUTER, joinKey,           true, left, right,
+            Optional.of(withinExpression),"KAFKA");
 
     // When:
     final Exception e = assertThrows(
@@ -470,8 +470,8 @@ public class JoinNodeTest {
     setupTable(left, leftSchemaKTable);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(nodeId, INNER, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, INNER, joinKey,       true, left,
+        right, empty(), "KAFKA");
 
     // When:
     joinNode.buildStream(planBuildContext);
@@ -490,8 +490,8 @@ public class JoinNodeTest {
     setupTable(left, leftSchemaKTable);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey,       true, left,
+        right, empty(),"KAFKA");
 
     // When:
     joinNode.buildStream(planBuildContext);
@@ -510,8 +510,8 @@ public class JoinNodeTest {
     setupTable(left, leftSchemaKTable);
     setupTable(right, rightSchemaKTable);
 
-    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey,       true, left,
+        right, empty(),"KAFKA");
 
     // When:
     joinNode.buildStream(planBuildContext);
@@ -533,8 +533,8 @@ public class JoinNodeTest {
     final WithinExpression withinExpression = new WithinExpression(10, TimeUnit.SECONDS);
 
     final JoinNode joinNode =
-        new JoinNode(nodeId, OUTER, joinKey, true, left, right, Optional.of(withinExpression),
-            "KAFKA");
+        new JoinNode(nodeId, OUTER, joinKey,          true, left, right,
+            Optional.of(withinExpression),"KAFKA");
 
     // When:
     final Exception e = assertThrows(
@@ -553,8 +553,8 @@ public class JoinNodeTest {
     when(joinKey.resolveKeyName(any(), any())).thenReturn(ColumnName.of("right_rightKey"));
 
     // When:
-    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey,       true, left,
+        right, empty(),"KAFKA");
 
     // When:
     assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
@@ -577,8 +577,8 @@ public class JoinNodeTest {
     when(joinKey.resolveKeyName(any(), any())).thenReturn(SYNTH_KEY);
 
     // When:
-    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey,       true, left,
+        right, empty(),"KAFKA");
 
     // When:
     assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
@@ -600,7 +600,8 @@ public class JoinNodeTest {
   public void shouldReturnCorrectSchema() {
     // When:
     final JoinNode joinNode =
-        new JoinNode(nodeId, LEFT, joinKey, true, left, right, WITHIN_EXPRESSION, "KAFKA");
+        new JoinNode(nodeId, LEFT, joinKey,          true, left, right,
+            WITHIN_EXPRESSION, "KAFKA");
 
     // Then:
     assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
@@ -614,8 +615,8 @@ public class JoinNodeTest {
   @Test
   public void shouldResolveUnaliasedSelectStarByCallingAllSourcesWithValueOnlyFalse() {
     // Given:
-    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey,       true, left,
+        right, empty(),"KAFKA");
 
     when(left.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("l")));
     when(right.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("r")));
@@ -635,10 +636,12 @@ public class JoinNodeTest {
   public void shouldResolveUnaliasedSelectStarWithMultipleJoins() {
     // Given:
     final JoinNode inner =
-        new JoinNode(new PlanNodeId("foo"), LEFT, joinKey, true, right, right2, empty(), "KAFKA");
+        new JoinNode(new PlanNodeId("foo"), LEFT, joinKey,           true, right,
+            right2, empty(), "KAFKA");
 
     final JoinNode joinNode =
-        new JoinNode(nodeId, LEFT, joinKey, true, left, inner, empty(), "KAFKA");
+        new JoinNode(nodeId, LEFT, joinKey,          true, left, inner, empty(),
+            "KAFKA");
 
     when(left.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("l")));
     when(right.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("r")));
@@ -660,10 +663,12 @@ public class JoinNodeTest {
   public void shouldResolveUnaliasedSelectStarWithMultipleJoinsOnLeftSide() {
     // Given:
     final JoinNode inner =
-        new JoinNode(new PlanNodeId("foo"), LEFT, joinKey, true, right, right2, empty(), "KAFKA");
+        new JoinNode(new PlanNodeId("foo"), LEFT, joinKey,          true, right,
+            right2, empty(), "KAFKA");
 
     final JoinNode joinNode =
-        new JoinNode(nodeId, LEFT, joinKey, true, inner, left, empty(), "KAFKA");
+        new JoinNode(nodeId, LEFT, joinKey,          true, inner, left, empty(),
+            "KAFKA");
 
     when(left.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("l")));
     when(right.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("r")));
@@ -684,8 +689,8 @@ public class JoinNodeTest {
   @Test
   public void shouldResolveAliasedSelectStarByCallingOnlyCorrectParent() {
     // Given:
-    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey,      true, left, right,
+        empty(),"KAFKA");
 
     when(right.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("r")));
 
@@ -705,8 +710,8 @@ public class JoinNodeTest {
     // Given:
     when(joinKey.isSynthetic()).thenReturn(true);
 
-    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, OUTER, joinKey,       true, left,
+        right, empty(),"KAFKA");
 
     when(left.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("l")));
     when(right.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("r")));
@@ -723,10 +728,12 @@ public class JoinNodeTest {
   public void shouldResolveNestedAliasedSelectStarByCallingOnlyCorrectParentWithMultiJoins() {
     // Given:
     final JoinNode inner =
-        new JoinNode(new PlanNodeId("foo"), LEFT, joinKey, true, right, right2, empty(), "KAFKA");
+        new JoinNode(new PlanNodeId("foo"), LEFT, joinKey,          true, right,
+            right2, empty(), "KAFKA");
 
     final JoinNode joinNode =
-        new JoinNode(nodeId, LEFT, joinKey, true, left, inner, empty(), "KAFKA");
+        new JoinNode(nodeId, LEFT, joinKey,         true, left, inner, empty(),
+            "KAFKA");
 
     when(right.resolveSelectStar(any())).thenReturn(Stream.of(ColumnName.of("r")));
 
@@ -748,8 +755,8 @@ public class JoinNodeTest {
     // Given:
     when(projection.containsExpression(any())).thenReturn(false, true);
 
-    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey,      true, left,
+        right, empty(),"KAFKA");
 
     when(joinKey.getAllViableKeys(any()))
         .thenReturn((List) ImmutableList.of(expression1, expression2));
@@ -765,8 +772,8 @@ public class JoinNodeTest {
   @Test
   public void shouldThrowIfProjectionDoesNotIncludeAnyJoinColumns() {
     // Given:
-    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey, true, left, right, empty(),
-        "KAFKA");
+    final JoinNode joinNode = new JoinNode(nodeId, LEFT, joinKey,      true, left, right,
+        empty(),"KAFKA");
 
     when(joinKey.getAllViableKeys(any()))
         .thenReturn((List) ImmutableList.of(expression1, expression2));

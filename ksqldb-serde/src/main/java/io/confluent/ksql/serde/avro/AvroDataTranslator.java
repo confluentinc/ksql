@@ -120,8 +120,7 @@ public class AvroDataTranslator implements DataTranslator {
       case STRUCT:
         return convertStruct((Struct) object, schema);
       case BYTES:
-        return DecimalUtil.ensureFit(
-            (BigDecimal) object, DecimalUtil.precision(schema), DecimalUtil.scale(schema));
+        return DecimalUtil.ensureFit((BigDecimal) object, schema);
       default:
         return object;
     }

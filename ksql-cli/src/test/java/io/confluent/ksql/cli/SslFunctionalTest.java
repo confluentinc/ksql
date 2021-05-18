@@ -94,6 +94,7 @@ public class SslFunctionalTest {
     new TopicProducer(CLUSTER).produceInputData(dataProvider);
   }
 
+  @SuppressWarnings("deprecation")
   @Before
   public void setUp() {
     clientProps = Collections.emptyMap();

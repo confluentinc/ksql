@@ -21,6 +21,7 @@ import com.google.common.base.Ticker;
 import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError;
@@ -174,6 +175,8 @@ public class QueryMetadataImpl implements QueryMetadata {
   ) {
     QueryError.Type errorType = Type.UNKNOWN;
     try {
+      QueryLogger.error(String.format("Uncaught exception in query %s", e),
+          this.statementString);
       errorType = errorClassifier.classify(e);
     } catch (final Exception classificationException) {
       LOG.error("Error classifying unhandled exception", classificationException);

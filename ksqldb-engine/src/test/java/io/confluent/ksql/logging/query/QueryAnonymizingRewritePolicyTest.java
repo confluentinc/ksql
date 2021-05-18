@@ -1,6 +1,5 @@
 package io.confluent.ksql.logging.query;
 
-import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.engine.rewrite.QueryAnonymizer;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryGuid;

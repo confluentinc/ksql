@@ -56,6 +56,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.PullQueryExecutionUtil;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
+import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -135,6 +136,8 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -353,6 +356,22 @@ public class StreamedQueryResourceTest {
 
     // Then:
     assertThrows(KsqlException.class, () -> PullQueryExecutionUtil.checkRateLimit(pullQueryRateLimiter));
+  }
+
+  @Test
+  public void queryLoggerShouldReceiveStatementsWhenHandleKsqlStatement() {
+    try (MockedStatic<QueryLogger> logger = Mockito.mockStatic(QueryLogger.class)) {
+      testResource.streamQuery(
+          securityContext,
+          new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+          new CompletableFuture<>(),
+          Optional.empty(),
+          KsqlMediaType.LATEST_FORMAT,
+          new MetricsCallbackHolder());
+
+      logger.verify(() -> QueryLogger.info("Transient query created",
+          PULL_QUERY_STRING), times(1));
+    }
   }
 
   @Test

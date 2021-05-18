@@ -30,6 +30,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
@@ -54,6 +55,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -216,6 +219,17 @@ public class QueryMetadataTest {
 
     // Then:
     verify(listener).onError(same(query), argThat(q -> q.getType().equals(Type.UNKNOWN)));
+  }
+
+  @Test
+  public void queryLoggerShouldReceiveStatementsWhenUncaughtHandler() {
+    try (MockedStatic<QueryLogger> logger = Mockito.mockStatic(QueryLogger.class)) {
+      query.uncaughtHandler(new RuntimeException("foo"));
+
+      logger.verify(() ->
+          QueryLogger.error("Uncaught exception in query java.lang.RuntimeException: foo",
+          "foo"), times(1));
+    }
   }
 
   @Test

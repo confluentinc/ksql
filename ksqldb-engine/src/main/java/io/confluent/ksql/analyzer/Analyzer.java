@@ -382,6 +382,7 @@ class Analyzer {
           right,
           comparisonExpression.getRight(),
           joinType,
+          flipped,
           node.getWithinExpression()
       );
       analysis.addJoin(flipped ? joinInfo.flip() : joinInfo);

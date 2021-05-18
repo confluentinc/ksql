@@ -661,8 +661,8 @@ public class LogicalPlanner {
                   "Invalid join condition:"
                       + " stream-table joins require to join on the table's primary key."
                       + " Got %s = %s.",
-                  leftExpression,
-                  rightExpression
+                  joinInfo.hasFlippedJoinCondition() ? rightExpression : leftExpression,
+                  joinInfo.hasFlippedJoinCondition() ? leftExpression : rightExpression
               ));
         }
       }
@@ -687,8 +687,8 @@ public class LogicalPlanner {
                 "Invalid join condition:"
                     + " table-table joins require to join on the primary key of the right input"
                     + " table. Got %s = %s.",
-                leftExpression,
-                rightExpression
+                joinInfo.hasFlippedJoinCondition() ? rightExpression : leftExpression,
+                joinInfo.hasFlippedJoinCondition() ? leftExpression : rightExpression
            ));
       }
 
@@ -696,6 +696,17 @@ public class LogicalPlanner {
         // foreign key join detected
 
         if (ksqlConfig.getBoolean(KsqlConfig.KSQL_FOREIGN_KEY_JOINS_ENABLED)) {
+
+          if (joinInfo.getType().equals(JoinType.OUTER)) {
+            throw new KsqlException(String.format(
+                "Invalid join type: "
+                    + "full-outer join not supported for foreign-key table-table join."
+                    + " Got %s %s %s.",
+                joinInfo.getLeftSource().getDataSource().getName().text(),
+                joinType,
+                joinInfo.getRightSource().getDataSource().getName().text()
+            ));
+          }
 
           // after we lift this n-way join restriction, we should be able to support FK-joins
           // at any level in the join tree, even after we add right-deep/bushy join tree support,
@@ -705,8 +716,8 @@ public class LogicalPlanner {
             throw new KsqlException(String.format(
                 "Invalid join condition: foreign-key table-table joins are not "
                     + "supported as part of n-way joins. Got %s = %s.",
-                leftExpression,
-                rightExpression
+                joinInfo.hasFlippedJoinCondition() ? rightExpression : leftExpression,
+                joinInfo.hasFlippedJoinCondition() ? leftExpression : rightExpression
             ));
           }
 
@@ -715,8 +726,8 @@ public class LogicalPlanner {
           throw new KsqlException(String.format(
               "Invalid join condition:"
                   + " foreign-key table-table joins are not supported. Got %s = %s.",
-              leftExpression,
-              rightExpression
+              joinInfo.hasFlippedJoinCondition() ? rightExpression : leftExpression,
+              joinInfo.hasFlippedJoinCondition() ? leftExpression : rightExpression
           ));
         }
       }

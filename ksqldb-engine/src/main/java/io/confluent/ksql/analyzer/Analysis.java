@@ -400,6 +400,7 @@ public class Analysis implements ImmutableAnalysis {
     private final Optional<WithinExpression> withinExpression;
     private final AliasedDataSource leftSource;
     private final AliasedDataSource rightSource;
+    private final boolean flippedJoinCondition;
 
     JoinInfo(
         final AliasedDataSource leftSource,
@@ -407,6 +408,7 @@ public class Analysis implements ImmutableAnalysis {
         final AliasedDataSource rightSource,
         final Expression rightJoinExpression,
         final JoinType type,
+        final boolean flippedJoinCondition,
         final Optional<WithinExpression> withinExpression
 
     ) {
@@ -415,6 +417,7 @@ public class Analysis implements ImmutableAnalysis {
       this.leftJoinExpression = requireNonNull(leftJoinExpression, "leftJoinExpression");
       this.rightJoinExpression = requireNonNull(rightJoinExpression, "rightJoinExpression");
       this.type = requireNonNull(type, "type");
+      this.flippedJoinCondition = flippedJoinCondition;
       this.withinExpression = requireNonNull(withinExpression, "withinExpression");
     }
 
@@ -438,6 +441,10 @@ public class Analysis implements ImmutableAnalysis {
       return type;
     }
 
+    public boolean hasFlippedJoinCondition() {
+      return flippedJoinCondition;
+    }
+
     public Optional<WithinExpression> getWithinExpression() {
       return withinExpression;
     }
@@ -449,6 +456,7 @@ public class Analysis implements ImmutableAnalysis {
           leftSource,
           leftJoinExpression,
           type,
+          true,
           withinExpression
       );
     }

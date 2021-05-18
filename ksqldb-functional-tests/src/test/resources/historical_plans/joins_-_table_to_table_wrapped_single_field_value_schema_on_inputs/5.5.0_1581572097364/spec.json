@@ -82,6 +82,14 @@
     }, {
       "topic" : "OUTPUT",
       "key" : "0",
+      "value" : {
+        "ID1" : null,
+        "ID2" : null
+      },
+      "timestamp" : 40
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "0",
       "value" : null,
       "timestamp" : 50
     } ],

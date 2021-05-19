@@ -58,6 +58,8 @@ import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
+
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -75,6 +77,9 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.ValueTransformer;
+import org.apache.kafka.streams.processor.ProcessorContext;
+import org.apache.kafka.streams.processor.PunctuationType;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 final class QueryExecutor {
@@ -308,6 +313,27 @@ final class QueryExecutor {
       kstream
           // Null value for a stream is invalid:
           .filter((k, v) -> v != null)
+          .transformValues(() -> new ValueTransformer<GenericRow, GenericRow>() {
+            @Override
+            public void init(final ProcessorContext processorContext) {
+              processorContext.schedule(
+                  Duration.ofSeconds(1),
+                  PunctuationType.WALL_CLOCK_TIME,
+                  l -> queue.acceptRow(null, null)
+              );
+            }
+
+            @Override
+            public GenericRow transform(final GenericRow genericRow) {
+              queue.acceptRow(null, genericRow);
+              return genericRow;
+            }
+
+            @Override
+            public void close() {
+
+            }
+          })
           .foreach((k, v) -> queue.acceptRow(null, v));
 
     } else if (buildResult instanceof KTableHolder<?>) {

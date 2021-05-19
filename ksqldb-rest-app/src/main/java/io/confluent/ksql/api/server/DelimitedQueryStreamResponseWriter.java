@@ -54,7 +54,11 @@ public class DelimitedQueryStreamResponseWriter implements QueryStreamResponseWr
 
   @Override
   public QueryStreamResponseWriter writeRow(final GenericRow row) {
-    response.write(ServerUtils.serializeObject(row.values()).appendString("\n"));
+    if (row == null) {
+      response.write("\n");
+    } else {
+      response.write(ServerUtils.serializeObject(row.values()).appendString("\n"));
+    }
     return this;
   }
 

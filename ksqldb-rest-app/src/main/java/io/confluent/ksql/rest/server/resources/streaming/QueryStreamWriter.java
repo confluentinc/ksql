@@ -70,6 +70,7 @@ class QueryStreamWriter implements StreamingOutput {
     queryMetadata.start();
   }
 
+  @SuppressWarnings("checkstyle:CyclomaticComplexity")
   @Override
   public void write(final OutputStream out) {
     try {
@@ -81,7 +82,7 @@ class QueryStreamWriter implements StreamingOutput {
             disconnectCheckInterval,
             TimeUnit.MILLISECONDS
         );
-        if (row != null) {
+        if (row != null && (row.key() != null || row.value() != null)) {
           write(out, buildRow(row));
         } else {
           // If no new rows have been written, the user may have terminated the connection without

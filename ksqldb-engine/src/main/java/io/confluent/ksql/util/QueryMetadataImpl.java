@@ -106,7 +106,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     this.statementString = Objects.requireNonNull(statementString, "statementString");
     this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");
     this.queryApplicationId = Objects.requireNonNull(queryApplicationId, "queryApplicationId");
-    this.topology = Objects.requireNonNull(topology, "kafkaTopicClient");
+    this.topology = Objects.requireNonNull(topology, "topology");
     this.kafkaStreamsBuilder = Objects.requireNonNull(kafkaStreamsBuilder, "kafkaStreamsBuilder");
     this.streamsProperties =
         ImmutableMap.copyOf(

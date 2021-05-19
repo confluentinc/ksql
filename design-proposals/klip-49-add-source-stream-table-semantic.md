@@ -19,7 +19,7 @@ For ksqlDB, the setup is quite differently. Specifically, user could create the 
 the topics stored in Kafka as the source of truth. However, since there is no clear ownership, the defined table 
 could be mutated by using `INSERT` command to populate data into it. The insertion will pollute the original data source, 
 which was supposed to be owned by upstream such as a CDC pipeline that populates the topic.
-Secondly, when calling `CREATE TABLE`, the actual data is neither materialized nor ready for interactive queries to access. 
+Secondly, when calling `CREATE TABLE`, the actual data is neither materialized nor ready for pull queries to access. 
 To address these gaps, we would like to add:
 
 * Syntax to add read-only stream/table as `CREATE SOURCE STREAM/TABLE` to make the data source as read-only. Any 
@@ -59,39 +59,35 @@ with the sample syntax as:
 ```
 CREATE (OR REPLACE)? (SOURCE)? TABLE (IF NOT EXISTS)?...
 ```
-Then inside `AstBuilder#visitCreateStream` and `AstBuilder#visitCreateTable`, the built classes for stream/table 
-instances would be `CreateStream` and `CreateTable`, which are the only two subclasses of `CreateSource`. It makes sense 
-to add the `SOURCE` as a flag into `CreateSource`, and let `AstBuilder` pass the flag into the struct 
-for later stage reference of read-only.
-
-Additionally, when user calls `DESCRIBE ...`, the read-only attribute shall be displayed for stream/table. 
 
 ### Make Source Stream/Table Read-only
-We plan to add restriction check into the `DistributingExecutor#throwIfInsertOnReadOnlyTopic` or create a similar function, 
-which could verify whether the given stream/table is read-only. If so, the insertion will be rejected.
+When doing insertions, KSQL would check whether the given stream/table is read-only. If so, the insertion will be rejected.
 
-Additionally, when calling `DROP` command on a source stream/table, currently user could do `DROP STREAM/TABLE [table_name] DELETE TOPIC` 
-to clean up the underlying topic backed by the stream/table. This should not be allowed for source stream/table as the 
-entity has no ownership of the input data. See this [issue](https://github.com/confluentinc/ksql/issues/3585) for more context. 
+Additionally, when calling `DROP` command on a source stream/table, currently user could do `DROP STREAM/TABLE 
+[table_name] DELETE TOPIC` to clean up the underlying topic backed by the stream/table. This should not be allowed for 
+source stream/table as the entity has no ownership of the input data. See this 
+[issue](https://github.com/confluentinc/ksql/issues/3585) for more context. 
 
 ### Source Table Materialization
 The main difference between a source table and a materialized state by a CTAS query is that we do not populate a sink topic 
-for source table, as it is not expected to have a downstream connection. This will be addressed when constructing the `CREATE SOURCE TABLE` 
-as a special type of persistent query, which would be an implementation detail. Another consideration we have is how to expose 
-such type of query to the end users. 
+for source table, as it is not expected to have a downstream connection. This will be addressed when constructing the 
+`CREATE SOURCE TABLE` as a special type of persistent query, which would be an implementation detail. Another 
+consideration we have is how to expose such type of query to the end users. 
 
-Generally speaking, any active stream runtime should be represented as a query to present to end users. For source table materialization, 
-it is a stateful job that comes with overhead, which should definitely be exposed to end users. However, any exposed query  
-could be potentially terminated directly by the end user, which comes with a consistency problem with source table semantic 
-agreement. If a source table query could be terminated independently by the user, the original source table would be dangling and 
-not available for pull query anymore. To address this problem, we have two approaches:
+Generally speaking, any active stream runtime should be represented as a query to present to end users. For source 
+table materialization, it is a stateful job that comes with overhead, which should definitely be exposed to end users. 
+However, any exposed query could be potentially terminated directly by the end user, which comes with a consistency 
+problem with source table semantic agreement. If a source table query could be terminated independently by the user, 
+the original source table would be dangling and not available for pull query anymore. To address this problem, we 
+have two approaches:
  
  1. The KSQL server rejects the termination of a source table query and informs end user to try deleting the original source table.
  2. The KSQL server will verify the deletion of a query, and try deleting the associated source table with it.
  
-Both approaches are valid here to maintain the consistency, but considering when dropping a source table, the active materialization 
-query would be terminated, I'm inclined to suggest taking approach #1 here for simplicity, and avoid introducing additional 
-code path to have direct metadata affection when we could just make it as a one-way deletion.  
+Both approaches are valid here to maintain the consistency, but considering when dropping a source table, the active 
+materialization query would be terminated, I'm inclined to suggest taking approach #1 here for simplicity, and avoid 
+introducing additional code path to have direct metadata affection when we could just make it as a one-way deletion for 
+source table.  
 
 For the materialized store in source table, there would also be a backing-up changelog topic. The reasoning is that the input 
 topic could potentially be using a different serde than the internal serde being used by KSQL. Having asymmetric serde for 
@@ -99,21 +95,17 @@ serialization and deserialization could lead to potentially state store pollutio
 data into the state store. The similar [issue](https://github.com/confluentinc/ksql/issues/5673) has been raised before where 
 KSQL has to turn off topology optimization to avoid having state stores backed up by non-internal topics for changelog.   
 
-In addition, when user tries to show all the running queries, the materialization query should also be displayed as it takes 
-part of the computation resource. This would be a special type of running "query" without `SELECT` clause or a query id, as it 
-should be only associated with source table, and user could choose to `DROP` the entire table if they don't want to use resource 
-to do the materialization, but could not hold the source table reference while terminating the underlying task.
-
 #### Pull Query Support
 One of the motivation for table materialization is to support pull query, but it comes with a need for having the underlying 
 table partitioned by the primary key, in order to ensure pull query works. Here the debate was that whether we should enforce 
 a repartition of the input topic blindly to guarantee that it is using the primary key as expected for sharding. The current plan 
-would be not worrying about the undefined user behavior during the source table primary key construction here, but instead just 
-assume they gave us a well-partitioned input topic whose materialization is ready for pull query. This aligns with our original expectation 
-of a SOURCE TABLE as well, where KSQL should not have extra mutation or tweak on the original data unless specified via CTAS or other query.  
+would be not worrying about the undefined user behavior during the source table primary key construction here, but instead 
+just assume they gave us a well-partitioned input topic whose materialization is ready for pull query. This aligns with 
+our original expectation of a SOURCE TABLE as well, where KSQL should not have extra mutation or tweak on the original 
+data unless specified via CTAS or other query.  
 
 ## Public APIS
-* Create source table/stream, which makes the data source read-only:
+Create source table/stream, which makes the data source read-only:
 
 ```roomsql
 CREATE SOURCE STREAM stream_name (COL1 INT, COL2 STRING) WITH ...
@@ -124,7 +116,9 @@ CREATE SOURCE TABLE table_name (ID INT PRIMARY KEY, COL1 INT) WITH ...
 The new semantics will be tested as:
 
 * Unit testing for modular changes
-* QTTs with the new source table/stream syntax, including insertion failure, `DROP` command integrity and successful materialization
+* QTTs with the new source table/stream syntax, including insertion failure, `DROP ... DELETE TOPIC` command integrity
+* Tests for successful materialization and pull query
+* Tests for query termination restriction
 * Tests for `DESCRIBE` sources
 
 ## LOEs and Delivery Milestones
@@ -148,7 +142,11 @@ the last one will be documentation and tests complete.
 * Add a new doc page as `docs/developer-guide/ksqldb-reference/source-stream.md`
 
 ## Compatibility Implications
-This is a new feature in CT and CS, which has no backward compatibility issue. 
+This is a new feature in CT and CS, which has no backward compatibility issue. Moving forward, we should leave 
+the source table query open for evolvement around its data format, which is why we mentioned adding the changelog 
+topic instead of relying on the input topic for backup. In the implementation phase, we would also add the source 
+table materialization as a new execution step with versioning support, so that we could be handling the upgrade 
+smoothly without the concern to write incompatible data format to old states.
 
 ## Security Implications
 This is not a security feature, and it is allowed to `CREATE SOURCE TABLE` over an existing topic that is 

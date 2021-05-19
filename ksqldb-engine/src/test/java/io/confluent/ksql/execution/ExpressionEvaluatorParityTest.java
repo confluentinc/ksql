@@ -178,6 +178,20 @@ public class ExpressionEvaluatorParityTest {
         compileTime("Arithmetic on types INTEGER and null are not supported."));
     assertOrdersError("'a' + null",  compileTime("Error processing expression: ('a' + null)."),
         compileTime("Arithmetic on types STRING and null are not supported."));
+    assertOrdersError("MAP(1 := 'cat') + null",  compileTime("Error processing expression: (MAP(1:='cat') + null)."),
+            compileTime("Arithmetic on types MAP<INTEGER, STRING> and null are not supported."));
+    assertOrdersError("Array[1,2,3] + null",  compileTime("Error processing expression: (ARRAY[1, 2, 3] + null)."),
+            compileTime("Arithmetic on types ARRAY<INTEGER> and null are not supported."));
+    assertOrdersError("1 - null",  compileTime("Error processing expression: (1 - null)."),
+            compileTime("Arithmetic on types INTEGER and null are not supported."));
+    assertOrdersError("1 * null",  compileTime("Error processing expression: (1 * null)."),
+            compileTime("Arithmetic on types INTEGER and null are not supported."));
+    assertOrdersError("1 / null",  compileTime("Error processing expression: (1 / null)."),
+            compileTime("Arithmetic on types INTEGER and null are not supported."));
+    assertOrdersError("null + null",  compileTime("Error processing expression: (null + null)."),
+            compileTime("Arithmetic on types null and null are not supported."));
+    assertOrdersError("null / 0",  compileTime("Error processing expression: (null / 0)."),
+            compileTime("Arithmetic on types null and INTEGER are not supported."));
     assertOrdersError("1 + ORDERID",  evalLogger(null));
   }
 

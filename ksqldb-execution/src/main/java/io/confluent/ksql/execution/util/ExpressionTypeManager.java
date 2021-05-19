@@ -153,14 +153,19 @@ public class ExpressionTypeManager {
     public Void visitArithmeticBinary(
         final ArithmeticBinaryExpression node,
         final Context context
-    ) {
+    ) throws KsqlException {
       process(node.getLeft(), context);
       final SqlType leftType = context.getSqlType();
 
       process(node.getRight(), context);
       final SqlType rightType = context.getSqlType();
 
-      final SqlType resultType = node.getOperator().resultType(leftType, rightType);
+      final SqlType resultType;
+      try {
+         resultType = node.getOperator().resultType(leftType, rightType);
+      } catch (KsqlException e) {
+        throw new KsqlException("Error processing expression " + node.toString() + ". " + e.getMessage());
+      }
 
       context.setSqlType(resultType);
       return null;

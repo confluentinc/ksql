@@ -29,6 +29,9 @@ public enum Operator {
   ADD("+", SqlDecimal::add) {
     @Override
     public SqlType resultType(final SqlType left, final SqlType right) {
+      if (left == null || right == null) {
+        throw new KsqlException("Arithmetic on types " + left + " and " + right + " are not supported.");
+      }
       if (left.baseType() == SqlBaseType.STRING && right.baseType() == SqlBaseType.STRING) {
         return SqlTypes.STRING;
       }
@@ -61,6 +64,9 @@ public enum Operator {
    * @return the result schema.
    */
   public SqlType resultType(final SqlType left, final SqlType right) {
+    if (left == null || right == null) {
+      throw new KsqlException("Arithmetic on types " + left + " and " + right + " are not supported.");
+    }
     if (left.baseType().isNumber() && right.baseType().isNumber()) {
       if (left.baseType().canImplicitlyCast(right.baseType())) {
         if (right.baseType() != SqlBaseType.DECIMAL) {

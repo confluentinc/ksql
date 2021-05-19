@@ -38,16 +38,17 @@ a RocksDB instance for interactive queries in the KsqlDB servers.
 * `DESCRIBE ...` should show source streams and tables as read-only  
 * Add materialization of the `source table` to make it pull-query accessible
 * Make source stream/table immutable from KSQL by rejecting insertion requests
-* Prevent `DROP` command from deleting source stream/table backed up topic
+* Prevent `DROP ... DELETE TOPIC` command from deleting source stream/table backed up topic
  
 
 ## What is not in scope
-* We shall not attempt to have data materialization for general `CREATE TABLE` command as default. The reasoning is 
-that we lack user feedback around a massive change, and it's preferable to start giving user the option to try out 
-materialized table and see if that is a good alternative or not. 
+* We shall not attempt to have data materialization for general `CREATE TABLE` command as default, since it could potentially become 
+a breaking change for existing `CREATE TABLE` users who assume it to be a light-weight metadata operation. Since we lack user 
+feedback around a massive change, and it's preferable to start giving user the option to try out materialized table and 
+see if that is a good alternative or not, and make the first version of proposal backward compatible. 
 * We will not add role-based write permission for source stream/table in v1, even though it seems to be useful.
 
-## Design
+## High Level Design
 
 ### Semantic Change
 We shall first add optional keyword `SOURCE` into the KSQL codebase, by adding the new syntax to `sqlBase.g4` for:
@@ -69,13 +70,34 @@ Additionally, when user calls `DESCRIBE ...`, the read-only attribute shall be d
 We plan to add restriction check into the `DistributingExecutor#throwIfInsertOnReadOnlyTopic` or create a similar function, 
 which could verify whether the given stream/table is read-only. If so, the insertion will be rejected.
 
-Additionally, when calling `DROP` command on a source stream/table, the underlying topic should not be deleted as the source 
-stream/table has no ownership of the input data. See this [issue](https://github.com/confluentinc/ksql/issues/3585) for more context. 
+Additionally, when calling `DROP` command on a source stream/table, currently user could do `DROP STREAM/TABLE [table_name] DELETE TOPIC` 
+to clean up the underlying topic backed by the stream/table. This should not be allowed for source stream/table as the 
+entity has no ownership of the input data. See this [issue](https://github.com/confluentinc/ksql/issues/3585) for more context. 
 
 ### Source Table Materialization
-In the call `EngineExecutor#execute`, we will check whether given plan has a `queryPlan` before deciding to proceed 
-creating a persistent query. To bypass this check, we need to provide a concrete query plan within the input plan. We would 
-inject a dummy query plan in `EngineExecutor#plan` phase, when the statement is a CreateTable statement with `SOURCE` tag.
+The main difference between a source table and a materialized state by a CTAS query is that we do not populate a sink topic 
+for source table, as it is not expected to have a downstream connection. This will be addressed when constructing the `CREATE SOURCE TABLE` 
+as a special type of persistent query, which would be an implementation detail. Another consideration we have is how to expose 
+such type of query to the end users. 
+
+Generally speaking, any active stream runtime should be represented as a query to present to end users. For source table materialization, 
+it is a stateful job that comes with overhead, which should definitely be exposed to end users. However, any exposed query  
+could be potentially terminated directly by the end user, which comes with a consistency problem with source table semantic 
+agreement. If a source table query could be terminated independently by the user, the original source table would be dangling and 
+not available for pull query anymore. To address this problem, we have two approaches:
+ 
+ 1. The KSQL server rejects the termination of a source table query and informs end user to try deleting the original source table.
+ 2. The KSQL server will verify the deletion of a query, and try deleting the associated source table with it.
+ 
+Both approaches are valid here to maintain the consistency, but considering when dropping a source table, the active materialization 
+query would be terminated, I'm inclined to suggest taking approach #1 here for simplicity, and avoid introducing additional 
+code path to have direct metadata affection when we could just make it as a one-way deletion.  
+
+For the materialized store in source table, there would also be a backing-up changelog topic. The reasoning is that the input 
+topic could potentially be using a different serde than the internal serde being used by KSQL. Having asymmetric serde for 
+serialization and deserialization could lead to potentially state store pollution as we do bulk-loading of source topic 
+data into the state store. The similar [issue](https://github.com/confluentinc/ksql/issues/5673) has been raised before where 
+KSQL has to turn off topology optimization to avoid having state stores backed up by non-internal topics for changelog.   
 
 In addition, when user tries to show all the running queries, the materialization query should also be displayed as it takes 
 part of the computation resource. This would be a special type of running "query" without `SELECT` clause or a query id, as it 
@@ -110,7 +132,7 @@ The estimated work time will be spent as follows (to implement and review):
 1. Add `SOURCE` syntax for both stream/table takes a week
 2. Make changes in Metastore and CreateSource for read-only sources takes a week to review
 3. Reject insertion to `SOURCE` table/stream takes a week
-3. Avoid `DROP` command to delete underlying topics takes 2 days
+3. Avoid `DROP ... DELETE TOPIC` command to delete underlying topics takes 2 days
 4. Display read-only attributes on `DESCRIBE ...` 3 days 
 5. Source table materialization takes a week
 6. Add pull query access for source table takes about 3 days

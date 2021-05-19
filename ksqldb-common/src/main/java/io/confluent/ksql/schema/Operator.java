@@ -31,7 +31,7 @@ public enum Operator {
     public SqlType resultType(final SqlType left, final SqlType right) {
       if (left == null || right == null) {
         throw new KsqlException(
-                String.format("Arithmetic on types %s and %s are not supported.", left, right));
+                String.format("Arithmetic on types %s and %s are not supported", left, right));
       }
       if (left.baseType() == SqlBaseType.STRING && right.baseType() == SqlBaseType.STRING) {
         return SqlTypes.STRING;

@@ -165,7 +165,7 @@ public class ExpressionTypeManager {
         resultType = node.getOperator().resultType(leftType, rightType);
       } catch (KsqlException e) {
         throw new KsqlException(String.format(
-                "Error processing expression %s. %s", node.toString(), e.getMessage()));
+                "Error processing expression: %s. %s", node.toString(), e.getMessage()));
       }
 
       context.setSqlType(resultType);

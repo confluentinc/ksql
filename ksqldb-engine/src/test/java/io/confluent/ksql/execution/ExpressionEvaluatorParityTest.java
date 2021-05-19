@@ -174,10 +174,10 @@ public class ExpressionEvaluatorParityTest {
   @Test
   public void shouldDoArithmetic_nulls() throws Exception {
     ordersRow = GenericRow.genericRow(null, null, null, null, null, null, null, null, null);
-    assertOrdersError("1 + null",  compileTime("Unexpected error generating code for Test"),
-        compileTime("Unexpected error generating code for expression: (1 + null)"));
-    assertOrdersError("'a' + null",  compileTime("Unexpected error generating code for Test"),
-        compileTime("Unexpected error generating code for expression: ('a' + null)"));
+    assertOrdersError("1 + null",  compileTime("Error processing expression: (1 + null)."),
+        compileTime("Arithmetic on types INTEGER and null are not supported."));
+    assertOrdersError("'a' + null",  compileTime("Error processing expression: ('a' + null)."),
+        compileTime("Arithmetic on types STRING and null are not supported."));
     assertOrdersError("1 + ORDERID",  evalLogger(null));
   }
 

@@ -30,7 +30,8 @@ public enum Operator {
     @Override
     public SqlType resultType(final SqlType left, final SqlType right) {
       if (left == null || right == null) {
-        throw new KsqlException("Arithmetic on types " + left + " and " + right + " are not supported.");
+        throw new KsqlException(
+                String.format("Arithmetic on types %s and %s are not supported.", left, right));
       }
       if (left.baseType() == SqlBaseType.STRING && right.baseType() == SqlBaseType.STRING) {
         return SqlTypes.STRING;
@@ -65,7 +66,8 @@ public enum Operator {
    */
   public SqlType resultType(final SqlType left, final SqlType right) {
     if (left == null || right == null) {
-      throw new KsqlException("Arithmetic on types " + left + " and " + right + " are not supported.");
+      throw new KsqlException(
+              String.format("Arithmetic on types %s and %s are not supported.", left, right));
     }
     if (left.baseType().isNumber() && right.baseType().isNumber()) {
       if (left.baseType().canImplicitlyCast(right.baseType())) {

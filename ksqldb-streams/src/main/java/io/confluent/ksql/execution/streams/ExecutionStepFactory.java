@@ -322,7 +322,7 @@ public final class ExecutionStepFactory {
   }
 
   public static <KLeftT, KRightT> ForeignKeyTableTableJoin<KLeftT, KRightT>
-  foreignKeyTableTableJoin(
+      foreignKeyTableTableJoin(
           final QueryContext.Stacker stacker,
           final JoinType joinType,
           final ColumnName leftJoinColumnName,

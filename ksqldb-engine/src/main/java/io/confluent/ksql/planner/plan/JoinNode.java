@@ -228,7 +228,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
           ).collect(Collectors.toList());
 
       if (!missingKeys.isEmpty()) {
-        throwMissingKeyColumnException(missingKeys, leftInputTableName);
+        throwMissingKeyColumnForFkJoinException(missingKeys, leftInputTableName);
       }
     } else {
       final boolean atLeastOneKey = joinKey.getAllViableKeys(schema).stream()
@@ -243,7 +243,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
     }
   }
 
-  private static void throwMissingKeyColumnException(
+  private static void throwMissingKeyColumnForFkJoinException(
       final List<Column> missingKeys,
       final SourceName leftInputTableName
   ) {

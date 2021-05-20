@@ -97,7 +97,8 @@
         {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "a"}, "timestamp": 15000},
         {"topic": "OUTPUT", "key": 10, "value": {"R_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
         {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000},
-        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000}
+        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
       ],
       "post": {
         "sources": [
@@ -136,6 +137,7 @@
         {"topic": "OUTPUT", "key": 10, "value": {"R_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
         {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000},
         {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000},
         {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 19000}
       ],
       "post": {
@@ -166,7 +168,10 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": 1, "value": {"RT_ID_ALIAS": 0, "NAME_ALIAS": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"RT_ID_ALIAS": 0, "NAME_ALIAS": "zero", "F1": "a"}, "timestamp": 15000},
         {"topic": "OUTPUT", "key": 10, "value": {"RT_ID_ALIAS": 0, "NAME_ALIAS": "bar", "F1": "a"}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000},
         {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
       ],
       "post": {
@@ -206,6 +211,7 @@
         {"topic": "OUTPUT", "key": 10, "value": {"RT_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
         {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000},
         {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000},
         {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 19000}
       ],
       "post": {
@@ -236,7 +242,10 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": 1, "value": {"NAME": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 1, "value": {"NAME": "zero", "F1": "a"}, "timestamp": 15000},
         {"topic": "OUTPUT", "key": 10, "value": {"NAME": "bar", "F1": "a"}, "timestamp": 16000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000},
         {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
       ],
       "post": {
@@ -429,7 +438,8 @@
         {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "a"}, "timestamp": 15000},
         {"topic": "OUTPUT", "key": 10, "value": {"R_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
         {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000},
-        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000}
+        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
       ],
       "post": {
         "topics": {
@@ -462,7 +472,8 @@
         {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "a"}, "timestamp": 15000},
         {"topic": "OUTPUT", "key": 10, "value": {"R_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
         {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000},
-        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000}
+        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
       ],
       "post": {
         "sources": [
@@ -498,7 +509,8 @@
         {"topic": "OUTPUT", "key": "1", "value": {"R_ID": 0, "NAME": "zero", "F1": "a"}, "timestamp": 15000},
         {"topic": "OUTPUT", "key": "10", "value": {"R_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
         {"topic": "OUTPUT", "key": "1", "value": null, "timestamp": 17000},
-        {"topic": "OUTPUT", "key": "10", "value": null, "timestamp": 17000}
+        {"topic": "OUTPUT", "key": "10", "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": "1", "value": null, "timestamp": 18000}
       ],
       "post": {
         "sources": [
@@ -549,7 +561,8 @@
         {"topic": "OUTPUT", "key": {"L_ID": 1, "L_ID_2": 0}, "value": {"R_ID": 0, "NAME": "zero", "F1": "a"}, "timestamp": 15000},
         {"topic": "OUTPUT", "key": {"L_ID": 10, "L_ID_2": 0}, "value": {"R_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
         {"topic": "OUTPUT", "key": {"L_ID": 1, "L_ID_2": 0}, "value": null, "timestamp": 17000},
-        {"topic": "OUTPUT", "key": {"L_ID": 10, "L_ID_2": 0}, "value": null, "timestamp": 17000}
+        {"topic": "OUTPUT", "key": {"L_ID": 10, "L_ID_2": 0}, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": {"L_ID": 1, "L_ID_2": 0}, "value": null, "timestamp": 18000}
       ],
       "post": {
         "sources": [
@@ -588,6 +601,7 @@
         {"topic": "OUTPUT", "key": {"L_ID": 10, "L_ID_2": 0}, "value": {"R_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
         {"topic": "OUTPUT", "key": {"L_ID": 1, "L_ID_2": 0}, "value": null, "timestamp": 17000},
         {"topic": "OUTPUT", "key": {"L_ID": 10, "L_ID_2": 0}, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": {"L_ID": 1, "L_ID_2": 0}, "value": null, "timestamp": 18000},
         {"topic": "OUTPUT", "key": {"L_ID": 0, "L_ID_2": 100}, "value": null, "timestamp": 19000}
       ],
       "post": {
@@ -653,7 +667,8 @@
         {"topic": "OUTPUT", "key": 1, "value": {"R_ID": 0, "NAME": "zero", "F1": "a"}, "timestamp": 15000},
         {"topic": "OUTPUT", "key": 10, "value": {"R_ID": 0, "NAME": "bar", "F1": "a"}, "timestamp": 16000},
         {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000},
-        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000}
+        {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000}
       ],
       "post": {
         "sources": [
@@ -692,6 +707,7 @@
         {"topic": "OUTPUT", "key": 10, "value": {"RT_ID_ALIAS": 0, "NAME_ALIAS": "bar", "F1": "a"}, "timestamp": 16000},
         {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 17000},
         {"topic": "OUTPUT", "key": 10, "value": null, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 1, "value": null, "timestamp": 18000},
         {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 19000}
       ],
       "post": {

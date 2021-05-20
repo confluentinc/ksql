@@ -263,10 +263,9 @@
         "CREATE STREAM INPUT (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT 1 + NULL FROM INPUT EMIT CHANGES;"
       ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
-        "message": "Error processing expression: (1 + null). Arithmetic on types INTEGER and null are not supported.",
-        "status": 400
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Error processing expression: (1 + null). Arithmetic on types INTEGER and null are not supported."
       }
     },
     {
@@ -275,10 +274,9 @@
         "CREATE STREAM INPUT (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT MAP(1 := 'cat') + NULL FROM INPUT EMIT CHANGES;"
       ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
-        "message": "Error processing expression: (MAP(1:='cat') + null). Arithmetic on types MAP<INTEGER, STRING> and null are not supported.",
-        "status": 400
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Error processing expression: (MAP(1:='cat') + null). Arithmetic on types MAP<INTEGER, STRING> and null are not supported."
       }
     },
     {
@@ -287,10 +285,9 @@
         "CREATE STREAM INPUT (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT Array[1,2,3] + NULL FROM INPUT EMIT CHANGES;"
       ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
-        "message": "Error processing expression: (ARRAY[1, 2, 3] + null). Arithmetic on types ARRAY<INTEGER> and null are not supported.",
-        "status": 400
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Error processing expression: (ARRAY[1, 2, 3] + null). Arithmetic on types ARRAY<INTEGER> and null are not supported."
       }
     },
     {
@@ -299,10 +296,9 @@
         "CREATE STREAM INPUT (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT 5.0 / NULL FROM INPUT EMIT CHANGES;"
       ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
-        "message": "Error processing expression: (5.0 / null). Arithmetic on types DECIMAL(2, 1) and null are not supported.",
-        "status": 400
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Error processing expression: (5.0 / null). Arithmetic on types DECIMAL(2, 1) and null are not supported."
       }
     },
     {
@@ -311,10 +307,9 @@
         "CREATE STREAM INPUT (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT NULL * NULL FROM INPUT EMIT CHANGES;"
       ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
-        "message": "Error processing expression: (null * null). Arithmetic on types null and null are not supported.",
-        "status": 400
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Error processing expression: (null * null). Arithmetic on types null and null are not supported."
       }
     }
   ]

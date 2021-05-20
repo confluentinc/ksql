@@ -28,7 +28,7 @@ import java.util.function.BinaryOperator;
 public enum Operator {
   ADD("+", SqlDecimal::add) {
     @Override
-    public SqlType resultType(final SqlType left, final SqlType right) {
+    public SqlType resultType(final SqlType left, final SqlType right) throws KsqlException {
       checkForNullTypes(left, right);
 
       if (left.baseType() == SqlBaseType.STRING && right.baseType() == SqlBaseType.STRING) {
@@ -62,7 +62,7 @@ public enum Operator {
    * @param right the right side of the operation.
    * @return the result schema.
    */
-  public SqlType resultType(final SqlType left, final SqlType right) {
+  public SqlType resultType(final SqlType left, final SqlType right) throws KsqlException {
     checkForNullTypes(left, right);
 
     if (left.baseType().isNumber() && right.baseType().isNumber()) {
@@ -87,7 +87,8 @@ public enum Operator {
         "Unsupported arithmetic types. " + left.baseType() + " " + right.baseType());
   }
 
-  private static void checkForNullTypes (final SqlType left, final SqlType right) throws KsqlException {
+  private static void checkForNullTypes(final SqlType left, final SqlType right)
+          throws KsqlException {
     if (left == null || right == null) {
       throw new KsqlException(
               String.format("Arithmetic on types %s and %s are not supported.", left, right));

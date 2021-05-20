@@ -330,6 +330,7 @@
         {"topic": "right_topic", "key": 1, "value": {"V0": 4, "V1": 5}, "timestamp": 100}
       ],
       "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"L_ID": 1, "R_ID": null, "L_V0": 2, "R_V1": null}, "timestamp": 0},
         {"topic": "OUTPUT", "key": 1, "value": {"L_ID": 1, "R_ID": 1, "L_V0": 2, "R_V1": 5}, "timestamp": 100}
       ],
       "post": {
@@ -386,6 +387,7 @@
         {"topic": "LEFT", "key": 0, "value": {"B": 1, "C": 2}, "timestamp": 10}
       ],
       "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"L_A": null, "L_B": null, "L_C": null, "R_A": 0, "R_B": -1, "R_C": -2}, "timestamp": 9},
         {"topic": "OUTPUT", "key": 0, "value": {"L_A": 0, "L_B": 1, "L_C": 2, "R_A": 0, "R_B": -1, "R_C": -2}, "timestamp": 10}
       ],
       "post": {
@@ -449,9 +451,13 @@
         {"topic": "left_topic", "key": 0, "value": {"NAME": "bar", "VALUE": 99}, "timestamp": 30000}
       ],
       "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
         {"topic": "OUTPUT", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 10, "value": {"NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
         {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
-        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000}
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 90, "value": {"NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000}
       ],
       "post": {
         "sources": [
@@ -481,9 +487,13 @@
         {"topic": "left_topic", "key": 0, "value": {"NAME": "bar", "VALUE": 99}, "timestamp": 30000}
       ],
       "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "", "F2": 0}, "timestamp": 0},
         {"topic": "OUTPUT", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 10, "value": {"NAME": "100", "VALUE": 5, "F1": "", "F2": 0}, "timestamp": 11000},
         {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
-        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000}
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 90, "value": {"NAME": "ninety", "VALUE": 90, "F1": "", "F2": 0}, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "bar", "VALUE": 99, "F1": "", "F2": 0}, "timestamp": 30000}
       ],
       "post": {
         "sources": [
@@ -525,9 +535,13 @@
         {"topic": "left_topic", "key": "foo", "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
       ],
       "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"T_K": "foo", "NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
         {"topic": "OUTPUT", "key": 0, "value": {"T_K": "foo", "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 10, "value": {"T_K": "foo", "NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
         {"topic": "OUTPUT", "key": 0, "value": {"T_K": "foo", "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
-        {"topic": "OUTPUT", "key": 0, "value": {"T_K": "foo", "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000}
+        {"topic": "OUTPUT", "key": 0, "value": {"T_K": "foo", "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 90, "value": {"T_K": "foo", "NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 0, "value": {"T_K": "foo", "NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000}
       ],
       "post": {
         "sources": [
@@ -554,9 +568,13 @@
         {"topic": "left_topic", "key": "foo", "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
       ],
       "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"T_K": "foo","NAME": "zero", "VALUE": 0, "F1": "", "F2": 0}, "timestamp": 0},
         {"topic": "OUTPUT", "key": 0, "value": {"T_K": "foo", "NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 10, "value": {"T_K": "foo", "NAME": "100", "VALUE": 5, "F1": "", "F2": 0}, "timestamp": 11000},
         {"topic": "OUTPUT", "key": 0, "value": {"T_K": "foo", "NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
-        {"topic": "OUTPUT", "key": 0, "value": {"T_K": "foo", "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000}
+        {"topic": "OUTPUT", "key": 0, "value": {"T_K": "foo", "NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 90, "value": {"T_K": "foo", "NAME": "ninety", "VALUE": 90, "F1": "", "F2": 0}, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 0, "value": {"T_K": "foo", "NAME": "bar", "VALUE": 99, "F1": "", "F2": 0}, "timestamp": 30000}
       ],
       "post": {
         "sources": [
@@ -583,9 +601,13 @@
         {"topic": "left_topic", "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
       ],
       "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": null, "F2": null}, "timestamp": 0},
         {"topic": "OUTPUT", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 10, "value": {"NAME": "100", "VALUE": 5, "F1": null, "F2": null}, "timestamp": 11000},
         {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
-        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000}
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 90, "value": {"NAME": "ninety", "VALUE": 90, "F1": null, "F2": null}, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "bar", "VALUE": 99, "F1": null, "F2": null}, "timestamp": 30000}
       ],
       "post": {
         "sources": [
@@ -612,9 +634,13 @@
         {"topic": "left_topic", "value": {"ID": 0, "NAME": "bar", "VALUE": 99}, "timestamp": 30000}
       ],
       "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "", "F2": 0}, "timestamp": 0},
         {"topic": "OUTPUT", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 10, "value": {"NAME": "100", "VALUE": 5, "F1": "", "F2": 0}, "timestamp": 11000},
         {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
-        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000}
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 90, "value": {"NAME": "ninety", "VALUE": 90, "F1": "", "F2": 0}, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "bar", "VALUE": 99, "F1": "", "F2": 0}, "timestamp": 30000}
       ],
       "post": {
         "sources": [
@@ -622,7 +648,7 @@
         ]
       }
     },
-    {
+     {
       "name": "stream stream inner join",
       "format": ["AVRO", "JSON", "PROTOBUF"],
       "statements": [
@@ -849,10 +875,14 @@
 
       ],
       "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"T_ID": 0, "T_NAME": "zero", "T_VALUE": 0, "TT_ID": null, "TT_F1": null, "TT_F2": null}, "timestamp": 0},
         {"topic": "OUTPUT", "key": 0, "value": {"T_ID": 0, "T_NAME": "zero", "T_VALUE": 0, "TT_ID": 0, "TT_F1": "blah", "TT_F2": 50}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 10, "value": {"T_ID": 10, "T_NAME": "100", "T_VALUE": 5, "TT_ID": null, "TT_F1": null, "TT_F2": null}, "timestamp": 11000},
         {"topic": "OUTPUT", "key": 0, "value": {"T_ID": 0, "T_NAME": "foo", "T_VALUE": 100, "TT_ID": 0, "TT_F1": "blah", "TT_F2": 50}, "timestamp": 13000},
         {"topic": "OUTPUT", "key": 0, "value": {"T_ID": 0, "T_NAME": "foo", "T_VALUE": 100, "TT_ID": 0, "TT_F1": "a", "TT_F2": 10}, "timestamp": 15000},
-        {"topic": "OUTPUT", "key": 90, "value": {"T_ID": 90, "T_NAME": "ninety", "T_VALUE": 90, "TT_ID": null, "TT_F1": null, "TT_F2": null}, "timestamp": 17000}
+        {"topic": "OUTPUT", "key": 0, "value": {"T_ID": 0, "T_NAME": "bar", "T_VALUE": 99, "TT_ID": null, "TT_F1": null, "TT_F2": null}, "timestamp": 30000},
+        {"topic": "OUTPUT", "key": 90, "value": {"T_ID": 90, "T_NAME": "ninety", "T_VALUE": 90, "TT_ID": null, "TT_F1": null, "TT_F2": null}, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 100, "value": {"T_ID": null, "T_NAME": null, "T_VALUE": null, "TT_ID": 100, "TT_F1": "newblah", "TT_F2": 150}, "timestamp": 20000}
       ],
       "post": {
         "sources": [
@@ -882,10 +912,14 @@
 
       ],
       "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "", "F2": 0}, "timestamp": 0},
         {"topic": "OUTPUT", "key": 0, "value": {"NAME": "zero", "VALUE": 0, "F1": "blah", "F2": 50}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 10, "value": {"NAME": "100", "VALUE": 5, "F1": "", "F2": 0}, "timestamp": 11000},
         {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "blah", "F2": 50}, "timestamp": 13000},
         {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "VALUE": 100, "F1": "a", "F2": 10}, "timestamp": 15000},
-        {"topic": "OUTPUT", "key": 90, "value": {"NAME": "ninety", "VALUE": 90, "F1": "", "F2": 0}, "timestamp": 17000}
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "bar", "VALUE": 99, "F1": "", "F2": 0}, "timestamp": 30000},
+        {"topic": "OUTPUT", "key": 90, "value": {"NAME": "ninety", "VALUE": 90, "F1": "", "F2": 0}, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 100, "value": {"NAME": "", "VALUE": 0, "F1": "newblah", "F2": 150}, "timestamp": 20000}
       ],
       "post": {
         "sources": [
@@ -1684,9 +1718,13 @@
         {"topic": "left_topic", "key": 0, "value": {"NAME": "bar"}, "timestamp": 30000}
       ],
       "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "zero", "F1": null}, "timestamp": 0},
         {"topic": "OUTPUT", "key": 0, "value": {"NAME": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 10, "value": {"NAME": "100", "F1": null}, "timestamp": 11000},
         {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "F1": "blah"}, "timestamp": 13000},
-        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "F1": "a"}, "timestamp": 15000}
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "foo", "F1": "a"}, "timestamp": 15000},
+        {"topic": "OUTPUT", "key": 90, "value": {"NAME": "ninety", "F1": null}, "timestamp": 17000},
+        {"topic": "OUTPUT", "key": 0, "value": {"NAME": "bar", "F1": null}, "timestamp": 30000}
       ],
       "post": {
         "sources": [
@@ -2245,6 +2283,7 @@
         {"topic": "s2", "key": 10, "value": {"VAL": "hello"}}
       ],
       "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": null}},
         {"topic": "OUTPUT", "key": 10, "value": {"VAL": "hello"}}
       ],
       "post": {
@@ -2284,6 +2323,7 @@
         {"topic": "s2", "value": {"ID": 10, "VAL": "hello"}}
       ],
       "outputs": [
+        {"topic": "OUTPUT", "key": "10", "value": {"VAL": null}},
         {"topic": "OUTPUT", "key": "10", "value": {"VAL": "hello"}}
       ],
       "post": {
@@ -2326,6 +2366,7 @@
         {"topic": "s2", "value": {"ID": 10, "VAL": "hello"}}
       ],
       "outputs": [
+        {"topic": "OUTPUT", "key": "10", "value": {"VAL": null}},
         {"topic": "OUTPUT", "key": "10", "value": {"VAL": "hello"}}
       ],
       "post": {
@@ -2506,6 +2547,7 @@
         {"topic": "s2", "key": 10, "value": {"VAL": "hello"}}
       ],
       "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": null}},
         {"topic": "OUTPUT", "key": 10, "value": {"VAL": "hello"}}
       ],
       "post": {
@@ -2758,6 +2800,7 @@
         {"topic": "s2", "key": 10, "value": {"VAL": "hello"}}
       ],
       "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": null}},
         {"topic": "OUTPUT", "key": 10, "value": {"VAL": "hello"}}
       ],
       "post": {
@@ -2814,6 +2857,7 @@
         {"topic": "s2", "key": 10, "value": {"VAL": "hello"}}
       ],
       "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": null}},
         {"topic": "OUTPUT", "key": 10, "value": {"VAL": "hello"}}
       ],
       "post": {
@@ -2993,6 +3037,7 @@
         {"topic": "s2", "key": 10, "value": {"VAL": "hello"}}
       ],
       "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"VAL": null}},
         {"topic": "OUTPUT", "key": 10, "value": {"VAL": "hello"}}
       ],
       "post": {
@@ -3053,6 +3098,7 @@
         {"topic": "s2", "key": 10, "value": {"VAL": "hello"}}
       ],
       "outputs": [
+        {"topic": "OUTPUT", "key": 10, "value": {"S1_KEY": 10, "S2_KEY": null, "VAL": null}},
         {"topic": "OUTPUT", "key": 10, "value": {"S1_KEY": 10, "S2_KEY": 10, "VAL": "hello"}}
       ],
       "post": {

@@ -134,34 +134,36 @@ public final class QuerySchemas {
 
   private SchemaInfo getKeySchemaInfo(final Map<Boolean, Set<String>> kvLoggerNames,
                                       final String topicName) {
-    final Set<String> topicNames = kvLoggerNames.getOrDefault(KEY_LOGGER_TYPE, ImmutableSet.of());
+    final Set<String> keyLoggerNames =
+        kvLoggerNames.getOrDefault(KEY_LOGGER_TYPE, ImmutableSet.of());
 
-    if (topicNames.size() != 1) {
-      final String result = topicNames.size() == 0 ? "Zero" : "Multiple";
+    if (keyLoggerNames.size() != 1) {
+      final String result = keyLoggerNames.size() == 0 ? "Zero" : "Multiple";
 
       throw new IllegalStateException(result + " key logger names registered for topic."
           + System.lineSeparator()
           + "topic: " + topicName
-          + "loggers: " + topicNames
+          + "loggers: " + keyLoggerNames
       );
     }
 
-    return loggerToSchemas.get(Iterables.getOnlyElement(topicNames));
+    return loggerToSchemas.get(Iterables.getOnlyElement(keyLoggerNames));
   }
 
   private SchemaInfo getValueSchemaInfo(final Map<Boolean, Set<String>> kvLoggerNames,
                                         final String topicName) {
-    final Set<String> topicNames = kvLoggerNames.getOrDefault(VALUE_LOGGER_TYPE, ImmutableSet.of());
+    final Set<String> valueLoggerNames =
+        kvLoggerNames.getOrDefault(VALUE_LOGGER_TYPE, ImmutableSet.of());
 
     // NO_VALUE_SCHEMA_FOUND is returned if no value topic has been detected yet. This happens
     // when a null value (delete) was processed in the topic as the first record. The internal
     // serde from the value topic does not call the TrackSerde, which can't track the format type
     // for the topic.
     final SchemaInfo valueInfo = loggerToSchemas.getOrDefault(
-        Iterables.getFirst(topicNames, EMPTY_TOPIC_NAME),
+        Iterables.getFirst(valueLoggerNames, EMPTY_TOPIC_NAME),
         NO_VALUE_SCHEMA_FOUND);
 
-    if (topicNames.size() > 1) {
+    if (valueLoggerNames.size() > 1) {
       final Optional<ValueFormat> firstValueFormat = valueInfo.valueFormat();
 
       // Multiple value topics names may be detected. This happens with left/outer joins. The left
@@ -169,7 +171,7 @@ public final class QuerySchemas {
       // value formats. The track code, though, is only used for QTT which always executes joins
       // with same value formats. We only make sure all formats are the same so we return one
       // SchemaInfo.
-      for (final String name : topicNames) {
+      for (final String name : valueLoggerNames) {
         final Optional<ValueFormat> nextValueFormat = loggerToSchemas.getOrDefault(
             name, NO_VALUE_SCHEMA_FOUND).valueFormat();
 
@@ -177,7 +179,7 @@ public final class QuerySchemas {
           throw new IllegalStateException("Multiple value logger names registered for topic."
               + System.lineSeparator()
               + "topic: " + topicName
-              + "loggers: " + topicNames
+              + "loggers: " + valueLoggerNames
           );
         }
       }

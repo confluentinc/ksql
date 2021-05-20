@@ -29,6 +29,8 @@ import static io.confluent.ksql.schema.ksql.types.SqlTypes.TIMESTAMP;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
@@ -90,6 +92,33 @@ public class OperatorTest {
   @Test
   public void shouldResolveModulusReturnType() {
     assertConversionRule(MODULUS, SqlDecimal::modulus);
+  }
+
+  @Test
+  public void shouldThrowExceptionWhenNullType() {
+    allOperations().forEach(op -> {
+      for (final SqlBaseType leftBaseType : SqlBaseType.values()) {
+        // When:
+        final Throwable exception = assertThrows(KsqlException.class,
+                () -> op.resultType(getType(leftBaseType), null));
+
+        // Then:
+        assertEquals(String.format("Arithmetic on types %s and null are not supported.",
+                getType(leftBaseType)), exception.getMessage());
+      }
+    });
+
+    allOperations().forEach(op -> {
+      for (final SqlBaseType rightBaseType : SqlBaseType.values()) {
+        // When:
+        final Throwable exception = assertThrows(KsqlException.class,
+                () -> op.resultType(null, getType(rightBaseType)));
+
+        // Then:
+        assertEquals(String.format("Arithmetic on types null and %s are not supported.",
+                getType(rightBaseType)), exception.getMessage());
+      }
+    });
   }
 
   @Test

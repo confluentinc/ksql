@@ -174,10 +174,35 @@ public class ExpressionEvaluatorParityTest {
   @Test
   public void shouldDoArithmetic_nulls() throws Exception {
     ordersRow = GenericRow.genericRow(null, null, null, null, null, null, null, null, null);
-    assertOrdersError("1 + null",  compileTime("Unexpected error generating code for Test"),
-        compileTime("Unexpected error generating code for expression: (1 + null)"));
-    assertOrdersError("'a' + null",  compileTime("Unexpected error generating code for Test"),
-        compileTime("Unexpected error generating code for expression: ('a' + null)"));
+
+    //The error message coming from the compiler and the interpreter should be the same
+    assertOrdersError("1 + null",  compileTime("Error processing expression: (1 + null). Arithmetic on types INTEGER and null are not supported."),
+        compileTime("Error processing expression: (1 + null). Arithmetic on types INTEGER and null are not supported."));
+
+    assertOrdersError("'a' + null",  compileTime("Error processing expression: ('a' + null). Arithmetic on types STRING and null are not supported."),
+        compileTime("Error processing expression: ('a' + null). Arithmetic on types STRING and null are not supported."));
+
+    assertOrdersError("MAP(1 := 'cat') + null",  compileTime("Error processing expression: (MAP(1:='cat') + null). Arithmetic on types MAP<INTEGER, STRING> and null are not supported."),
+            compileTime("Error processing expression: (MAP(1:='cat') + null). Arithmetic on types MAP<INTEGER, STRING> and null are not supported."));
+
+    assertOrdersError("Array[1,2,3] + null",  compileTime("Error processing expression: (ARRAY[1, 2, 3] + null). Arithmetic on types ARRAY<INTEGER> and null are not supported."),
+            compileTime("Error processing expression: (ARRAY[1, 2, 3] + null). Arithmetic on types ARRAY<INTEGER> and null are not supported."));
+
+    assertOrdersError("1 - null",  compileTime("Error processing expression: (1 - null). Arithmetic on types INTEGER and null are not supported."),
+            compileTime("Error processing expression: (1 - null). Arithmetic on types INTEGER and null are not supported."));
+
+    assertOrdersError("1 * null",  compileTime("Error processing expression: (1 * null). Arithmetic on types INTEGER and null are not supported."),
+            compileTime("Error processing expression: (1 * null). Arithmetic on types INTEGER and null are not supported."));
+
+    assertOrdersError("1 / null",  compileTime("Error processing expression: (1 / null). Arithmetic on types INTEGER and null are not supported."),
+            compileTime("Error processing expression: (1 / null). Arithmetic on types INTEGER and null are not supported."));
+
+    assertOrdersError("null + null",  compileTime("Error processing expression: (null + null). Arithmetic on types null and null are not supported."),
+            compileTime("Error processing expression: (null + null). Arithmetic on types null and null are not supported."));
+
+    assertOrdersError("null / 0",  compileTime("Error processing expression: (null / 0). Arithmetic on types null and INTEGER are not supported."),
+            compileTime("Error processing expression: (null / 0). Arithmetic on types null and INTEGER are not supported."));
+
     assertOrdersError("1 + ORDERID",  evalLogger(null));
   }
 

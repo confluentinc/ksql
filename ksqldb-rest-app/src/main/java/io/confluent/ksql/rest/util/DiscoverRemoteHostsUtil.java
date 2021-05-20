@@ -35,6 +35,8 @@ public final class DiscoverRemoteHostsUtil {
       final KsqlHostInfo localHost
   ) {
     return currentQueries.stream()
+        // required filter else QueryMetadata.getAllMetadata() throws
+        .filter(q -> q.getState().isRunningOrRebalancing())
         .map(QueryMetadata::getAllMetadata)
         .filter(Objects::nonNull)
         .flatMap(Collection::stream)

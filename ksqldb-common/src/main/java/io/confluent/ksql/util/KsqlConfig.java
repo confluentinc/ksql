@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import static io.confluent.ksql.configdef.ConfigValidators.zeroOrPositive;
+import static org.apache.kafka.streams.StreamsConfig.InternalConfig.ENABLE_KSTREAMS_OUTER_JOIN_SPURIOUS_RESULTS_FIX;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
@@ -540,7 +541,12 @@ public class KsqlConfig extends AbstractConfig {
           new CompatibilityBreakingStreamsConfig(
             StreamsConfig.TOPOLOGY_OPTIMIZATION_CONFIG,
             StreamsConfig.OPTIMIZE,
-            StreamsConfig.OPTIMIZE)
+            StreamsConfig.OPTIMIZE),
+          // Disable KAFKA-10847 fix on older topologies
+          new CompatibilityBreakingStreamsConfig(
+            ENABLE_KSTREAMS_OUTER_JOIN_SPURIOUS_RESULTS_FIX,
+            false,
+            true)
   );
 
   private static final class CompatibilityBreakingStreamsConfig {
@@ -551,13 +557,18 @@ public class KsqlConfig extends AbstractConfig {
     CompatibilityBreakingStreamsConfig(final String name, final Object defaultValueLegacy,
         final Object defaultValueCurrent) {
       this.name = Objects.requireNonNull(name);
-      if (!StreamsConfig.configDef().names().contains(name)) {
+      if (!StreamsConfig.configDef().names().contains(name) && !isInternal(name)) {
         throw new IllegalArgumentException(
             String.format("%s is not a valid streams config", name));
       }
       this.defaultValueLegacy = defaultValueLegacy;
       this.defaultValueCurrent = defaultValueCurrent;
     }
+
+    private boolean isInternal(final String name) {
+      return name.equals(ENABLE_KSTREAMS_OUTER_JOIN_SPURIOUS_RESULTS_FIX);
+    }
+
 
     String getName() {
       return this.name;

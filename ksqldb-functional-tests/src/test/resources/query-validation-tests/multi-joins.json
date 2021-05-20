@@ -670,7 +670,6 @@
       "outputs": [
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_V0": 2, "T3_V0": 3}, "timestamp": 12},
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_V0": 4, "T3_V0": 3}, "timestamp": 13},
-        {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 5, "S2_V0": null, "T3_V0": 3}, "timestamp": 100000},
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 5, "S2_V0": 6, "T3_V0": 3}, "timestamp": 100001}
       ],
       "post": {
@@ -699,7 +698,6 @@
       "outputs": [
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_V0": 2, "T3_V0": 3}, "timestamp": 12},
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_V0": 4, "T3_V0": 3}, "timestamp": 13},
-        {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 5, "S2_V0": null, "T3_V0": 3}, "timestamp": 100000},
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 5, "S2_V0": 6, "T3_V0": 3}, "timestamp": 100001}
       ],
       "post": {
@@ -727,7 +725,6 @@
       "outputs": [
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_ID": 0, "S2_V0": 2, "T3_ID": 0, "T3_V0": 3}, "timestamp": 12},
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_ID": 0, "S2_V0": 4, "T3_ID": 0, "T3_V0": 3}, "timestamp": 13},
-        {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 5, "S2_ID": null, "S2_V0": null, "T3_ID": 0, "T3_V0": 3}, "timestamp": 100000},
         {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 5, "S2_ID": 0, "S2_V0": 6, "T3_ID": 0, "T3_V0": 3}, "timestamp": 100001}
       ],
       "post": {
@@ -967,7 +964,7 @@
         "CREATE TABLE T3 (ID INT PRIMARY KEY, DIFF bigint) WITH (kafka_topic='right2', value_format='JSON');",
         "CREATE STREAM OUTPUT as SELECT S1.ID, s1.V0, t2.V0, t3.DIFF FROM S1 JOIN T2 ON S1.ID = 0 JOIN T3 ON S1.ID = T3.ID;"
       ],
-       "expectedException": {
+      "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Invalid comparison expression '0' in join '(S1.ID = 0)'. Each side of the join comparision must contain references from exactly one source."
       }

@@ -107,6 +107,9 @@ public class Server {
     if (!deploymentIds.isEmpty()) {
       throw new IllegalStateException("Already started");
     }
+    final int idleConnectionTimeoutSeconds =
+            config.getInt(KsqlRestConfig.IDLE_CONNECTION_TIMEOUT_SECONDS);
+
     this.workerExecutor = vertx.createSharedWorkerExecutor("ksql-workers",
         config.getInt(KsqlRestConfig.WORKER_POOL_SIZE));
     final LoggingRateLimiter loggingRateLimiter = new LoggingRateLimiter(config);
@@ -130,7 +133,8 @@ public class Server {
         final VertxCompletableFuture<String> vcf = new VertxCompletableFuture<>();
         final ServerVerticle serverVerticle = new ServerVerticle(endpoints,
             createHttpServerOptions(config, listener.getHost(), listener.getPort(),
-                listener.getScheme().equalsIgnoreCase("https"), isInternalListener.orElse(false)),
+                listener.getScheme().equalsIgnoreCase("https"), isInternalListener.orElse(false),
+                idleConnectionTimeoutSeconds),
             this, isInternalListener, pullQueryMetrics, loggingRateLimiter);
         vertx.deployVerticle(serverVerticle, vcf);
         final int index = i;
@@ -285,14 +289,14 @@ public class Server {
 
   private static HttpServerOptions createHttpServerOptions(final KsqlRestConfig ksqlRestConfig,
       final String host, final int port, final boolean tls,
-      final boolean isInternalListener) {
+      final boolean isInternalListener, final int idleTimeoutSeconds) {
 
     final HttpServerOptions options = new HttpServerOptions()
         .setHost(host)
         .setPort(port)
         .setReuseAddress(true)
         .setReusePort(true)
-        .setIdleTimeout(10 * 60).setIdleTimeoutUnit(TimeUnit.SECONDS)
+        .setIdleTimeout(idleTimeoutSeconds).setIdleTimeoutUnit(TimeUnit.SECONDS)
         .setPerMessageWebSocketCompressionSupported(true)
         .setPerFrameWebSocketCompressionSupported(true);
 

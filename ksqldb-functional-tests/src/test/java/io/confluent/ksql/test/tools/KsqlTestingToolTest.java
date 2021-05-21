@@ -64,7 +64,7 @@ public class KsqlTestingToolTest {
 
   @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   @Test
-  public void shouldRunCorrectsTest() throws Exception {
+  public void shouldRunCorrectTests() throws Exception {
 
     final File testFolder = new File(CORRECT_TESTS_FOLDER);
     final File[] testSubFolders = testFolder.listFiles(File::isDirectory);

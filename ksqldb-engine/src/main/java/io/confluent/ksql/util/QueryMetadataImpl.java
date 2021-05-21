@@ -178,6 +178,12 @@ public class QueryMetadataImpl implements QueryMetadata {
       QueryLogger.error(String.format("Uncaught exception in query %s", e),
           this.statementString);
       errorType = errorClassifier.classify(e);
+      if (errorType != Type.USER && e instanceof TimeOutException) {
+        AdminClient adminClient = kafkaStreams.getAdminClinet();
+        if (!e.getMessage().contains (adminCleint.getTopics())) {
+          errorType = Type.USER;
+        }
+      }
     } catch (final Exception classificationException) {
       LOG.error("Error classifying unhandled exception", classificationException);
     } finally {

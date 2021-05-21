@@ -375,7 +375,9 @@ public class StreamedQueryResourceTest {
           new CompletableFuture<>(),
           Optional.empty(),
           KsqlMediaType.LATEST_FORMAT,
-          new MetricsCallbackHolder());
+          new MetricsCallbackHolder(),
+          null,
+          null);
 
       logger.verify(() -> QueryLogger.info("Transient query created",
           PULL_QUERY_STRING), times(1));

@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.rest.entity;
 
-import static org.glassfish.jersey.internal.util.collection.ImmutableCollectors.toImmutableList;
+import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import com.google.common.collect.Streams;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;

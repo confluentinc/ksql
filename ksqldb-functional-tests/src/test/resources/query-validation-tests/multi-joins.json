@@ -371,7 +371,7 @@
         {"topic": "left", "key": 0, "value": {"V0": 1}, "timestamp": 12}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "T2_ID": 0, "T2_V0": 2, "T3_ID": 0, "T3_V0": 3, "S1_ROWTIME": 12, "T2_ROWTIME": 12, "T3_ROWTIME": 12}, "timestamp": 12}
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "T2_ID": 0, "T2_V0": 2, "T3_ID": 0, "T3_V0": 3, "S1_ROWTIME": 12, "T2_ROWTIME": 11, "T3_ROWTIME": 10}, "timestamp": 12}
       ],
       "post": {
         "topics": {"blacklist": ".*-repartition"},

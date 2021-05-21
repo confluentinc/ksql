@@ -3,6 +3,15 @@
   "timestamp" : 1618294675264,
   "path" : "query-validation-tests/multi-col-keys.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`K` INTEGER KEY, `K2` INTEGER KEY, `KV` INTEGER, `KV2` INTEGER, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`K` INTEGER KEY, `K2` INTEGER KEY, `K` INTEGER, `K2` INTEGER, `ROWTIME` BIGINT",
       "keyFormat" : {

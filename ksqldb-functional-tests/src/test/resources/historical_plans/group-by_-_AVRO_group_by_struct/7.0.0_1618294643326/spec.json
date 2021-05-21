@@ -3,6 +3,19 @@
   "timestamp" : 1618294643326,
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`ROWKEY` STRUCT<`A` INTEGER, `B` INTEGER> KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.TestKey"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`KSQL_COL_0` STRUCT<`A` INTEGER, `B` INTEGER> KEY, `A` INTEGER, `B` INTEGER, `ROWTIME` BIGINT",
       "keyFormat" : {

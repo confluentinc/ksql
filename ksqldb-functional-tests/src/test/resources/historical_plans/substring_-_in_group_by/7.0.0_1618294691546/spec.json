@@ -3,6 +3,15 @@
   "timestamp" : 1618294691546,
   "path" : "query-validation-tests/substring.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`THING` STRING KEY, `SUBSTRING` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`KSQL_COL_0` STRING KEY, `SOURCE` STRING, `ROWTIME` BIGINT",
       "keyFormat" : {

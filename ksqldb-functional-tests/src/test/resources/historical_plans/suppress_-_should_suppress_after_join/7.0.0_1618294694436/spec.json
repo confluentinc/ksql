@@ -55,6 +55,15 @@
       "valueFormat" : {
         "format" : "JSON"
       }
+    },
+    "CTAS_OUTPUT_1.Aggregate.Project" : {
+      "schema" : "`L_A` INTEGER KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

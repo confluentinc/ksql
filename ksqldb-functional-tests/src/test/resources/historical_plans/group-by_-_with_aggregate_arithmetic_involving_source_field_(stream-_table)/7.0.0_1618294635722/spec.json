@@ -3,6 +3,15 @@
   "timestamp" : 1618294635722,
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`ITEM` INTEGER KEY, `COST` INTEGER KEY, `KSQL_COL_0` BIGINT",
+      "keyFormat" : {
+        "format" : "DELIMITED"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`ITEM` INTEGER KEY, `COST` INTEGER KEY, `ITEM` INTEGER, `COST` INTEGER, `ROWTIME` BIGINT",
       "keyFormat" : {

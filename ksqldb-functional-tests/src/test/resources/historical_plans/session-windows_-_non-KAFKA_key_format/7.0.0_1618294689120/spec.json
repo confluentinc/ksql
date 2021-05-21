@@ -3,6 +3,16 @@
   "timestamp" : 1618294689120,
   "path" : "query-validation-tests/session-windows.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`A` DECIMAL(4, 2) KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`A` DECIMAL(4, 2) KEY, `A` DECIMAL(4, 2), `ROWTIME` BIGINT",
       "keyFormat" : {

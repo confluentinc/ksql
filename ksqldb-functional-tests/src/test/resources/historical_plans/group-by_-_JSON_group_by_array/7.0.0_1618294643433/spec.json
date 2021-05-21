@@ -3,6 +3,16 @@
   "timestamp" : 1618294643433,
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`ROWKEY` ARRAY<INTEGER> KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`KSQL_COL_0` ARRAY<INTEGER> KEY, `A` INTEGER, `B` INTEGER, `ROWTIME` BIGINT",
       "keyFormat" : {

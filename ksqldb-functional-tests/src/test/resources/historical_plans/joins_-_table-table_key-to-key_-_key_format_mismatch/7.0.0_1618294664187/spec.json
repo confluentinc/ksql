@@ -3,6 +3,15 @@
   "timestamp" : 1618294664187,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.PrependAliasLeft" : {
+      "schema" : "`T1_ID` INTEGER KEY, `T1_VAL` STRING, `T1_ROWTIME` BIGINT, `T1_ID` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
       "schema" : "`ID` INTEGER KEY, `VAL` STRING",
       "keyFormat" : {
@@ -32,6 +41,15 @@
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`T1_ID` INTEGER KEY, `T1_VAL` STRING, `T2_ID` INTEGER, `T2_FOO` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`T2_ID` INTEGER KEY, `T2_FOO` INTEGER, `T2_ROWTIME` BIGINT, `T2_ID` INTEGER",
       "keyFormat" : {
         "format" : "KAFKA"
       },

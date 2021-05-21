@@ -3,6 +3,15 @@
   "timestamp" : 1618294619620,
   "path" : "query-validation-tests/count.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`K` INTEGER KEY, `VALUE` INTEGER, `ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`KSQL_COL_0` INTEGER KEY, `VALUE` INTEGER, `KSQL_INTERNAL_COL_1` INTEGER",
       "keyFormat" : {

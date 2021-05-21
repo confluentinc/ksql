@@ -83,9 +83,7 @@
           "valueFormat" : {
             "format" : "JSON"
           },
-          "partitions" : 4,
-          "keySchema" : null,
-          "valueSchema" : null
+          "partitions" : 4
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
@@ -94,9 +92,7 @@
           "valueFormat" : {
             "format" : "JSON"
           },
-          "partitions" : 4,
-          "keySchema" : null,
-          "valueSchema" : null
+          "partitions" : 4
         } ]
       }
     }

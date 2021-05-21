@@ -3,6 +3,15 @@
   "timestamp" : 1618294659283,
   "path" : "query-validation-tests/joins.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.PrependAliasLeft" : {
+      "schema" : "`L_ROWKEY` INTEGER KEY, `L_ROWKEY_1` INTEGER, `L_ROWKEY_2` INTEGER, `L_ROWTIME` BIGINT, `L_ROWKEY` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_OUTPUT_0.KafkaTopic_Left.Source" : {
       "schema" : "`ROWKEY` INTEGER KEY, `ROWKEY_1` INTEGER, `ROWKEY_2` INTEGER",
       "keyFormat" : {
@@ -32,6 +41,15 @@
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`ROWKEY_6` INTEGER KEY, `ROWKEY` INTEGER, `ROWKEY_3` INTEGER, `ROWKEY_1` INTEGER, `ROWKEY_5` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`R_ROWKEY_3` INTEGER KEY, `R_ROWKEY_4` INTEGER, `R_ROWKEY_5` INTEGER, `R_ROWTIME` BIGINT, `R_ROWKEY_3` INTEGER",
       "keyFormat" : {
         "format" : "KAFKA"
       },

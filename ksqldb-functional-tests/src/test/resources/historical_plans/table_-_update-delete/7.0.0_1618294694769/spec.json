@@ -12,6 +12,15 @@
         "format" : "DELIMITED"
       }
     },
+    "CTAS_T1_0.Project" : {
+      "schema" : "`K` STRING KEY, `NAME` STRING, `VALUE` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
     "CTAS_T1_0.T1" : {
       "schema" : "`K` STRING KEY, `NAME` STRING, `VALUE` INTEGER",
       "keyFormat" : {

@@ -3,6 +3,16 @@
   "timestamp" : 1618294674921,
   "path" : "query-validation-tests/multi-col-keys.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`K` INTEGER KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`K` INTEGER KEY, `K` INTEGER, `ROWTIME` BIGINT",
       "keyFormat" : {
@@ -37,6 +47,15 @@
       "keyFormat" : {
         "format" : "JSON",
         "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Prepare" : {
+      "schema" : "`K` INTEGER KEY, `K2` INTEGER KEY, `K` INTEGER, `ROWTIME` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON"
       },
       "valueFormat" : {
         "format" : "JSON"

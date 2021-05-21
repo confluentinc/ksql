@@ -20,6 +20,15 @@
       "valueFormat" : {
         "format" : "JSON"
       }
+    },
+    "CTAS_COPY_0.Project" : {
+      "schema" : "`K` STRING KEY, `PERSON` STRUCT<`NAME` STRING, `ADDRESS` STRUCT<`NUMBER` INTEGER, `STREET` STRING, `CITY` STRING>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

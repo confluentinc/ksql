@@ -181,15 +181,6 @@
           },
           "partitions" : 4
         }, {
-          "name" : "b",
-          "keyFormat" : {
-            "format" : "KAFKA"
-          },
-          "valueFormat" : {
-            "format" : "JSON"
-          },
-          "partitions" : 4
-        }, {
           "name" : "TEST",
           "keyFormat" : {
             "format" : "KAFKA",
@@ -197,6 +188,15 @@
               "type" : "TUMBLING",
               "size" : 60.000000000
             }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "b",
+          "keyFormat" : {
+            "format" : "KAFKA"
           },
           "valueFormat" : {
             "format" : "JSON"

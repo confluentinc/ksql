@@ -12,6 +12,15 @@
         "format" : "JSON"
       }
     },
+    "CTAS_OUTPUT_0.Project" : {
+      "schema" : "`K` BIGINT KEY, `ID` BIGINT, `KEY` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`K` BIGINT KEY, `ID` BIGINT, `KEY` BIGINT",
       "keyFormat" : {

@@ -3,6 +3,15 @@
   "timestamp" : 1618294693266,
   "path" : "query-validation-tests/sum.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`ID` STRING KEY, `SUM_VAL` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`ID` STRING KEY, `ID` STRING, `VALUE` ARRAY<BIGINT>",
       "keyFormat" : {

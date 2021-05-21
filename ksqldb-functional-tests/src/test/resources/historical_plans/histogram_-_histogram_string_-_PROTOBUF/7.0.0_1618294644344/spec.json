@@ -12,6 +12,15 @@
         "format" : "PROTOBUF"
       }
     },
+    "CTAS_S2_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `COUNTS` MAP<STRING, BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "PROTOBUF"
+      }
+    },
     "CTAS_S2_0.KsqlTopic.Source" : {
       "schema" : "`ID` BIGINT KEY, `VALUE` STRING",
       "keyFormat" : {

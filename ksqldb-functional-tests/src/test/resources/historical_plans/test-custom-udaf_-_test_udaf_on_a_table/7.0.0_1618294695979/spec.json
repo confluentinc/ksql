@@ -3,6 +3,15 @@
   "timestamp" : 1618294695979,
   "path" : "query-validation-tests/test-custom-udaf.json",
   "schemas" : {
+    "CTAS_SUM_ID_BY_REGION_0.Aggregate.Project" : {
+      "schema" : "`REGION` STRING KEY, `KSQL_COL_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
     "CTAS_SUM_ID_BY_REGION_0.Aggregate.GroupBy" : {
       "schema" : "`REGION` STRING KEY, `REGION` STRING, `ID` BIGINT",
       "keyFormat" : {
@@ -32,6 +41,15 @@
     },
     "CTAS_SUM_ID_BY_REGION_0.KsqlTopic.Source" : {
       "schema" : "`ID` BIGINT KEY, `NAME` STRING, `REGION` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_SUM_ID_BY_REGION_0.Aggregate.Prepare" : {
+      "schema" : "`ID` BIGINT KEY, `REGION` STRING, `ID` BIGINT",
       "keyFormat" : {
         "format" : "KAFKA"
       },

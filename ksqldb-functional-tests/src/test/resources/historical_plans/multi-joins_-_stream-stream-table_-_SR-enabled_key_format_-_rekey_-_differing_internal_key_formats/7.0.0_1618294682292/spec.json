@@ -93,6 +93,16 @@
       "valueFormat" : {
         "format" : "JSON"
       }
+    },
+    "CSAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`T3_ID` INTEGER KEY, `T3_V0` BIGINT, `T3_ROWTIME` BIGINT, `T3_ID` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

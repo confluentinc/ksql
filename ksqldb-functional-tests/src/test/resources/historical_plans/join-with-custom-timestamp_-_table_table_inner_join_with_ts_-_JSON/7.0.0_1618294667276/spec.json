@@ -21,6 +21,24 @@
         "format" : "JSON"
       }
     },
+    "CTAS_S1_JOIN_S2_0.PrependAliasLeft" : {
+      "schema" : "`S1_ID` BIGINT KEY, `S1_NAME` STRING, `S1_TS` BIGINT, `S1_ROWTIME` BIGINT, `S1_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_S1_JOIN_S2_0.PrependAliasRight" : {
+      "schema" : "`S2_ID` BIGINT KEY, `S2_F1` STRING, `S2_F2` STRING, `S2_ROWTIME` BIGINT, `S2_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_S1_JOIN_S2_0.KafkaTopic_Right.Source" : {
       "schema" : "`ID` BIGINT KEY, `F1` STRING, `F2` STRING",
       "keyFormat" : {

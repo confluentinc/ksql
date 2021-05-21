@@ -3,6 +3,16 @@
   "timestamp" : 1618294683130,
   "path" : "query-validation-tests/null.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`KSQL_COL_0` BOOLEAN KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`KSQL_COL_0` BOOLEAN KEY, `NAME` STRING, `ROWTIME` BIGINT",
       "keyFormat" : {

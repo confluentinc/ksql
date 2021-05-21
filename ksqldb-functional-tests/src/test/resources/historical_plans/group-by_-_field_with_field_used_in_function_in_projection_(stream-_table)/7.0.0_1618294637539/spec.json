@@ -3,6 +3,15 @@
   "timestamp" : 1618294637539,
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`F1` STRING KEY, `KSQL_COL_0` STRING, `KSQL_COL_1` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`F1` STRING KEY, `F1` STRING, `ROWTIME` BIGINT",
       "keyFormat" : {

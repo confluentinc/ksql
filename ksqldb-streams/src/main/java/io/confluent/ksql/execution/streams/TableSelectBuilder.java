@@ -73,55 +73,64 @@ public final class TableSelectBuilder {
 
     final boolean forceMaterialize = !matBuilder.isPresent();
 
-    if (formats.isPresent() && forceMaterialize) {
+    final Serde<K> keySerde;
+    final Serde<GenericRow> valSerde;
+
+    if (formats.isPresent()) {
       final Formats materializationFormat = formats.get();
 
       final PhysicalSchema physicalSchema = PhysicalSchema.from(
-              selection.getSchema(),
-              materializationFormat.getKeyFeatures(),
-              materializationFormat.getValueFeatures()
+          selection.getSchema(),
+          materializationFormat.getKeyFeatures(),
+          materializationFormat.getValueFeatures()
       );
 
-      final Serde<K> keySerde = (Serde<K>) buildContext.buildKeySerde(
-              materializationFormat.getKeyFormat(),
-              physicalSchema,
-              queryContext
+      keySerde = (Serde<K>) buildContext.buildKeySerde(
+          materializationFormat.getKeyFormat(),
+          physicalSchema,
+          queryContext
       );
 
-      final Serde<GenericRow> valSerde = buildContext.buildValueSerde(
-              materializationFormat.getValueFormat(),
-              physicalSchema,
-              queryContext
+      valSerde = buildContext.buildValueSerde(
+          materializationFormat.getValueFormat(),
+          physicalSchema,
+          queryContext
       );
 
-      final Stacker stacker = Stacker.of(step.getProperties().getQueryContext());
+      if (forceMaterialize) {
+        final Stacker stacker = Stacker.of(step.getProperties().getQueryContext());
 
-      final String stateStoreName = StreamsUtil.buildOpName(
-              stacker.push(PROJECT_OP).getQueryContext());
+        final String stateStoreName = StreamsUtil.buildOpName(
+            stacker.push(PROJECT_OP).getQueryContext());
 
-      final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
-              materializedFactory.create(
-                      keySerde,
-                      valSerde,
-                      stateStoreName
-              );
+        final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
+            materializedFactory.create(
+                keySerde,
+                valSerde,
+                stateStoreName
+            );
 
-      final KTable<K, GenericRow> transFormedTable = table.getTable().transformValues(
-          () -> new KsTransformer<>(selectMapper.getTransformer(logger)),
-          materialized
-      );
+        final KTable<K, GenericRow> transFormedTable = table.getTable().transformValues(
+            () -> new KsTransformer<>(selectMapper.getTransformer(logger)),
+            materialized
+        );
 
-      return KTableHolder.materialized(
-              transFormedTable,
-              selection.getSchema(),
-              table.getExecutionKeyFactory(),
-              MaterializationInfo.builder(stateStoreName, selection.getSchema())
-      );
+        return KTableHolder.materialized(
+            transFormedTable,
+            selection.getSchema(),
+            table.getExecutionKeyFactory(),
+            MaterializationInfo.builder(stateStoreName, selection.getSchema())
+        );
+      }
+    } else {
+      keySerde = null;
+      valSerde = null;
     }
 
     final KTable<K, GenericRow> transFormedTable = table.getTable().transformValues(
         () -> new KsTransformer<>(selectMapper.getTransformer(logger)),
-            selectName
+        Materialized.with(keySerde, valSerde),
+        selectName
     );
 
     final Optional<MaterializationInfo.Builder> materialization = matBuilder.map(b -> b.map(

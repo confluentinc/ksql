@@ -437,6 +437,14 @@ public class Analysis implements ImmutableAnalysis {
       return rightJoinExpression;
     }
 
+    public Expression getFlippedLeftJoinExpression() {
+      return flippedJoinCondition ? rightJoinExpression : leftJoinExpression;
+    }
+
+    public Expression getFlippedRightJoinExpression() {
+      return flippedJoinCondition ? leftJoinExpression : rightJoinExpression;
+    }
+
     public JoinType getType() {
       return type;
     }

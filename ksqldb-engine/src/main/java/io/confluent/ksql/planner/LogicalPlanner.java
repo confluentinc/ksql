@@ -596,14 +596,9 @@ public class LogicalPlanner {
     final Optional<ColumnReferenceExp> fkColumnName =
         verifyJoin(root.getInfo(), preRepartitionLeft, preRepartitionRight);
 
-    final boolean finalJoin = prefix.isEmpty();
-
-    final JoinKey joinKey;
-    if (fkColumnName.isPresent()) {
-      joinKey = buildForeignJoinKey(root, fkColumnName.get());
-    } else {
-      joinKey = buildJoinKey(root);
-    }
+    final JoinKey joinKey = fkColumnName
+        .map(columnReferenceExp -> buildForeignJoinKey(root, fkColumnName.get()))
+        .orElseGet(() -> buildJoinKey(root));
 
     final PlanNode left = prepareSourceForJoin(
         root.getLeft(),
@@ -624,7 +619,7 @@ public class LogicalPlanner {
         new PlanNodeId(prefix + "Join"),
         root.getInfo().getType(),
         joinKey.rewriteWith(refRewriter::process),
-        finalJoin,
+        prefix.isEmpty(),
         left,
         right,
         root.getInfo().getWithinExpression(),
@@ -635,41 +630,18 @@ public class LogicalPlanner {
   /**
    * @return the foreign key column if this is a foreign key join
    */
-  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity|NPathComplexity
   private Optional<ColumnReferenceExp> verifyJoin(
       final JoinInfo joinInfo,
       final PlanNode leftNode,
       final PlanNode rightNode
   ) {
-    // CHECKSTYLE_RULES.ON: CyclomaticComplexity|NPathComplexity
     final JoinType joinType = joinInfo.getType();
     final Expression leftExpression = joinInfo.getLeftJoinExpression();
     final Expression rightExpression = joinInfo.getRightJoinExpression();
 
     if (leftNode.getNodeOutputType() == DataSourceType.KSTREAM) {
       if (rightNode.getNodeOutputType() == DataSourceType.KTABLE) {
-
-        // stream-table join detected
-
-        if (joinType.equals(JoinType.OUTER)) {
-          throw new KsqlException(String.format(
-                  "Invalid join type: "
-                      + "full-outer join not supported for stream-table join. Got %s %s %s.",
-                  joinInfo.getLeftSource().getDataSource().getName().text(),
-                  joinType,
-                  joinInfo.getRightSource().getDataSource().getName().text()
-              ));
-        }
-
-        if (joinOnNonKeyAttribute(rightExpression, rightNode)) {
-          throw new KsqlException(String.format(
-                  "Invalid join condition:"
-                      + " stream-table joins require to join on the table's primary key."
-                      + " Got %s = %s.",
-                  joinInfo.hasFlippedJoinCondition() ? rightExpression : leftExpression,
-                  joinInfo.hasFlippedJoinCondition() ? leftExpression : rightExpression
-              ));
-        }
+        verifyStreamTableJoin(joinInfo, rightNode);
       }
 
       // stream-stream join detected: nothing to verify
@@ -692,64 +664,135 @@ public class LogicalPlanner {
                 "Invalid join condition:"
                     + " table-table joins require to join on the primary key of the right input"
                     + " table. Got %s = %s.",
-                joinInfo.hasFlippedJoinCondition() ? rightExpression : leftExpression,
-                joinInfo.hasFlippedJoinCondition() ? leftExpression : rightExpression
+                joinInfo.getFlippedLeftJoinExpression(),
+                joinInfo.getFlippedRightJoinExpression()
            ));
       }
 
       if (joinOnNonKeyAttribute(leftExpression, leftNode)) {
         // foreign key join detected
 
-        if (ksqlConfig.getBoolean(KsqlConfig.KSQL_FOREIGN_KEY_JOINS_ENABLED)) {
+        return verifyForeignKeyJoin(joinInfo, leftNode, rightNode);
+      } else {
+        // primary key join detected
 
-          if (joinInfo.getType().equals(JoinType.OUTER)) {
-            throw new KsqlException(String.format(
-                "Invalid join type:"
-                    + " full-outer join not supported for foreign-key table-table join."
-                    + " Got %s %s %s.",
-                joinInfo.getLeftSource().getDataSource().getName().text(),
-                joinType,
-                joinInfo.getRightSource().getDataSource().getName().text()
-            ));
-          }
+        final SqlType leftKeyType = Iterables.getOnlyElement(leftNode.getSchema().key()).type();
+        final SqlType rightKeyType = Iterables.getOnlyElement(rightNode.getSchema().key()).type();
 
-          // after we lift this n-way join restriction, we should be able to support FK-joins
-          // at any level in the join tree, even after we add right-deep/bushy join tree support,
-          // because a FK-join output table has the same PK as its left input table
-          if (!(leftNode instanceof DataSourceNode)
-              || !(rightNode instanceof DataSourceNode)) {
-            throw new KsqlException(String.format(
-                "Invalid join condition: foreign-key table-table joins are not "
-                    + "supported as part of n-way joins. Got %s = %s.",
-                joinInfo.hasFlippedJoinCondition() ? rightExpression : leftExpression,
-                joinInfo.hasFlippedJoinCondition() ? leftExpression : rightExpression
-            ));
-          }
-
-          if (!(leftExpression instanceof ColumnReferenceExp)) {
-            throw new KsqlException(String.format(
-                "Invalid join condition: foreign-key table-table joins with expressions "
-                    + "are not supported. Got %s = %s."
-            ));
-          }
-
-          return Optional.of(((ColumnReferenceExp) leftExpression));
-        } else {
-          throw new KsqlException(String.format(
-              "Invalid join condition:"
-                  + " foreign-key table-table joins are not supported. Got %s = %s.",
-              joinInfo.hasFlippedJoinCondition() ? rightExpression : leftExpression,
-              joinInfo.hasFlippedJoinCondition() ? leftExpression : rightExpression
-          ));
-        }
+        verifyJoinConditionTypes(
+            leftKeyType,
+            rightKeyType,
+            leftExpression,
+            rightExpression,
+            joinInfo.hasFlippedJoinCondition()
+        );
       }
     }
 
     return Optional.empty();
   }
 
-  private boolean joinOnNonKeyAttribute(final Expression joinExpression,
-                                        final PlanNode node) {
+  private static void verifyStreamTableJoin(final JoinInfo joinInfo, final PlanNode rightNode) {
+    final JoinType joinType = joinInfo.getType();
+    final Expression rightExpression = joinInfo.getRightJoinExpression();
+
+    if (joinType.equals(JoinType.OUTER)) {
+      throw new KsqlException(String.format(
+          "Invalid join type: "
+              + "full-outer join not supported for stream-table join. Got %s %s %s.",
+          joinInfo.getLeftSource().getDataSource().getName().text(),
+          joinType,
+          joinInfo.getRightSource().getDataSource().getName().text()
+      ));
+    }
+
+    if (joinOnNonKeyAttribute(rightExpression, rightNode)) {
+      throw new KsqlException(String.format(
+          "Invalid join condition:"
+              + " stream-table joins require to join on the table's primary key."
+              + " Got %s = %s.",
+          joinInfo.getFlippedLeftJoinExpression(),
+          joinInfo.getFlippedRightJoinExpression()
+      ));
+    }
+  }
+
+  private Optional<ColumnReferenceExp> verifyForeignKeyJoin(
+      final JoinInfo joinInfo,
+      final PlanNode leftNode,
+      final PlanNode rightNode
+  ) {
+    final JoinType joinType = joinInfo.getType();
+    final Expression leftExpression = joinInfo.getLeftJoinExpression();
+    final Expression rightExpression = joinInfo.getRightJoinExpression();
+
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_FOREIGN_KEY_JOINS_ENABLED)) {
+
+      if (joinInfo.getType().equals(JoinType.OUTER)) {
+        throw new KsqlException(String.format(
+            "Invalid join type:"
+                + " full-outer join not supported for foreign-key table-table join."
+                + " Got %s %s %s.",
+            joinInfo.getLeftSource().getDataSource().getName().text(),
+            joinType,
+            joinInfo.getRightSource().getDataSource().getName().text()
+        ));
+      }
+
+      // after we lift this n-way join restriction, we should be able to support FK-joins
+      // at any level in the join tree, even after we add right-deep/bushy join tree support,
+      // because a FK-join output table has the same PK as its left input table
+      if (!(leftNode instanceof DataSourceNode)
+          || !(rightNode instanceof DataSourceNode)) {
+        throw new KsqlException(String.format(
+            "Invalid join condition:"
+                + " foreign-key table-table joins are not supported as part of n-way joins."
+                + " Got %s = %s.",
+            joinInfo.getFlippedLeftJoinExpression(),
+            joinInfo.getFlippedRightJoinExpression()
+        ));
+      }
+
+      if (!(leftExpression instanceof ColumnReferenceExp)) {
+        throw new KsqlException(String.format(
+            "Invalid join condition:"
+                + " foreign-key table-table joins with expressions are not supported yet."
+                + " Got %s = %s.",
+            joinInfo.getFlippedLeftJoinExpression(),
+            joinInfo.getFlippedRightJoinExpression()
+        ));
+      }
+
+      // we need to extend this to support expressions later on
+      final ColumnReferenceExp fkColumnReference = (ColumnReferenceExp) leftExpression;
+
+      final SqlType fkColumnType =
+          leftNode.getSchema().findColumn(fkColumnReference.getColumnName()).get().type();
+      final SqlType rightKeyType = Iterables.getOnlyElement(rightNode.getSchema().key()).type();
+
+      verifyJoinConditionTypes(
+          fkColumnType,
+          rightKeyType,
+          leftExpression,
+          rightExpression,
+          joinInfo.hasFlippedJoinCondition()
+      );
+
+      return Optional.of(fkColumnReference);
+    } else {
+      throw new KsqlException(String.format(
+          "Invalid join condition:"
+              + " foreign-key table-table joins are not supported. Got %s = %s.",
+          joinInfo.getFlippedLeftJoinExpression(),
+          joinInfo.getFlippedRightJoinExpression()
+      ));
+    }
+  }
+
+  private static boolean joinOnNonKeyAttribute(
+      final Expression joinExpression,
+      final PlanNode node
+  ) {
     if (!(joinExpression instanceof ColumnReferenceExp)) {
       return true;
     }
@@ -806,7 +849,7 @@ public class LogicalPlanner {
     return !joinAttributeName.equals(Iterables.getOnlyElement(keyColumns).name());
   }
 
-  private boolean isInnerNode(final PlanNode node) {
+  private static boolean isInnerNode(final PlanNode node) {
     if (node instanceof JoinNode) {
       return true;
     }
@@ -832,10 +875,29 @@ public class LogicalPlanner {
 
     final ColumnName foreignKeyColumnName = columnRef.maybeQualifier().isPresent()
         ? ColumnNames.generatedJoinColumnAlias(
-            columnRef.maybeQualifier().get(), columnRef.getColumnName())
+            columnRef.maybeQualifier().get(),
+            columnRef.getColumnName())
         : columnRef.getColumnName();
 
     return JoinKey.foreignKeyColumn(foreignKeyColumnName, leftSourceKeys);
+  }
+
+  private static void verifyJoinConditionTypes(
+      final SqlType leftType,
+      final SqlType rightType,
+      final Expression leftExpression,
+      final Expression rightExpression,
+      final boolean flipped
+  ) {
+    if (!leftType.equals(rightType)) {
+      throw new KsqlException(String.format(
+          "Invalid join condition: types don't match. Got %s{%s} = %s{%s}.",
+          flipped ? rightExpression : leftExpression,
+          flipped ? rightType : leftType,
+          flipped ? leftExpression : rightExpression,
+          flipped ? leftType : rightType
+      ));
+    }
   }
 
   private JoinKey buildJoinKey(final Join join) {

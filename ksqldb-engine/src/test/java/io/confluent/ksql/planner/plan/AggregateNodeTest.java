@@ -293,7 +293,7 @@ public class AggregateNodeTest {
     buildQuery(node, KSQL_CONFIG);
 
     // Then:
-    verify(runtimeBuildContext, times(3)).buildValueSerde(
+    verify(runtimeBuildContext, times(4)).buildValueSerde(
         any(),
         any(),
         queryContextCaptor.capture()
@@ -306,7 +306,8 @@ public class AggregateNodeTest {
     assertThat(loggers, contains(
         "queryid.KsqlTopic.Source",
         "queryid.Aggregate.GroupBy",
-        "queryid.Aggregate.Aggregate.Materialize"
+        "queryid.Aggregate.Aggregate.Materialize",
+        "queryid.Aggregate.Project"
     ));
   }
 
@@ -518,6 +519,8 @@ public class AggregateNodeTest {
             .forward("mapValues", methodParams(ValueMapper.class), this)
             .forward("transformValues",
                 methodParams(ValueTransformerWithKeySupplier.class, Named.class, String[].class), this)
+            .forward("transformValues",
+                methodParams(ValueTransformerWithKeySupplier.class, Materialized.class, Named.class, String[].class), this)
             .build();
       }
 
@@ -531,6 +534,18 @@ public class AggregateNodeTest {
       @SuppressWarnings("unused") // Invoked via reflection.
       private KTable transformValues(
           final ValueTransformerWithKeySupplier valueTransformerSupplier,
+          final Named named,
+          final String... stateStoreNames
+      ) {
+        final FakeKTable table = new FakeKTable();
+        transformValues.put(valueTransformerSupplier, table);
+        return table.createProxy();
+      }
+
+      @SuppressWarnings("unused") // Invoked via reflection.
+      private KTable transformValues(
+          final ValueTransformerWithKeySupplier valueTransformerSupplier,
+          final Materialized materialized,
           final Named named,
           final String... stateStoreNames
       ) {

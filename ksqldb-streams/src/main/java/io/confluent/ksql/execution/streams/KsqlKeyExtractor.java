@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.streams;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import java.util.Objects;
 import java.util.function.Function;
@@ -37,7 +38,7 @@ public final class KsqlKeyExtractor<KRightT> implements Function<GenericRow, KRi
   @SuppressWarnings("unchecked")
   @Override
   public KRightT apply(final GenericRow left) {
-    return (KRightT) left.get(leftJoinColumnIndex);
+    return (KRightT) GenericKey.genericKey(left.get(leftJoinColumnIndex));
   }
 
   @Override

@@ -318,7 +318,7 @@ final class EngineExecutor {
 
       final QueryPlan queryPlan = new QueryPlan(
           getSourceNames(outputNode),
-          outputNode.getIntoSourceName(),
+          outputNode.getSinkName().get(),
           plans.physicalPlan.getPhysicalPlan(),
           plans.physicalPlan.getQueryId()
       );
@@ -430,7 +430,7 @@ final class EngineExecutor {
     }
 
     final Statement statement = cfgStatement.getStatement();
-    final SourceName intoSource = outputNode.getIntoSourceName();
+    final SourceName intoSource = outputNode.getSinkName().get();
     final boolean orReplace = statement instanceof CreateAsSelect
         && ((CreateAsSelect) statement).isOrReplace();
     final boolean ifNotExists = statement instanceof CreateAsSelect
@@ -453,7 +453,7 @@ final class EngineExecutor {
   private void validateExistingSink(
       final KsqlStructuredDataOutputNode outputNode
   ) {
-    final SourceName name = outputNode.getIntoSourceName();
+    final SourceName name = outputNode.getSinkName().get();
     final DataSource existing = engineContext.getMetaStore().getSource(name);
 
     if (existing == null) {

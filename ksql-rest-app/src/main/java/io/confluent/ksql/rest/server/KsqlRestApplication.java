@@ -226,19 +226,19 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
           final String message,
           final String contentType
       ) throws IOException {
-        switch (contentType)
-        {
+        switch (contentType) {
           case "text/html":
           case "text/*":
           case "*/*":
-          {
             baseRequest.setHandled(true);
-            Writer writer = getAcceptableWriter(baseRequest, request, response);
+            final Writer writer = getAcceptableWriter(baseRequest, request, response);
             if (writer != null) {
               response.setContentType(MimeTypes.Type.TEXT_HTML.asString());
               handleErrorPage(request, writer, code, message);
             }
-          }
+            break;
+          default:
+            break;
         }
       }
     });

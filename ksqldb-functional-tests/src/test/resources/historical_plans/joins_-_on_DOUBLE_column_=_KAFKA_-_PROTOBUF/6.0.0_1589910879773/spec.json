@@ -136,7 +136,8 @@
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
-          }
+          },
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  double L_L0 = 1;\n  int32 L_L1 = 2;\n  int64 L_ROWTIME = 3;\n  string L_ID = 4;\n}\n"
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
           "keyFormat" : {
@@ -144,7 +145,8 @@
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
-          }
+          },
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  double R_R0 = 1;\n  int32 R_R1 = 2;\n  int64 R_ROWTIME = 3;\n  string R_ID = 4;\n}\n"
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000016-store-changelog",
           "keyFormat" : {
@@ -152,7 +154,8 @@
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
-          }
+          },
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  double L_L0 = 1;\n  int32 L_L1 = 2;\n  int64 L_ROWTIME = 3;\n  string L_ID = 4;\n}\n"
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINOTHER-0000000017-store-changelog",
           "keyFormat" : {
@@ -160,7 +163,8 @@
           },
           "valueFormat" : {
             "format" : "PROTOBUF"
-          }
+          },
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  double R_R0 = 1;\n  int32 R_R1 = 2;\n  int64 R_ROWTIME = 3;\n  string R_ID = 4;\n}\n"
         }, {
           "name" : "left_topic",
           "keyFormat" : {
@@ -169,7 +173,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  double L0 = 1;\n  int32 L1 = 2;\n}\n"
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
@@ -178,7 +183,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string L_ID = 1;\n  int32 L1 = 2;\n  int32 R1 = 3;\n}\n"
         }, {
           "name" : "right_topic",
           "keyFormat" : {
@@ -187,7 +193,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  double R0 = 1;\n  int32 R1 = 2;\n}\n"
         } ]
       }
     }

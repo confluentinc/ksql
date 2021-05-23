@@ -50,6 +50,15 @@
       "keyFormat" : {
         "format" : "DELIMITED"
       }
+    },
+    "CSAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`T_ID` INTEGER KEY, `T_VAL` STRING, `T_ROWTIME` BIGINT, `T_ID` INTEGER",
+      "keyFormat" : {
+        "format" : "DELIMITED"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

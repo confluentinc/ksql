@@ -3,8 +3,26 @@
   "timestamp" : 1618294691777,
   "path" : "query-validation-tests/sum.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`T1_ID` BIGINT KEY, `SUM` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`T1_ID` BIGINT KEY, `T1_ID` BIGINT, `T2_TOTAL` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CTAS_OUTPUT_0.PrependAliasLeft" : {
+      "schema" : "`T1_ID` BIGINT KEY, `T1_TOTAL` INTEGER, `T1_ROWTIME` BIGINT, `T1_ID` BIGINT",
       "keyFormat" : {
         "format" : "KAFKA"
       },
@@ -50,6 +68,15 @@
     },
     "CTAS_OUTPUT_0.Aggregate.Prepare" : {
       "schema" : "`T1_ID` BIGINT KEY, `T1_ID` BIGINT, `T2_TOTAL` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
+    "CTAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`T2_ID` BIGINT KEY, `T2_TOTAL` INTEGER, `T2_ROWTIME` BIGINT, `T2_ID` BIGINT",
       "keyFormat" : {
         "format" : "KAFKA"
       },

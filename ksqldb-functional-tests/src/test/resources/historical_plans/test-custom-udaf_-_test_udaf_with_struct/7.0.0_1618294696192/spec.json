@@ -12,6 +12,15 @@
         "format" : "JSON"
       }
     },
+    "CTAS_RESULT_0.Aggregate.Project" : {
+      "schema" : "`ID` STRING KEY, `RESULT` STRUCT<`A` INTEGER, `B` INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_RESULT_0.Aggregate.GroupBy" : {
       "schema" : "`ID` STRING KEY, `ID` STRING, `VAL` STRUCT<`A` INTEGER, `B` INTEGER>",
       "keyFormat" : {

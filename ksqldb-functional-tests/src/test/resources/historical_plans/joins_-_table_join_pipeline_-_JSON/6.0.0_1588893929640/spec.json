@@ -190,7 +190,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "right_topic_2",
+          "name" : "right_topic",
           "keyFormat" : {
             "format" : "KAFKA"
           },
@@ -199,7 +199,7 @@
           },
           "partitions" : 4
         }, {
-          "name" : "right_topic",
+          "name" : "right_topic_2",
           "keyFormat" : {
             "format" : "KAFKA"
           },

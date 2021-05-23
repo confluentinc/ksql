@@ -322,11 +322,12 @@ public final class ExecutionStepFactory {
   }
 
   public static <KLeftT, KRightT> ForeignKeyTableTableJoin<KLeftT, KRightT>
-      foreignKeyTableTableJoin(final QueryContext.Stacker stacker,
-                               final JoinType joinType,
-                               final ColumnName leftJoinColumnName,
-                               final ExecutionStep<KTableHolder<KLeftT>> left,
-                               final ExecutionStep<KTableHolder<KRightT>> right
+      foreignKeyTableTableJoin(
+          final QueryContext.Stacker stacker,
+          final JoinType joinType,
+          final ColumnName leftJoinColumnName,
+          final ExecutionStep<KTableHolder<KLeftT>> left,
+          final ExecutionStep<KTableHolder<KRightT>> right
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new ForeignKeyTableTableJoin<>(

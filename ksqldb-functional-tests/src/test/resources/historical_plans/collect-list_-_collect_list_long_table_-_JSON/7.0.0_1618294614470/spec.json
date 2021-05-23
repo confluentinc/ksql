@@ -12,6 +12,24 @@
         "format" : "JSON"
       }
     },
+    "CTAS_S2_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `COLLECTED` ARRAY<BIGINT>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_S2_0.Aggregate.Prepare" : {
+      "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_S2_0.KsqlTopic.Source" : {
       "schema" : "`ID` BIGINT KEY, `VALUE` BIGINT",
       "keyFormat" : {

@@ -21,6 +21,7 @@ import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.ForeignKeyTableTableJoin;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KTableHolder;
@@ -246,7 +247,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         functionRegistry);
   }
 
-  public SchemaKTable<K> join(
+  public SchemaKTable<K> innerJoin(
       final SchemaKTable<K> schemaKTable,
       final ColumnName keyColName,
       final Stacker contextStacker
@@ -308,6 +309,52 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         sourceTableStep,
         schemaKTable.getSourceTableStep()
     );
+
+    return new SchemaKTable<>(
+        step,
+        resolveSchema(step, schemaKTable),
+        keyFormat,
+        ksqlConfig,
+        functionRegistry
+    );
+  }
+
+  public <KRightT> SchemaKTable<K> foreignKeyInnerJoin(
+      final SchemaKTable<KRightT> schemaKTable,
+      final ColumnName leftJoinColumnName,
+      final Stacker contextStacker
+  ) {
+    final ForeignKeyTableTableJoin<K, KRightT> step =
+        ExecutionStepFactory.foreignKeyTableTableJoin(
+            contextStacker,
+            JoinType.INNER,
+            leftJoinColumnName,
+            sourceTableStep,
+            schemaKTable.getSourceTableStep()
+        );
+
+    return new SchemaKTable<>(
+        step,
+        resolveSchema(step, schemaKTable),
+        keyFormat,
+        ksqlConfig,
+        functionRegistry
+    );
+  }
+
+  public <KRightT> SchemaKTable<K> foreignKeyLeftJoin(
+      final SchemaKTable<KRightT> schemaKTable,
+      final ColumnName leftJoinColumnName,
+      final Stacker contextStacker
+  ) {
+    final ForeignKeyTableTableJoin<K, KRightT> step =
+        ExecutionStepFactory.foreignKeyTableTableJoin(
+            contextStacker,
+            JoinType.LEFT,
+            leftJoinColumnName,
+            sourceTableStep,
+            schemaKTable.getSourceTableStep()
+        );
 
     return new SchemaKTable<>(
         step,

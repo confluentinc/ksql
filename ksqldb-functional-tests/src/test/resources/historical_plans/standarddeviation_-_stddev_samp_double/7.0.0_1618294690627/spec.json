@@ -3,6 +3,15 @@
   "timestamp" : 1618294690627,
   "path" : "query-validation-tests/standarddeviation.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `STDDEV` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` DOUBLE",
       "keyFormat" : {

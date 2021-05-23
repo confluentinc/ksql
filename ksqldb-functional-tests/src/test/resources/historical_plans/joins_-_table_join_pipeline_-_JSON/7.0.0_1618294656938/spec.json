@@ -30,6 +30,24 @@
         "format" : "JSON"
       }
     },
+    "CTAS_INNER_JOIN_2_1.PrependAliasRight" : {
+      "schema" : "`T_ID` BIGINT KEY, `T_F3` STRING, `T_ROWTIME` BIGINT, `T_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_INNER_JOIN_2_1.PrependAliasLeft" : {
+      "schema" : "`TT_ID` BIGINT KEY, `TT_NAME` STRING, `TT_VALUE` BIGINT, `TT_F1` STRING, `TT_F2` BIGINT, `TT_ROWTIME` BIGINT, `TT_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_INNER_JOIN_2_1.INNER_JOIN_2" : {
       "schema" : "`TT_ID` BIGINT KEY, `NAME` STRING, `F1` STRING, `F3` STRING",
       "keyFormat" : {

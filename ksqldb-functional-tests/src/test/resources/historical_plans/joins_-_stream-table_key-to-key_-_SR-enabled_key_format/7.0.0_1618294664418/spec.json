@@ -70,6 +70,19 @@
         },
         "features" : [ "UNWRAP_SINGLES" ]
       }
+    },
+    "CSAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`T_ID` INTEGER KEY, `T_VAL` STRING, `T_ROWTIME` BIGINT, `T_ID` INTEGER",
+      "keyFormat" : {
+        "format" : "AVRO",
+        "properties" : {
+          "fullSchemaName" : "io.confluent.ksql.avro_schemas.SKey"
+        },
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

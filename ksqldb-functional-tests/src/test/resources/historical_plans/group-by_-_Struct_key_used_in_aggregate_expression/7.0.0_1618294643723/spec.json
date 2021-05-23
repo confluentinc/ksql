@@ -3,6 +3,16 @@
   "timestamp" : 1618294643723,
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`ID` STRUCT<`F1` INTEGER> KEY, `SUM` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`ID` STRUCT<`F1` INTEGER> KEY, `ID` STRUCT<`F1` INTEGER>, `KSQL_INTERNAL_COL_1` INTEGER",
       "keyFormat" : {

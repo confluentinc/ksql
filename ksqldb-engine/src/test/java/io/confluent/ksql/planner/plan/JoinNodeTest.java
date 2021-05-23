@@ -305,7 +305,7 @@ public class JoinNodeTest {
     joinNode.buildStream(planBuildContext);
 
     // Then:
-    verify(leftSchemaKStream).join(
+    verify(leftSchemaKStream).innerJoin(
         rightSchemaKStream,
         SYNTH_KEY,
         WITHIN_EXPRESSION.get().joinWindow(),
@@ -413,7 +413,7 @@ public class JoinNodeTest {
     joinNode.buildStream(planBuildContext);
 
     // Then:
-    verify(leftSchemaKStream).join(
+    verify(leftSchemaKStream).innerJoin(
         rightSchemaKTable,
         SYNTH_KEY,
         VALUE_FORMAT.getFormatInfo(),
@@ -477,7 +477,7 @@ public class JoinNodeTest {
     joinNode.buildStream(planBuildContext);
 
     // Then:
-    verify(leftSchemaKTable).join(
+    verify(leftSchemaKTable).innerJoin(
         rightSchemaKTable,
         SYNTH_KEY,
         CONTEXT_STACKER

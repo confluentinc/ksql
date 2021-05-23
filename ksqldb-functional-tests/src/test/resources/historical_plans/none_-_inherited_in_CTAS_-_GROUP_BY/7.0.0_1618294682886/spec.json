@@ -3,6 +3,16 @@
   "timestamp" : 1618294682886,
   "path" : "query-validation-tests/none.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`FOO` INTEGER KEY, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "JSON",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`FOO` INTEGER KEY, `FOO` INTEGER, `ROWTIME` BIGINT",
       "keyFormat" : {

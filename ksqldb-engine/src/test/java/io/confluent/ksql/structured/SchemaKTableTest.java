@@ -698,7 +698,7 @@ public class SchemaKTableTest {
         .thenReturn(mock(KTable.class));
 
     final SchemaKStream<?> joinedKStream = firstSchemaKTable
-        .join(secondSchemaKTable, KEY, childContextStacker);
+        .innerJoin(secondSchemaKTable, KEY, childContextStacker);
 
     ((SchemaKTable) joinedKStream).getSourceTableStep().build(planBuilder, planInfo);
     verify(mockKTable).join(eq(secondKTable),
@@ -737,7 +737,7 @@ public class SchemaKTableTest {
     // Given:
     final List<Pair<JoinType, Join>> cases = ImmutableList.of(
         Pair.of(JoinType.LEFT, firstSchemaKTable::leftJoin),
-        Pair.of(JoinType.INNER, firstSchemaKTable::join)
+        Pair.of(JoinType.INNER, firstSchemaKTable::innerJoin)
     );
 
     for (final Pair<JoinType, Join> testCase : cases) {
@@ -766,7 +766,7 @@ public class SchemaKTableTest {
     // Given:
     final List<Pair<JoinType, Join>> cases = ImmutableList.of(
         Pair.of(JoinType.LEFT, firstSchemaKTable::leftJoin),
-        Pair.of(JoinType.INNER, firstSchemaKTable::join)
+        Pair.of(JoinType.INNER, firstSchemaKTable::innerJoin)
     );
 
     for (final Pair<JoinType, Join> testCase : cases) {

@@ -3,6 +3,15 @@
   "timestamp" : 1618294697389,
   "path" : "query-validation-tests/timestamp-to-string.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`DEVICE_NAME` STRING KEY, `KSQL_COL_0` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`D_NAME` STRING KEY, `D_NAME` STRING, `P_ROWTIME` BIGINT",
       "keyFormat" : {
@@ -53,6 +62,15 @@
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`DEVICE_NAME` STRING KEY, `KSQL_COL_0` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`D_ROWKEY` STRING KEY, `D_NAME` STRING, `D_ROWTIME` BIGINT, `D_ROWKEY` STRING",
       "keyFormat" : {
         "format" : "KAFKA"
       },

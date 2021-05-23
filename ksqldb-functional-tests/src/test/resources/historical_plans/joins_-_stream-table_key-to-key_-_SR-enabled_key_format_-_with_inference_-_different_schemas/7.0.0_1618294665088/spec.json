@@ -55,6 +55,16 @@
         "format" : "JSON_SR",
         "features" : [ "UNWRAP_SINGLES" ]
       }
+    },
+    "CSAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`T_ROWKEY` INTEGER KEY, `T_VAL` STRING, `T_ROWTIME` BIGINT, `T_ROWKEY` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON_SR",
+        "features" : [ "UNWRAP_SINGLES" ]
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

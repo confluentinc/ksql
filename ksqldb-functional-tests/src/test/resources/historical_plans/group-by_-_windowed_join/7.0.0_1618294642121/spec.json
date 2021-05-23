@@ -9,6 +9,15 @@
         "format" : "JSON"
       }
     },
+    "CTAS_TEST_0.PrependAliasRight" : {
+      "schema" : "`A_ID` STRING KEY, `A_REGIONID` STRING, `A_ROWTIME` BIGINT, `A_ID` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_TEST_0.Aggregate.Aggregate.Materialize" : {
       "schema" : "`A_ID` STRING KEY, `A_ID` STRING, `B_ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT, `KSQL_AGG_VARIABLE_1` BIGINT",
       "keyFormat" : {
@@ -57,6 +66,15 @@
     },
     "CTAS_TEST_0.KafkaTopic_Left.Source" : {
       "schema" : "`ID` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_TEST_0.Aggregate.Project" : {
+      "schema" : "`A_ID` STRING KEY, `COUNT` BIGINT",
       "keyFormat" : {
         "format" : "KAFKA"
       },

@@ -12,6 +12,15 @@
         "format" : "JSON"
       }
     },
+    "CTAS_OUTPUT_0.Project" : {
+      "schema" : "`K` INTEGER KEY, `K2` INTEGER KEY, `V` INTEGER",
+      "keyFormat" : {
+        "format" : "JSON"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`K` INTEGER KEY, `K2` INTEGER KEY, `V` INTEGER",
       "keyFormat" : {

@@ -486,7 +486,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 T_ID = 1;\n  string T_NAME = 2;\n  int64 T_VALUE = 3;\n  int64 T_ROWTIME = 4;\n  string T_K = 5;\n}\n"
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-right-repartition",
           "keyFormat" : {
@@ -495,7 +496,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 TT_ID = 1;\n  string TT_F1 = 2;\n  int64 TT_F2 = 3;\n  int64 TT_ROWTIME = 4;\n  string TT_K = 5;\n}\n"
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-JOINTHIS-0000000016-store-changelog",
           "keyFormat" : {
@@ -504,7 +506,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 T_ID = 1;\n  string T_NAME = 2;\n  int64 T_VALUE = 3;\n  int64 T_ROWTIME = 4;\n  string T_K = 5;\n}\n"
         }, {
           "name" : "left_topic",
           "keyFormat" : {
@@ -513,7 +516,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ID = 1;\n  string NAME = 2;\n  int64 VALUE = 3;\n}\n"
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-KSTREAM-OUTEROTHER-0000000017-store-changelog",
           "keyFormat" : {
@@ -522,7 +526,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 TT_ID = 1;\n  string TT_F1 = 2;\n  int64 TT_F2 = 3;\n  int64 TT_ROWTIME = 4;\n  string TT_K = 5;\n}\n"
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
@@ -531,7 +536,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string NAME = 1;\n  int64 VALUE = 2;\n  string F1 = 3;\n  int64 F2 = 4;\n}\n"
         }, {
           "name" : "right_topic",
           "keyFormat" : {
@@ -540,7 +546,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ID = 1;\n  string F1 = 2;\n  int64 F2 = 3;\n}\n"
         } ]
       }
     }

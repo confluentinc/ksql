@@ -27,6 +27,15 @@
         "format" : "JSON"
       }
     },
+    "CSAS_LEFT_JOIN_0.PrependAliasRight" : {
+      "schema" : "`TT_ID` BIGINT KEY, `TT_F1` STRING, `TT_F2` BIGINT, `TT_ROWTIME` BIGINT, `TT_ID` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CSAS_LEFT_JOIN_0.Join.Left" : {
       "schema" : "`T_ID` BIGINT KEY, `T_NAME` STRING, `T_VALUE` BIGINT, `T_ROWTIME` BIGINT, `T_ID` BIGINT",
       "valueFormat" : {

@@ -3,6 +3,15 @@
   "timestamp" : 1618294622877,
   "path" : "query-validation-tests/earliest-offset-udaf.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `L0` ARRAY<INTEGER>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `F0` INTEGER, `KSQL_INTERNAL_COL_2` INTEGER, `KSQL_INTERNAL_COL_3` BOOLEAN",
       "keyFormat" : {

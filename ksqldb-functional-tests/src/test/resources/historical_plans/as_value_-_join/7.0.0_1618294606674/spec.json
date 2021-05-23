@@ -41,6 +41,15 @@
       "keyFormat" : {
         "format" : "KAFKA"
       }
+    },
+    "CSAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`I2_ID` INTEGER KEY, `I2_V0` INTEGER, `I2_V1` INTEGER, `I2_ROWTIME` BIGINT, `I2_ID` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
     }
   },
   "testCase" : {

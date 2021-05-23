@@ -12,6 +12,15 @@
         "format" : "JSON"
       }
     },
+    "CSAS_JOINED_0.PrependAliasRight" : {
+      "schema" : "`R_with.dot` STRING KEY, `R_field 0` STRING, `R_ROWTIME` BIGINT, `R_with.dot` STRING",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CSAS_JOINED_0.JOINED" : {
       "schema" : "`L_SELECT` STRING KEY, `L_the key` STRING, `L_field!` STRING, `R_with.dot` STRING, `R_field 0` STRING",
       "keyFormat" : {

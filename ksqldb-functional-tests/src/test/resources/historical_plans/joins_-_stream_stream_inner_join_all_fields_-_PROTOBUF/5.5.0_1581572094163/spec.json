@@ -346,7 +346,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 TT_ID = 1;\n  string TT_NAME = 2;\n  int64 TT_ROWTIME = 3;\n  int64 TT_ROWKEY = 4;\n}\n"
         }, {
           "name" : "INNER_JOIN",
           "keyFormat" : {
@@ -355,7 +356,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 TT_ROWTIME = 1;\n  int64 TT_ROWKEY = 2;\n  int64 TT_ID = 3;\n  string TT_NAME = 4;\n  int64 T_ROWTIME = 5;\n  int64 T_ROWKEY = 6;\n  int64 T_ID = 7;\n  string T_F1 = 8;\n}\n"
         }, {
           "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_INNER_JOIN_0-KSTREAM-JOINOTHER-0000000009-store-changelog",
           "keyFormat" : {
@@ -364,7 +366,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 T_ID = 1;\n  string T_F1 = 2;\n  int64 T_ROWTIME = 3;\n  int64 T_ROWKEY = 4;\n}\n"
         }, {
           "name" : "left_topic",
           "keyFormat" : {
@@ -373,7 +376,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ID = 1;\n  string NAME = 2;\n}\n"
         }, {
           "name" : "right_topic",
           "keyFormat" : {
@@ -382,7 +386,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  int64 ID = 1;\n  string F1 = 2;\n}\n"
         } ]
       }
     }

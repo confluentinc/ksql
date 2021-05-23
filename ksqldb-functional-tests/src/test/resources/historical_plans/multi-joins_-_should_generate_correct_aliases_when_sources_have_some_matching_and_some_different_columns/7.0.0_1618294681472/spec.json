@@ -48,6 +48,15 @@
         "format" : "JSON"
       }
     },
+    "CSAS_OUTPUT_0.PrependAliasL_Right" : {
+      "schema" : "`T2_ID` INTEGER KEY, `T2_V0` BIGINT, `T2_ROWTIME` BIGINT, `T2_ID` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CSAS_OUTPUT_0.Join" : {
       "schema" : "`S1_ID` INTEGER KEY, `S1_V0` BIGINT, `S1_ROWTIME` BIGINT, `S1_ID` INTEGER, `T2_V0` BIGINT, `T2_ROWTIME` BIGINT, `T2_ID` INTEGER",
       "keyFormat" : {
@@ -56,6 +65,15 @@
     },
     "CSAS_OUTPUT_0.KafkaTopic_L_Left.Source" : {
       "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CSAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`T3_ID` INTEGER KEY, `T3_DIFF` BIGINT, `T3_ROWTIME` BIGINT, `T3_ID` INTEGER",
       "keyFormat" : {
         "format" : "KAFKA"
       },

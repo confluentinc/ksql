@@ -3,6 +3,15 @@
   "timestamp" : 1618294607263,
   "path" : "query-validation-tests/average-udaf.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`ID` STRING KEY, `AVG` DOUBLE",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`ID` STRING KEY, `ID` STRING, `VALUE` BIGINT",
       "keyFormat" : {

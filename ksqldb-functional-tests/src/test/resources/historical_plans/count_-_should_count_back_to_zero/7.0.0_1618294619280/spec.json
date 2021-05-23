@@ -3,6 +3,15 @@
   "timestamp" : 1618294619280,
   "path" : "query-validation-tests/count.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `KSQL_COL_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `ROWTIME` BIGINT",
       "keyFormat" : {
@@ -32,6 +41,15 @@
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`ID` BIGINT KEY, `KSQL_COL_0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Prepare" : {
+      "schema" : "`K` STRING KEY, `ID` BIGINT, `ROWTIME` BIGINT",
       "keyFormat" : {
         "format" : "KAFKA"
       },

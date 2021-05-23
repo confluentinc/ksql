@@ -3,6 +3,15 @@
   "timestamp" : 1618294635912,
   "path" : "query-validation-tests/group-by.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`F0` INTEGER KEY, `KSQL_COL_0` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`F0` INTEGER KEY, `F0` INTEGER, `F1` INTEGER",
       "keyFormat" : {
@@ -32,6 +41,15 @@
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`F0` INTEGER KEY, `KSQL_COL_0` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
+    "CTAS_OUTPUT_0.Aggregate.Prepare" : {
+      "schema" : "`ID` INTEGER KEY, `F0` INTEGER, `F1` INTEGER",
       "keyFormat" : {
         "format" : "KAFKA"
       },

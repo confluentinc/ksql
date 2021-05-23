@@ -104,7 +104,21 @@
             "format" : "JSON_SR",
             "features" : [ "WRAP_SINGLES" ]
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "FOO" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "integer",
+                  "connect.type" : "int32"
+                } ]
+              }
+            }
+          }
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
@@ -113,7 +127,21 @@
           "valueFormat" : {
             "format" : "JSON_SR"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : {
+            "type" : "object",
+            "properties" : {
+              "FOO" : {
+                "connect.index" : 0,
+                "oneOf" : [ {
+                  "type" : "null"
+                }, {
+                  "type" : "integer",
+                  "connect.type" : "int32"
+                } ]
+              }
+            }
+          }
         } ]
       }
     }

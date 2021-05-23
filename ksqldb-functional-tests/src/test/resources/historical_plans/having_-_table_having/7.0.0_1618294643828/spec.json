@@ -42,6 +42,15 @@
       "valueFormat" : {
         "format" : "DELIMITED"
       }
+    },
+    "CTAS_T1_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `SUM` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
     }
   },
   "testCase" : {

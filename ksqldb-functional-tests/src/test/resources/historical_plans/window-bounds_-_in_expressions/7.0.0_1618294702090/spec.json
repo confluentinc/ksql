@@ -12,6 +12,15 @@
         "format" : "DELIMITED"
       }
     },
+    "CTAS_S2_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `KSQL_COL_0` BIGINT, `KSQL_COL_1` BIGINT, `COUNT` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
     "CTAS_S2_0.KsqlTopic.Source" : {
       "schema" : "`ID` BIGINT KEY, `IGNORED` STRING",
       "keyFormat" : {

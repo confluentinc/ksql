@@ -12,6 +12,15 @@
         "format" : "AVRO"
       }
     },
+    "CTAS_OUTPUT_0.Project" : {
+      "schema" : "`K` STRING KEY, `FOO` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "AVRO"
+      }
+    },
     "CTAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`K` STRING KEY, `FOO` INTEGER",
       "keyFormat" : {

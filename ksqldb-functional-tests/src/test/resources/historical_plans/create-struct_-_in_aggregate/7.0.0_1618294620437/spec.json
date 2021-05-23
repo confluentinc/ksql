@@ -3,6 +3,15 @@
   "timestamp" : 1618294620437,
   "path" : "query-validation-tests/create-struct.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.Project" : {
+      "schema" : "`ID` INTEGER KEY, `BODY` STRUCT<`VALS` ARRAY<INTEGER>>",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
       "schema" : "`ID` INTEGER KEY, `ID` INTEGER, `VAL` INTEGER",
       "keyFormat" : {

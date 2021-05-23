@@ -3,6 +3,24 @@
   "timestamp" : 1618294681215,
   "path" : "query-validation-tests/multi-joins.json",
   "schemas" : {
+    "CTAS_OUTPUT_0.PrependAliasL_Left" : {
+      "schema" : "`T1_ID` INTEGER KEY, `T1_V0` BIGINT, `T1_ROWTIME` BIGINT, `T1_ID` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.PrependAliasL_Right" : {
+      "schema" : "`T2_ID` INTEGER KEY, `T2_V0` BIGINT, `T2_ROWTIME` BIGINT, `T2_ID` INTEGER",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
     "CTAS_OUTPUT_0.KafkaTopic_L_Right.Source" : {
       "schema" : "`ID` INTEGER KEY, `V0` BIGINT",
       "keyFormat" : {
@@ -41,6 +59,15 @@
     },
     "CTAS_OUTPUT_0.OUTPUT" : {
       "schema" : "`ID` INTEGER KEY, `T1_V0` BIGINT, `T2_V0` BIGINT, `T3_V0` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "JSON"
+      }
+    },
+    "CTAS_OUTPUT_0.PrependAliasRight" : {
+      "schema" : "`T3_ID` INTEGER KEY, `T3_V0` BIGINT, `T3_ROWTIME` BIGINT, `T3_ID` INTEGER",
       "keyFormat" : {
         "format" : "KAFKA"
       },

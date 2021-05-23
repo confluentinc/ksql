@@ -93,7 +93,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 1
+          "partitions" : 1,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConfluentDefault1 {\n  Suit c1 = 1;\n\n  enum Suit {\n    SPADES = 0;\n    HEARTS = 1;\n    DIAMONDS = 2;\n    CLUBS = 4;\n  }\n}\n"
         }, {
           "name" : "OUTPUT",
           "keyFormat" : {
@@ -102,7 +103,8 @@
           "valueFormat" : {
             "format" : "PROTOBUF"
           },
-          "partitions" : 4
+          "partitions" : 4,
+          "valueSchema" : "syntax = \"proto3\";\n\nmessage ConnectDefault1 {\n  string C1 = 1;\n}\n"
         } ]
       }
     }

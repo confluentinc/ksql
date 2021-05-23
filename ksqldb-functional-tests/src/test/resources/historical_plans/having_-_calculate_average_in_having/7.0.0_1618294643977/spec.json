@@ -3,6 +3,15 @@
   "timestamp" : 1618294643977,
   "path" : "query-validation-tests/having.json",
   "schemas" : {
+    "CTAS_AVG_0.Aggregate.Project" : {
+      "schema" : "`ID` BIGINT KEY, `AVG` BIGINT",
+      "keyFormat" : {
+        "format" : "KAFKA"
+      },
+      "valueFormat" : {
+        "format" : "DELIMITED"
+      }
+    },
     "CTAS_AVG_0.Aggregate.GroupBy" : {
       "schema" : "`ID` BIGINT KEY, `ID` BIGINT, `VALUE` BIGINT",
       "keyFormat" : {

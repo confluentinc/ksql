@@ -521,13 +521,22 @@ public class JoinNode extends PlanNode implements JoiningNode {
 
       final JoinKey joinKey = joinNode.joinKey;
 
+      final FormatInfo leftValueFormatInfo = joinNode
+          .getLeft()
+          .getLeftmostSourceNode()
+          .getDataSource()
+          .getKsqlTopic()
+          .getValueFormat()
+          .getFormatInfo();
+
       switch (joinNode.joinType) {
         case LEFT:
           if (joinKey.isForeignKey()) {
             return leftTable.foreignKeyLeftJoin(
                 rightTable,
                 ((ForeignJoinKey) joinKey).getForeignKeyColumn(),
-                contextStacker
+                contextStacker,
+                leftValueFormatInfo
             );
           } else {
             return leftTable.leftJoin(
@@ -541,7 +550,8 @@ public class JoinNode extends PlanNode implements JoiningNode {
             return leftTable.foreignKeyInnerJoin(
                 rightTable,
                 ((ForeignJoinKey) joinKey).getForeignKeyColumn(),
-                contextStacker
+                contextStacker,
+                leftValueFormatInfo
             );
           } else {
             return leftTable.innerJoin(

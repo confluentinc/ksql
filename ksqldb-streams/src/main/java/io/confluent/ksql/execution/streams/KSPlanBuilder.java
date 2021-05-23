@@ -410,6 +410,11 @@ public final class KSPlanBuilder implements PlanBuilder {
         foreignKeyTableTableJoin.getLeftSource().build(this, planInfo);
     final KTableHolder<KRightT> right =
         foreignKeyTableTableJoin.getRightSource().build(this, planInfo);
-    return ForeignKeyTableTableJoinBuilder.build(left, right, foreignKeyTableTableJoin);
+    return ForeignKeyTableTableJoinBuilder.build(
+        left,
+        right,
+        foreignKeyTableTableJoin,
+        buildContext
+    );
   }
 }

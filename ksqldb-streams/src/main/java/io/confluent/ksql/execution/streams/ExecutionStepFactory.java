@@ -326,6 +326,7 @@ public final class ExecutionStepFactory {
           final QueryContext.Stacker stacker,
           final JoinType joinType,
           final ColumnName leftJoinColumnName,
+          final Formats leftFormats,
           final ExecutionStep<KTableHolder<KLeftT>> left,
           final ExecutionStep<KTableHolder<KRightT>> right
   ) {
@@ -334,6 +335,7 @@ public final class ExecutionStepFactory {
         new ExecutionStepPropertiesV1(queryContext),
         joinType,
         leftJoinColumnName,
+        leftFormats,
         left,
         right
     );

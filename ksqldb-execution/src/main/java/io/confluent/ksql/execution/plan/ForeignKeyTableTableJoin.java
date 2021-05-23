@@ -32,6 +32,7 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
   private final ExecutionStepPropertiesV1 properties;
   private final JoinType joinType;
   private final ColumnName leftJoinColumnName;
+  private final Formats leftFormats;
   private final ExecutionStep<KTableHolder<KLeftT>> leftSource;
   private final ExecutionStep<KTableHolder<KRightT>> rightSource;
 
@@ -43,6 +44,8 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
       final JoinType joinType,
       @JsonProperty(value = "leftJoinColumnName", required = true)
       final ColumnName leftJoinColumnName,
+      @JsonProperty(value = "leftFormats", required = true)
+      final Formats leftFormats,
       @JsonProperty(value = "leftSource", required = true)
       final ExecutionStep<KTableHolder<KLeftT>> leftSource,
       @JsonProperty(value = "rightSource", required = true)
@@ -54,6 +57,7 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
       throw new IllegalArgumentException("OUTER join not supported.");
     }
     this.leftJoinColumnName = requireNonNull(leftJoinColumnName, "leftJoinColumnName");
+    this.leftFormats = requireNonNull(leftFormats, "leftFormats");
     this.leftSource = requireNonNull(leftSource, "leftSource");
     this.rightSource = requireNonNull(rightSource, "rightSource");
   }
@@ -83,6 +87,10 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
 
   public ColumnName getLeftJoinColumnName() {
     return leftJoinColumnName;
+  }
+
+  public Formats getLeftFormats() {
+    return leftFormats;
   }
 
   @Override

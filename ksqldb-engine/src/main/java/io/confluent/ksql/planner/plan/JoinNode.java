@@ -176,7 +176,9 @@ public class JoinNode extends PlanNode implements JoiningNode {
   @Override
   public SchemaKStream<?> buildStream(final PlanBuildContext buildContext) {
 
-    ensureMatchingPartitionCounts(buildContext.getServiceContext().getTopicClient());
+    if (!joinKey.isForeignKey()) {
+      ensureMatchingPartitionCounts(buildContext.getServiceContext().getTopicClient());
+    }
 
     final JoinerFactory joinerFactory = new JoinerFactory(
         buildContext,

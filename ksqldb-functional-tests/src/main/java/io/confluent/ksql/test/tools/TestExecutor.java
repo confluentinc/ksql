@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.test.tools;
 
+import static io.confluent.ksql.test.tools.TopicInfoCache.TOPIC_PATTERN_PREFIX;
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
@@ -74,7 +75,10 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.streams.StreamsConfig;
@@ -131,6 +135,23 @@ public class TestExecutor implements Closeable {
         validateResults
     );
   }
+
+  // These internal topics names do not need to be verified by test cases
+  private static final Set<Pattern> SKIP_INTERNAL_TOPIC_NAMES_PATTERNS = ImmutableSet.of(
+      Pattern.compile(TOPIC_PATTERN_PREFIX + ".*-FK-JOIN-SUBSCRIPTION-REGISTRATION-\\d+-topic"),
+      Pattern.compile(TOPIC_PATTERN_PREFIX + ".*-FK-JOIN-SUBSCRIPTION-RESPONSE-\\d+-topic"),
+      Pattern.compile(TOPIC_PATTERN_PREFIX + ".*-FK-JOIN-SUBSCRIPTION-STATE-STORE-\\d+-changelog")
+  );
+
+  private static final Predicate<String> SKIP_INTERNAL_TOPIC_NAMES_FILTER = topicName -> {
+    for (final Pattern p : SKIP_INTERNAL_TOPIC_NAMES_PATTERNS) {
+      if (p.matcher(topicName).matches()) {
+        return false;
+      }
+    }
+
+    return true;
+  };
 
   @VisibleForTesting
   TestExecutor(
@@ -200,6 +221,7 @@ public class TestExecutor implements Closeable {
 
         topologyTestDriverContainer.getTopologyTestDriver()
             .producedTopicNames()
+            .stream().filter(SKIP_INTERNAL_TOPIC_NAMES_FILTER)
             .forEach(topicInfoCache::get);
       }
 
@@ -211,6 +233,7 @@ public class TestExecutor implements Closeable {
 
       kafka.getAllTopics().stream()
           .map(Topic::getName)
+          .filter(SKIP_INTERNAL_TOPIC_NAMES_FILTER)
           .forEach(topicInfoCache::get);
 
       final List<PostTopicNode> knownTopics = topicInfoCache.all().stream()

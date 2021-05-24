@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.version.metrics;
 
+import static org.mockserver.integration.ClientAndServer.startClientAndServer;
 import static org.mockserver.model.HttpRequest.request;
 
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
@@ -26,13 +27,13 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
-import org.mockserver.integration.ClientAndProxy;
+import org.mockserver.integration.ClientAndServer;
 import org.mockserver.socket.PortFactory;
 
 public class VersionCheckerIntegrationTest {
 
   private static int proxyPort;
-  private static ClientAndProxy clientAndProxy;
+  private static ClientAndServer mockServer;
 
   @Rule
   public final Timeout timeout = Timeout.builder()
@@ -43,7 +44,7 @@ public class VersionCheckerIntegrationTest {
   @BeforeClass
   public static void startProxy() {
     proxyPort = PortFactory.findFreePort();
-    clientAndProxy = ClientAndProxy.startClientAndProxy(proxyPort);
+    mockServer = startClientAndServer(proxyPort);
   }
 
   @Test
@@ -63,7 +64,7 @@ public class VersionCheckerIntegrationTest {
 
     TestUtils.waitForCondition(() -> {
           try {
-            clientAndProxy.verify(request().withPath("/ksql/anon").withMethod("POST"));
+            mockServer.verify(request().withPath("/ksql/anon").withMethod("POST"));
             return true;
           } catch (final AssertionError e) {
             return false;

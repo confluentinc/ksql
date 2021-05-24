@@ -72,8 +72,10 @@ import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.Application;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.io.Console;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.Writer;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -91,12 +93,17 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.websocket.DeploymentException;
 import javax.websocket.server.ServerEndpoint;
 import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
+import org.eclipse.jetty.http.MimeTypes;
+import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.handler.ErrorHandler;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
 import org.glassfish.jersey.server.ServerProperties;
 import org.slf4j.Logger;
@@ -184,6 +191,58 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   @Override
   public void start() throws Exception {
     super.start();
+
+    // WARN: SUPER HACKY CODE BELOW
+    //
+    // as of jetty 9.4.21.v20190926 the behavior of the error handler
+    // changed in a "backwards incompatible" way.
+    //
+    // it used to have the behavior below where the response type
+    // is TEXT_HTML regardless of the input type and there was no
+    // special content (it was just handled as an error page) returned
+    // so the contents of the message were just an empty string
+    //
+    // in 9.4.21+ it is a bit more intelligent about responding in
+    // the same format as the input. If the request content type
+    // accepts JSON, it will respond with more detail error message
+    // including the url, status code and message that caused the error
+    //
+    // while this is in theory a wonderful improvement, it proves to
+    // be backwards incompatible with our client :( Specifically, we
+    // expect there to be no error contents UNLESS it's properly formatted
+    // JSON representation of KsqlErrorMessage.
+    //
+    // this code below forces an error handler that has the old behavior to
+    // maintain backwards compatibility while still addressing the CVEs fixed
+    // in more recent jetty versions
+    server.setErrorHandler(new ErrorHandler() {
+      @SuppressWarnings("deprecation")
+      @Override
+      protected void generateAcceptableResponse(
+          final Request baseRequest,
+          final HttpServletRequest request,
+          final HttpServletResponse response,
+          final int code,
+          final String message,
+          final String contentType
+      ) throws IOException {
+        switch (contentType) {
+          case "text/html":
+          case "text/*":
+          case "*/*":
+            baseRequest.setHandled(true);
+            final Writer writer = getAcceptableWriter(baseRequest, request, response);
+            if (writer != null) {
+              response.setContentType(MimeTypes.Type.TEXT_HTML.asString());
+              handleErrorPage(request, writer, code, message);
+            }
+            break;
+          default:
+            break;
+        }
+      }
+    });
+
     startKsql();
     commandRunnerThread.start();
     final Properties metricsProperties = new Properties();

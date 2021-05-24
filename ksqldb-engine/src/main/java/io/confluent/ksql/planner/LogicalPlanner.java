@@ -778,6 +778,12 @@ public class LogicalPlanner {
           joinInfo.hasFlippedJoinCondition()
       );
 
+      if (((DataSourceNode) rightNode).isWindowed()) {
+        throw new KsqlException(
+           "Foreign-key table-table joins are not supported on windowed tables."
+        );
+      }
+
       return Optional.of(fkColumnReference);
     } else {
       throw new KsqlException(String.format(

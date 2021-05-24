@@ -429,6 +429,22 @@
       ]
     },
     {
+      "name": "Should not allow foreign key join on windowed tables",
+      "properties": {
+        "ksql.joins.foreign.key.enable": true
+      },
+      "statements": [
+        "CREATE TABLE left_table (k STRING PRIMARY KEY, f1 STRING) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='1 SECOND');",
+        "CREATE TABLE right_table (k STRING PRIMARY KEY, id INT) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='1 SECOND');",
+        "SELECT * FROM left_table JOIN right_table ON left_table.f1 = right_table.k EMIT CHANGES;"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlErrorMessage",
+        "message": "Foreign-key table-table joins are not supported on windowed tables.",
+        "status": 400
+      }
+    },
+    {
       "name": "windowed group by - window bounds in SELECT",
       "statements": [
         "CREATE STREAM TEST (K INT KEY, IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",

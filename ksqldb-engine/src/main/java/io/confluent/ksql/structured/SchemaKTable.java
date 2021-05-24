@@ -323,14 +323,14 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final SchemaKTable<KRightT> schemaKTable,
       final ColumnName leftJoinColumnName,
       final Stacker contextStacker,
-      final FormatInfo leftValueFormatInfo
+      final FormatInfo valueFormatInfo
   ) {
     final ForeignKeyTableTableJoin<K, KRightT> step =
         ExecutionStepFactory.foreignKeyTableTableJoin(
             contextStacker,
             JoinType.INNER,
             leftJoinColumnName,
-            InternalFormats.of(keyFormat, leftValueFormatInfo),
+            InternalFormats.of(keyFormat, valueFormatInfo),
             sourceTableStep,
             schemaKTable.getSourceTableStep()
         );
@@ -348,14 +348,14 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final SchemaKTable<KRightT> schemaKTable,
       final ColumnName leftJoinColumnName,
       final Stacker contextStacker,
-      final FormatInfo leftFormatInfo
+      final FormatInfo valueFormatInfo
   ) {
     final ForeignKeyTableTableJoin<K, KRightT> step =
         ExecutionStepFactory.foreignKeyTableTableJoin(
             contextStacker,
             JoinType.LEFT,
             leftJoinColumnName,
-            InternalFormats.of(keyFormat, leftFormatInfo),
+            InternalFormats.of(keyFormat, valueFormatInfo),
             sourceTableStep,
             schemaKTable.getSourceTableStep()
         );

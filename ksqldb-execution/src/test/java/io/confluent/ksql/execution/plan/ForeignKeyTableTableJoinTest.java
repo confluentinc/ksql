@@ -45,30 +45,35 @@ public class ForeignKeyTableTableJoinTest {
   @Mock
   private ExecutionStep<KTableHolder<Struct>> right2;
   @Mock
-  private Formats formats;
+  private Formats formats1;
+  @Mock
+  private Formats formats2;
 
   @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats, left1, right1),
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats, left1, right1)
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left1, right1),
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left1, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props2, INNER, JOIN_COLUMN_NAME, formats, left1, right1)
+            new ForeignKeyTableTableJoin<>(props2, INNER, JOIN_COLUMN_NAME, formats1, left1, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, LEFT, JOIN_COLUMN_NAME, formats, left1, right1)
+            new ForeignKeyTableTableJoin<>(props1, LEFT, JOIN_COLUMN_NAME, formats1, left1, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME_2, formats, left1, right1)
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME_2, formats1, left1, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats, left2, right1)
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats2, left2, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats, left1, right2)
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left2, right1)
+        )
+        .addEqualityGroup(
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left1, right2)
         ).testEquals();
   }
 }

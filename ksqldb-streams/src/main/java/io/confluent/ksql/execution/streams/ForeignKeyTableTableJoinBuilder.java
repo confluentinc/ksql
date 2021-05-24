@@ -43,16 +43,16 @@ public final class ForeignKeyTableTableJoinBuilder {
     final ForeignKeyJoinParams<KRightT> joinParams = ForeignKeyJoinParamsFactory
         .create(join.getLeftJoinColumnName(), leftSchema, rightSchema);
 
-    final Formats leftFormats = join.getLeftFormats();
+    final Formats formats = join.getFormats();
 
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
         joinParams.getSchema(),
-        leftFormats.getKeyFeatures(),
-        leftFormats.getValueFeatures()
+        formats.getKeyFeatures(),
+        formats.getValueFeatures()
     );
 
     final Serde<GenericRow> valSerde = buildContext.buildValueSerde(
-        leftFormats.getValueFormat(),
+        formats.getValueFormat(),
         physicalSchema,
         join.getProperties().getQueryContext()
     );

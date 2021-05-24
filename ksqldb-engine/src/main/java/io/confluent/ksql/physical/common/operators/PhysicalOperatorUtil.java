@@ -59,26 +59,4 @@ final class PhysicalOperatorUtil {
     return value;
   }
 
-  static GenericRow getScalablePushIntermediateRow(final TableRow row) {
-    final GenericKey key = row.key();
-    final GenericRow value = row.value();
-
-    final List<?> keyFields = key.values();
-
-    value.ensureAdditionalCapacity(
-        1 // ROWTIME
-            + keyFields.size()
-            + row.window().map(w -> 2).orElse(0)
-    );
-
-    value.appendAll(keyFields);
-
-    row.window().ifPresent(window -> {
-      value.append(window.start().toEpochMilli());
-      value.append(window.end().toEpochMilli());
-    });
-
-    return value;
-  }
-
 }

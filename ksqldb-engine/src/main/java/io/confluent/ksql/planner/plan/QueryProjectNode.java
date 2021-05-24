@@ -74,7 +74,6 @@ public class QueryProjectNode extends ProjectNode {
   private final boolean isScalablePush;
   private final boolean isSelectStar;
   private final boolean addAdditionalColumnsToIntermediateSchema;
-  private final boolean addKeyColumnsToIntermediateSchema;
 
   public QueryProjectNode(
       final PlanNodeId id,
@@ -96,7 +95,6 @@ public class QueryProjectNode extends ProjectNode {
         .buildSelectExpressions(getSource(), projection.selectItems(), Optional.empty()));
     this.isSelectStar = isSelectStar();
     this.addAdditionalColumnsToIntermediateSchema = shouldAddAdditionalColumnsInSchema();
-    this.addKeyColumnsToIntermediateSchema = isScalablePush;
     this.outputSchema = buildOutputSchema(metaStore);
     this.intermediateSchema = QueryLogicalPlanUtil.buildIntermediateSchema(
           source.getSchema(),
@@ -144,10 +142,6 @@ public class QueryProjectNode extends ProjectNode {
     return addAdditionalColumnsToIntermediateSchema;
   }
 
-  public boolean getAddKeyColumnsToIntermediateSchema() {
-    return addKeyColumnsToIntermediateSchema;
-  }
-
   /**
    * Builds the output schema of the project node.
    * The output schema comprises of exactly the columns that appear in the SELECT clause of the
@@ -178,9 +172,9 @@ public class QueryProjectNode extends ProjectNode {
     }
 
     if (isScalablePush) {
+      // Transient queries return key columns in the value, so the projection includes them, and
+      // the schema needs to include them too:
       final Builder builder = LogicalSchema.builder();
-
-//      builder.keyColumns(parentSchema.key());
 
       outputSchema.columns()
           .forEach(builder::valueColumn);

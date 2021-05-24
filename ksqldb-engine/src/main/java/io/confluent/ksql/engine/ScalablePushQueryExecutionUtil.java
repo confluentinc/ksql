@@ -21,11 +21,6 @@ public class ScalablePushQueryExecutionUtil {
 
     final Set<QueryId> queries = engineContext.getQueryRegistry().getQueriesWithSink(sourceName);
 
-//    if (source.getDataSourceType() != DataSourceType.KTABLE) {
-//      throw new KsqlException("Pull queries are not supported on streams."
-//          + PullQueryValidator.PULL_QUERY_SYNTAX_HELP);
-//    }
-
     if (queries.isEmpty()) {
       throw new IllegalStateException(
           "Scalable push queries require a query that has a sink. "

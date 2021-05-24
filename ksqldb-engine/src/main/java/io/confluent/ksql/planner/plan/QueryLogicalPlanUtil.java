@@ -16,7 +16,6 @@
 package io.confluent.ksql.planner.plan;
 
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 
 final class QueryLogicalPlanUtil {
 
@@ -39,18 +38,5 @@ final class QueryLogicalPlanUtil {
     } else {
       return schema.withPseudoAndKeyColsInValue(isWindowed);
     }
-  }
-
-  static LogicalSchema buildScalablePushIntermediateSchema(
-      final LogicalSchema schema
-  ) {
-    final Builder builder = LogicalSchema.builder();
-
-    builder.keyColumns(schema.key());
-
-    schema.columns()
-        .forEach(builder::valueColumn);
-
-    return builder.build();
   }
 }

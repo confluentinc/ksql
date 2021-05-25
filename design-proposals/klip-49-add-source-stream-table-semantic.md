@@ -71,15 +71,20 @@ source stream/table as the entity has no ownership of the input data. See this
 ### Source Table Materialization
 The main difference between a source table and a materialized state by a CTAS query is that we do not populate a sink topic 
 for source table, as it is not expected to have a downstream connection. This will be addressed when constructing the 
-`CREATE SOURCE TABLE` as a special type of persistent query, which would be an implementation detail. Another 
-consideration we have is how to expose such type of query to the end users. 
+`CREATE SOURCE TABLE` as a special type of persistent query, which would be an implementation detail. 
 
-Generally speaking, any active stream runtime should be represented as a query to present to end users. For source 
-table materialization, it is a stateful job that comes with overhead, which should definitely be exposed to end users. 
-However, any exposed query could be potentially terminated directly by the end user, which comes with a consistency 
-problem with source table semantic agreement. If a source table query could be terminated independently by the user, 
-the original source table would be dangling and not available for pull query anymore. To address this problem, we 
-have two approaches:
+On the other hand, for the first version of release, we could propagate that `source table` serves as a syntax sugar 
+for `create table; create table as select *` in a minimum, so that in the long run users would feel less surprised when 
+they start seeing table materialization as default. In the future as we have higher persistent query limit and 
+introduce materialized views and complete the ownership model, we can nudge our messaging to focus on the ownership 
+side, and perhaps also allow users to opt-out of materialization if they want to reduce footprint.
+
+Another consideration we have is how to expose such type of query to the end users. Generally speaking, any active 
+stream runtime should be represented as a query to present to end users. For source table materialization, it is a 
+stateful job that comes with overhead, which should definitely be exposed to end users. However, any exposed query 
+could be potentially terminated directly by the end user, which comes with a consistency problem with source table 
+semantic agreement. If a source table query could be terminated independently by the user, the original source table 
+would be dangling and not available for pull query anymore. To address this problem, we have two approaches:
  
  1. The KSQL server rejects the termination of a source table query and informs end user to try deleting the original source table.
  2. The KSQL server will verify the deletion of a query, and try deleting the associated source table with it.

@@ -319,7 +319,8 @@ public final class KsqlTarget {
     int begin = 0;
 
     for (int i = 0; i <= buff.length(); i++) {
-      if ((i == buff.length() && (i - begin > 1)) || buff.getByte(i) == (byte) '\n') {
+      if ((i == buff.length() && (i - begin > 1))
+          || (i < buff.length() && buff.getByte(i) == (byte) '\n')) {
         if (begin != i) { // Ignore random newlines - the server can send these
           final Buffer sliced = buff.slice(begin, i);
           final Buffer tidied = StreamPublisher.toJsonMsg(sliced);

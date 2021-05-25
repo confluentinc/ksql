@@ -19,9 +19,11 @@ import static io.confluent.ksql.rest.server.services.InternalKsqlClientFactory.c
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.client.KsqlTarget;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.client.StreamPublisher;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
@@ -38,6 +40,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,6 +127,27 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
 
     final RestResponse<Integer> resp = getTarget(target, authHeader)
         .postQueryRequest(sql, requestProperties, Optional.empty(), rowConsumer);
+
+    if (resp.isErroneous()) {
+      return RestResponse.erroneous(resp.getStatusCode(), resp.getErrorMessage());
+    }
+
+    return RestResponse.successful(resp.getStatusCode(), resp.getResponse());
+  }
+
+  @Override
+  public RestResponse<BufferedPublisher<StreamedRow>> makeQueryRequestStreamed(
+      final URI serverEndPoint,
+      final String sql,
+      final Map<String, ?> configOverrides,
+      final Map<String, ?> requestProperties
+  ) {
+    final KsqlTarget target = sharedClient
+        .targetHttp2(serverEndPoint)
+        .properties(configOverrides);
+
+    final RestResponse<StreamPublisher<StreamedRow>> resp = getTarget(target, authHeader)
+        .postQueryStreamRequest(sql, requestProperties);
 
     if (resp.isErroneous()) {
       return RestResponse.erroneous(resp.getStatusCode(), resp.getErrorMessage());

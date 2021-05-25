@@ -20,6 +20,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
@@ -117,6 +118,15 @@ public final class KsqlClientUtil {
         Errors.ERROR_CODE_FORBIDDEN,
         new AuthenticationException("You are forbidden from using this cluster.")
     );
+  }
+
+  static JsonNode deserialize(final Buffer buffer) {
+    final ObjectMapper objectMapper = ApiJsonMapper.INSTANCE.get();
+    try {
+      return objectMapper.readTree(buffer.getBytes());
+    } catch (Exception e) {
+      throw new KsqlRestClientException("Failed to deserialise object", e);
+    }
   }
 
 }

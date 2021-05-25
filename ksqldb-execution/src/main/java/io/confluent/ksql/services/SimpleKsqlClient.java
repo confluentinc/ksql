@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.services;
 
+import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import javax.annotation.concurrent.ThreadSafe;
+import org.reactivestreams.Publisher;
 
 @ThreadSafe
 public interface SimpleKsqlClient {
@@ -74,6 +76,13 @@ public interface SimpleKsqlClient {
       Map<String, ?> configOverrides,
       Map<String, ?> requestProperties,
       Consumer<List<StreamedRow>> rowConsumer
+  );
+
+  RestResponse<BufferedPublisher<StreamedRow>> makeQueryRequestStreamed(
+      final URI serverEndPoint,
+      final String sql,
+      final Map<String, ?> configOverrides,
+      final Map<String, ?> requestProperties
   );
 
   /**

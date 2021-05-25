@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server;
 
+import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -80,6 +81,14 @@ public class FaultyKsqlClient implements SimpleKsqlClient {
       final Consumer<List<StreamedRow>> rowConsumer) {
     return getClient().makeQueryRequest(serverEndPoint, sql, configOverrides, requestProperties,
         rowConsumer);
+  }
+
+  @Override
+  public RestResponse<BufferedPublisher<StreamedRow>> makeQueryRequestStreamed(
+      URI serverEndPoint, String sql, Map<String, ?> configOverrides,
+      Map<String, ?> requestProperties) {
+    return getClient().makeQueryRequestStreamed(serverEndPoint, sql, configOverrides,
+        requestProperties);
   }
 
   @Override

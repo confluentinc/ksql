@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.services;
 
+import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -64,6 +65,13 @@ public final class DisabledKsqlClient implements SimpleKsqlClient {
       final Map<String, ?> requestProperties,
       final Consumer<List<StreamedRow>> rowConsumer
   ) {
+    throw new UnsupportedOperationException("KSQL client is disabled");
+  }
+
+  @Override
+  public RestResponse<BufferedPublisher<StreamedRow>> makeQueryRequestStreamed(
+      URI serverEndPoint, String sql, Map<String, ?> configOverrides,
+      Map<String, ?> requestProperties) {
     throw new UnsupportedOperationException("KSQL client is disabled");
   }
 

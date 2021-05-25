@@ -19,7 +19,14 @@ import static io.confluent.ksql.rest.client.KsqlClientUtil.deserialize;
 import static io.confluent.ksql.rest.client.KsqlClientUtil.serialize;
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.google.common.base.Strings;
+import com.google.common.collect.Streams;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.metastore.TypeRegistry;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.LocalProperties;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
@@ -27,14 +34,24 @@ import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.HeartbeatResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.LagReportingResponse;
+import io.confluent.ksql.rest.entity.QueryResponseMetadata;
+import io.confluent.ksql.rest.entity.QueryStreamArgs;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
+import io.confluent.ksql.rest.entity.SourceInfo.Stream;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.entity.StreamedRow.DataRow;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SimpleColumn;
+import io.confluent.ksql.schema.ksql.SqlTypeParser;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -42,6 +59,7 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.RequestOptions;
 import io.vertx.core.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,6 +73,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,6 +85,7 @@ public final class KsqlTarget {
   private static final String STATUS_PATH = "/status";
   private static final String KSQL_PATH = "/ksql";
   private static final String QUERY_PATH = "/query";
+  private static final String QUERY_STREAM_PATH = "/query-stream";
   private static final String HEARTBEAT_PATH = "/heartbeat";
   private static final String CLUSTERSTATUS_PATH = "/clusterStatus";
   private static final String LAG_REPORT_PATH = "/lag";
@@ -217,6 +237,14 @@ public final class KsqlTarget {
         buff -> deserialize(buff, StreamedRow.class));
   }
 
+  public RestResponse<StreamPublisher<StreamedRow>> postQueryStreamRequest(
+      final String sql,
+      final Map<String, ?> requestProperties
+  ) {
+    return executeQueryStreamRequest(sql, requestProperties,
+        KsqlTarget::toRowFromQueryStream);
+  }
+
   public RestResponse<StreamPublisher<String>> postPrintTopicRequest(
       final String ksql,
       final Optional<Long> previousCommandSeqNum
@@ -277,7 +305,7 @@ public final class KsqlTarget {
       final Object requestBody,
       final Function<ResponseWithBody, T> mapper
   ) {
-    return executeSync(httpMethod, path, requestBody, mapper, (resp, vcf) -> {
+    return executeSync(httpMethod, path, Optional.empty(), requestBody, mapper, (resp, vcf) -> {
       resp.bodyHandler(buff -> vcf.complete(new ResponseWithBody(resp, buff)));
     });
   }
@@ -290,7 +318,8 @@ public final class KsqlTarget {
       final Function<Buffer, T> chunkMapper,
       final Consumer<T> chunkHandler
   ) {
-    return executeSync(httpMethod, path, requestBody, resp -> responseSupplier.get(),
+    return executeSync(httpMethod, path, Optional.empty(), requestBody,
+        resp -> responseSupplier.get(),
         (resp, vcf) -> {
         resp.handler(buff -> {
           try {
@@ -320,11 +349,36 @@ public final class KsqlTarget {
     final KsqlRequest ksqlRequest = createKsqlRequest(
         ksql, Collections.emptyMap(), previousCommandSeqNum);
     final AtomicReference<StreamPublisher<T>> pubRef = new AtomicReference<>();
-    return executeSync(HttpMethod.POST, QUERY_PATH, ksqlRequest, resp -> pubRef.get(),
+    return executeSync(HttpMethod.POST, QUERY_PATH, Optional.empty(), ksqlRequest,
+        resp -> pubRef.get(),
         (resp, vcf) -> {
           if (resp.statusCode() == 200) {
             pubRef.set(new StreamPublisher<>(Vertx.currentContext(),
-                resp, mapper, vcf));
+                resp, mapper, vcf, true));
+            vcf.complete(new ResponseWithBody(resp));
+          } else {
+            resp.bodyHandler(body -> vcf.complete(new ResponseWithBody(resp, body)));
+          }
+        });
+  }
+
+  private <T> RestResponse<StreamPublisher<T>> executeQueryStreamRequest(
+      final String ksql,
+      final Map<String, ?> requestProperties,
+      final Function<Buffer, T> mapper
+  ) {
+    final Map<String, Object> requestPropertiesObject = requestProperties.entrySet().stream()
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    final QueryStreamArgs queryStreamArgs = new QueryStreamArgs(ksql, localProperties.toMap(),
+        Collections.emptyMap(), requestPropertiesObject);
+    final AtomicReference<StreamPublisher<T>> pubRef = new AtomicReference<>();
+    return executeSync(HttpMethod.POST, QUERY_STREAM_PATH,
+        Optional.of("application/vnd.ksqlapi.delimited.v1"), queryStreamArgs,
+        resp -> pubRef.get(),
+        (resp, vcf) -> {
+          if (resp.statusCode() == 200) {
+            pubRef.set(new StreamPublisher<>(Vertx.currentContext(),
+                resp, mapper, vcf, false));
             vcf.complete(new ResponseWithBody(resp));
           } else {
             resp.bodyHandler(body -> vcf.complete(new ResponseWithBody(resp, body)));
@@ -335,12 +389,13 @@ public final class KsqlTarget {
   private <T> RestResponse<T> executeSync(
       final HttpMethod httpMethod,
       final String path,
+      final Optional<String> mediaType,
       final Object requestBody,
       final Function<ResponseWithBody, T> mapper,
       final BiConsumer<HttpClientResponse, CompletableFuture<ResponseWithBody>> responseHandler
   ) {
     final CompletableFuture<ResponseWithBody> vcf =
-        execute(httpMethod, path, requestBody, responseHandler);
+        execute(httpMethod, path, mediaType, requestBody, responseHandler);
 
     final ResponseWithBody response;
     try {
@@ -360,13 +415,14 @@ public final class KsqlTarget {
       final BiConsumer<HttpClientResponse, CompletableFuture<ResponseWithBody>> responseHandler
   ) {
     final CompletableFuture<ResponseWithBody> vcf =
-        execute(httpMethod, path, requestBody, responseHandler);
+        execute(httpMethod, path, Optional.empty(), requestBody, responseHandler);
     return vcf.thenApply(response -> KsqlClientUtil.toRestResponse(response, path, mapper));
   }
 
   private CompletableFuture<ResponseWithBody> execute(
       final HttpMethod httpMethod,
       final String path,
+      final Optional<String> mediaType,
       final Object requestBody,
       final BiConsumer<HttpClientResponse, CompletableFuture<ResponseWithBody>> responseHandler
   ) {
@@ -378,7 +434,11 @@ public final class KsqlTarget {
         resp -> responseHandler.accept(resp, vcf))
         .exceptionHandler(vcf::completeExceptionally);
 
-    httpClientRequest.putHeader("Accept", "application/json");
+    if (mediaType.isPresent()) {
+      httpClientRequest.putHeader("Accept", mediaType.get());
+    } else {
+      httpClientRequest.putHeader("Accept", "application/json");
+    }
     authHeader.ifPresent(v -> httpClientRequest.putHeader("Authorization", v));
 
     if (requestBody != null) {
@@ -405,7 +465,7 @@ public final class KsqlTarget {
           || (i < buff.length() && buff.getByte(i) == (byte) '\n')) {
         if (begin != i) { // Ignore random newlines - the server can send these
           final Buffer sliced = buff.slice(begin, i);
-          final Buffer tidied = StreamPublisher.toJsonMsg(sliced);
+          final Buffer tidied = StreamPublisher.toJsonMsg(sliced, true);
           final StreamedRow row = deserialize(tidied, StreamedRow.class);
           rows.add(row);
         }
@@ -414,6 +474,48 @@ public final class KsqlTarget {
       }
     }
     return rows;
+  }
+
+  private static StreamedRow toRowFromQueryStream(final Buffer buff) {
+    try {
+      try {
+        final QueryResponseMetadata metadata = deserialize(buff, QueryResponseMetadata.class);
+        final SqlTypeParser parser = SqlTypeParser.create(TypeRegistry.EMPTY);
+        return StreamedRow.header(new QueryId(Strings.nullToEmpty(metadata.queryId)),
+            LogicalSchema.builder().valueColumns(
+                Streams.zip(metadata.columnNames.stream(), metadata.columnTypes.stream(), Pair::of)
+                    .map(pair -> {
+                      final SqlType sqlType = parser.parse(pair.getRight()).getSqlType();
+                      final ColumnName name = ColumnName.of(pair.getLeft());
+                      return new SimpleColumn() {
+                        @Override
+                        public ColumnName name() {
+                          return name;
+                        }
+
+                        @Override
+                        public SqlType type() {
+                          return sqlType;
+                        }
+                      };
+                    }).collect(Collectors.toList())).build());
+      } catch (KsqlRestClientException e) {
+      }
+      try {
+        final KsqlErrorMessage error = deserialize(buff, KsqlErrorMessage.class);
+        return StreamedRow.error(new RuntimeException(error.getMessage()), error.getErrorCode());
+      } catch (KsqlRestClientException e) {
+      }
+      try {
+        final List<?> row = deserialize(buff, List.class);
+        return StreamedRow.pushRow(GenericRow.fromList(row));
+      } catch (KsqlRestClientException e) {
+      }
+      throw new IllegalStateException("Couldn't parse type");
+    } catch (Throwable t) {
+      t.printStackTrace();
+      throw t;
+    }
   }
 
 }

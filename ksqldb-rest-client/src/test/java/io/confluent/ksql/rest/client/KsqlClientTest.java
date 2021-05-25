@@ -776,13 +776,15 @@ public class KsqlClientTest {
   private void createClient(Optional<BasicCredentials> credentials) {
     ksqlClient = new KsqlClient(new HashMap<>(), credentials,
         new LocalProperties(properties),
-        new HttpClientOptions().setVerifyHost(false));
+        new HttpClientOptions().setVerifyHost(false),
+        Optional.empty());
   }
 
   private void createClient(Map<String, String> clientProps) {
     ksqlClient = new KsqlClient(clientProps, Optional.empty(),
         new LocalProperties(properties),
-        new HttpClientOptions().setVerifyHost(false));
+        new HttpClientOptions().setVerifyHost(false),
+        Optional.empty());
   }
 
   private String toAuthHeader(BasicCredentials credentials) {

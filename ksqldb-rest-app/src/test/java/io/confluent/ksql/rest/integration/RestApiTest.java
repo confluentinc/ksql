@@ -626,7 +626,7 @@ public class RestApiTest {
   public void shouldExecutePullQueryOverHttp2QueryStream() {
       QueryStreamArgs queryStreamArgs = new QueryStreamArgs(
           "SELECT COUNT, USERID from " + AGG_TABLE + " WHERE USERID='" + AN_AGG_KEY + "';",
-          Collections.emptyMap(), Collections.emptyMap());
+          Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
 
       QueryResponse[] queryResponse = new QueryResponse[1];
       assertThatEventually(() -> {

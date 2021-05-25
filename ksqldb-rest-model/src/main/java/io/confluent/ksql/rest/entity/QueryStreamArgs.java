@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.vertx.core.json.JsonObject;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
@@ -30,17 +31,23 @@ public class QueryStreamArgs {
   public final String sql;
   public final JsonObject properties;
   public final JsonObject sessionVariables;
+  public final Map<String, Object> requestProperties;
 
   public QueryStreamArgs(final @JsonProperty(value = "sql", required = true) String sql,
       final @JsonProperty(value = "properties")
           Map<String, Object> properties,
       final @JsonProperty(value = "sessionVariables")
-          Map<String, Object> sessionVariables) {
+          Map<String, Object> sessionVariables,
+      final @JsonProperty(value = "requestProperties")
+          Map<String, Object> requestProperties) {
     this.sql = Objects.requireNonNull(sql);
     this.properties = properties == null ? new JsonObject() : new JsonObject(properties);
     this.sessionVariables = sessionVariables == null
         ? new JsonObject()
         : new JsonObject(sessionVariables);
+    this.requestProperties = requestProperties == null
+        ? Collections.emptyMap()
+        : requestProperties;
   }
 
   @Override
@@ -49,6 +56,7 @@ public class QueryStreamArgs {
         + "sql='" + sql + '\''
         + ", properties=" + properties
         + ", sessionVariables=" + sessionVariables
+        + ", requestProperties=" + requestProperties
         + '}';
   }
 }

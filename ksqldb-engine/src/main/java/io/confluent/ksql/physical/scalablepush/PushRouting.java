@@ -152,37 +152,37 @@ public class PushRouting implements AutoCloseable {
             statement.getStatementText(), node.location(), System.currentTimeMillis());
       final AtomicReference<BufferedPublisher<List<?>>> publisherRef
           = new AtomicReference<>(null);
-        return CompletableFuture.completedFuture(null)
-            .thenApply(v -> pushPhysicalPlan.execute())
-            .thenApply(publisher -> {
-              publisherRef.set(publisher);
-              publisher.subscribe(new LocalQueryStreamSubscriber(publisher.getContext(),
-                  transientQueryQueue, errorCallback));
-              return new RoutingResult(RoutingResultStatus.SUCCESS, () -> {
-                pushPhysicalPlan.close();
-                publisher.close();
-              });
-            })
-            .exceptionally(t -> {
-              LOG.error("Error executing query {} locally at node {}",
-                  statement.getStatementText(), node.location(), t.getCause());
-              final BufferedPublisher<List<?>> publisher = publisherRef.get();
+      return CompletableFuture.completedFuture(null)
+          .thenApply(v -> pushPhysicalPlan.execute())
+          .thenApply(publisher -> {
+            publisherRef.set(publisher);
+            publisher.subscribe(new LocalQueryStreamSubscriber(publisher.getContext(),
+                transientQueryQueue, errorCallback));
+            return new RoutingResult(RoutingResultStatus.SUCCESS, () -> {
               pushPhysicalPlan.close();
-              if (publisher != null) {
-                publisher.close();
-              }
-              throw new KsqlException(
-                  String.format("Error executing query locally at node %s: %s", node.location(),
-                      t.getMessage()),
-                  t
-              );
+              publisher.close();
             });
+          })
+          .exceptionally(t -> {
+            LOG.error("Error executing query {} locally at node {}",
+                statement.getStatementText(), node.location(), t.getCause());
+            final BufferedPublisher<List<?>> publisher = publisherRef.get();
+            pushPhysicalPlan.close();
+            if (publisher != null) {
+              publisher.close();
+            }
+            throw new KsqlException(
+                String.format("Error executing query locally at node %s: %s", node.location(),
+                    t.getMessage()),
+                t
+            );
+          });
     } else {
       LOG.debug("Query {} routed to host {} at timestamp {}.",
           statement.getStatementText(), node.location(), System.currentTimeMillis());
       final AtomicReference<BufferedPublisher<StreamedRow>> publisherRef
           = new AtomicReference<>(null);
-      CompletableFuture<BufferedPublisher<StreamedRow>> publisherFuture
+      final CompletableFuture<BufferedPublisher<StreamedRow>> publisherFuture
           = forwardTo(node, statement, serviceContext, outputSchema);
       return publisherFuture.thenApply(publisher -> {
         publisherRef.set(publisher);
@@ -295,12 +295,12 @@ public class PushRouting implements AutoCloseable {
         return;
       }
       if (row.getRow().isPresent()) {
-          if (!transientQueryQueue.acceptRowNonBlocking(null,
-              GenericRow.fromList(row.getRow().get().getColumns()))) {
-            errorCallback.accept(new KsqlException("Hit limit of request queue"));
-            close();
-            return;
-          };
+        if (!transientQueryQueue.acceptRowNonBlocking(null,
+            GenericRow.fromList(row.getRow().get().getColumns()))) {
+          errorCallback.accept(new KsqlException("Hit limit of request queue"));
+          close();
+          return;
+        }
       }
       makeRequest(1);
     }
@@ -373,6 +373,10 @@ public class PushRouting implements AutoCloseable {
     }
   }
 
+  /**
+   * An object containing references to all of the {@link RoutingResult} objects and their publisher
+   * connections.
+   */
   public static class PushConnectionsHandle {
     private final Map<KsqlNode, RoutingResult> results = new ConcurrentHashMap<>();
     private final CompletableFuture<Void> errorCallback;
@@ -387,7 +391,7 @@ public class PushRouting implements AutoCloseable {
       });
     }
 
-    public void add(final KsqlNode ksqlNode, RoutingResult result) {
+    public void add(final KsqlNode ksqlNode, final RoutingResult result) {
       results.put(ksqlNode, result);
     }
 

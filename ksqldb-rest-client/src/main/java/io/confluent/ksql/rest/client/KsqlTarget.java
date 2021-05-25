@@ -19,14 +19,7 @@ import static io.confluent.ksql.rest.client.KsqlClientUtil.deserialize;
 import static io.confluent.ksql.rest.client.KsqlClientUtil.serialize;
 import static java.util.Objects.requireNonNull;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.google.common.base.Strings;
-import com.google.common.collect.Streams;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.metastore.TypeRegistry;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.LocalProperties;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
@@ -34,24 +27,15 @@ import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.HeartbeatResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.LagReportingResponse;
-import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.QueryStreamArgs;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
-import io.confluent.ksql.rest.entity.SourceInfo.Stream;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.entity.StreamedRow.DataRow;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SimpleColumn;
-import io.confluent.ksql.schema.ksql.SqlTypeParser;
-import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -59,7 +43,6 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.RequestOptions;
 import io.vertx.core.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -238,7 +221,7 @@ public final class KsqlTarget {
   }
 
   public CompletableFuture<RestResponse<StreamPublisher<StreamedRow>>>
-  postQueryRequestStreamedAsync(
+      postQueryRequestStreamedAsync(
       final String sql,
       final Map<String, ?> requestProperties
   ) {

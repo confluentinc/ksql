@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import javax.annotation.concurrent.ThreadSafe;
-import org.reactivestreams.Publisher;
 
 @ThreadSafe
 public interface SimpleKsqlClient {
@@ -63,7 +62,8 @@ public interface SimpleKsqlClient {
 
   /**
    * Send pull query request to remote Ksql server.  This version of makeQueryRequest allows
-   * consuming the rows as they stream in rather than aggregating them all in one list.
+   * consuming the rows as they stream in rather than aggregating them all in one list. The method
+   * itself blocks until the query is complete.
    * @param serverEndPoint the remote destination
    * @param sql the pull query statement
    * @param configOverrides the config overrides provided by the client
@@ -79,11 +79,22 @@ public interface SimpleKsqlClient {
       Consumer<List<StreamedRow>> rowConsumer
   );
 
+  /**
+   * Send query request to remote Ksql server.  This method is similar to
+   * {@link #makeQueryRequest(URI, String, Map, Map, Consumer)}, but gives a different API.
+   * First, this is run asynchronously and second, when a response is received, a publisher is
+   * returned which publishes results asynchronously as they become available.
+   * @param serverEndPoint the remote destination
+   * @param sql the pull query statement
+   * @param configOverrides the config overrides provided by the client
+   * @param requestProperties the request metadata provided by the server
+   * @return the future containing a publisher of {@link StreamedRow}s.
+   */
   CompletableFuture<RestResponse<BufferedPublisher<StreamedRow>>> makeQueryRequestStreamed(
-      final URI serverEndPoint,
-      final String sql,
-      final Map<String, ?> configOverrides,
-      final Map<String, ?> requestProperties
+      URI serverEndPoint,
+      String sql,
+      Map<String, ?> configOverrides,
+      Map<String, ?> requestProperties
   );
 
   /**

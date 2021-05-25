@@ -49,7 +49,8 @@ public final class InternalKsqlClientFactory {
         Optional.empty(),
         new LocalProperties(ImmutableMap.of()),
         httpOptionsFactory(clientProps, verifyHost, InternalKsqlClientFactory::createClientOptions),
-        httpOptionsFactory(clientProps, verifyHost, InternalKsqlClientFactory::createClientOptions2),
+        httpOptionsFactory(clientProps, verifyHost,
+            InternalKsqlClientFactory::createClientOptionsHttp2),
         socketAddressFactory,
         vertx
     );
@@ -90,7 +91,7 @@ public final class InternalKsqlClientFactory {
     return new HttpClientOptions().setMaxPoolSize(100);
   }
 
-  private static HttpClientOptions createClientOptions2() {
+  private static HttpClientOptions createClientOptionsHttp2() {
     return new HttpClientOptions().setHttp2MaxPoolSize(100).setProtocolVersion(HttpVersion.HTTP_2);
   }
 }

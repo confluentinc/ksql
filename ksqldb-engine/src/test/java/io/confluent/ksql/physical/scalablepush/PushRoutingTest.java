@@ -109,16 +109,27 @@ public class PushRoutingTest {
     vertx.close();
   }
 
+  private static <T> CompletableFuture<T> createFuture(T returnValue) {
+    CompletableFuture<T> future = new CompletableFuture<>();
+    future.complete(returnValue);
+    return future;
+  }
+
+  private static <T> CompletableFuture<T> createErrorFuture(Throwable t) {
+    CompletableFuture<T> future = new CompletableFuture<>();
+    future.completeExceptionally(t);
+    return future;
+  }
+
   @Test
   public void shouldSucceed_forward() throws ExecutionException, InterruptedException {
     // Given:
-    KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
-    final PushRouting routing = new PushRouting(ksqlConfig);
+    final PushRouting routing = new PushRouting();
     BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
     BufferedPublisher<StreamedRow> remotePublisher = new BufferedPublisher<>(context);
     when(pushPhysicalPlan.execute()).thenReturn(localPublisher);
     when(simpleKsqlClient.makeQueryRequestStreamed(any(), any(), any(), any()))
-        .thenReturn(RestResponse.successful(200, remotePublisher));
+        .thenReturn(createFuture(RestResponse.successful(200, remotePublisher)));
 
     // When:
     CompletableFuture<PushConnectionsHandle> future =
@@ -152,8 +163,7 @@ public class PushRoutingTest {
   public void shouldSucceed_justForwarded() throws ExecutionException, InterruptedException {
     // Given:
     when(pushRoutingOptions.getIsSkipForwardRequest()).thenReturn(true);
-    KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
-    final PushRouting routing = new PushRouting(ksqlConfig);
+    final PushRouting routing = new PushRouting();
     BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
     when(pushPhysicalPlan.execute()).thenReturn(localPublisher);
 
@@ -186,8 +196,7 @@ public class PushRoutingTest {
   public void shouldFail_duringPlanExecute() throws ExecutionException, InterruptedException {
     // Given:
     when(pushRoutingOptions.getIsSkipForwardRequest()).thenReturn(true);
-    KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
-    final PushRouting routing = new PushRouting(ksqlConfig);
+    final PushRouting routing = new PushRouting();
     when(pushPhysicalPlan.execute()).thenThrow(new RuntimeException("Error!"));
 
     // When:
@@ -204,10 +213,9 @@ public class PushRoutingTest {
   public void shouldFail_non200RemoteCall() throws ExecutionException, InterruptedException {
     // Given:
     when(locator.locate()).thenReturn(ImmutableList.of(ksqlNodeRemote));
-    KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
-    final PushRouting routing = new PushRouting(ksqlConfig);
+    final PushRouting routing = new PushRouting();
     when(simpleKsqlClient.makeQueryRequestStreamed(any(), any(), any(), any()))
-        .thenReturn(RestResponse.erroneous(500, "Error response!"));
+        .thenReturn(createFuture(RestResponse.erroneous(500, "Error response!")));
 
     // When:
     CompletableFuture<PushConnectionsHandle> future =
@@ -223,10 +231,9 @@ public class PushRoutingTest {
   public void shouldFail_errorRemoteCall() throws ExecutionException, InterruptedException {
     // Given:
     when(locator.locate()).thenReturn(ImmutableList.of(ksqlNodeRemote));
-    KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
-    final PushRouting routing = new PushRouting(ksqlConfig);
+    final PushRouting routing = new PushRouting();
     when(simpleKsqlClient.makeQueryRequestStreamed(any(), any(), any(), any()))
-        .thenThrow(new RuntimeException("Error remote!"));
+        .thenReturn(createErrorFuture(new RuntimeException("Error remote!")));
 
     // When:
     CompletableFuture<PushConnectionsHandle> future =
@@ -243,8 +250,7 @@ public class PushRoutingTest {
     // Given:
     transientQueryQueue = new TransientQueryQueue(OptionalInt.empty(), 1, 100);
     when(pushRoutingOptions.getIsSkipForwardRequest()).thenReturn(true);
-    KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
-    final PushRouting routing = new PushRouting(ksqlConfig);
+    final PushRouting routing = new PushRouting();
     BufferedPublisher<List<?>> localPublisher = new BufferedPublisher<>(context);
     when(pushPhysicalPlan.execute()).thenReturn(localPublisher);
 
@@ -277,11 +283,10 @@ public class PushRoutingTest {
     // Given:
     when(locator.locate()).thenReturn(ImmutableList.of(ksqlNodeRemote));
     transientQueryQueue = new TransientQueryQueue(OptionalInt.empty(), 1, 100);
-    KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
-    final PushRouting routing = new PushRouting(ksqlConfig);
+    final PushRouting routing = new PushRouting();
     BufferedPublisher<StreamedRow> remotePublisher = new BufferedPublisher<>(context);
     when(simpleKsqlClient.makeQueryRequestStreamed(any(), any(), any(), any()))
-        .thenReturn(RestResponse.successful(200, remotePublisher));
+        .thenReturn(createFuture(RestResponse.successful(200, remotePublisher)));
 
     // When:
     CompletableFuture<PushConnectionsHandle> future =

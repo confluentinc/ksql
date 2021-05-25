@@ -35,6 +35,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 /**
@@ -96,7 +97,7 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
   }
 
   @Override
-  public RestResponse<BufferedPublisher<StreamedRow>> makeQueryRequestStreamed(
+  public CompletableFuture<RestResponse<BufferedPublisher<StreamedRow>>> makeQueryRequestStreamed(
       URI serverEndPoint, String sql, Map<String, ?> configOverrides,
       Map<String, ?> requestProperties) {
     throw new UnsupportedOperationException();

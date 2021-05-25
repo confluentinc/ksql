@@ -38,9 +38,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -136,7 +136,7 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
   }
 
   @Override
-  public RestResponse<BufferedPublisher<StreamedRow>> makeQueryRequestStreamed(
+  public CompletableFuture<RestResponse<BufferedPublisher<StreamedRow>>> makeQueryRequestStreamed(
       final URI serverEndPoint,
       final String sql,
       final Map<String, ?> configOverrides,
@@ -146,14 +146,17 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
         .targetHttp2(serverEndPoint)
         .properties(configOverrides);
 
-    final RestResponse<StreamPublisher<StreamedRow>> resp = getTarget(target, authHeader)
-        .postQueryStreamRequest(sql, requestProperties);
+    final CompletableFuture<RestResponse<StreamPublisher<StreamedRow>>> response =
+        getTarget(target, authHeader)
+        .postQueryRequestStreamedAsync(sql, requestProperties);
 
-    if (resp.isErroneous()) {
-      return RestResponse.erroneous(resp.getStatusCode(), resp.getErrorMessage());
-    }
+    return response.thenApply(resp -> {
+      if (resp.isErroneous()) {
+        return RestResponse.erroneous(resp.getStatusCode(), resp.getErrorMessage());
+      }
 
-    return RestResponse.successful(resp.getStatusCode(), resp.getResponse());
+      return RestResponse.successful(resp.getStatusCode(), resp.getResponse());
+    });
   }
 
   @Override

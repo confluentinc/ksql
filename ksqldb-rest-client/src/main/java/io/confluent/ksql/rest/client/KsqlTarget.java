@@ -237,12 +237,13 @@ public final class KsqlTarget {
         buff -> deserialize(buff, StreamedRow.class));
   }
 
-  public RestResponse<StreamPublisher<StreamedRow>> postQueryStreamRequest(
+  public CompletableFuture<RestResponse<StreamPublisher<StreamedRow>>>
+  postQueryRequestStreamedAsync(
       final String sql,
       final Map<String, ?> requestProperties
   ) {
     return executeQueryStreamRequest(sql, requestProperties,
-        KsqlTarget::toRowFromQueryStream);
+        KsqlTargetUtil::toRowFromDelimited);
   }
 
   public RestResponse<StreamPublisher<String>> postPrintTopicRequest(
@@ -294,7 +295,7 @@ public final class KsqlTarget {
       final Object jsonEntity,
       final Function<ResponseWithBody, T> mapper
   ) {
-    return executeAsync(httpMethod, path, jsonEntity, mapper, (resp, vcf) -> {
+    return executeAsync(httpMethod, path, Optional.empty(), jsonEntity, mapper, (resp, vcf) -> {
       resp.bodyHandler(buff -> vcf.complete(new ResponseWithBody(resp, buff)));
     });
   }
@@ -362,7 +363,7 @@ public final class KsqlTarget {
         });
   }
 
-  private <T> RestResponse<StreamPublisher<T>> executeQueryStreamRequest(
+  private <T> CompletableFuture<RestResponse<StreamPublisher<T>>> executeQueryStreamRequest(
       final String ksql,
       final Map<String, ?> requestProperties,
       final Function<Buffer, T> mapper
@@ -372,7 +373,7 @@ public final class KsqlTarget {
     final QueryStreamArgs queryStreamArgs = new QueryStreamArgs(ksql, localProperties.toMap(),
         Collections.emptyMap(), requestPropertiesObject);
     final AtomicReference<StreamPublisher<T>> pubRef = new AtomicReference<>();
-    return executeSync(HttpMethod.POST, QUERY_STREAM_PATH,
+    return executeAsync(HttpMethod.POST, QUERY_STREAM_PATH,
         Optional.of("application/vnd.ksqlapi.delimited.v1"), queryStreamArgs,
         resp -> pubRef.get(),
         (resp, vcf) -> {
@@ -410,12 +411,13 @@ public final class KsqlTarget {
   private <T> CompletableFuture<RestResponse<T>> executeAsync(
       final HttpMethod httpMethod,
       final String path,
+      final Optional<String> mediaType,
       final Object requestBody,
       final Function<ResponseWithBody, T> mapper,
       final BiConsumer<HttpClientResponse, CompletableFuture<ResponseWithBody>> responseHandler
   ) {
     final CompletableFuture<ResponseWithBody> vcf =
-        execute(httpMethod, path, Optional.empty(), requestBody, responseHandler);
+        execute(httpMethod, path, mediaType, requestBody, responseHandler);
     return vcf.thenApply(response -> KsqlClientUtil.toRestResponse(response, path, mapper));
   }
 
@@ -474,48 +476,6 @@ public final class KsqlTarget {
       }
     }
     return rows;
-  }
-
-  private static StreamedRow toRowFromQueryStream(final Buffer buff) {
-    try {
-      try {
-        final QueryResponseMetadata metadata = deserialize(buff, QueryResponseMetadata.class);
-        final SqlTypeParser parser = SqlTypeParser.create(TypeRegistry.EMPTY);
-        return StreamedRow.header(new QueryId(Strings.nullToEmpty(metadata.queryId)),
-            LogicalSchema.builder().valueColumns(
-                Streams.zip(metadata.columnNames.stream(), metadata.columnTypes.stream(), Pair::of)
-                    .map(pair -> {
-                      final SqlType sqlType = parser.parse(pair.getRight()).getSqlType();
-                      final ColumnName name = ColumnName.of(pair.getLeft());
-                      return new SimpleColumn() {
-                        @Override
-                        public ColumnName name() {
-                          return name;
-                        }
-
-                        @Override
-                        public SqlType type() {
-                          return sqlType;
-                        }
-                      };
-                    }).collect(Collectors.toList())).build());
-      } catch (KsqlRestClientException e) {
-      }
-      try {
-        final KsqlErrorMessage error = deserialize(buff, KsqlErrorMessage.class);
-        return StreamedRow.error(new RuntimeException(error.getMessage()), error.getErrorCode());
-      } catch (KsqlRestClientException e) {
-      }
-      try {
-        final List<?> row = deserialize(buff, List.class);
-        return StreamedRow.pushRow(GenericRow.fromList(row));
-      } catch (KsqlRestClientException e) {
-      }
-      throw new IllegalStateException("Couldn't parse type");
-    } catch (Throwable t) {
-      t.printStackTrace();
-      throw t;
-    }
   }
 
 }

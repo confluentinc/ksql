@@ -17,7 +17,6 @@ package io.confluent.ksql.physical.scalablepush;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.HARouting;
@@ -30,22 +29,17 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlRequestConfig;
 import io.vertx.core.Context;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CancellationException;
+import java.util.Map.Entry;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.reactivestreams.Subscription;
@@ -55,25 +49,18 @@ import org.slf4j.LoggerFactory;
 public class PushRouting implements AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(HARouting.class);
-  private static final long TIMEOUT_CONNECT_MS = 3000;
 
-  private final ExecutorService executorService;
-
-  public PushRouting(
-      final KsqlConfig ksqlConfig
-  ) {
-    // This thread pool is used to make connections to other servers, but not while sending rows
-    // (which is async).
-    this.executorService = Executors.newFixedThreadPool(
-        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_THREAD_POOL_SIZE_CONFIG),
-        new ThreadFactoryBuilder().setNameFormat("scalable-push-query-executor-%d").build());
+  public PushRouting() {
   }
 
   @Override
   public void close() {
-    executorService.shutdown();
   }
 
+  /**
+   * Does a scalable push query returning a handle which can be used to stop the connections.
+   * @return A future for a PushConnectionsHandle, which can be used to terminate connections.
+   */
   public CompletableFuture<PushConnectionsHandle> handlePushQuery(
       final ServiceContext serviceContext,
       final PushPhysicalPlan pushPhysicalPlan,
@@ -98,64 +85,60 @@ public class PushRouting implements AutoCloseable {
           statement.getStatementText()));
     }
 
-    // At the moment, this isn't async, but we return a future anyway.
-    final CompletableFuture<PushConnectionsHandle> completableFuture = new CompletableFuture<>();
-    try {
-      PushConnectionsHandle pushConnectionsHandle =
-          connectToHosts(serviceContext, pushPhysicalPlan, statement, hosts, outputSchema,
-              transientQueryQueue);
-      completableFuture.complete(pushConnectionsHandle);
-    } catch (Throwable t) {
-      completableFuture.completeExceptionally(t);
-    }
-
-    return completableFuture;
+    return connectToHosts(serviceContext, pushPhysicalPlan, statement, hosts, outputSchema,
+        transientQueryQueue);
   }
 
-  private PushConnectionsHandle connectToHosts(
+  /**
+   * Connects to all of the hosts provided.
+   * @return A future for a PushConnectionsHandle, which can be used to terminate connections.
+   */
+  private CompletableFuture<PushConnectionsHandle> connectToHosts(
       final ServiceContext serviceContext,
       final PushPhysicalPlan pushPhysicalPlan,
       final ConfiguredStatement<Query> statement,
       final List<KsqlNode> hosts,
       final LogicalSchema outputSchema,
       final TransientQueryQueue transientQueryQueue
-  ) throws InterruptedException {
-    final List<Callable<RoutingResult>> callables = new ArrayList<>();
+  ) {
+    final Map<KsqlNode, CompletableFuture<RoutingResult>> futureMap = new LinkedHashMap<>();
     final CompletableFuture<Void> errorCallback = new CompletableFuture<>();
     for (final KsqlNode node : hosts) {
-      callables.add(() -> executeOrRouteQuery(
+      futureMap.put(node, executeOrRouteQuery(
           node, statement, serviceContext, pushPhysicalPlan, outputSchema,
           transientQueryQueue, errorCallback::completeExceptionally));
     }
-    List<Future<RoutingResult>> futureList = executorService.invokeAll(callables,
-        TIMEOUT_CONNECT_MS, TimeUnit.MILLISECONDS);
-
-    int i = 0;
     final PushConnectionsHandle pushConnectionsHandle = new PushConnectionsHandle(errorCallback);
-    KsqlException exception = null;
-    for (final KsqlNode node : hosts) {
-      final Future<RoutingResult> future = futureList.get(i++);
-      RoutingResult routingResult = null;
-      try {
-        routingResult = future.get();
-        pushConnectionsHandle.add(node, routingResult);
-      } catch (ExecutionException | CancellationException e) {
-        LOG.warn("Error routing query {} to host {} at timestamp {} with exception {}",
-            statement.getStatementText(), node, System.currentTimeMillis(), e.getCause());
-        exception = new KsqlException(String.format(
-            "Unable to execute push query \"%s\". %s",
-            statement.getStatementText(), e.getCause().getMessage()));
-      }
-    }
-    if (exception != null) {
-      pushConnectionsHandle.close();
-      pushConnectionsHandle.completeExceptionally(exception);
-    }
-    return pushConnectionsHandle;
+    return CompletableFuture.allOf(futureMap.values().toArray(new CompletableFuture[0]))
+        .thenApply(v -> {
+          for (final KsqlNode node : hosts) {
+            final CompletableFuture<RoutingResult> future = futureMap.get(node);
+            final RoutingResult routingResult = future.join();
+            pushConnectionsHandle.add(node, routingResult);
+          }
+          return pushConnectionsHandle;
+        })
+        .exceptionally(t -> {
+          final KsqlNode node = futureMap.entrySet().stream()
+              .filter(e -> e.getValue().isCompletedExceptionally())
+              .map(Entry::getKey)
+              .findFirst()
+              .orElse(null);
+          LOG.warn("Error routing query {} to host {} at timestamp {} with exception {}",
+              statement.getStatementText(), node, System.currentTimeMillis(), t.getCause());
+
+          pushConnectionsHandle.close();
+          pushConnectionsHandle.completeExceptionally(
+              new KsqlException(String.format(
+                  "Unable to execute push query \"%s\". %s",
+                  statement.getStatementText(), t.getCause().getMessage())));
+
+          return pushConnectionsHandle;
+        });
   }
 
   @VisibleForTesting
-  static RoutingResult executeOrRouteQuery(
+  static CompletableFuture<RoutingResult> executeOrRouteQuery(
       final KsqlNode node,
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext,
@@ -165,52 +148,64 @@ public class PushRouting implements AutoCloseable {
       final Consumer<Throwable> errorCallback
   ) {
     if (node.isLocal()) {
-      BufferedPublisher<List<?>> publisher = null;
-      try {
-        LOG.debug("Query {} executed locally at host {} at timestamp {}.",
+      LOG.debug("Query {} executed locally at host {} at timestamp {}.",
             statement.getStatementText(), node.location(), System.currentTimeMillis());
-        publisher = pushPhysicalPlan.execute();
-        publisher.subscribe(new LocalQueryStreamSubscriber(publisher.getContext(),
-            transientQueryQueue, errorCallback));
-        return new RoutingResult(RoutingResultStatus.SUCCESS, pushPhysicalPlan::close);
-      } catch (Exception e) {
-        if (publisher != null) {
-          publisher.close();
-        }
-        pushPhysicalPlan.close();
-        LOG.error("Error executing query {} locally at node {}",
-            statement.getStatementText(), node.location(), e.getCause());
-        throw new KsqlException(
-            String.format("Error executing query locally at node %s: %s", node.location(),
-                e.getMessage()),
-            e
-        );
-      }
+      final AtomicReference<BufferedPublisher<List<?>>> publisherRef
+          = new AtomicReference<>(null);
+        return CompletableFuture.completedFuture(null)
+            .thenApply(v -> pushPhysicalPlan.execute())
+            .thenApply(publisher -> {
+              publisherRef.set(publisher);
+              publisher.subscribe(new LocalQueryStreamSubscriber(publisher.getContext(),
+                  transientQueryQueue, errorCallback));
+              return new RoutingResult(RoutingResultStatus.SUCCESS, () -> {
+                pushPhysicalPlan.close();
+                publisher.close();
+              });
+            })
+            .exceptionally(t -> {
+              LOG.error("Error executing query {} locally at node {}",
+                  statement.getStatementText(), node.location(), t.getCause());
+              final BufferedPublisher<List<?>> publisher = publisherRef.get();
+              pushPhysicalPlan.close();
+              if (publisher != null) {
+                publisher.close();
+              }
+              throw new KsqlException(
+                  String.format("Error executing query locally at node %s: %s", node.location(),
+                      t.getMessage()),
+                  t
+              );
+            });
     } else {
-      BufferedPublisher<StreamedRow> publisher = null;
-      try {
-        LOG.debug("Query {} routed to host {} at timestamp {}.",
-            statement.getStatementText(), node.location(), System.currentTimeMillis());
-        publisher = forwardTo(node, statement, serviceContext, outputSchema);
-        publisher.subscribe(new QueryStreamSubscriber(publisher.getContext(), transientQueryQueue,
+      LOG.debug("Query {} routed to host {} at timestamp {}.",
+          statement.getStatementText(), node.location(), System.currentTimeMillis());
+      final AtomicReference<BufferedPublisher<StreamedRow>> publisherRef
+          = new AtomicReference<>(null);
+      CompletableFuture<BufferedPublisher<StreamedRow>> publisherFuture
+          = forwardTo(node, statement, serviceContext, outputSchema);
+      return publisherFuture.thenApply(publisher -> {
+        publisherRef.set(publisher);
+        publisher.subscribe(new RemoteStreamSubscriber(publisher.getContext(), transientQueryQueue,
             errorCallback));
         return new RoutingResult(RoutingResultStatus.SUCCESS, publisher::close);
-      } catch (Exception e) {
+      }).exceptionally(t -> {
+        LOG.error("Error forwarding query {} to node {}",
+            statement.getStatementText(), node, t.getCause());
+        final BufferedPublisher<StreamedRow> publisher = publisherRef.get();
         if (publisher != null) {
           publisher.close();
         }
-        LOG.error("Error forwarding query {} to node {}",
-            statement.getStatementText(), node, e.getCause());
         throw new KsqlException(
             String.format("Error forwarding query to node %s: %s", node.location(),
-                e.getMessage()),
-            e
+                t.getMessage()),
+            t
         );
-      }
+      });
     }
   }
 
-  private static BufferedPublisher<StreamedRow> forwardTo(
+  private static CompletableFuture<BufferedPublisher<StreamedRow>> forwardTo(
       final KsqlNode owner,
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext,
@@ -221,7 +216,7 @@ public class PushRouting implements AutoCloseable {
         KsqlRequestConfig.KSQL_REQUEST_QUERY_PULL_SKIP_FORWARDING, true,
         KsqlRequestConfig.KSQL_REQUEST_INTERNAL_REQUEST, true);
 
-    final RestResponse<BufferedPublisher<StreamedRow>> response  = serviceContext
+    final CompletableFuture<RestResponse<BufferedPublisher<StreamedRow>>> future  = serviceContext
           .getKsqlClient()
           .makeQueryRequestStreamed(
               owner.location(),
@@ -230,14 +225,16 @@ public class PushRouting implements AutoCloseable {
               requestProperties
           );
 
-    if (response.isErroneous()) {
-      throw new KsqlException(String.format(
-          "Forwarding pull query request [%s, %s] failed with error %s ",
-          statement.getSessionConfig().getOverrides(), requestProperties,
-          response.getErrorMessage()));
-    }
+    return future.thenApply(response -> {
+      if (response.isErroneous()) {
+        throw new KsqlException(String.format(
+            "Forwarding pull query request [%s, %s] failed with error %s ",
+            statement.getSessionConfig().getOverrides(), requestProperties,
+            response.getErrorMessage()));
+      }
 
-    return response.getResponse();
+      return response.getResponse();
+    });
   }
 
   public enum RoutingResultStatus {
@@ -266,13 +263,16 @@ public class PushRouting implements AutoCloseable {
     }
   }
 
-  private static class QueryStreamSubscriber extends BaseSubscriber<StreamedRow> {
+  /**
+   * Subscriber for handling remote data.
+   */
+  private static class RemoteStreamSubscriber extends BaseSubscriber<StreamedRow> {
 
     private final TransientQueryQueue transientQueryQueue;
     private final Consumer<Throwable> errorCallback;
     private boolean closed;
 
-    QueryStreamSubscriber(final Context context,
+    RemoteStreamSubscriber(final Context context,
         final TransientQueryQueue transientQueryQueue,
         final Consumer<Throwable> errorCallback) {
       super(context);
@@ -320,6 +320,9 @@ public class PushRouting implements AutoCloseable {
     }
   }
 
+  /**
+   * Subscriber for handling local data.
+   */
   private static class LocalQueryStreamSubscriber extends BaseSubscriber<List<?>> {
 
     private final TransientQueryQueue transientQueryQueue;
@@ -371,11 +374,17 @@ public class PushRouting implements AutoCloseable {
   }
 
   public static class PushConnectionsHandle {
-    private final Map<KsqlNode, RoutingResult> results = new LinkedHashMap<>();
+    private final Map<KsqlNode, RoutingResult> results = new ConcurrentHashMap<>();
     private final CompletableFuture<Void> errorCallback;
 
     public PushConnectionsHandle(final CompletableFuture<Void> errorCallback) {
       this.errorCallback = errorCallback;
+
+      // If anything calls the error callback. all results are closed.
+      errorCallback.exceptionally(t -> {
+        close();
+        return null;
+      });
     }
 
     public void add(final KsqlNode ksqlNode, RoutingResult result) {

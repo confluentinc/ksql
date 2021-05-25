@@ -280,12 +280,6 @@ public class KsqlConfig extends AbstractConfig {
           + "functions, aggregations, or joins, but may include projections and filters.";
   public static final boolean KSQL_QUERY_PUSH_SCALABLE_ENABLED_DEFAULT = false;
 
-  public static final String KSQL_QUERY_PUSH_SCALABLE_THREAD_POOL_SIZE_CONFIG
-      = "ksql.query.push.scalable.thread.pool.size";
-  public static final Integer KSQL_QUERY_PUSH_SCALABLE_THREAD_POOL_SIZE_DEFAULT = 100;
-  public static final String KSQL_QUERY_PUSH_SCALABLE_THREAD_POOL_SIZE_DOC =
-      "Size of thread pool used for making scalable push query connections.";
-
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
       "When casting a SQLType to string, if false, use String.valueof(), else if true use"
@@ -901,13 +895,6 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PUSH_SCALABLE_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PUSH_SCALABLE_ENABLED_DOC
-        )
-        .define(
-            KSQL_QUERY_PUSH_SCALABLE_THREAD_POOL_SIZE_CONFIG,
-            Type.BOOLEAN,
-            KSQL_QUERY_PUSH_SCALABLE_THREAD_POOL_SIZE_DEFAULT,
-            Importance.LOW,
-            KSQL_QUERY_PUSH_SCALABLE_THREAD_POOL_SIZE_DOC
         )
         .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,

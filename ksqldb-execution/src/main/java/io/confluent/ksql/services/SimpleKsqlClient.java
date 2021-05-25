@@ -25,6 +25,7 @@ import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import javax.annotation.concurrent.ThreadSafe;
 import org.reactivestreams.Publisher;
@@ -78,7 +79,7 @@ public interface SimpleKsqlClient {
       Consumer<List<StreamedRow>> rowConsumer
   );
 
-  RestResponse<BufferedPublisher<StreamedRow>> makeQueryRequestStreamed(
+  CompletableFuture<RestResponse<BufferedPublisher<StreamedRow>>> makeQueryRequestStreamed(
       final URI serverEndPoint,
       final String sql,
       final Map<String, ?> configOverrides,

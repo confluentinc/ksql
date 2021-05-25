@@ -1,5 +1,5 @@
 # Change Log
-## [0.18.0](https://github.com/confluentinc/ksql/releases/tag/v0.18.0-ksqldb) (2021-04-26)
+## [0.18.0](https://github.com/confluentinc/ksql/releases/tag/v0.18.0-ksqldb) (2021-05-26)
 
 ### Features
 
@@ -27,6 +27,7 @@
 * stop long-running queries from blocking the main event loop ([#7420](https://github.com/confluentinc/ksql/pull/7420)) ([242fefb](https://github.com/confluentinc/ksql/commit/242fefb268923650592996f6764f198488759d2e)), closes [#7358](https://github.com/confluentinc/ksql/issues/7358)
 * stop worker-poll tasks from blocking main loop ([#7427](https://github.com/confluentinc/ksql/pull/7427)) ([0b0bf65](https://github.com/confluentinc/ksql/commit/0b0bf65df6c2e178a5c249de6ac6bf7a13abe70c)), closes [#7358](https://github.com/confluentinc/ksql/issues/7358)
 * allow java client to accept statements with more than one semicolon ([#7243](https://github.com/confluentinc/ksql/pull/7243)) ([4086acb](https://github.com/confluentinc/ksql/commit/4086acbeff89cc5f8c0b5b03e800074894be8183))
+* fix NPE when closing transient queries ([#7530](https://github.com/confluentinc/ksql/pull/7530)) ([bc64edd](https://github.com/confluentinc/ksql/commit/bc64eddd88c6ae936c0518f816c8ef477070b20b))
 
 ## [0.17.0](https://github.com/confluentinc/ksql/releases/tag/v0.17.0-ksqldb) (2021-04-26)
 

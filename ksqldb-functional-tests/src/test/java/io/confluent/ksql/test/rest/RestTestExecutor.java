@@ -49,6 +49,7 @@ import io.confluent.ksql.test.tools.TopicInfoCache.TopicInfo;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.RetryUtil;
 import java.io.Closeable;
@@ -210,7 +211,8 @@ public class RestTestExecutor implements Closeable {
   private void produceInputs(final Map<String, List<Record>> inputs) {
     inputs.forEach((topicName, records) -> {
 
-      final TopicInfo topicInfo = topicInfoCache.get(topicName);
+      final TopicInfo topicInfo = topicInfoCache.get(topicName)
+          .orElseThrow(() -> new KsqlException("No information found for topic: " + topicName));
 
       try (KafkaProducer<Object, Object> producer = new KafkaProducer<>(
           kafkaCluster.producerConfig(),
@@ -320,7 +322,8 @@ public class RestTestExecutor implements Closeable {
   private void verifyOutput(final RestTestCase testCase) {
     testCase.getOutputsByTopic().forEach((topicName, records) -> {
 
-      final TopicInfo topicInfo = topicInfoCache.get(topicName);
+      final TopicInfo topicInfo = topicInfoCache.get(topicName)
+          .orElseThrow(() -> new KsqlException("No information found for topic: " + topicName));
 
       final List<? extends ConsumerRecord<?, ?>> received = kafkaCluster
           .verifyAvailableRecords(

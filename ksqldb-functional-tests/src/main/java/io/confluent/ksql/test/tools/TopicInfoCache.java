@@ -22,6 +22,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
@@ -87,6 +88,17 @@ public class TopicInfoCache {
       )
   );
 
+  // Internal topic names that are ignored by the TopicInfoCache::get() method.
+  // This is a temporary fix to allow foreign key QT tests to pass without complaining about
+  // internal FK topics not unknown or with not clear schema information. A long-term fix
+  // to support multiple schema information in FK internal topics can be found here -
+  // https://github.com/confluentinc/ksql/issues/7586
+  private static final Set<Pattern> IGNORE_INTERNAL_TOPIC_NAMES_PATTERNS = ImmutableSet.of(
+      Pattern.compile(TOPIC_PATTERN_PREFIX + ".*-FK-JOIN-SUBSCRIPTION-REGISTRATION-\\d+-topic"),
+      Pattern.compile(TOPIC_PATTERN_PREFIX + ".*-FK-JOIN-SUBSCRIPTION-RESPONSE-\\d+-topic"),
+      Pattern.compile(TOPIC_PATTERN_PREFIX + ".*-FK-JOIN-SUBSCRIPTION-STATE-STORE-\\d+-changelog")
+  );
+
   private final KsqlExecutionContext ksqlEngine;
   private final SchemaRegistryClient srClient;
   private final LoadingCache<String, TopicInfo> cache;
@@ -101,8 +113,12 @@ public class TopicInfoCache {
         .build(CacheLoader.from(this::load));
   }
 
-  public TopicInfo get(final String topicName) {
-    return cache.getUnchecked(topicName);
+  public Optional<TopicInfo> get(final String topicName) {
+    if (ignoreInternalTopic(topicName)) {
+      return Optional.empty();
+    }
+
+    return Optional.of(cache.getUnchecked(topicName));
   }
 
   public List<TopicInfo> all() {
@@ -111,6 +127,16 @@ public class TopicInfoCache {
 
   public void clear() {
     cache.invalidateAll();
+  }
+
+  private boolean ignoreInternalTopic(final String topicName) {
+    for (final Pattern p : IGNORE_INTERNAL_TOPIC_NAMES_PATTERNS) {
+      if (p.matcher(topicName).matches()) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private TopicInfo load(final String topicName) {

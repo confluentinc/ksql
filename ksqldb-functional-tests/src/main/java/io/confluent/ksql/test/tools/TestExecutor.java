@@ -291,7 +291,8 @@ public class TestExecutor implements Closeable {
         .collect(Collectors.toMap(Function.identity(), kafka::readRecords));
 
     expectedByTopic.forEach((kafkaTopic, expectedRecords) -> {
-      final TopicInfo topicInfo = topicInfoCache.get(kafkaTopic);
+      final TopicInfo topicInfo = topicInfoCache.get(kafkaTopic)
+          .orElseThrow(() -> new KsqlException("No information found for topic: " + kafkaTopic));
 
       final List<ProducerRecord<?, ?>> actualRecords = actualByTopic
           .getOrDefault(kafkaTopic, ImmutableList.of())
@@ -350,7 +351,8 @@ public class TestExecutor implements Closeable {
   private ProducerRecord<byte[], byte[]> serialize(
       final ProducerRecord<?, ?> rec
   ) {
-    final TopicInfo topicInfo = topicInfoCache.get(rec.topic());
+    final TopicInfo topicInfo = topicInfoCache.get(rec.topic())
+        .orElseThrow(() -> new KsqlException("No information found for topic: " + rec.topic()));
 
     final byte[] key;
     final byte[] value;

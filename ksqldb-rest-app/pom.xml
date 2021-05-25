@@ -35,7 +35,6 @@
         <cli.main-class>${main-class}</cli.main-class>
         <docker.skip-build>true</docker.skip-build>
         <docker.skip-test>true</docker.skip-test>
-        <netty-tcnative-version>2.0.29.Final</netty-tcnative-version>
     </properties>
 
     <dependencies>
@@ -130,7 +129,6 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-tcnative-boringssl-static</artifactId>
-            <version>${netty-tcnative-version}</version>
         </dependency>
 
         <dependency>

@@ -871,6 +871,7 @@ public class JoinNodeTest {
   ) {
     when(dataSourceNode.getDataSource()).thenReturn(dataSource);
     when(node.getLeftmostSourceNode()).thenReturn(dataSourceNode);
+    when(node.getSources()).thenReturn(ImmutableList.of(dataSourceNode));
 
     final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
     when(ksqlTopic.getValueFormat()).thenReturn(valueFormat);

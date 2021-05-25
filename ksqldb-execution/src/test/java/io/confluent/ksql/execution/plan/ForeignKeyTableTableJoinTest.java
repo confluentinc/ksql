@@ -19,6 +19,7 @@ import static io.confluent.ksql.execution.plan.JoinType.LEFT;
 
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.serde.FormatInfo;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,29 +44,36 @@ public class ForeignKeyTableTableJoinTest {
   private ExecutionStep<KTableHolder<Struct>> left2;
   @Mock
   private ExecutionStep<KTableHolder<Struct>> right2;
+  @Mock
+  private Formats formats1;
+  @Mock
+  private Formats formats2;
 
   @SuppressWarnings("UnstableApiUsage")
   @Test
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, left1, right1),
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, left1, right1)
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left1, right1),
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left1, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props2, INNER, JOIN_COLUMN_NAME, left1, right1)
+            new ForeignKeyTableTableJoin<>(props2, INNER, JOIN_COLUMN_NAME, formats1, left1, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, LEFT, JOIN_COLUMN_NAME, left1, right1)
+            new ForeignKeyTableTableJoin<>(props1, LEFT, JOIN_COLUMN_NAME, formats1, left1, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME_2, left1, right1)
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME_2, formats1, left1, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, left2, right1)
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats2, left1, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, left1, right2)
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left2, right1)
+        )
+        .addEqualityGroup(
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left1, right2)
         ).testEquals();
   }
 }

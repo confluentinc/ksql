@@ -32,6 +32,7 @@ import io.confluent.ksql.execution.plan.ExecutionKeyFactory;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepPropertiesV1;
 import io.confluent.ksql.execution.plan.ForeignKeyTableTableJoin;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
@@ -40,8 +41,10 @@ import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.SerdeFeatures;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.Materialized;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -101,6 +104,8 @@ public class ForeignKeyTableTableJoinBuilderTest {
   private PlanInfo planInfo;
   @Mock
   private MaterializationInfo.Builder materializationBuilder;
+  @Mock
+  private Formats formats;
 
   private PlanBuilder planBuilder;
   private ForeignKeyTableTableJoin<Struct, Struct> join;
@@ -115,10 +120,13 @@ public class ForeignKeyTableTableJoinBuilderTest {
     when(right.build(any(), eq(planInfo))).thenReturn(
         KTableHolder.materialized(rightKTable, RIGHT_SCHEMA, executionKeyFactory, materializationBuilder));
 
-    when(leftKTable.leftJoin(any(KTable.class), any(KsqlKeyExtractor.class), any())).thenReturn(resultKTable);
-    when(leftKTable.join(any(KTable.class), any(KsqlKeyExtractor.class), any())).thenReturn(resultKTable);
-    when(leftKTableMultiKey.leftJoin(any(KTable.class), any(KsqlKeyExtractor.class), any())).thenReturn(resultKTable);
-    when(leftKTableMultiKey.join(any(KTable.class), any(KsqlKeyExtractor.class), any())).thenReturn(resultKTable);
+    when(leftKTable.leftJoin(any(KTable.class), any(KsqlKeyExtractor.class), any(), any(Materialized.class))).thenReturn(resultKTable);
+    when(leftKTable.join(any(KTable.class), any(KsqlKeyExtractor.class), any(), any(Materialized.class))).thenReturn(resultKTable);
+    when(leftKTableMultiKey.leftJoin(any(KTable.class), any(KsqlKeyExtractor.class), any(), any(Materialized.class))).thenReturn(resultKTable);
+    when(leftKTableMultiKey.join(any(KTable.class), any(KsqlKeyExtractor.class), any(), any(Materialized.class))).thenReturn(resultKTable);
+
+    when(formats.getKeyFeatures()).thenReturn(mock(SerdeFeatures.class));
+    when(formats.getValueFeatures()).thenReturn(mock(SerdeFeatures.class));
 
     planBuilder = new KSPlanBuilder(
         mock(RuntimeBuildContext.class),
@@ -140,7 +148,8 @@ public class ForeignKeyTableTableJoinBuilderTest {
     verify(leftKTable).leftJoin(
         same(rightKTable),
         eq(new KsqlKeyExtractor<>(1)),
-        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0))
+        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0)),
+        any(Materialized.class)
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
     assertThat(result.getTable(), is(resultKTable));
@@ -167,7 +176,8 @@ public class ForeignKeyTableTableJoinBuilderTest {
     verify(leftKTable).leftJoin(
         same(rightKTable),
         eq(new KsqlKeyExtractor<>(2)),
-        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0))
+        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0)),
+        any(Materialized.class)
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
     assertThat(result.getTable(), is(resultKTable));
@@ -186,7 +196,8 @@ public class ForeignKeyTableTableJoinBuilderTest {
     verify(leftKTableMultiKey).leftJoin(
         same(rightKTable),
         eq(new KsqlKeyExtractor<>(3)),
-        eq(new KsqlValueJoiner(LEFT_SCHEMA_MULTI_KEY.value().size(), RIGHT_SCHEMA.value().size(), 0))
+        eq(new KsqlValueJoiner(LEFT_SCHEMA_MULTI_KEY.value().size(), RIGHT_SCHEMA.value().size(), 0)),
+        any(Materialized.class)
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
     assertThat(result.getTable(), is(resultKTable));
@@ -205,7 +216,8 @@ public class ForeignKeyTableTableJoinBuilderTest {
     verify(leftKTable).join(
         same(rightKTable),
         eq(new KsqlKeyExtractor<>(1)),
-        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0))
+        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0)),
+        any(Materialized.class)
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
     assertThat(result.getTable(), is(resultKTable));
@@ -232,7 +244,8 @@ public class ForeignKeyTableTableJoinBuilderTest {
     verify(leftKTable).join(
         same(rightKTable),
         eq(new KsqlKeyExtractor<>(2)),
-        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0))
+        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0)),
+        any(Materialized.class)
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
     assertThat(result.getTable(), is(resultKTable));
@@ -251,7 +264,8 @@ public class ForeignKeyTableTableJoinBuilderTest {
     verify(leftKTableMultiKey).join(
         same(rightKTable),
         eq(new KsqlKeyExtractor<>(3)),
-        eq(new KsqlValueJoiner(LEFT_SCHEMA_MULTI_KEY.value().size(), RIGHT_SCHEMA.value().size(), 0))
+        eq(new KsqlValueJoiner(LEFT_SCHEMA_MULTI_KEY.value().size(), RIGHT_SCHEMA.value().size(), 0)),
+        any(Materialized.class)
     );
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
     assertThat(result.getTable(), is(resultKTable));
@@ -303,6 +317,7 @@ public class ForeignKeyTableTableJoinBuilderTest {
         new ExecutionStepPropertiesV1(ctx),
         JoinType.LEFT,
         leftJoinColumnName,
+        formats,
         left,
         right
     );
@@ -314,6 +329,7 @@ public class ForeignKeyTableTableJoinBuilderTest {
         new ExecutionStepPropertiesV1(ctx),
         JoinType.INNER,
         leftJoinColumnName,
+        formats,
         left,
         right
     );

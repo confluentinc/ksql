@@ -32,6 +32,7 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
   private final ExecutionStepPropertiesV1 properties;
   private final JoinType joinType;
   private final ColumnName leftJoinColumnName;
+  private final Formats formats;
   private final ExecutionStep<KTableHolder<KLeftT>> leftSource;
   private final ExecutionStep<KTableHolder<KRightT>> rightSource;
 
@@ -43,6 +44,8 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
       final JoinType joinType,
       @JsonProperty(value = "leftJoinColumnName", required = true)
       final ColumnName leftJoinColumnName,
+      @JsonProperty(value = "formats", required = true)
+      final Formats formats,
       @JsonProperty(value = "leftSource", required = true)
       final ExecutionStep<KTableHolder<KLeftT>> leftSource,
       @JsonProperty(value = "rightSource", required = true)
@@ -54,6 +57,7 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
       throw new IllegalArgumentException("OUTER join not supported.");
     }
     this.leftJoinColumnName = requireNonNull(leftJoinColumnName, "leftJoinColumnName");
+    this.formats = requireNonNull(formats, "formats");
     this.leftSource = requireNonNull(leftSource, "leftSource");
     this.rightSource = requireNonNull(rightSource, "rightSource");
   }
@@ -85,6 +89,10 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
     return leftJoinColumnName;
   }
 
+  public Formats getFormats() {
+    return formats;
+  }
+
   @Override
   public KTableHolder<KLeftT> build(final PlanBuilder builder, final PlanInfo info) {
     return builder.visitForeignKeyTableTableJoin(this, info);
@@ -107,12 +115,13 @@ public class ForeignKeyTableTableJoin<KLeftT, KRightT>
     return Objects.equals(properties, that.properties)
         && joinType == that.joinType
         && Objects.equals(leftJoinColumnName, that.leftJoinColumnName)
+        && Objects.equals(formats, that.formats)
         && Objects.equals(leftSource, that.leftSource)
         && Objects.equals(rightSource, that.rightSource);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(properties, joinType, leftJoinColumnName, leftSource, rightSource);
+    return Objects.hash(properties, joinType, leftJoinColumnName, formats, leftSource, rightSource);
   }
 }

@@ -17,9 +17,14 @@ package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.plan.ForeignKeyTableTableJoin;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.Materialized;
 
 public final class ForeignKeyTableTableJoinBuilder {
 
@@ -29,7 +34,8 @@ public final class ForeignKeyTableTableJoinBuilder {
   public static <KLeftT, KRightT> KTableHolder<KLeftT> build(
       final KTableHolder<KLeftT> left,
       final KTableHolder<KRightT> right,
-      final ForeignKeyTableTableJoin<KLeftT, KRightT> join
+      final ForeignKeyTableTableJoin<KLeftT, KRightT> join,
+      final RuntimeBuildContext buildContext
   ) {
     final LogicalSchema leftSchema = left.getSchema();
     final LogicalSchema rightSchema = right.getSchema();
@@ -37,20 +43,36 @@ public final class ForeignKeyTableTableJoinBuilder {
     final ForeignKeyJoinParams<KRightT> joinParams = ForeignKeyJoinParamsFactory
         .create(join.getLeftJoinColumnName(), leftSchema, rightSchema);
 
+    final Formats formats = join.getFormats();
+
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(
+        joinParams.getSchema(),
+        formats.getKeyFeatures(),
+        formats.getValueFeatures()
+    );
+
+    final Serde<GenericRow> valSerde = buildContext.buildValueSerde(
+        formats.getValueFormat(),
+        physicalSchema,
+        join.getProperties().getQueryContext()
+    );
+
     final KTable<KLeftT, GenericRow> result;
     switch (join.getJoinType()) {
-      case LEFT:
-        result = left.getTable().leftJoin(
-            right.getTable(),
-            joinParams.getKeyExtractor(),
-            joinParams.getJoiner()
-        );
-        break;
       case INNER:
         result = left.getTable().join(
             right.getTable(),
             joinParams.getKeyExtractor(),
-            joinParams.getJoiner()
+            joinParams.getJoiner(),
+            Materialized.with(null, valSerde)
+        );
+        break;
+      case LEFT:
+        result = left.getTable().leftJoin(
+            right.getTable(),
+            joinParams.getKeyExtractor(),
+            joinParams.getJoiner(),
+            Materialized.with(null, valSerde)
         );
         break;
       default:

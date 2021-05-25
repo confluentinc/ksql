@@ -1321,6 +1321,57 @@
           ]
         }
       }
+    },
+    {
+      "name": "stream-table-table - qualified select *",
+      "statements": [
+        "CREATE STREAM left_stream (id1 BIGINT KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE middle_table (id2 BIGINT PRIMARY KEY, f2 BIGINT, other STRING) WITH (kafka_topic='middle_topic', format='JSON');",
+        "CREATE TABLE right_table (id3 BIGINT PRIMARY KEY, f3 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE STREAM output AS SELECT id1, f1, middle_table.*, right_table.* FROM left_stream JOIN middle_table ON id1 = id2 LEFT JOIN right_table ON f1 = id3;"
+      ],
+      "inputs": [
+        {"topic": "middle_topic", "key": 0, "value": {"F2": 100, "OTHER": "unused"}, "timestamp": 0},
+        {"topic": "left_topic", "key": 0, "value": {"F1": 0}, "timestamp": 10000},
+        {"topic": "right_topic", "key": 0, "value": {"F3": 4}, "timestamp": 11000},
+        {"topic": "middle_topic", "key": 8, "value": {"F2": 10, "OTHER": "unused"}, "timestamp": 13000},
+        {"topic": "left_topic", "key": 8, "value": {"F1": 8}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 0, "value": null, "timestamp": 18000}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"ID1": 0, "MIDDLE_TABLE_ID2": 0, "MIDDLE_TABLE_F2": 100, "MIDDLE_TABLE_OTHER": "unused", "RIGHT_TABLE_ID3": null, "RIGHT_TABLE_F3": null}, "timestamp": 10000},
+        {"topic": "OUTPUT", "key": 8, "value": {"ID1": 8, "MIDDLE_TABLE_ID2": 8, "MIDDLE_TABLE_F2": 10, "MIDDLE_TABLE_OTHER": "unused", "RIGHT_TABLE_ID3": null, "RIGHT_TABLE_F3": null}, "timestamp": 16000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "F1 BIGINT KEY, ID1 BIGINT, MIDDLE_TABLE_ID2 BIGINT, MIDDLE_TABLE_F2 BIGINT, MIDDLE_TABLE_OTHER STRING, RIGHT_TABLE_ID3 BIGINT, RIGHT_TABLE_F3 BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "table-table-table-table - qualified select *",
+      "statements": [
+        "CREATE TABLE T1 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE TABLE T4 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right3', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT T1.ID, T2.*, T3.V0, T4.* FROM T1 JOIN T2 ON T1.ID = T2.ID JOIN T3 ON T1.ID = T3.ID JOIN T4 ON T1.ID = T4.ID;"
+      ],
+      "inputs": [
+        {"topic": "left", "key": 0, "value": {"V0": 1}, "timestamp": 0},
+        {"topic": "right", "key": 0, "value": {"V0": 2}, "timestamp": 1},
+        {"topic": "right2", "key": 0, "value": {"V0": 3}, "timestamp": 2},
+        {"topic": "right3", "key": 0, "value": {"V0": 4}, "timestamp": 3}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"T2_ID": 0, "T2_V0": 2, "T3_V0": 3, "T4_ID": 0, "T4_V0": 4}, "timestamp": 3}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "T1_ID INT PRIMARY KEY, T2_ID INTEGER, T2_V0 BIGINT, T3_V0 BIGINT, T4_ID INTEGER, T4_V0 BIGINT"}
+        ]
+      }
     }
   ]
 }

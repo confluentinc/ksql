@@ -199,7 +199,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
       final Optional<SourceName> sourceName
   ) {
     final Stream<ColumnName> names = Stream.of(left, right)
-        .flatMap(s -> s instanceof JoinNode ? s.getSources().stream() : Stream.of(s))
+        .flatMap(JoinNode::getPreJoinProjectDataSources)
         .filter(s -> !sourceName.isPresent() || sourceName.equals(s.getSourceName()))
         .flatMap(s -> s.resolveSelectStar(sourceName));
 
@@ -584,6 +584,41 @@ public class JoinNode extends PlanNode implements JoiningNode {
   ) {
     final ColumnName keyName = joinKey.resolveKeyName(left, right);
     return JoinParamsFactory.createSchema(keyName, left.getSchema(), right.getSchema());
+  }
+
+  /**
+   * If there is a {@code JoinNode} upstream of the given node, this method
+   * returns that {@code JoinNode}. Else, empty.
+   */
+  private static Optional<JoinNode> findUpstreamJoin(final PlanNode node) {
+    PlanNode current = node;
+    while (!(current instanceof JoinNode) && (current instanceof JoiningNode)) {
+      if (current.getSources().size() != 1) {
+        throw new IllegalStateException("Only JoinNode can have multiple sources.");
+      }
+      current = current.getSources().get(0);
+    }
+    if (current instanceof JoinNode) {
+      return Optional.of((JoinNode) current);
+    } else {
+      return Optional.empty();
+    }
+  }
+
+  /**
+   * Analogous to {@link PlanNode#getSourceNodes()} except instead of returning
+   * {@code DataSourceNode}s, this method returns the {@code PreJoinProjectNode}s
+   * attached to those {@code DataSourceNode}s. This is achieved by traversing
+   * the join tree and returning the plan nodes immediately preceding any
+   * {@code JoinNode}s until no more {@code JoinNode}s are present in any particular
+   * branch of the tree.
+   */
+  private static Stream<PlanNode> getPreJoinProjectDataSources(final PlanNode node) {
+    final Optional<JoinNode> upstreamJoin = findUpstreamJoin(node);
+    return upstreamJoin.map(n ->
+        n.getSources().stream()
+            .flatMap(JoinNode::getPreJoinProjectDataSources)
+    ).orElse(Stream.of(node));
   }
 
   @Immutable

@@ -1063,6 +1063,9 @@
         "leftJoinColumnName" : {
           "type" : "string"
         },
+        "formats" : {
+          "$ref" : "#/definitions/Formats"
+        },
         "leftSource" : {
           "$ref" : "#/definitions/ExecutionStep"
         },
@@ -1071,7 +1074,7 @@
         }
       },
       "title" : "fkTableTableJoinV1",
-      "required" : [ "@type", "properties", "joinType", "leftJoinColumnName", "leftSource", "rightSource" ]
+      "required" : [ "@type", "properties", "joinType", "leftJoinColumnName", "formats", "leftSource", "rightSource" ]
     },
     "RefinementInfo" : {
       "type" : "object",

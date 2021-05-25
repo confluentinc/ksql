@@ -67,7 +67,7 @@ public class ForeignKeyTableTableJoinTest {
             new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME_2, formats1, left1, right1)
         )
         .addEqualityGroup(
-            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats2, left2, right1)
+            new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats2, left1, right1)
         )
         .addEqualityGroup(
             new ForeignKeyTableTableJoin<>(props1, INNER, JOIN_COLUMN_NAME, formats1, left2, right1)

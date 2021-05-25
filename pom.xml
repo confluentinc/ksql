@@ -132,11 +132,9 @@
         <scala.version>2.13.2</scala.version>
 
         <netty-tcnative-version>2.0.39.Final</netty-tcnative-version>
-        <!-- We normally get this from common, but Vertx is built against 4.1.49.Final -->
+        <!-- We normally get this from common, but Vertx is built against this -->
         <netty.version>4.1.60.Final</netty.version>
-        <!-- This matches the version in common -->
-        <netty-codec-http2-version>4.1.49.Final</netty-codec-http2-version>
-        <!-- Brought in by both schema registry and connect, we need to pick a version -->
+        <netty-codec-http2-version>4.1.60.Final</netty-codec-http2-version>
         <jersey-common>2.31</jersey-common>
     </properties>
 

@@ -142,7 +142,7 @@
         <!-- We normally get this from common, but Vertx is built against this -->
         <netty.version>4.1.60.Final</netty.version>
         <netty-codec-http2-version>4.1.60.Final</netty-codec-http2-version>
-        <jersey-common>2.31</jersey-common>
+        <jersey-common>2.34</jersey-common>
     </properties>
 
     <dependencyManagement>

@@ -217,6 +217,7 @@
       }
     },
     {
+      "enabled": false,
       "name": "Should support inner join with left value-column expression - with aliases",
       "statements": [
         "CREATE TABLE left_table (id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
@@ -247,6 +248,7 @@
       }
     },
     {
+      "enabled": false,
       "name": "Should support left join with left value-column expression - with aliases",
       "statements": [
         "CREATE TABLE left_table (id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
@@ -313,6 +315,7 @@
       }
     },
     {
+      "enabled": false,
       "name": "Should support flipped join condition with aliases",
       "statements": [
         "CREATE TABLE left_table (id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
@@ -448,6 +451,7 @@
       }
     },
     {
+      "enabled": false,
       "name": "Should support qualified `SELECT *` for both input using aliases",
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",

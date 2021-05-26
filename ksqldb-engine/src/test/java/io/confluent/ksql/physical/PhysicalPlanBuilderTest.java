@@ -267,30 +267,6 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldThrowIfLeftTableNotJoiningOnTableKey() {
-    // Given:
-    givenKafkaTopicsExist("test4", "test5");
-    execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> execute("CREATE TABLE t1 AS "
-            + "SELECT * FROM test4 JOIN test5 "
-            + "ON test4.col0 = test5.id;")
-    );
-
-    // Then:
-    assertThat(
-        e.getMessage(),
-        containsString(
-            "Invalid join condition:"
-                + " foreign-key table-table joins are not supported. Got TEST4.COL0 = TEST5.ID."
-        )
-    );
-  }
-
-  @Test
   public void shouldThrowIfRightTableNotJoiningOnTableKey() {
     // Given:
     givenKafkaTopicsExist("test4", "test5");

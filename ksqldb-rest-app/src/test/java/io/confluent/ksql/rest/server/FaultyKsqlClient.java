@@ -26,6 +26,7 @@ import io.confluent.ksql.util.KsqlHostInfo;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
@@ -84,7 +85,7 @@ public class FaultyKsqlClient implements SimpleKsqlClient {
   }
 
   @Override
-  public RestResponse<BufferedPublisher<StreamedRow>> makeQueryRequestStreamed(
+  public CompletableFuture<RestResponse<BufferedPublisher<StreamedRow>>> makeQueryRequestStreamed(
       URI serverEndPoint, String sql, Map<String, ?> configOverrides,
       Map<String, ?> requestProperties) {
     return getClient().makeQueryRequestStreamed(serverEndPoint, sql, configOverrides,

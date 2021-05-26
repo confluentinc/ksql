@@ -57,6 +57,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -140,8 +141,8 @@ public class KsqlServerEndpoints implements Endpoints {
 
   @Override
   public CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
-      final JsonObject properties,
-      final JsonObject sessionVariables,
+      final Map<String, Object> properties,
+      final Map<String, Object> sessionVariables,
       final Context context,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext,

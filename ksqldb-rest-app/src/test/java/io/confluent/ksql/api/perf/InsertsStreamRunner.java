@@ -41,6 +41,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.codec.BodyCodec;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.reactivestreams.Subscriber;
@@ -160,8 +161,8 @@ public class InsertsStreamRunner extends BasePerfRunner {
 
     @Override
     public CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
-        final JsonObject properties,
-        final JsonObject sessionVariables,
+        final Map<String, Object> properties,
+        final Map<String, Object> sessionVariables,
         final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext,

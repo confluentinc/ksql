@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.vertx.core.json.JsonObject;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -29,8 +28,8 @@ import java.util.Objects;
 public class QueryStreamArgs {
 
   public final String sql;
-  public final JsonObject properties;
-  public final JsonObject sessionVariables;
+  public final Map<String, Object> properties;
+  public final Map<String, Object> sessionVariables;
   public final Map<String, Object> requestProperties;
 
   public QueryStreamArgs(final @JsonProperty(value = "sql", required = true) String sql,
@@ -41,13 +40,36 @@ public class QueryStreamArgs {
       final @JsonProperty(value = "requestProperties")
           Map<String, Object> requestProperties) {
     this.sql = Objects.requireNonNull(sql);
-    this.properties = properties == null ? new JsonObject() : new JsonObject(properties);
+    this.properties = properties == null ? Collections.emptyMap() : properties;
     this.sessionVariables = sessionVariables == null
-        ? new JsonObject()
-        : new JsonObject(sessionVariables);
+        ? Collections.emptyMap()
+        : sessionVariables;
     this.requestProperties = requestProperties == null
         ? Collections.emptyMap()
         : requestProperties;
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+
+    if (!(o instanceof QueryStreamArgs)) {
+      return false;
+    }
+
+    final QueryStreamArgs that = (QueryStreamArgs) o;
+    return Objects.equals(sql, that.sql)
+        && Objects.equals(properties, that.properties)
+        && Objects.equals(requestProperties, that.requestProperties)
+        && Objects.equals(sessionVariables, that.sessionVariables);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(sql, properties, requestProperties,
+        sessionVariables);
   }
 
   @Override

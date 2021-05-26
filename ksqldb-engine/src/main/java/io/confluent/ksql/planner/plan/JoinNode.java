@@ -217,9 +217,9 @@ public class JoinNode extends PlanNode implements JoiningNode {
   void validateKeyPresent(final SourceName sinkName, final Projection projection) {
 
     if (joinKey.isForeignKey()) {
-      final DataSource leftInputTable = getLeftmostSourceNode().getDataSource();
-      final SourceName leftInputTableName = leftInputTable.getName();
-      final List<Column> leftInputTableKeys = leftInputTable.getSchema().key();
+      final DataSourceNode leftInputTable = getLeftmostSourceNode();
+      final SourceName leftInputTableName = leftInputTable.getAlias();
+      final List<Column> leftInputTableKeys = leftInputTable.getDataSource().getSchema().key();
       final List<Column> missingKeys =
           leftInputTableKeys.stream().filter(
               k -> !projection.containsExpression(

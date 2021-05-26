@@ -142,6 +142,7 @@
         <netty.version>4.1.60.Final</netty.version>
         <!-- This matches the version in common -->
         <netty-codec-http2-version>4.1.60.Final</netty-codec-http2-version>
+        <jersey-common>2.34</jersey-common>
     </properties>
 
     <dependencyManagement>

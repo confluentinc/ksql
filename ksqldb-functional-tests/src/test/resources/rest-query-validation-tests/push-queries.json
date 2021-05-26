@@ -430,9 +430,6 @@
     },
     {
       "name": "Should not allow foreign key join on windowed tables",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (k STRING PRIMARY KEY, f1 STRING) WITH (kafka_topic='left_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='1 SECOND');",
         "CREATE TABLE right_table (k STRING PRIMARY KEY, id INT) WITH (kafka_topic='right_topic', value_format='JSON', WINDOW_TYPE='Tumbling', WINDOW_SIZE='1 SECOND');",

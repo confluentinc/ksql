@@ -1,82 +1,7 @@
 {
   "tests": [
     {
-      "name": "Should fail on left non-key attribute for inner-join",
-      "statements": [
-        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
-        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
-        "CREATE TABLE output AS SELECT * FROM left_table JOIN right_table ON foreign_key = r_id;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: foreign-key table-table joins are not supported. Got LEFT_TABLE.FOREIGN_KEY = RIGHT_TABLE.R_ID."
-      }
-    },
-    {
-      "name": "Should fail on left non-key attribute for inner-join -- reverse join condition order",
-      "statements": [
-        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
-        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
-        "CREATE TABLE output AS SELECT * FROM left_table JOIN right_table ON r_id = foreign_key;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: foreign-key table-table joins are not supported. Got RIGHT_TABLE.R_ID = LEFT_TABLE.FOREIGN_KEY."
-      }
-    },
-    {
-      "name": "Should fail on left non-key attribute for left-join",
-      "statements": [
-        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
-        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
-        "CREATE TABLE output AS SELECT * FROM left_table LEFT JOIN right_table ON foreign_key = r_id;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: foreign-key table-table joins are not supported. Got LEFT_TABLE.FOREIGN_KEY = RIGHT_TABLE.R_ID."
-      }
-    },
-    {
-      "name": "Should fail on left non-key attribute for left-join -- reverse join condition order",
-      "statements": [
-        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
-        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
-        "CREATE TABLE output AS SELECT * FROM left_table LEFT JOIN right_table ON r_id = foreign_key;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: foreign-key table-table joins are not supported. Got RIGHT_TABLE.R_ID = LEFT_TABLE.FOREIGN_KEY."
-      }
-    },
-    {
-      "name": "Should fail on left non-key attribute for outer-join",
-      "statements": [
-        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
-        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
-        "CREATE TABLE output AS SELECT * FROM left_table FULL OUTER JOIN right_table ON foreign_key = r_id;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: foreign-key table-table joins are not supported. Got LEFT_TABLE.FOREIGN_KEY = RIGHT_TABLE.R_ID."
-      }
-    },
-    {
-      "name": "Should fail on left non-key attribute for outer-join -- reverse join condition order",
-      "statements": [
-        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
-        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
-        "CREATE TABLE output AS SELECT * FROM left_table FULL OUTER JOIN right_table ON r_id = foreign_key;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: foreign-key table-table joins are not supported. Got RIGHT_TABLE.R_ID = LEFT_TABLE.FOREIGN_KEY."
-      }
-    },
-    {
       "name": "Should fail for non-column expression in left join expression",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
@@ -89,9 +14,6 @@
     },
     {
       "name": "Should fail if types in join condition don't match",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key_wrong_type VARCHAR) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
@@ -104,9 +26,6 @@
     },
     {
       "name": "Should not allow join on partial right source key",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE TABLE right_table (r_id_1 BIGINT PRIMARY KEY, r_id_2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
@@ -119,9 +38,6 @@
     },
     {
       "name": "Should fail if single result key column is missing in projection for inner-join",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, f1 VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
@@ -134,9 +50,6 @@
     },
     {
       "name": "Should fail on partial left source key in projection",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id_1 BIGINT PRIMARY KEY, l_id_2 BIGINT PRIMARY KEY, f1 VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
@@ -149,9 +62,6 @@
     },
     {
       "name": "Should fail if all result key columns are missing for inner join",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id_1 BIGINT PRIMARY KEY, l_id_2 BIGINT PRIMARY KEY, f1 VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
@@ -164,9 +74,6 @@
     },
     {
       "name": "Should fail with duplicate left source key in projection",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, f1 VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
@@ -178,11 +85,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should support inner join with left value-column expression",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
@@ -212,11 +115,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should support left join with left value-column expression",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
@@ -252,11 +151,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should support inner join with left key-column expression",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, l_id_2_foreign_key BIGINT PRIMARY KEY, name VARCHAR, value BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
@@ -286,11 +181,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should support left join with left key-column expression",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, l_id_2_foreign_key BIGINT PRIMARY KEY, name VARCHAR, value BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
@@ -326,11 +217,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should support inner join with left value-column expression - with aliases",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE TABLE right_table (id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
@@ -360,11 +247,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should support left join with left value-column expression - with aliases",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE TABLE right_table (id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
@@ -400,11 +283,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should support flipped join condition",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
@@ -434,11 +313,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should support flipped join condition with aliases",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE TABLE right_table (id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
@@ -474,11 +349,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should allow to omit join columns in projection",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
@@ -508,11 +379,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should support `SELECT *`",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
@@ -534,11 +401,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should support qualified `SELECT *` for right input",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
@@ -563,11 +426,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should support qualified `SELECT *` for left input",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
@@ -589,11 +448,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should support qualified `SELECT *` for both input using aliases",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON');",
@@ -618,11 +473,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should allow key format mismatch",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
@@ -655,11 +506,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should allow partition count mismatch",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', value_format='JSON', partitions=1);",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', value_format='JSON', partitions=2);",
@@ -697,11 +544,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should allow format mismatch without repartitioning",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='AVRO');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
@@ -743,11 +586,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should allow (default) key feature mismatch",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, name VARCHAR, foreign_key BIGINT) WITH (kafka_topic='left_topic', key_format='DELIMITED', value_format='JSON');",
         "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f1 VARCHAR, f2 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",

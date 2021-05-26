@@ -51,6 +51,11 @@ public final class ForeignKeyTableTableJoinBuilder {
         formats.getValueFeatures()
     );
 
+    final Serde<KLeftT> keySerde = left.getExecutionKeyFactory().buildKeySerde(
+        formats.getKeyFormat(),
+        physicalSchema,
+        join.getProperties().getQueryContext()
+    );
     final Serde<GenericRow> valSerde = buildContext.buildValueSerde(
         formats.getValueFormat(),
         physicalSchema,
@@ -64,7 +69,7 @@ public final class ForeignKeyTableTableJoinBuilder {
             right.getTable(),
             joinParams.getKeyExtractor(),
             joinParams.getJoiner(),
-            Materialized.with(null, valSerde)
+            Materialized.with(keySerde, valSerde)
         );
         break;
       case LEFT:
@@ -72,7 +77,7 @@ public final class ForeignKeyTableTableJoinBuilder {
             right.getTable(),
             joinParams.getKeyExtractor(),
             joinParams.getJoiner(),
-            Materialized.with(null, valSerde)
+            Materialized.with(keySerde, valSerde)
         );
         break;
       default:

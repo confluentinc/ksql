@@ -96,8 +96,7 @@ public class TopicInfoCache {
   private static final Set<Pattern> IGNORE_INTERNAL_TOPIC_NAMES_PATTERNS = ImmutableSet.of(
       Pattern.compile(TOPIC_PATTERN_PREFIX + ".*-FK-JOIN-SUBSCRIPTION-REGISTRATION-\\d+-topic"),
       Pattern.compile(TOPIC_PATTERN_PREFIX + ".*-FK-JOIN-SUBSCRIPTION-RESPONSE-\\d+-topic"),
-      Pattern.compile(TOPIC_PATTERN_PREFIX + ".*-FK-JOIN-SUBSCRIPTION-STATE-STORE-\\d+-changelog"),
-      Pattern.compile(TOPIC_PATTERN_PREFIX + ".*-FK-JOIN-OUTPUT-STATE-STORE-\\d+-changelog")
+      Pattern.compile(TOPIC_PATTERN_PREFIX + ".*-FK-JOIN-SUBSCRIPTION-STATE-STORE-\\d+-changelog")
   );
 
   private final KsqlExecutionContext ksqlEngine;

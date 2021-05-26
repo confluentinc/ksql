@@ -68,32 +68,11 @@ Because materialized views are incrementally updated as new events arrive,
 pull queries run with predictably low latency. They're a great match for
 request/response flows. For asynchronous application flows, see
 [Push Query](/developer-guide/ksqldb-reference/select-push-query/).
+Pull queries are expressed using a strict subset of ANSI SQL.
 
 Execute a pull query by sending an HTTP request to the ksqlDB REST API, and
 the API responds with a single response.
 
-### Pull query features and limitations
+If you want to learn more, see [Pull Queries](select-pull-query.md).
 
-- Pull queries are expressed using a strict subset of ANSI SQL.
-- You can execute pull queries on any derived table created by using the
-  CREATE TABLE AS SELECT statement.
-- For non-windowed aggregations, pull queries only support looking up events
-  by key.
-- WHERE clauses must have constraints that encompass all key column(s) for non-windowed tables.
 
-- In addition, windowed tables support bounds on `WINDOWSTART` and `WINDOWEND` using operators
-  `<=`, `<`, `=`, `>`, `>=`.
-- JOIN, PARTITION BY, GROUP BY and WINDOW clauses aren't supported.
-- SELECT statements can contain column arithmetic and function calls.
-- The result of a pull query isn't persisted anywhere.
-
-### Example pull query
-
-The following pull query gets all events for the specified user that have a
-timestamp within the specified time window. 
-
-```sql
-SELECT * FROM user_location
-  WHERE userId = 'user19r7t33'
-    AND '2019-10-02T21:31:16' <= WINDOWSTART AND WINDOWEND <= '2019-10-03T21:31:16';
-```

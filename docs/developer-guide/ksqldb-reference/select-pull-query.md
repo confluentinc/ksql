@@ -55,6 +55,7 @@ additional expressions are allowed:
 -   Non key columns to be used alone, without key references.
 -   Columns to be compared to other columns.
 -   References to subsets of columns from a multi-column key.
+-   Complex expressions without direct column references (e.g. instr(NAME_COL, 'hello') > 0).
 
 !!! note
 	Table scan based queries are just the next incremental step for ksqlDB pull queries. 

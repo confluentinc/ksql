@@ -32,10 +32,14 @@ for request/response flows. For asynchronous application flows, see
 You can execute a pull query by sending an HTTP request to the ksqlDB REST API, and
 the API responds with a single response.  
 
-You can issue a pull query against any table that was created by using 
-a [CREATE TABLE AS SELECT](../../ksqldb-reference/create-table-as-select) 
-statement. Currently, we do not support pull queries against tables created 
-by using a [CREATE TABLE](../../ksqldb-reference/create-table) statement.
+
+-   Pull queries are expressed using a strict subset of ANSI SQL.
+-   You can issue a pull query against any table that was created by using 
+    a [CREATE TABLE AS SELECT](../../ksqldb-reference/create-table-as-select) 
+    statement.
+-   `SELECT` statements can contain column arithmetic and function calls.
+-   Currently, we do not support pull queries against tables created by using a [CREATE TABLE](../../ksqldb-reference/create-table) statement.
+-   `JOIN`, `PARTITION BY`, `GROUP BY` and `WINDOW` clauses aren't supported currently.
 
 WHERE Clause Guidelines
 -----------------------

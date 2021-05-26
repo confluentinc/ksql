@@ -1,4 +1,33 @@
 # Change Log
+## [0.18.0](https://github.com/confluentinc/ksql/releases/tag/v0.18.0-ksqldb) (2021-05-26)
+
+### Features
+
+* implemented working query anonymizer ([#7357](https://github.com/confluentinc/ksql/pull/7357)) ([fa0445f](https://github.com/confluentinc/ksql/commit/fa0445fe466511c5126ae30f2979bcc48f2792c4))
+* add 'show connector plugins' syntax ([#7284](https://github.com/confluentinc/ksql/pull/7284)) ([be50d2d](https://github.com/confluentinc/ksql/commit/be50d2db3681ac9d91501d203fec9d19bcfdc716))
+* Detailed pull query metrics broken down by type and source ([#7272](https://github.com/confluentinc/ksql/pull/7272)) ([9c173a6](https://github.com/confluentinc/ksql/commit/9c173a6022f9e95ef7cbc1ddbf8abd61ec9d2320))
+* emit an error reason before closing websocket ([#7390](https://github.com/confluentinc/ksql/pull/7390)) ([c2d9372](https://github.com/confluentinc/ksql/commit/c2d9372715be0a1d3d8013c91c5f07b0aec3e871))
+* Materialize Table-Table join results ([#7246](https://github.com/confluentinc/ksql/pull/7246)) ([4ae1b31](https://github.com/confluentinc/ksql/commit/4ae1b31913c1d118894aed377bef086461fc1062))
+* include task metadata information from remote hosts in query descriptions ([#7331](https://github.com/confluentinc/ksql/pull/7331)) ([c0e1e73](https://github.com/confluentinc/ksql/commit/c0e1e73fc5e7b1c05562aaf618c77902ea779dc8))
+* print stats/errors breakdown by host in cli ([#7296](https://github.com/confluentinc/ksql/pull/7296)) ([20a4ea5](https://github.com/confluentinc/ksql/commit/20a4ea5a84d134b44ff5d41335bdf925a8ce98f5))
+* include aggregated metrics in source descriptions ([#7252](https://github.com/confluentinc/ksql/pull/7252)) ([0b30ed9](https://github.com/confluentinc/ksql/commit/0b30ed97aac906c6639da00588d580f148ffeb7f)), ([#7235](https://github.com/confluentinc/ksql/pull/7235)) ([924fc5b](https://github.com/confluentinc/ksql/commit/924fc5baacd7ff7002566641dab936cfabda2532))
+* add --define flag to migrations tool apply command ([#7401](https://github.com/confluentinc/ksql/pull/7401)) ([165e972](https://github.com/confluentinc/ksql/commit/165e9729110f8059ab6338052074e2e9bb10c8bf))
+* support DEFINE and UNDEFINE statements in migrations tool ([#7366](https://github.com/confluentinc/ksql/pull/7366)) ([330db93](https://github.com/confluentinc/ksql/commit/330db939861f22da7c6914a66a39824e08972419))
+* enable variable substitution for /query-stream and /ksql endpoints ([#7271](https://github.com/confluentinc/ksql/pull/7271)) ([f6dd212](https://github.com/confluentinc/ksql/commit/f6dd212a50a6c247f2c7a946da3144a0f1460fc7))
+* enable variable substitution for java client ([#7335](https://github.com/confluentinc/ksql/pull/7335)) ([c82a072](https://github.com/confluentinc/ksql/commit/c82a072e40fd64085faf11cdead6c255e0096708))
+* Add connector functions to java client ([#7222](https://github.com/confluentinc/ksql/pull/7222)) ([7766195](https://github.com/confluentinc/ksql/commit/77661957c447ee3eb6bbc162ed2a8976a06ac71b))
+
+### Bug Fixes
+
+* Add line breaks to error message ([#7324](https://github.com/confluentinc/ksql/pull/7324)) ([1695f39](https://github.com/confluentinc/ksql/commit/1695f390cf1b3c676fba703c87987a0828e668df)), closes [#7205](https://github.com/confluentinc/ksql/issues/7205)
+* Append state.dir directive to ksql-server.properties ([#7003](https://github.com/confluentinc/ksql/pull/7003)) ([4893e90](https://github.com/confluentinc/ksql/commit/4893e90fd0dcbcc26626a36579558e048a6ad9d8))
+* Bubble up errors from HARouting unless using StandbyFallbackException ([#7238](https://github.com/confluentinc/ksql/pull/7238)) ([ec12516](https://github.com/confluentinc/ksql/commit/ec12516799993cb99880d0430b609ce4d0ab81dc))
+* fix NPE when backing a record that has null key/values ([#7268](https://github.com/confluentinc/ksql/pull/7268)) ([0cbd4e8](https://github.com/confluentinc/ksql/commit/0cbd4e847326010d0acd321331e8427f7ea731e9))
+* preserve the rest of a struct when one field has a processing error ([#7373](https://github.com/confluentinc/ksql/pull/7373)) ([6d708db](https://github.com/confluentinc/ksql/commit/6d708db41fe7fa6c1a3cd74dcebfcd66c66e0aaa))
+* stop long-running queries from blocking the main event loop ([#7420](https://github.com/confluentinc/ksql/pull/7420)) ([242fefb](https://github.com/confluentinc/ksql/commit/242fefb268923650592996f6764f198488759d2e)), closes [#7358](https://github.com/confluentinc/ksql/issues/7358)
+* stop worker-poll tasks from blocking main loop ([#7427](https://github.com/confluentinc/ksql/pull/7427)) ([0b0bf65](https://github.com/confluentinc/ksql/commit/0b0bf65df6c2e178a5c249de6ac6bf7a13abe70c)), closes [#7358](https://github.com/confluentinc/ksql/issues/7358)
+* allow java client to accept statements with more than one semicolon ([#7243](https://github.com/confluentinc/ksql/pull/7243)) ([4086acb](https://github.com/confluentinc/ksql/commit/4086acbeff89cc5f8c0b5b03e800074894be8183))
+* fix NPE when closing transient queries ([#7530](https://github.com/confluentinc/ksql/pull/7530)) ([bc64edd](https://github.com/confluentinc/ksql/commit/bc64eddd88c6ae936c0518f816c8ef477070b20b))
 
 ## [0.17.0](https://github.com/confluentinc/ksql/releases/tag/v0.17.0-ksqldb) (2021-04-26)
 

@@ -33,9 +33,10 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
       final TableElements elements,
       final boolean orReplace,
       final boolean notExists,
+      final boolean isSource,
       final CreateSourceProperties properties
   ) {
-    this(Optional.empty(), name, elements, orReplace, notExists, properties);
+    this(Optional.empty(), name, elements, orReplace, notExists, isSource, properties);
   }
 
   public CreateTable(
@@ -44,9 +45,10 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
       final TableElements elements,
       final boolean orReplace,
       final boolean notExists,
+      final boolean isSource,
       final CreateSourceProperties properties
   ) {
-    super(location, name, elements, orReplace, notExists, properties);
+    super(location, name, elements, orReplace, notExists, isSource, properties);
 
     throwOnNonPrimaryKeys(elements);
   }
@@ -62,6 +64,7 @@ public class CreateTable extends CreateSource implements ExecutableDdlStatement 
         elements,
         isOrReplace(),
         isNotExists(),
+        isSource(),
         properties);
   }
 

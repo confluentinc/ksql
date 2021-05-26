@@ -32,6 +32,7 @@ public abstract class CreateSource extends Statement {
   private final boolean notExists;
   private final CreateSourceProperties properties;
   private final boolean orReplace;
+  private final boolean isSource;
 
   CreateSource(
       final Optional<NodeLocation> location,
@@ -39,6 +40,7 @@ public abstract class CreateSource extends Statement {
       final TableElements elements,
       final boolean orReplace,
       final boolean notExists,
+      final boolean isSource,
       final CreateSourceProperties properties
   ) {
     super(location);
@@ -46,6 +48,7 @@ public abstract class CreateSource extends Statement {
     this.elements = requireNonNull(elements, "elements");
     this.orReplace = orReplace;
     this.notExists = notExists;
+    this.isSource = isSource;
     this.properties = requireNonNull(properties, "properties");
   }
 
@@ -67,6 +70,10 @@ public abstract class CreateSource extends Statement {
 
   public boolean isNotExists() {
     return notExists;
+  }
+
+  public boolean isSource() {
+    return isSource;
   }
 
   public abstract CreateSource copyWith(TableElements elements, CreateSourceProperties properties);

@@ -100,7 +100,8 @@ public final class CreateSourceFactory {
         outputNode.getKsqlTopic().getKafkaTopicName(),
         Formats.from(outputNode.getKsqlTopic()),
         outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
-        Optional.of(outputNode.getOrReplace())
+        Optional.of(outputNode.getOrReplace()),
+        Optional.of(false)
     );
   }
 
@@ -130,7 +131,8 @@ public final class CreateSourceFactory {
         topicName,
         buildFormats(statement.getName(), schema, props, ksqlConfig),
         getWindowInfo(props),
-        Optional.of(statement.isOrReplace())
+        Optional.of(statement.isOrReplace()),
+        Optional.of(statement.isSource())
     );
   }
 
@@ -142,7 +144,8 @@ public final class CreateSourceFactory {
         outputNode.getKsqlTopic().getKafkaTopicName(),
         Formats.from(outputNode.getKsqlTopic()),
         outputNode.getKsqlTopic().getKeyFormat().getWindowInfo(),
-        Optional.of(outputNode.getOrReplace())
+        Optional.of(outputNode.getOrReplace()),
+        Optional.of(false)
     );
   }
 
@@ -188,6 +191,7 @@ public final class CreateSourceFactory {
         topicName,
         buildFormats(statement.getName(), schema, props, ksqlConfig),
         getWindowInfo(props),
+        Optional.of(statement.isSource()),
         Optional.of(statement.isOrReplace())
     );
   }

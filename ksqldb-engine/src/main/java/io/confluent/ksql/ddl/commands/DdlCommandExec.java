@@ -98,6 +98,7 @@ public class DdlCommandExec {
           createStream.getSchema(),
           createStream.getTimestampColumn(),
           withQuery,
+          createStream.isSource(),
           getKsqlTopic(createStream)
       );
 
@@ -123,6 +124,7 @@ public class DdlCommandExec {
           createTable.getSourceName(),
           createTable.getSchema(),
           createTable.getTimestampColumn(),
+          createTable.isSource(),
           withQuery,
           getKsqlTopic(createTable)
       );

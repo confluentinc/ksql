@@ -288,6 +288,7 @@ public class AstBuilder {
           TableElements.of(elements),
           context.REPLACE() != null,
           context.EXISTS() != null,
+          context.SOURCE() != null,
           CreateSourceProperties.from(properties)
       );
     }
@@ -306,6 +307,7 @@ public class AstBuilder {
           TableElements.of(elements),
           context.REPLACE() != null,
           context.EXISTS() != null,
+          context.SOURCE() != null,
           CreateSourceProperties.from(properties)
       );
     }
@@ -1418,6 +1420,7 @@ public class AstBuilder {
           TableElements.of(elements),
           false,
           false,
+          false,
           CreateSourceProperties.from(properties)
       );
 
@@ -1436,6 +1439,7 @@ public class AstBuilder {
           getLocation(context),
           ParserUtil.getSourceName(context.sourceName()),
           TableElements.of(elements),
+          false,
           false,
           false,
           CreateSourceProperties.from(properties)

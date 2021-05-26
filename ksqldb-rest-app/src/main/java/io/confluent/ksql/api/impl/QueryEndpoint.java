@@ -54,7 +54,6 @@ import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
-import io.vertx.core.json.JsonObject;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;

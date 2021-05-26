@@ -135,7 +135,7 @@ public class PushRoutingTest {
     CompletableFuture<PushConnectionsHandle> future =
         routing.handlePushQuery(serviceContext, pushPhysicalPlan, statement, pushRoutingOptions,
             outputSchema, transientQueryQueue);
-    PushConnectionsHandle handle = future.get();
+    future.get();
     context.runOnContext(v -> {
       localPublisher.accept(LOCAL_ROW1);
       localPublisher.accept(LOCAL_ROW2);
@@ -171,7 +171,7 @@ public class PushRoutingTest {
     CompletableFuture<PushConnectionsHandle> future =
         routing.handlePushQuery(serviceContext, pushPhysicalPlan, statement, pushRoutingOptions,
             outputSchema, transientQueryQueue);
-    PushConnectionsHandle handle = future.get();
+    future.get();
     context.runOnContext(v -> {
       localPublisher.accept(LOCAL_ROW1);
       localPublisher.accept(LOCAL_ROW2);

@@ -3,49 +3,6 @@
     {
       "name": "Should fail as second step in n-way join",
       "comments": [
-        "After we add support for binary FK-joins, this test should still fail, but with a different error:",
-        "The new error should point out that FK-joins cannot be used in n-way joins yet.",
-        "Note: this case should be supported after we lift the general restriction to not support FK-joins in n-way joins.",
-        "TODO: this test should be deleted once the feature is ungated and the feature flag is removed",
-        "as it duplicates another test below (with the feature flag enabled)"
-      ],
-      "statements": [
-        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
-        "CREATE TABLE middle_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='middle_topic', format='JSON');",
-        "CREATE TABLE right_table (id3 BIGINT PRIMARY KEY, f3 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
-        "CREATE TABLE output AS SELECT id1, f1, f2, f3 FROM left_table JOIN middle_table ON id1 = id2 JOIN right_table ON f1 = id3;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: foreign-key table-table joins are not supported. Got LEFT_TABLE.F1 = RIGHT_TABLE.ID3."
-      }
-    },
-    {
-      "name": "Should fail at start of n-way join",
-      "comments": [
-        "After we add support for binary FK-joins, this test should no longer fail, since FK joins",
-        "are allowed at the start of an n-way join chain, just not in the middle or the end.",
-        "Note: this case should be supported after we lift the general restriction to not support FK-joins in n-way joins.",
-        "TODO: this test should be deleted once the feature is ungated and the feature flag is removed",
-        "as it duplicates another test below (with the feature flag enabled)"
-      ],
-      "statements": [
-        "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
-        "CREATE TABLE middle_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='middle_topic', format='JSON');",
-        "CREATE TABLE right_table (id3 BIGINT PRIMARY KEY, f3 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
-        "CREATE TABLE output AS SELECT id1, f1, f2, f3 FROM left_table JOIN middle_table ON f1 = id2 JOIN right_table ON id1 = id3;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Invalid join condition: foreign-key table-table joins are not supported. Got LEFT_TABLE.F1 = MIDDLE_TABLE.ID2."
-      }
-    },
-    {
-      "name": "Should fail as second step in n-way join - feature flag enabled",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
-      "comments": [
         "Note: this case should be supported after we lift the general restriction to not support FK-joins in n-way joins."
       ],
       "statements": [
@@ -60,11 +17,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should allow fk join at start of n-way join",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
         "CREATE TABLE middle_table (m_id BIGINT PRIMARY KEY, f2 BIGINT, other STRING) WITH (kafka_topic='middle_topic', format='JSON');",
@@ -93,9 +46,6 @@
     },
     {
       "name": "Should fail as second step in n-way join with fk join as first step",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "comments": [
         "Note: this case should be supported after we lift the general restriction to not support FK-joins in n-way joins."
       ],
@@ -111,11 +61,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should allow fk join at start of n-way join - without fk join expressions in projection",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
         "CREATE TABLE middle_table (m_id BIGINT PRIMARY KEY, f2 BIGINT, other STRING) WITH (kafka_topic='middle_topic', format='JSON');",
@@ -144,9 +90,6 @@
     },
     {
       "name": "FK join at start of join should fail without key in projection",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
         "CREATE TABLE middle_table (id2 BIGINT PRIMARY KEY, f2 BIGINT) WITH (kafka_topic='middle_topic', format='JSON');",
@@ -159,11 +102,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should allow fk join at start of n-way join - alternative key expression in projection",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
         "CREATE TABLE middle_table (m_id BIGINT PRIMARY KEY, f2 BIGINT, other STRING) WITH (kafka_topic='middle_topic', format='JSON');",
@@ -191,11 +130,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should allow fk join at start of n-way join - select *",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
         "CREATE TABLE middle_table (m_id BIGINT PRIMARY KEY, f2 BIGINT, other STRING) WITH (kafka_topic='middle_topic', format='JSON');",
@@ -223,11 +158,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should allow fk join at start of n-way join - qualified select *",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (id1 BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
         "CREATE TABLE middle_table (id2 BIGINT PRIMARY KEY, f2 BIGINT, other STRING) WITH (kafka_topic='middle_topic', format='JSON');",
@@ -255,11 +186,7 @@
       }
     },
     {
-      "enabled": false,
       "name": "Should allow fk join at start of n-way join - with aliases",
-      "properties": {
-        "ksql.joins.foreign.key.enable": true
-      },
       "statements": [
         "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, foreign_key BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
         "CREATE TABLE middle_table (m_id BIGINT PRIMARY KEY, f2 BIGINT, other STRING) WITH (kafka_topic='middle_topic', format='JSON');",

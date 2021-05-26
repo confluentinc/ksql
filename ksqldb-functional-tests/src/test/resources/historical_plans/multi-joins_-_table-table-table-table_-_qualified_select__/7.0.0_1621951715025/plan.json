@@ -308,7 +308,6 @@
     "ksql.queryanonymizer.cluster_namespace" : null,
     "ksql.query.pull.metrics.enabled" : "true",
     "ksql.create.or.replace.enabled" : "true",
-    "ksql.joins.foreign.key.enable" : "false",
     "ksql.metrics.extension" : null,
     "ksql.hidden.topics" : "_confluent.*,__confluent.*,_schemas,__consumer_offsets,__transaction_state,connect-configs,connect-offsets,connect-status,connect-statuses",
     "ksql.cast.strings.preserve.nulls" : "true",

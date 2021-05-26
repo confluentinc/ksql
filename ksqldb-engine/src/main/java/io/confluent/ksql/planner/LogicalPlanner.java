@@ -726,73 +726,63 @@ public class LogicalPlanner {
     final Expression leftExpression = joinInfo.getLeftJoinExpression();
     final Expression rightExpression = joinInfo.getRightJoinExpression();
 
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_FOREIGN_KEY_JOINS_ENABLED)) {
+    if (joinInfo.getType().equals(JoinType.OUTER)) {
+      throw new KsqlException(String.format(
+          "Invalid join type:"
+              + " full-outer join not supported for foreign-key table-table join."
+              + " Got %s %s %s.",
+          joinInfo.getLeftSource().getDataSource().getName().text(),
+          joinType,
+          joinInfo.getRightSource().getDataSource().getName().text()
+      ));
+    }
 
-      if (joinInfo.getType().equals(JoinType.OUTER)) {
-        throw new KsqlException(String.format(
-            "Invalid join type:"
-                + " full-outer join not supported for foreign-key table-table join."
-                + " Got %s %s %s.",
-            joinInfo.getLeftSource().getDataSource().getName().text(),
-            joinType,
-            joinInfo.getRightSource().getDataSource().getName().text()
-        ));
-      }
-
-      // after we lift this n-way join restriction, we should be able to support FK-joins
-      // at any level in the join tree, even after we add right-deep/bushy join tree support,
-      // because a FK-join output table has the same PK as its left input table
-      if (!(leftNode instanceof DataSourceNode)
-          || !(rightNode instanceof DataSourceNode)) {
-        throw new KsqlException(String.format(
-            "Invalid join condition:"
-                + " foreign-key table-table joins are not supported as part of n-way joins."
-                + " Got %s = %s.",
-            joinInfo.getFlippedLeftJoinExpression(),
-            joinInfo.getFlippedRightJoinExpression()
-        ));
-      }
-
-      if (!(leftExpression instanceof ColumnReferenceExp)) {
-        throw new KsqlException(String.format(
-            "Invalid join condition:"
-                + " foreign-key table-table joins with expressions are not supported yet."
-                + " Got %s = %s.",
-            joinInfo.getFlippedLeftJoinExpression(),
-            joinInfo.getFlippedRightJoinExpression()
-        ));
-      }
-
-      // we need to extend this to support expressions later on
-      final ColumnReferenceExp fkColumnReference = (ColumnReferenceExp) leftExpression;
-
-      final SqlType fkColumnType =
-          leftNode.getSchema().findColumn(fkColumnReference.getColumnName()).get().type();
-      final SqlType rightKeyType = Iterables.getOnlyElement(rightNode.getSchema().key()).type();
-
-      verifyJoinConditionTypes(
-          fkColumnType,
-          rightKeyType,
-          leftExpression,
-          rightExpression,
-          joinInfo.hasFlippedJoinCondition()
-      );
-
-      if (((DataSourceNode) rightNode).isWindowed()) {
-        throw new KsqlException(
-           "Foreign-key table-table joins are not supported on windowed tables."
-        );
-      }
-
-      return Optional.of(fkColumnReference);
-    } else {
+    // after we lift this n-way join restriction, we should be able to support FK-joins
+    // at any level in the join tree, even after we add right-deep/bushy join tree support,
+    // because a FK-join output table has the same PK as its left input table
+    if (!(leftNode instanceof DataSourceNode)
+        || !(rightNode instanceof DataSourceNode)) {
       throw new KsqlException(String.format(
           "Invalid join condition:"
-              + " foreign-key table-table joins are not supported. Got %s = %s.",
+              + " foreign-key table-table joins are not supported as part of n-way joins."
+              + " Got %s = %s.",
           joinInfo.getFlippedLeftJoinExpression(),
           joinInfo.getFlippedRightJoinExpression()
       ));
     }
+
+    if (!(leftExpression instanceof ColumnReferenceExp)) {
+      throw new KsqlException(String.format(
+          "Invalid join condition:"
+              + " foreign-key table-table joins with expressions are not supported yet."
+              + " Got %s = %s.",
+          joinInfo.getFlippedLeftJoinExpression(),
+          joinInfo.getFlippedRightJoinExpression()
+      ));
+    }
+
+    // we need to extend this to support expressions later on
+    final ColumnReferenceExp fkColumnReference = (ColumnReferenceExp) leftExpression;
+
+    final SqlType fkColumnType =
+        leftNode.getSchema().findColumn(fkColumnReference.getColumnName()).get().type();
+    final SqlType rightKeyType = Iterables.getOnlyElement(rightNode.getSchema().key()).type();
+
+    verifyJoinConditionTypes(
+        fkColumnType,
+        rightKeyType,
+        leftExpression,
+        rightExpression,
+        joinInfo.hasFlippedJoinCondition()
+    );
+
+    if (((DataSourceNode) rightNode).isWindowed()) {
+      throw new KsqlException(
+         "Foreign-key table-table joins are not supported on windowed tables."
+      );
+    }
+
+    return Optional.of(fkColumnReference);
   }
 
   private static boolean joinOnNonKeyAttribute(

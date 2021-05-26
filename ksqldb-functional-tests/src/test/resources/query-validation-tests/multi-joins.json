@@ -524,7 +524,7 @@
         "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
         "CREATE TABLE T2 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');",
         "CREATE TABLE T3 (ID INT PRIMARY KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT S.ID, s.V0, t.V0, tt.V0 FROM S1 s JOIN T2 t ON S.ID = T.ID JOIN T3 tt ON S.ID = TT.ID;"
+        "CREATE STREAM OUTPUT as SELECT S.ID, s.V0, t.V0, tt.V0 FROM S1 AS s JOIN T2 AS t ON S.ID = T.ID JOIN T3 AS tt ON S.ID = TT.ID;"
       ],
       "inputs": [
         {"topic": "right2", "key": 0, "value": {"V0": 3}, "timestamp": 10},
@@ -539,6 +539,29 @@
         "topics": {"blacklist": ".*-repartition"},
         "sources": [
           {"name": "OUTPUT", "type": "stream", "schema": "S_ID INT KEY, S_V0 BIGINT, T_V0 BIGINT, TT_V0 BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "table-table-table - inner-inner - aliasing",
+      "statements": [
+        "CREATE TABLE left_table (l_id BIGINT PRIMARY KEY, f1 BIGINT) WITH (kafka_topic='left_topic', format='JSON');",
+        "CREATE TABLE middle_table (m_id BIGINT PRIMARY KEY, f2 BIGINT, other STRING) WITH (kafka_topic='middle_topic', format='JSON');",
+        "CREATE TABLE right_table (r_id BIGINT PRIMARY KEY, f3 BIGINT) WITH (kafka_topic='right_topic', format='JSON');",
+        "CREATE TABLE output AS SELECT l_id, as_value(m_id) as m_id, f1, mt.f2, f3 FROM left_table AS lt JOIN middle_table AS mt ON lt.l_id = mt.m_id JOIN right_table AS rt ON lt.l_id = r_id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"f1": 1}, "timestamp": 0},
+        {"topic": "middle_topic", "key": 0, "value": {"f2": 2}, "timestamp": 1},
+        {"topic": "right_topic", "key": 0, "value": {"f3": 3}, "timestamp": 2}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"M_ID": 0, "F1": 1, "F2": 2, "F3": 3}, "timestamp": 2}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "table", "schema": "L_ID BIGINT PRIMARY KEY, M_ID BIGINT, F1 BIGINT, F2 BIGINT, F3 BIGINT"}
         ]
       }
     },

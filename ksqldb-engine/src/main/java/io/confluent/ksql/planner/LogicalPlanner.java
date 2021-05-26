@@ -659,7 +659,7 @@ public class LogicalPlanner {
 
       // table-table join detected
 
-      if (joinOnNonKeyAttribute(rightExpression, rightNode)) {
+      if (joinOnNonKeyAttribute(rightExpression, rightNode, joinInfo.getRightSource())) {
         throw new KsqlException(String.format(
                 "Invalid join condition:"
                     + " table-table joins require to join on the primary key of the right input"
@@ -669,7 +669,7 @@ public class LogicalPlanner {
            ));
       }
 
-      if (joinOnNonKeyAttribute(leftExpression, leftNode)) {
+      if (joinOnNonKeyAttribute(leftExpression, leftNode, joinInfo.getLeftSource())) {
         // foreign key join detected
 
         return verifyForeignKeyJoin(joinInfo, leftNode, rightNode);
@@ -706,7 +706,7 @@ public class LogicalPlanner {
       ));
     }
 
-    if (joinOnNonKeyAttribute(rightExpression, rightNode)) {
+    if (joinOnNonKeyAttribute(rightExpression, rightNode, joinInfo.getRightSource())) {
       throw new KsqlException(String.format(
           "Invalid join condition:"
               + " stream-table joins require to join on the table's primary key."
@@ -797,7 +797,8 @@ public class LogicalPlanner {
 
   private static boolean joinOnNonKeyAttribute(
       final Expression joinExpression,
-      final PlanNode node
+      final PlanNode node,
+      final AliasedDataSource aliasedDataSource
   ) {
     if (!(joinExpression instanceof ColumnReferenceExp)) {
       return true;
@@ -813,7 +814,13 @@ public class LogicalPlanner {
       final DataSourceNode qualifiedNode;
 
       if (simpleJoinExpression.maybeQualifier().isPresent()) {
-        final SourceName qualifier = simpleJoinExpression.maybeQualifier().get();
+        final SourceName qualifierOrAlias = simpleJoinExpression.maybeQualifier().get();
+        final SourceName qualifier;
+        if (aliasedDataSource.getAlias().equals(qualifierOrAlias)) {
+          qualifier = aliasedDataSource.getDataSource().getName();
+        } else {
+          qualifier = qualifierOrAlias;
+        }
         final List<DataSourceNode> allNodes = dataSourceNodes.stream()
             .filter(n -> n.getDataSource().getName().equals(qualifier))
             .collect(Collectors.toList());

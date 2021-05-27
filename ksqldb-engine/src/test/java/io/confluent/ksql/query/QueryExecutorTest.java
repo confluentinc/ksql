@@ -52,6 +52,7 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueryMetadataImpl;
@@ -271,6 +272,7 @@ public class QueryExecutorTest {
 
     // When:
     final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
+        KsqlConstants.PersistentQueryType.CREATE_AS,
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -295,12 +297,15 @@ public class QueryExecutorTest {
     assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
     assertThat(queryMetadata.getStreamsProperties(), equalTo(capturedStreamsProperties()));
     assertThat(queryMetadata.getProcessingLogger(), equalTo(uncaughtProcessingLogger));
+    assertThat(queryMetadata.getPersistentQueryType(),
+        equalTo(KsqlConstants.PersistentQueryType.CREATE_AS));
   }
 
   @Test
   public void shouldBuildPersistentQueryWithCorrectStreamsApp() {
     // When:
     final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
+        KsqlConstants.PersistentQueryType.CREATE_AS,
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -321,6 +326,7 @@ public class QueryExecutorTest {
   public void shouldStartPersistentQueryWithCorrectMaterializationProvider() {
     // Given:
     final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
+        KsqlConstants.PersistentQueryType.CREATE_AS,
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -344,6 +350,7 @@ public class QueryExecutorTest {
   public void shouldCreateKSMaterializationCorrectly() {
     // When:
     queryBuilder.buildPersistentQuery(
+        KsqlConstants.PersistentQueryType.CREATE_AS,
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -373,6 +380,7 @@ public class QueryExecutorTest {
   public void shouldMaterializeCorrectlyOnStart() {
     // Given:
     final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
+        KsqlConstants.PersistentQueryType.CREATE_AS,
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -403,6 +411,7 @@ public class QueryExecutorTest {
     when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.empty());
 
     final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
+        KsqlConstants.PersistentQueryType.CREATE_AS,
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -425,6 +434,7 @@ public class QueryExecutorTest {
   public void shouldCreateExpectedServiceId() {
     // When:
     queryBuilder.buildPersistentQuery(
+        KsqlConstants.PersistentQueryType.CREATE_AS,
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -447,6 +457,7 @@ public class QueryExecutorTest {
   public void shouldAddMetricsInterceptorsToStreamsConfig() {
     // When:
     queryBuilder.buildPersistentQuery(
+        KsqlConstants.PersistentQueryType.CREATE_AS,
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -478,6 +489,7 @@ public class QueryExecutorTest {
 
     // When:
     final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
+        KsqlConstants.PersistentQueryType.CREATE_AS,
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -540,6 +552,7 @@ public class QueryExecutorTest {
 
     // When:
     queryBuilder.buildPersistentQuery(
+        KsqlConstants.PersistentQueryType.CREATE_AS,
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -566,6 +579,7 @@ public class QueryExecutorTest {
 
     // When:
     queryBuilder.buildPersistentQuery(
+        KsqlConstants.PersistentQueryType.CREATE_AS,
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -593,6 +607,7 @@ public class QueryExecutorTest {
 
     // When:
     queryBuilder.buildPersistentQuery(
+        KsqlConstants.PersistentQueryType.CREATE_AS,
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -624,6 +639,7 @@ public class QueryExecutorTest {
 
     // When:
     queryBuilder.buildPersistentQuery(
+        KsqlConstants.PersistentQueryType.CREATE_AS,
         STATEMENT_TEXT,
         QUERY_ID,
         sink,

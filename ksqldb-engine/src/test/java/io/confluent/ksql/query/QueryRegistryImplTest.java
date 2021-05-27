@@ -24,6 +24,7 @@ import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryRegistryImpl.QueryExecutorFactory;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
@@ -319,7 +320,7 @@ public class QueryRegistryImplTest {
   ) {
     givenCreate(registry, id, "source", "sink1", true);
     verify(executor).buildPersistentQuery(
-        any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any());
+        any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any());
     return queryListenerCaptor.getValue();
   }
 
@@ -338,8 +339,11 @@ public class QueryRegistryImplTest {
     when(query.getSinkName()).thenReturn(SourceName.of(sink));
     when(query.getSink()).thenReturn(sinkSource);
     when(query.getSourceNames()).thenReturn(ImmutableSet.of(SourceName.of(source)));
+    when(query.getPersistentQueryType()).thenReturn(createAs
+        ? KsqlConstants.PersistentQueryType.CREATE_AS
+        : KsqlConstants.PersistentQueryType.INSERT);
     when(executor.buildPersistentQuery(
-        any(), any(), any(), any(), any(), any(), any(), any())
+        any(), any(), any(), any(), any(), any(), any(), any(), any())
     ).thenReturn(query);
     registry.createOrReplacePersistentQuery(
         config,

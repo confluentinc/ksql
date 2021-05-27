@@ -52,6 +52,10 @@ public final class KsqlConstants {
     PUSH
   }
 
+  public enum PersistentQueryType {
+    CREATE_AS, INSERT
+  }
+
   public enum KsqlQueryStatus {
     RUNNING,
     ERROR,

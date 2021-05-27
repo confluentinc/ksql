@@ -814,6 +814,70 @@
       }
     },
     {
+      "name": "stream-stream-stream - outer-outer",
+      "statements": [
+        "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE STREAM S2 (ID INT KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE STREAM S3 (ID INT KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT ROWKEY, s1.V0, s2.V0, s3.V0 FROM S1 FULL OUTER JOIN S2 WITHIN 5 seconds ON S1.ID = S2.ID FULL OUTER JOIN S3 WITHIN 10 seconds ON S1.ID = S3.ID;"
+      ],
+      "inputs": [
+        {"topic": "left", "key": 0, "value": {"V0": 1}, "timestamp": 0},
+        {"topic": "right", "key": 0, "value": {"V0": 2}, "timestamp": 1},
+        {"topic": "right2", "key": 0, "value": {"V0": 3}, "timestamp": 2},
+        {"topic": "left", "key": 0, "value": {"V0": 4}, "timestamp": 3}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_V0": null, "S3_V0": null}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_V0": 2, "S3_V0": null}, "timestamp": 1},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_V0": null, "S3_V0": 3}, "timestamp": 2},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_V0": 2, "S3_V0": 3}, "timestamp": 2},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 4, "S2_V0": 2, "S3_V0": 3}, "timestamp": 3}
+      ],
+      "post": {
+        "topics": {
+          "topics" : [
+            {
+              "name" : "_confluent-ksql-some.ksql.service.idquery_CSAS_OUTPUT_0-Join-left-repartition",
+              "keyFormat" : {"format" : "KAFKA"},
+              "valueFormat" : {"format" : "JSON"}
+            }
+          ]
+        },
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ROWKEY INT KEY, S1_V0 BIGINT, S2_V0 BIGINT, S3_V0 BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "stream-stream-stream - left-left",
+      "statements": [
+        "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE STREAM S2 (ID INT KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE STREAM S3 (ID INT KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT S2.ID, s1.V0, s2.V0, s3.V0 FROM S1 LEFT JOIN S2 WITHIN 5 seconds ON S1.ID = S2.ID LEFT JOIN S3 WITHIN 10 seconds ON S1.ID = S3.ID;"
+      ],
+      "inputs": [
+        {"topic": "left", "key": 0, "value": {"V0": 1}, "timestamp": 0},
+        {"topic": "right", "key": 0, "value": {"V0": 2}, "timestamp": 1},
+        {"topic": "right2", "key": 0, "value": {"V0": 3}, "timestamp": 2},
+        {"topic": "left", "key": 0, "value": {"V0": 4}, "timestamp": 3}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_V0": null, "S3_V0": null}, "timestamp": 0},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_V0": 2, "S3_V0": null}, "timestamp": 1},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_V0": null, "S3_V0": 3}, "timestamp": 2},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 1, "S2_V0": 2, "S3_V0": 3}, "timestamp": 2},
+        {"topic": "OUTPUT", "key": 0, "value": {"S1_V0": 4, "S2_V0": 2, "S3_V0": 3}, "timestamp": 3}
+      ],
+      "post": {
+        "topics": {"blacklist": ".*-repartition"},
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "S2_ID INT KEY, S1_V0 BIGINT, S2_V0 BIGINT, S3_V0 BIGINT"}
+        ]
+      }
+    },
+    {
       "name": "stream-stream-stream - inner-inner - different windows",
       "statements": [
         "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",

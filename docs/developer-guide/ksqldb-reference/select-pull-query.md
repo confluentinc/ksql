@@ -33,7 +33,8 @@ the API responds with a single response.
 
 
 -   Pull queries are expressed using a strict subset of ANSI SQL.
--   You can issue a pull query against any table that was created by using 
+-   You can issue a pull query against any table that was created by  
+
     a [CREATE TABLE AS SELECT](../../ksqldb-reference/create-table-as-select) 
     statement.
 -   `SELECT` statements can contain column arithmetic and function calls.

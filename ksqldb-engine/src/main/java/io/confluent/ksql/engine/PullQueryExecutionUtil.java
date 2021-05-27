@@ -30,7 +30,8 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+
 import java.util.Optional;
 import java.util.Set;
 
@@ -65,7 +66,7 @@ public final class PullQueryExecutionUtil {
     }
   }
 
-  static PersistentQueryMetadata findMaterializingQuery(
+  static PersistentQueryEntity findMaterializingQuery(
       final EngineContext engineContext, final ImmutableAnalysis analysis) {
 
     final DataSource source = analysis.getFrom().getDataSource();

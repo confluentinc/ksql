@@ -34,7 +34,7 @@ import io.confluent.ksql.planner.plan.QueryFilterNode;
 import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
 import io.vertx.core.Context;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
@@ -48,13 +48,13 @@ public class PushPhysicalPlanBuilder {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final ProcessingLogContext processingLogContext;
-  private final PersistentQueryMetadata persistentQueryMetadata;
+  private final PersistentQueryEntity persistentQueryMetadata;
   private final Stacker contextStacker;
   private final QueryId queryId;
 
   public PushPhysicalPlanBuilder(
       final ProcessingLogContext processingLogContext,
-      final PersistentQueryMetadata persistentQueryMetadata
+      final PersistentQueryEntity persistentQueryMetadata
   ) {
     this.processingLogContext = Objects.requireNonNull(
         processingLogContext, "processingLogContext");

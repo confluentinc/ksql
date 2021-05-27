@@ -20,8 +20,9 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+import io.confluent.ksql.util.QueryEntity;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -34,11 +35,11 @@ public final class QueryDescriptionFactory {
   }
 
   public static QueryDescription forQueryMetadata(
-      final QueryMetadata queryMetadata,
+      final QueryEntity queryEntity,
       final Map<KsqlHostInfoEntity, KsqlQueryStatus> ksqlHostQueryStatus
   ) {
-    if (queryMetadata instanceof PersistentQueryMetadata) {
-      final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) queryMetadata;
+    if (queryEntity instanceof PersistentQueryEntity) {
+      final PersistentQueryEntity persistentQuery = (PersistentQueryEntity) queryEntity;
       return create(
           persistentQuery,
           persistentQuery.getResultTopic().getKeyFormat().getWindowType(),
@@ -48,7 +49,7 @@ public final class QueryDescriptionFactory {
     }
 
     return create(
-        queryMetadata,
+            queryEntity,
         Optional.empty(),
         Collections.emptySet(),
         ksqlHostQueryStatus
@@ -56,25 +57,25 @@ public final class QueryDescriptionFactory {
   }
 
   private static QueryDescription create(
-      final QueryMetadata queryMetadata,
+      final QueryEntity queryEntity,
       final Optional<WindowType> windowType,
       final Set<SourceName> sinks,
       final Map<KsqlHostInfoEntity, KsqlQueryStatus> ksqlHostQueryStatus
   ) {
     return new QueryDescription(
-        queryMetadata.getQueryId(),
-        queryMetadata.getStatementString(),
+        queryEntity.getQueryId(),
+        queryEntity.getStatementString(),
         windowType,
-        EntityUtil.buildSourceSchemaEntity(queryMetadata.getLogicalSchema()),
-        queryMetadata.getSourceNames().stream().map(SourceName::text).collect(Collectors.toSet()),
+        EntityUtil.buildSourceSchemaEntity(queryEntity.getLogicalSchema()),
+        queryEntity.getSourceNames().stream().map(SourceName::text).collect(Collectors.toSet()),
         sinks.stream().map(SourceName::text).collect(Collectors.toSet()),
-        queryMetadata.getTopologyDescription(),
-        queryMetadata.getExecutionPlan(),
-        queryMetadata.getOverriddenProperties(),
+        queryEntity.getTopologyDescription(),
+        queryEntity.getExecutionPlan(),
+        queryEntity.getOverriddenProperties(),
         ksqlHostQueryStatus,
-        queryMetadata.getQueryType(),
-        queryMetadata.getQueryErrors(),
-        queryMetadata.getTaskMetadata()
+        queryEntity.getQueryType(),
+        queryEntity.getQueryErrors(),
+        queryEntity.getTaskMetadata()
     );
   }
 }

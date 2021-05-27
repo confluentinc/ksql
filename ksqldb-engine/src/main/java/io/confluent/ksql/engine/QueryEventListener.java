@@ -18,7 +18,8 @@ package io.confluent.ksql.engine;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueryEntity;
+
 import java.util.Optional;
 import org.apache.kafka.streams.KafkaStreams;
 
@@ -32,12 +33,12 @@ public interface QueryEventListener {
    * Called when a new query is created.
    * @param serviceContext service context
    * @param metaStore meta store
-   * @param queryMetadata handle for the query that was just created
+   * @param queryEntity handle for the query that was just created
    */
   default void onCreate(
       ServiceContext serviceContext,
       MetaStore metaStore,
-      QueryMetadata queryMetadata
+      QueryEntity queryEntity
   ) {
   }
 
@@ -48,7 +49,7 @@ public interface QueryEventListener {
    * @param after the Kafka Streams state after the state change
    */
   default void onStateChange(
-      QueryMetadata query,
+      QueryEntity query,
       KafkaStreams.State before,
       KafkaStreams.State after
   ) {
@@ -59,7 +60,7 @@ public interface QueryEventListener {
    * @param query the query that hit the error
    * @param error the error that the query hit
    */
-  default void onError(QueryMetadata query, QueryError error) {
+  default void onError(QueryEntity query, QueryError error) {
   }
 
   /**
@@ -70,7 +71,7 @@ public interface QueryEventListener {
    *
    * @param query the query that was deregistered
    */
-  default void onDeregister(QueryMetadata query) {
+  default void onDeregister(QueryEntity query) {
   }
 
   /**
@@ -78,7 +79,7 @@ public interface QueryEventListener {
    * destroyed.
    * @param query the query that was closed
    */
-  default void onClose(QueryMetadata query) {
+  default void onClose(QueryEntity query) {
   }
 
   /**

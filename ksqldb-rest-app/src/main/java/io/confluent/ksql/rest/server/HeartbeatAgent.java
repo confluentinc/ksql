@@ -27,7 +27,8 @@ import io.confluent.ksql.rest.util.DiscoverRemoteHostsUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHostInfo;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+
 import java.net.URI;
 import java.net.URL;
 import java.time.Clock;
@@ -359,7 +360,7 @@ public final class HeartbeatAgent {
     @Override
     protected void runOneIteration() {
       try {
-        final List<PersistentQueryMetadata> currentQueries = engine.getPersistentQueries();
+        final List<PersistentQueryEntity> currentQueries = engine.getPersistentQueries();
         if (currentQueries.isEmpty()) {
           return;
         }

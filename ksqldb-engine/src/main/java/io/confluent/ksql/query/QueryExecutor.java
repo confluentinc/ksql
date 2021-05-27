@@ -50,14 +50,9 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.PersistentQueryMetadataImpl;
-import io.confluent.ksql.util.QueryApplicationId;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
+import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.TransientQueryEntity;
+import io.confluent.ksql.util.TransientQueryEntity.ResultType;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -138,7 +133,7 @@ final class QueryExecutor {
     );
   }
 
-  TransientQueryMetadata buildTransientQuery(
+  TransientQueryEntity buildTransientQuery(
       final String statementText,
       final QueryId queryId,
       final Set<SourceName> sources,
@@ -148,7 +143,7 @@ final class QueryExecutor {
       final OptionalInt limit,
       final Optional<WindowInfo> windowInfo,
       final boolean excludeTombstones,
-      final QueryMetadata.Listener listener
+      final QueryEntity.Listener listener
   ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
     final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
@@ -159,11 +154,11 @@ final class QueryExecutor {
     final BlockingRowQueue queue = buildTransientQueryQueue(buildResult, limit, excludeTombstones);
     final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
 
-    final TransientQueryMetadata.ResultType resultType = buildResult instanceof KTableHolder
+    final TransientQueryEntity.ResultType resultType = buildResult instanceof KTableHolder
         ? windowInfo.isPresent() ? ResultType.WINDOWED_TABLE : ResultType.TABLE
         : ResultType.STREAM;
 
-    return new TransientQueryMetadata(
+    return new TransientQueryEntity(
         statementText,
         schema,
         sources,
@@ -194,7 +189,7 @@ final class QueryExecutor {
   private static Optional<ScalablePushRegistry> applyScalablePushProcessor(
       final LogicalSchema schema,
       final Object result,
-      final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
+      final Supplier<List<PersistentQueryEntity>> allPersistentQueries,
       final boolean windowed,
       final Map<String, Object> streamsProperties,
       final KsqlConfig ksqlConfig
@@ -214,15 +209,15 @@ final class QueryExecutor {
     return registry;
   }
 
-  PersistentQueryMetadata buildPersistentQuery(
+  PersistentQueryEntity buildPersistentQuery(
       final String statementText,
       final QueryId queryId,
       final DataSource sinkDataSource,
       final Set<SourceName> sources,
       final ExecutionStep<?> physicalPlan,
       final String planSummary,
-      final QueryMetadata.Listener listener,
-      final Supplier<List<PersistentQueryMetadata>> allPersistentQueries
+      final QueryEntity.Listener listener,
+      final Supplier<List<PersistentQueryEntity>> allPersistentQueries
   ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
 
@@ -261,7 +256,7 @@ final class QueryExecutor {
         .map(userErrorClassifiers::and)
         .orElse(userErrorClassifiers);
 
-    return new PersistentQueryMetadataImpl(
+    return new PersistentQueryEntityImpl(
         statementText,
         querySchema,
         sources,

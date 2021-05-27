@@ -37,7 +37,7 @@ import io.confluent.ksql.services.KafkaTopicClient.TopicCleanupPolicy;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.test.util.TopicTestUtil;
 import io.confluent.ksql.util.OrderDataProvider;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueryEntity;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Map;
@@ -262,7 +262,7 @@ public class WindowingIntTest {
   ) {
     assertThat("Initial topics", getTopicNames(), hasSize(nTopics));
 
-    ksqlContext.getPersistentQueries().forEach(QueryMetadata::close);
+    ksqlContext.getPersistentQueries().forEach(QueryEntity::close);
 
     assertThatEventually("After cleanup", this::getTopicNames,
         containsInAnyOrder(

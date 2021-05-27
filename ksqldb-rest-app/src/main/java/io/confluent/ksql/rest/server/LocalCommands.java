@@ -19,7 +19,8 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
-import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.TransientQueryEntity;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.FilenameFilter;
@@ -92,7 +93,7 @@ public class LocalCommands implements Closeable {
     }
   }
 
-  public void write(final TransientQueryMetadata queryMetadata) {
+  public void write(final TransientQueryEntity queryMetadata) {
     try {
       currentLocalCommands.write(
           new TransientQueryLocalCommand(queryMetadata.getQueryApplicationId()));

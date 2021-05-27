@@ -50,9 +50,9 @@ import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class QueryMetadataImpl implements QueryMetadata {
+public class QueryEntityImpl implements QueryEntity {
 
-  private static final Logger LOG = LoggerFactory.getLogger(QueryMetadataImpl.class);
+  private static final Logger LOG = LoggerFactory.getLogger(QueryEntityImpl.class);
 
   private final String statementString;
   private final String executionPlan;
@@ -85,7 +85,7 @@ public class QueryMetadataImpl implements QueryMetadata {
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
-  QueryMetadataImpl(
+  QueryEntityImpl(
       final String statementString,
       final LogicalSchema logicalSchema,
       final Set<SourceName> sourceNames,
@@ -131,7 +131,7 @@ public class QueryMetadataImpl implements QueryMetadata {
   }
 
   // Used for sandboxing
-  QueryMetadataImpl(final QueryMetadataImpl other, final Listener listener) {
+  QueryEntityImpl(final QueryEntityImpl other, final Listener listener) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.statementString = other.getStatementString();
     this.kafkaStreams = other.getKafkaStreams();
@@ -388,7 +388,7 @@ public class QueryMetadataImpl implements QueryMetadata {
     kafkaStreams.start();
   }
 
-  public static class RetryEvent implements QueryMetadata.RetryEvent {
+  public static class RetryEvent implements QueryEntity.RetryEvent {
     private final Ticker ticker;
     private final QueryId queryId;
 

@@ -16,11 +16,9 @@ package io.confluent.ksql.query;
 
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.physical.PhysicalPlan;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.QueryEntity;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,11 +30,11 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
   public void validateQuery(
       final SessionConfig config,
       final PhysicalPlan physicalPlan,
-      final Collection<QueryMetadata> runningQueries
+      final Collection<QueryEntity> runningQueries
   ) {
     validateCacheBytesUsage(
         runningQueries.stream()
-            .filter(q -> q instanceof PersistentQueryMetadata)
+            .filter(q -> q instanceof PersistentQueryEntity)
             .collect(Collectors.toList()),
         config,
         config.getConfig(false)
@@ -48,11 +46,11 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
   public void validateTransientQuery(
       final SessionConfig config,
       final PhysicalPlan physicalPlan,
-      final Collection<QueryMetadata> runningQueries
+      final Collection<QueryEntity> runningQueries
   ) {
     validateCacheBytesUsage(
         runningQueries.stream()
-            .filter(q -> q instanceof TransientQueryMetadata)
+            .filter(q -> q instanceof TransientQueryEntity)
             .collect(Collectors.toList()),
         config,
         config.getConfig(false)
@@ -61,7 +59,7 @@ public class KafkaStreamsQueryValidator implements QueryValidator {
   }
 
   private void validateCacheBytesUsage(
-      final Collection<QueryMetadata> running,
+      final Collection<QueryEntity> running,
       final SessionConfig config,
       final long limit
   ) {

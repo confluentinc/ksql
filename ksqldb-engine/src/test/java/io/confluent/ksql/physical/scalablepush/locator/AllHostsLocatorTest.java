@@ -6,7 +6,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator.KsqlNode;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
@@ -21,9 +21,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class AllHostsLocatorTest {
 
   @Mock
-  private PersistentQueryMetadata metadata1;
+  private PersistentQueryEntity metadata1;
   @Mock
-  private PersistentQueryMetadata metadata2;
+  private PersistentQueryEntity metadata2;
   @Mock
   private StreamsMetadata streamsMetadata1;
   @Mock

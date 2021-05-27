@@ -36,8 +36,8 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.TransientQueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
+import io.confluent.ksql.util.TransientQueryEntity;
+import io.confluent.ksql.util.TransientQueryEntity.ResultType;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -69,7 +69,7 @@ public class QueryStreamWriterTest {
       .build();
 
   @Mock
-  private TransientQueryMetadata queryMetadata;
+  private TransientQueryEntity queryMetadata;
   @Mock
   private BlockingRowQueue rowQueue;
   @Captor

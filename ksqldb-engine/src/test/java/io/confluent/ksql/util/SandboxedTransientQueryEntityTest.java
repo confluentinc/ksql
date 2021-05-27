@@ -21,15 +21,12 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.KafkaStreamsBuilder;
-import io.confluent.ksql.query.QueryErrorClassifier;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.util.QueryMetadata.Listener;
-import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
+import io.confluent.ksql.util.QueryEntity.Listener;
+import io.confluent.ksql.util.TransientQueryEntity.ResultType;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
+
 import org.apache.kafka.streams.Topology;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,7 +35,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SandboxedTransientQueryMetadataTest {
+public class SandboxedTransientQueryEntityTest {
   private static final String STATEMENT = "stmt";
   private static final Map<String, Object> PROPERTIES = ImmutableMap.of("foo", "bar");
   private static final Map<String, Object> OVERRIDES = ImmutableMap.of("biz", "baz");
@@ -48,7 +45,7 @@ public class SandboxedTransientQueryMetadataTest {
   private static final ResultType RESULT_TYPE = ResultType.TABLE;
 
   @Mock
-  private TransientQueryMetadata original;
+  private TransientQueryEntity original;
   @Mock
   private LogicalSchema schema;
   @Mock
@@ -56,7 +53,7 @@ public class SandboxedTransientQueryMetadataTest {
   @Mock
   private Listener listener;
 
-  SandboxedTransientQueryMetadata sandboxed;
+  SandboxedTransientQueryEntity sandboxed;
 
   @Before
   public void setup() {
@@ -68,7 +65,7 @@ public class SandboxedTransientQueryMetadataTest {
     when(original.getQueryApplicationId()).thenReturn(APP_ID);
     when(original.getLogicalSchema()).thenReturn(schema);
     when(original.getTopology()).thenReturn(topology);
-    sandboxed = SandboxedTransientQueryMetadata.of(original, listener);
+    sandboxed = SandboxedTransientQueryEntity.of(original, listener);
   }
 
   @Test(expected = IllegalStateException.class)

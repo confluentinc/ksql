@@ -94,12 +94,9 @@ import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KeyValue;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
+import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.QueryEntity;
+import io.confluent.ksql.util.TransientQueryEntity.ResultType;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.io.EOFException;
 import java.io.IOException;
@@ -180,7 +177,7 @@ public class StreamedQueryResourceTest {
   @Mock
   private ActivenessRegistrar activenessRegistrar;
   @Mock
-  private Consumer<QueryMetadata> queryCloseCallback;
+  private Consumer<QueryEntity> queryCloseCallback;
   @Mock
   private KsqlAuthorizationValidator authorizationValidator;
   @Mock
@@ -210,7 +207,7 @@ public class StreamedQueryResourceTest {
   @Captor
   private ArgumentCaptor<Exception> exception;
   @Mock
-  private QueryMetadata.Listener listener;
+  private QueryEntity.Listener listener;
 
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
@@ -675,8 +672,8 @@ public class StreamedQueryResourceTest {
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(mockKafkaStreams);
     when(mockKafkaStreams.state()).thenReturn(State.RUNNING);
 
-    final TransientQueryMetadata transientQueryMetadata =
-        new TransientQueryMetadata(
+    final TransientQueryEntity transientQueryMetadata =
+        new TransientQueryEntity(
             queryString,
             SOME_SCHEMA,
             Collections.emptySet(),

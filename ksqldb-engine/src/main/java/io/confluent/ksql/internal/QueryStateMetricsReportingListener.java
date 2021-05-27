@@ -21,7 +21,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueryEntity;
+
 import java.util.Collections;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -54,18 +55,18 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
   public void onCreate(
       final ServiceContext serviceContext,
       final MetaStore metaStore,
-      final QueryMetadata queryMetadata) {
-    if (perQuery.containsKey(queryMetadata.getQueryId())) {
+      final QueryEntity queryEntity) {
+    if (perQuery.containsKey(queryEntity.getQueryId())) {
       return;
     }
     perQuery.put(
-        queryMetadata.getQueryId(),
-        new PerQueryListener(metrics, metricsPrefix, queryMetadata.getQueryApplicationId())
+        queryEntity.getQueryId(),
+        new PerQueryListener(metrics, metricsPrefix, queryEntity.getQueryApplicationId())
     );
   }
 
   @Override
-  public void onStateChange(final QueryMetadata query, final State before, final State after) {
+  public void onStateChange(final QueryEntity query, final State before, final State after) {
     // this may be called after the query is deregistered, because shutdown is ansynchronous and
     // may time out. when ths happens, the shutdown thread in streams may call this method.
     final PerQueryListener listener = perQuery.get(query.getQueryId());
@@ -75,7 +76,7 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
   }
 
   @Override
-  public void onError(final QueryMetadata query, final QueryError error) {
+  public void onError(final QueryEntity query, final QueryError error) {
     // this may be called after the query is deregistered, because shutdown is ansynchronous and
     // may time out. when ths happens, the shutdown thread in streams may call this method.
     final PerQueryListener listener = perQuery.get(query.getQueryId());
@@ -85,7 +86,7 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
   }
 
   @Override
-  public void onDeregister(final QueryMetadata query) {
+  public void onDeregister(final QueryEntity query) {
     perQuery.get(query.getQueryId()).onDeregister();
     perQuery.remove(query.getQueryId());
   }

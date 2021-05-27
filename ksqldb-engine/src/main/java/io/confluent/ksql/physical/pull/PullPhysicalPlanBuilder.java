@@ -46,7 +46,7 @@ import io.confluent.ksql.planner.plan.QueryFilterNode;
 import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -63,7 +63,7 @@ public class PullPhysicalPlanBuilder {
 
   private final ProcessingLogContext processingLogContext;
   private final Stacker contextStacker;
-  private final PersistentQueryMetadata persistentQueryMetadata;
+  private final PersistentQueryEntity persistentQueryMetadata;
   private final QueryId queryId;
   private final Materialization mat;
 
@@ -74,7 +74,7 @@ public class PullPhysicalPlanBuilder {
 
   public PullPhysicalPlanBuilder(
       final ProcessingLogContext processingLogContext,
-      final PersistentQueryMetadata persistentQueryMetadata,
+      final PersistentQueryEntity persistentQueryMetadata,
       final ImmutableAnalysis analysis
   ) {
     this.processingLogContext = Objects.requireNonNull(

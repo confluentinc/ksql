@@ -18,7 +18,7 @@ package io.confluent.ksql.test.tools;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.test.model.PostConditionsNode.PostTopicNode;
 import io.confluent.ksql.test.model.SourceNode;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
 import java.util.List;
 
 public interface TestExecutionListener {
@@ -26,7 +26,7 @@ public interface TestExecutionListener {
   default void acceptPlan(final ConfiguredKsqlPlan plan) {
   }
 
-  default void acceptQuery(final PersistentQueryMetadata query) {
+  default void acceptQuery(final PersistentQueryEntity query) {
   }
 
   default void runComplete(final List<PostTopicNode> knownTopics, List<SourceNode> knownSources) {

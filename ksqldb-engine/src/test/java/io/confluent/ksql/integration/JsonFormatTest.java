@@ -50,7 +50,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueryEntity;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -211,12 +211,12 @@ public class JsonFormatTest {
   }
 
   private void executePersistentQuery(final String queryString) {
-    final QueryMetadata queryMetadata = KsqlEngineTestUtil
+    final QueryEntity queryEntity = KsqlEngineTestUtil
         .execute(serviceContext, ksqlEngine, queryString, ksqlConfig, Collections.emptyMap())
         .get(0);
 
-    queryMetadata.start();
-    queryId = queryMetadata.getQueryId();
+    queryEntity.start();
+    queryId = queryEntity.getQueryId();
   }
 
   private Map<GenericKey, GenericRow> readNormalResults(
@@ -237,6 +237,6 @@ public class JsonFormatTest {
 
   private void terminateQuery() {
     ksqlEngine.getPersistentQuery(queryId)
-        .ifPresent(QueryMetadata::close);
+        .ifPresent(QueryEntity::close);
   }
 }

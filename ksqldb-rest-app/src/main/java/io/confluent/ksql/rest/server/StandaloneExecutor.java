@@ -44,13 +44,8 @@ import io.confluent.ksql.properties.PropertyOverrider;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
-import io.confluent.ksql.util.AppInfo;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.WelcomeMsgUtils;
+import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.QueryEntity;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import java.io.Console;
@@ -184,7 +179,7 @@ public class StandaloneExecutor implements Executable {
         new StatementExecutor(serviceContext, ksqlEngine, injector, ksqlConfig)
     );
 
-    ksqlEngine.getPersistentQueries().forEach(QueryMetadata::start);
+    ksqlEngine.getPersistentQueries().forEach(QueryEntity::start);
   }
 
   private void validateStatements(final List<ParsedStatement> statements) {
@@ -355,7 +350,7 @@ public class StandaloneExecutor implements Executable {
     private void handlePersistentQuery(final ConfiguredStatement<?> statement) {
       executionContext.execute(serviceContext, statement)
           .getQuery()
-          .filter(q -> q instanceof PersistentQueryMetadata)
+          .filter(q -> q instanceof PersistentQueryEntity)
           .orElseThrow((() -> new KsqlStatementException(
               "Could not build the query",
               statement.getStatementText())));

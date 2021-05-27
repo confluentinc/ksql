@@ -53,7 +53,8 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -90,9 +91,9 @@ public class ClusterTerminatorTest {
   @Mock
   private KafkaTopicClient kafkaTopicClient;
   @Mock
-  private PersistentQueryMetadata persistentQuery0;
+  private PersistentQueryEntity persistentQuery0;
   @Mock
-  private PersistentQueryMetadata persistentQuery1;
+  private PersistentQueryEntity persistentQuery1;
   @Mock
   private MetaStore metaStore;
   @Mock

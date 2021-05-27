@@ -21,11 +21,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.physical.PhysicalPlan;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.QueryEntity;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.OptionalLong;
@@ -44,17 +42,17 @@ public class KafkaStreamsQueryValidatorTest {
   );
 
   @Mock
-  private TransientQueryMetadata transientQueryMetadata1;
+  private TransientQueryEntity transientQueryMetadata1;
   @Mock
-  private TransientQueryMetadata transientQueryMetadata2;
+  private TransientQueryEntity transientQueryMetadata2;
   @Mock
-  private PersistentQueryMetadata persistentQueryMetadata1;
+  private PersistentQueryEntity persistentQueryMetadata1;
   @Mock
-  private  PersistentQueryMetadata persistentQueryMetadata2;
+  private PersistentQueryEntity persistentQueryMetadata2;
   @Mock
   private PhysicalPlan plan;
 
-  private Collection<QueryMetadata> queries;
+  private Collection<QueryEntity> queries;
 
   private final QueryValidator queryValidator = new KafkaStreamsQueryValidator();
 

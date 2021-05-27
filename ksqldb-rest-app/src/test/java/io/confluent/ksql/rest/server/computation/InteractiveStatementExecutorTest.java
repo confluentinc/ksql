@@ -65,11 +65,8 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.PersistentQueryEntity;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -119,7 +116,7 @@ public class InteractiveStatementExecutorTest {
   @Mock
   private KsqlEngine mockEngine;
   @Mock
-  private PersistentQueryMetadata mockQueryMetadata;
+  private PersistentQueryEntity mockQueryMetadata;
   @Mock
   private QueuedCommand queuedCommand;
   @Mock
@@ -568,10 +565,10 @@ public class InteractiveStatementExecutorTest {
     Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(priorCommands.get(2).left).getStatus());
   }
 
-  private PersistentQueryMetadata mockReplayCSAS(
+  private PersistentQueryEntity mockReplayCSAS(
       final QueryId queryId
   ) {
-    final PersistentQueryMetadata mockQuery = mock(PersistentQueryMetadata.class);
+    final PersistentQueryEntity mockQuery = mock(PersistentQueryEntity.class);
     when(mockQuery.getQueryId()).thenReturn(queryId);
     when(mockEngine.execute(eq(serviceContext), eqConfiguredPlan(plan)))
         .thenReturn(ExecuteResult.of(mockQuery));
@@ -662,7 +659,7 @@ public class InteractiveStatementExecutorTest {
     // Given:
     final QueryId queryId = new QueryId("csas-query-id");
     final String name = "foo";
-    final PersistentQueryMetadata mockQuery = mockReplayCSAS(queryId);
+    final PersistentQueryEntity mockQuery = mockReplayCSAS(queryId);
     final Command command = new Command("CSAS", emptyMap(), emptyMap(), Optional.of(plan));
     when(commandDeserializer.deserialize(any(), any())).thenReturn(command);
 
@@ -731,8 +728,8 @@ public class InteractiveStatementExecutorTest {
     when(mockParser.parseSingleStatement(any()))
         .thenReturn(PreparedStatement.of(queryStatement, terminateAll));
 
-    final PersistentQueryMetadata query0 = mock(PersistentQueryMetadata.class);
-    final PersistentQueryMetadata query1 = mock(PersistentQueryMetadata.class);
+    final PersistentQueryEntity query0 = mock(PersistentQueryEntity.class);
+    final PersistentQueryEntity query1 = mock(PersistentQueryEntity.class);
 
     when(mockEngine.getPersistentQueries()).thenReturn(ImmutableList.of(query0, query1));
 
@@ -765,7 +762,7 @@ public class InteractiveStatementExecutorTest {
     when(mockParser.parseSingleStatement(any()))
         .thenReturn(PreparedStatement.of(queryStatement, terminate));
 
-    final PersistentQueryMetadata query = mock(PersistentQueryMetadata.class);
+    final PersistentQueryEntity query = mock(PersistentQueryEntity.class);
 
     when(mockEngine.getPersistentQuery(new QueryId("foo")))
         .thenReturn(Optional.of(query))

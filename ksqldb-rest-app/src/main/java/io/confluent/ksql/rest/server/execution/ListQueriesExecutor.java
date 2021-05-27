@@ -31,11 +31,10 @@ import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.*;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
-import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+import io.confluent.ksql.util.QueryEntity;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -88,11 +87,11 @@ public final class ListQueriesExecutor {
         .getAllLiveQueries()
         .stream()
         .collect(Collectors.toMap(
-            QueryMetadata::getQueryId,
+            QueryEntity::getQueryId,
             q -> {
-              if (q instanceof PersistentQueryMetadata) {
+              if (q instanceof PersistentQueryEntity) {
 
-                final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) q;
+                final PersistentQueryEntity persistentQuery = (PersistentQueryEntity) q;
                 return new RunningQuery(
                     q.getStatementString(),
                     ImmutableSet.of(persistentQuery.getSinkName().text()),
@@ -178,7 +177,7 @@ public final class ListQueriesExecutor {
         .getAllLiveQueries()
         .stream()
         .collect(Collectors.toMap(
-            QueryMetadata::getQueryId,
+            QueryEntity::getQueryId,
             query -> QueryDescriptionFactory.forQueryMetadata(
                 query,
                 Collections.singletonMap(

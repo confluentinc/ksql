@@ -16,8 +16,8 @@
 package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.util.KsqlHostInfo;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+import io.confluent.ksql.util.QueryEntity;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -31,13 +31,13 @@ public final class DiscoverRemoteHostsUtil {
   private DiscoverRemoteHostsUtil() {}
 
   public static Set<HostInfo> getRemoteHosts(
-      final List<PersistentQueryMetadata> currentQueries, 
+      final List<PersistentQueryEntity> currentQueries,
       final KsqlHostInfo localHost
   ) {
     return currentQueries.stream()
         // required filter else QueryMetadata.getAllMetadata() throws
         .filter(q -> q.getState().isRunningOrRebalancing())
-        .map(QueryMetadata::getAllMetadata)
+        .map(QueryEntity::getAllMetadata)
         .filter(Objects::nonNull)
         .flatMap(Collection::stream)
         .filter(streamsMetadata -> streamsMetadata != StreamsMetadata.NOT_AVAILABLE)

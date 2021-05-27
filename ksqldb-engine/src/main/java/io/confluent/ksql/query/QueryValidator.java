@@ -16,7 +16,7 @@ package io.confluent.ksql.query;
 
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.physical.PhysicalPlan;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueryEntity;
 import java.util.Collection;
 
 /**
@@ -31,12 +31,12 @@ public interface QueryValidator {
   void validateTransientQuery(
       SessionConfig config,
       PhysicalPlan physicalPlan,
-      Collection<QueryMetadata> runningQueries
+      Collection<QueryEntity> runningQueries
   );
 
   void validateQuery(
       SessionConfig config,
       PhysicalPlan physicalPlan,
-      Collection<QueryMetadata> runningQueries
+      Collection<QueryEntity> runningQueries
   );
 }

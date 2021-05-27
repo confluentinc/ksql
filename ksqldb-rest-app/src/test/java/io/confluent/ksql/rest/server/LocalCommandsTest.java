@@ -31,7 +31,8 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlServerException;
-import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.TransientQueryEntity;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -57,11 +58,11 @@ public class LocalCommandsTest {
   @Mock
   private KsqlEngine ksqlEngine;
   @Mock
-  private TransientQueryMetadata metadata1;
+  private TransientQueryEntity metadata1;
   @Mock
-  private TransientQueryMetadata metadata2;
+  private TransientQueryEntity metadata2;
   @Mock
-  private TransientQueryMetadata metadata3;
+  private TransientQueryEntity metadata3;
   @Mock
   private ServiceContext serviceContext;
   @Mock

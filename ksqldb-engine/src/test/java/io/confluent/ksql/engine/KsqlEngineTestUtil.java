@@ -34,8 +34,8 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.QueryEntity;
+import io.confluent.ksql.util.TransientQueryEntity;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -83,7 +83,7 @@ public final class KsqlEngineTestUtil {
     );
   }
 
-  public static List<QueryMetadata> execute(
+  public static List<QueryEntity> execute(
       final ServiceContext serviceContext,
       final KsqlEngine engine,
       final String sql,
@@ -93,7 +93,7 @@ public final class KsqlEngineTestUtil {
     return execute(serviceContext, engine, sql, ksqlConfig, overriddenProperties, Optional.empty());
   }
 
-  public static TransientQueryMetadata executeQuery(
+  public static TransientQueryEntity executeQuery(
       final ServiceContext serviceContext,
       final KsqlEngine engine,
       final String sql,
@@ -115,7 +115,7 @@ public final class KsqlEngineTestUtil {
   /**
    * @param srClient if supplied, then schemas can be inferred from the schema registry.
    */
-  public static List<QueryMetadata> execute(
+  public static List<QueryEntity> execute(
       final ServiceContext serviceContext,
       final KsqlEngine engine,
       final String sql,

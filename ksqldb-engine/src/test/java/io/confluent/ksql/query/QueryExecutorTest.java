@@ -51,11 +51,9 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QueryMetadataImpl;
-import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.QueryEntity;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -149,7 +147,7 @@ public class QueryExecutorTest {
   @Mock
   private KafkaTopicClient topicClient;
   @Mock
-  private Consumer<QueryMetadata> closeCallback;
+  private Consumer<QueryEntity> closeCallback;
   @Mock
   private KafkaStreamsBuilder kafkaStreamsBuilder;
   @Mock
@@ -179,7 +177,7 @@ public class QueryExecutorTest {
   @Mock
   private SessionConfig config;
   @Mock
-  private QueryMetadata.Listener queryListener;
+  private QueryEntity.Listener queryListener;
   @Captor
   private ArgumentCaptor<Map<String, Object>> propertyCaptor;
 
@@ -236,7 +234,7 @@ public class QueryExecutorTest {
     givenTransientQuery();
 
     // When:
-    final TransientQueryMetadata queryMetadata = queryBuilder.buildTransientQuery(
+    final TransientQueryEntity queryMetadata = queryBuilder.buildTransientQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         SOURCES,
@@ -270,7 +268,7 @@ public class QueryExecutorTest {
     )).thenReturn(uncaughtProcessingLogger);
 
     // When:
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
+    final PersistentQueryEntity queryMetadata = queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -300,7 +298,7 @@ public class QueryExecutorTest {
   @Test
   public void shouldBuildPersistentQueryWithCorrectStreamsApp() {
     // When:
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
+    final PersistentQueryEntity queryMetadata = queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -320,7 +318,7 @@ public class QueryExecutorTest {
   @Test
   public void shouldStartPersistentQueryWithCorrectMaterializationProvider() {
     // Given:
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
+    final PersistentQueryEntity queryMetadata = queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -372,7 +370,7 @@ public class QueryExecutorTest {
   @Test
   public void shouldMaterializeCorrectlyOnStart() {
     // Given:
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
+    final PersistentQueryEntity queryMetadata = queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -402,7 +400,7 @@ public class QueryExecutorTest {
     // Given:
     when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.empty());
 
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
+    final PersistentQueryEntity queryMetadata = queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
@@ -477,7 +475,7 @@ public class QueryExecutorTest {
     when(ksqlConfig.getKsqlStreamConfigProps(anyString())).thenReturn(properties);
 
     // When:
-    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
+    final PersistentQueryEntity queryMetadata = queryBuilder.buildPersistentQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,

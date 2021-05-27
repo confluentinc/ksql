@@ -27,7 +27,8 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueryEntity;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -69,7 +70,7 @@ public class ClusterTerminator {
   }
 
   private void terminatePersistentQueries() {
-    ksqlEngine.getPersistentQueries().forEach(QueryMetadata::close);
+    ksqlEngine.getPersistentQueries().forEach(QueryEntity::close);
   }
 
   private void deleteSinkTopics(final List<String> deleteTopicPatterns) {

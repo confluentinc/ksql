@@ -40,7 +40,8 @@ import io.confluent.ksql.test.tools.TestExecutor;
 import io.confluent.ksql.test.tools.TestFunctionRegistry;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -311,7 +312,7 @@ public final class TestCasePlanLoader {
   private static class TestInfoGatherer implements TestExecutionListener {
 
     private final Builder<KsqlPlan> plansBuilder = new Builder<>();
-    private PersistentQueryMetadata queryMetadata = null;
+    private PersistentQueryEntity queryMetadata = null;
     private List<PostTopicNode> topics = ImmutableList.of();
     private List<SourceNode> sources = ImmutableList.of();
 
@@ -321,7 +322,7 @@ public final class TestCasePlanLoader {
     }
 
     @Override
-    public void acceptQuery(final PersistentQueryMetadata query) {
+    public void acceptQuery(final PersistentQueryEntity query) {
       queryMetadata = query;
     }
 

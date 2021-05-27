@@ -16,20 +16,20 @@
 package io.confluent.ksql.util;
 
 /**
- * Sandboxed {@link PersistentQueryMetadata} that prevents to modify the state of the internal
+ * Sandboxed {@link PersistentQueryEntity} that prevents to modify the state of the internal
  * {@link org.apache.kafka.streams.KafkaStreams}.
  */
-public final class SandboxedPersistentQueryMetadataImpl extends PersistentQueryMetadataImpl {
-  public static SandboxedPersistentQueryMetadataImpl of(
-      final PersistentQueryMetadataImpl queryMetadata,
-      final QueryMetadata.Listener listener
+public final class SandboxedPersistentQueryEntityImpl extends PersistentQueryEntityImpl {
+  public static SandboxedPersistentQueryEntityImpl of(
+      final PersistentQueryEntityImpl queryMetadata,
+      final QueryEntity.Listener listener
   ) {
-    return new SandboxedPersistentQueryMetadataImpl(queryMetadata, listener);
+    return new SandboxedPersistentQueryEntityImpl(queryMetadata, listener);
   }
 
-  private SandboxedPersistentQueryMetadataImpl(
-      final PersistentQueryMetadataImpl queryMetadata,
-      final QueryMetadata.Listener listener
+  private SandboxedPersistentQueryEntityImpl(
+      final PersistentQueryEntityImpl queryMetadata,
+      final QueryEntity.Listener listener
   ) {
     super(queryMetadata, listener);
   }

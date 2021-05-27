@@ -27,8 +27,8 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KeyValue;
-import io.confluent.ksql.util.TransientQueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
+import io.confluent.ksql.util.TransientQueryEntity;
+import io.confluent.ksql.util.TransientQueryEntity.ResultType;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,7 +50,7 @@ public class TombstoneFactoryTest {
       .build();
 
   @Mock
-  private TransientQueryMetadata query;
+  private TransientQueryEntity query;
 
   private TombstoneFactory factory;
 

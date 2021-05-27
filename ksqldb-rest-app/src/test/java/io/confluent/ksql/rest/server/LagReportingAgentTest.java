@@ -22,7 +22,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHostInfo;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
 import java.net.URI;
 import java.time.Clock;
 import java.util.Map;
@@ -115,9 +115,9 @@ public class LagReportingAgentTest {
       .build();
 
   @Mock
-  private PersistentQueryMetadata query0;
+  private PersistentQueryEntity query0;
   @Mock
-  private PersistentQueryMetadata query1;
+  private PersistentQueryEntity query1;
   @Mock
   private ServiceContext serviceContext;
   @Mock

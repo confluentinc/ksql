@@ -24,7 +24,8 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.util.KsqlHostInfo;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+
 import java.util.Collections;
 import java.util.Set;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -43,9 +44,9 @@ public class DiscoverRemoteHostsUtilTest {
   private static HostInfo OTHER_HOST_INFO = new HostInfo("other_host", 8088);
 
   @Mock
-  private PersistentQueryMetadata runningQuery;
+  private PersistentQueryEntity runningQuery;
   @Mock
-  private PersistentQueryMetadata notRunningQuery;
+  private PersistentQueryEntity notRunningQuery;
   @Mock
   private StreamsMetadata streamsMetadata;
 

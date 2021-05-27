@@ -55,11 +55,9 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.InjectorChain;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.Sandbox;
+import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.PersistentQueryEntity;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -347,7 +345,7 @@ public class RequestValidatorTest {
 
   @SuppressWarnings("unchecked")
   private void givenPersistentQueryCount(final int value) {
-    final List<PersistentQueryMetadata> queries = mock(List.class);
+    final List<PersistentQueryEntity> queries = mock(List.class);
     when(queries.size()).thenReturn(value);
     when(ksqlEngine.getPersistentQueries()).thenReturn(queries);
   }

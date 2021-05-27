@@ -70,17 +70,9 @@ import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.QueryEntity;
 
-import io.confluent.ksql.util.SandboxedPersistentQueryMetadataImpl;
-import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -148,7 +140,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCreatePersistentQueries() {
     // When:
-    final List<QueryMetadata> queries
+    final List<QueryEntity> queries
         = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -160,16 +152,16 @@ public class KsqlEngineTest {
 
     // Then:
     assertThat(queries, hasSize(2));
-    assertThat(queries.get(0), is(instanceOf(PersistentQueryMetadata.class)));
-    assertThat(queries.get(1), is(instanceOf(PersistentQueryMetadata.class)));
-    assertThat(((PersistentQueryMetadata) queries.get(0)).getSinkName(), is(SourceName.of("BAR")));
-    assertThat(((PersistentQueryMetadata) queries.get(1)).getSinkName(), is(SourceName.of("FOO")));
+    assertThat(queries.get(0), is(instanceOf(PersistentQueryEntity.class)));
+    assertThat(queries.get(1), is(instanceOf(PersistentQueryEntity.class)));
+    assertThat(((PersistentQueryEntity) queries.get(0)).getSinkName(), is(SourceName.of("BAR")));
+    assertThat(((PersistentQueryEntity) queries.get(1)).getSinkName(), is(SourceName.of("FOO")));
   }
 
   @Test
   public void shouldNotHaveRowTimeAndRowKeyColumnsInPersistentQueryValueSchema() {
     // When:
-    final PersistentQueryMetadata query = (PersistentQueryMetadata) KsqlEngineTestUtil.execute(
+    final PersistentQueryEntity query = (PersistentQueryEntity) KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
         "create table bar as select * from test2;",
@@ -188,7 +180,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowOnTerminateAsNotExecutable() {
     // Given:
-    final PersistentQueryMetadata query = (PersistentQueryMetadata) KsqlEngineTestUtil
+    final PersistentQueryEntity query = (PersistentQueryEntity) KsqlEngineTestUtil
         .execute(
             serviceContext,
             ksqlEngine,
@@ -361,7 +353,7 @@ public class KsqlEngineTest {
     );
 
     // When:
-    final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(
+    final List<QueryEntity> queries = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
         "insert into bar with (query_id='my_insert_id') select * from orders;",
@@ -412,7 +404,7 @@ public class KsqlEngineTest {
     );
 
     // When:
-    final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(
+    final List<QueryEntity> queries = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
         "insert into bar select * from orders;",
@@ -427,7 +419,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldMaintainOrderOfReturnedQueries() {
     // When:
-    final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(
+    final List<QueryEntity> queries = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
         "create stream foo as select * from orders;"
@@ -733,7 +725,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldDropTableIfAllReferencedQueriesTerminated() {
     // Given:
-    final QueryMetadata secondQuery = KsqlEngineTestUtil.execute(
+    final QueryEntity secondQuery = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
         "create table bar as select * from test2;"
@@ -880,7 +872,7 @@ public class KsqlEngineTest {
   public void shouldNotDeleteSchemaNorTopicForTable() throws Exception {
     // Given:
     givenTopicsExist("BAR");
-    final QueryMetadata query = KsqlEngineTestUtil.execute(
+    final QueryEntity query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
         "create table bar with (value_format = 'avro') as select * from test2;",
@@ -913,7 +905,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpInternalTopicsOnClose() {
     // Given:
-    final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
+    final QueryEntity query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
         "select * from test1 EMIT CHANGES;",
@@ -933,7 +925,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpInternalTopicsOnEngineCloseForTransientQueries() {
     // Given:
-    final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
+    final QueryEntity query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
         "select * from test1 EMIT CHANGES;",
@@ -952,13 +944,13 @@ public class KsqlEngineTest {
   @Test
   public void shouldCreateSandboxWithSandboxedQueryMetadata() {
     // Given:
-    final QueryMetadata transientQ = KsqlEngineTestUtil.executeQuery(
+    final QueryEntity transientQ = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
         "select * from test1 EMIT CHANGES;",
         KSQL_CONFIG, Collections.emptyMap()
     );
-    final QueryMetadata persistentQ = KsqlEngineTestUtil.execute(
+    final QueryEntity persistentQ = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
         "create stream banana as select * from test1 EMIT CHANGES;",
@@ -974,13 +966,13 @@ public class KsqlEngineTest {
     assertSandboxHasQuery(sandbox, persistentQ);
   }
 
-  private void assertSandboxHasQuery(final KsqlExecutionContext sandbox, final QueryMetadata q) {
-    for (final QueryMetadata sq : sandbox.getAllLiveQueries()) {
+  private void assertSandboxHasQuery(final KsqlExecutionContext sandbox, final QueryEntity q) {
+    for (final QueryEntity sq : sandbox.getAllLiveQueries()) {
       if (sq.getQueryId().equals(q.getQueryId())) {
-        if (q instanceof TransientQueryMetadata) {
-          assertTrue(sq instanceof SandboxedTransientQueryMetadata);
+        if (q instanceof TransientQueryEntity) {
+          assertTrue(sq instanceof SandboxedTransientQueryEntity);
         } else {
-          assertTrue(sq instanceof SandboxedPersistentQueryMetadataImpl);
+          assertTrue(sq instanceof SandboxedPersistentQueryEntityImpl);
         }
       }
     }
@@ -989,7 +981,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldHardDeleteSchemaOnEngineCloseForTransientQueries() throws IOException, RestClientException {
     // Given:
-    final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
+    final QueryEntity query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
         "select * from test1 EMIT CHANGES;",
@@ -1030,7 +1022,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpConsumerGroupsOnClose() {
     // Given:
-    final QueryMetadata query = KsqlEngineTestUtil.execute(
+    final QueryEntity query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
         "create table bar as select * from test2;",
@@ -1056,7 +1048,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpTransientConsumerGroupsOnClose() {
     // Given:
-    final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
+    final QueryEntity query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
         "select * from test1 EMIT CHANGES;",
@@ -1082,7 +1074,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotCleanUpInternalTopicsOnEngineCloseForPersistentQueries() {
     // Given:
-    final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
+    final List<QueryEntity> query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
         "create stream persistent as select * from test1 EMIT CHANGES;",
@@ -1101,7 +1093,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpInternalTopicsOnQueryCloseForPersistentQueries() {
     // Given:
-    final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
+    final List<QueryEntity> query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
         "create stream persistent as select * from test1 EMIT CHANGES;",
@@ -1121,7 +1113,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotHardDeleteSubjectForPersistentQuery() throws IOException, RestClientException {
     // Given:
-    final List<QueryMetadata> query = KsqlEngineTestUtil.execute(
+    final List<QueryEntity> query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
         "create stream persistent as select * from test1 EMIT CHANGES;",
@@ -1160,7 +1152,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotCleanUpInternalTopicsOnCloseIfQueryNeverStarted() {
     // Given:
-    final QueryMetadata query = KsqlEngineTestUtil.execute(
+    final QueryEntity query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
         "create stream s1 with (value_format = 'avro') as select * from test1;",
@@ -1211,7 +1203,7 @@ public class KsqlEngineTest {
     final KsqlExecutionContext sandbox = ksqlEngine.createSandbox(serviceContext);
 
     // When:
-    sandbox.getPersistentQueries().forEach(PersistentQueryMetadata::close);
+    sandbox.getPersistentQueries().forEach(PersistentQueryEntity::close);
 
     // Then:
     awaitCleanupComplete();
@@ -1224,7 +1216,7 @@ public class KsqlEngineTest {
     final int startingLiveQueries = ksqlEngine.numberOfLiveQueries();
     final int startingPersistentQueries = ksqlEngine.getPersistentQueries().size();
 
-    final QueryMetadata query = KsqlEngineTestUtil.execute(
+    final QueryEntity query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
         "create stream s1 with (value_format = 'avro') as select * from test1;",
@@ -1246,7 +1238,7 @@ public class KsqlEngineTest {
     // Given:
     final int startingLiveQueries = ksqlEngine.numberOfLiveQueries();
 
-    final QueryMetadata query = KsqlEngineTestUtil.executeQuery(
+    final QueryEntity query = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
         "select * from test1 EMIT CHANGES;",
@@ -1304,7 +1296,7 @@ public class KsqlEngineTest {
 
     givenTopicsExist("s0_topic", "t1_topic");
 
-    final List<QueryMetadata> queries = new ArrayList<>();
+    final List<QueryEntity> queries = new ArrayList<>();
 
     // When:
     final List<PreparedStatement<?>> preparedStatements = ksqlEngine.parse(sql).stream()
@@ -1683,10 +1675,10 @@ public class KsqlEngineTest {
     );
 
     // Then:
-    final List<QueryMetadata> queries = KsqlEngineTestUtil
+    final List<QueryEntity> queries = KsqlEngineTestUtil
         .execute(serviceContext, ksqlEngine, sql, KSQL_CONFIG, Collections.emptyMap());
     assertThat("query id of actual execute should not be affected by previous tryExecute",
-        ((PersistentQueryMetadata) queries.get(0)).getQueryId(), is(new QueryId("CTAS_FOO_0")));
+        ((PersistentQueryEntity) queries.get(0)).getQueryId(), is(new QueryId("CTAS_FOO_0")));
   }
 
   @Test
@@ -1719,7 +1711,7 @@ public class KsqlEngineTest {
     final QueryId queryId = ksqlEngine.getPersistentQueries()
         .get(0).getQueryId();
 
-    final PersistentQueryMetadata sandBoxQuery = sandbox.getPersistentQuery(queryId)
+    final PersistentQueryEntity sandBoxQuery = sandbox.getPersistentQuery(queryId)
         .get();
 
     // When:
@@ -1758,7 +1750,7 @@ public class KsqlEngineTest {
   public void shouldNotStartKafkaStreamsInSandbox() {
     // Given:
     givenSqlAlreadyExecuted("create table bar as select * from test2;");
-    final QueryMetadata query = ksqlEngine.getPersistentQueries().get(0);
+    final QueryEntity query = ksqlEngine.getPersistentQueries().get(0);
 
     // When:
     sandbox.getPersistentQuery(query.getQueryId()).get().start();
@@ -1772,7 +1764,7 @@ public class KsqlEngineTest {
   public void shouldNotStopKafkaStreamsInSandbox() {
     // Given:
     givenSqlAlreadyExecuted("create table bar as select * from test2;");
-    final QueryMetadata query = ksqlEngine.getPersistentQueries().get(0);
+    final QueryEntity query = ksqlEngine.getPersistentQueries().get(0);
     ksqlEngine.getPersistentQuery(query.getQueryId()).get().start();
 
     // When:
@@ -1787,7 +1779,7 @@ public class KsqlEngineTest {
   public void shouldNotCloseKafkaStreamsInSandbox() {
     // Given:
     givenSqlAlreadyExecuted("create table bar as select * from test2;");
-    final QueryMetadata query = ksqlEngine.getPersistentQueries().get(0);
+    final QueryEntity query = ksqlEngine.getPersistentQueries().get(0);
     ksqlEngine.getPersistentQuery(query.getQueryId()).get().start();
 
     // When:
@@ -1864,7 +1856,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldIgnoreLegacyDeleteTopicPartOfDropCommand() {
     // Given:
-    final QueryMetadata query = KsqlEngineTestUtil.execute(
+    final QueryEntity query = KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
         "CREATE STREAM FOO AS SELECT * FROM TEST1;",
@@ -1932,8 +1924,8 @@ public class KsqlEngineTest {
     }
   }
 
-  private static QueryId getQueryId(final QueryMetadata query) {
-    return ((PersistentQueryMetadata) query).getQueryId();
+  private static QueryId getQueryId(final QueryEntity query) {
+    return ((PersistentQueryEntity) query).getQueryId();
   }
 
   private void givenStatementAlreadyExecuted(

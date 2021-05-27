@@ -43,8 +43,9 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+import io.confluent.ksql.util.QueryEntity;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -123,11 +124,11 @@ public class KsqlContext implements AutoCloseable {
   /**
    * Execute the ksql statement in this context.
    */
-  public List<QueryMetadata> sql(final String sql) {
+  public List<QueryEntity> sql(final String sql) {
     return sql(sql, Collections.emptyMap());
   }
 
-  public List<QueryMetadata> sql(final String sql, final Map<String, ?> overriddenProperties) {
+  public List<QueryEntity> sql(final String sql, final Map<String, ?> overriddenProperties) {
     final List<ParsedStatement> statements = ksqlEngine.parse(sql);
 
     final KsqlExecutionContext sandbox = ksqlEngine.createSandbox(ksqlEngine.getServiceContext());
@@ -141,7 +142,7 @@ public class KsqlContext implements AutoCloseable {
           injectorFactory.apply(sandbox, sandbox.getServiceContext()));
     }
 
-    final List<QueryMetadata> queries = new ArrayList<>();
+    final List<QueryEntity> queries = new ArrayList<>();
     final Injector injector = injectorFactory.apply(ksqlEngine, serviceContext);
     final Map<String, Object> executionOverrides = new HashMap<>(overriddenProperties);
     for (final ParsedStatement parsed : statements) {
@@ -150,9 +151,9 @@ public class KsqlContext implements AutoCloseable {
           .ifPresent(queries::add);
     }
 
-    for (final QueryMetadata queryMetadata : queries) {
-      if (queryMetadata instanceof PersistentQueryMetadata) {
-        queryMetadata.start();
+    for (final QueryEntity queryEntity : queries) {
+      if (queryEntity instanceof PersistentQueryEntity) {
+        queryEntity.start();
       } else {
         LOG.warn("Ignoring statemenst: {}", sql);
         LOG.warn("Only CREATE statements can run in KSQL embedded mode.");
@@ -166,11 +167,11 @@ public class KsqlContext implements AutoCloseable {
    * @deprecated use {@link #getPersistentQueries}.
    */
   @Deprecated
-  public Set<QueryMetadata> getRunningQueries() {
+  public Set<QueryEntity> getRunningQueries() {
     return new HashSet<>(ksqlEngine.getPersistentQueries());
   }
 
-  public List<PersistentQueryMetadata> getPersistentQueries() {
+  public List<PersistentQueryEntity> getPersistentQueries() {
     return ksqlEngine.getPersistentQueries();
   }
 
@@ -180,7 +181,7 @@ public class KsqlContext implements AutoCloseable {
   }
 
   public void terminateQuery(final QueryId queryId) {
-    ksqlEngine.getPersistentQuery(queryId).ifPresent(QueryMetadata::close);
+    ksqlEngine.getPersistentQuery(queryId).ifPresent(QueryEntity::close);
   }
 
   private static ExecuteResult execute(

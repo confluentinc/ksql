@@ -63,8 +63,8 @@ import io.confluent.ksql.test.parser.TestStatement;
 import io.confluent.ksql.test.tools.TestFunctionRegistry;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+import io.confluent.ksql.util.QueryEntity;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -170,7 +170,7 @@ public class KsqlTesterTest {
         Collections.singletonList(
             new QueryEventListener() {
               @Override
-              public void onDeregister(QueryMetadata query) {
+              public void onDeregister(QueryEntity query) {
                 final DriverAndProperties driverAndProperties = drivers.get(
                     query.getQueryId()
                 );
@@ -244,7 +244,7 @@ public class KsqlTesterTest {
       return;
     }
 
-    final PersistentQueryMetadata query = (PersistentQueryMetadata) result.getQuery().get();
+    final PersistentQueryEntity query = (PersistentQueryEntity) result.getQuery().get();
     final Topology topology = query.getTopology();
     final Properties properties = new Properties();
     properties.putAll(query.getStreamsProperties());

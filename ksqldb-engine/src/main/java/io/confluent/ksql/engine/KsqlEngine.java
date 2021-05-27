@@ -43,12 +43,9 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.QueryEntity;
+
 import java.io.Closeable;
 import java.util.List;
 import java.util.Map;
@@ -149,12 +146,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   @Override
-  public Optional<PersistentQueryMetadata> getPersistentQuery(final QueryId queryId) {
+  public Optional<PersistentQueryEntity> getPersistentQuery(final QueryId queryId) {
     return primaryContext.getQueryRegistry().getPersistentQuery(queryId);
   }
 
   @Override
-  public List<PersistentQueryMetadata> getPersistentQueries() {
+  public List<PersistentQueryEntity> getPersistentQueries() {
     return ImmutableList.copyOf(primaryContext.getQueryRegistry().getPersistentQueries().values());
   }
 
@@ -164,7 +161,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   @Override
-  public List<QueryMetadata> getAllLiveQueries() {
+  public List<QueryEntity> getAllLiveQueries() {
     return primaryContext.getQueryRegistry().getAllLiveQueries();
   }
 
@@ -258,13 +255,13 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   @Override
-  public TransientQueryMetadata executeQuery(
+  public TransientQueryEntity executeQuery(
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
       final boolean excludeTombstones
   ) {
     try {
-      final TransientQueryMetadata query = EngineExecutor
+      final TransientQueryEntity query = EngineExecutor
           .create(primaryContext, serviceContext, statement.getSessionConfig())
           .executeQuery(statement, excludeTombstones);
       return query;
@@ -359,7 +356,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     @Override
     public void onClose(
-        final QueryMetadata query
+        final QueryEntity query
     ) {
       final String applicationId = query.getQueryApplicationId();
       if (query.hasEverBeenStarted()) {
@@ -367,7 +364,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             new QueryCleanupService.QueryCleanupTask(
                 serviceContext,
                 applicationId,
-                query instanceof TransientQueryMetadata
+                query instanceof TransientQueryEntity
             ));
       }
 

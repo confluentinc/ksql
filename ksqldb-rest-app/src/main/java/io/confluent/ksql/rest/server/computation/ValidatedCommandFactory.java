@@ -28,7 +28,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
 import java.util.Optional;
 
 /**
@@ -114,7 +114,7 @@ public final class ValidatedCommandFactory {
     final Optional<QueryId> queryId = terminateQuery.getQueryId();
 
     if (!queryId.isPresent()) {
-      context.getPersistentQueries().forEach(PersistentQueryMetadata::close);
+      context.getPersistentQueries().forEach(PersistentQueryEntity::close);
       return Command.of(statement);
     }
 

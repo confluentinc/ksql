@@ -77,11 +77,8 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.InjectorChain;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.QueryEntity;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import java.io.IOException;
@@ -232,11 +229,11 @@ public class StandaloneExecutorTest {
   @Mock
   private UserFunctionLoader udfLoader;
   @Mock
-  private PersistentQueryMetadata persistentQuery;
+  private PersistentQueryEntity persistentQuery;
   @Mock
-  private PersistentQueryMetadata sandBoxQuery;
+  private PersistentQueryEntity sandBoxQuery;
   @Mock
-  private QueryMetadata nonPersistentQueryMd;
+  private QueryEntity nonPersistentQueryMd;
   @Mock
   private VersionCheckerAgent versionChecker;
   @Mock

@@ -44,11 +44,9 @@ import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.QueryEntity;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -109,12 +107,12 @@ public class PhysicalPlanBuilderTest {
     serviceContext.close();
   }
 
-  private QueryMetadata buildQuery(final String query) {
+  private QueryEntity buildQuery(final String query) {
     givenKafkaTopicsExist("test1");
     return execute(CREATE_STREAM_TEST1 + query).get(0);
   }
 
-  private QueryMetadata buildTransientQuery(final String query) {
+  private QueryEntity buildTransientQuery(final String query) {
     givenKafkaTopicsExist("test1");
     execute(CREATE_STREAM_TEST1);
     return executeQuery(query);
@@ -122,24 +120,24 @@ public class PhysicalPlanBuilderTest {
 
   @Test
   public void shouldHaveKStreamDataSource() {
-    final PersistentQueryMetadata metadata = (PersistentQueryMetadata) buildQuery(
+    final PersistentQueryEntity metadata = (PersistentQueryEntity) buildQuery(
         "CREATE STREAM FOO AS " + simpleSelectFilter);
     assertThat(metadata.getDataSourceType(), equalTo(DataSourceType.KSTREAM));
   }
 
   @Test
   public void shouldMakeBareQuery() {
-    final QueryMetadata queryMetadata = buildTransientQuery(simpleSelectFilter);
-    assertThat(queryMetadata, instanceOf(TransientQueryMetadata.class));
+    final QueryEntity queryEntity = buildTransientQuery(simpleSelectFilter);
+    assertThat(queryEntity, instanceOf(TransientQueryEntity.class));
   }
 
   @Test
   public void shouldBuildTransientQueryWithCorrectSchema() {
     // When:
-    final QueryMetadata queryMetadata = buildTransientQuery(simpleSelectFilter);
+    final QueryEntity queryEntity = buildTransientQuery(simpleSelectFilter);
 
     // Then:
-    assertThat(queryMetadata.getLogicalSchema(), is(LogicalSchema.builder()
+    assertThat(queryEntity.getLogicalSchema(), is(LogicalSchema.builder()
         .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
@@ -151,11 +149,11 @@ public class PhysicalPlanBuilderTest {
   @Test
   public void shouldBuildPersistentQueryWithCorrectSchema() {
     // When:
-    final QueryMetadata queryMetadata = buildQuery(
+    final QueryEntity queryEntity = buildQuery(
         "CREATE STREAM FOO AS " + simpleSelectFilter);
 
     // Then:
-    assertThat(queryMetadata.getLogicalSchema(), is(LogicalSchema.builder()
+    assertThat(queryEntity.getLogicalSchema(), is(LogicalSchema.builder()
         .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
         .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL2"), SqlTypes.DOUBLE)
@@ -169,11 +167,11 @@ public class PhysicalPlanBuilderTest {
     givenKafkaTopicsExist("test1");
 
     // When:
-    final QueryMetadata queryMetadata =
+    final QueryEntity queryEntity =
         buildQuery("CREATE STREAM FOO AS " + simpleSelectFilter);
 
     // Then:
-    assertThat(queryMetadata, instanceOf(PersistentQueryMetadata.class));
+    assertThat(queryEntity, instanceOf(PersistentQueryEntity.class));
   }
 
   @Test
@@ -184,10 +182,10 @@ public class PhysicalPlanBuilderTest {
     final String insertIntoQuery = "INSERT INTO s1 SELECT rowkey, col0, col1, col2 FROM test1;";
     givenKafkaTopicsExist("test1");
 
-    final List<QueryMetadata> queryMetadataList = execute(
+    final List<QueryEntity> queryEntityList = execute(
         CREATE_STREAM_TEST1 + csasQuery + insertIntoQuery);
-    assertThat(queryMetadataList, hasSize(2));
-    final String planText = queryMetadataList.get(1).getExecutionPlan();
+    assertThat(queryEntityList, hasSize(2));
+    final String planText = queryEntityList.get(1).getExecutionPlan();
     final String[] lines = planText.split("\n");
     assertThat(lines.length, is(3));
     Assert.assertEquals(lines[0],
@@ -196,9 +194,9 @@ public class PhysicalPlanBuilderTest {
         "\t\t > [ PROJECT ] | Schema: ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE | Logger: INSERTQUERY_1.Project");
     Assert.assertEquals(lines[2],
         "\t\t\t\t > [ SOURCE ] | Schema: ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE, ROWTIME BIGINT, ROWKEY STRING | Logger: INSERTQUERY_1.KsqlTopic.Source");
-    assertThat(queryMetadataList.get(1), instanceOf(PersistentQueryMetadata.class));
-    final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata)
-        queryMetadataList.get(1);
+    assertThat(queryEntityList.get(1), instanceOf(PersistentQueryEntity.class));
+    final PersistentQueryEntity persistentQuery = (PersistentQueryEntity)
+        queryEntityList.get(1);
     assertThat(persistentQuery.getResultTopic().getValueFormat().getFormat(),
         equalTo(FormatFactory.DELIMITED.name()));
   }
@@ -213,7 +211,7 @@ public class PhysicalPlanBuilderTest {
     givenKafkaTopicsExist("test1");
 
     // When:
-    final List<QueryMetadata> queries = execute(cs + csas + insertInto);
+    final List<QueryEntity> queries = execute(cs + csas + insertInto);
 
     // Then:
     assertThat(queries, hasSize(2));
@@ -237,7 +235,7 @@ public class PhysicalPlanBuilderTest {
     execute(CREATE_STREAM_TEST2 + CREATE_STREAM_TEST3);
 
     // When:
-    final QueryMetadata result = execute("CREATE STREAM s1 AS "
+    final QueryEntity result = execute("CREATE STREAM s1 AS "
         + "SELECT * FROM test2 JOIN test3 WITHIN 1 SECOND "
         + "ON test2.col1 = test3.id3;")
         .get(0);
@@ -255,7 +253,7 @@ public class PhysicalPlanBuilderTest {
     execute(CREATE_STREAM_TEST2 + CREATE_STREAM_TEST3);
 
     // When:
-    final QueryMetadata result = execute("CREATE STREAM s1 AS "
+    final QueryEntity result = execute("CREATE STREAM s1 AS "
         + "SELECT * FROM test2 JOIN test3 WITHIN 1 SECOND "
         + "ON test2.id2 = test3.col0;")
         .get(0);
@@ -322,7 +320,7 @@ public class PhysicalPlanBuilderTest {
     execute(CREATE_STREAM_TEST2 + CREATE_STREAM_TEST3);
 
     // When:
-    final QueryMetadata result = execute("CREATE STREAM s1 AS "
+    final QueryEntity result = execute("CREATE STREAM s1 AS "
         + "SELECT * FROM test2 JOIN test3 WITHIN 1 SECOND "
         + "ON test2.id2 = test3.id3;")
         .get(0);
@@ -380,7 +378,7 @@ public class PhysicalPlanBuilderTest {
     ksqlConfig = ksqlConfig.cloneWithPropertyOverwrite(ImmutableMap.of(name, value));
   }
 
-  private List<QueryMetadata> execute(final String sql) {
+  private List<QueryEntity> execute(final String sql) {
     return KsqlEngineTestUtil.execute(
         serviceContext,
         ksqlEngine,
@@ -389,7 +387,7 @@ public class PhysicalPlanBuilderTest {
         Collections.emptyMap());
   }
 
-  private TransientQueryMetadata executeQuery(final String sql) {
+  private TransientQueryEntity executeQuery(final String sql) {
     return KsqlEngineTestUtil.executeQuery(
         serviceContext, ksqlEngine, sql, ksqlConfig, Collections.emptyMap());
   }

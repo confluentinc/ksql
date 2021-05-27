@@ -64,9 +64,9 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
 import io.confluent.ksql.util.PlanSummary;
-import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.TransientQueryEntity;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Locale;
@@ -251,7 +251,7 @@ final class EngineExecutor {
 
 
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
-  TransientQueryMetadata executeQuery(
+  TransientQueryEntity executeQuery(
       final ConfiguredStatement<Query> statement,
       final boolean excludeTombstones
   ) {
@@ -532,7 +532,7 @@ final class EngineExecutor {
     }
   }
 
-  private PersistentQueryMetadata executePersistentQuery(
+  private PersistentQueryEntity executePersistentQuery(
       final QueryPlan queryPlan,
       final String statementText,
       final boolean createAsQuery

@@ -32,9 +32,9 @@ import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+import io.confluent.ksql.util.QueryEntity;
+import io.confluent.ksql.util.TransientQueryEntity;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -76,7 +76,7 @@ public interface KsqlExecutionContext {
    * @param queryId the id of the query to retrieve.
    * @return the query's details or else {@code Optional.empty()} if no found.
    */
-  Optional<PersistentQueryMetadata> getPersistentQuery(QueryId queryId);
+  Optional<PersistentQueryEntity> getPersistentQuery(QueryId queryId);
 
   /**
    * Retrieves the list of all running persistent queries.
@@ -84,7 +84,7 @@ public interface KsqlExecutionContext {
    * @return the list of all persistent queries
    * @see #getPersistentQuery(QueryId)
    */
-  List<PersistentQueryMetadata> getPersistentQueries();
+  List<PersistentQueryEntity> getPersistentQueries();
 
   /**
    * Retrieves the list of all queries writing to this {@code SourceName}.
@@ -99,7 +99,7 @@ public interface KsqlExecutionContext {
    *
    * @return the list of all queries
    */
-  List<QueryMetadata> getAllLiveQueries();
+  List<QueryEntity> getAllLiveQueries();
 
   /**
    * Parse the statement(s) in supplied {@code sql}.
@@ -134,7 +134,7 @@ public interface KsqlExecutionContext {
    * Executes a query using the supplied service context.
    * @return the query metadata
    */
-  TransientQueryMetadata executeQuery(
+  TransientQueryEntity executeQuery(
       ServiceContext serviceContext,
       ConfiguredStatement<Query> statement,
       boolean excludeTombstones
@@ -193,10 +193,10 @@ public interface KsqlExecutionContext {
    */
   final class ExecuteResult {
 
-    private final Optional<QueryMetadata> query;
+    private final Optional<QueryEntity> query;
     private final Optional<String> commandResult;
 
-    public static ExecuteResult of(final QueryMetadata query) {
+    public static ExecuteResult of(final QueryEntity query) {
       return new ExecuteResult(Optional.of(query), Optional.empty());
     }
 
@@ -204,7 +204,7 @@ public interface KsqlExecutionContext {
       return new ExecuteResult(Optional.empty(), Optional.of(commandResult));
     }
 
-    public Optional<QueryMetadata> getQuery() {
+    public Optional<QueryEntity> getQuery() {
       return query;
     }
 
@@ -213,7 +213,7 @@ public interface KsqlExecutionContext {
     }
 
     private ExecuteResult(
-        final Optional<QueryMetadata> query,
+        final Optional<QueryEntity> query,
         final Optional<String> commandResult
     ) {
       this.query = Objects.requireNonNull(query, "query");

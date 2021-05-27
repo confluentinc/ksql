@@ -32,7 +32,8 @@ import io.confluent.ksql.rest.server.HeartbeatAgent.HostStatusListener;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHostInfo;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.streams.state.HostInfo;
@@ -47,9 +48,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class HeartbeatAgentTest {
   @Mock
-  private PersistentQueryMetadata query0;
+  private PersistentQueryEntity query0;
   @Mock
-  private PersistentQueryMetadata query1;
+  private PersistentQueryEntity query1;
   @Mock
   private StreamsMetadata streamsMetadata0;
   @Mock

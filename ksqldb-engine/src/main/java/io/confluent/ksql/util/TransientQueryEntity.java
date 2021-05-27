@@ -32,7 +32,7 @@ import org.apache.kafka.streams.Topology;
 /**
  * Metadata of a transient query, e.g. {@code SELECT * FROM FOO;}.
  */
-public class TransientQueryMetadata extends QueryMetadataImpl {
+public class TransientQueryEntity extends QueryEntityImpl {
 
   public enum ResultType {
     STREAM,
@@ -45,7 +45,7 @@ public class TransientQueryMetadata extends QueryMetadataImpl {
   final AtomicBoolean isRunning = new AtomicBoolean(true);
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-  public TransientQueryMetadata(
+  public TransientQueryEntity(
       final String statementString,
       final LogicalSchema logicalSchema,
       final Set<SourceName> sourceNames,
@@ -86,8 +86,8 @@ public class TransientQueryMetadata extends QueryMetadataImpl {
     this.resultType = Objects.requireNonNull(resultType, "resultType");
   }
 
-  public TransientQueryMetadata(
-      final TransientQueryMetadata original,
+  public TransientQueryEntity(
+      final TransientQueryEntity original,
       final BlockingRowQueue rowQueue,
       final Listener listener
   ) {
@@ -115,11 +115,11 @@ public class TransientQueryMetadata extends QueryMetadataImpl {
 
   @Override
   public boolean equals(final Object o) {
-    if (!(o instanceof TransientQueryMetadata)) {
+    if (!(o instanceof TransientQueryEntity)) {
       return false;
     }
 
-    final TransientQueryMetadata that = (TransientQueryMetadata) o;
+    final TransientQueryEntity that = (TransientQueryEntity) o;
 
     return Objects.equals(this.rowQueue, that.rowQueue)
         && Objects.equals(this.resultType, that.resultType)

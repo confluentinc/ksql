@@ -24,20 +24,17 @@ Description
 
 Pulls the current value from the materialized view and terminates. The result
 of this statement is not persisted in a {{ site.ak }} topic and is printed out
-only in the console. Pull queries run with predictably low latency because materialized views are incrementally updated as new events arrive.
-for request/response flows. For asynchronous application flows, see 
+only in the console. Pull queries run with predictably low latency because 
+materialized views are incrementally updated as new events arrive.
+They are a great match for request/response flows. For asynchronous application flows, see 
 [Push Queries](select-push-query.md).
 
 You can execute a pull query by sending an HTTP request to the ksqlDB REST API, and
 the API responds with a single response.  
 
-
 -   Pull queries are expressed using a strict subset of ANSI SQL.
--   You can issue a pull query against any table that was created by  
-
-    a [CREATE TABLE AS SELECT](../../ksqldb-reference/create-table-as-select) 
-    statement.
--   `SELECT` statements can contain column arithmetic and function calls.
+-   You can issue a pull query against any table that was created by a 
+    [CREATE TABLE AS SELECT](../../ksqldb-reference/create-table-as-select) statement.
 -   Currently, we do not support pull queries against tables created by using a [CREATE TABLE](../../ksqldb-reference/create-table) statement.
 -   Pull queries do not support `JOIN`, `PARTITION BY`, `GROUP BY` and `WINDOW` clauses (but can query materialized tables that contain those clauses)
 
@@ -49,14 +46,12 @@ By default, only key lookups are enabled. They have the following requirements:
 -   On windowed tables, WINDOWSTART and WINDOWEND can be optionally compared to literals. 
     For more information on windowed tables, see [Time and Windows in ksqlDB](../../concepts/time-and-windows-in-ksqldb-queries.md).
 
-You can loosen the restrictions on the `WHERE` clause, or eliminate the `WHERE` clause altogether, by enabling table scans
-current CLI session with the command `SET 'ksql.query.pull.table.scan.enabled'='true';`. 
-They can also be enabled by default by setting a server configuration property with 
-`ksql.query.pull.table.scan.enabled=true`. Once table scans are enabled, the following 
-
-additional expressions are allowed:
+You can loosen the restrictions on the `WHERE` clause, or eliminate the `WHERE` clause altogether, 
+by enabling table scans in your current CLI session with the command `SET 'ksql.query.pull.table.scan.enabled'='true';`. 
+Table scans can also be enabled by default by setting a server configuration property with 
+`ksql.query.pull.table.scan.enabled=true`. Once table scans are enabled, the following additional expressions are allowed:
 -   Key column(s) using range comparisons to literals.
--   Non key columns to be used alone, without key references.
+-   Non-key columns to be used alone, without key references.
 -   Columns to be compared to other columns.
 -   References to subsets of columns from a multi-column key.
 -   Complex expressions without direct column references (e.g. instr(NAME_COL, 'hello') > 0).

@@ -14,6 +14,8 @@ import org.apache.kafka.streams.processor.ThreadMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -75,6 +77,18 @@ public class CsuMetricsReportingListener implements Runnable, QueryEventListener
     }
 
     private void reportSystemMetrics() {
+        try {
+            BufferedReader br = new BufferedReader(new FileReader("/procfs/sys/1/stat"));
+            String[] columns = br.readLine().split(" ");
+            String timeUser = columns[13];
+            String timeKernel = columns[14];
+            int clockTicks = 100;
+
+            logger.info("we've got " + timeUser + " for timeuser, " + timeKernel + " for timekernel, not sure about clock ticks");
+        } catch(Exception e) {
+            logger.info("something went wrong finding cpu utilization metrics " + e.getMessage());
+        }
+
         logger.info("we're using some disk");
     }
 
@@ -99,7 +113,7 @@ public class CsuMetricsReportingListener implements Runnable, QueryEventListener
                         m.metricName().tags().get("thread-id").equals(threadName) &&
                         metrics.contains(m.metricName().name()))
                 .collect(Collectors.toMap(k -> k.metricName().name(), v -> (double) v.metricValue()));
-        final double threadStartTime = threadMetrics.getOrDefault("thread-start-time", 0);
+        final double threadStartTime = threadMetrics.getOrDefault("thread-start-time", 0.0);
         long blockedTime = 0;
         if (threadStartTime > windowStart) {
             blockedTime += threadStartTime - windowStart;
@@ -108,14 +122,14 @@ public class CsuMetricsReportingListener implements Runnable, QueryEventListener
             previousSendTime.put(threadName, 0.0);
             previousFlushTime.put(threadName, 0.0);
         }
-        blockedTime += previousPollTime.get(threadName);
-        previousPollTime.put(threadName, previousPollTime.get(threadName) + threadMetrics.get("poll-time-total"));
-        blockedTime += previousRestoreConsumerPollTime.get(threadName);
-        previousRestoreConsumerPollTime.put(threadName, previousRestoreConsumerPollTime.get(threadName) + threadMetrics.get("restore-poll-time-total"));
-        blockedTime += previousSendTime.get(threadName);
-        previousSendTime.put(threadName, previousSendTime.get(threadName) + threadMetrics.get("send-time-total"));
-        blockedTime += previousFlushTime.get(threadName);
-        previousFlushTime.put(threadName, previousFlushTime.get(threadName) + threadMetrics.get("flush-time-total"));
+        blockedTime += (threadMetrics.get("poll-time-total") - previousPollTime.get(threadName));
+        previousPollTime.put(threadName, threadMetrics.get("poll-time-total"));
+        blockedTime += threadMetrics.get("restore-poll-time-total") - previousRestoreConsumerPollTime.get(threadName);
+        previousRestoreConsumerPollTime.put(threadName, threadMetrics.get("restore-poll-time-total"));
+        blockedTime += threadMetrics.get("send-time-total") - previousSendTime.get(threadName);
+        previousSendTime.put(threadName, threadMetrics.get("send-time-total"));
+        blockedTime += threadMetrics.get("flush-time-total") - previousFlushTime.get(threadName);
+        previousFlushTime.put(threadName, threadMetrics.get("flush-time-total"));
 
         return Math.min(windowSize, blockedTime);
     }

@@ -39,7 +39,7 @@ the API responds with a single response.
     statement.
 -   `SELECT` statements can contain column arithmetic and function calls.
 -   Currently, we do not support pull queries against tables created by using a [CREATE TABLE](../../ksqldb-reference/create-table) statement.
--   `JOIN`, `PARTITION BY`, `GROUP BY` and `WINDOW` clauses aren't supported currently.
+-   Pull queries do not support `JOIN`, `PARTITION BY`, `GROUP BY` and `WINDOW` clauses (but can query materialized tables that contain those clauses)
 
 WHERE Clause Guidelines
 -----------------------

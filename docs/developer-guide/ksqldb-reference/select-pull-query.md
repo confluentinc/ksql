@@ -53,7 +53,8 @@ You can enable table scans to loosen the restrictions on the `WHERE` clause or e
 the `WHERE` clause altogether. Table scans can be turned on for pull queries running in the 
 current CLI session with the command `SET 'ksql.query.pull.table.scan.enabled'='true';`. 
 They can also be enabled by default by setting a server configuration property with 
-`ksql.query.pull.table.scan.enabled=true`.Once table scans are enabled, the following 
+`ksql.query.pull.table.scan.enabled=true`. Once table scans are enabled, the following 
+
 additional expressions are allowed:
 -   Key column(s) using range comparisons to literals.
 -   Non key columns to be used alone, without key references.

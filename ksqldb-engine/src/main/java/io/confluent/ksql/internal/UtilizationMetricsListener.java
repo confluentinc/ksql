@@ -1,13 +1,10 @@
 package io.confluent.ksql.internal;
 
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.QueryEventListener;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.QueryMetadata;
-import org.apache.commons.collections.map.HashedMap;
 import org.apache.kafka.common.Metric;
-import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.processor.ThreadMetadata;
@@ -16,15 +13,19 @@ import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
-public class CsuMetricsReportingListener implements Runnable, QueryEventListener {
+public class UtilizationMetricsListener implements Runnable, QueryEventListener {
 
     private final String STREAM_THREAD_GROUP = "stream-thread-metrics";
 
     private final List<KafkaStreams> kafkaStreams;
-    private final Logger logger = LoggerFactory.getLogger(CsuMetricsReportingListener.class);
+    private final Logger logger = LoggerFactory.getLogger(UtilizationMetricsListener.class);
     private final List<String> metrics;
     private final Time time;
 
@@ -33,7 +34,7 @@ public class CsuMetricsReportingListener implements Runnable, QueryEventListener
     private final Map<String, Double> previousSendTime;
     private final Map<String, Double> previousFlushTime;
 
-    public CsuMetricsReportingListener(){
+    public UtilizationMetricsListener(){
         this.kafkaStreams = new ArrayList<>();
         this.metrics = new LinkedList<>();
         // we can add these here or pass it in through the constructor
@@ -60,6 +61,10 @@ public class CsuMetricsReportingListener implements Runnable, QueryEventListener
 
     @Override
     public void onDeregister(final QueryMetadata query) {
+        // Question - if we terminate a query and then restart it, will the underling
+        // kafka streams have a new name? if so, do we want to remove everything from the
+        // previous value hashmaps? Or do we want to see that historical information still?
+        // Seems like if there's a chance we could re-use the name we'd want a clean slate
         kafkaStreams.remove(query.getKafkaStreams());
     }
 
@@ -113,6 +118,7 @@ public class CsuMetricsReportingListener implements Runnable, QueryEventListener
                         m.metricName().tags().get("thread-id").equals(threadName) &&
                         metrics.contains(m.metricName().name()))
                 .collect(Collectors.toMap(k -> k.metricName().name(), v -> (double) v.metricValue()));
+        // this actually might not be a double
         final double threadStartTime = threadMetrics.getOrDefault("thread-start-time", 0.0);
         long blockedTime = 0;
         if (threadStartTime > windowStart) {

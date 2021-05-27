@@ -15,9 +15,6 @@
 
 package io.confluent.ksql.rest.server;
 
-import static io.confluent.ksql.rest.server.KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG;
-import static java.util.Objects.requireNonNull;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -42,8 +39,8 @@ import io.confluent.ksql.execution.streams.RoutingFilters;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UserFunctionLoader;
-import io.confluent.ksql.internal.CsuMetricsReportingListener;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.internal.UtilizationMetricsListener;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogServerUtils;
@@ -116,6 +113,13 @@ import io.vertx.core.VertxOptions;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.ext.dropwizard.Match;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.utils.Time;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.log4j.LogManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.Console;
 import java.io.File;
 import java.io.OutputStreamWriter;
@@ -125,8 +129,18 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -134,13 +148,8 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.apache.avro.generic.GenericData;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.common.utils.Time;
-import org.apache.kafka.streams.StreamsConfig;
-import org.apache.log4j.LogManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static io.confluent.ksql.rest.server.KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG;
+import static java.util.Objects.requireNonNull;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class KsqlRestApplication implements Executable {
@@ -682,7 +691,8 @@ public final class KsqlRestApplication implements Executable {
                     .setNameFormat("ksql-csu-metrics-reporter-%d")
                     .build()
     );
-    final CsuMetricsReportingListener csuMetricReporter = new CsuMetricsReportingListener();
+    final UtilizationMetricsListener csuMetricReporter = new UtilizationMetricsListener();
+    // will change to 300000 when we're ready
     executorService.scheduleAtFixedRate(csuMetricReporter, 0, 12000, TimeUnit.MILLISECONDS);
     final List<QueryEventListener> listeners = new ArrayList <>();
     listeners.add(csuMetricReporter);

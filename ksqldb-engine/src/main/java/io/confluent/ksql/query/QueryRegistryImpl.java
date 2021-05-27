@@ -22,7 +22,7 @@ import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.QueryEventListener;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.internal.CsuMetricsReportingListener;
+import io.confluent.ksql.internal.UtilizationMetricsListener;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -329,7 +329,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       final MetaStore metaStore,
       final QueryMetadata queryMetadata) {
     this.eventListeners.forEach(l -> {
-      if(!(l instanceof CsuMetricsReportingListener)) {
+      if(!(l instanceof UtilizationMetricsListener)) {
         l.onCreate(serviceContext, metaStore, queryMetadata);
       }
     });
@@ -340,7 +340,7 @@ public class QueryRegistryImpl implements QueryRegistry {
           final MetaStore metaStore,
           final QueryMetadata queryMetadata) {
     this.eventListeners.forEach(l -> {
-      if(l instanceof CsuMetricsReportingListener) {
+      if(l instanceof UtilizationMetricsListener) {
         l.onCreate(serviceContext, metaStore, queryMetadata);
       }
     });

@@ -24,8 +24,7 @@ Description
 
 Pulls the current value from the materialized view and terminates. The result
 of this statement is not persisted in a {{ site.ak }} topic and is printed out
-only in the console. Because materialized views are incrementally updated as new 
-events arrive, pull queries run with predictably low latency. They are a great match 
+only in the console. Pull queries run with predictably low latency because materialized views are incrementally updated as new events arrive.
 for request/response flows. For asynchronous application flows, see 
 [Push Queries](select-push-query.md).
 

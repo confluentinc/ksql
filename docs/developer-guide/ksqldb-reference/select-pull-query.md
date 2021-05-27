@@ -49,8 +49,7 @@ By default, only key lookups are enabled. They have the following requirements:
 -   On windowed tables, WINDOWSTART and WINDOWEND can be optionally compared to literals. 
     For more information on windowed tables, see [Time and Windows in ksqlDB](../../concepts/time-and-windows-in-ksqldb-queries.md).
 
-You can enable table scans to loosen the restrictions on the `WHERE` clause or eliminate 
-the `WHERE` clause altogether. Table scans can be turned on for pull queries running in the 
+You can loosen the restrictions on the `WHERE` clause, or eliminate the `WHERE` clause altogether, by enabling table scans
 current CLI session with the command `SET 'ksql.query.pull.table.scan.enabled'='true';`. 
 They can also be enabled by default by setting a server configuration property with 
 `ksql.query.pull.table.scan.enabled=true`. Once table scans are enabled, the following 

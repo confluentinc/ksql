@@ -21,9 +21,7 @@ import com.google.common.base.Ticker;
 import com.google.common.collect.EvictingQueue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.ksql.logging.query.QueryLogger;
-import io.confluent.ksql.metrics.CsuMetricCollector;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.query.QueryError;
@@ -40,9 +38,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -87,7 +82,6 @@ public class QueryMetadataImpl implements QueryMetadata {
       return System.currentTimeMillis();
     }
   };
-  private final ScheduledExecutorService executorService;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
@@ -134,7 +128,6 @@ public class QueryMetadataImpl implements QueryMetadata {
         retryBackoffMaxMs,
         CURRENT_TIME_MILLIS_TICKER
     );
-    this.executorService = Executors.newScheduledThreadPool(1, new ThreadFactoryBuilder().setNameFormat("ksql-csu-metrics-reporter-%d").build());
   }
 
   // Used for sandboxing
@@ -168,15 +161,12 @@ public class QueryMetadataImpl implements QueryMetadata {
     );
     this.listener
         = Objects.requireNonNull(listener, "stopListeners");
-    this.executorService = Executors.newScheduledThreadPool(1, new ThreadFactoryBuilder().setNameFormat("ksql-csu-metrics-reporter-%d").build());
   }
 
   public void initialize() {
     // initialize the first KafkaStreams
     resetKafkaStreams(kafkaStreamsBuilder.build(topology, streamsProperties));
     this.initialized = true;
-    final CsuMetricCollector metricCollector = new CsuMetricCollector(kafkaStreams);
-    executorService.scheduleAtFixedRate(metricCollector, 0, 1000, TimeUnit.MILLISECONDS);
   }
 
   protected StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(

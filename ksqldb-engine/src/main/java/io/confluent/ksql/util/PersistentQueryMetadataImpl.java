@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.util;
 
-import static java.util.Objects.requireNonNull;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -27,7 +25,6 @@ import io.confluent.ksql.execution.streams.materialization.MaterializationProvid
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.metrics.CsuMetricCollector;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
@@ -36,18 +33,16 @@ import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Metadata of a persistent query, e.g. {@code CREATE STREAM FOO AS SELECT * FROM BAR;}.
@@ -65,7 +60,6 @@ public class PersistentQueryMetadataImpl
   private final ProcessingLogger processingLogger;
 
   private Optional<MaterializationProvider> materializationProvider;
-  private ProcessingLogger processingLogger;
   private final ScheduledExecutorService executorService;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck

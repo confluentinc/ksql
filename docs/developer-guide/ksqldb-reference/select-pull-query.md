@@ -36,25 +36,27 @@ the API responds with a single response.
 -   You can issue a pull query against any table that was created by a 
     [CREATE TABLE AS SELECT](../../ksqldb-reference/create-table-as-select) statement.
 -   Currently, we do not support pull queries against tables created by using a [CREATE TABLE](../../ksqldb-reference/create-table) statement.
--   Pull queries do not support `JOIN`, `PARTITION BY`, `GROUP BY` and `WINDOW` clauses (but can query materialized tables that contain those clauses)
+-   Pull queries do not support `JOIN`, `PARTITION BY`, `GROUP BY` and `WINDOW` clauses (but can query materialized tables that contain those clauses).
 
-WHERE Clause Guidelines
+`WHERE` Clause Guidelines
 -----------------------
 
 By default, only key lookups are enabled. They have the following requirements:
--   Key column(s) must use an equality comparison to a literal (e.g. KEY = 'abc').
--   On windowed tables, WINDOWSTART and WINDOWEND can be optionally compared to literals. 
+
+-   Key column(s) must use an equality comparison to a literal (e.g. `KEY = 'abc'`).
+-   On windowed tables, `WINDOWSTART` and `WINDOWEND` can be optionally compared to literals. 
     For more information on windowed tables, see [Time and Windows in ksqlDB](../../concepts/time-and-windows-in-ksqldb-queries.md).
 
 You can loosen the restrictions on the `WHERE` clause, or eliminate the `WHERE` clause altogether, 
 by enabling table scans in your current CLI session with the command `SET 'ksql.query.pull.table.scan.enabled'='true';`. 
 Table scans can also be enabled by default by setting a server configuration property with 
 `ksql.query.pull.table.scan.enabled=true`. Once table scans are enabled, the following additional expressions are allowed:
+
 -   Key column(s) using range comparisons to literals.
 -   Non-key columns to be used alone, without key references.
 -   Columns to be compared to other columns.
 -   References to subsets of columns from a multi-column key.
--   Complex expressions without direct column references (e.g. instr(NAME_COL, 'hello') > 0).
+-   Complex expressions without direct column references using UDFs and function calls (e.g. `instr(NAME_COL, 'hello') > 0`).
 
 !!! note
 	Table scan based queries are just the next incremental step for ksqlDB pull queries. 

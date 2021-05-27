@@ -72,7 +72,7 @@ public class SharedKafkaStreamsRuntime {
         ImmutableMap.copyOf(
             Objects.requireNonNull(streamsProperties, "streamsProperties"));
     this.metadata.put(queryId.toString(), persistentQueriesInSharedRuntimesImpl);
-    kafkaStreams.addTopology(persistentQueriesInSharedRuntimesImpl.getTopology());
+    kafkaStreams.addNamedTopology(persistentQueriesInSharedRuntimesImpl.getTopology());
     LOG.error("mapping {}", metadata);
   }
 
@@ -133,13 +133,13 @@ public class SharedKafkaStreamsRuntime {
   public void stop(final QueryId queryId) {
     metadata.remove(queryId);
 
-    kafkaStreams.removeTopology(queryId.toString());
+    kafkaStreams.removeNamedTopology(queryId.toString());
   }
 
   public void restart(final QueryId queryId) {
     final KafkaStreams newKafkaStreams = kafkaStreamsBuilder.build(null, streamsProperties);
     for (PersistentQueriesInSharedRuntimesImpl query: metadata.values()) {
-      newKafkaStreams.addTopology(query.getTopology());
+      newKafkaStreams.addNamedTopology(query.getTopology());
     }
     newKafkaStreams.start();
     kafkaStreams.close();
@@ -152,11 +152,11 @@ public class SharedKafkaStreamsRuntime {
 
   public void close(final QueryId queryId) {
     metadata.remove(queryId.toString());
-    kafkaStreams.removeTopology(queryId.toString());
+    kafkaStreams.removeNamedTopology(queryId.toString());
   }
 
   public void start(final QueryId queryId) {
-    kafkaStreams.addTopology(metadata.get(queryId.toString()).getTopology());
+    kafkaStreams.addNamedTopology(metadata.get(queryId.toString()).getTopology());
   }
 
   public List<QueryError> getQueryErrors(final QueryId queryId) {

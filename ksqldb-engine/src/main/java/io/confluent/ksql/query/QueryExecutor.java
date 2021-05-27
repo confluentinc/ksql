@@ -50,8 +50,8 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.BinPackedPersistentQueryMetadataImpl;
-import io.confluent.ksql.util.BinPackedStreamsMetadata;
+import io.confluent.ksql.util.PersistentQueriesInSharedRuntimesImpl;
+import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -96,7 +96,7 @@ final class QueryExecutor {
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private final StreamsBuilder streamsBuilder;
   private final MaterializationProviderBuilderFactory materializationProviderBuilderFactory;
-  private final List<BinPackedStreamsMetadata> streams;
+  private final List<SharedKafkaStreamsRuntime> streams;
 
   QueryExecutor(
       final SessionConfig config,
@@ -145,7 +145,7 @@ final class QueryExecutor {
     );
     this.streams = new ArrayList<>();
 
-    BinPackedStreamsMetadata stream = new BinPackedStreamsMetadata(
+    SharedKafkaStreamsRuntime stream = new SharedKafkaStreamsRuntime(
         kafkaStreamsBuilder,
         config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE)
     );
@@ -283,16 +283,15 @@ final class QueryExecutor {
 
     final boolean useBinPacked = true;
     if (useBinPacked) {
-      BinPackedStreamsMetadata binPackedStreamsMetadata = getStream(sources);
-      BinPackedPersistentQueryMetadataImpl binPackedPersistentQueryMetadata = new BinPackedPersistentQueryMetadataImpl(
+      SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getStream(sources);
+      PersistentQueriesInSharedRuntimesImpl binPackedPersistentQueryMetadata = new PersistentQueriesInSharedRuntimesImpl(
           statementText,
-          querySchema.logicalSchema(),
           querySchema,
           sources,
           planSummary,
           applicationId,
           topology,
-          binPackedStreamsMetadata,
+              sharedKafkaStreamsRuntime,
           runtimeBuildContext.getSchemas(),
           config.getOverrides(),
           queryId,
@@ -302,7 +301,7 @@ final class QueryExecutor {
           sinkDataSource,
           listener
       );
-      binPackedStreamsMetadata.addQuery(classifier, streamsProperties, binPackedPersistentQueryMetadata, queryId);
+      sharedKafkaStreamsRuntime.addQuery(classifier, streamsProperties, binPackedPersistentQueryMetadata, queryId);
       return binPackedPersistentQueryMetadata;
     } else {
 
@@ -334,13 +333,13 @@ final class QueryExecutor {
     }
   }
 
-  private BinPackedStreamsMetadata getStream(final Set<SourceName> sources) {
-    for (BinPackedStreamsMetadata binPackedStreamsMetadata: streams) {
-      if (binPackedStreamsMetadata.getMetadata().stream().noneMatch(sources::contains)) {
-        return binPackedStreamsMetadata;
+  private SharedKafkaStreamsRuntime getStream(final Set<SourceName> sources) {
+    for (SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
+      if (sharedKafkaStreamsRuntime.getSources().stream().noneMatch(sources::contains)) {
+        return sharedKafkaStreamsRuntime;
       }
     }
-    BinPackedStreamsMetadata stream = new BinPackedStreamsMetadata(
+    SharedKafkaStreamsRuntime stream = new SharedKafkaStreamsRuntime(
         kafkaStreamsBuilder,
         config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE)
     );

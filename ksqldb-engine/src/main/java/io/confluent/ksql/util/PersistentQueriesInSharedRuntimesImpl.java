@@ -27,6 +27,7 @@ import io.confluent.ksql.execution.streams.materialization.MaterializationProvid
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.query.MaterializationProviderBuilderFactory;
 import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryId;
@@ -51,20 +52,19 @@ import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 
-public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMetadata {
+public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMetadata {
 
   private static final Logger LOG = LoggerFactory
-      .getLogger(BinPackedPersistentQueryMetadataImpl.class);
+      .getLogger(PersistentQueriesInSharedRuntimesImpl.class);
 
   private final String statementString;
   private final String executionPlan;
   private final String queryApplicationId;
   private final Topology topology;
-  private final BinPackedStreamsMetadata binPackedStreamsMetadata;
+  private final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime;
   private final QuerySchemas schemas;
   private final Map<String, Object> overriddenProperties;
   private final Set<SourceName> sourceNames;
-  private final LogicalSchema logicalSchema;
   private final QueryId queryId;
   private final DataSource sinkDataSource;
   private final ProcessingLogger processingLogger;
@@ -85,15 +85,14 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
-  public BinPackedPersistentQueryMetadataImpl(
+  public PersistentQueriesInSharedRuntimesImpl(
       final String statementString,
-      final LogicalSchema logicalSchema,
       final PhysicalSchema schema,
       final Set<SourceName> sourceNames,
       final String executionPlan,
       final String queryApplicationId,
       final Topology topology,
-      final BinPackedStreamsMetadata binPackedStreamsMetadata,
+      final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime,
       final QuerySchemas schemas,
       final Map<String, Object> overriddenProperties,
       final QueryId queryId,
@@ -108,15 +107,14 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
     this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");
     this.queryApplicationId = Objects.requireNonNull(queryApplicationId, "queryApplicationId");
     this.topology = Objects.requireNonNull(topology, "kafkaTopicClient");
-    this.binPackedStreamsMetadata =
-        Objects.requireNonNull(binPackedStreamsMetadata, "kafkaStreamsBuilder");
+    this.sharedKafkaStreamsRuntime =
+        Objects.requireNonNull(sharedKafkaStreamsRuntime, "kafkaStreamsBuilder");
     this.sinkDataSource = requireNonNull(sinkDataSource, "sinkDataSource");
     this.schemas = requireNonNull(schemas, "schemas");
     this.overriddenProperties =
         ImmutableMap.copyOf(
             Objects.requireNonNull(overriddenProperties, "overriddenProperties"));
     this.sourceNames = Objects.requireNonNull(sourceNames, "sourceNames");
-    this.logicalSchema = Objects.requireNonNull(logicalSchema, "logicalSchema");
     this.queryId = Objects.requireNonNull(queryId, "queryId");
     this.processingLogger = requireNonNull(processingLogger, "processingLogger");
     this.physicalPlan = requireNonNull(physicalPlan, "physicalPlan");
@@ -175,18 +173,18 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public void restart() {
-    binPackedStreamsMetadata.restart(queryId);
+    sharedKafkaStreamsRuntime.restart(queryId);
   }
 
   @Override
   public void stop() {
-    binPackedStreamsMetadata.stop(queryId);
+    sharedKafkaStreamsRuntime.stop(queryId);
   }
 
   @Override
   public StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
       final Throwable error) {
-    return binPackedStreamsMetadata.uncaughtHandler(error);
+    return sharedKafkaStreamsRuntime.uncaughtHandler(error);
   }
 
   @Override
@@ -195,13 +193,18 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
   }
 
   @Override
+  public Optional<ScalablePushRegistry> getScalablePushRegistry() {
+    return Optional.empty();
+  }
+
+  @Override
   public void initialize() {
-    binPackedStreamsMetadata.addToplogy(topology);
+
   }
 
   @Override
   public Set<StreamsTaskMetadata> getTaskMetadata() {
-    return binPackedStreamsMetadata.getTaskMetadata();
+    return sharedKafkaStreamsRuntime.getTaskMetadata();
   }
 
   @Override
@@ -222,12 +225,7 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public KafkaStreams.State getState() {
-    return binPackedStreamsMetadata.state();
-  }
-
-  @Override
-  public boolean isError() {
-    return binPackedStreamsMetadata.isError(queryId);
+    return sharedKafkaStreamsRuntime.state();
   }
 
   @Override
@@ -247,13 +245,13 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public Map<String, Map<Integer, LagInfo>> getAllLocalStorePartitionLags() {
-    return binPackedStreamsMetadata.allLocalStorePartitionLags(queryId);
+    return sharedKafkaStreamsRuntime.allLocalStorePartitionLags(queryId);
   }
 
   @Override
   public Collection<StreamsMetadata> getAllMetadata() {
     try {
-      return ImmutableList.copyOf(binPackedStreamsMetadata.allMetadata());
+      return ImmutableList.copyOf(sharedKafkaStreamsRuntime.allMetadata());
     } catch (IllegalStateException e) {
       LOG.error(e.getMessage());
     }
@@ -262,12 +260,12 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public Map<String, Object> getStreamsProperties() {
-    return binPackedStreamsMetadata.getStreamProperties();
+    return sharedKafkaStreamsRuntime.getStreamProperties();
   }
 
   @Override
   public LogicalSchema getLogicalSchema() {
-    return logicalSchema;
+    return resultSchema.logicalSchema();
   }
 
   @Override
@@ -297,23 +295,23 @@ public class BinPackedPersistentQueryMetadataImpl implements PersistentQueryMeta
 
   @Override
   public List<QueryError> getQueryErrors() {
-    return binPackedStreamsMetadata.getQueryErrors(queryId);
+    return sharedKafkaStreamsRuntime.getQueryErrors(queryId);
   }
 
   @Override
   public KafkaStreams getKafkaStreams() {
-    return binPackedStreamsMetadata.getKafkaStreams();
+    return sharedKafkaStreamsRuntime.getKafkaStreams();
   }
 
   @Override
   public void close() {
-    binPackedStreamsMetadata.close(queryId);
+    sharedKafkaStreamsRuntime.close(queryId);
   }
 
   @Override
   public void start() {
     everStarted = true;
-    binPackedStreamsMetadata.start(queryId);
+    sharedKafkaStreamsRuntime.start(queryId);
   }
 
   Listener getListener() {

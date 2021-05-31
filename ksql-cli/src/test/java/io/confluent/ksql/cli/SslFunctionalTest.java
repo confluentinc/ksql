@@ -99,6 +99,7 @@ public class SslFunctionalTest {
   public void setUp() {
     clientProps = Collections.emptyMap();
     sslContextFactory = new SslContextFactory();
+    sslContextFactory.setEndpointIdentificationAlgorithm("");
   }
 
   @Test
@@ -162,7 +163,6 @@ public class SslFunctionalTest {
     // WS:
     sslContextFactory.setTrustStorePath(ClientTrustStore.trustStorePath());
     sslContextFactory.setTrustStorePassword(ClientTrustStore.trustStorePassword());
-    sslContextFactory.setEndpointIdentificationAlgorithm("");
   }
 
   private Code canMakeCliRequest() {

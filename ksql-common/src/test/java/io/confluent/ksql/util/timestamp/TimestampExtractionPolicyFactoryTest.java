@@ -86,7 +86,7 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "cannot be cast to org.apache.kafka.streams.processor.TimestampExtractor"));
+        "cannot be cast to class org.apache.kafka.streams.processor.TimestampExtractor"));
   }
 
   @Test

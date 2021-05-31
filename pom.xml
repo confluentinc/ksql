@@ -278,7 +278,7 @@
             <dependency>
                 <groupId>org.codehaus.jackson</groupId>
                 <artifactId>jackson-mapper-asl</artifactId>
-                <version>1.9.14.jdk17-redhat-00001</version>
+                <version>${jackson.mapper.asl.version}</version>
             </dependency>
 
             <dependency>

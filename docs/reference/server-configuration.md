@@ -33,6 +33,12 @@ For more information on setting properties, see
     environment variable is `KSQL_KSQL_SERVICE_ID`. For more information,
     see [Install ksqlDB with Docker](/operate-and-deploy/installation/install-ksqldb-with-docker).
 
+!!! info
+    The underlying producer and consumer clients in ksqlDB's server can be
+    modified with any valid properties. Simply use the form `ksql.streams.producer.xxx`,
+    `ksql.streams.consumer.xxx` to pass the property through. For example,
+    `ksql.streams.producer.compression.type` sets the compression type on the producer.
+
 ## `ksql.advertised.listener`
 
 This is the URL used for inter-node communication.  Unlike `listeners` or `ksql.internal.listener`,

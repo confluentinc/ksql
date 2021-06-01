@@ -262,7 +262,7 @@ public class QueryExecutorTest {
   }
 
   @Test
-  public void shouldBuildPersistentQueryCorrectly() {
+  public void shouldBuildCreateAsPersistentQueryCorrectly() {
     // Given:
     final ProcessingLogger uncaughtProcessingLogger = mock(ProcessingLogger.class);
     when(processingLoggerFactory.getLogger(
@@ -299,6 +299,46 @@ public class QueryExecutorTest {
     assertThat(queryMetadata.getProcessingLogger(), equalTo(uncaughtProcessingLogger));
     assertThat(queryMetadata.getPersistentQueryType(),
         equalTo(KsqlConstants.PersistentQueryType.CREATE_AS));
+  }
+
+  @Test
+  public void shouldBuildInsertPersistentQueryCorrectly() {
+    // Given:
+    final ProcessingLogger uncaughtProcessingLogger = mock(ProcessingLogger.class);
+    when(processingLoggerFactory.getLogger(
+        QueryLoggerUtil.queryLoggerName(QUERY_ID, new QueryContext.Stacker()
+            .push("ksql.logger.thread.exception.uncaught").getQueryContext())
+    )).thenReturn(uncaughtProcessingLogger);
+
+    // When:
+    final PersistentQueryMetadata queryMetadata = queryBuilder.buildPersistentQuery(
+        KsqlConstants.PersistentQueryType.INSERT,
+        STATEMENT_TEXT,
+        QUERY_ID,
+        sink,
+        SOURCES,
+        physicalPlan,
+        SUMMARY,
+        queryListener,
+        Collections::emptyList
+    );
+    queryMetadata.initialize();
+
+    // Then:
+    assertThat(queryMetadata.getStatementString(), equalTo(STATEMENT_TEXT));
+    assertThat(queryMetadata.getQueryId(), equalTo(QUERY_ID));
+    assertThat(queryMetadata.getSinkName(), equalTo(SINK_NAME));
+    assertThat(queryMetadata.getPhysicalSchema(), equalTo(SINK_PHYSICAL_SCHEMA));
+    assertThat(queryMetadata.getResultTopic(), is(ksqlTopic));
+    assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES));
+    assertThat(queryMetadata.getDataSourceType(), equalTo(DataSourceType.KSTREAM));
+    assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
+    assertThat(queryMetadata.getTopology(), is(topology));
+    assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
+    assertThat(queryMetadata.getStreamsProperties(), equalTo(capturedStreamsProperties()));
+    assertThat(queryMetadata.getProcessingLogger(), equalTo(uncaughtProcessingLogger));
+    assertThat(queryMetadata.getPersistentQueryType(),
+        equalTo(KsqlConstants.PersistentQueryType.INSERT));
   }
 
   @Test

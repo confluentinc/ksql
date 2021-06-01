@@ -2,6 +2,7 @@ package io.confluent.ksql.query;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -195,6 +196,47 @@ public class QueryRegistryImplTest {
 
     // Then:
     assertThat(queries, contains(new QueryId("q2"), new QueryId("q3"), new QueryId("q4")));
+  }
+
+  @Test
+  public void shouldRemoveQueryFromCreateAsQueriesWhenTerminatingCreateAsQuery() {
+    // Given:
+    givenCreate(registry, "q1", "source", "sink1", true);
+    givenCreate(registry, "i1", "source", "sink1", false);
+    final QueryRegistry sandbox = registry.createSandbox();
+    final QueryMetadata q1 = sandbox.getPersistentQuery(new QueryId("q1")).get();
+    final QueryMetadata i1 = sandbox.getPersistentQuery(new QueryId("i1")).get();
+
+    // When:
+    q1.close();
+    final Optional<QueryMetadata> createAsQueries =
+        sandbox.getCreateAsQuery(SourceName.of("sink1"));
+    final Set<QueryId> insertQueries =
+        sandbox.getInsertQueries(SourceName.of("sink1"), (n, q) -> true);
+
+    // Then:
+    assertThat(createAsQueries, equalTo(Optional.empty()));
+    assertThat(insertQueries, contains(i1.getQueryId()));
+  }
+
+  @Test
+  public void shouldRemoveQueryFromInsertQueriesWhenTerminatingInsertQuery() {
+    // Given:
+    givenCreate(registry, "q1", "source", "sink1", true);
+    givenCreate(registry, "i1", "source", "sink1", false);
+    final QueryRegistry sandbox = registry.createSandbox();
+    final QueryMetadata q1 = sandbox.getPersistentQuery(new QueryId("q1")).get();
+    final QueryMetadata i1 = sandbox.getPersistentQuery(new QueryId("i1")).get();
+
+    // When:
+    i1.close();
+    final QueryMetadata createAsQueries = sandbox.getCreateAsQuery(SourceName.of("sink1")).get();
+    final Set<QueryId> insertQueries =
+        sandbox.getInsertQueries(SourceName.of("sink1"), (n, q) -> true);
+
+    // Then:
+    assertThat(createAsQueries, equalTo(q1));
+    assertThat(insertQueries, empty());
   }
 
   @Test

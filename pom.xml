@@ -67,6 +67,10 @@
             <id>confluent-snapshots</id>
             <url>https://s3-us-west-2.amazonaws.com/confluent-snapshots/</url>
         </repository>
+        <repository>
+            <id>redhat-repo</id>
+            <url>https://maven.repository.redhat.com/ga/</url>
+        </repository>
     </repositories>
 
     <pluginRepositories>

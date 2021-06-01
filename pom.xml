@@ -69,6 +69,10 @@
             <id>confluent-snapshots</id>
             <url>https://s3-us-west-2.amazonaws.com/confluent-snapshots/</url>
         </repository>
+        <repository>
+            <id>redhat-repo</id>
+            <url>https://maven.repository.redhat.com/ga/</url>
+        </repository>
     </repositories>
 
     <pluginRepositories>
@@ -106,6 +110,7 @@
         <generext.version>1.0.2</generext.version>
         <avro.random.generator.version>0.2.2</avro.random.generator.version>
         <apache.curator.version>2.9.0</apache.curator.version>
+        <jackson.mapper.asl.version>1.9.14.jdk17-redhat-00001</jackson.mapper.asl.version>
     </properties>
 
     <dependencyManagement>
@@ -281,6 +286,12 @@
                         <artifactId>guava</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.codehaus.jackson</groupId>
+                <artifactId>jackson-mapper-asl</artifactId>
+                <version>${jackson.mapper.asl.version}</version>
             </dependency>
 
             <dependency>

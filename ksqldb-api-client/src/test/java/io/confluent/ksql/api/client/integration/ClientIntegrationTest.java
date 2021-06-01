@@ -101,6 +101,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -172,6 +173,7 @@ public class ClientIntegrationTest {
   private static final String PUSH_QUERY = "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES;";
   private static final String PULL_QUERY_ON_TABLE =
       "SELECT * from " + AGG_TABLE + " WHERE K=" + AN_AGG_KEY + ";";
+  private static final String PULL_QUERY_ON_STREAM = "SELECT * from " + TEST_STREAM + ";";
   private static final int PUSH_QUERY_LIMIT_NUM_ROWS = 2;
   private static final String PUSH_QUERY_WITH_LIMIT =
       "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES LIMIT " + PUSH_QUERY_LIMIT_NUM_ROWS + ";";
@@ -220,6 +222,7 @@ public class ClientIntegrationTest {
       .withProperty(KSQL_DEFAULT_KEY_FORMAT_CONFIG, "JSON")
       .withProperty("ksql.verticle.instances", EVENT_LOOP_POOL_SIZE)
       .withProperty("ksql.worker.pool.size", WORKER_POOL_SIZE)
+      .withProperty("ksql.query.pull.table.scan.enabled", true)
       .build();
 
   @ClassRule
@@ -399,6 +402,46 @@ public class ClientIntegrationTest {
     final Row row = streamedQueryResult.poll();
     verifyPullQueryRow(row);
     assertThat(streamedQueryResult.poll(), is(nullValue()));
+
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
+  }
+
+  @Test
+  public void shouldStreamPullQueryOnStreamAsync() throws Exception {
+    // When
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_STREAM).get();
+
+    // Then
+    assertThat(streamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
+    assertThat(streamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
+    assertThat(streamedQueryResult.queryID(), is(notNullValue()));
+
+    shouldReceiveRows(
+        streamedQueryResult,
+        6,
+        rows -> verifyStreamRows(rows, 6),
+        true
+    );
+  }
+
+  @Test
+  public void shouldStreamPullQueryOnStreamSync() throws Exception {
+    // When
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_STREAM).get();
+
+    // Then
+    assertThat(streamedQueryResult.columnNames(), is(TEST_COLUMN_NAMES));
+    assertThat(streamedQueryResult.columnTypes(), is(TEST_COLUMN_TYPES));
+    assertThat(streamedQueryResult.queryID(), is(notNullValue()));
+
+    final List<Row> results = new LinkedList<>();
+    Row row;
+    do {
+      row = streamedQueryResult.poll();
+      results.add(row);
+    } while (row != null);
+
+    verifyStreamRows(results, 6);
 
     assertThatEventually(streamedQueryResult::isComplete, is(true));
   }

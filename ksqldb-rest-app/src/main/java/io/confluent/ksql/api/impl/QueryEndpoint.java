@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
+import io.confluent.ksql.api.server.KsqlApiException;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
@@ -29,12 +30,17 @@ import io.confluent.ksql.engine.PullQueryExecutionUtil;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.pull.HARouting;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
+import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.query.BlockingRowQueue;
@@ -54,11 +60,13 @@ import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.VertxUtils;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
 import java.util.List;
@@ -133,15 +141,33 @@ public class QueryEndpoint {
     if (statement.getStatement().isPullQuery()) {
       final ImmutableAnalysis analysis = ksqlEngine
           .analyzeQueryWithNoOutputTopic(statement.getStatement(), statement.getStatementText());
-      return createTablePullQueryPublisher(
-          analysis,
-          context,
-          serviceContext,
-          statement,
-          pullQueryMetrics,
-          workerExecutor,
-          metricsCallbackHolder
-      );
+      final DataSource dataSource = analysis.getFrom().getDataSource();
+      final DataSource.DataSourceType dataSourceType = dataSource.getDataSourceType();
+      switch (dataSourceType) {
+        case KTABLE:
+          return createTablePullQueryPublisher(
+              analysis,
+              context,
+              serviceContext,
+              statement,
+              pullQueryMetrics,
+              workerExecutor,
+              metricsCallbackHolder
+          );
+        case KSTREAM:
+          return createStreamPullQueryPublisher(
+              context,
+              serviceContext,
+              analysis,
+              statement,
+              workerExecutor
+          );
+        default:
+          throw new KsqlStatementException(
+              "Unexpected data source type for pull query: " + dataSourceType,
+              statement.getStatementText()
+          );
+      }
     } else if (ScalablePushUtil.isScalablePushQuery(statement.getStatement(), ksqlEngine,
         ksqlConfig, properties)) {
       final ImmutableAnalysis analysis = ksqlEngine
@@ -213,6 +239,56 @@ public class QueryEndpoint {
     return publisher;
   }
 
+  private QueryPublisher createStreamPullQueryPublisher(
+      final Context context,
+      final ServiceContext serviceContext,
+      final ImmutableAnalysis analysis,
+      final ConfiguredStatement<Query> statement,
+      final WorkerExecutor workerExecutor) {
+
+    final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
+
+    if (QueryCapacityUtil.exceedsPushQueryCapacity(ksqlEngine, ksqlRestConfig)) {
+      QueryCapacityUtil.throwTooManyActivePushQueriesException(
+          ksqlEngine,
+          ksqlRestConfig,
+          statement.getStatementText()
+      );
+    }
+
+    try {
+      final TransientQueryMetadata transientQueryMetadata = ksqlEngine
+          .createStreamPullQuery(
+              serviceContext,
+              analysis,
+              statement,
+              true
+          );
+      localCommands.ifPresent(lc -> lc.write(transientQueryMetadata));
+      publisher.setQueryHandle(
+          new KsqlQueryHandle(transientQueryMetadata) {
+            @Override
+            public void start() {
+              super.start();
+              // after starting Streams, poll until the query is complete.
+              ksqlEngine.waitForStreamPullQuery(
+                  serviceContext,
+                  analysis,
+                  statement,
+                  transientQueryMetadata
+              );
+              publisher.close();
+            }
+          },
+          false,
+          false
+      );
+    } catch (final KsqlServerException e) {
+      throw new KsqlApiException(e.getMessage(), HttpResponseStatus.INTERNAL_SERVER_ERROR.code());
+    }
+    return publisher;
+  }
+
   private QueryPublisher createTablePullQueryPublisher(
       final ImmutableAnalysis analysis,
       final Context context,
@@ -235,17 +311,43 @@ public class QueryEndpoint {
           metrics.recordZeroRowsReturnedForError();
           metrics.recordZeroRowsProcessedForError();
         } else {
-          metrics.recordResponseSize(responseBytes,
-              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
-          metrics.recordLatency(startTimeNanos,
-              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
+          // hard coded because this is the table pull query publisher
+          final DataSourceType dataSourceType = DataSourceType.KTABLE;
+
+          final PullSourceType sourceType = r.getSourceType();
+          final PullPhysicalPlanType planType = r.getPlanType();
+          final RoutingNodeType routingNodeType = r.getRoutingNodeType();
+
+          metrics.recordResponseSize(
+              responseBytes,
+              sourceType,
+              planType,
+              routingNodeType,
+              dataSourceType
+          );
+          metrics.recordLatency(
+              startTimeNanos,
+              sourceType,
+              planType,
+              routingNodeType,
+              dataSourceType
+          );
           metrics.recordRowsReturned(
-              r.getTotalRowsReturned(),
-              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
+              Optional.ofNullable(r).map(PullQueryResult::getTotalRowsReturned).orElse(0L),
+              sourceType,
+              planType,
+              routingNodeType,
+              dataSourceType
+          );
           metrics.recordRowsProcessed(
-              r.getTotalRowsProcessed(),
-              r.getSourceType(), r.getPlanType(), r.getRoutingNodeType());
+              Optional.ofNullable(r).map(PullQueryResult::getTotalRowsProcessed).orElse(0L),
+              sourceType,
+              planType,
+              routingNodeType,
+              dataSourceType
+          );
         }
+
         pullBandRateLimiter.add(responseBytes);
       });
     });
@@ -407,8 +509,13 @@ public class QueryEndpoint {
         result.onException(future::completeExceptionally);
         result.onCompletion(future::complete);
       } catch (Exception e) {
-        pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(1, result.getSourceType(),
-            result.getPlanType(), result.getRoutingNodeType()));
+        pullQueryMetrics.ifPresent(metrics -> metrics.recordErrorRate(
+            1,
+            result.getSourceType(),
+            result.getPlanType(),
+            result.getRoutingNodeType(),
+            result.getDataSourceType()
+        ));
       }
     }
 

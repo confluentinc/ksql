@@ -30,6 +30,7 @@ import io.confluent.ksql.engine.PullQueryExecutionUtil;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
@@ -124,6 +125,9 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
           true
       );
 
+      if (pullQueryMetrics.isPresent()) {
+        recordMetrics(pullQueryMetrics.get(), result);
+      }
       final PullQueryResult finalResult = result;
       result.onCompletionOrException((v, throwable) -> {
         decrementer.decrementAtMostOnce();
@@ -153,13 +157,12 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     final PullSourceType sourceType = result.getSourceType();
     final PullPhysicalPlanType planType = result.getPlanType();
     final RoutingNodeType routingNodeType = result.getRoutingNodeType();
-    // Note: we are not recording response size in this case because it is not
-    // accessible in the websocket endpoint.
-    metrics.recordLatency(startTimeNanos, sourceType, planType, routingNodeType);
+    final DataSourceType dataSourceType = result.getDataSourceType();
+    metrics.recordLatency(startTimeNanos, sourceType, planType, routingNodeType, dataSourceType);
     metrics.recordRowsReturned(result.getTotalRowsReturned(),
-        sourceType, planType, routingNodeType);
+        sourceType, planType, routingNodeType, dataSourceType);
     metrics.recordRowsProcessed(result.getTotalRowsProcessed(),
-        sourceType, planType, routingNodeType);
+        sourceType, planType, routingNodeType, dataSourceType);
   }
 
   private void recordErrorMetrics(final PullQueryExecutorMetrics metrics) {

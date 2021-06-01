@@ -15,8 +15,12 @@
 
 package io.confluent.ksql.engine;
 
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.analyzer.Analysis;
@@ -28,6 +32,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.logging.query.QueryLogger;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -51,6 +56,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -58,17 +64,33 @@ import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
 import java.io.Closeable;
+import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsResult;
+import org.apache.kafka.clients.admin.ListOffsetsOptions;
+import org.apache.kafka.clients.admin.ListOffsetsResult;
+import org.apache.kafka.clients.admin.OffsetSpec;
+import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.IsolationLevel;
+import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsConfig;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -290,6 +312,175 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     } catch (final KsqlException e) {
       // add the statement text to the KsqlException
       throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e.getCause());
+    }
+  }
+
+  @Override
+  public TransientQueryMetadata createStreamPullQuery(
+      final ServiceContext serviceContext,
+      final ImmutableAnalysis analysis,
+      final ConfiguredStatement<Query> statementOrig,
+      final boolean excludeTombstones
+  ) {
+    // stream pull query overrides: start from earliest, use one  thread,
+    // and use a tight commit interval for responsiveness.
+    final ConfiguredStatement<Query> statement = statementOrig.withConfigOverrides(
+        ImmutableMap.<String, Object>builder()
+            .putAll(statementOrig.getSessionConfig().getOverrides())
+            .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+            .put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+            .put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 100)
+            .build()
+    );
+    try {
+
+      final TransientQueryMetadata transientQueryMetadata = EngineExecutor
+          .create(primaryContext, serviceContext, statement.getSessionConfig())
+          .executeTransientQuery(statement, excludeTombstones);
+
+      QueryLogger.info("Streaming pull query results '{}'", statement.getStatementText());
+
+      return transientQueryMetadata;
+
+    } catch (final KsqlStatementException e) {
+      throw e;
+    } catch (final KsqlException e) {
+      // add the statement text to the KsqlException
+      throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e.getCause());
+    }
+  }
+
+  public void waitForStreamPullQuery(
+      final ServiceContext serviceContext,
+      final ImmutableAnalysis analysis,
+      final ConfiguredStatement<Query> statement,
+      final TransientQueryMetadata transientQueryMetadata) {
+    // query the endOffsets of the input
+    final String sourceTopicName = analysis.getFrom().getDataSource().getKafkaTopicName();
+    final Admin admin = serviceContext.getAdminClient();
+    final TopicDescription topicDescription = getTopicDescription(
+        admin,
+        sourceTopicName
+    );
+
+    final Object processingGuarantee = statement
+        .getSessionConfig()
+        .getConfig(true)
+        .getKsqlStreamConfigProps()
+        .get(StreamsConfig.PROCESSING_GUARANTEE_CONFIG);
+
+    final IsolationLevel isolationLevel =
+        StreamsConfig.AT_LEAST_ONCE.equals(processingGuarantee)
+            ? IsolationLevel.READ_UNCOMMITTED
+            : IsolationLevel.READ_COMMITTED;
+
+    final Map<TopicPartition, Long> endOffsets = getEndOffsets(
+        admin,
+        topicDescription,
+        isolationLevel
+    );
+
+    // wait for the query to pass the endOffsets
+    while (!passedEndOffsets(admin, transientQueryMetadata, endOffsets)) {
+      if (transientQueryMetadata.getState() == State.ERROR) {
+        log.error("Stream pull query execution has failed");
+        throw new KsqlServerException("Server error");
+      } else {
+        try {
+          Thread.sleep(50L);
+        } catch (final InterruptedException e) {
+          log.error("Interrupted waiting for stream pull query to complete", e);
+          throw new KsqlServerException("Interrupted");
+        }
+      }
+    }
+    transientQueryMetadata.getKafkaStreams().close(Duration.ZERO);
+    QueryLogger.info("Finished pull query results", statement.getStatementText());
+  }
+
+  private TopicDescription getTopicDescription(final Admin admin, final String sourceTopicName) {
+    final KafkaFuture<TopicDescription> topicDescriptionKafkaFuture = admin
+        .describeTopics(Collections.singletonList(sourceTopicName))
+        .values()
+        .get(sourceTopicName);
+
+    try {
+      return topicDescriptionKafkaFuture.get(10, TimeUnit.SECONDS);
+    } catch (final InterruptedException e) {
+      log.error("Admin#describeTopics(" + sourceTopicName + ") interrupted", e);
+      throw new KsqlServerException("Interrupted");
+    } catch (final ExecutionException e) {
+      log.error("Error executing Admin#describeTopics(" + sourceTopicName + ")", e);
+      throw new KsqlServerException("Internal Server Error");
+    } catch (final TimeoutException e) {
+      log.error("Admin#describeTopics(" + sourceTopicName + ") timed out", e);
+      throw new KsqlServerException("Backend timed out");
+    }
+  }
+
+  @NotNull
+  private Map<TopicPartition, Long> getEndOffsets(
+      final Admin admin,
+      final TopicDescription topicDescription,
+      final IsolationLevel isolationLevel) {
+    final Map<TopicPartition, OffsetSpec> topicPartitions =
+        topicDescription
+            .partitions()
+            .stream()
+            .map(td -> new TopicPartition(topicDescription.name(), td.partition()))
+            .collect(toMap(identity(), tp -> OffsetSpec.latest()));
+
+    final ListOffsetsResult listOffsetsResult = admin.listOffsets(
+        topicPartitions,
+        new ListOffsetsOptions(
+            isolationLevel
+        )
+    );
+
+    try {
+      final Map<TopicPartition, ListOffsetsResult.ListOffsetsResultInfo> partitionResultMap =
+          listOffsetsResult.all().get(10, TimeUnit.SECONDS);
+      return partitionResultMap
+          .entrySet()
+          .stream()
+          .collect(toMap(Map.Entry::getKey, e -> e.getValue().offset()));
+    } catch (final InterruptedException e) {
+      log.error("Admin#listOffsets(" + topicDescription.name() + ") interrupted", e);
+      throw new KsqlServerException("Interrupted");
+    } catch (final ExecutionException e) {
+      log.error("Error executing Admin#listOffsets(" + topicDescription.name() + ")", e);
+      throw new KsqlServerException("Internal Server Error");
+    } catch (final TimeoutException e) {
+      log.error("Admin#listOffsets(" + topicDescription.name() + ") timed out", e);
+      throw new KsqlServerException("Backend timed out");
+    }
+  }
+
+  private boolean passedEndOffsets(final Admin admin,
+      final TransientQueryMetadata query,
+      final Map<TopicPartition, Long> endOffsets) {
+    try {
+      final ListConsumerGroupOffsetsResult result =
+          admin.listConsumerGroupOffsets(query.getQueryApplicationId());
+      final Map<TopicPartition, OffsetAndMetadata> metadataMap =
+          result.partitionsToOffsetAndMetadata().get();
+      for (final Map.Entry<TopicPartition, Long> entry : endOffsets.entrySet()) {
+        if (entry.getValue() == 0) {
+          // special case where we expect no work at all on the partition, so we don't even
+          // need to check the committed offset (if we did, we'd potentially wait forever, since
+          // Streams won't commit anything for an empty topic).
+          log.info("SPQ skipping " + entry);
+          continue;
+        }
+        final OffsetAndMetadata offsetAndMetadata = metadataMap.get(entry.getKey());
+        if (offsetAndMetadata == null || offsetAndMetadata.offset() < entry.getValue()) {
+          log.info("SPQ waiting on " + entry + " at " + offsetAndMetadata);
+          return false;
+        }
+      }
+      return true;
+    } catch (final ExecutionException | InterruptedException e) {
+      throw new RuntimeException(e);
     }
   }
 

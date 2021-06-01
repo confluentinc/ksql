@@ -17,6 +17,7 @@ package io.confluent.ksql.test.rest;
 
 
 import static io.confluent.ksql.test.util.ThreadTestUtil.filterBuilder;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -42,6 +43,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.test.IntegrationTest;
 import org.junit.After;
@@ -80,18 +82,21 @@ public class RestQueryTranslationTest {
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
       .withProperty(
-          KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG,
+          KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG,
           TestUtils.tempDirectory().toAbsolutePath().toString()
       )
       .withProperty(
-          KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
+          KSQL_STREAMS_PREFIX + StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
           StreamsConfig.EXACTLY_ONCE_V2 // To stabilize tests
       )
       // Setting to anything lower will cause the tests to fail because we won't correctly commit
       // transaction marker offsets. This was previously set to 0 to presumably avoid flakiness,
       // so we should keep an eye out for this.
-      .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 2000)
-      .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+      .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 2000)
+      .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+      // The default session timeout was recently increased. Setting to a lower value so that
+      // departed nodes are removed from the consumer group quickly.
+      .withProperty(KSQL_STREAMS_PREFIX + ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 10000)
       .withProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY, "set")
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED, true)
       .withProperty(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED, true)

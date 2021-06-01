@@ -154,6 +154,17 @@ public interface KsqlExecutionContext {
   );
 
   /**
+   * Executes a query using the supplied service context.
+   * @return the query metadata
+   */
+  TransientQueryMetadata createStreamPullQuery(
+      ServiceContext serviceContext,
+      ImmutableAnalysis analysis,
+      ConfiguredStatement<Query> statement,
+      boolean excludeTombstones
+  );
+
+  /**
    * Executes a pull query by first creating a logical plan and then translating it to a physical
    * plan. The physical plan is then traversed for every row in the state store.
    * @param serviceContext The service context to execute the query in

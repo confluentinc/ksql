@@ -44,7 +44,7 @@ public class TransientQueryQueue implements BlockingRowQueue {
   }
 
   @VisibleForTesting
-  TransientQueryQueue(
+  public TransientQueryQueue(
       final OptionalInt limit,
       final int queueSizeLimit,
       final int offerTimeoutMs
@@ -133,5 +133,31 @@ public class TransientQueryQueue implements BlockingRowQueue {
       // Forced shutdown?
       Thread.currentThread().interrupt();
     }
+  }
+
+  public boolean acceptRowNonBlocking(final List<?> key, final GenericRow value) {
+    try {
+      if (!callback.shouldQueue()) {
+        return false;
+      }
+
+      final KeyValue<List<?>, GenericRow> row = keyValue(key, value);
+
+      if (!closed) {
+        if (!rowQueue.offer(row, 0, TimeUnit.MILLISECONDS)) {
+          return false;
+        }
+        callback.onQueued();
+        return true;
+      }
+    } catch (final InterruptedException e) {
+      // Forced shutdown?
+      Thread.currentThread().interrupt();
+    }
+    return false;
+  }
+
+  public boolean isClosed() {
+    return closed;
   }
 }

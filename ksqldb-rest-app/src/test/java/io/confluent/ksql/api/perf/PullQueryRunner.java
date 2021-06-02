@@ -47,6 +47,7 @@ import io.vertx.ext.web.client.HttpResponse;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -118,8 +119,8 @@ public class PullQueryRunner extends BasePerfRunner {
 
     @Override
     public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
-        final JsonObject properties,
-        final JsonObject sessionVariables,
+        final Map<String, Object> properties,
+        final Map<String, Object> sessionVariables,
         final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext,

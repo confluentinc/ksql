@@ -54,7 +54,6 @@ import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
-import io.vertx.core.json.JsonObject;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -100,8 +99,8 @@ public class QueryEndpoint {
 
   public QueryPublisher createQueryPublisher(
       final String sql,
-      final JsonObject properties,
-      final JsonObject sessionVariables,
+      final Map<String, Object> properties,
+      final Map<String, Object> sessionVariables,
       final Context context,
       final WorkerExecutor workerExecutor,
       final ServiceContext serviceContext,
@@ -110,7 +109,7 @@ public class QueryEndpoint {
     VertxUtils.checkIsWorker();
 
     final ConfiguredStatement<Query> statement = createStatement(
-        sql, properties.getMap(), sessionVariables.getMap());
+        sql, properties, sessionVariables);
 
     if (statement.getStatement().isPullQuery()) {
       return createPullQueryPublisher(

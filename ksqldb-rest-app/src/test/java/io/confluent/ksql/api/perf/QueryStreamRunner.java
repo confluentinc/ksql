@@ -45,6 +45,7 @@ import io.vertx.core.parsetools.RecordParser;
 import io.vertx.ext.web.codec.BodyCodec;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -97,8 +98,8 @@ public class QueryStreamRunner extends BasePerfRunner {
 
     @Override
     public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
-        final JsonObject properties,
-        final JsonObject sessionVariables,
+        final Map<String, Object> properties,
+        final Map<String, Object> sessionVariables,
         final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext,

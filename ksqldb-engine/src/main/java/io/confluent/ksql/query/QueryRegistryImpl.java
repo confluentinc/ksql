@@ -278,8 +278,8 @@ public class QueryRegistryImpl implements QueryRegistry {
       }
     }
     allLiveQueries.add(query);
-    notifyCreate(serviceContext, metaStore, query);
     query.initialize();
+    notifyCreate(serviceContext, metaStore, query);
   }
 
   private void unregisterQuery(final QueryMetadata query) {

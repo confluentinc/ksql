@@ -852,10 +852,10 @@
     {
       "name": "stream-stream-stream - left-left",
       "statements": [
-        "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
-        "CREATE STREAM S2 (ID INT KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');",
-        "CREATE STREAM S3 (ID INT KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT S2.ID, s1.V0, s2.V0, s3.V0 FROM S1 LEFT JOIN S2 WITHIN 5 seconds ON S1.ID = S2.ID LEFT JOIN S3 WITHIN 10 seconds ON S1.ID = S3.ID;"
+        "CREATE STREAM s1 (id INT KEY, v0 BIGINT) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE STREAM s2 (id INT KEY, v0 BIGINT) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE STREAM s3 (id INT KEY, v0 BIGINT) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM output AS SELECT s2.id, s1.v0, s2.v0, s3.v0 FROM s1 LEFT JOIN s2 WITHIN 5 SECONDS ON s1.id = s2.id LEFT JOIN S3 WITHIN 10 SECONDS ON s1.id = s3.id;"
       ],
       "inputs": [
         {"topic": "left", "key": 0, "value": {"V0": 1}, "timestamp": 0},
@@ -880,10 +880,10 @@
     {
       "name": "stream-stream-stream - inner-inner - different windows",
       "statements": [
-        "CREATE STREAM S1 (ID INT KEY, V0 bigint) WITH (kafka_topic='left', value_format='JSON');",
-        "CREATE STREAM S2 (ID INT KEY, V0 bigint) WITH (kafka_topic='right', value_format='JSON');",
-        "CREATE STREAM S3 (ID INT KEY, V0 bigint) WITH (kafka_topic='right2', value_format='JSON');",
-        "CREATE STREAM OUTPUT as SELECT S2.ID, s1.V0, s2.V0, s3.V0 FROM S1 JOIN S2 WITHIN 5 seconds ON S1.ID = S2.ID JOIN S3 WITHIN 10 seconds ON S1.ID = S3.ID;"
+        "CREATE STREAM s1 (id INT KEY, v0 BIGINT) WITH (kafka_topic='left', value_format='JSON');",
+        "CREATE STREAM s2 (id INT KEY, v0 BIGINT) WITH (kafka_topic='right', value_format='JSON');",
+        "CREATE STREAM s3 (id INT KEY, v0 BIGINT) WITH (kafka_topic='right2', value_format='JSON');",
+        "CREATE STREAM output AS SELECT s2.id, s1.v0, s2.v0, s3.v0 FROM S1 JOIN S2 WITHIN 5 SECONDS ON s1.id = s2.id JOIN S3 WITHIN 10 SECONDS ON s1.id = s3.id;"
       ],
       "inputs": [
         {"topic": "left", "key": 0, "value": {"V0": 1}, "timestamp": 0},

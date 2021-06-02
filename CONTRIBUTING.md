@@ -75,8 +75,12 @@ the Maven wrapper (see "About the Apache Maven wrapper", above).
 To build and test changes locally, run the following commands:
 
 ```shell
-$ ./mvnw verify
+$ ./mvnw verify -T 1.5C
 ```
+
+This example showcases [the new parallel build feature of Maven 3](https://cwiki.apache.org/confluence/display/MAVEN/Parallel+builds+in+Maven+3).
+If it causes problems for you, you can change the parallelism argument, or
+drop the `-T ...` option altogether.
 
 ### Testing docker image
 

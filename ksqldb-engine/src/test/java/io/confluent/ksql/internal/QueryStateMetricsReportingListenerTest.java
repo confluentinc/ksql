@@ -83,6 +83,12 @@ public class QueryStateMetricsReportingListenerTest {
   }
 
   @Test
+  public void shouldNotThrowIfNoQuery() {
+    // When/Then(no throw):
+    listener.onDeregister(query);
+  }
+
+  @Test
   public void shouldAddMetricOnCreation() {
     // When:
     listener.onCreate(serviceContext, metaStore, query);

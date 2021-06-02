@@ -28,7 +28,7 @@ import io.confluent.ksql.planner.plan.QueryProjectNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
 import io.vertx.core.Context;
 import java.util.Optional;
 import org.junit.Before;
@@ -47,7 +47,7 @@ public class PushPhysicalPlanBuilderTest {
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
-  private PersistentQueryMetadata persistentQueryMetadata;
+  private PersistentQueryEntity persistentQueryMetadata;
   @Mock
   private Context context;
   @Mock

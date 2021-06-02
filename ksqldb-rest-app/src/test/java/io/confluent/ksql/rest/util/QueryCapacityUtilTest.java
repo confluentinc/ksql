@@ -19,8 +19,9 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+import io.confluent.ksql.util.QueryEntity;
+
 import java.util.List;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -139,7 +140,7 @@ public class QueryCapacityUtilTest {
 
   @SuppressWarnings("unchecked")
   private void givenActivePersistentQueries(final int numQueries) {
-    final List<PersistentQueryMetadata> queries = mock(List.class);
+    final List<PersistentQueryEntity> queries = mock(List.class);
     when(queries.size()).thenReturn(numQueries);
     when(ksqlEngine.getPersistentQueries())
         .thenReturn(queries);
@@ -152,7 +153,7 @@ public class QueryCapacityUtilTest {
 
   @SuppressWarnings("unchecked")
   private void givenAllLiveQueries(final int numLiveQueries) {
-    final List<QueryMetadata> queries = mock(List.class);
+    final List<QueryEntity> queries = mock(List.class);
     when(queries.size()).thenReturn(numLiveQueries);
     when(ksqlEngine.getAllLiveQueries()).thenReturn(queries);
   }

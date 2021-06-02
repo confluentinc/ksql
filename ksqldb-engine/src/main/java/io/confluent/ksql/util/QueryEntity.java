@@ -30,7 +30,7 @@ import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.state.StreamsMetadata;
 
-public interface QueryMetadata {
+public interface QueryEntity {
   void initialize();
 
   Set<StreamsTaskMetadata> getTaskMetadata();
@@ -91,13 +91,13 @@ public interface QueryMetadata {
      *
      * @param error the error that occurred
      */
-    void onError(QueryMetadata queryMetadata, QueryError error);
+    void onError(QueryEntity queryEntity, QueryError error);
 
     void onStateChange(
-        QueryMetadata queryMetadata,
+        QueryEntity queryEntity,
         KafkaStreams.State before,
         KafkaStreams.State after);
 
-    void onClose(QueryMetadata queryMetadata);
+    void onClose(QueryEntity queryEntity);
   }
 }

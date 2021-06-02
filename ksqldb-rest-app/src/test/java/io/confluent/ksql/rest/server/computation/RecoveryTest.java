@@ -58,7 +58,8 @@ import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
@@ -466,14 +467,14 @@ public class RecoveryTest {
   }
 
   private static class PersistentQueryMetadataMatcher
-      extends TypeSafeDiagnosingMatcher<PersistentQueryMetadata> {
+      extends TypeSafeDiagnosingMatcher<PersistentQueryEntity> {
     private final Matcher<Set<SourceName>> sourcesNamesMatcher;
     private final Matcher<SourceName> sinkNamesMatcher;
     private final Matcher<LogicalSchema> resultSchemaMatcher;
     private final Matcher<String> sqlMatcher;
     private final Matcher<String> stateMatcher;
 
-    PersistentQueryMetadataMatcher(final PersistentQueryMetadata metadata) {
+    PersistentQueryMetadataMatcher(final PersistentQueryEntity metadata) {
       this.sourcesNamesMatcher = equalTo(metadata.getSourceNames());
       this.sinkNamesMatcher = equalTo(metadata.getSinkName());
       this.resultSchemaMatcher = equalTo(metadata.getLogicalSchema());
@@ -497,7 +498,7 @@ public class RecoveryTest {
 
     @Override
     protected boolean matchesSafely(
-        final PersistentQueryMetadata metadata,
+        final PersistentQueryEntity metadata,
         final Description description) {
       if (!test(
           sourcesNamesMatcher,
@@ -539,15 +540,15 @@ public class RecoveryTest {
     }
   }
 
-  private static Matcher<PersistentQueryMetadata> sameQuery(
-      final PersistentQueryMetadata metadata) {
+  private static Matcher<PersistentQueryEntity> sameQuery(
+      final PersistentQueryEntity metadata) {
     return new PersistentQueryMetadataMatcher(metadata);
   }
 
-  private static Map<QueryId, PersistentQueryMetadata> queriesById(
-      final Collection<PersistentQueryMetadata> queries) {
+  private static Map<QueryId, PersistentQueryEntity> queriesById(
+      final Collection<PersistentQueryEntity> queries) {
     return queries.stream().collect(
-        Collectors.toMap(PersistentQueryMetadata::getQueryId, q -> q)
+        Collectors.toMap(PersistentQueryEntity::getQueryId, q -> q)
     );
   }
 
@@ -564,9 +565,9 @@ public class RecoveryTest {
 
     // Then:
     assertThat(recovered.getMetaStore(), sameStore(engine.getMetaStore()));
-    final Map<QueryId, PersistentQueryMetadata> queries
+    final Map<QueryId, PersistentQueryEntity> queries
         = queriesById(engine.getPersistentQueries());
-    final Map<QueryId, PersistentQueryMetadata> recoveredQueries
+    final Map<QueryId, PersistentQueryEntity> recoveredQueries
         = queriesById(recovered.getPersistentQueries());
     assertThat(queries.keySet(), equalTo(recoveredQueries.keySet()));
     queries.forEach(

@@ -24,8 +24,9 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+import io.confluent.ksql.util.QueryEntity;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -56,11 +57,11 @@ public final class TestKsqlContext extends ExternalResource implements AutoClose
     return delegate.getMetaStore();
   }
 
-  public List<QueryMetadata> sql(final String sql) {
+  public List<QueryEntity> sql(final String sql) {
     return delegate.sql(sql);
   }
 
-  List<PersistentQueryMetadata> getPersistentQueries() {
+  List<PersistentQueryEntity> getPersistentQueries() {
     return delegate.getPersistentQueries();
   }
 

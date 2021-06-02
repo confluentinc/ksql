@@ -43,7 +43,8 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Before;
@@ -74,9 +75,9 @@ public class ValidatedCommandFactoryTest {
   @Mock
   private Map<String, Object> overrides;
   @Mock
-  private PersistentQueryMetadata query1;
+  private PersistentQueryEntity query1;
   @Mock
-  private PersistentQueryMetadata query2;
+  private PersistentQueryEntity query2;
 
   private ConfiguredStatement<? extends Statement> configuredStatement;
   private ValidatedCommandFactory commandFactory;

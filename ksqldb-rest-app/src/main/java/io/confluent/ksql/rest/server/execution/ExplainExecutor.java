@@ -30,11 +30,8 @@ import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.QueryEntity;
 import java.util.Collections;
 import java.util.Optional;
 
@@ -106,7 +103,7 @@ public final class ExplainExecutor {
         explain.getStatementText().substring("EXPLAIN ".length()),
         statement);
 
-    final QueryMetadata metadata;
+    final QueryEntity metadata;
     final KsqlExecutionContext sandbox = executionContext.createSandbox(serviceContext);
     if (preparedStatement.getStatement() instanceof Query) {
       metadata = sandbox.executeQuery(
@@ -133,7 +130,7 @@ public final class ExplainExecutor {
       final KsqlExecutionContext executionContext,
       final SessionProperties sessionProperties
   ) {
-    final PersistentQueryMetadata metadata = executionContext
+    final PersistentQueryEntity metadata = executionContext
         .getPersistentQuery(new QueryId(queryId))
         .orElseThrow(() -> new KsqlException(
             "Query with id:" + queryId + " does not exist, "

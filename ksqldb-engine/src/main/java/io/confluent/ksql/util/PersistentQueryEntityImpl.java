@@ -44,8 +44,8 @@ import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 /**
  * Metadata of a persistent query, e.g. {@code CREATE STREAM FOO AS SELECT * FROM BAR;}.
  */
-public class PersistentQueryMetadataImpl
-    extends QueryMetadataImpl implements PersistentQueryMetadata {
+public class PersistentQueryEntityImpl
+    extends QueryEntityImpl implements PersistentQueryEntity {
 
   private final DataSource sinkDataSource;
   private final QuerySchemas schemas;
@@ -59,7 +59,7 @@ public class PersistentQueryMetadataImpl
   private ProcessingLogger processingLogger;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-  public PersistentQueryMetadataImpl(
+  public PersistentQueryEntityImpl(
       final String statementString,
       final PhysicalSchema schema,
       final Set<SourceName> sourceNames,
@@ -81,7 +81,7 @@ public class PersistentQueryMetadataImpl
       final ProcessingLogger processingLogger,
       final long retryBackoffInitialMs,
       final long retryBackoffMaxMs,
-      final QueryMetadata.Listener listener,
+      final QueryEntity.Listener listener,
       final Optional<ScalablePushRegistry> scalablePushRegistry
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
@@ -114,9 +114,9 @@ public class PersistentQueryMetadataImpl
   }
 
   // for creating sandbox instances
-  protected PersistentQueryMetadataImpl(
-      final PersistentQueryMetadataImpl original,
-      final QueryMetadata.Listener listener
+  protected PersistentQueryEntityImpl(
+      final PersistentQueryEntityImpl original,
+      final QueryEntity.Listener listener
   ) {
     super(original, listener);
     this.sinkDataSource = original.getSink();

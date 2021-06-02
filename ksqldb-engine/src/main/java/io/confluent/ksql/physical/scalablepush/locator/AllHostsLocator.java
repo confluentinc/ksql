@@ -15,8 +15,9 @@
 
 package io.confluent.ksql.physical.scalablepush.locator;
 
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+import io.confluent.ksql.util.QueryEntity;
+
 import java.net.URI;
 import java.net.URL;
 import java.util.Collection;
@@ -34,10 +35,10 @@ import org.apache.kafka.streams.state.StreamsMetadata;
  */
 public class AllHostsLocator implements PushLocator {
 
-  private final Supplier<List<PersistentQueryMetadata>> allPersistentQueries;
+  private final Supplier<List<PersistentQueryEntity>> allPersistentQueries;
   private final URL localhost;
 
-  public AllHostsLocator(final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
+  public AllHostsLocator(final Supplier<List<PersistentQueryEntity>> allPersistentQueries,
       final URL localhost) {
     this.allPersistentQueries = allPersistentQueries;
     this.localhost = localhost;
@@ -45,13 +46,13 @@ public class AllHostsLocator implements PushLocator {
 
 
   public List<KsqlNode> locate() {
-    final List<PersistentQueryMetadata> currentQueries = allPersistentQueries.get();
+    final List<PersistentQueryEntity> currentQueries = allPersistentQueries.get();
     if (currentQueries.isEmpty()) {
       return Collections.emptyList();
     }
 
     return currentQueries.stream()
-        .map(QueryMetadata::getAllMetadata)
+        .map(QueryEntity::getAllMetadata)
         .filter(Objects::nonNull)
         .flatMap(Collection::stream)
         .filter(streamsMetadata -> streamsMetadata != StreamsMetadata.NOT_AVAILABLE)

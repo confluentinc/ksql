@@ -32,8 +32,8 @@ import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+import io.confluent.ksql.util.QueryEntity;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -79,7 +79,7 @@ public class KsqlEngineMetricsTest {
   @Mock
   private KsqlEngine ksqlEngine;
   @Mock
-  private QueryMetadata query1;
+  private QueryEntity query1;
 
   @Before
   public void setUp() {
@@ -337,14 +337,14 @@ public class KsqlEngineMetricsTest {
     }
   }
 
-  private static Answer<List<PersistentQueryMetadata>> returnQueriesInState(
+  private static Answer<List<PersistentQueryEntity>> returnQueriesInState(
       final int numberOfQueries,
       final KafkaStreams.State state
   ) {
     return invocation -> {
-      final List<PersistentQueryMetadata> queryMetadataList = new ArrayList<>();
+      final List<PersistentQueryEntity> queryMetadataList = new ArrayList<>();
       for (int i = 0; i < numberOfQueries; i++) {
-        final PersistentQueryMetadata query = mock(PersistentQueryMetadata.class);
+        final PersistentQueryEntity query = mock(PersistentQueryEntity.class);
         when(query.getState()).thenReturn(state);
         queryMetadataList.add(query);
       }

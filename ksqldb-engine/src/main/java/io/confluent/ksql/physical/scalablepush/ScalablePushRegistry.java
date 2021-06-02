@@ -25,7 +25,8 @@ import io.confluent.ksql.physical.scalablepush.locator.AllHostsLocator;
 import io.confluent.ksql.physical.scalablepush.locator.PushLocator;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
@@ -156,7 +157,7 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
 
   public static Optional<ScalablePushRegistry> create(
       final LogicalSchema logicalSchema,
-      final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
+      final Supplier<List<PersistentQueryEntity>> allPersistentQueries,
       final boolean windowed,
       final Map<String, Object> streamsProperties
   ) {

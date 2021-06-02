@@ -33,7 +33,8 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+
 import java.net.URI;
 import java.net.URL;
 import java.time.Clock;
@@ -204,7 +205,7 @@ public final class LagReportingAgent implements HostStatusListener {
 
     @Override
     protected void runOneIteration() {
-      final List<PersistentQueryMetadata> currentQueries = engine.getPersistentQueries();
+      final List<PersistentQueryEntity> currentQueries = engine.getPersistentQueries();
       if (currentQueries.isEmpty()) {
         return;
       }

@@ -60,7 +60,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.TransientQueryEntity;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Clock;
 import java.time.Duration;
@@ -422,7 +422,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       );
     }
 
-    final TransientQueryMetadata query = ksqlEngine
+    final TransientQueryEntity query = ksqlEngine
         .executeQuery(serviceContext, configured, false);
 
     localCommands.ifPresent(lc -> lc.write(query));

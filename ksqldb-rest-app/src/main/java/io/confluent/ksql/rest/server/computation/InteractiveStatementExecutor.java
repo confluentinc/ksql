@@ -36,8 +36,8 @@ import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+import io.confluent.ksql.util.QueryEntity;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -248,7 +248,7 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
       }
     }
     final String successMessage = getSuccessMessage(result);
-    final Optional<QueryId> queryId = result.getQuery().map(QueryMetadata::getQueryId);
+    final Optional<QueryId> queryId = result.getQuery().map(QueryEntity::getQueryId);
     final CommandStatus successStatus =
         new CommandStatus(CommandStatus.Status.SUCCESS, successMessage, queryId);
     putFinalStatus(commandId, commandStatusFuture, successStatus);
@@ -297,12 +297,12 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
     final Optional<QueryId> queryId = terminateQuery.getStatement().getQueryId();
 
     if (!queryId.isPresent()) {
-      ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::close);
+      ksqlEngine.getPersistentQueries().forEach(PersistentQueryEntity::close);
       return;
     }
 
-    final Optional<PersistentQueryMetadata> query = ksqlEngine.getPersistentQuery(queryId.get());
-    query.ifPresent(PersistentQueryMetadata::close);
+    final Optional<PersistentQueryEntity> query = ksqlEngine.getPersistentQuery(queryId.get());
+    query.ifPresent(PersistentQueryEntity::close);
   }
 
   private static void throwUnsupportedStatementError() {

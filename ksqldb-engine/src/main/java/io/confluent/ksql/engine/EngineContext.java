@@ -45,8 +45,8 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+import io.confluent.ksql.util.QueryEntity;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -61,10 +61,10 @@ import java.util.stream.Collectors;
 final class EngineContext {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final BiPredicate<SourceName, PersistentQueryMetadata> FILTER_QUERIES_WITH_SINK =
+  private static final BiPredicate<SourceName, PersistentQueryEntity> FILTER_QUERIES_WITH_SINK =
       (sourceName, query) -> query.getSinkName().equals(sourceName);
 
-  private static final BiPredicate<SourceName, PersistentQueryMetadata> FILTER_QUERIES_WITH_SOURCE =
+  private static final BiPredicate<SourceName, PersistentQueryEntity> FILTER_QUERIES_WITH_SOURCE =
       (sourceName, query) -> query.getSourceNames().contains(sourceName);
 
   private final MutableMetaStore metaStore;
@@ -239,7 +239,7 @@ final class EngineContext {
   }
 
   private void maybeTerminateCreateAsQuery(final SourceName sourceName) {
-    queryRegistry.getCreateAsQuery(sourceName).ifPresent(QueryMetadata::close);
+    queryRegistry.getCreateAsQuery(sourceName).ifPresent(QueryEntity::close);
   }
 
   private void throwIfInsertQueriesExist(final SourceName sourceName) {

@@ -22,10 +22,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.base.Ticker;
@@ -60,7 +58,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class QueryMetadataTest {
+public class QueryEntityTest {
 
   private static long RETRY_BACKOFF_INITIAL_MS = 1;
   private static long RETRY_BACKOFF_MAX_MS = 10;
@@ -81,7 +79,7 @@ public class QueryMetadataTest {
   @Mock
   private KafkaStreams kafkaStreams;
   @Mock
-  private QueryMetadataImpl.Listener listener;
+  private QueryEntityImpl.Listener listener;
   @Mock
   private QueryErrorClassifier classifier;
   @Captor
@@ -89,7 +87,7 @@ public class QueryMetadataTest {
   @Mock
   private Ticker ticker;
 
-  private QueryMetadataImpl query;
+  private QueryEntityImpl query;
 
   @Before
   public void setup() {
@@ -97,7 +95,7 @@ public class QueryMetadataTest {
     when(classifier.classify(any())).thenReturn(Type.UNKNOWN);
     when(kafkaStreams.state()).thenReturn(State.NOT_RUNNING);
 
-    query = new QueryMetadataImpl(
+    query = new QueryEntityImpl(
         "foo",
         SOME_SCHEMA,
         SOME_SOURCES,
@@ -244,7 +242,7 @@ public class QueryMetadataTest {
     when(ticker.read()).thenReturn(now);
 
     // When:
-    final QueryMetadataImpl.RetryEvent retryEvent = new QueryMetadataImpl.RetryEvent(
+    final QueryEntityImpl.RetryEvent retryEvent = new QueryEntityImpl.RetryEvent(
             QUERY_ID,
             RETRY_BACKOFF_INITIAL_MS,
             RETRY_BACKOFF_MAX_MS,
@@ -263,7 +261,7 @@ public class QueryMetadataTest {
     when(ticker.read()).thenReturn(now);
 
     // When:
-    final QueryMetadataImpl.RetryEvent retryEvent = new QueryMetadataImpl.RetryEvent(
+    final QueryEntityImpl.RetryEvent retryEvent = new QueryEntityImpl.RetryEvent(
             QUERY_ID,
             RETRY_BACKOFF_INITIAL_MS,
             RETRY_BACKOFF_MAX_MS,
@@ -284,7 +282,7 @@ public class QueryMetadataTest {
     when(ticker.read()).thenReturn(now);
 
     // When:
-    final QueryMetadataImpl.RetryEvent retryEvent = new QueryMetadataImpl.RetryEvent(
+    final QueryEntityImpl.RetryEvent retryEvent = new QueryEntityImpl.RetryEvent(
             QUERY_ID,
             RETRY_BACKOFF_INITIAL_MS,
             RETRY_BACKOFF_MAX_MS,
@@ -301,7 +299,7 @@ public class QueryMetadataTest {
   @Test
   public void shouldEvictBasedOnTime() {
     // Given:
-    final QueryMetadataImpl.TimeBoundedQueue queue = new QueryMetadataImpl.TimeBoundedQueue(Duration.ZERO, 1);
+    final QueryEntityImpl.TimeBoundedQueue queue = new QueryEntityImpl.TimeBoundedQueue(Duration.ZERO, 1);
     queue.add(new QueryError(System.currentTimeMillis(), "test", Type.SYSTEM));
 
     //Then:

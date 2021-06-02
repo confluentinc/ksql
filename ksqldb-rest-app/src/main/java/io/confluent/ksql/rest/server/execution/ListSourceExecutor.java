@@ -52,11 +52,9 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryApplicationId;
+import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.PersistentQueryEntity;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -426,7 +424,7 @@ public final class ListSourceExecutor {
 
   private static List<RunningQuery> getQueries(
       final KsqlExecutionContext ksqlEngine,
-      final Predicate<PersistentQueryMetadata> predicate
+      final Predicate<PersistentQueryEntity> predicate
   ) {
     return ksqlEngine.getPersistentQueries()
         .stream()

@@ -50,7 +50,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.TransientQueryEntity;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
 import io.vertx.core.WorkerExecutor;
@@ -137,7 +137,7 @@ public class QueryEndpoint {
       );
     }
 
-    final TransientQueryMetadata queryMetadata = ksqlEngine
+    final TransientQueryEntity queryMetadata = ksqlEngine
         .executeQuery(serviceContext, statement, true);
 
     localCommands.ifPresent(lc -> lc.write(queryMetadata));
@@ -260,9 +260,9 @@ public class QueryEndpoint {
 
   private static class KsqlQueryHandle implements QueryHandle {
 
-    private final TransientQueryMetadata queryMetadata;
+    private final TransientQueryEntity queryMetadata;
 
-    KsqlQueryHandle(final TransientQueryMetadata queryMetadata) {
+    KsqlQueryHandle(final TransientQueryEntity queryMetadata) {
       this.queryMetadata = Objects.requireNonNull(queryMetadata, "queryMetadata");
     }
 

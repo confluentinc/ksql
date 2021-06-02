@@ -24,7 +24,7 @@ import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
 import io.confluent.ksql.util.RetryUtil;
 import java.io.Closeable;
 import java.time.Clock;
@@ -280,13 +280,13 @@ public class CommandRunner implements Closeable {
           }
       );
 
-      final List<PersistentQueryMetadata> queries = statementExecutor
+      final List<PersistentQueryEntity> queries = statementExecutor
           .getKsqlEngine()
           .getPersistentQueries();
 
       LOG.info("Restarting {} queries.", queries.size());
 
-      queries.forEach(PersistentQueryMetadata::start);
+      queries.forEach(PersistentQueryEntity::start);
 
       LOG.info("Restore complete");
 

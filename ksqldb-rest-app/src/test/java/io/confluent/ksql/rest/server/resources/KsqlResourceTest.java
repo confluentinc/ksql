@@ -162,14 +162,8 @@ import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.topic.TopicDeleteInjector;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.Sandbox;
-import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.QueryEntity;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.io.File;
 import java.io.IOException;
@@ -714,7 +708,7 @@ public class KsqlResourceTest {
     final Map<String, Object> overriddenProperties =
         Collections.singletonMap("ksql.streams.auto.offset.reset", "earliest");
 
-    final List<PersistentQueryMetadata> queryMetadata = createQueries(
+    final List<PersistentQueryEntity> queryMetadata = createQueries(
         "CREATE STREAM test_describe_1 AS SELECT * FROM test_stream;" +
             "CREATE STREAM test_describe_2 AS SELECT * FROM test_stream;", overriddenProperties);
 
@@ -1441,7 +1435,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldDistributeTerminateQuery() {
     // Given:
-    final PersistentQueryMetadata queryMetadata = createQuery(
+    final PersistentQueryEntity queryMetadata = createQuery(
         "CREATE STREAM test_explain AS SELECT * FROM test_stream;",
         emptyMap());
 
@@ -1560,7 +1554,7 @@ public class KsqlResourceTest {
     final Map<String, Object> overriddenProperties =
         Collections.singletonMap("ksql.streams.auto.offset.reset", "earliest");
 
-    final PersistentQueryMetadata queryMetadata = createQuery(
+    final PersistentQueryEntity queryMetadata = createQuery(
         "CREATE STREAM test_explain AS SELECT * FROM test_stream;",
         overriddenProperties);
 
@@ -2263,7 +2257,7 @@ public class KsqlResourceTest {
     setUpKsqlResource();
   }
 
-  private List<PersistentQueryMetadata> createQueries(
+  private List<PersistentQueryEntity> createQueries(
       final String sql,
       final Map<String, Object> overriddenProperties) {
     return KsqlEngineTestUtil.execute(
@@ -2273,12 +2267,12 @@ public class KsqlResourceTest {
         ksqlConfig,
         overriddenProperties
     ).stream()
-        .map(PersistentQueryMetadata.class::cast)
+        .map(PersistentQueryEntity.class::cast)
         .collect(Collectors.toList());
   }
 
   @SuppressWarnings("SameParameterValue")
-  private PersistentQueryMetadata createQuery(
+  private PersistentQueryEntity createQuery(
       final String ksqlQueryString,
       final Map<String, Object> overriddenProperties) {
     return createQueries(ksqlQueryString, overriddenProperties).get(0);
@@ -2390,7 +2384,7 @@ public class KsqlResourceTest {
       final String ksqlQueryString,
       final Map<String, Object> overriddenProperties,
       final KsqlEntity entity) {
-    final TransientQueryMetadata queryMetadata = KsqlEngineTestUtil.executeQuery(
+    final TransientQueryEntity queryMetadata = KsqlEngineTestUtil.executeQuery(
         serviceContext,
         ksqlEngine,
         ksqlQueryString,
@@ -2405,7 +2399,7 @@ public class KsqlResourceTest {
       final String ksqlQueryString,
       final Map<String, Object> overriddenProperties,
       final KsqlEntity entity) {
-    final QueryMetadata queryMetadata = KsqlEngineTestUtil
+    final QueryEntity queryEntity = KsqlEngineTestUtil
         .execute(
             serviceContext,
             ksqlEngine,
@@ -2414,11 +2408,11 @@ public class KsqlResourceTest {
             overriddenProperties)
         .get(0);
 
-    validateQueryDescription(queryMetadata, overriddenProperties, entity);
+    validateQueryDescription(queryEntity, overriddenProperties, entity);
   }
 
   private static void validateQueryDescription(
-      final QueryMetadata queryMetadata,
+      final QueryEntity queryEntity,
       final Map<String, Object> overriddenProperties,
       final KsqlEntity entity) {
     assertThat(entity, instanceOf(QueryDescriptionEntity.class));
@@ -2426,7 +2420,7 @@ public class KsqlResourceTest {
     final QueryDescription queryDescription = queryDescriptionEntity.getQueryDescription();
 
     assertThat(queryDescription.getFields(), is(
-        EntityUtil.buildSourceSchemaEntity(queryMetadata.getLogicalSchema())));
+        EntityUtil.buildSourceSchemaEntity(queryEntity.getLogicalSchema())));
     assertThat(queryDescription.getOverriddenProperties(), is(overriddenProperties));
   }
 
@@ -2503,7 +2497,7 @@ public class KsqlResourceTest {
   @Test
   public void queryLoggerShouldReceiveTerminateStatementsWhenHandleKsqlStatementWithTerminate() {
     // Given:
-    final PersistentQueryMetadata queryMetadata = createQuery(
+    final PersistentQueryEntity queryMetadata = createQuery(
         "CREATE STREAM test_explain AS SELECT * FROM test_stream;",
         emptyMap());
     final String terminateSql = "TERMINATE " + queryMetadata.getQueryId() + ";";
@@ -2731,7 +2725,7 @@ public class KsqlResourceTest {
   }
 
   private void givenPersistentQueryCount(final int value) {
-    final List<PersistentQueryMetadata> queries = mock(List.class);
+    final List<PersistentQueryEntity> queries = mock(List.class);
     when(queries.size()).thenReturn(value);
     when(sandbox.getPersistentQueries()).thenReturn(queries);
   }

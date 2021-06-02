@@ -23,19 +23,19 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-public final class SandboxedTransientQueryMetadata extends TransientQueryMetadata {
-  private SandboxedTransientQueryMetadata(
-      final TransientQueryMetadata actual,
+public final class SandboxedTransientQueryEntity extends TransientQueryEntity {
+  private SandboxedTransientQueryEntity(
+      final TransientQueryEntity actual,
       final Listener listener
   ) {
     super(actual, new SandboxQueue(), listener);
   }
 
-  public static SandboxedTransientQueryMetadata of(
-      final TransientQueryMetadata queryMetadata,
-      final QueryMetadata.Listener listener
+  public static SandboxedTransientQueryEntity of(
+      final TransientQueryEntity queryMetadata,
+      final QueryEntity.Listener listener
   ) {
-    return new SandboxedTransientQueryMetadata(
+    return new SandboxedTransientQueryEntity(
         Objects.requireNonNull(queryMetadata, "queryMetadata"),
         Objects.requireNonNull(listener, "listener")
     );

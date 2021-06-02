@@ -33,7 +33,7 @@ import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueryEntity;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.Gauge;
 import org.apache.kafka.common.metrics.Metrics;
@@ -57,7 +57,7 @@ public class QueryStateMetricsReportingListenerTest {
   @Mock
   private Metrics metrics;
   @Mock
-  private QueryMetadata query;
+  private QueryEntity query;
   @Mock
   private ServiceContext serviceContext;
   @Mock

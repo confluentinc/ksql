@@ -51,10 +51,10 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
-import io.confluent.ksql.util.PageViewDataProvider;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.UserDataProvider;
+import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.PersistentQueryEntity;
+import io.confluent.ksql.util.QueryEntity;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -75,7 +75,6 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
 import org.apache.kafka.test.IntegrationTest;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -135,7 +134,7 @@ public class KsMaterializationFunctionalTest {
   @Rule
   public final Timeout timeout = Timeout.seconds(120);
 
-  private final List<QueryMetadata> toClose = new ArrayList<>();
+  private final List<QueryEntity> toClose = new ArrayList<>();
 
   private String output;
   private final QueryId queryId = new QueryId("static");
@@ -175,7 +174,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldReturnEmptyIfNotMaterializedStream() {
     // Given:
-    final PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryEntity query = executeQuery(
         "CREATE STREAM " + output + " AS"
             + " SELECT * FROM " + USER_STREAM + ";"
     );
@@ -193,7 +192,7 @@ public class KsMaterializationFunctionalTest {
     try (TestKsqlContext ksqlNoAppServer = TEST_HARNESS.ksqlContextBuilder().build()) {
       initializeKsql(ksqlNoAppServer);
 
-      final PersistentQueryMetadata query = executeQuery(
+      final PersistentQueryEntity query = executeQuery(
           ksqlNoAppServer,
           "CREATE TABLE " + output + " AS"
               + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_TABLE
@@ -211,7 +210,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableForAggregatedTable() {
     // Given:
-    final PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryEntity query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT USERID, COUNT(*) FROM " + USER_TABLE
             + " GROUP BY USERID;"
@@ -245,7 +244,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableForAggregatedStream() {
     // Given:
-    final PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryEntity query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_STREAM
             + " GROUP BY USERID;"
@@ -279,7 +278,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableForTumblingWindowed() {
     // Given:
-    final PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryEntity query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_STREAM
             + " WINDOW TUMBLING (SIZE " + WINDOW_SIZE.getSeconds() + " SECONDS)"
@@ -333,7 +332,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableForHoppingWindowed() {
     // Given:
-    final PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryEntity query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_STREAM
             + " WINDOW HOPPING (SIZE " + WINDOW_SIZE.getSeconds() + " SECONDS,"
@@ -388,7 +387,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableForSessionWindowed() {
     // Given:
-    final PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryEntity query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_STREAM
             + " WINDOW SESSION (" + WINDOW_SIZE.getSeconds() + " SECONDS)"
@@ -451,7 +450,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryTumblingWindowMaterializedTableWithRetention() {
     // Given:
-    final PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryEntity query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT PAGEID, COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
             + " WINDOW TUMBLING (SIZE " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS,"
@@ -480,7 +479,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryHoppingWindowMaterializedTableWithRetention() {
     // Given:
-    final PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryEntity query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT PAGEID, COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
             + " WINDOW HOPPING (SIZE " + WINDOW_SEGMENT_DURATION.getSeconds() + " SECONDS,"
@@ -509,7 +508,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQuerySessionWindowMaterializedTableWithRetention() {
     // Given:
-    final PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryEntity query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT USERID, COUNT(*) AS COUNT FROM " + PAGE_VIEWS_STREAM
             + " WINDOW SESSION (" + WINDOW_SEGMENT_DURATION.getSeconds()/2 + " SECONDS,"
@@ -537,7 +536,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableWithKeyFieldsInProjection() {
     // Given:
-    final PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryEntity query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT USERID, COUNT(*), AS_VALUE(USERID) AS USERID_2 FROM " + USER_TABLE
             + " GROUP BY USERID;"
@@ -572,7 +571,7 @@ public class KsMaterializationFunctionalTest {
   @Test
   public void shouldQueryMaterializedTableWithMultipleAggregationColumns() {
     // Given:
-    final PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryEntity query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT USERID, COUNT(1) AS COUNT, SUM(REGISTERTIME) AS SUM FROM " + USER_TABLE
             + " GROUP BY USERID;"
@@ -609,7 +608,7 @@ public class KsMaterializationFunctionalTest {
     // installed as part of building the below statement:
 
     // Given:
-    final PersistentQueryMetadata query = executeQuery(
+    final PersistentQueryEntity query = executeQuery(
         "CREATE TABLE " + output + " AS"
             + " SELECT USERID, COUNT(*) AS COUNT FROM " + USER_TABLE
             + " GROUP BY USERID"
@@ -706,20 +705,20 @@ public class KsMaterializationFunctionalTest {
     );
   }
 
-  private PersistentQueryMetadata executeQuery(final String statement) {
+  private PersistentQueryEntity executeQuery(final String statement) {
     return executeQuery(ksqlContext, statement);
   }
 
-  private PersistentQueryMetadata executeQuery(
+  private PersistentQueryEntity executeQuery(
       final TestKsqlContext ksqlContext,
       final String statement
   ) {
-    final List<QueryMetadata> queries = ksqlContext.sql(statement);
+    final List<QueryEntity> queries = ksqlContext.sql(statement);
 
     assertThat(queries, hasSize(1));
-    assertThat(queries.get(0), instanceOf(PersistentQueryMetadata.class));
+    assertThat(queries.get(0), instanceOf(PersistentQueryEntity.class));
 
-    final PersistentQueryMetadata query = (PersistentQueryMetadata) queries.get(0);
+    final PersistentQueryEntity query = (PersistentQueryEntity) queries.get(0);
 
     toClose.add(query);
 

@@ -44,7 +44,8 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlHostInfo;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+
 import java.util.Collections;
 import java.util.Optional;
 import org.apache.kafka.streams.KafkaStreams;
@@ -74,7 +75,7 @@ public class ExplainExecutorTest {
   public void shouldExplainQueryId() {
     // Given:
     final ConfiguredStatement<?> explain = engine.configure("EXPLAIN id;");
-    final PersistentQueryMetadata metadata = givenPersistentQuery("id");
+    final PersistentQueryEntity metadata = givenPersistentQuery("id");
 
     final KsqlEngine engine = mock(KsqlEngine.class);
     when(engine.getPersistentQuery(metadata.getQueryId())).thenReturn(Optional.of(metadata));
@@ -176,8 +177,8 @@ public class ExplainExecutorTest {
   }
 
   @SuppressWarnings("SameParameterValue")
-  public static PersistentQueryMetadata givenPersistentQuery(final String id) {
-    final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
+  public static PersistentQueryEntity givenPersistentQuery(final String id) {
+    final PersistentQueryEntity metadata = mock(PersistentQueryEntity.class);
     when(metadata.getQueryId()).thenReturn(new QueryId(id));
     when(metadata.getSinkName()).thenReturn(SourceName.of(id));
     when(metadata.getLogicalSchema()).thenReturn(TemporaryEngine.SCHEMA);

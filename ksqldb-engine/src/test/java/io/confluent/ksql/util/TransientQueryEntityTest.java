@@ -26,8 +26,8 @@ import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
-import io.confluent.ksql.util.QueryMetadata.Listener;
-import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
+import io.confluent.ksql.util.QueryEntity.Listener;
+import io.confluent.ksql.util.TransientQueryEntity.ResultType;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -42,7 +42,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class TransientQueryMetadataTest {
+public class TransientQueryEntityTest {
 
   private static final String QUERY_ID = "queryId";
   private static final String EXECUTION_PLAN = "execution plan";
@@ -66,18 +66,18 @@ public class TransientQueryMetadataTest {
   @Mock
   private Map<String, Object> overrides;
   @Mock
-  private Consumer<QueryMetadata> closeCallback;
+  private Consumer<QueryEntity> closeCallback;
   @Mock
   private Listener listener;
 
-  private TransientQueryMetadata query;
+  private TransientQueryEntity query;
 
   @Before
   public void setUp()  {
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
     when(kafkaStreams.state()).thenReturn(State.NOT_RUNNING);
 
-    query = new TransientQueryMetadata(
+    query = new TransientQueryEntity(
         SQL,
         logicalSchema,
         sourceNames,

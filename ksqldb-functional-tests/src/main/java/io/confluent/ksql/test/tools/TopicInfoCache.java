@@ -39,7 +39,8 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.utils.SerdeUtil;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -61,7 +62,7 @@ import org.apache.kafka.streams.kstream.TimeWindowedDeserializer;
  * io.confluent.ksql.metastore.MetaStore}.
  *
  * <p>Info for internal topics is obtained from the {@link
- * PersistentQueryMetadata#getQuerySchemas()}. This is a map of {@code loggerNamePrefix} to {@link
+ * PersistentQueryEntity#getQuerySchemas()}. This is a map of {@code loggerNamePrefix} to {@link
  * SchemaInfo}. This map is populated as a query is built, so presents the <i>actual</i> schema and
  * formats used. This class uses pattern matching against the topic name to determine the correct
  * {@code loggerNamePrefix} to look up and any additional logic needded.
@@ -151,7 +152,7 @@ public class TopicInfoCache {
         // Internal topic:
         final QueryId queryId = internalTopic.get().queryId();
 
-        final PersistentQueryMetadata query = ksqlEngine
+        final PersistentQueryEntity query = ksqlEngine
             .getPersistentQuery(queryId)
             .orElseThrow(() ->
                 new TestFrameworkException("Unknown queryId for internal topic: " + queryId));
@@ -210,7 +211,7 @@ public class TopicInfoCache {
     /**
      * Gives the pattern a chance to adjust the key format
      */
-    KeyFormat keyFormat(final KeyFormat baseFormat, final PersistentQueryMetadata query) {
+    KeyFormat keyFormat(final KeyFormat baseFormat, final PersistentQueryEntity query) {
       return baseFormat;
     }
 
@@ -219,7 +220,7 @@ public class TopicInfoCache {
      * double-wrapped in {@link org.apache.kafka.streams.kstream.Windowed}. This can't be
      * represented using {@link KeyFormat} alone.
      */
-    OptionalLong changeLogWindowSize(final PersistentQueryMetadata query) {
+    OptionalLong changeLogWindowSize(final PersistentQueryEntity query) {
       return OptionalLong.empty();
     }
   }
@@ -280,7 +281,7 @@ public class TopicInfoCache {
     }
 
     @Override
-    public KeyFormat keyFormat(final KeyFormat keyFormat, final PersistentQueryMetadata query) {
+    public KeyFormat keyFormat(final KeyFormat keyFormat, final PersistentQueryEntity query) {
       final Matcher matcher = WINDOWED_GROUP_BY_PATTERN.matcher(query.getStatementString());
       if (!matcher.matches()) {
         return keyFormat;
@@ -323,7 +324,7 @@ public class TopicInfoCache {
     }
 
     @Override
-    OptionalLong changeLogWindowSize(final PersistentQueryMetadata query) {
+    OptionalLong changeLogWindowSize(final PersistentQueryEntity query) {
       if (!topicName.endsWith("-changelog")) {
         return OptionalLong.empty();
       }

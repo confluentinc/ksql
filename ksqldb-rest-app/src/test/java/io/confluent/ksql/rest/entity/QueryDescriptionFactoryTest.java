@@ -42,19 +42,15 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.*;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.PersistentQueryMetadataImpl;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
+import io.confluent.ksql.util.PersistentQueryEntity;
+import io.confluent.ksql.util.TransientQueryEntity.ResultType;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
@@ -109,10 +105,10 @@ public class QueryDescriptionFactoryTest {
   @Mock
   private ProcessingLogger processingLogger;
   @Mock
-  private QueryMetadata.Listener listener;
+  private QueryEntity.Listener listener;
 
-  private QueryMetadata transientQuery;
-  private PersistentQueryMetadata persistentQuery;
+  private QueryEntity transientQuery;
+  private PersistentQueryEntity persistentQuery;
   private QueryDescription transientQueryDescription;
   private QueryDescription persistentQueryDescription;
 
@@ -127,7 +123,7 @@ public class QueryDescriptionFactoryTest {
     when(sinkDataSource.getKsqlTopic()).thenReturn(sinkTopic);
     when(sinkDataSource.getName()).thenReturn(SourceName.of("sink name"));
 
-    transientQuery = new TransientQueryMetadata(
+    transientQuery = new TransientQueryEntity(
         SQL_TEXT,
         TRANSIENT_SCHEMA,
         SOURCE_NAMES,
@@ -149,7 +145,7 @@ public class QueryDescriptionFactoryTest {
 
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());
 
-    persistentQuery = new PersistentQueryMetadataImpl(
+    persistentQuery = new PersistentQueryEntityImpl(
         SQL_TEXT,
         PhysicalSchema.from(PERSISTENT_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
         SOURCE_NAMES,
@@ -268,7 +264,7 @@ public class QueryDescriptionFactoryTest {
         .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
         .build();
 
-    transientQuery = new TransientQueryMetadata(
+    transientQuery = new TransientQueryEntity(
         SQL_TEXT,
         schema,
         SOURCE_NAMES,
@@ -307,7 +303,7 @@ public class QueryDescriptionFactoryTest {
         .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
         .build();
 
-    transientQuery = new TransientQueryMetadata(
+    transientQuery = new TransientQueryEntity(
         SQL_TEXT,
         schema,
         SOURCE_NAMES,

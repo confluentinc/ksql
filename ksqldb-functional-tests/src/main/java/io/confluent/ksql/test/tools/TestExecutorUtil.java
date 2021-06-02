@@ -63,7 +63,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -112,7 +112,7 @@ public final class TestExecutorUtil {
 
     final List<TopologyTestDriverContainer> topologyTestDrivers = new ArrayList<>();
     for (final PersistentQueryAndSources persistentQueryAndSources : queryMetadataList) {
-      final PersistentQueryMetadata persistentQueryMetadata = persistentQueryAndSources
+      final PersistentQueryEntity persistentQueryMetadata = persistentQueryAndSources
           .getPersistentQueryMetadata();
       final Properties streamsProperties = new Properties();
       streamsProperties.putAll(persistentQueryMetadata.getStreamsProperties());
@@ -347,7 +347,7 @@ public final class TestExecutorUtil {
           continue;
         }
 
-        final PersistentQueryMetadata query = (PersistentQueryMetadata) result
+        final PersistentQueryEntity query = (PersistentQueryEntity) result
             .getExecuteResult().getQuery().get();
 
         listener.acceptQuery(query);
@@ -526,11 +526,11 @@ public final class TestExecutorUtil {
 
   private static final class PersistentQueryAndSources {
 
-    private final PersistentQueryMetadata persistentQueryMetadata;
+    private final PersistentQueryEntity persistentQueryMetadata;
     private final List<DataSource> sources;
 
     PersistentQueryAndSources(
-        final PersistentQueryMetadata persistentQueryMetadata,
+        final PersistentQueryEntity persistentQueryMetadata,
         final List<DataSource> sources
     ) {
       this.persistentQueryMetadata =
@@ -538,7 +538,7 @@ public final class TestExecutorUtil {
       this.sources = requireNonNull(sources, "sources");
     }
 
-    PersistentQueryMetadata getPersistentQueryMetadata() {
+    PersistentQueryEntity getPersistentQueryMetadata() {
       return persistentQueryMetadata;
     }
 

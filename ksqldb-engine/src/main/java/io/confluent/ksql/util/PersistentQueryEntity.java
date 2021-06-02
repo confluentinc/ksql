@@ -30,7 +30,7 @@ import io.confluent.ksql.schema.query.QuerySchemas;
 import java.util.Optional;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 
-public interface PersistentQueryMetadata extends QueryMetadata {
+public interface PersistentQueryEntity extends QueryEntity {
 
   DataSource.DataSourceType getDataSourceType();
 

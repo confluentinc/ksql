@@ -59,7 +59,8 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
@@ -334,7 +335,7 @@ public class ListSourceExecutorTest {
         engine.getServiceContext(),
         engine.configure("CREATE STREAM SINK AS SELECT * FROM source;")
     );
-    final PersistentQueryMetadata metadata = (PersistentQueryMetadata) result.getQuery()
+    final PersistentQueryEntity metadata = (PersistentQueryEntity) result.getQuery()
         .orElseThrow(IllegalArgumentException::new);
     final DataSource stream = engine.getEngine().getMetaStore().getSource(SourceName.of("SINK"));
 

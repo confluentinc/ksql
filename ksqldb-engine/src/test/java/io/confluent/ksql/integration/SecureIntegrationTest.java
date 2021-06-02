@@ -63,7 +63,8 @@ import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
 import io.confluent.ksql.topic.TopicProperties;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
-import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QueryEntity;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -154,7 +155,7 @@ public class SecureIntegrationTest {
   public void after() {
     if (queryId != null) {
       ksqlEngine.getPersistentQuery(queryId)
-          .ifPresent(QueryMetadata::close);
+          .ifPresent(QueryEntity::close);
     }
     if (ksqlEngine != null) {
       ksqlEngine.close();
@@ -469,21 +470,21 @@ public class SecureIntegrationTest {
       final String query,
       final String errorMsg
   ) {
-    final QueryMetadata queryMetadata = KsqlEngineTestUtil
+    final QueryEntity queryEntity = KsqlEngineTestUtil
         .execute(serviceContext, ksqlEngine, query, ksqlConfig, Collections.emptyMap()).get(0);
 
-    queryMetadata.start();
+    queryEntity.start();
     assertThatEventually(
         "Wait for query to fail",
-        () -> queryMetadata.getQueryErrors().size() > 0,
+        () -> queryEntity.getQueryErrors().size() > 0,
         is(true)
     );
 
-    for (final QueryError error : queryMetadata.getQueryErrors()) {
+    for (final QueryError error : queryEntity.getQueryErrors()) {
         assertThat(error.getType(), is(Type.USER));
         assertThat(
             error.getErrorMessage().split("\n")[0],
-            is(String.format(errorMsg, queryMetadata.getQueryId()))
+            is(String.format(errorMsg, queryEntity.getQueryId()))
         );
     }
   }
@@ -545,10 +546,10 @@ public class SecureIntegrationTest {
                                       final Object... params) {
     final String query = String.format(queryString, params);
 
-    final QueryMetadata queryMetadata = KsqlEngineTestUtil
+    final QueryEntity queryEntity = KsqlEngineTestUtil
         .execute(serviceContext, ksqlEngine, query, ksqlConfig, Collections.emptyMap()).get(0);
 
-    queryMetadata.start();
-    queryId = queryMetadata.getQueryId();
+    queryEntity.start();
+    queryId = queryEntity.getQueryId();
   }
 }

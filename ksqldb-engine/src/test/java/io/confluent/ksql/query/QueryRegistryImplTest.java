@@ -24,10 +24,9 @@ import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryRegistryImpl.QueryExecutorFactory;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.PersistentQueryMetadataImpl;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.QueryEntity;
+import io.confluent.ksql.util.TransientQueryEntity;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -63,7 +62,7 @@ public class QueryRegistryImplTest {
   @Mock
   private MetaStore metaStore;
   @Captor
-  private ArgumentCaptor<QueryMetadata.Listener> queryListenerCaptor;
+  private ArgumentCaptor<QueryEntity.Listener> queryListenerCaptor;
 
   private QueryRegistryImpl registry;
 
@@ -78,14 +77,14 @@ public class QueryRegistryImplTest {
   @Test
   public void shouldGetAllLiveQueries() {
     // Given:
-    final Set<QueryMetadata> queries = ImmutableSet.of(
+    final Set<QueryEntity> queries = ImmutableSet.of(
         givenCreate(registry, "q1", "source", "sink", true),
         givenCreateTransient(registry, "transient1")
     );
 
     // When:
-    final Set<QueryMetadata> listed
-        = ImmutableSet.<QueryMetadata>builder().addAll(registry.getAllLiveQueries()).build();
+    final Set<QueryEntity> listed
+        = ImmutableSet.<QueryEntity>builder().addAll(registry.getAllLiveQueries()).build();
 
     // Then:
     assertThat(listed, equalTo(queries));
@@ -99,8 +98,8 @@ public class QueryRegistryImplTest {
     final QueryRegistry sandbox = registry.createSandbox();
 
     // When:
-    final Set<QueryMetadata> listed
-        = ImmutableSet.<QueryMetadata>builder().addAll(sandbox.getAllLiveQueries()).build();
+    final Set<QueryEntity> listed
+        = ImmutableSet.<QueryEntity>builder().addAll(sandbox.getAllLiveQueries()).build();
 
     // Then:
     final Set<String> ids = listed.stream()
@@ -112,11 +111,11 @@ public class QueryRegistryImplTest {
   @Test
   public void shouldGetPersistentQueries() {
     // Given:
-    final PersistentQueryMetadata q1 = givenCreate(registry, "q1", "source", "sink1", true);
-    final PersistentQueryMetadata q2 = givenCreate(registry, "q2", "source", "sink2", false);
+    final PersistentQueryEntity q1 = givenCreate(registry, "q1", "source", "sink1", true);
+    final PersistentQueryEntity q2 = givenCreate(registry, "q2", "source", "sink2", false);
 
     // When:
-    final Map<QueryId, PersistentQueryMetadata> persistent = registry.getPersistentQueries();
+    final Map<QueryId, PersistentQueryEntity> persistent = registry.getPersistentQueries();
 
     // Then:
     assertThat(persistent.size(), is(2));
@@ -156,12 +155,12 @@ public class QueryRegistryImplTest {
   @Test
   public void shouldGetQueryThatCreatedSource() {
     // Given:
-    final QueryMetadata query = givenCreate(registry, "q1", "source", "sink1", true);
+    final QueryEntity query = givenCreate(registry, "q1", "source", "sink1", true);
     givenCreate(registry, "q2", "source", "sink1", false);
     givenCreate(registry, "q3", "source", "sink2", false);
 
     // When:
-    final Optional<QueryMetadata> found = registry.getCreateAsQuery(SourceName.of("sink1"));
+    final Optional<QueryEntity> found = registry.getCreateAsQuery(SourceName.of("sink1"));
 
     // Then:
     assertThat(found.get(), is(query));
@@ -176,7 +175,7 @@ public class QueryRegistryImplTest {
     final QueryRegistry sandbox = registry.createSandbox();
 
     // When:
-    final Optional<QueryMetadata> found = sandbox.getCreateAsQuery(SourceName.of("sink1"));
+    final Optional<QueryEntity> found = sandbox.getCreateAsQuery(SourceName.of("sink1"));
 
     // Then:
     assertThat(found.get().getQueryId().toString(), equalTo("q1"));
@@ -214,7 +213,7 @@ public class QueryRegistryImplTest {
   @Test
   public void shouldCallListenerOnCreate() {
     // Given/When:
-    final QueryMetadata query = givenCreate(registry, "q1", "source", "sink1", true);
+    final QueryEntity query = givenCreate(registry, "q1", "source", "sink1", true);
 
     // Then:
     verify(listener1).onCreate(serviceContext, metaStore, query);
@@ -224,8 +223,8 @@ public class QueryRegistryImplTest {
   @Test
   public void shouldCallListenerOnClose() {
     // Given:
-    final QueryMetadata.Listener queryListener = givenCreateGetListener(registry, "foo");
-    final QueryMetadata query = registry.getPersistentQuery(new QueryId("foo")).get();
+    final QueryEntity.Listener queryListener = givenCreateGetListener(registry, "foo");
+    final QueryEntity query = registry.getPersistentQuery(new QueryId("foo")).get();
 
     // When:
     queryListener.onClose(query);
@@ -238,8 +237,8 @@ public class QueryRegistryImplTest {
   @Test
   public void shouldCallListenerOnStateChange() {
     // Given:
-    final QueryMetadata.Listener queryListener = givenCreateGetListener(registry, "foo");
-    final QueryMetadata query = registry.getPersistentQuery(new QueryId("foo")).get();
+    final QueryEntity.Listener queryListener = givenCreateGetListener(registry, "foo");
+    final QueryEntity query = registry.getPersistentQuery(new QueryId("foo")).get();
 
     // When:
     queryListener.onStateChange(query, State.CREATED, State.RUNNING);
@@ -252,8 +251,8 @@ public class QueryRegistryImplTest {
   @Test
   public void shouldCallListenerOnError() {
     // Given:
-    final QueryMetadata.Listener queryListener = givenCreateGetListener(registry, "foo");
-    final QueryMetadata query = registry.getPersistentQuery(new QueryId("foo")).get();
+    final QueryEntity.Listener queryListener = givenCreateGetListener(registry, "foo");
+    final QueryEntity query = registry.getPersistentQuery(new QueryId("foo")).get();
     final QueryError error = new QueryError(123L, "error", Type.USER);
 
     // When:
@@ -270,7 +269,7 @@ public class QueryRegistryImplTest {
     final QueryRegistry sandbox = registry.createSandbox();
 
     // When:
-    final PersistentQueryMetadata q = givenCreate(sandbox, "q1", "source", "sink1", true);
+    final PersistentQueryEntity q = givenCreate(sandbox, "q1", "source", "sink1", true);
 
     // Then:
     verify(sandboxListener).onCreate(serviceContext, metaStore, q);
@@ -283,7 +282,7 @@ public class QueryRegistryImplTest {
     // Given:
     givenCreate(registry, "q1", "source", "sink1", true);
     final QueryRegistry sandbox = registry.createSandbox();
-    final QueryMetadata sandboxQuery = sandbox.getPersistentQuery(new QueryId("q1")).get();
+    final QueryEntity sandboxQuery = sandbox.getPersistentQuery(new QueryId("q1")).get();
 
     // When:
     sandboxQuery.close();
@@ -301,8 +300,8 @@ public class QueryRegistryImplTest {
   public void shouldCallSandboxOnClose() {
     // Given:
     final QueryRegistry sandbox = registry.createSandbox();
-    final QueryMetadata.Listener queryListener = givenCreateGetListener(sandbox, "foo");
-    final QueryMetadata query = sandbox.getPersistentQuery(new QueryId("foo")).get();
+    final QueryEntity.Listener queryListener = givenCreateGetListener(sandbox, "foo");
+    final QueryEntity query = sandbox.getPersistentQuery(new QueryId("foo")).get();
 
     // When:
     queryListener.onClose(query);
@@ -313,7 +312,7 @@ public class QueryRegistryImplTest {
     verify(listener2, times(0)).onClose(any());
   }
 
-  private QueryMetadata.Listener givenCreateGetListener(
+  private QueryEntity.Listener givenCreateGetListener(
       final QueryRegistry registry,
       final String id
   ) {
@@ -323,7 +322,7 @@ public class QueryRegistryImplTest {
     return queryListenerCaptor.getValue();
   }
 
-  private PersistentQueryMetadata givenCreate(
+  private PersistentQueryEntity givenCreate(
       final QueryRegistry registry,
       final String id,
       final String source,
@@ -331,7 +330,7 @@ public class QueryRegistryImplTest {
       boolean createAs
   ) {
     final QueryId queryId = new QueryId(id);
-    final PersistentQueryMetadata query = mock(PersistentQueryMetadataImpl.class);
+    final PersistentQueryEntity query = mock(PersistentQueryEntityImpl.class);
     final DataSource sinkSource = mock(DataSource.class);
     when(sinkSource.getName()).thenReturn(SourceName.of(sink));
     when(query.getQueryId()).thenReturn(queryId);
@@ -357,12 +356,12 @@ public class QueryRegistryImplTest {
     return query;
   }
 
-  private TransientQueryMetadata givenCreateTransient(
+  private TransientQueryEntity givenCreateTransient(
       final QueryRegistry registry,
       final String id
   ) {
     final QueryId queryId = new QueryId(id);
-    final TransientQueryMetadata query = mock(TransientQueryMetadata.class);
+    final TransientQueryEntity query = mock(TransientQueryEntity.class);
     when(query.getQueryId()).thenReturn(queryId);
     when(executor.buildTransientQuery(
         any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any())

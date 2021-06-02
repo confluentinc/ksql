@@ -30,7 +30,7 @@ import io.confluent.ksql.rest.server.HeartbeatAgent;
 import io.confluent.ksql.rest.server.LagReportingAgent;
 import io.confluent.ksql.util.HostStatus;
 import io.confluent.ksql.util.KsqlHostInfo;
-import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -100,7 +100,7 @@ public class ClusterStatusResource {
       final KsqlHostInfo ksqlHostInfo
   ) {
     final Map<String, ActiveStandbyEntity> perQueryMap = new HashMap<>();
-    for (PersistentQueryMetadata persistentQueryMetadata: engine.getPersistentQueries()) {
+    for (PersistentQueryEntity persistentQueryMetadata: engine.getPersistentQueries()) {
       for (StreamsMetadata streamsMetadata: persistentQueryMetadata.getAllMetadata()) {
         if (streamsMetadata == StreamsMetadata.NOT_AVAILABLE
             || !streamsMetadata.hostInfo().equals(asHostInfo(ksqlHostInfo))) {

@@ -30,7 +30,8 @@ import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KeyValue;
-import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.TransientQueryEntity;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -67,7 +68,7 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
   @Override
   public synchronized void subscribe(final Flow.Subscriber<Collection<StreamedRow>> subscriber) {
-    final TransientQueryMetadata queryMetadata = ksqlEngine
+    final TransientQueryEntity queryMetadata = ksqlEngine
         .executeQuery(serviceContext, query, true);
     final PushQuerySubscription subscription =
         new PushQuerySubscription(exec, subscriber, queryMetadata);
@@ -82,13 +83,13 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
   static class PushQuerySubscription extends PollingSubscription<Collection<StreamedRow>> {
 
-    private final TransientQueryMetadata queryMetadata;
+    private final TransientQueryEntity queryMetadata;
     private boolean closed = false;
 
     PushQuerySubscription(
         final ListeningScheduledExecutorService exec,
         final Subscriber<Collection<StreamedRow>> subscriber,
-        final TransientQueryMetadata queryMetadata
+        final TransientQueryEntity queryMetadata
     ) {
       super(exec, subscriber, valueColumnOnly(queryMetadata.getLogicalSchema()));
       this.queryMetadata = requireNonNull(queryMetadata, "queryMetadata");

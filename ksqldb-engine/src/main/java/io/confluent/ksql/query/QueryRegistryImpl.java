@@ -29,12 +29,9 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.PersistentQueryMetadataImpl;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.SandboxedPersistentQueryMetadataImpl;
-import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.QueryEntity;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -50,11 +47,11 @@ import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams.State;
 
 public class QueryRegistryImpl implements QueryRegistry {
-  private static final BiPredicate<SourceName, PersistentQueryMetadata> FILTER_QUERIES_WITH_SINK =
+  private static final BiPredicate<SourceName, PersistentQueryEntity> FILTER_QUERIES_WITH_SINK =
       (sourceName, query) -> query.getSinkName().equals(sourceName);
 
-  private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
-  private final Set<QueryMetadata> allLiveQueries;
+  private final Map<QueryId, PersistentQueryEntity> persistentQueries;
+  private final Set<QueryEntity> allLiveQueries;
   private final Map<SourceName, QueryId> createAsQueries;
   private final Map<SourceName, Set<QueryId>> insertQueries;
   private final Collection<QueryEventListener> eventListeners;
@@ -84,16 +81,16 @@ public class QueryRegistryImpl implements QueryRegistry {
     createAsQueries = new ConcurrentHashMap<>();
     insertQueries = new ConcurrentHashMap<>();
     original.allLiveQueries.forEach(query -> {
-      if (query instanceof PersistentQueryMetadata) {
-        final PersistentQueryMetadata sandboxed = SandboxedPersistentQueryMetadataImpl.of(
-            (PersistentQueryMetadataImpl) query,
+      if (query instanceof PersistentQueryEntity) {
+        final PersistentQueryEntity sandboxed = SandboxedPersistentQueryEntityImpl.of(
+            (PersistentQueryEntityImpl) query,
             new ListenerImpl()
         );
         persistentQueries.put(sandboxed.getQueryId(), sandboxed);
         allLiveQueries.add(sandboxed);
       } else {
-        final TransientQueryMetadata sandboxed = SandboxedTransientQueryMetadata.of(
-            (TransientQueryMetadata) query,
+        final TransientQueryEntity sandboxed = SandboxedTransientQueryEntity.of(
+            (TransientQueryEntity) query,
             new ListenerImpl()
         );
         allLiveQueries.add(sandboxed);
@@ -114,7 +111,7 @@ public class QueryRegistryImpl implements QueryRegistry {
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @Override
-  public TransientQueryMetadata createTransientQuery(
+  public TransientQueryEntity createTransientQuery(
       final SessionConfig config,
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
@@ -131,7 +128,7 @@ public class QueryRegistryImpl implements QueryRegistry {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     final QueryExecutor executor
         = executorFactory.create(config, processingLogContext, serviceContext, metaStore);
-    final TransientQueryMetadata query = executor.buildTransientQuery(
+    final TransientQueryEntity query = executor.buildTransientQuery(
         statementText,
         queryId,
         sources,
@@ -149,7 +146,7 @@ public class QueryRegistryImpl implements QueryRegistry {
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @Override
-  public PersistentQueryMetadata createOrReplacePersistentQuery(
+  public PersistentQueryEntity createOrReplacePersistentQuery(
       final SessionConfig config,
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
@@ -164,7 +161,7 @@ public class QueryRegistryImpl implements QueryRegistry {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     final QueryExecutor executor =
         executorFactory.create(config, processingLogContext, serviceContext, metaStore);
-    final PersistentQueryMetadata query = executor.buildPersistentQuery(
+    final PersistentQueryEntity query = executor.buildPersistentQuery(
         statementText,
         queryId,
         sinkDataSource,
@@ -179,12 +176,12 @@ public class QueryRegistryImpl implements QueryRegistry {
   }
 
   @Override
-  public Optional<PersistentQueryMetadata> getPersistentQuery(final QueryId queryId) {
+  public Optional<PersistentQueryEntity> getPersistentQuery(final QueryId queryId) {
     return Optional.ofNullable(persistentQueries.get(queryId));
   }
 
   @Override
-  public Map<QueryId, PersistentQueryMetadata> getPersistentQueries() {
+  public Map<QueryId, PersistentQueryEntity> getPersistentQueries() {
     return Collections.unmodifiableMap(persistentQueries);
   }
 
@@ -201,12 +198,12 @@ public class QueryRegistryImpl implements QueryRegistry {
   }
 
   @Override
-  public List<QueryMetadata> getAllLiveQueries() {
+  public List<QueryEntity> getAllLiveQueries() {
     return ImmutableList.copyOf(allLiveQueries);
   }
 
   @Override
-  public Optional<QueryMetadata> getCreateAsQuery(final SourceName sourceName) {
+  public Optional<QueryEntity> getCreateAsQuery(final SourceName sourceName) {
     if (createAsQueries.containsKey(sourceName)) {
       return Optional.of(persistentQueries.get(createAsQueries.get(sourceName)));
     }
@@ -216,11 +213,11 @@ public class QueryRegistryImpl implements QueryRegistry {
   @Override
   public Set<QueryId> getInsertQueries(
       final SourceName sourceName,
-      final BiPredicate<SourceName, PersistentQueryMetadata> filterQueries) {
+      final BiPredicate<SourceName, PersistentQueryEntity> filterQueries) {
     return insertQueries.getOrDefault(sourceName, Collections.emptySet()).stream()
         .map(persistentQueries::get)
         .filter(query -> filterQueries.test(sourceName, query))
-        .map(QueryMetadata::getQueryId)
+        .map(QueryEntity::getQueryId)
         .collect(Collectors.toSet());
   }
 
@@ -232,15 +229,15 @@ public class QueryRegistryImpl implements QueryRegistry {
 
   @Override
   public void close(final boolean closePersistent) {
-    for (final QueryMetadata queryMetadata : getAllLiveQueries()) {
+    for (final QueryEntity queryEntity : getAllLiveQueries()) {
       // only persistent queries can be stopped - transient queries must be closed (destroyed)
-      if (closePersistent || queryMetadata instanceof TransientQueryMetadata) {
-        queryMetadata.close();
+      if (closePersistent || queryEntity instanceof TransientQueryEntity) {
+        queryEntity.close();
       } else {
         // stop will not unregister the query, since it's possible for a query to be stopped
         // but still managed by the registry. So we explicitly unregister here.
-        ((PersistentQueryMetadata) queryMetadata).stop();
-        unregisterQuery(queryMetadata);
+        ((PersistentQueryEntity) queryEntity).stop();
+        unregisterQuery(queryEntity);
       }
     }
   }
@@ -248,20 +245,20 @@ public class QueryRegistryImpl implements QueryRegistry {
   private void registerQuery(
       final ServiceContext serviceContext,
       final MetaStore metaStore,
-      final QueryMetadata query,
+      final QueryEntity query,
       final boolean createAsQuery
   ) {
-    if (query instanceof PersistentQueryMetadata) {
-      final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
+    if (query instanceof PersistentQueryEntity) {
+      final PersistentQueryEntity persistentQuery = (PersistentQueryEntity) query;
       final QueryId queryId = persistentQuery.getQueryId();
 
       // don't use persistentQueries.put(queryId) here because oldQuery.close()
       // will remove any query with oldQuery.getQueryId() from the map of persistent
       // queries
-      final PersistentQueryMetadata oldQuery = persistentQueries.get(queryId);
+      final PersistentQueryEntity oldQuery = persistentQueries.get(queryId);
       if (oldQuery != null) {
         oldQuery.getPhysicalPlan()
-            .validateUpgrade(((PersistentQueryMetadata) query).getPhysicalPlan());
+            .validateUpgrade(((PersistentQueryEntity) query).getPhysicalPlan());
 
         // don't close the old query so that we don't delete the changelog
         // topics and the state store, instead use QueryMetadata#stop
@@ -284,9 +281,9 @@ public class QueryRegistryImpl implements QueryRegistry {
     query.initialize();
   }
 
-  private void unregisterQuery(final QueryMetadata query) {
-    if (query instanceof PersistentQueryMetadata) {
-      final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
+  private void unregisterQuery(final QueryEntity query) {
+    if (query instanceof PersistentQueryEntity) {
+      final PersistentQueryEntity persistentQuery = (PersistentQueryEntity) query;
       final QueryId queryId = persistentQuery.getQueryId();
       persistentQueries.remove(queryId);
 
@@ -309,15 +306,15 @@ public class QueryRegistryImpl implements QueryRegistry {
   private void notifyCreate(
       final ServiceContext serviceContext,
       final MetaStore metaStore,
-      final QueryMetadata queryMetadata) {
-    this.eventListeners.forEach(l -> l.onCreate(serviceContext, metaStore, queryMetadata));
+      final QueryEntity queryEntity) {
+    this.eventListeners.forEach(l -> l.onCreate(serviceContext, metaStore, queryEntity));
   }
 
-  private void notifyDeregister(final QueryMetadata queryMetadata) {
-    this.eventListeners.forEach(l -> l.onDeregister(queryMetadata));
+  private void notifyDeregister(final QueryEntity queryEntity) {
+    this.eventListeners.forEach(l -> l.onDeregister(queryEntity));
   }
 
-  private Iterable<SourceName> sinkAndSources(final PersistentQueryMetadata query) {
+  private Iterable<SourceName> sinkAndSources(final PersistentQueryEntity query) {
     return Iterables.concat(
         Collections.singleton(query.getSinkName()),
         query.getSourceNames()
@@ -334,22 +331,22 @@ public class QueryRegistryImpl implements QueryRegistry {
     );
   }
 
-  private class ListenerImpl implements QueryMetadata.Listener {
+  private class ListenerImpl implements QueryEntity.Listener {
     @Override
-    public void onError(final QueryMetadata queryMetadata, final QueryError error) {
-      eventListeners.forEach(l -> l.onError(queryMetadata, error));
+    public void onError(final QueryEntity queryEntity, final QueryError error) {
+      eventListeners.forEach(l -> l.onError(queryEntity, error));
     }
 
     @Override
     public void onStateChange(
-        final QueryMetadata queryMetadata, final State before, final State after) {
-      eventListeners.forEach(l -> l.onStateChange(queryMetadata, before, after));
+            final QueryEntity queryEntity, final State before, final State after) {
+      eventListeners.forEach(l -> l.onStateChange(queryEntity, before, after));
     }
 
     @Override
-    public void onClose(final QueryMetadata queryMetadata) {
-      unregisterQuery(queryMetadata);
-      eventListeners.forEach(l -> l.onClose(queryMetadata));
+    public void onClose(final QueryEntity queryEntity) {
+      unregisterQuery(queryEntity);
+      eventListeners.forEach(l -> l.onClose(queryEntity));
     }
   }
 }

@@ -209,7 +209,7 @@ Map<KsqlNode, Boolean> aliveNodes;
 Map<KsqlServer, Map<String, Map<Integer, LagInfo>>> globalPositionsMap;
  
 // Fetch the metadata related to the key
-KeyQueryMetadata queryMetadata = queryMetadataForKey(store, key, serializer);
+KeyQueryMetadata queryEntity = queryMetadataForKey(store, key, serializer);
  
 // Acceptable lag for the query
 final long acceptableOffsetLag = 10000;
@@ -231,19 +231,19 @@ for (KsqlServer server:  globalPositionsMap) {
 
 // Ordered list of servers, in order of most caught-up to least
 List<KsqlNode> nodesToQuery;
-KsqlNode active = queryMetadata.getActiveHost();
+KsqlNode active = queryEntity.getActiveHost();
 if (aliveNodes.get(active)) {
   nodesToQuery.add(active)  
 }
 
 // add standbys
-nodesToQuery.addAll(queryMetadata.getStandbyHosts().stream()
+nodesToQuery.addAll(queryEntity.getStandbyHosts().stream()
     // filter out all the standbys that are down
     .filter(standbyHost -> aliveNodes.get(standByHost) != null)
     // get the lag at each standby host for the key's store partition
     .map(standbyHost -> new Pair(standbyHostInfo,
-        maxEndOffsetPerStorePerPartition.get(storeName).get(queryMetadata.partition()) - 
-        globalPositionsMap.get(standbyHost).get(storeName).get(queryMetadata.partition()).currentOffsetPosition))
+        maxEndOffsetPerStorePerPartition.get(storeName).get(queryEntity.partition()) - 
+        globalPositionsMap.get(standbyHost).get(storeName).get(queryEntity.partition()).currentOffsetPosition))
     // Sort by offset lag, i.e smallest lag first
     .sorted(Comaparator.comparing(Pair::getRight())
     .filter(standbyHostLagPair -> standbyHostLagPair.getRight() < acceptableOffsetLag)

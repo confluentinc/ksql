@@ -24,9 +24,9 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.PersistentQueryEntity;
+import io.confluent.ksql.util.QueryEntity;
+import io.confluent.ksql.util.TransientQueryEntity;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -39,7 +39,7 @@ import java.util.function.BiPredicate;
  * <p>
  * Callers can build transient and persistent queries. Once built, the queries are owned by the
  * implementation of this interface. The caller creating the query receives a handle to the created
- * query. The handle is a child class of {@link io.confluent.ksql.util.QueryMetadata}.
+ * query. The handle is a child class of {@link QueryEntity}.
  * </p>
  * <p>
  * Callers can also get a handle to to a query via the query ID, and list all queries managed by
@@ -61,7 +61,7 @@ public interface QueryRegistry {
    * Create a transient query
    */
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-  TransientQueryMetadata createTransientQuery(
+  TransientQueryEntity createTransientQuery(
       SessionConfig config,
       ServiceContext serviceContext,
       ProcessingLogContext processingLogContext,
@@ -84,7 +84,7 @@ public interface QueryRegistry {
    * supported.
    */
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
-  PersistentQueryMetadata createOrReplacePersistentQuery(
+  PersistentQueryEntity createOrReplacePersistentQuery(
       SessionConfig config,
       ServiceContext serviceContext,
       ProcessingLogContext processingLogContext,
@@ -104,13 +104,13 @@ public interface QueryRegistry {
    * @param queryId The ID of the persistent query to get
    * @return The query with ID queryID, if such a query is registered.
    */
-  Optional<PersistentQueryMetadata> getPersistentQuery(QueryId queryId);
+  Optional<PersistentQueryEntity> getPersistentQuery(QueryId queryId);
 
   /**
    * Get all persistent queries
    * @return All persistent queries, keyed by ID
    */
-  Map<QueryId, PersistentQueryMetadata> getPersistentQueries();
+  Map<QueryId, PersistentQueryEntity> getPersistentQueries();
 
   /**
    * Get all queries with a given sink
@@ -123,14 +123,14 @@ public interface QueryRegistry {
    * Get all queries registered with the registry
    * @return List of all queries that are registered (both transient and persistent).
    */
-  List<QueryMetadata> getAllLiveQueries();
+  List<QueryEntity> getAllLiveQueries();
 
   /**
    * Get the query started by the C(S|T)AS statement that created a given source
    * @param sourceName the name of the source to get the creating query for
    * @return the query started by the C(S|T)AS that created sourceName
    */
-  Optional<QueryMetadata> getCreateAsQuery(SourceName sourceName);
+  Optional<QueryEntity> getCreateAsQuery(SourceName sourceName);
 
   /**
    * Get all insert queries that write into or read from a given source.
@@ -140,7 +140,7 @@ public interface QueryRegistry {
    */
   Set<QueryId> getInsertQueries(
       SourceName sourceName,
-      BiPredicate<SourceName, PersistentQueryMetadata> filterQueries
+      BiPredicate<SourceName, PersistentQueryEntity> filterQueries
   );
 
   /**

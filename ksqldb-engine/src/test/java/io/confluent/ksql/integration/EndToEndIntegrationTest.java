@@ -35,14 +35,9 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.util.KeyValue;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.PageViewDataProvider;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata;
-import io.confluent.ksql.util.UserDataProvider;
+import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.QueryEntity;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -129,7 +124,7 @@ public class EndToEndIntegrationTest {
   @Rule
   public final Timeout timeout = Timeout.seconds(120);
 
-  private final List<QueryMetadata> toClose = new ArrayList<>();
+  private final List<QueryEntity> toClose = new ArrayList<>();
 
   @Before
   public void before() {
@@ -167,12 +162,12 @@ public class EndToEndIntegrationTest {
 
   @After
   public void after() {
-    toClose.forEach(QueryMetadata::close);
+    toClose.forEach(QueryEntity::close);
   }
 
   @Test
   public void shouldSelectAllFromUsers() throws Exception {
-    final TransientQueryMetadata queryMetadata = executeStatement("SELECT * from %s EMIT CHANGES;", USER_TABLE);
+    final TransientQueryEntity queryMetadata = executeStatement("SELECT * from %s EMIT CHANGES;", USER_TABLE);
 
     final Set<String> expectedUsers = USER_DATA_PROVIDER.data().keySet().stream()
         .map(s -> (String) s.get(0))
@@ -206,7 +201,7 @@ public class EndToEndIntegrationTest {
 
     executeStatement(createStreamStatement);
 
-    final TransientQueryMetadata queryMetadata = executeStatement(
+    final TransientQueryEntity queryMetadata = executeStatement(
         "SELECT * from cart_event_product EMIT CHANGES;");
 
     final List<Object> columns = waitForFirstRow(queryMetadata);
@@ -292,7 +287,7 @@ public class EndToEndIntegrationTest {
   @Test
   public void shouldSupportConfigurableUdfs() throws Exception {
     // When:
-    final TransientQueryMetadata queryMetadata = executeStatement(
+    final TransientQueryEntity queryMetadata = executeStatement(
         "SELECT E2EConfigurableUdf(registertime) AS x from %s EMIT CHANGES;", USER_TABLE);
 
     // Then:
@@ -309,20 +304,20 @@ public class EndToEndIntegrationTest {
   }
 
   @SuppressWarnings("unchecked")
-  private <T extends QueryMetadata> T executeStatement(
+  private <T extends QueryEntity> T executeStatement(
       final String statement,
       final String... args
   ) {
     final String formatted = String.format(statement, (Object[])args);
     log.debug("Sending statement: {}", formatted);
 
-    final List<QueryMetadata> queries = ksqlContext.sql(formatted);
+    final List<QueryEntity> queries = ksqlContext.sql(formatted);
 
-    final List<QueryMetadata> newQueries = queries.stream()
-        .filter(q -> !(q instanceof PersistentQueryMetadata))
+    final List<QueryEntity> newQueries = queries.stream()
+        .filter(q -> !(q instanceof PersistentQueryEntity))
         .collect(Collectors.toList());
 
-    newQueries.forEach(QueryMetadata::start);
+    newQueries.forEach(QueryEntity::start);
 
     toClose.addAll(newQueries);
 
@@ -330,13 +325,13 @@ public class EndToEndIntegrationTest {
   }
 
   private static List<Object> waitForFirstRow(
-      final TransientQueryMetadata queryMetadata
+      final TransientQueryEntity queryMetadata
   ) throws Exception {
     return verifyAvailableRows(queryMetadata, 1).get(0).values();
   }
 
   private static List<GenericRow> verifyAvailableRows(
-      final TransientQueryMetadata queryMetadata,
+      final TransientQueryEntity queryMetadata,
       final int expectedRows
   ) throws Exception {
     final BlockingRowQueue rowQueue = queryMetadata.getRowQueue();

@@ -33,10 +33,10 @@ import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.Sandbox;
-import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.*;
+import io.confluent.ksql.util.PersistentQueryEntity;
+import io.confluent.ksql.util.QueryEntity;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -79,12 +79,12 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
-  public Optional<PersistentQueryMetadata> getPersistentQuery(final QueryId queryId) {
+  public Optional<PersistentQueryEntity> getPersistentQuery(final QueryId queryId) {
     return engineContext.getQueryRegistry().getPersistentQuery(queryId);
   }
 
   @Override
-  public List<PersistentQueryMetadata> getPersistentQueries() {
+  public List<PersistentQueryEntity> getPersistentQueries() {
     return ImmutableList.copyOf(engineContext.getQueryRegistry().getPersistentQueries().values());
   }
 
@@ -94,7 +94,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
-  public List<QueryMetadata> getAllLiveQueries() {
+  public List<QueryEntity> getAllLiveQueries() {
     return engineContext.getQueryRegistry().getAllLiveQueries();
   }
 
@@ -149,7 +149,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
-  public TransientQueryMetadata executeQuery(
+  public TransientQueryEntity executeQuery(
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
       final boolean excludeTombstones

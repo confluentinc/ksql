@@ -51,6 +51,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
@@ -215,6 +216,7 @@ final class QueryExecutor {
   }
 
   PersistentQueryMetadata buildPersistentQuery(
+      final KsqlConstants.PersistentQueryType persistentQueryType,
       final String statementText,
       final QueryId queryId,
       final DataSource sinkDataSource,
@@ -262,6 +264,7 @@ final class QueryExecutor {
         .orElse(userErrorClassifiers);
 
     return new PersistentQueryMetadataImpl(
+        persistentQueryType,
         statementText,
         querySchema,
         sources,

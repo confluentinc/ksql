@@ -2,6 +2,7 @@ package io.confluent.ksql.query;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -24,6 +25,7 @@ import io.confluent.ksql.query.QueryError.Type;
 import io.confluent.ksql.query.QueryRegistryImpl.QueryExecutorFactory;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
@@ -197,6 +199,47 @@ public class QueryRegistryImplTest {
   }
 
   @Test
+  public void shouldRemoveQueryFromCreateAsQueriesWhenTerminatingCreateAsQuery() {
+    // Given:
+    givenCreate(registry, "q1", "source", "sink1", true);
+    givenCreate(registry, "i1", "source", "sink1", false);
+    final QueryRegistry sandbox = registry.createSandbox();
+    final QueryMetadata q1 = sandbox.getPersistentQuery(new QueryId("q1")).get();
+    final QueryMetadata i1 = sandbox.getPersistentQuery(new QueryId("i1")).get();
+
+    // When:
+    q1.close();
+    final Optional<QueryMetadata> createAsQueries =
+        sandbox.getCreateAsQuery(SourceName.of("sink1"));
+    final Set<QueryId> insertQueries =
+        sandbox.getInsertQueries(SourceName.of("sink1"), (n, q) -> true);
+
+    // Then:
+    assertThat(createAsQueries, equalTo(Optional.empty()));
+    assertThat(insertQueries, contains(i1.getQueryId()));
+  }
+
+  @Test
+  public void shouldRemoveQueryFromInsertQueriesWhenTerminatingInsertQuery() {
+    // Given:
+    givenCreate(registry, "q1", "source", "sink1", true);
+    givenCreate(registry, "i1", "source", "sink1", false);
+    final QueryRegistry sandbox = registry.createSandbox();
+    final QueryMetadata q1 = sandbox.getPersistentQuery(new QueryId("q1")).get();
+    final QueryMetadata i1 = sandbox.getPersistentQuery(new QueryId("i1")).get();
+
+    // When:
+    i1.close();
+    final QueryMetadata createAsQueries = sandbox.getCreateAsQuery(SourceName.of("sink1")).get();
+    final Set<QueryId> insertQueries =
+        sandbox.getInsertQueries(SourceName.of("sink1"), (n, q) -> true);
+
+    // Then:
+    assertThat(createAsQueries, equalTo(q1));
+    assertThat(insertQueries, empty());
+  }
+
+  @Test
   public void shouldCopyInsertsOnSandbox() {
     // Given:
     givenCreate(registry, "q1", "source", "sink1", true);
@@ -319,7 +362,7 @@ public class QueryRegistryImplTest {
   ) {
     givenCreate(registry, id, "source", "sink1", true);
     verify(executor).buildPersistentQuery(
-        any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any());
+        any(), any(), any(), any(), any(), any(), any(), queryListenerCaptor.capture(), any());
     return queryListenerCaptor.getValue();
   }
 
@@ -338,8 +381,11 @@ public class QueryRegistryImplTest {
     when(query.getSinkName()).thenReturn(SourceName.of(sink));
     when(query.getSink()).thenReturn(sinkSource);
     when(query.getSourceNames()).thenReturn(ImmutableSet.of(SourceName.of(source)));
+    when(query.getPersistentQueryType()).thenReturn(createAs
+        ? KsqlConstants.PersistentQueryType.CREATE_AS
+        : KsqlConstants.PersistentQueryType.INSERT);
     when(executor.buildPersistentQuery(
-        any(), any(), any(), any(), any(), any(), any(), any())
+        any(), any(), any(), any(), any(), any(), any(), any(), any())
     ).thenReturn(query);
     registry.createOrReplacePersistentQuery(
         config,

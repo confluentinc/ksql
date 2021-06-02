@@ -106,6 +106,7 @@ public class PersistentQueryMetadataTest {
     when(kafkaStreams.state()).thenReturn(State.NOT_RUNNING);
 
     query = new PersistentQueryMetadataImpl(
+        KsqlConstants.PersistentQueryType.CREATE_AS,
         SQL,
         physicalSchema,
         Collections.emptySet(),
@@ -131,6 +132,72 @@ public class PersistentQueryMetadataTest {
     );
 
     query.initialize();
+  }
+
+  @Test
+  public void shouldReturnInsertQueryType() {
+    // Given
+    final PersistentQueryMetadata query = new PersistentQueryMetadataImpl(
+        KsqlConstants.PersistentQueryType.INSERT,
+        SQL,
+        physicalSchema,
+        Collections.emptySet(),
+        sinkDataSource,
+        EXECUTION_PLAN,
+        QUERY_ID,
+        Optional.of(materializationProviderBuilder),
+        APPLICATION_ID,
+        topology,
+        kafkaStreamsBuilder,
+        schemas,
+        props,
+        overrides,
+        CLOSE_TIMEOUT,
+        queryErrorClassifier,
+        physicalPlan,
+        10,
+        processingLogger,
+        0L,
+        0L,
+        listener,
+        Optional.empty()
+    );
+
+    // When/Then
+    assertThat(query.getPersistentQueryType(), is(KsqlConstants.PersistentQueryType.INSERT));
+  }
+
+  @Test
+  public void shouldReturnCreateAsQueryType() {
+    // Given
+    final PersistentQueryMetadata query = new PersistentQueryMetadataImpl(
+        KsqlConstants.PersistentQueryType.CREATE_AS,
+        SQL,
+        physicalSchema,
+        Collections.emptySet(),
+        sinkDataSource,
+        EXECUTION_PLAN,
+        QUERY_ID,
+        Optional.of(materializationProviderBuilder),
+        APPLICATION_ID,
+        topology,
+        kafkaStreamsBuilder,
+        schemas,
+        props,
+        overrides,
+        CLOSE_TIMEOUT,
+        queryErrorClassifier,
+        physicalPlan,
+        10,
+        processingLogger,
+        0L,
+        0L,
+        listener,
+        Optional.empty()
+    );
+
+    // When/Then
+    assertThat(query.getPersistentQueryType(), is(KsqlConstants.PersistentQueryType.CREATE_AS));
   }
 
   @Test

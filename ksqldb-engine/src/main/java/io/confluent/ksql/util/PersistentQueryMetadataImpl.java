@@ -46,7 +46,7 @@ import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
  */
 public class PersistentQueryMetadataImpl
     extends QueryMetadataImpl implements PersistentQueryMetadata {
-
+  private final KsqlConstants.PersistentQueryType persistentQueryType;
   private final DataSource sinkDataSource;
   private final QuerySchemas schemas;
   private final PhysicalSchema resultSchema;
@@ -60,6 +60,7 @@ public class PersistentQueryMetadataImpl
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public PersistentQueryMetadataImpl(
+      final KsqlConstants.PersistentQueryType persistentQueryType,
       final String statementString,
       final PhysicalSchema schema,
       final Set<SourceName> sourceNames,
@@ -111,6 +112,7 @@ public class PersistentQueryMetadataImpl
         requireNonNull(materializationProviderBuilder, "materializationProviderBuilder");
     this.processingLogger = requireNonNull(processingLogger, "processingLogger");
     this.scalablePushRegistry = requireNonNull(scalablePushRegistry, "scalablePushRegistry");
+    this.persistentQueryType = requireNonNull(persistentQueryType, "persistentQueryType");
   }
 
   // for creating sandbox instances
@@ -127,6 +129,7 @@ public class PersistentQueryMetadataImpl
     this.materializationProviderBuilder = original.materializationProviderBuilder;
     this.processingLogger = original.processingLogger;
     this.scalablePushRegistry = original.scalablePushRegistry;
+    this.persistentQueryType = original.getPersistentQueryType();
   }
 
   @Override
@@ -177,6 +180,10 @@ public class PersistentQueryMetadataImpl
 
   public DataSource getSink() {
     return sinkDataSource;
+  }
+
+  public KsqlConstants.PersistentQueryType getPersistentQueryType() {
+    return persistentQueryType;
   }
 
   @VisibleForTesting

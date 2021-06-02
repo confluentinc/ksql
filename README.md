@@ -1,5 +1,5 @@
 # ![KSQL rocket](ksql-rocket.png) ksqlDB
-
+ 
 ### The database purpose-built for stream processing applications
 
 # Overview

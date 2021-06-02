@@ -121,7 +121,7 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
         // this actually might not be a double
         final double threadStartTime = threadMetrics.getOrDefault("thread-start-time", 0.0);
         long blockedTime = 0;
-        if (threadStartTime > windowStart) {
+        if (threadStartTime > windowStart || threadStartTime == 0.0) {
             blockedTime += threadStartTime - windowStart;
             previousPollTime.put(threadName, 0.0);
             previousRestoreConsumerPollTime.put(threadName, 0.0);

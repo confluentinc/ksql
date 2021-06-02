@@ -251,6 +251,9 @@ public class QueryRegistryImpl implements QueryRegistry {
       final QueryMetadata query,
       final boolean createAsQuery
   ) {
+    // First initialize the query.  Once it's added to these maps/sets, it's exposed to other
+    // threads and it's important that it's initialized.
+    query.initialize();
     if (query instanceof PersistentQueryMetadata) {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
       final QueryId queryId = persistentQuery.getQueryId();
@@ -281,7 +284,6 @@ public class QueryRegistryImpl implements QueryRegistry {
     }
     allLiveQueries.add(query);
     notifyCreate(serviceContext, metaStore, query);
-    query.initialize();
   }
 
   private void unregisterQuery(final QueryMetadata query) {

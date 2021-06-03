@@ -84,7 +84,7 @@ public class QueryStateMetricsReportingListenerTest {
 
   @Test
   public void shouldNotThrowIfNoQuery() {
-    // When/Then(no throw):
+    // When/Then(dont throw):
     listener.onDeregister(query);
   }
 

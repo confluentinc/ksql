@@ -211,8 +211,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Optional<Boolean> isInternalRequest,
       final KsqlMediaType mediaType,
       final MetricsCallbackHolder metricsCallbackHolder,
-      final Context context,
-      final WorkerExecutor workerExecutor
+      final Context context
   ) {
     throwIfNotConfigured();
     activenessRegistrar.updateLastRequestTime();
@@ -226,7 +225,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         commandQueue, request, commandQueueCatchupTimeout);
 
     return handleStatement(securityContext, request, statement, connectionClosedFuture,
-        isInternalRequest, mediaType, metricsCallbackHolder, context, workerExecutor);
+        isInternalRequest, mediaType, metricsCallbackHolder, context);
   }
 
   private void throwIfNotConfigured() {
@@ -257,8 +256,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Optional<Boolean> isInternalRequest,
       final KsqlMediaType mediaType,
       final MetricsCallbackHolder metricsCallbackHolder,
-      final Context context,
-      final WorkerExecutor workerExecutor
+      final Context context
   ) {
     try {
       authorizationValidator.ifPresent(validator ->
@@ -291,8 +289,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
               configProperties,
               request.getRequestProperties(),
               connectionClosedFuture,
-              context,
-              workerExecutor
+              context
           );
         }
 
@@ -435,8 +432,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Map<String, Object> streamsProperties,
       final Map<String, Object> requestProperties,
       final CompletableFuture<Void> connectionClosedFuture,
-      final Context context,
-      final WorkerExecutor workerExecutor
+      final Context context
   ) {
     final ConfiguredStatement<Query> configured = ConfiguredStatement
         .of(statement, SessionConfig.of(ksqlConfig, streamsProperties));
@@ -445,7 +441,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         new PushQueryConfigRoutingOptions(requestProperties);
 
     final ScalablePushQueryMetadata query = ksqlEngine
-        .executeScalablePushQuery(serviceContext, configured, pushRouting, routingOptions, context, workerExecutor);
+        .executeScalablePushQuery(serviceContext, configured, pushRouting, routingOptions, context);
 
     final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
         query,

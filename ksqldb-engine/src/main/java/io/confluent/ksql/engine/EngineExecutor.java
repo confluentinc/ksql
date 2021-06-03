@@ -54,7 +54,7 @@ import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
-import io.confluent.ksql.planner.PullPlannerOptions;
+import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
@@ -167,7 +167,7 @@ final class EngineExecutor {
       final ConfiguredStatement<Query> statement,
       final HARouting routing,
       final RoutingOptions routingOptions,
-      final PullPlannerOptions pullPlannerOptions,
+      final QueryPlannerOptions queryPlannerOptions,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final boolean startImmediately
   ) {
@@ -187,11 +187,11 @@ final class EngineExecutor {
           new PullQueryExecutionUtil.ColumnReferenceRewriter()::process
       );
       // Do not set sessionConfig.getConfig to true! The copying is inefficient and slows down pull
-      // query performance significantly.  Instead use PullPlannerOptions which check overrides
+      // query performance significantly.  Instead use QueryPlannerOptions which check overrides
       // deliberately.
       final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
       final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
-          statement, analysis, ksqlConfig, pullPlannerOptions, false);
+          statement, analysis, ksqlConfig, queryPlannerOptions, false);
       final PullPhysicalPlan physicalPlan = buildPullPhysicalPlan(
           logicalPlan,
           analysis
@@ -239,12 +239,12 @@ final class EngineExecutor {
             + "see this LOG message, please submit a GitHub ticket and we will scrub "
             + "the statement text from the error at {}",
             routingOptions.debugString(),
-            pullPlannerOptions.debugString(),
+            queryPlannerOptions.debugString(),
             loc);
       } else {
         LOG.error("Failure to execute pull query. {} {}",
             routingOptions.debugString(),
-            pullPlannerOptions.debugString(),
+            queryPlannerOptions.debugString(),
             e);
       }
       LOG.debug("Failed pull query text {}, {}", statement.getStatementText(), e);
@@ -263,8 +263,7 @@ final class EngineExecutor {
       final ConfiguredStatement<Query> statement,
       final PushRouting pushRouting,
       final PushRoutingOptions pushRoutingOptions,
-      final Context context,
-      final WorkerExecutor workerExecutor
+      final Context context
   ) {
     final SessionConfig sessionConfig = statement.getSessionConfig();
     try {
@@ -274,11 +273,11 @@ final class EngineExecutor {
           new PullQueryExecutionUtil.ColumnReferenceRewriter()::process
       );
       // Do not set sessionConfig.getConfig to true! The copying is inefficient and slows down pull
-      // query performance significantly.  Instead use PullPlannerOptions which check overrides
+      // query performance significantly.  Instead use QueryPlannerOptions which check overrides
       // deliberately.
       final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
       final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
-          statement, analysis, ksqlConfig, new PullPlannerOptions() {
+          statement, analysis, ksqlConfig, new QueryPlannerOptions() {
             @Override
             public boolean getTableScansEnabled() {
               return true;
@@ -454,11 +453,11 @@ final class EngineExecutor {
       final ConfiguredStatement<?> statement,
       final ImmutableAnalysis analysis,
       final KsqlConfig config,
-      final PullPlannerOptions pullPlannerOptions,
+      final QueryPlannerOptions queryPlannerOptions,
       final boolean isScalablePush
   ) {
     final OutputNode outputNode = new LogicalPlanner(config, analysis, engineContext.getMetaStore())
-        .buildPullLogicalPlan(pullPlannerOptions, isScalablePush);
+        .buildPullLogicalPlan(queryPlannerOptions, isScalablePush);
     return new LogicalPlanNode(
         statement.getStatementText(),
         Optional.of(outputNode)

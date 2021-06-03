@@ -183,7 +183,7 @@ public class LogicalPlanner {
   }
 
   public OutputNode buildPullLogicalPlan(
-      final PullPlannerOptions pullPlannerOptions,
+      final QueryPlannerOptions queryPlannerOptions,
       final boolean isScalablePush
   ) {
     final boolean isWindowed = analysis
@@ -210,9 +210,9 @@ public class LogicalPlanner {
           metaStore,
           ksqlConfig,
           isWindowed,
-          pullPlannerOptions);
+          queryPlannerOptions);
     } else {
-      if (!pullPlannerOptions.getTableScansEnabled()) {
+      if (!queryPlannerOptions.getTableScansEnabled()) {
         throw QueryFilterNode.invalidWhereClauseException("Missing WHERE clause", isWindowed);
       }
     }
@@ -225,7 +225,7 @@ public class LogicalPlanner {
         ksqlConfig,
         analysis,
         isWindowed,
-        pullPlannerOptions,
+        queryPlannerOptions,
         isScalablePush);
 
     return buildOutputNode(currentNode);

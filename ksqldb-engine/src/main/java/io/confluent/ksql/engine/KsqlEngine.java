@@ -39,7 +39,7 @@ import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
-import io.confluent.ksql.planner.PullPlannerOptions;
+import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
@@ -287,13 +287,11 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ConfiguredStatement<Query> statement,
       final PushRouting pushRouting,
       final PushRoutingOptions pushRoutingOptions,
-      final Context context,
-      final WorkerExecutor workerExecutor
+      final Context context
   ) {
       final ScalablePushQueryMetadata query = EngineExecutor
           .create(primaryContext, serviceContext, statement.getSessionConfig())
-          .executeScalablePushQuery(statement, pushRouting, pushRoutingOptions, context,
-              workerExecutor);
+          .executeScalablePushQuery(statement, pushRouting, pushRoutingOptions, context);
       return query;
   }
 
@@ -303,7 +301,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ConfiguredStatement<Query> statement,
       final HARouting routing,
       final RoutingOptions routingOptions,
-      final PullPlannerOptions plannerOptions,
+      final QueryPlannerOptions plannerOptions,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final boolean startImmediately
   ) {

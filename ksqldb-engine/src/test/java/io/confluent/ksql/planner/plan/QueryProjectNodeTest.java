@@ -36,7 +36,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
-import io.confluent.ksql.planner.PullPlannerOptions;
+import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -89,7 +89,7 @@ public class QueryProjectNodeTest {
   @Mock
   private KeyFormat keyFormat;
   @Mock
-  private PullPlannerOptions plannerOptions;
+  private QueryPlannerOptions plannerOptions;
 
 
   private List<SelectItem> selects;

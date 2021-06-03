@@ -30,7 +30,7 @@ import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
-import io.confluent.ksql.planner.PullPlannerOptions;
+import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
@@ -172,7 +172,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
       final ConfiguredStatement<Query> statement,
       final HARouting routing,
       final RoutingOptions routingOptions,
-      final PullPlannerOptions pullPlannerOptions,
+      final QueryPlannerOptions queryPlannerOptions,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final boolean startImmediately
   ) {
@@ -184,7 +184,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
         statement,
         routing,
         routingOptions,
-        pullPlannerOptions,
+        queryPlannerOptions,
         pullQueryMetrics,
         startImmediately
     );

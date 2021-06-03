@@ -15,11 +15,11 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import io.confluent.ksql.planner.PullPlannerOptions;
+import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 
-public class PullQueryConfigPlannerOptions implements PullPlannerOptions {
+public class PullQueryConfigPlannerOptions implements QueryPlannerOptions {
 
   private final KsqlConfig ksqlConfig;
   private final Map<String, ?> configOverrides;

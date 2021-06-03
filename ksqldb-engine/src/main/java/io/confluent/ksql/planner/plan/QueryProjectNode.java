@@ -28,7 +28,7 @@ import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.planner.Projection;
-import io.confluent.ksql.planner.PullPlannerOptions;
+import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SystemColumns;
@@ -70,7 +70,7 @@ public class QueryProjectNode extends ProjectNode {
   private final LogicalSchema intermediateSchema;
   private final List<ExpressionEvaluator> compiledSelectExpressions;
   private final RewrittenAnalysis analysis;
-  private final PullPlannerOptions pullPlannerOptions;
+  private final QueryPlannerOptions queryPlannerOptions;
   private final boolean isScalablePush;
   private final boolean isSelectStar;
   private final boolean addAdditionalColumnsToIntermediateSchema;
@@ -83,13 +83,13 @@ public class QueryProjectNode extends ProjectNode {
       final KsqlConfig ksqlConfig,
       final RewrittenAnalysis analysis,
       final boolean isWindowed,
-      final PullPlannerOptions pullPlannerOptions,
+      final QueryPlannerOptions queryPlannerOptions,
       final boolean isScalablePush
   ) {
     super(id, source);
     this.projection = Projection.of(selectItems);
     this.analysis = Objects.requireNonNull(analysis, "analysis");
-    this.pullPlannerOptions = Objects.requireNonNull(pullPlannerOptions, "pullPlannerOptions");
+    this.queryPlannerOptions = Objects.requireNonNull(queryPlannerOptions, "queryPlannerOptions");
     this.isScalablePush = isScalablePush;
     this.selectExpressions = ImmutableList.copyOf(SelectionUtil
         .buildSelectExpressions(getSource(), projection.selectItems(), Optional.empty()));
@@ -108,7 +108,7 @@ public class QueryProjectNode extends ProjectNode {
         .map(selectExpression ->
             getExpressionEvaluator(
                 selectExpression.getExpression(), intermediateSchema, metaStore, ksqlConfig,
-                pullPlannerOptions)
+                queryPlannerOptions)
         )
         .collect(ImmutableList.toImmutableList());
   }
@@ -266,9 +266,9 @@ public class QueryProjectNode extends ProjectNode {
       final LogicalSchema schema,
       final MetaStore metaStore,
       final KsqlConfig ksqlConfig,
-      final PullPlannerOptions pullPlannerOptions) {
+      final QueryPlannerOptions queryPlannerOptions) {
 
-    if (pullPlannerOptions.getInterpreterEnabled()) {
+    if (queryPlannerOptions.getInterpreterEnabled()) {
       return InterpretedExpressionFactory.create(
           expression,
           schema,

@@ -70,6 +70,14 @@ file as the program argument. There is a basic config available in
 You may wish to be sure you have already configured your IDE to use
 the Maven wrapper (see "About the Apache Maven wrapper", above).
 
+If you want to use the CLI with your server, you can either build
+it ahead of time using the `package` command above, or you can compile
+and run the class from a terminal using maven:
+
+```shell
+$ ./mvnw exec:java -pl ksqldb-cli -Dexec.mainClass="io.confluent.ksql.Ksql"
+```
+
 ### Testing changes locally
 
 To build and test changes locally, run the following commands:

@@ -398,7 +398,7 @@ public class SchemaRegisterInjectorTest {
     final ArgumentCaptor<ProtobufSchema> argument = ArgumentCaptor.forClass(ProtobufSchema.class);
     inOrder.verify(schemaRegistryClient).getLatestSchemaMetadata("expectedName-value");
     // inOrder.verify(schemaRegistryClient).register("google/protobuf/timestamp.proto", TIMESTAMP_SCHEMA);
-    inOrder.verify(schemaRegistryClient).register("expectedName-value", argument.capture());
+    inOrder.verify(schemaRegistryClient).register(eq("expectedName-value"), argument.capture());
     assertEquals(PROTOBUF_SCHEMA_WITH_REFS.canonicalString(), argument.getValue().canonicalString());
   }
 

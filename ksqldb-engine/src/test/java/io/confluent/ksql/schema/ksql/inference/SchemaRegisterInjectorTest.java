@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -81,6 +82,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -393,9 +395,11 @@ public class SchemaRegisterInjectorTest {
 
     // Then:
     final InOrder inOrder = inOrder(schemaRegistryClient);
+    final ArgumentCaptor<ProtobufSchema> argument = ArgumentCaptor.forClass(ProtobufSchema.class);
     inOrder.verify(schemaRegistryClient).getLatestSchemaMetadata("expectedName-value");
     // inOrder.verify(schemaRegistryClient).register("google/protobuf/timestamp.proto", TIMESTAMP_SCHEMA);
-    inOrder.verify(schemaRegistryClient).register("expectedName-value", PROTOBUF_SCHEMA_WITH_REFS);
+    inOrder.verify(schemaRegistryClient).register("expectedName-value", argument.capture());
+    assertEquals(PROTOBUF_SCHEMA_WITH_REFS.canonicalString(), argument.getValue().canonicalString());
   }
 
   private void givenStatement(final String sql) {

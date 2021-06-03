@@ -64,18 +64,18 @@ Joins and Windows
 -----------------
 
 ksqlDB enables grouping records that have the same key for stateful
-operations, like joins, into *windows*. You specify a retention period
-for the window, and this retention period controls how long ksqlDB waits
-for out-of-order records. If a record arrives after
-the window's retention period has passed, the record is discarded and
-isn't processed in that window.
+operations, like joins, into *windows*. At the moment, ksqlDB uses a fixed grace period of 24h:
+i.e., a record can arrive out-of-order for up to 24h and it would still be joined correctly
+based on its timestamp.
+If a record arrives after the window's grace period has passed, the record is discarded and
+isn't processed.
 
 >Note: Only stream-stream joins are windowed.
 
 Windows are tracked per record key. In join operations, ksqlDB uses a
 windowing *state store* to store all of the records received so far
 within the defined window boundary. Old records in the state store are
-purged after the specified window retention period.
+purged after the window grace period passed.
 
 For more information on windows, see
 [Windows in ksqlDB Queries](../../concepts/time-and-windows-in-ksqldb-queries.md#windows-in-sql-queries).
@@ -88,10 +88,12 @@ successful.
 
 ### Co-partitioned data
 
-Input data must be co-partitioned when joining. This ensures that
+For most joins, input data must be co-partitioned when joining. This ensures that
 input records with the same key, from both sides of the join, are
-delivered to the same stream task during processing. It's your
-responsibility to ensure data co-partitioning when joining. For more
+delivered to the same stream task during processing. For some cases, ksqlDB
+may repartition the data if required automatically. However, there are some cases
+for which it's your responsibility to ensure data co-partitioning when joining. The only
+join that does not require co-partitioning is a foreign-key table-table join. For more
 information, see [Partition Data to Enable Joins](partition-data.md).
 
 Join Capabilities
@@ -102,7 +104,7 @@ including INNER, LEFT OUTER, and FULL OUTER. Frequently, LEFT OUTER is
 shortened to LEFT JOIN, and FULL OUTER is shortened to OUTER JOIN.
 
 !!! note
-      RIGHT OUTER JOIN isn't supported. Instead, swap the operands and use
+      RIGHT OUTER JOIN isn't supported at the moment. Instead, swap the operands and use
       LEFT JOIN.
 
 The following table shows the supported combinations.
@@ -179,7 +181,8 @@ ignored and don't trigger the join.
 Stream-Table Joins
 ------------------
 
-ksqlDB only supports INNER and LEFT joins between a stream and a table.
+ksqlDB supports INNER and LEFT joins between a stream and a table.
+An OUTER join is not available because it cannot be defined with sounds semantics.
 
 Stream-table joins are always non-windowed joins. You can perform table
 lookups against a table when a new record arrives on the stream. Only
@@ -248,7 +251,6 @@ Table-Table Joins
 -----------------
 
 ksqlDB supports INNER, LEFT OUTER, and FULL OUTER joins between tables.
-Joins matching multiple records (one-to-many) aren't supported.
 
 Table-table joins are always non-windowed joins.
 
@@ -258,9 +260,6 @@ Table-table joins are eventually consistent.
       ksqlDB currently provides best-effort on time synchronization, but there
       are no guarantees, which can cause missing results or leftRecord-NULL
       results.
-
-Table-table joins can be joined only on their `PRIMARY KEY` field, and one-to-many
-(1:N) joins aren't supported.
 
 ### Semantics of Table-Table Joins
 
@@ -295,6 +294,14 @@ table, if the corresponding key exists already in the join result table.
 | 13        |                  | null (tombstone) |                  |                  |                  |
 | 14        |                  | d                |                  |                  | [null, d]        |
 | 15        | D                |                  | [D, d]           | [D, d]           | [D, d]           |
+
+Foreign-Key Joins
+-----------------
+
+ksqlDB also support 1:N foreign-key joins.
+Many-to-many (N:M) joins are currently not supported though.
+For a foreign-key join, you can use any left input-table column in the join condition
+to join it with the primary key of the right input-table.
 
 N-Way Joins
 -----------

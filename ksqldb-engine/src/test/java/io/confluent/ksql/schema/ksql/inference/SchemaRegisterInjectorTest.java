@@ -26,7 +26,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -83,7 +82,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -394,11 +392,11 @@ public class SchemaRegisterInjectorTest {
     injector.inject(statement);
 
     // Then:
-    final InOrder inOrder = inOrder(schemaRegistryClient);
     final ArgumentCaptor<ProtobufSchema> argument = ArgumentCaptor.forClass(ProtobufSchema.class);
-    inOrder.verify(schemaRegistryClient).getLatestSchemaMetadata("expectedName-value");
-    // inOrder.verify(schemaRegistryClient).register("google/protobuf/timestamp.proto", TIMESTAMP_SCHEMA);
-    inOrder.verify(schemaRegistryClient).register(eq("expectedName-value"), argument.capture());
+    verify(schemaRegistryClient).getLatestSchemaMetadata("expectedName-value");
+    verify(schemaRegistryClient).register(eq("google/protobuf/timestamp.proto"), argument.capture());
+    assertEquals(TIMESTAMP_SCHEMA.canonicalString(), argument.getValue().canonicalString());
+    verify(schemaRegistryClient).register(eq("expectedName-value"), argument.capture());
     assertEquals(PROTOBUF_SCHEMA_WITH_REFS.canonicalString(), argument.getValue().canonicalString());
   }
 

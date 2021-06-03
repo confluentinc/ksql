@@ -223,6 +223,7 @@ public class SchemaRegisterInjector implements Injector {
               isKey,
               (ProtobufSchema) parsedSchema
           );
+          System.out.println(((ProtobufSchema) parsedSchema).dependencies().size());
           srClient.register(subject, resolved);
         } else {
           srClient.register(subject, parsedSchema);

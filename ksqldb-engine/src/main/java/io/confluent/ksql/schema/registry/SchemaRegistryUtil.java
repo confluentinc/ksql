@@ -102,6 +102,7 @@ public final class SchemaRegistryUtil {
       return Optional.ofNullable(schemaMetadata);
     } catch (final Exception e) {
       if (isSubjectNotFoundErrorCode(e)) {
+        LOG.warn("not found");
         return Optional.empty();
       }
       throw new KsqlException("Could not get latest schema for subject " + subject, e);

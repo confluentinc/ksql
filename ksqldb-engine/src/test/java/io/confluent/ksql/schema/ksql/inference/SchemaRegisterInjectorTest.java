@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -80,6 +81,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -390,8 +392,9 @@ public class SchemaRegisterInjectorTest {
     injector.inject(statement);
 
     // Then:
-    verify(schemaRegistryClient).register("google/protobuf/timestamp.proto", TIMESTAMP_SCHEMA);
-    verify(schemaRegistryClient).register("expectedName-value", PROTOBUF_SCHEMA_WITH_REFS);
+    final InOrder inOrder = inOrder(schemaRegistryClient);
+    inOrder.verify(schemaRegistryClient).register("google/protobuf/timestamp.proto", TIMESTAMP_SCHEMA);
+    inOrder.verify(schemaRegistryClient).register("expectedName-value", PROTOBUF_SCHEMA_WITH_REFS);
   }
 
   private void givenStatement(final String sql) {

@@ -759,7 +759,7 @@ public final class KsqlRestApplication implements Executable {
 
     final HARouting pullQueryRouting = new HARouting(
         routingFilterFactory, pullQueryMetrics, ksqlConfig);
-    final PushRouting pushQueryRouting = new PushRouting(ksqlConfig);
+    final PushRouting pushQueryRouting = new PushRouting();
 
     final Optional<LocalCommands> localCommands = createLocalCommands(restConfig, ksqlEngine);
 

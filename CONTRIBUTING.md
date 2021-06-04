@@ -40,6 +40,8 @@ and set the value of **Maven home path** to the same directory listed as the "Ma
 In the above example, it is `/home/john/.m2/wrapper/dists/apache-maven-3.8.1.2-bin/1npbma9t0n1k5b22fpopvupbmn/apache-maven-3.8.1.2`,
 but it may be different on your machine.
 
+Finally, you may need to restart the IDE to get it to reload the Maven binary.
+
 There is likely a similar option available for other IDEs.
 
 ### Building and running KSQL locally
@@ -61,14 +63,23 @@ drop the `-daemon` switch, and start the CLI in a second console.
 
 #### Running in an IDE
 
+You should configure your IDE to use the Maven wrapper
+(see "About the Apache Maven wrapper", above).
+
 You can create a run configuration in your IDE for the main class:
 `io.confluent.ksql.rest.server.KsqlServerMain`, using the classpath
 of the `ksqldb-rest-app` module, and specifying the path to a config
 file as the program argument. There is a basic config available in
 `config/ksql-server.properties`.
 
-You may wish to be sure you have already configured your IDE to use
-the Maven wrapper (see "About the Apache Maven wrapper", above).
+NOTE: At least for IDEA (and maybe for other IDEs), building the
+project doesn't automatically run the `generate-sources` Maven phase,
+so our ANTLR and Avro classes will be missing (unless you happen to
+have built with Maven lately). You can generate them by running:
+
+```shell
+$ ./mvnw --projects ksqldb-parser,ksqldb-version-metrics-client generate-sources
+```
 
 ### Testing changes locally
 

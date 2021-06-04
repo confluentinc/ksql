@@ -78,8 +78,7 @@ so our ANTLR and Avro classes will be missing (unless you happen to
 have built with Maven lately). You can generate them by running:
 
 ```shell
-$ ./mvnw --projects ksqldb-parser antlr4:antlr4
-$ ./mvnw --projects ksqldb-version-metrics-client avro:schema
+$ ./mvnw --projects ksqldb-parser,ksqldb-version-metrics-client generate-sources
 ```
 
 ### Testing changes locally

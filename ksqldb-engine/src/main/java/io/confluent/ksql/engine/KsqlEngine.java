@@ -53,7 +53,6 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
-import io.vertx.core.WorkerExecutor;
 import java.io.Closeable;
 import java.util.List;
 import java.util.Map;
@@ -289,10 +288,10 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final PushRoutingOptions pushRoutingOptions,
       final Context context
   ) {
-      final ScalablePushQueryMetadata query = EngineExecutor
-          .create(primaryContext, serviceContext, statement.getSessionConfig())
-          .executeScalablePushQuery(statement, pushRouting, pushRoutingOptions, context);
-      return query;
+    final ScalablePushQueryMetadata query = EngineExecutor
+        .create(primaryContext, serviceContext, statement.getSessionConfig())
+        .executeScalablePushQuery(statement, pushRouting, pushRoutingOptions, context);
+    return query;
   }
 
   @Override

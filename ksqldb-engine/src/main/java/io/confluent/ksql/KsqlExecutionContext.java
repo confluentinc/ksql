@@ -39,7 +39,6 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
-import io.vertx.core.WorkerExecutor;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -167,9 +166,9 @@ public interface KsqlExecutionContext {
   );
 
   /**
-   * Executes a scalable push query by first creating a logical plan and then translating it to a physical
-   * plan. The physical plan is then traversed for every row that's passing through the topology's
-   * output.
+   * Executes a scalable push query by first creating a logical plan and then translating it to a
+   * physical plan. The physical plan is then traversed for every row that's passing through the
+   * topology's output.
    * @param serviceContext The service context to execute the query in
    * @param statement The scalable push query
    * @param pushRouting The push routing object
@@ -178,11 +177,11 @@ public interface KsqlExecutionContext {
    * @return A ScalablePushQueryMetadata object
    */
   ScalablePushQueryMetadata executeScalablePushQuery(
-      final ServiceContext serviceContext,
-      final ConfiguredStatement<Query> statement,
-      final PushRouting pushRouting,
-      final PushRoutingOptions pushRoutingOptions,
-      final Context context
+      ServiceContext serviceContext,
+      ConfiguredStatement<Query> statement,
+      PushRouting pushRouting,
+      PushRoutingOptions pushRoutingOptions,
+      Context context
   );
 
   /**

@@ -26,7 +26,6 @@ import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -73,11 +72,10 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
+import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
 import io.vertx.core.Context;
-import io.vertx.core.WorkerExecutor;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Locale;
@@ -276,10 +274,15 @@ final class EngineExecutor {
       final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
       final QueryPlannerOptions queryPlannerOptions = new QueryPlannerOptions() {
         @Override
-        public boolean getTableScansEnabled() { return true; }
+        public boolean getTableScansEnabled() {
+          // We're scanning everything as it streams in, so there's no need to extract keys
+          return true;
+        }
 
         @Override
-        public boolean getInterpreterEnabled() { return true; }
+        public boolean getInterpreterEnabled() {
+          return true;
+        }
       };
       final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
           statement, analysis, ksqlConfig, queryPlannerOptions, true);
@@ -288,14 +291,15 @@ final class EngineExecutor {
           analysis,
           context
       );
-      TransientQueryQueue transientQueryQueue = new TransientQueryQueue(analysis.getLimitClause());
+      final TransientQueryQueue transientQueryQueue
+          = new TransientQueryQueue(analysis.getLimitClause());
       final TransientQueryMetadata.ResultType resultType =
           physicalPlan.getScalablePushRegistry().isTable()
           ? physicalPlan.getScalablePushRegistry().isWindowed() ? ResultType.WINDOWED_TABLE
               : ResultType.TABLE
           : ResultType.STREAM;
 
-      PushQueryQueuePopulator populator = () ->
+      final PushQueryQueuePopulator populator = () ->
           pushRouting.handlePushQuery(serviceContext, physicalPlan, statement, pushRoutingOptions,
               physicalPlan.getOutputSchema(), transientQueryQueue);
       final ScalablePushQueryMetadata metadata = new ScalablePushQueryMetadata(

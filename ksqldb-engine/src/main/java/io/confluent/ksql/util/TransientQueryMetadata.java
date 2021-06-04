@@ -34,12 +34,6 @@ import org.apache.kafka.streams.Topology;
  */
 public class TransientQueryMetadata extends QueryMetadataImpl implements PushQueryMetadata {
 
-  public enum ResultType {
-    STREAM,
-    TABLE,
-    WINDOWED_TABLE
-  }
-
   private final BlockingRowQueue rowQueue;
   private final ResultType resultType;
   final AtomicBoolean isRunning = new AtomicBoolean(true);

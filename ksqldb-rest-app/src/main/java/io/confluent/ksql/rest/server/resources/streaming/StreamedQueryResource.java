@@ -66,7 +66,6 @@ import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.vertx.core.Context;
-import io.vertx.core.WorkerExecutor;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Collection;
@@ -83,6 +82,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings({"ClassDataAbstractionCoupling"})
 public class StreamedQueryResource implements KsqlConfigurable {
 
   private static final Logger log = LoggerFactory.getLogger(StreamedQueryResource.class);

@@ -85,13 +85,13 @@ public class TransientQueryQueue implements BlockingRowQueue {
   }
 
   @Override
-  public synchronized KeyValue<List<?>, GenericRow> poll(final long timeout, final TimeUnit unit)
+  public KeyValue<List<?>, GenericRow> poll(final long timeout, final TimeUnit unit)
       throws InterruptedException {
     return rowQueue.poll(timeout, unit);
   }
 
   @Override
-  public synchronized KeyValue<List<?>, GenericRow> poll() {
+  public KeyValue<List<?>, GenericRow> poll() {
     return rowQueue.poll();
   }
 
@@ -101,12 +101,12 @@ public class TransientQueryQueue implements BlockingRowQueue {
   }
 
   @Override
-  public synchronized int size() {
+  public int size() {
     return rowQueue.size();
   }
 
   @Override
-  public synchronized boolean isEmpty() {
+  public boolean isEmpty() {
     return rowQueue.isEmpty();
   }
 
@@ -125,7 +125,6 @@ public class TransientQueryQueue implements BlockingRowQueue {
 
       while (!closed) {
         if (rowQueue.offer(row, offerTimeoutMs, TimeUnit.MILLISECONDS)) {
-          System.out.println("ROW OFFERED " + row.value().values());
           callback.onQueued();
           break;
         }

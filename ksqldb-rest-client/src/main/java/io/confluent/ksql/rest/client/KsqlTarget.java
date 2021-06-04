@@ -19,13 +19,7 @@ import static io.confluent.ksql.rest.client.KsqlClientUtil.deserialize;
 import static io.confluent.ksql.rest.client.KsqlClientUtil.serialize;
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Streams;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.metastore.TypeRegistry;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.LocalProperties;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
@@ -33,22 +27,15 @@ import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
 import io.confluent.ksql.rest.entity.HeartbeatResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.LagReportingMessage;
 import io.confluent.ksql.rest.entity.LagReportingResponse;
-import io.confluent.ksql.rest.entity.QueryResponseMetadata;
 import io.confluent.ksql.rest.entity.QueryStreamArgs;
 import io.confluent.ksql.rest.entity.ServerClusterId;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SimpleColumn;
-import io.confluent.ksql.schema.ksql.SqlTypeParser;
-import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -227,10 +214,9 @@ public final class KsqlTarget {
 
   public RestResponse<StreamPublisher<StreamedRow>> postQueryRequestStreamed(
       final String sql,
-      final Map<String, ?> requestProperties,
       final Optional<Long> previousCommandSeqNum
   ) {
-    return executeQueryRequestWithStreamResponse(sql, requestProperties, previousCommandSeqNum,
+    return executeQueryRequestWithStreamResponse(sql, previousCommandSeqNum,
         buff -> deserialize(buff, StreamedRow.class));
   }
 
@@ -247,8 +233,7 @@ public final class KsqlTarget {
       final String ksql,
       final Optional<Long> previousCommandSeqNum
   ) {
-    return executeQueryRequestWithStreamResponse(ksql, Collections.emptyMap(),
-        previousCommandSeqNum, Object::toString);
+    return executeQueryRequestWithStreamResponse(ksql, previousCommandSeqNum, Object::toString);
   }
 
   private KsqlRequest createKsqlRequest(
@@ -342,12 +327,11 @@ public final class KsqlTarget {
 
   private <T> RestResponse<StreamPublisher<T>> executeQueryRequestWithStreamResponse(
       final String ksql,
-      final Map<String, ?> requestProperties,
       final Optional<Long> previousCommandSeqNum,
       final Function<Buffer, T> mapper
   ) {
     final KsqlRequest ksqlRequest = createKsqlRequest(
-        ksql, requestProperties, previousCommandSeqNum);
+        ksql, Collections.emptyMap(), previousCommandSeqNum);
     final AtomicReference<StreamPublisher<T>> pubRef = new AtomicReference<>();
     return executeSync(HttpMethod.POST, QUERY_PATH, Optional.empty(), ksqlRequest,
         resp -> pubRef.get(),
@@ -476,4 +460,5 @@ public final class KsqlTarget {
     }
     return rows;
   }
+
 }

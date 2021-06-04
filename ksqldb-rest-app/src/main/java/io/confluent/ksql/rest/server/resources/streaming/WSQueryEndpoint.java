@@ -333,8 +333,8 @@ public class WSQueryEndpoint {
           pullConcurrencyLimiter,
           routing
       );
-    } else if(ScalablePushUtil.isScalablePushQuery(statement.getStatement(), ksqlConfig,
-        clientLocalProperties)) {
+    } else if (ScalablePushUtil.isScalablePushQuery(
+        statement.getStatement(), ksqlConfig, clientLocalProperties)) {
       scalablePushQueryPublisher.start(
           ksqlEngine,
           info.securityContext.getServiceContext(),

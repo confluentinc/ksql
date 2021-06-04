@@ -41,7 +41,6 @@ import io.confluent.ksql.util.Sandbox;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.vertx.core.Context;
-import io.vertx.core.WorkerExecutor;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -191,7 +190,8 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
-  public ScalablePushQueryMetadata executeScalablePushQuery(ServiceContext serviceContext,
+  public ScalablePushQueryMetadata executeScalablePushQuery(
+      final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
       final PushRouting pushRouting,
       final PushRoutingOptions pushRoutingOptions,

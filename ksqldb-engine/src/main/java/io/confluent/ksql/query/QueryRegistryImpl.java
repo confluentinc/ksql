@@ -270,7 +270,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       }
 
       // Initialize the query before it's exposed to other threads via the map/sets.
-      query.initialize();
+      persistentQuery.initialize();
       persistentQueries.put(queryId, persistentQuery);
       if (createAsQuery) {
         createAsQueries.put(persistentQuery.getSinkName(), queryId);

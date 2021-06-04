@@ -337,7 +337,8 @@ public final class KsqlRestApplication implements Executable {
         pullQueryRateLimiter,
         pullConcurrencyLimiter,
         pullQueryRouting,
-        localCommands
+        localCommands,
+        pushQueryRouting
     );
 
     startAsyncThreadRef.set(Thread.currentThread());

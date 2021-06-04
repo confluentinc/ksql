@@ -282,7 +282,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
               metricsCallbackHolder
           );
         }
-        if (ScalablePushUtil.isScalablePushQuery(statement::getStatement)) {
+        if (ScalablePushUtil.isScalablePushQuery(statement.getStatement(), ksqlConfig,
+            configProperties)) {
           return handleScalablePushQuery(
               securityContext.getServiceContext(),
               queryStmt,

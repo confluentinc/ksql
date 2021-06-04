@@ -119,6 +119,7 @@ public interface Endpoints {
 
   // This is the legacy websocket based query streaming API
   void executeWebsocketStream(ServerWebSocket webSocket, MultiMap requstParams,
-      WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext);
+      WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext,
+      Context context);
 
 }

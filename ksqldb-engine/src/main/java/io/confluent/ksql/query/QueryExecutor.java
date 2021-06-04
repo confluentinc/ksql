@@ -204,13 +204,16 @@ final class QueryExecutor {
       return Optional.empty();
     }
     final KStream<?, GenericRow> stream;
+    final boolean isTable;
     if (result instanceof KTableHolder) {
       stream = ((KTableHolder<?>) result).getTable().toStream();
+      isTable = true;
     } else {
       stream = ((KStreamHolder<?>) result).getStream();
+      isTable = false;
     }
     final Optional<ScalablePushRegistry> registry = ScalablePushRegistry.create(schema,
-        allPersistentQueries, windowed, streamsProperties);
+        allPersistentQueries, isTable, windowed, streamsProperties);
     registry.ifPresent(r -> stream.process(registry.get()));
     return registry;
   }

@@ -350,7 +350,7 @@ public class ServerVerticle extends AbstractVerticle {
     final ServerWebSocket serverWebSocket = routingContext.request().upgrade();
     endpoints
         .executeWebsocketStream(serverWebSocket, routingContext.request().params(),
-            server.getWorkerExecutor(), apiSecurityContext);
+            server.getWorkerExecutor(), apiSecurityContext, context);
   }
 
   private static void chcHandler(final RoutingContext routingContext) {

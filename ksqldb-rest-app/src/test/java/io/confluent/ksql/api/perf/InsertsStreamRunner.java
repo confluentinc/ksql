@@ -263,7 +263,7 @@ public class InsertsStreamRunner extends BasePerfRunner {
 
     @Override
     public void executeWebsocketStream(ServerWebSocket webSocket, MultiMap requstParams,
-        WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext) {
+        WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext, Context context) {
 
     }
   }

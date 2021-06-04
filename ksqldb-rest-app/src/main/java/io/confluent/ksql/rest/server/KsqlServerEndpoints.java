@@ -315,14 +315,15 @@ public class KsqlServerEndpoints implements Endpoints {
   @Override
   public void executeWebsocketStream(final ServerWebSocket webSocket, final MultiMap requestParams,
       final WorkerExecutor workerExecutor,
-      final ApiSecurityContext apiSecurityContext) {
+      final ApiSecurityContext apiSecurityContext,
+      final Context context) {
 
     executeOnWorker(() -> {
       final KsqlSecurityContext ksqlSecurityContext = ksqlSecurityContextProvider
           .provide(apiSecurityContext);
       try {
         wsQueryEndpoint
-            .executeStreamQuery(webSocket, requestParams, ksqlSecurityContext);
+            .executeStreamQuery(webSocket, requestParams, ksqlSecurityContext, context);
       } finally {
         ksqlSecurityContext.getServiceContext().close();
       }

@@ -18,7 +18,6 @@ package io.confluent.ksql.physical.common.operators;
 import io.confluent.ksql.GenericKey;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.TableRow;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
 
 final class PhysicalOperatorUtil {
@@ -27,8 +26,7 @@ final class PhysicalOperatorUtil {
 
   }
 
-  static GenericRow getIntermediateRow(final TableRow row, final LogicalSchema intermediateSchema,
-      final boolean additionalColumnsNeeded) {
+  static GenericRow getIntermediateRow(final TableRow row, final boolean additionalColumnsNeeded) {
 
     if (!additionalColumnsNeeded) {
       return row.value();
@@ -39,9 +37,6 @@ final class PhysicalOperatorUtil {
 
     final List<?> keyFields = key.values();
 
-    if (value.size() == intermediateSchema.value().size()) {
-      return value;
-    }
     value.ensureAdditionalCapacity(
         1 // ROWTIME
             + keyFields.size()

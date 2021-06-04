@@ -52,6 +52,7 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
 
   private final PushLocator pushLocator;
   private final LogicalSchema logicalSchema;
+  private final boolean isTable;
   private final boolean windowed;
   // All mutable field accesses are protected with synchronized.  The exception is when
   // processingQueues is accessed to processed rows, in which case we want a weakly consistent
@@ -63,10 +64,12 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
   public ScalablePushRegistry(
       final PushLocator pushLocator,
       final LogicalSchema logicalSchema,
+      final boolean isTable,
       final boolean windowed
   ) {
     this.pushLocator = pushLocator;
     this.logicalSchema = logicalSchema;
+    this.isTable = isTable;
     this.windowed = windowed;
   }
 
@@ -95,6 +98,15 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
   public PushLocator getLocator() {
     return pushLocator;
   }
+
+  public boolean isTable() {
+    return isTable;
+  }
+
+  public boolean isWindowed() {
+    return windowed;
+  }
+
 
   @VisibleForTesting
   int numRegistered() {
@@ -157,6 +169,7 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
   public static Optional<ScalablePushRegistry> create(
       final LogicalSchema logicalSchema,
       final Supplier<List<PersistentQueryMetadata>> allPersistentQueries,
+      final boolean isTable,
       final boolean windowed,
       final Map<String, Object> streamsProperties
   ) {
@@ -178,6 +191,6 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
     }
 
     final PushLocator pushLocator = new AllHostsLocator(allPersistentQueries, localhost);
-    return Optional.of(new ScalablePushRegistry(pushLocator, logicalSchema, windowed));
+    return Optional.of(new ScalablePushRegistry(pushLocator, logicalSchema, isTable, windowed));
   }
 }

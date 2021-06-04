@@ -124,7 +124,8 @@ public class QueryEndpoint {
       return createPullQueryPublisher(
           context, serviceContext, statement, pullQueryMetrics, workerExecutor,
           metricsCallbackHolder);
-    } else if (ScalablePushUtil.isScalablePushQuery(statement::getStatement)) {
+    } else if (ScalablePushUtil.isScalablePushQuery(statement.getStatement(), ksqlConfig,
+        properties)) {
       return createScalablePushQueryPublisher(context, serviceContext, statement, workerExecutor,
           requestProperties);
     } else {
@@ -145,8 +146,7 @@ public class QueryEndpoint {
         new PushQueryConfigRoutingOptions(requestProperties);
 
     final ScalablePushQueryMetadata query = ksqlEngine
-        .executeScalablePushQuery(serviceContext, statement, pushRouting, routingOptions, context,
-            workerExecutor);
+        .executeScalablePushQuery(serviceContext, statement, pushRouting, routingOptions, context);
 
 
     publisher.setQueryHandle(new KsqlQueryHandle(query), false, true);

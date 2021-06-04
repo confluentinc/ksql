@@ -26,6 +26,7 @@ import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -272,28 +273,27 @@ final class EngineExecutor {
           queryAnalyzer.analyze(statement.getStatement(), Optional.empty()),
           new PullQueryExecutionUtil.ColumnReferenceRewriter()::process
       );
-      // Do not set sessionConfig.getConfig to true! The copying is inefficient and slows down pull
-      // query performance significantly.  Instead use QueryPlannerOptions which check overrides
-      // deliberately.
       final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
-      final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
-          statement, analysis, ksqlConfig, new QueryPlannerOptions() {
-            @Override
-            public boolean getTableScansEnabled() {
-              return true;
-            }
+      final QueryPlannerOptions queryPlannerOptions = new QueryPlannerOptions() {
+        @Override
+        public boolean getTableScansEnabled() { return true; }
 
-            @Override
-            public boolean getInterpreterEnabled() {
-              return true;
-            }
-          }, true);
+        @Override
+        public boolean getInterpreterEnabled() { return true; }
+      };
+      final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
+          statement, analysis, ksqlConfig, queryPlannerOptions, true);
       final PushPhysicalPlan physicalPlan = buildScalablePushPhysicalPlan(
           logicalPlan,
           analysis,
           context
       );
       TransientQueryQueue transientQueryQueue = new TransientQueryQueue(analysis.getLimitClause());
+      final TransientQueryMetadata.ResultType resultType =
+          physicalPlan.getScalablePushRegistry().isTable()
+          ? physicalPlan.getScalablePushRegistry().isWindowed() ? ResultType.WINDOWED_TABLE
+              : ResultType.TABLE
+          : ResultType.STREAM;
 
       PushQueryQueuePopulator populator = () ->
           pushRouting.handlePushQuery(serviceContext, physicalPlan, statement, pushRoutingOptions,
@@ -302,7 +302,7 @@ final class EngineExecutor {
           physicalPlan.getOutputSchema(),
           physicalPlan.getQueryId(),
           transientQueryQueue,
-          ResultType.STREAM,
+          resultType,
           populator
       );
 

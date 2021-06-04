@@ -30,6 +30,8 @@ import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.pull.HARouting;
+import io.confluent.ksql.physical.scalablepush.PushRouting;
+import io.confluent.ksql.physical.scalablepush.ScalablePushUtil;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
@@ -47,6 +49,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
+import io.vertx.core.Context;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.ServerWebSocket;
 import java.time.Duration;
@@ -70,6 +73,7 @@ public class WSQueryEndpoint {
   private final ListeningScheduledExecutorService exec;
   private final ActivenessRegistrar activenessRegistrar;
   private final QueryPublisher pushQueryPublisher;
+  private final ScalablePushQueryPublisher scalablePushQueryPublisher;
   private final IPullQueryPublisher pullQueryPublisher;
   private final PrintTopicPublisher topicPublisher;
   private final Duration commandQueueCatchupTimeout;
@@ -82,6 +86,7 @@ public class WSQueryEndpoint {
   private final ConcurrencyLimiter pullConcurrencyLimiter;
   private final HARouting routing;
   private final Optional<LocalCommands> localCommands;
+  private final PushRouting pushRouting;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public WSQueryEndpoint(
@@ -101,7 +106,8 @@ public class WSQueryEndpoint {
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
       final HARouting routing,
-      final Optional<LocalCommands> localCommands
+      final Optional<LocalCommands> localCommands,
+      final PushRouting pushRouting
   ) {
     this(
         ksqlConfig,
@@ -110,6 +116,7 @@ public class WSQueryEndpoint {
         commandQueue,
         exec,
         WSQueryEndpoint::startPushQueryPublisher,
+        WSQueryEndpoint::startScalablePushQueryPublisher,
         WSQueryEndpoint::startPullQueryPublisher,
         WSQueryEndpoint::startPrintPublisher,
         activenessRegistrar,
@@ -122,7 +129,8 @@ public class WSQueryEndpoint {
         rateLimiter,
         pullConcurrencyLimiter,
         routing,
-        localCommands
+        localCommands,
+        pushRouting
     );
   }
 
@@ -135,6 +143,7 @@ public class WSQueryEndpoint {
       final CommandQueue commandQueue,
       final ListeningScheduledExecutorService exec,
       final QueryPublisher pushQueryPublisher,
+      final ScalablePushQueryPublisher scalablePushQueryPublisher,
       final IPullQueryPublisher pullQueryPublisher,
       final PrintTopicPublisher topicPublisher,
       final ActivenessRegistrar activenessRegistrar,
@@ -147,7 +156,8 @@ public class WSQueryEndpoint {
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
       final HARouting routing,
-      final Optional<LocalCommands> localCommands
+      final Optional<LocalCommands> localCommands,
+      final PushRouting pushRouting
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -156,6 +166,8 @@ public class WSQueryEndpoint {
         Objects.requireNonNull(commandQueue, "commandQueue");
     this.exec = Objects.requireNonNull(exec, "exec");
     this.pushQueryPublisher = Objects.requireNonNull(pushQueryPublisher, "pushQueryPublisher");
+    this.scalablePushQueryPublisher
+        = Objects.requireNonNull(scalablePushQueryPublisher, "scalablePushQueryPublisher");
     this.pullQueryPublisher = Objects.requireNonNull(pullQueryPublisher, "pullQueryPublisher");
     this.topicPublisher = Objects.requireNonNull(topicPublisher, "topicPublisher");
     this.activenessRegistrar =
@@ -175,10 +187,11 @@ public class WSQueryEndpoint {
         Objects.requireNonNull(pullConcurrencyLimiter, "pullConcurrencyLimiter");
     this.routing = Objects.requireNonNull(routing, "routing");
     this.localCommands = Objects.requireNonNull(localCommands, "localCommands");
+    this.pushRouting = Objects.requireNonNull(pushRouting, "pushRouting");
   }
 
   public void executeStreamQuery(final ServerWebSocket webSocket, final MultiMap requestParams,
-      final KsqlSecurityContext ksqlSecurityContext) {
+      final KsqlSecurityContext ksqlSecurityContext, final Context context) {
 
     try {
       final long startTimeNanos = Time.SYSTEM.nanoseconds();
@@ -218,7 +231,7 @@ public class WSQueryEndpoint {
           ksqlSecurityContext);
 
       if (statement instanceof Query) {
-        handleQuery(requestContext, (Query) statement, startTimeNanos);
+        handleQuery(requestContext, (Query) statement, startTimeNanos, context);
       } else if (statement instanceof PrintTopic) {
         handlePrintTopic(requestContext, (PrintTopic) statement);
       } else {
@@ -293,7 +306,7 @@ public class WSQueryEndpoint {
   }
 
   private void handleQuery(final RequestContext info, final Query query,
-      final long startTimeNanos) {
+      final long startTimeNanos, final Context context) {
     final Map<String, Object> clientLocalProperties = info.request.getConfigOverrides();
 
     final WebSocketSubscriber<StreamedRow> streamSubscriber =
@@ -319,6 +332,17 @@ public class WSQueryEndpoint {
           rateLimiter,
           pullConcurrencyLimiter,
           routing
+      );
+    } else if(ScalablePushUtil.isScalablePushQuery(statement.getStatement(), ksqlConfig,
+        clientLocalProperties)) {
+      scalablePushQueryPublisher.start(
+          ksqlEngine,
+          info.securityContext.getServiceContext(),
+          exec,
+          configured,
+          pushRouting,
+          context,
+          streamSubscriber
       );
     } else {
       pushQueryPublisher.start(
@@ -363,6 +387,19 @@ public class WSQueryEndpoint {
       final Optional<LocalCommands> localCommands
   ) {
     new PushQueryPublisher(ksqlEngine, serviceContext, exec, query, localCommands)
+        .subscribe(streamSubscriber);
+  }
+
+  private static void startScalablePushQueryPublisher(
+      final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext,
+      final ListeningScheduledExecutorService exec,
+      final ConfiguredStatement<Query> query,
+      final PushRouting pushRouting,
+      final Context context,
+      final WebSocketSubscriber<StreamedRow> streamSubscriber
+  ) {
+    new PushQueryPublisher(ksqlEngine, serviceContext, exec, query, pushRouting, context)
         .subscribe(streamSubscriber);
   }
 
@@ -415,6 +452,19 @@ public class WSQueryEndpoint {
         ConfiguredStatement<Query> query,
         WebSocketSubscriber<StreamedRow> subscriber,
         Optional<LocalCommands> localCommands);
+
+  }
+
+  interface ScalablePushQueryPublisher {
+
+    void start(
+        KsqlEngine ksqlEngine,
+        ServiceContext serviceContext,
+        ListeningScheduledExecutorService exec,
+        ConfiguredStatement<Query> query,
+        PushRouting pushRouting,
+        Context context,
+        WebSocketSubscriber<StreamedRow> subscriber);
 
   }
 

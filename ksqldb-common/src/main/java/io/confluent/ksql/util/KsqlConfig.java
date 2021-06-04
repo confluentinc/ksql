@@ -1143,6 +1143,10 @@ public class KsqlConfig extends AbstractConfig {
     return Collections.unmodifiableMap(map);
   }
 
+  public Object getKsqlStreamConfigProp(final String key) {
+    return ksqlStreamConfigProps.get(key).value;
+  }
+
   public Map<String, Object> getKsqlAdminClientConfigProps() {
     final Map<String, Object> map = new HashMap<>();
     map.putAll(getConfigsFor(AdminClientConfig.configNames()));

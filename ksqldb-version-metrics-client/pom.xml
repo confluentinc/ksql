@@ -56,7 +56,7 @@
         <dependency>
             <groupId>org.mock-server</groupId>
             <artifactId>mockserver-netty</artifactId>
-            <version>3.10.4</version>
+            <version>5.11.2</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -81,7 +81,7 @@
         <dependency>
             <groupId>org.mock-server</groupId>
             <artifactId>mockserver-client-java</artifactId>
-            <version>3.10.4</version>
+            <version>5.11.2</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>

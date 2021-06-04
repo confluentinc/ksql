@@ -16,9 +16,7 @@
 package io.confluent.ksql.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -48,7 +46,6 @@ import java.util.Optional;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -171,42 +168,6 @@ public class PersistentQueryMetadataTest {
 
     // Then:
     verify(kafkaStreams, never()).cleanUp();
-  }
-
-  @Test
-  public void shouldRestartKafkaStreams() {
-    final KafkaStreams newKafkaStreams = mock(KafkaStreams.class);
-    final MaterializationProvider newMaterializationProvider = mock(MaterializationProvider.class);
-
-    // Given:
-    when(kafkaStreamsBuilder.build(any(), any())).thenReturn(newKafkaStreams);
-    when(materializationProviderBuilder.apply(newKafkaStreams, topology))
-        .thenReturn(Optional.of(newMaterializationProvider));
-
-    // When:
-    query.restart();
-
-    // Then:
-    final InOrder inOrder = inOrder(kafkaStreams, newKafkaStreams);
-    inOrder.verify(kafkaStreams).close(any());
-    inOrder.verify(newKafkaStreams).setUncaughtExceptionHandler(
-        any(StreamsUncaughtExceptionHandler.class));
-    inOrder.verify(newKafkaStreams).start();
-
-    assertThat(query.getKafkaStreams(), is(newKafkaStreams));
-    assertThat(query.getMaterializationProvider(), is(Optional.of(newMaterializationProvider)));
-  }
-
-  @Test
-  public void shouldNotRestartIfQueryIsClosed() {
-    // Given:
-    query.close();
-
-    // When:
-    final Exception e = assertThrows(Exception.class, () -> query.restart());
-
-    // Then:
-    assertThat(e.getMessage(), containsString("is already closed, cannot restart."));
   }
 
   @Test

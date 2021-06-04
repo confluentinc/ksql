@@ -75,7 +75,7 @@ it ahead of time using the `package` command above, or you can compile
 and run the class from a terminal using maven:
 
 ```shell
-$ ./mvnw exec:java -pl ksqldb-cli -Dexec.mainClass="io.confluent.ksql.Ksql"
+$ ./mvnw compile exec:java --projects ksqldb-cli -Dexec.mainClass="io.confluent.ksql.Ksql"
 ```
 
 ### Testing changes locally

@@ -81,6 +81,14 @@ have built with Maven lately). You can generate them by running:
 $ ./mvnw --projects ksqldb-parser,ksqldb-version-metrics-client generate-sources
 ```
 
+If you want to use the CLI with your server, you can either build
+it ahead of time using the `package` command above, or you can compile
+and run the class from a terminal using maven:
+
+```shell
+$ ./mvnw compile exec:java --projects ksqldb-cli -Dexec.mainClass="io.confluent.ksql.Ksql"
+```
+
 ### Testing changes locally
 
 To build and test changes locally, run the following commands:

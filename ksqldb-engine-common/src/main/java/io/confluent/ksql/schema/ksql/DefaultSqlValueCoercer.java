@@ -18,12 +18,14 @@ package io.confluent.ksql.schema.ksql;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.ARRAY;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.BIGINT;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.BOOLEAN;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.DATE;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.DECIMAL;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.DOUBLE;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.INTEGER;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.MAP;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.STRING;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.STRUCT;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.TIME;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.TIMESTAMP;
 import static java.util.Objects.requireNonNull;
 
@@ -313,8 +315,10 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
                 DefaultSqlValueCoercer::canCoerceToStruct,
                 DefaultSqlValueCoercer::coerceToStruct
             ))
-            // TIMESTAMP:
+            // TIME:
             .put(key(TIMESTAMP, TIMESTAMP), Coercer.PASS_THROUGH)
+            .put(key(TIME, TIME), Coercer.PASS_THROUGH)
+            .put(key(DATE, DATE), Coercer.PASS_THROUGH)
             .build();
 
     private static final ImmutableMap<SupportedCoercion, Coercer> LAX_ADDITIONAL =

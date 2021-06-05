@@ -40,6 +40,8 @@ public final class ParamTypes {
   public static final StringType STRING = StringType.INSTANCE;
   public static final LongType LONG = LongType.INSTANCE;
   public static final ParamType DECIMAL = DecimalType.INSTANCE;
+  public static final TimeType TIME = TimeType.INSTANCE;
+  public static final DateType DATE = DateType.INSTANCE;
   public static final TimestampType TIMESTAMP = TimestampType.INSTANCE;
   public static final IntervalUnitType INTERVALUNIT = IntervalUnitType.INSTANCE;
 

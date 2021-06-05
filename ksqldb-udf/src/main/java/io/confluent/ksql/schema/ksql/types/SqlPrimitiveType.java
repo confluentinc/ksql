@@ -36,6 +36,8 @@ public final class SqlPrimitiveType extends SqlType {
           .put(SqlBaseType.BIGINT, new SqlPrimitiveType(SqlBaseType.BIGINT))
           .put(SqlBaseType.DOUBLE, new SqlPrimitiveType(SqlBaseType.DOUBLE))
           .put(SqlBaseType.STRING, new SqlPrimitiveType(SqlBaseType.STRING))
+          .put(SqlBaseType.TIME, new SqlPrimitiveType(SqlBaseType.TIME))
+          .put(SqlBaseType.DATE, new SqlPrimitiveType(SqlBaseType.DATE))
           .put(SqlBaseType.TIMESTAMP, new SqlPrimitiveType(SqlBaseType.TIMESTAMP))
           .build();
 

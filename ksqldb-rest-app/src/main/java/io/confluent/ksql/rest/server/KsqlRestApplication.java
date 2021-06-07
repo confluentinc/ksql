@@ -691,7 +691,7 @@ public final class KsqlRestApplication implements Executable {
                     .setNameFormat("ksql-csu-metrics-reporter-%d")
                     .build()
     );
-    final UtilizationMetricsListener csuMetricReporter = new UtilizationMetricsListener();
+    final UtilizationMetricsListener csuMetricReporter = new UtilizationMetricsListener(300000L);
     // will change to 300000 when we're ready
     executorService.scheduleAtFixedRate(csuMetricReporter, 0, 12000, TimeUnit.MILLISECONDS);
     final List<QueryEventListener> listeners = new ArrayList <>();

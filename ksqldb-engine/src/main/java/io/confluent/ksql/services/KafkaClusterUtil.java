@@ -100,7 +100,6 @@ public final class KafkaClusterUtil {
 
   public static String getKafkaClusterId(final ServiceContext serviceContext) {
     try {
-      //-01aSZjrQGm81mcKgASjJQ
       return serviceContext.getAdminClient()
           .describeCluster()
           .clusterId()

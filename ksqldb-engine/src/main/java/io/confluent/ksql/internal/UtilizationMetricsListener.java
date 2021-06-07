@@ -39,10 +39,10 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
         this.metrics = new LinkedList<>();
         // we can add these here or pass it in through the constructor
         metrics.add("poll-time-total");
-        metrics.add("restore-poll-time-total");
+        metrics.add("restore-consumer-poll-time-total");
         metrics.add("send-time-total");
         metrics.add("flush-time-total");
-        // just for sanity checking since this metric already exists
+// just for sanity checking since this metric already exists
         metrics.add("poll-total");
         time = Time.SYSTEM;
         previousPollTime = new HashMap<>();
@@ -74,11 +74,11 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
         reportSystemMetrics();
         logger.info("Reporting CSU thread level metrics");
         reportProcessingRatio();
-        for (KafkaStreams thread : kafkaStreams) {
+        /*for (KafkaStreams thread : kafkaStreams) {
             for (String metric : metrics) {
                 reportThreadMetrics(thread, metric, STREAM_THREAD_GROUP);
             }
-        }
+        }*/
     }
 
     private void reportSystemMetrics() {
@@ -98,44 +98,58 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
     }
 
     private void reportProcessingRatio() {
-        final long totalTime = 300000;
-        long blockedTime = 0;
+        final double totalTime = 120000.0;
+        double blockedTime = 120000.0;
 
+        final long windowEnd = time.milliseconds();
+        final long windowStart = (long) Math.max(0, windowEnd - totalTime);
+        logger.info("--- window start: " + windowStart + " ----");
         for (KafkaStreams stream : kafkaStreams) {
             for (ThreadMetadata thread : stream.localThreadsMetadata()) {
-                blockedTime += getProcessingRatio(thread.threadName(), stream, totalTime);
+                blockedTime = Math.min(getProcessingRatio(thread.threadName(), stream, windowStart, totalTime), totalTime);
             }
         }
-        final long processingRatio = (totalTime - blockedTime) / totalTime;
-        logger.info("the current processing ratio is " + processingRatio);
+        final double notBlocked = totalTime - blockedTime;
+        final double processingRatio = (notBlocked / totalTime) * 100;
+        logger.info("total time - blocked time = " + (totalTime - blockedTime));
+        logger.info("the current processing ratio is " + processingRatio + "%");
     }
 
-    private long getProcessingRatio(final String threadName, final KafkaStreams streams, final long windowSize) {
-        final long windowEnd = time.milliseconds();
-        final long windowStart = Math.max(0, windowEnd - windowSize);
+    private double getProcessingRatio(final String threadName, final KafkaStreams streams, final long windowStart, final double windowSize) {
         final Map<String, Double> threadMetrics = streams.metrics().values().stream()
                 .filter(m -> m.metricName().group().equals("stream-thread-metrics") &&
                         m.metricName().tags().get("thread-id").equals(threadName) &&
                         metrics.contains(m.metricName().name()))
                 .collect(Collectors.toMap(k -> k.metricName().name(), v -> (double) v.metricValue()));
-        // this actually might not be a double
-        final double threadStartTime = threadMetrics.getOrDefault("thread-start-time", 0.0);
-        long blockedTime = 0;
+        final Long threadStartTime = (Long) streams.metrics().values().stream()
+                .filter(m -> m.metricName().group().equals("stream-thread-metrics") &&
+                        m.metricName().tags().get("thread-id").equals(threadName) &&
+                        m.metricName().name().equals("thread-start-time")).collect(Collectors.toList()).get(0).metricValue();
+        logger.info("--- thread start: " + threadStartTime + " ----");
+        double blockedTime = 0;
         if (threadStartTime > windowStart || threadStartTime == 0.0) {
+            logger.info("in fact, the thread was started after the window");
             blockedTime += threadStartTime - windowStart;
             previousPollTime.put(threadName, 0.0);
             previousRestoreConsumerPollTime.put(threadName, 0.0);
             previousSendTime.put(threadName, 0.0);
             previousFlushTime.put(threadName, 0.0);
         }
-        blockedTime += (threadMetrics.get("poll-time-total") - previousPollTime.get(threadName));
-        previousPollTime.put(threadName, threadMetrics.get("poll-time-total"));
-        blockedTime += threadMetrics.get("restore-poll-time-total") - previousRestoreConsumerPollTime.get(threadName);
-        previousRestoreConsumerPollTime.put(threadName, threadMetrics.get("restore-poll-time-total"));
-        blockedTime += threadMetrics.get("send-time-total") - previousSendTime.get(threadName);
-        previousSendTime.put(threadName, threadMetrics.get("send-time-total"));
-        blockedTime += threadMetrics.get("flush-time-total") - previousFlushTime.get(threadName);
-        previousFlushTime.put(threadName, threadMetrics.get("flush-time-total"));
+        final double newPollTime = threadMetrics.getOrDefault("poll-time-total", 0.0);
+        final double newRestorePollTime = threadMetrics.getOrDefault("restore-consumer-poll-time-total", 0.0);
+        final double newFlushTime = threadMetrics.getOrDefault("flush-time-total", 0.0);
+        final double newSendTime = threadMetrics.getOrDefault("send-time-total", 0.0);
+        blockedTime += Math.max(newPollTime - previousPollTime.get(threadName), 0);
+        logger.info("added " + (newPollTime - previousPollTime.get(threadName)) + " to blocked time");
+        previousPollTime.put(threadName, newPollTime);
+
+        blockedTime += Math.max(newRestorePollTime - previousRestoreConsumerPollTime.get(threadName), 0);
+        previousRestoreConsumerPollTime.put(threadName, newRestorePollTime);
+
+        blockedTime += Math.max(newSendTime - previousSendTime.get(threadName), 0);
+        previousSendTime.put(threadName, newSendTime);
+        blockedTime += Math.max(newFlushTime - previousFlushTime.get(threadName), 0);
+        previousFlushTime.put(threadName, newFlushTime);
 
         return Math.min(windowSize, blockedTime);
     }

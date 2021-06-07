@@ -56,7 +56,7 @@ just like you configure the normal ksqlDB log.
 config file to assign Log4J properties.
 - For Docker deployments, set the corresponding environment variables. For more
   information, see
-  [Configure ksqlDB with Docker](../operate-and-deploy/installation/install-ksqldb-with-docker/#enable-the-ksqldb-processing-log)
+  [Configure ksqlDB with Docker](/operate-and-deploy/installation/install-ksqldb-with-docker/)
   and [Configure Docker Logging](https://docs.confluent.io/platform/current/installation/docker/operations/logging.html#log4j-log-levels).
 
 All entries are written under the `processing` logger hierarchy.
@@ -72,7 +72,7 @@ just like you configure the normal ksqlDB log.
 config file to assign Log4J properties.
 - For Docker deployments, set the corresponding environment variables. For more
   information, see
-  [Configure ksqlDB with Docker](../operate-and-deploy/installation/install-ksqldb-with-docker/#enable-the-ksqldb-processing-log)
+  [Configure ksqlDB with Docker](/operate-and-deploy/installation/install-ksqldb-with-docker/)
   and [Configure Docker Logging](https://docs.confluent.io/platform/current/installation/docker/operations/logging.html#log4j-log-levels).
 
 All entries are written under the `processing` logger hierarchy.

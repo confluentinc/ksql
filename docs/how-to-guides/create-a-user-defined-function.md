@@ -140,9 +140,8 @@ mkdir -p src/main/java/com/example
 
 ### Scalar functions
 
-A scalar function (UDF for short) consumes one row as input and
-produces one row as output. Use this when you simply want to transform
-a value.
+A scalar function consumes one row as input and produces one row as
+output. Use this when you simply want to transform a value.
 
 Create a file at `src/main/java/com/example/FormulaUdf.java` and
 populate it with the following code. This UDF takes two parameters and

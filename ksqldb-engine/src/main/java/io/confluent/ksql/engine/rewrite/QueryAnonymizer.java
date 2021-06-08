@@ -887,13 +887,29 @@ public class QueryAnonymizer {
         final String after =
             getSizeAndUnitFromJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(1));
         stringBuilder.append(String.format("(%s, %s)", before, after));
+      } else if (context instanceof SqlBaseParser.JoinWindowWithGraceContext) {
+        final SqlBaseParser.JoinWindowWithGraceContext joinWithGracePeriod =
+            (SqlBaseParser.JoinWindowWithGraceContext) context;
+
+        stringBuilder.append(anonymizeJoinWindowWithGrace(joinWithGracePeriod));
       } else {
         throw new RuntimeException("Expecting either a single join window, ie \"WITHIN 10 "
-            + "seconds\", or a join window with before and after specified, "
-            + "ie. \"WITHIN (10 seconds, 20 seconds)");
+            + "seconds\", a join window with before and after specified, "
+            + "ie. \"WITHIN (10 seconds, 20 seconds)\", or a join window with a grace period, "
+            + "ie. \"WITHIN (SIZE 10 seconds, GRACE PERIOD 5 seconds)\"");
       }
 
       return stringBuilder.toString();
+    }
+
+    private static String anonymizeJoinWindowWithGrace(
+        final SqlBaseParser.JoinWindowWithGraceContext joinWindowWithGrace
+    ) {
+      return String.format("(SIZE %s %s, GRACE PERIOD %s %s) ",
+          "'0'",
+          joinWindowWithGrace.joinWindowSize().windowUnit().getText().toUpperCase(),
+          "'0'",
+          joinWindowWithGrace.gracePeriodClause().windowUnit().getText().toUpperCase());
     }
 
     private static String getSizeAndUnitFromJoinWindowSize(

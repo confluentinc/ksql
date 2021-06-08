@@ -250,7 +250,13 @@ the table data _before_ starting to produce to your stream.
 Table-Table Joins
 -----------------
 
-ksqlDB supports INNER, LEFT OUTER, and FULL OUTER joins between tables.
+ksqlDB supports primary-key (1:1) as well as foreign-key (1:N) joins between tables.
+Many-to-many (N:M) joins are currently not supported though.
+For a foreign-key join, you can use any left table column in the join condition
+to join it with the primary-key of the right table.
+
+For primary-key joins INNER, LEFT OUTER, and FULL OUTER joins are supported.
+For foreign-key joins INNER and LEFT OUTER joins are supported.
 
 Table-table joins are always non-windowed joins.
 
@@ -261,20 +267,19 @@ Table-table joins are eventually consistent.
       are no guarantees, which can cause missing results or leftRecord-NULL
       results.
 
-### Semantics of Table-Table Joins
+### Semantics of Primary-Key Table-Table Joins
 
-The semantics of the various table-table join variants are shown in the
+The semantics of the various 1:1 table-table join variants are shown in the
 following table. In the table, each row represents a new incoming
 record. The following assumptions apply:
 
 -   All records have the same key.
 -   All records are processed in timestamp order.
 
-Input records with a NULL value are interpreted as tombstones for the
-corresponding key, which indicate the deletion of the key from the
-table. Tombstones don't trigger the join. When an input tombstone is
-received, an output tombstone is forwarded directly to the join result
-table, if the corresponding key exists already in the join result table.
+Input records with a `null` value are interpreted as tombstones for the
+corresponding key, which indicate the deletion of the key from the table.
+When an input tombstone is received, an output tombstone may be forwarded
+to the join result table, if the corresponding join result exists in the result table.
 
 
 | Timestamp | Left Table       | Right Table      | INNER JOIN       | LEFT JOIN        | OUTER JOIN       |
@@ -295,13 +300,39 @@ table, if the corresponding key exists already in the join result table.
 | 14        |                  | d                |                  |                  | [null, d]        |
 | 15        | D                |                  | [D, d]           | [D, d]           | [D, d]           |
 
-Foreign-Key Joins
------------------
+### Semantics of Foreign-Key Table-Table Joins
 
-ksqlDB also support 1:N foreign-key joins.
-Many-to-many (N:M) joins are currently not supported though.
-For a foreign-key join, you can use any left input-table column in the join condition
-to join it with the primary key of the right input-table.
+The semantics of the various 1:N table-table join variants are shown in the
+following table. In the table, each row represents a new incoming
+record. The following assumptions apply:
+
+-   The primary-key of the left and output table is denoted in upper-case letters.
+-   The foreign-key from the left table and the primary-key of the right table is denoted in lower-case letters.
+-   All records are processed in timestamp order.
+
+Input records with a `null` value are interpreted as tombstones for the
+corresponding key, which indicate the deletion of the key from the table.
+When an input tombstone is received, one or multiple output tombstones
+may be forwarded to the join result table, if a corresponding join results
+exists in the result table.
+
+
+| Timestamp | Left Table           | Right Table          | INNER JOIN                                 | LEFT JOIN                            |
+|-----------|----------------------|----------------------|--------------------------------------------|--------------------------------------|
+| 1         | [A] null (tombstone) |                      |                                            |                                      |
+| 2         |                      | [a] null (tombstone) |                                            |                                      |
+| 3         | [A,a,1]              |                      |                                            | [A,a,1,NULL,NULL]                    |
+| 4         |                      | [a,10]               | [A,a,1,a,10]                               | [A,a,1,a,10]                         |
+| 5         |                      | [a,11]               | [A,a,1,a,11]                               | [A,a,1,a,11]                         |
+| 6         | [A,a,2]              |                      | [A,a,2,a,11]                               | [A,a,2,a,11]                         |
+| 7         | [B,a,3]              |                      | [B,a,3,a,11]                               | [B,a,3,a,11]                         |
+| 8         |                      | [a,12]               | [A,a,2,a,12], [B,a,3,a,12]                 | [A,a,2,a,12], [B,a,3,a,12]           |
+| 9         |                      | [c,13]               |                                            |                                      |
+| 10        | [C,c,4]              |                      | [C,c,4,c,13]                               | [C,c,4,c,13]                         |
+| 11        | [C] null (tombstone) |                      | [C] null (tombstone)                       | [C] null (tombstone)                 |
+| 12        |                      | [c] null (tombstone) |                                            |                                      |
+| 13        |                      | [a] null (tombstone) | [A] null (tombstone), [B] null (tombstone) | [A,a,2,NULL,NULL], [B,a,3,NULL,NULL] |
+| 14        | [B] null (tombstone) |                      |                                            | [B] null (tombstone)                 |
 
 N-Way Joins
 -----------

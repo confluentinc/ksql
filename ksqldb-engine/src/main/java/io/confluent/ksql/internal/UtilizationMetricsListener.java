@@ -35,6 +35,7 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
     private final Map<String, Double> previousRestoreConsumerPollTime;
     private final Map<String, Double> previousSendTime;
     private final Map<String, Double> previousFlushTime;
+    public Map<String, Double> temporaryThreadMetrics;
 
     public UtilizationMetricsListener(final long windowSize){
         this.kafkaStreams = new ArrayList<>();
@@ -51,6 +52,25 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
         previousRestoreConsumerPollTime = new HashMap<>();
         previousSendTime = new HashMap<>();
         previousFlushTime = new HashMap<>();
+        temporaryThreadMetrics = new HashMap<>();
+    }
+
+    // for testing
+    public UtilizationMetricsListener(final long windowSize, final List<KafkaStreams> streams) {
+        this.kafkaStreams = streams;
+        this.metrics = new LinkedList<>();
+        // we can add these here or pass it in through the constructor
+        metrics.add("poll-time-total");
+        metrics.add("restore-consumer-poll-time-total");
+        metrics.add("send-time-total");
+        metrics.add("flush-time-total");
+        time = Time.SYSTEM;
+        this.windowSize = windowSize;
+        previousPollTime = new HashMap<>();
+        previousRestoreConsumerPollTime = new HashMap<>();
+        previousSendTime = new HashMap<>();
+        previousFlushTime = new HashMap<>();
+        temporaryThreadMetrics = new HashMap<>();
     }
 
     @Override
@@ -116,12 +136,15 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
         return (notBlocked / windowSize) * 100;
     }
 
-    private double getProcessingRatio(final String threadName, final KafkaStreams streams, final long windowStart, final double windowSize) {
+    // public for testing
+    public double getProcessingRatio(final String threadName, final KafkaStreams streams, final long windowStart, final double windowSize) {
         final Map<String, Double> threadMetrics = streams.metrics().values().stream()
                 .filter(m -> m.metricName().group().equals(STREAM_THREAD_GROUP) &&
                         m.metricName().tags().get(THREAD_ID).equals(threadName) &&
                         metrics.contains(m.metricName().name()))
                 .collect(Collectors.toMap(k -> k.metricName().name(), v -> (double) v.metricValue()));
+        // for testing
+        temporaryThreadMetrics = threadMetrics;
         final Long threadStartTime = (Long) streams.metrics().values().stream()
                 .filter(m -> m.metricName().group().equals(STREAM_THREAD_GROUP) &&
                         m.metricName().tags().get(THREAD_ID).equals(threadName) &&

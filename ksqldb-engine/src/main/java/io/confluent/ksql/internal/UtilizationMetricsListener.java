@@ -28,14 +28,15 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
     private final Logger logger = LoggerFactory.getLogger(UtilizationMetricsListener.class);
     private final List<String> metrics;
     private final Time time;
-    private final double windowSize;
+    private final long windowSize;
+    private long lastSampleTime;
 
     private final Map<String, Double> previousPollTime;
     private final Map<String, Double> previousRestoreConsumerPollTime;
     private final Map<String, Double> previousSendTime;
     private final Map<String, Double> previousFlushTime;
 
-    public UtilizationMetricsListener(final double windowSize){
+    public UtilizationMetricsListener(final long windowSize){
         this.kafkaStreams = new ArrayList<>();
         this.metrics = new LinkedList<>();
         // we can add these here or pass it in through the constructor
@@ -45,6 +46,7 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
         metrics.add("flush-time-total");
         time = Time.SYSTEM;
         this.windowSize = windowSize;
+        lastSampleTime = 0L;
         previousPollTime = new HashMap<>();
         previousRestoreConsumerPollTime = new HashMap<>();
         previousSendTime = new HashMap<>();
@@ -61,17 +63,24 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
 
     @Override
     public void onDeregister(final QueryMetadata query) {
-        // Question - if we terminate a query and then restart it, will the underling
-        // kafka streams have a new name? if so, do we want to remove everything from the
-        // previous value hashmaps? Or do we want to see that historical information still?
-        // Seems like if there's a chance we could re-use the name we'd want a clean slate
         kafkaStreams.remove(query.getKafkaStreams());
+        previousPollTime.remove("poll-time-total");
+        previousRestoreConsumerPollTime.remove("restore-consumer-poll-time-total");
+        previousSendTime.remove("send-poll-time-total");
+        previousFlushTime.remove("flush-poll-time-total");
     }
 
     @Override
     public void run() {
         logger.info("Reporting CSU thread level metrics");
-        logger.info("the current processing ratio is " + processingRatio() + "%");
+        while (true) {
+            logger.info("the current processing ratio is " + processingRatio() + "%");
+            try {
+                Thread.sleep(windowSize);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void reportSystemMetrics() {
@@ -92,16 +101,18 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
 
     // public for testing
     public double processingRatio() {
-        double blockedTime = windowSize;
+        long sampleTime = time.milliseconds();
+        double blockedTime = sampleTime - lastSampleTime;
 
-        final long windowEnd = time.milliseconds();
-        final long windowStart = (long) Math.max(0, windowEnd - windowSize);
+        final long windowSize = sampleTime - lastSampleTime;
+        final long windowStart = lastSampleTime;
         for (KafkaStreams stream : kafkaStreams) {
             for (ThreadMetadata thread : stream.localThreadsMetadata()) {
-                blockedTime = Math.min(getProcessingRatio(thread.threadName(), stream, windowStart, windowSize), windowSize);
+                blockedTime = Math.min(getProcessingRatio(thread.threadName(), stream, windowStart, windowSize), blockedTime);
             }
         }
         final double notBlocked = windowSize - blockedTime;
+        lastSampleTime = sampleTime;
         return (notBlocked / windowSize) * 100;
     }
 

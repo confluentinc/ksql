@@ -9,7 +9,7 @@ keywords: ksqldb, join, partition, key, schema
 When you use ksqlDB to join streaming data, you must ensure that your
 streams and tables are *co-partitioned*, which means that input records
 on both sides of the join have the same configuration settings for
-partitions. The only exception is foreign-key table-table joins that
+partitions. The only exception is foreign-key table-table joins, which
 do not have any co-partitioning requirement.
 
 To join two data sources, streams or tables, ksqlDB needs to compare their

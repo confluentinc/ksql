@@ -64,8 +64,8 @@ Joins and Windows
 -----------------
 
 ksqlDB enables grouping records that have the same key for stateful
-operations, like joins, into *windows*. At the moment, ksqlDB uses a fixed grace period of 24h:
-i.e., a record can arrive out-of-order for up to 24h and it would still be joined correctly
+operations, like joins, into *windows*. At the moment, ksqlDB uses a fixed grace period of 24 hours,
+which mean that a record can arrive out-of-order for up to 24 hours, and it's still joined correctly
 based on its timestamp.
 If a record arrives after the window's grace period has passed, the record is discarded and
 isn't processed.
@@ -91,7 +91,7 @@ successful.
 For most joins, input data must be co-partitioned when joining. This ensures that
 input records with the same key, from both sides of the join, are
 delivered to the same stream task during processing. For some cases, ksqlDB
-may repartition the data if required automatically. However, there are some cases
+may repartition the data automatically, if required. But there are some cases
 for which it's your responsibility to ensure data co-partitioning when joining. The only
 join that does not require co-partitioning is a foreign-key table-table join. For more
 information, see [Partition Data to Enable Joins](partition-data.md).
@@ -182,7 +182,7 @@ Stream-Table Joins
 ------------------
 
 ksqlDB supports INNER and LEFT joins between a stream and a table.
-An OUTER join is not available because it cannot be defined with sounds semantics.
+An OUTER join is not available because it can't be defined with sound semantics.
 
 Stream-table joins are always non-windowed joins. You can perform table
 lookups against a table when a new record arrives on the stream. Only
@@ -251,7 +251,7 @@ Table-Table Joins
 -----------------
 
 ksqlDB supports primary-key (1:1) as well as foreign-key (1:N) joins between tables.
-Many-to-many (N:M) joins are currently not supported though.
+Many-to-many (N:M) joins are not supported currently.
 For a foreign-key join, you can use any left table column in the join condition
 to join it with the primary-key of the right table.
 

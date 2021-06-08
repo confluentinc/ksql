@@ -42,6 +42,8 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -63,6 +65,10 @@ public class SchemaConvertersTest {
   private static final Schema CONNECT_BIGINT_SCHEMA = SchemaBuilder.int64().optional().build();
   private static final Schema CONNECT_DOUBLE_SCHEMA = SchemaBuilder.float64().optional().build();
   private static final Schema CONNECT_STRING_SCHEMA = SchemaBuilder.string().optional().build();
+  private static final Schema CONNECT_TIME_SCHEMA =
+      org.apache.kafka.connect.data.Time.builder().optional().schema();
+  private static final Schema CONNECT_DATE_SCHEMA =
+      org.apache.kafka.connect.data.Date.builder().optional().schema();
   private static final Schema CONNECT_TIMESTAMP_SCHEMA =
       org.apache.kafka.connect.data.Timestamp.builder().optional().schema();
 
@@ -72,6 +78,8 @@ public class SchemaConvertersTest {
       .put(SqlTypes.BIGINT, CONNECT_BIGINT_SCHEMA)
       .put(SqlTypes.DOUBLE, CONNECT_DOUBLE_SCHEMA)
       .put(SqlTypes.STRING, CONNECT_STRING_SCHEMA)
+      .put(SqlTypes.TIME, CONNECT_TIME_SCHEMA)
+      .put(SqlTypes.DATE, CONNECT_DATE_SCHEMA)
       .put(SqlTypes.TIMESTAMP, CONNECT_TIMESTAMP_SCHEMA)
       .put(SqlArray.of(SqlTypes.INTEGER), SchemaBuilder
           .array(Schema.OPTIONAL_INT32_SCHEMA)
@@ -104,6 +112,8 @@ public class SchemaConvertersTest {
       .put(SqlBaseType.ARRAY, List.class)
       .put(SqlBaseType.MAP, Map.class)
       .put(SqlBaseType.STRUCT, Struct.class)
+      .put(SqlBaseType.TIME, Time.class)
+      .put(SqlBaseType.DATE, Date.class)
       .put(SqlBaseType.TIMESTAMP, Timestamp.class)
       .build();
 
@@ -114,6 +124,8 @@ public class SchemaConvertersTest {
       .put(SqlTypes.BIGINT, ParamTypes.LONG)
       .put(SqlTypes.DOUBLE, ParamTypes.DOUBLE)
       .put(SqlTypes.STRING, ParamTypes.STRING)
+      .put(SqlTypes.TIME, ParamTypes.TIME)
+      .put(SqlTypes.DATE, ParamTypes.DATE)
       .put(SqlTypes.TIMESTAMP, ParamTypes.TIMESTAMP)
       .put(SqlArray.of(SqlTypes.INTEGER), ArrayType.of(ParamTypes.INTEGER))
       .put(SqlDecimal.of(2, 1), ParamTypes.DECIMAL)

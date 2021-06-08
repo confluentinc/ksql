@@ -17,9 +17,11 @@ package io.confluent.ksql.schema.ksql;
 
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.BIGINT;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.BOOLEAN;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.DATE;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.DOUBLE;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.INTEGER;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.STRING;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.TIME;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.TIMESTAMP;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.array;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.decimal;
@@ -48,6 +50,8 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collection;
@@ -288,6 +292,14 @@ public class DefaultSqlValueCoercerTest {
         .put(new Timestamp(1535792475000L), ImmutableMap.<SqlType, Object>builder()
             .put(TIMESTAMP, new Timestamp(1535792475000L))
             .put(STRING, laxOnly("2018-09-01T09:01:15.000"))
+            .build()
+        )
+        .put(new Time(1000L), ImmutableMap.<SqlType, Object>builder()
+            .put(TIME, new Time(1000L))
+            .build()
+        )
+        .put(new Date(636451200000L), ImmutableMap.<SqlType, Object>builder()
+            .put(DATE, new Date(636451200000L))
             .build()
         )
         // ARRAY:
@@ -983,7 +995,7 @@ public class DefaultSqlValueCoercerTest {
           is(ImmutableSet.of(
               SqlBaseType.BOOLEAN, SqlBaseType.INTEGER, SqlBaseType.BIGINT, SqlBaseType.DECIMAL,
               SqlBaseType.DOUBLE, SqlBaseType.STRING, SqlBaseType.ARRAY, SqlBaseType.MAP,
-              SqlBaseType.STRUCT, SqlBaseType.TIMESTAMP
+              SqlBaseType.STRUCT, SqlBaseType.TIME, SqlBaseType.DATE, SqlBaseType.TIMESTAMP
           ))
       );
     }
@@ -1054,6 +1066,8 @@ public class DefaultSqlValueCoercerTest {
         .put(SqlBaseType.STRUCT, SqlTypes.struct()
             .field("Bob", SqlTypes.STRING)
             .build())
+        .put(SqlBaseType.TIME, SqlTypes.TIME)
+        .put(SqlBaseType.DATE, SqlTypes.DATE)
         .put(SqlBaseType.TIMESTAMP, SqlTypes.TIMESTAMP)
         .build();
 
@@ -1078,6 +1092,8 @@ public class DefaultSqlValueCoercerTest {
         .put(SqlBaseType.DECIMAL, new BigDecimal("12.01"))
         .put(SqlBaseType.DOUBLE, 34.98d)
         .put(SqlBaseType.STRING, "11")
+        .put(SqlBaseType.TIME, new Time(1000L))
+        .put(SqlBaseType.DATE, new Date(636451200000L))
         .put(SqlBaseType.TIMESTAMP, new Timestamp(1535792475000L))
         .build();
 
@@ -1168,6 +1184,12 @@ public class DefaultSqlValueCoercerTest {
                 .build())
             .put(SqlBaseType.STRUCT, ImmutableSet.<SqlBaseType>builder()
                 .add(SqlBaseType.STRUCT)
+                .build())
+            .put(SqlBaseType.TIME, ImmutableSet.<SqlBaseType>builder()
+                .add(SqlBaseType.TIME)
+                .build())
+            .put(SqlBaseType.DATE, ImmutableSet.<SqlBaseType>builder()
+                .add(SqlBaseType.DATE)
                 .build())
             .put(SqlBaseType.TIMESTAMP, ImmutableSet.<SqlBaseType>builder()
                 .add(SqlBaseType.TIMESTAMP)

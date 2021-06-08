@@ -343,6 +343,8 @@ public class SqlTypeWalkerTest {
         SqlTypes.BIGINT,
         SqlTypes.DOUBLE,
         SqlTypes.STRING,
+        SqlTypes.TIME,
+        SqlTypes.DATE,
         SqlTypes.TIMESTAMP
     );
   }

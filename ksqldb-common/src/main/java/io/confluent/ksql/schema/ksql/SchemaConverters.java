@@ -27,6 +27,7 @@ import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
+import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
@@ -39,9 +40,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
+import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 
 /**
@@ -215,7 +218,7 @@ public final class SchemaConverters {
 
     private static final Map<Schema.Type, Function<Schema, SqlType>> CONNECT_TO_SQL = ImmutableMap
         .<Schema.Type, Function<Schema, SqlType>>builder()
-        .put(Schema.Type.INT32, s -> SqlTypes.INTEGER)
+        .put(Schema.Type.INT32, ConnectToSqlConverter::toIntegerType)
         .put(Schema.Type.INT64, s ->
             s.name() == Timestamp.LOGICAL_NAME ? SqlTypes.TIMESTAMP : SqlTypes.BIGINT)
         .put(Schema.Type.FLOAT64, s -> SqlTypes.DOUBLE)
@@ -262,6 +265,16 @@ public final class SchemaConverters {
 
       return builder.build();
     }
+
+    private static SqlPrimitiveType toIntegerType(final Schema schema) {
+      if (schema.name() == Time.LOGICAL_NAME) {
+        return SqlTypes.TIME;
+      } else if (schema.name() == Date.LOGICAL_NAME) {
+        return SqlTypes.DATE;
+      } else {
+        return SqlTypes.INTEGER;
+      }
+    }
   }
 
   private static final class ConnectFromSqlConverter implements SqlToConnectTypeConverter {
@@ -277,6 +290,8 @@ public final class SchemaConverters {
             .put(SqlBaseType.ARRAY, t -> ConnectFromSqlConverter.fromSqlArray((SqlArray) t))
             .put(SqlBaseType.MAP, t -> ConnectFromSqlConverter.fromSqlMap((SqlMap) t))
             .put(SqlBaseType.STRUCT, t -> ConnectFromSqlConverter.fromSqlStruct((SqlStruct) t))
+            .put(SqlBaseType.TIME, t -> Time.builder().optional())
+            .put(SqlBaseType.DATE, t -> Date.builder().optional())
             .put(SqlBaseType.TIMESTAMP, t -> Timestamp.builder().optional())
         .build();
 
@@ -342,6 +357,8 @@ public final class SchemaConverters {
         .put(List.class, SqlBaseType.ARRAY)
         .put(Map.class, SqlBaseType.MAP)
         .put(Struct.class, SqlBaseType.STRUCT)
+        .put(java.sql.Time.class, SqlBaseType.TIME)
+        .put(java.sql.Date.class, SqlBaseType.DATE)
         .put(java.sql.Timestamp.class, SqlBaseType.TIMESTAMP)
         .build();
 
@@ -380,6 +397,8 @@ public final class SchemaConverters {
             .put(ParamTypes.INTEGER, SqlTypes.INTEGER)
             .put(ParamTypes.LONG, SqlTypes.BIGINT)
             .put(ParamTypes.DOUBLE, SqlTypes.DOUBLE)
+            .put(ParamTypes.TIME, SqlTypes.TIME)
+            .put(ParamTypes.DATE, SqlTypes.DATE)
             .put(ParamTypes.TIMESTAMP, SqlTypes.TIMESTAMP)
             .build();
 
@@ -422,6 +441,8 @@ public final class SchemaConverters {
             .put(ParamTypes.LONG, SqlBaseType.BIGINT)
             .put(ParamTypes.DOUBLE, SqlBaseType.DOUBLE)
             .put(ParamTypes.DECIMAL, SqlBaseType.DECIMAL)
+            .put(ParamTypes.TIME, SqlBaseType.TIME)
+            .put(ParamTypes.DATE, SqlBaseType.DATE)
             .put(ParamTypes.TIMESTAMP, SqlBaseType.TIMESTAMP)
             .build();
 

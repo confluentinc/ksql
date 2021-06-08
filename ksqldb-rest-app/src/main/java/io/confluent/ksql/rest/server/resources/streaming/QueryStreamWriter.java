@@ -81,7 +81,6 @@ class QueryStreamWriter implements StreamingOutput {
             TimeUnit.MILLISECONDS
         );
         if (row != null) {
-          System.out.println("ROW WRITER " + row.value().values());
           write(out, buildRow(row));
         } else {
           // If no new rows have been written, the user may have terminated the connection without

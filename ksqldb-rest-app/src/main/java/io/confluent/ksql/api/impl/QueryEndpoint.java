@@ -39,6 +39,7 @@ import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.physical.scalablepush.ScalablePushUtil;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.resources.streaming.PullQueryConfigPlannerOptions;
@@ -329,6 +330,11 @@ public class QueryEndpoint {
       // We don't try to do anything on exception for push queries, but rely on the
       // existing exception handling
     }
+
+    @Override
+    public QueryId getQueryId() {
+      return queryMetadata.getQueryId();
+    }
   }
 
   private static class KsqlPullQueryHandle implements QueryHandle {
@@ -381,6 +387,11 @@ public class QueryEndpoint {
         onException.accept(t);
         return null;
       });
+    }
+
+    @Override
+    public QueryId getQueryId() {
+      return result.getQueryId();
     }
   }
 }

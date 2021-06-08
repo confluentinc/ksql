@@ -16,6 +16,7 @@
 package io.confluent.ksql.api.spi;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KeyValue;
 import java.util.List;
 import org.reactivestreams.Publisher;
@@ -51,4 +52,9 @@ public interface QueryPublisher extends Publisher<KeyValue<List<?>, GenericRow>>
    * @return true if scalable push query
    */
   boolean isScalablePushQuery();
+
+  /**
+   * The query id
+   */
+  QueryId queryId();
 }

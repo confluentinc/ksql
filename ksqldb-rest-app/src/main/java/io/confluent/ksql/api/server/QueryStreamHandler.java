@@ -103,6 +103,7 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
             });
           }  else if (queryPublisher.isScalablePushQuery()) {
             metadata = new QueryResponseMetadata(
+                queryPublisher.queryId().toString(),
                 queryPublisher.getColumnNames(),
                 queryPublisher.getColumnTypes());
             routingContext.response().endHandler(v -> {

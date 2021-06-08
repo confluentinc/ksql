@@ -29,6 +29,7 @@ import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
@@ -242,6 +243,11 @@ public class QueryStreamRunner extends BasePerfRunner {
 
     @Override
     public void onException(Consumer<Throwable> onException) {
+    }
+
+    @Override
+    public QueryId getQueryId() {
+      return new QueryId("queryId");
     }
 
     @Override

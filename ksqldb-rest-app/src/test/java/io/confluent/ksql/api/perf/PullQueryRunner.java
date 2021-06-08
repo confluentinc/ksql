@@ -28,6 +28,7 @@ import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
@@ -260,6 +261,11 @@ public class PullQueryRunner extends BasePerfRunner {
     @Override
     public boolean isScalablePushQuery() {
       return false;
+    }
+
+    @Override
+    public QueryId queryId() {
+      return new QueryId("queryId");
     }
   }
 }

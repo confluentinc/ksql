@@ -84,7 +84,7 @@ public class KsqlRequestConfig extends AbstractConfig {
             KSQL_REQUEST_QUERY_PULL_PARTITIONS_DOC
         ).define(
             KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING,
-            Type.LIST,
+            Type.BOOLEAN,
             KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING_DEFAULT,
             ConfigDef.Importance.LOW,
             KSQL_REQUEST_QUERY_PUSH_SKIP_FORWARDING_DOC

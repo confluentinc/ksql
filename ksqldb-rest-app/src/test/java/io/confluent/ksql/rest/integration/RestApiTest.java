@@ -80,7 +80,6 @@ import io.confluent.ksql.util.VertxCompletableFuture;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
 import java.util.ArrayList;
 import java.util.Arrays;

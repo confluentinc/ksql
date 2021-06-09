@@ -73,6 +73,4 @@ Pull queries are expressed using a strict subset of ANSI SQL.
 Execute a pull query by sending an HTTP request to the ksqlDB REST API, and
 the API responds with a single response.
 
-If you want to learn more about Pull Queries, see [Pull Queries](select-pull-query.md).
-
-
+If you want to learn more about Pull Queries, see [Pull Queries](/developer-guide/ksqldb-reference/select-pull-query).

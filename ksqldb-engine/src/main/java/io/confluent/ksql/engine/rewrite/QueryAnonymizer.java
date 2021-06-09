@@ -877,21 +877,22 @@ public class QueryAnonymizer {
         final SqlBaseParser.SingleJoinWindowContext singleWithin
             = (SqlBaseParser.SingleJoinWindowContext) context;
 
-        stringBuilder.append(getSizeAndUnitFromJoinWindowSize(singleWithin.joinWindowSize()));
+        stringBuilder.append(String.format("%s",
+            anonymizeJoinWindowSize(singleWithin.joinWindowSize())));
       } else if (context instanceof JoinWindowWithBeforeAndAfterContext) {
         final SqlBaseParser.JoinWindowWithBeforeAndAfterContext beforeAndAfterJoinWindow
             = (SqlBaseParser.JoinWindowWithBeforeAndAfterContext) context;
 
-        final String before =
-            getSizeAndUnitFromJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(0));
-        final String after =
-            getSizeAndUnitFromJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(1));
-        stringBuilder.append(String.format("(%s, %s)", before, after));
+        stringBuilder.append(String.format("(%s, %s)",
+            anonymizeJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(0)),
+            anonymizeJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(1))));
       } else if (context instanceof SqlBaseParser.JoinWindowWithGraceContext) {
         final SqlBaseParser.JoinWindowWithGraceContext joinWithGracePeriod =
             (SqlBaseParser.JoinWindowWithGraceContext) context;
 
-        stringBuilder.append(anonymizeJoinWindowWithGrace(joinWithGracePeriod));
+        stringBuilder.append(String.format("(SIZE %s, GRACE PERIOD %s)",
+            anonymizeJoinWindowSize(joinWithGracePeriod.joinWindowSize()),
+            anonymizeGracePeriod(joinWithGracePeriod.gracePeriodClause())));
       } else {
         throw new RuntimeException("Expecting either a single join window, ie \"WITHIN 10 "
             + "seconds\", a join window with before and after specified, "
@@ -899,24 +900,19 @@ public class QueryAnonymizer {
             + "ie. \"WITHIN (SIZE 10 seconds, GRACE PERIOD 5 seconds)\"");
       }
 
-      return stringBuilder.toString();
+      return stringBuilder.append(' ').toString();
     }
 
-    private static String anonymizeJoinWindowWithGrace(
-        final SqlBaseParser.JoinWindowWithGraceContext joinWindowWithGrace
+    private static String anonymizeGracePeriod(
+        final SqlBaseParser.GracePeriodClauseContext gracePeriodClause
     ) {
-      return String.format("(SIZE %s %s, GRACE PERIOD %s %s) ",
-          "'0'",
-          joinWindowWithGrace.joinWindowSize().windowUnit().getText().toUpperCase(),
-          "'0'",
-          joinWindowWithGrace.gracePeriodClause().windowUnit().getText().toUpperCase());
+      return String.format("'0' %s", gracePeriodClause.windowUnit().getText().toUpperCase());
     }
 
-    private static String getSizeAndUnitFromJoinWindowSize(
+    private static String anonymizeJoinWindowSize(
         final JoinWindowSizeContext joinWindowSize
     ) {
-      return String.format("%s %s ",
-          "'0'", joinWindowSize.windowUnit().getText().toUpperCase());
+      return String.format("'0' %s", joinWindowSize.windowUnit().getText().toUpperCase());
     }
 
     private String getTypeName(final TypeContext context) {

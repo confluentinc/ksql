@@ -28,6 +28,7 @@ import io.confluent.ksql.serde.SerdeFeatures;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
@@ -44,7 +45,8 @@ public class KsqlDelimitedSerializerTest {
           .valueColumn(ColumnName.of("ORDERID"), SqlTypes.BIGINT)
           .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
           .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.DOUBLE)
-          .valueColumn(ColumnName.of("TIME"), SqlTypes.TIMESTAMP)
+          .valueColumn(ColumnName.of("TIME"), SqlTypes.TIME)
+          .valueColumn(ColumnName.of("TIMESTAMP"), SqlTypes.TIMESTAMP)
           .build().value(),
       SerdeFeatures.of()
   );
@@ -61,27 +63,27 @@ public class KsqlDelimitedSerializerTest {
   @Test
   public void shouldSerializeRowCorrectly() {
     // Given:
-    final List<?> values = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, new Timestamp(100));
+    final List<?> values = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, new Time(100), new Timestamp(100));
 
     // When:
     final byte[] bytes = serializer.serialize("t1", values);
 
     // Then:
     final String delimitedString = new String(bytes, StandardCharsets.UTF_8);
-    assertThat(delimitedString, equalTo("1511897796092,1,item_1,10.0,100"));
+    assertThat(delimitedString, equalTo("1511897796092,1,item_1,10.0,100,100"));
   }
 
   @Test
   public void shouldSerializeRowWithNull() {
     // Given:
-    final List<?> values = Arrays.asList(1511897796092L, 1L, "item_1", null, null);
+    final List<?> values = Arrays.asList(1511897796092L, 1L, "item_1", null, null, null);
 
     // When:
     final byte[] bytes = serializer.serialize("t1", values);
 
     // Then:
     final String delimitedString = new String(bytes, StandardCharsets.UTF_8);
-    assertThat(delimitedString, equalTo("1511897796092,1,item_1,,"));
+    assertThat(delimitedString, equalTo("1511897796092,1,item_1,,,"));
   }
 
   @Test
@@ -200,7 +202,7 @@ public class KsqlDelimitedSerializerTest {
   @Test
   public void shouldSerializeRowCorrectlyWithDifferentDelimiter() {
     // Given:
-    final List<?> values = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, new Timestamp(100));
+    final List<?> values = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, new Time(100), new Timestamp(100));
 
     final KsqlDelimitedSerializer serializer1 =
         new KsqlDelimitedSerializer(SCHEMA, CSVFormat.DEFAULT.withDelimiter('\t'));
@@ -209,13 +211,13 @@ public class KsqlDelimitedSerializerTest {
     final byte[] bytes = serializer1.serialize("t1", values);
 
     // Then:
-    assertThat(new String(bytes, StandardCharsets.UTF_8), is("1511897796092\t1\titem_1\t10.0\t100"));
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("1511897796092\t1\titem_1\t10.0\t100\t100"));
   }
 
   @Test
   public void shouldThrowOnArrayField() {
     // Given:
-    final List<?> values = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, new Timestamp(100));
+    final List<?> values = Arrays.asList(1511897796092L, 1L, "item_1", 10.0, new Time(100), new Timestamp(100));
 
     final KsqlDelimitedSerializer serializer1 =
         new KsqlDelimitedSerializer(SCHEMA, CSVFormat.DEFAULT.withDelimiter('\t'));
@@ -224,7 +226,7 @@ public class KsqlDelimitedSerializerTest {
     final byte[] bytes = serializer1.serialize("t1", values);
 
     // Then:
-    assertThat(new String(bytes, StandardCharsets.UTF_8), is("1511897796092\t1\titem_1\t10.0\t100"));
+    assertThat(new String(bytes, StandardCharsets.UTF_8), is("1511897796092\t1\titem_1\t10.0\t100\t100"));
   }
 
   private void givenSingleColumnSerializer(final SqlType columnType) {

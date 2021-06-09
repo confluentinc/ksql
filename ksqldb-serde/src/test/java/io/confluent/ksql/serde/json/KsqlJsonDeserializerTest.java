@@ -30,9 +30,11 @@ import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.ser.std.DateSerializer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.util.DecimalUtil;
@@ -52,6 +54,7 @@ import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.junit.Before;
 import org.junit.Test;
@@ -73,6 +76,7 @@ public class KsqlJsonDeserializerTest {
   private static final String ARRAYCOL = "ARRAYCOL";
   private static final String MAPCOL = "MAPCOL";
   private static final String CASE_SENSITIVE_FIELD = "caseField";
+  private static final String TIMEFIELD = "TIMEFIELD";
   private static final String TIMESTAMPFIELD = "TIMESTAMPFIELD";
 
   private static final Schema ORDER_SCHEMA = SchemaBuilder.struct()
@@ -89,6 +93,7 @@ public class KsqlJsonDeserializerTest {
           .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
           .optional()
           .build())
+      .field(TIMEFIELD, Time.builder().optional().build())
       .field(TIMESTAMPFIELD, Timestamp.builder().optional().build())
       .build();
 
@@ -100,12 +105,14 @@ public class KsqlJsonDeserializerTest {
       .put("arraycol", ImmutableList.of(10.0, 20.0))
       .put("mapcol", Collections.singletonMap("key1", 10.0))
       .put("caseField", 1L)
+      .put("timefield", new java.sql.Time(1000))
       .put("timestampfield", new java.sql.Timestamp(1000))
       .build();
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
       .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
-      .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
+      .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true))
+      .registerModule(new SimpleModule().addSerializer(java.sql.Time.class, new DateSerializer()));
 
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
@@ -131,6 +138,7 @@ public class KsqlJsonDeserializerTest {
         .put(ARRAYCOL, ImmutableList.of(10.0, 20.0))
         .put(MAPCOL, ImmutableMap.of("key1", 10.0))
         .put(CASE_SENSITIVE_FIELD, 1L)
+        .put(TIMEFIELD, new java.sql.Time(1000))
         .put(TIMESTAMPFIELD, new java.sql.Timestamp(1000));
 
     deserializer = givenDeserializerForSchema(ORDER_SCHEMA, Struct.class);
@@ -265,6 +273,7 @@ public class KsqlJsonDeserializerTest {
     row.put("orderunits", null);
     row.put("arrayCol", new Double[]{0.0, null});
     row.put("mapCol", mapValue);
+    row.put("timefield", null);
     row.put("timestampfield", null);
 
     final byte[] bytes = serializeJson(row);
@@ -281,6 +290,7 @@ public class KsqlJsonDeserializerTest {
         .put(ARRAYCOL, Arrays.asList(0.0, null))
         .put(MAPCOL, mapValue)
         .put(CASE_SENSITIVE_FIELD, null)
+        .put(TIMEFIELD, null)
         .put(TIMESTAMPFIELD, null)
     ));
   }
@@ -614,6 +624,21 @@ public class KsqlJsonDeserializerTest {
   }
 
   @Test
+  public void shouldDeserializeToTime() {
+    // Given:
+    final KsqlJsonDeserializer<java.sql.Time> deserializer =
+        givenDeserializerForSchema(Time.SCHEMA, java.sql.Time.class);
+
+    final byte[] bytes = serializeJson(100L);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(((java.sql.Time) result).getTime(), is(100L));
+  }
+
+  @Test
   public void shouldDeserializeToTimestamp() {
     // Given:
     final KsqlJsonDeserializer<java.sql.Timestamp> deserializer =
@@ -626,6 +651,25 @@ public class KsqlJsonDeserializerTest {
 
     // Then:
     assertThat(((java.sql.Timestamp) result).getTime(), is(100L));
+  }
+
+  @Test
+  public void shouldThrowIfCanNotCoerceToTime() {
+    // Given:
+    final KsqlJsonDeserializer<java.sql.Time> deserializer =
+        givenDeserializerForSchema(Time.SCHEMA, java.sql.Time.class);
+
+    final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
+
+    // When:
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(startsWith(
+        "Can't convert type. sourceType: BooleanNode, requiredType: TIME"))));
   }
 
   @Test

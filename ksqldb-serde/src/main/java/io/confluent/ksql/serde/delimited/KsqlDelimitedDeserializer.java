@@ -27,6 +27,7 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -59,6 +60,7 @@ class KsqlDelimitedDeserializer implements Deserializer<List<?>> {
       .put(SqlBaseType.DOUBLE, t -> Double::parseDouble)
       .put(SqlBaseType.STRING, t -> v -> v)
       .put(SqlBaseType.DECIMAL, KsqlDelimitedDeserializer::decimalParser)
+      .put(SqlBaseType.TIME,KsqlDelimitedDeserializer::timeParser)
       .put(SqlBaseType.TIMESTAMP,KsqlDelimitedDeserializer::timestampParser)
       .build();
 
@@ -126,6 +128,10 @@ class KsqlDelimitedDeserializer implements Deserializer<List<?>> {
   private static Parser decimalParser(final SqlType sqlType) {
     final SqlDecimal decimalType = (SqlDecimal) sqlType;
     return v -> DecimalUtil.ensureFit(new BigDecimal(v), decimalType);
+  }
+
+  private static Parser timeParser(final SqlType sqlType) {
+    return v -> new Time(Long.parseLong(v));
   }
 
   private static Parser timestampParser(final SqlType sqlType) {

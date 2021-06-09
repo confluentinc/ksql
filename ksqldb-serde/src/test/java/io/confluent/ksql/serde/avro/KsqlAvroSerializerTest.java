@@ -66,6 +66,7 @@ import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
@@ -140,6 +141,12 @@ public class KsqlAvroSerializerTest {
           "{"
               + "\"type\": \"long\","
               + "\"logicalType\": \"timestamp-millis\""
+              + "}");
+  private static final org.apache.avro.Schema TIME_SCHEMA =
+      parseAvroSchema(
+          "{"
+              + "\"type\": \"int\","
+              + "\"logicalType\": \"time-millis\""
               + "}");
 
   private static final String SOME_TOPIC = "bob";
@@ -466,6 +473,21 @@ public class KsqlAvroSerializerTest {
     // Then:
     assertThat(e.getCause(), (hasMessage(CoreMatchers.is(
         "java.lang.Boolean cannot be cast to java.util.List"))));
+  }
+
+  @Test
+  public void shouldSerializeTime() {
+    // Given:
+    final Serializer<java.sql.Time> serializer =
+        givenSerializerForSchema(Time.SCHEMA, java.sql.Time.class);
+    final java.sql.Time value = new java.sql.Time(500);
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, value);
+
+    // Then:
+    assertThat(deserialize(bytes), is(500));
+    assertThat(avroSchemaStoredInSchemaRegistry(), is(TIME_SCHEMA));
   }
 
   @Test

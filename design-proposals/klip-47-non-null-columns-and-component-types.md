@@ -36,24 +36,31 @@ Producers outside ksqlDB are able to write into the topic. This means that the u
 have null column records in it. There's no way around this as ksqlDB can't prevent outside producers from writing into the Kafka topics.
 
 With that in mind, the `NOT NULL` constraint can be enforced within the ksqlDB service. When reading records from a source that has a `NOT NULL` 
-column constraint, invalid records will be dropped, and an error sent to the processing log. When attempting to write an invalid
-record to a sink, the record would also be dropped, and an error sent to the processing log. A `INSERT INTO VALUES` statement with
+column constraint, invalid records will be dropped, and an error sent to the processing log.
+```
+"recordProcessingError":{"errorMessage":"Found row with NULL value in NOT NULL column (<column_name>) when reading from <stream/table name>. The record will be dropped."
+```
+
+When attempting to write an invalid
+record to a sink, the record would also be dropped, and an error sent to the processing log.
+```
+"recordProcessingError":{"errorMessage":"Error writing row with NULL value in NOT NULL column (<column_name>) for <stream/table name>. The record will be dropped."
+```
+
+A `INSERT INTO VALUES` statement with
 a null column record would error out. There would be clear documentation for users that `NOT NULL` does not prevent invalid records in the 
 Kafka topic due to records from producers outside ksqlDB.
-
-If there are concerns that applying a constraint over existing data (declaring a stream/table over an existing topic) would lead to records getting dropped, 
-we could require a `DEFAULT` value be specified with `NOT NULL`. This is explained later in the KLIP and needs to be discussed further
- as it's not within scope of the original issue filed.
 
 ## What is in scope
 * Allowing users to specify `NOT NULL` for columns
 * Prevent reading records with a null column value from `NOT NULL` streams/tables
 * Prevent writing records with a null column value to `NOT NULL` streams/tables
 * Allow users to specify `NOT NULL` for array type, map key/value type, and struct field types
-* (maybe) Allow users to specify a default value when applying `NOT NULL`
+
+## What is not in scope
+* Allowing users to add `NOT NULL` to an existing column since we currently don't support modifying columns of existing stream/table, only adding columns.
 
 ## Design
-This design section is only focused on `NOT NULL` for now until we decide whether `DEFAULT` is required or not.
 
 We can add a new `optional` variable to the `SqlType` class to indicate whether the type is optional or not. A `SqlType` variable is in each `Column` object so 
 this would be a convenient way to store the `NOT NULL` constraint for each column. When doing code generation in `SqlToJavaVisitor`, we can then add null filtering code
@@ -105,6 +112,19 @@ ksql> select * from pageviews_no_null emit changes;
 |3              |user                                                            |page                                                            |
 ```
 
+If there was an aggregate column defined as `NOT NULL` using aggregate function `UDAF_TEST`
+and the output of `UDAF_TEST` was NULL for ID `2`, but not for ID `3` and `1`, the result in the table would be:
+```sql
+CREATE TABLE not_null_aggregate as SELECT ID, UDAF_TEST(value) as AGGR FROM test group by id;
+
+select * from not_null_aggregate emit changes;
++---------------+-------------------------------------------+
+|ID              |AGGR                                      |
++---------------+-------------------------------------------+
+|3               | 54                                       |
+|1               | 2                                        |
+```
+
 Attempting to insert invalid records would error out:
 ```sql
 ksql> INSERT INTO pageviews VALUES (5, NULL, 'page23');
@@ -128,32 +148,6 @@ Records that have column values such as
 
 Would be dropped when reading from the `valid_data` stream and trying to insert record with these column values would error out.
 
-## NOT NULL DEFAULT
-When `ALTER` is used to add a `NOT NULL` constraint in SQL to an existing table column, there can't be any `NULL` values 
-in that column, otherwise there would be rows that violate the `NOT NULL` constraint.
-
-In this case, the user needs to either `UPDATE` all existing `NULL` 
-values in that column or specify a `DEFAULT` value for that column. All existing rows with `NULL` would have the default value added to that column, 
-so that the NOT NULL constraint is not violated (This is only done if the `NOT NULL` constraint is used in conjunction with `DEFAULT`, if a 
-column with no constraints has a `DEFAULT` applied to it, the existing rows with null columns won't be updated).
-
-When `DEFAULT` is specified, instead of dropping the record, the default value would be applied to that record's column.
-```sql
-CREATE stream pageviews_default(viewtime BIGINT, userid VARCHAR NOT NULL DEFAULT("default_user"), pageid VARCHAR NOT NULL DEFAULT("default_page")) ...
-```
-
-A `SELECT` query would now return all the records
-```sql
-ksql> select * from pageviews_default emit changes;
-+---------------+----------------------------------------------------------------+----------------------------------------------------------------+
-|VIEWTIME       |USERID                                                          |PAGEID                                                          |
-+---------------+----------------------------------------------------------------+----------------------------------------------------------------+
-|3              |default_user                                                    |default_page                                                    |
-|3              |user                                                            |page                                                            |
-|2              |default_user                                                    |page1                                                           |
-|null           |user                                                            |page                                                            |
-```
-
 ## Test plan
 There will need to be tests for the following:
 * QTT for queries with `NOT NULL` stream/table sources
@@ -170,7 +164,6 @@ There will need to be tests for the following:
 * `NOT NULL` for Array type (includes updating integration with Schema Registry) - 3 days
 * `NOT NULL` for MAP key and value type (includes updating integration with Schema Registry) - 4 days
 * `NOT NULL` in Struct fields (includes updating integration with Schema Registry) - 4 days
-* (maybe) Implement `NOT NULL DEFAULT` - 1 week
 
 ## Documentation Updates
 Documentation on the `NOT NULL` syntax and how applying it doesn't mean the Kafka topic won't have records 

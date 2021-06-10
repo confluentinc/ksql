@@ -579,7 +579,7 @@ public class AstBuilder {
 
         beforeSize = getSizeAndUnitFromJoinWindowSize(singleWithin.joinWindowSize());
         afterSize = beforeSize;
-        gracePeriod = Optional.empty();
+        gracePeriod = gracePeriodClause(singleWithin.gracePeriodClause());
       } else if (ctx instanceof SqlBaseParser.JoinWindowWithBeforeAndAfterContext) {
         final SqlBaseParser.JoinWindowWithBeforeAndAfterContext beforeAndAfterJoinWindow
             = (SqlBaseParser.JoinWindowWithBeforeAndAfterContext) ctx;
@@ -587,18 +587,11 @@ public class AstBuilder {
         beforeSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(0));
         afterSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(1));
         gracePeriod = Optional.empty();
-      } else if (ctx instanceof SqlBaseParser.JoinWindowWithGraceContext) {
-        final SqlBaseParser.JoinWindowWithGraceContext joinWithGracePeriod
-            = (SqlBaseParser.JoinWindowWithGraceContext) ctx;
-
-        beforeSize = getSizeAndUnitFromJoinWindowSize(joinWithGracePeriod.joinWindowSize());
-        afterSize = beforeSize;
-        gracePeriod = gracePeriodClause(joinWithGracePeriod.gracePeriodClause());
       } else {
         throw new RuntimeException("Expecting either a single join window, ie \"WITHIN 10 "
             + "seconds\", a join window with before and after specified, "
             + "ie. \"WITHIN (10 seconds, 20 seconds)\", or a join window with a grace period, "
-            + "ie. \"WITHIN (SIZE 10 seconds, GRACE PERIOD 5 seconds)\"");
+            + "ie. \"WITHIN 10 seconds GRACE PERIOD 5 seconds\"");
       }
       return new WithinExpression(
           getLocation(ctx),

@@ -137,7 +137,7 @@ public class QueryAnonymizerTest {
   public void shouldAnonymizeJoinWithGraceStatementsCorrectly() {
     final String output = anon.anonymize("INSERT INTO OUTPUT SELECT col1, col2, col3"
         + " FROM SOURCE1 S1 JOIN SOURCE2 S2 "
-        + "WITHIN (SIZE 1 SECOND, GRACE PERIOD 2 SECONDS) ON col1.k=col2.k;");
+        + "WITHIN 1 SECOND GRACE PERIOD 2 SECONDS ON col1.k=col2.k;");
 
     Approvals.verify(output);
   }

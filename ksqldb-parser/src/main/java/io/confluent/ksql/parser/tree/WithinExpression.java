@@ -85,18 +85,13 @@ public class WithinExpression extends AstNode {
     final StringBuilder builder = new StringBuilder();
     builder.append(" WITHIN ");
     if (before == after) {
-      if (gracePeriod.isPresent()) {
-        builder.append("(SIZE ");
-      }
-
       builder.append(before).append(' ').append(beforeTimeUnit);
 
       if (gracePeriod.isPresent()) {
-        builder.append(", GRACE PERIOD ")
+        builder.append(" GRACE PERIOD ")
             .append(gracePeriod.get().getValue())
             .append(' ')
-            .append(gracePeriod.get().getTimeUnit())
-            .append(")");
+            .append(gracePeriod.get().getTimeUnit());
       }
     } else {
       builder.append('(')

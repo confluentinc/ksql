@@ -879,6 +879,11 @@ public class QueryAnonymizer {
 
         stringBuilder.append(String.format("%s",
             anonymizeJoinWindowSize(singleWithin.joinWindowSize())));
+
+        if (singleWithin.gracePeriodClause() != null) {
+          stringBuilder.append(String.format(" GRACE PERIOD %s",
+              anonymizeGracePeriod(singleWithin.gracePeriodClause())));
+        }
       } else if (context instanceof JoinWindowWithBeforeAndAfterContext) {
         final SqlBaseParser.JoinWindowWithBeforeAndAfterContext beforeAndAfterJoinWindow
             = (SqlBaseParser.JoinWindowWithBeforeAndAfterContext) context;
@@ -886,18 +891,11 @@ public class QueryAnonymizer {
         stringBuilder.append(String.format("(%s, %s)",
             anonymizeJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(0)),
             anonymizeJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(1))));
-      } else if (context instanceof SqlBaseParser.JoinWindowWithGraceContext) {
-        final SqlBaseParser.JoinWindowWithGraceContext joinWithGracePeriod =
-            (SqlBaseParser.JoinWindowWithGraceContext) context;
-
-        stringBuilder.append(String.format("(SIZE %s, GRACE PERIOD %s)",
-            anonymizeJoinWindowSize(joinWithGracePeriod.joinWindowSize()),
-            anonymizeGracePeriod(joinWithGracePeriod.gracePeriodClause())));
       } else {
         throw new RuntimeException("Expecting either a single join window, ie \"WITHIN 10 "
             + "seconds\", a join window with before and after specified, "
             + "ie. \"WITHIN (10 seconds, 20 seconds)\", or a join window with a grace period, "
-            + "ie. \"WITHIN (SIZE 10 seconds, GRACE PERIOD 5 seconds)\"");
+            + "ie. \"WITHIN 10 seconds GRACE PERIOD 5 seconds\"");
       }
 
       return stringBuilder.append(' ').toString();

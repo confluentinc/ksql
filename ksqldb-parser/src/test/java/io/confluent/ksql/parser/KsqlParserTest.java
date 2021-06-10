@@ -946,7 +946,7 @@ public class KsqlParserTest {
   @Test
   public void shouldSetWithinExpressionWithSingleWithinAndGracePeriod() {
     final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 JOIN ORDERS WITHIN "
-        + "(SIZE 10 SECONDS, GRACE PERIOD 5 SECONDS) ON TEST1.col1 = ORDERS.ORDERID ;";
+        + "10 SECONDS GRACE PERIOD 5 SECONDS ON TEST1.col1 = ORDERS.ORDERID ;";
 
     final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
         .getStatement();

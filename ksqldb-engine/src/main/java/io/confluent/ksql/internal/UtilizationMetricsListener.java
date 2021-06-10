@@ -55,7 +55,7 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
     }
 
     // for testing
-    public UtilizationMetricsListener(final long windowSize, final List<KafkaStreams> streams) {
+    public UtilizationMetricsListener(final long windowSize, final List<KafkaStreams> streams, final Time time, final long lastSample) {
         this.kafkaStreams = streams;
         this.metrics = new LinkedList<>();
         // we can add these here or pass it in through the constructor
@@ -63,9 +63,9 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
         metrics.add("restore-consumer-poll-time-total");
         metrics.add("send-time-total");
         metrics.add("flush-time-total");
-        time = Time.SYSTEM;
+        this.time = time;
         this.windowSize = windowSize;
-        lastSampleTime = time.milliseconds() - 100L;
+        lastSampleTime = lastSample;
         previousPollTime = new HashMap<>();
         previousRestoreConsumerPollTime = new HashMap<>();
         previousSendTime = new HashMap<>();
@@ -92,14 +92,7 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
     @Override
     public void run() {
         logger.info("Reporting CSU thread level metrics");
-        while (true) {
-            logger.info("the current processing ratio is " + processingRatio() + "%");
-            try {
-                Thread.sleep(windowSize);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
+        logger.info("the current processing ratio is " + processingRatio() + "%");
     }
 
     private void reportSystemMetrics() {
@@ -123,7 +116,7 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
         long sampleTime = time.milliseconds();
         double blockedTime = sampleTime - lastSampleTime;
 
-        final long windowSize = Math.max((sampleTime - lastSampleTime), this.windowSize);
+        final long windowSize = sampleTime - lastSampleTime;
         final long windowStart = lastSampleTime;
         for (KafkaStreams stream : kafkaStreams) {
             for (ThreadMetadata thread : stream.localThreadsMetadata()) {
@@ -159,10 +152,10 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
             if (threadStartTime > windowStart) {
                 blockedTime += threadStartTime - windowStart;
             }
-            final double newPollTime = threadMetrics.getOrDefault("poll-time-total", 0.0);
-            final double newRestorePollTime = threadMetrics.getOrDefault("restore-consumer-poll-time-total", 0.0);
-            final double newFlushTime = threadMetrics.getOrDefault("flush-time-total", 0.0);
-            final double newSendTime = threadMetrics.getOrDefault("send-time-total", 0.0);
+            final double newPollTime = threadMetrics.getOrDefault("poll-time-total", windowSize);
+            final double newRestorePollTime = threadMetrics.getOrDefault("restore-consumer-poll-time-total", windowSize);
+            final double newFlushTime = threadMetrics.getOrDefault("flush-time-total", windowSize);
+            final double newSendTime = threadMetrics.getOrDefault("send-time-total", windowSize);
             blockedTime += Math.max(newPollTime - previousPollTime.getOrDefault(threadName, 0.0), 0);
             previousPollTime.put(threadName, newPollTime);
 

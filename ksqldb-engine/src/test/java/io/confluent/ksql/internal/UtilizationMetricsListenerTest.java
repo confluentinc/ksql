@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.metrics.KafkaMetric;
+import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.processor.ThreadMetadata;
 import org.junit.Before;
@@ -19,7 +20,6 @@ import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
@@ -69,18 +69,23 @@ public class UtilizationMetricsListenerTest {
   @Mock
   private ThreadMetadata s1_t3;
 
+  @Mock
+  private Time time;
+
   @Before
   public void setUp() {
     streamsList = new ArrayList<>();
     streamsList.add(s1);
 
-    listener = new UtilizationMetricsListener(700L, streamsList);
+    listener = new UtilizationMetricsListener(300L, streamsList, time, 200L);
 
     metricNames = new ArrayList<>();
     metricNames.add("poll-time-total");
     metricNames.add("restore-consumer-poll-time-total");
     metricNames.add("send-time-total");
     metricNames.add("flush-time-total");
+
+    when(time.milliseconds()).thenReturn(500L);
 
     when(s1_t1.threadName()).thenReturn("s1_t1");
     when(s1_t2.threadName()).thenReturn("s1_t2");
@@ -111,84 +116,103 @@ public class UtilizationMetricsListenerTest {
   public void shouldGetMinOfAllThreads() {
     doReturn(createMetrics("s1_t1", "s1_t2", "s1_t3")).when(s1).metrics();
 
-    final long threadStartTime = System.currentTimeMillis() - 200L;
-    // Thread 1 -> blocked for 65 / 700
+    // All threads started before window
+    // Thread 1 -> blocked for 65 / 300
     when(poll.metricValue()).thenReturn(20.0);
     when(restoreConsumer.metricValue()).thenReturn(15.0);
     when(flush.metricValue()).thenReturn(10.0);
     when(send.metricValue()).thenReturn(20.0);
-    when(startTime.metricValue()).thenReturn(threadStartTime);
+    when(startTime.metricValue()).thenReturn(200L);
 
     when(poll_1.metricValue()).thenReturn(50.0);
     when(restoreConsumer_1.metricValue()).thenReturn(11.0);
     when(flush_1.metricValue()).thenReturn(13.0);
     when(send_1.metricValue()).thenReturn(25.0);
-    when(startTime_1.metricValue()).thenReturn(threadStartTime);
+    when(startTime_1.metricValue()).thenReturn(200L);
 
     // thread 3 -> blocked for 9
     when(poll_2.metricValue()).thenReturn(5.0);
     when(restoreConsumer_2.metricValue()).thenReturn(1.0);
     when(flush_2.metricValue()).thenReturn(1.0);
     when(send_2.metricValue()).thenReturn(2.0);
-    when(startTime_2.metricValue()).thenReturn(threadStartTime);
+    when(startTime_2.metricValue()).thenReturn(200L);
 
-    assertThat(listener.processingRatio(), equalTo(99.0));
+    assertThat(listener.processingRatio(), equalTo(97.0));
   }
 
   @Test
   public void shouldHandleMissingThreadData() {
     doReturn(createMetrics("s1_t1", "s1_t2", "")).when(s1).metrics();
 
-    final long threadStartTime = System.currentTimeMillis() - 200L;
-    // Thread 1 -> blocked for 65 / 700
+    // Thread 1 -> blocked for 65 / 300
     when(poll.metricValue()).thenReturn(20.0);
     when(restoreConsumer.metricValue()).thenReturn(15.0);
     when(flush.metricValue()).thenReturn(10.0);
     when(send.metricValue()).thenReturn(20.0);
-    when(startTime.metricValue()).thenReturn(threadStartTime);
+    when(startTime.metricValue()).thenReturn(200L);
 
-    // thread 2 -> blocked for 99 / 700
+    // thread 2 -> blocked for 99 / 300
     when(poll_1.metricValue()).thenReturn(50.0);
     when(restoreConsumer_1.metricValue()).thenReturn(11.0);
     when(flush_1.metricValue()).thenReturn(13.0);
     when(send_1.metricValue()).thenReturn(25.0);
-    when(startTime_1.metricValue()).thenReturn(threadStartTime);
+    when(startTime_1.metricValue()).thenReturn(200L);
 
-    // I don't know if this is really right, if the thread is missing data it returns 0 for processing time
-    // which will always be the minimum
     // thread 3 -> missing
 
-    assertThat(listener.processingRatio(), equalTo(100.0));
+    assertThat(listener.processingRatio(), equalTo(78.0));
   }
 
   @Test
   public void shouldHandleOverlyLargeBlockedTime() {
     doReturn(createMetrics("s1_t1", "s1_t2", "s1_t3")).when(s1).metrics();
 
-    final long threadStartTime = System.currentTimeMillis() - 200L;
-    // Thread 1 -> blocked for 750 / 700
+    // Thread 1 -> blocked for 750 / 300
     when(poll.metricValue()).thenReturn(200.0);
     when(restoreConsumer.metricValue()).thenReturn(150.0);
     when(flush.metricValue()).thenReturn(100.0);
     when(send.metricValue()).thenReturn(300.0);
-    when(startTime.metricValue()).thenReturn(threadStartTime);
+    when(startTime.metricValue()).thenReturn(200L);
 
-    // thread 2 -> blocked for 945 / 700
+    // thread 2 -> blocked for 945 / 300
     when(poll_1.metricValue()).thenReturn(500.0);
     when(restoreConsumer_1.metricValue()).thenReturn(110.0);
     when(flush_1.metricValue()).thenReturn(130.0);
     when(send_1.metricValue()).thenReturn(205.0);
-    when(startTime_1.metricValue()).thenReturn(threadStartTime);
+    when(startTime_1.metricValue()).thenReturn(200L);
 
-    // thread 3 -> blocked for 150 / 700
+    // thread 3 -> blocked for 150 / 300
     when(poll_2.metricValue()).thenReturn(50.0);
     when(restoreConsumer_2.metricValue()).thenReturn(100.0);
     when(flush_2.metricValue()).thenReturn(0.0);
     when(send_2.metricValue()).thenReturn(0.0);
-    when(startTime_2.metricValue()).thenReturn(threadStartTime);
+    when(startTime_2.metricValue()).thenReturn(200L);
 
-    // hard to predict the value because the `blockedTime` is based on sample time which we can't really predict
-    assertThat(listener.processingRatio(), greaterThan(78.0));
+    assertThat(listener.processingRatio(), equalTo(50.0));
+  }
+
+  @Test
+  public void shouldProperlyComputeWithDifferentStartTimes() {
+    doReturn(createMetrics("s1_t1", "s1_t2", "")).when(s1).metrics();
+
+    // window start is 200L
+    // Thread 1 -> blocked for 165 / 300
+    when(poll.metricValue()).thenReturn(20.0);
+    when(restoreConsumer.metricValue()).thenReturn(15.0);
+    when(flush.metricValue()).thenReturn(100.0);
+    when(send.metricValue()).thenReturn(30.0);
+    when(startTime.metricValue()).thenReturn(100L);
+
+    // thread 2 -> blocked for 55 / 300 -> obvious min but since started within
+    // the window, should not get this value for blocked time
+    when(poll_1.metricValue()).thenReturn(10.0);
+    when(restoreConsumer_1.metricValue()).thenReturn(12.0);
+    when(flush_1.metricValue()).thenReturn(13.0);
+    when(send_1.metricValue()).thenReturn(20.0);
+    when(startTime_1.metricValue()).thenReturn(350L);
+
+    assertThat(listener.processingRatio(), equalTo(45.0));
+
   }
 
   private Map<MetricName, KafkaMetric> createMetrics(final String threadOne, final String threadTwo, final String threadThree) {

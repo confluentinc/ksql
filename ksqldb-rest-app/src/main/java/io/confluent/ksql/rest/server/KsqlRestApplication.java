@@ -692,8 +692,7 @@ public final class KsqlRestApplication implements Executable {
                     .build()
     );
     final UtilizationMetricsListener csuMetricReporter = new UtilizationMetricsListener(300000L);
-    // will change to 300000 when we're ready
-    executorService.scheduleAtFixedRate(csuMetricReporter, 0, 12000, TimeUnit.MILLISECONDS);
+    executorService.scheduleAtFixedRate(csuMetricReporter, 0, 300000, TimeUnit.MILLISECONDS);
     final List<QueryEventListener> listeners = new ArrayList <>();
     listeners.add(csuMetricReporter);
 

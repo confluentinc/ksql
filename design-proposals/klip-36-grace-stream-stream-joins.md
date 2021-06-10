@@ -38,20 +38,19 @@ Stream-stream joins require use of `WITHIN` clauses:
 JOIN <stream> WITHIN <time unit> ON <condition>
 ```
 
-This will be expanded to support a more complex `withinExpression` that leverages the same
-syntax as aggregation windows:
+This will be expanded to support GRACE PERIOD keyword:
 
 Joins with simple windows:
 ```
-JOIN <stream> WITHIN (SIZE <time unit>, GRACE PERIOD <time unit>) ON <condition>
+JOIN <stream> WITHIN <time unit> GRACE PERIOD <time unit> ON <condition>
 ```
 
 Joins with before/after windows:
 ```
-JOIN <stream> WITHIN (BEFORE <time unit>, AFTER <time unit>, GRACE PERIOD <time unit>) ON <condition>
+JOIN <stream> WITHIN (<time unit>, <time unit>) GRACE PERIOD <time unit> ON <condition>
 ```
 
-The old syntax will still be supported for backwards compatibility.
+The GRACE PERIOD will be optional for backwards compatibility.
 
 ## Design
 
@@ -97,14 +96,13 @@ the order was placed, and shipped within 2 hours of the payment being received.
         p.id as paymentId
      FROM orders o
         INNER JOIN payments p WITHIN 1 HOURS ON p.id = o.id
-        INNER JOIN shipments s WITHIN (SIZE 2 HOURS, GRACE PERIOD 30 MINUTES) ON s.id = o.id;
+        INNER JOIN shipments s WITHIN 2 HOURS GRACE PERIOD 30 MINUTES ON s.id = o.id;
 ```
 
 ## Compatibility Implications
 
-- We should consider whether we want to support the older syntax or require all new joins
-    to use the `(SIZE <size>, GRACE PERIOD <size>)` syntax (noting that `GRACE PERIOD` will
-    be optional).
+None. The `GRACE PERIOD` will be optional, so users can continue using the current syntax without
+it.
 
 ## Security Implications
 

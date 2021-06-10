@@ -50,7 +50,8 @@ Joins with before/after windows:
 JOIN <stream> WITHIN (<time unit>, <time unit>) GRACE PERIOD <time unit> ON <condition>
 ```
 
-The GRACE PERIOD will be optional for backwards compatibility.
+The GRACE PERIOD will be optional for backwards compatibility. Note that using the grace period
+will enable a bugfix for left/outer joins. More info in the `Compatibility Implications` section.
 
 ## Design
 
@@ -103,6 +104,11 @@ the order was placed, and shipped within 2 hours of the payment being received.
 
 None. The `GRACE PERIOD` will be optional, so users can continue using the current syntax without
 it.
+
+However, using the `GRACE PERIOD` syntax will enable a bugfix in left/outer joins that used to
+display spurious results with stream-stream joins. It is optional to the user to set the grace
+period for now, but this will be mandatory in the future in order to enforce users to switch
+to the kafka streams bugfix. More info: https://issues.apache.org/jira/browse/KAFKA-10847
 
 ## Security Implications
 

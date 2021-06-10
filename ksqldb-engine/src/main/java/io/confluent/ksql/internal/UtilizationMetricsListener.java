@@ -4,6 +4,7 @@ import io.confluent.ksql.engine.QueryEventListener;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.QueryMetadata;
+import org.apache.kafka.common.Metric;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.processor.ThreadMetadata;
@@ -35,7 +36,6 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
     private final Map<String, Double> previousRestoreConsumerPollTime;
     private final Map<String, Double> previousSendTime;
     private final Map<String, Double> previousFlushTime;
-    public Map<String, Double> temporaryThreadMetrics;
 
     public UtilizationMetricsListener(final long windowSize){
         this.kafkaStreams = new ArrayList<>();
@@ -47,12 +47,11 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
         metrics.add("flush-time-total");
         time = Time.SYSTEM;
         this.windowSize = windowSize;
-        lastSampleTime = 0L;
+        lastSampleTime = time.milliseconds();
         previousPollTime = new HashMap<>();
         previousRestoreConsumerPollTime = new HashMap<>();
         previousSendTime = new HashMap<>();
         previousFlushTime = new HashMap<>();
-        temporaryThreadMetrics = new HashMap<>();
     }
 
     // for testing
@@ -66,11 +65,11 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
         metrics.add("flush-time-total");
         time = Time.SYSTEM;
         this.windowSize = windowSize;
+        lastSampleTime = time.milliseconds() - 100L;
         previousPollTime = new HashMap<>();
         previousRestoreConsumerPollTime = new HashMap<>();
         previousSendTime = new HashMap<>();
         previousFlushTime = new HashMap<>();
-        temporaryThreadMetrics = new HashMap<>();
     }
 
     @Override
@@ -86,8 +85,8 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
         kafkaStreams.remove(query.getKafkaStreams());
         previousPollTime.remove("poll-time-total");
         previousRestoreConsumerPollTime.remove("restore-consumer-poll-time-total");
-        previousSendTime.remove("send-poll-time-total");
-        previousFlushTime.remove("flush-poll-time-total");
+        previousSendTime.remove("send-time-total");
+        previousFlushTime.remove("flush-time-total");
     }
 
     @Override
@@ -124,7 +123,7 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
         long sampleTime = time.milliseconds();
         double blockedTime = sampleTime - lastSampleTime;
 
-        final long windowSize = sampleTime - lastSampleTime;
+        final long windowSize = Math.max((sampleTime - lastSampleTime), this.windowSize);
         final long windowStart = lastSampleTime;
         for (KafkaStreams stream : kafkaStreams) {
             for (ThreadMetadata thread : stream.localThreadsMetadata()) {
@@ -133,49 +132,55 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
         }
         final double notBlocked = windowSize - blockedTime;
         lastSampleTime = sampleTime;
-        return (notBlocked / windowSize) * 100;
+        return Math.round((notBlocked / windowSize) * 100);
     }
 
     // public for testing
     public double getProcessingRatio(final String threadName, final KafkaStreams streams, final long windowStart, final double windowSize) {
-        final Map<String, Double> threadMetrics = streams.metrics().values().stream()
-                .filter(m -> m.metricName().group().equals(STREAM_THREAD_GROUP) &&
-                        m.metricName().tags().get(THREAD_ID).equals(threadName) &&
-                        metrics.contains(m.metricName().name()))
-                .collect(Collectors.toMap(k -> k.metricName().name(), v -> (double) v.metricValue()));
-        // for testing
-        temporaryThreadMetrics = threadMetrics;
-        final Long threadStartTime = (Long) streams.metrics().values().stream()
-                .filter(m -> m.metricName().group().equals(STREAM_THREAD_GROUP) &&
-                        m.metricName().tags().get(THREAD_ID).equals(threadName) &&
-                        m.metricName().name().equals("thread-start-time"))
-                .collect(Collectors.toList())
-                .get(0)
-                .metricValue();
-        double blockedTime = 0;
-        if (threadStartTime > windowStart) {
-            blockedTime += threadStartTime - windowStart;
-            previousPollTime.put(threadName, 0.0);
-            previousRestoreConsumerPollTime.put(threadName, 0.0);
-            previousSendTime.put(threadName, 0.0);
-            previousFlushTime.put(threadName, 0.0);
+        // if the type of metrics ever change in streams we'd get class cast exceptions here
+        // with this behavior nothing will quit which is good, but we won't necessarily know that there's an issue
+        // unless we pay attention that all the processing ratios are 100, could have a DD monitor or smthn if this
+        // feels important
+        try {
+            final Map<String, Double> threadMetrics = streams.metrics().values().stream()
+                    .filter(m -> m.metricName().group().equals(STREAM_THREAD_GROUP) &&
+                            m.metricName().tags().get(THREAD_ID).equals(threadName) &&
+                            metrics.contains(m.metricName().name()))
+                    .collect(Collectors.toMap(k -> k.metricName().name(), v -> (double) v.metricValue()));
+
+            final List<Metric> startTimeList = streams.metrics().values().stream()
+                    .filter(m -> m.metricName().group().equals(STREAM_THREAD_GROUP) &&
+                            m.metricName().tags().get(THREAD_ID).equals(threadName) &&
+                            m.metricName().name().equals("thread-start-time"))
+                    .collect(Collectors.toList());
+            final Long threadStartTime = startTimeList.size() != 0 ? (Long) startTimeList.get(0).metricValue() : 0L;
+
+            double blockedTime = 0;
+            if (threadStartTime > windowStart) {
+                blockedTime += threadStartTime - windowStart;
+            }
+            final double newPollTime = threadMetrics.getOrDefault("poll-time-total", 0.0);
+            final double newRestorePollTime = threadMetrics.getOrDefault("restore-consumer-poll-time-total", 0.0);
+            final double newFlushTime = threadMetrics.getOrDefault("flush-time-total", 0.0);
+            final double newSendTime = threadMetrics.getOrDefault("send-time-total", 0.0);
+            blockedTime += Math.max(newPollTime - previousPollTime.getOrDefault(threadName, 0.0), 0);
+            previousPollTime.put(threadName, newPollTime);
+
+            blockedTime += Math.max(newRestorePollTime - previousRestoreConsumerPollTime.getOrDefault(threadName, 0.0), 0);
+            previousRestoreConsumerPollTime.put(threadName, newRestorePollTime);
+
+            blockedTime += Math.max(newSendTime - previousSendTime.getOrDefault(threadName, 0.0), 0);
+            previousSendTime.put(threadName, newSendTime);
+
+            blockedTime += Math.max(newFlushTime - previousFlushTime.getOrDefault(threadName, 0.0), 0);
+            previousFlushTime.put(threadName, newFlushTime);
+
+            return Math.min(windowSize, blockedTime);
+
+        } catch (ClassCastException e) {
+            logger.error("Class cast exception in `UtilizationMetricsListener`. The underlying" +
+                    "streams metrics might have changed type." + e.getMessage());
+            return 0.0;
         }
-        final double newPollTime = threadMetrics.getOrDefault("poll-time-total", 0.0);
-        final double newRestorePollTime = threadMetrics.getOrDefault("restore-consumer-poll-time-total", 0.0);
-        final double newFlushTime = threadMetrics.getOrDefault("flush-time-total", 0.0);
-        final double newSendTime = threadMetrics.getOrDefault("send-time-total", 0.0);
-        blockedTime += Math.max(newPollTime - previousPollTime.get(threadName), 0);
-        previousPollTime.put(threadName, newPollTime);
-
-        blockedTime += Math.max(newRestorePollTime - previousRestoreConsumerPollTime.get(threadName), 0);
-        previousRestoreConsumerPollTime.put(threadName, newRestorePollTime);
-
-        blockedTime += Math.max(newSendTime - previousSendTime.get(threadName), 0);
-        previousSendTime.put(threadName, newSendTime);
-
-        blockedTime += Math.max(newFlushTime - previousFlushTime.get(threadName), 0);
-        previousFlushTime.put(threadName, newFlushTime);
-
-        return Math.min(windowSize, blockedTime);
     }
 }

@@ -273,6 +273,8 @@ public class QueryRegistryImpl implements QueryRegistry {
         unregisterQuery(oldQuery);
       }
 
+      // Initialize the query before it's exposed to other threads via the map/sets.
+      persistentQuery.initialize();
       persistentQueries.put(queryId, persistentQuery);
       if (createAsQuery) {
         createAsQueries.put(persistentQuery.getSinkName(), queryId);
@@ -282,10 +284,12 @@ public class QueryRegistryImpl implements QueryRegistry {
             insertQueries.computeIfAbsent(sourceName,
                 x -> Collections.synchronizedSet(new HashSet<>())).add(queryId));
       }
+    } else {
+      // Initialize the query before it's exposed to other threads via {@link allLiveQueries}.
+      query.initialize();
     }
     allLiveQueries.add(query);
     notifyCreate(serviceContext, metaStore, query);
-    query.initialize();
   }
 
   private void unregisterQuery(final QueryMetadata query) {

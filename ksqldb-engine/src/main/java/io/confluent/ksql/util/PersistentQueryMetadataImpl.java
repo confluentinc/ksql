@@ -37,7 +37,6 @@ import io.confluent.ksql.schema.query.QuerySchemas;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 
@@ -54,9 +53,9 @@ public class PersistentQueryMetadataImpl
   private final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
       materializationProviderBuilder;
   private final Optional<ScalablePushRegistry> scalablePushRegistry;
+  private final ProcessingLogger processingLogger;
 
   private Optional<MaterializationProvider> materializationProvider;
-  private ProcessingLogger processingLogger;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public PersistentQueryMetadataImpl(
@@ -201,23 +200,6 @@ public class PersistentQueryMetadataImpl
       final QueryContext.Stacker contextStacker
   ) {
     return materializationProvider.map(builder -> builder.build(queryId, contextStacker));
-  }
-
-  public synchronized void restart() {
-    if (isClosed()) {
-      throw new IllegalStateException(String.format(
-          "Query with application id %s is already closed, cannot restart.",
-          getQueryApplicationId()));
-    }
-
-    closeKafkaStreams();
-
-    final KafkaStreams newKafkaStreams = buildKafkaStreams();
-    materializationProvider = materializationProviderBuilder.flatMap(
-        builder -> builder.apply(newKafkaStreams, getTopology()));
-
-    resetKafkaStreams(newKafkaStreams);
-    start();
   }
 
   /**

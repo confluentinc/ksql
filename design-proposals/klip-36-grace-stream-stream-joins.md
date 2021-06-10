@@ -41,8 +41,14 @@ JOIN <stream> WITHIN <time unit> ON <condition>
 This will be expanded to support a more complex `withinExpression` that leverages the same
 syntax as aggregation windows:
 
+Joins with simple windows:
 ```
 JOIN <stream> WITHIN (SIZE <time unit>, GRACE PERIOD <time unit>) ON <condition>
+```
+
+Joins with before/after windows:
+```
+JOIN <stream> WITHIN (BEFORE <time unit>, AFTER <time unit>, GRACE PERIOD <time unit>) ON <condition>
 ```
 
 The old syntax will still be supported for backwards compatibility.

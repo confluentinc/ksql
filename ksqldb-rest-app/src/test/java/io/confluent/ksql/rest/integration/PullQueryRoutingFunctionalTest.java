@@ -79,6 +79,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -94,6 +95,7 @@ import org.slf4j.LoggerFactory;
  * <p>For tests on general syntax and handled see RestQueryTranslationTest's
  * materialized-aggregate-static-queries.json
  */
+@Ignore
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 @Category({IntegrationTest.class})
 public class PullQueryRoutingFunctionalTest {

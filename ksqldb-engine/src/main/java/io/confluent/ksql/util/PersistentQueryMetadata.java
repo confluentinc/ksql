@@ -55,8 +55,6 @@ public interface PersistentQueryMetadata extends QueryMetadata {
       QueryContext.Stacker contextStacker
   );
 
-  void restart();
-
   void stop();
 
   StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(

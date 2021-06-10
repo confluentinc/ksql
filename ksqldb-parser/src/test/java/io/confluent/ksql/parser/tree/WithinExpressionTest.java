@@ -54,4 +54,22 @@ public class WithinExpressionTest {
         JoinWindows.of(Duration.ofSeconds(20)).grace(Duration.ofSeconds(5)),
         expression.joinWindow());
   }
+
+  @Test
+  public void shouldDisplayCorrectStringWithBeforeAndAfterWithGracePeriod() {
+    final WindowTimeClause gracePeriod = new WindowTimeClause(5, TimeUnit.SECONDS);
+    final WithinExpression expression = new WithinExpression(
+        30,
+        40,
+        TimeUnit.MINUTES,
+        TimeUnit.HOURS,
+        gracePeriod);
+
+    assertEquals(" WITHIN (30 MINUTES, 40 HOURS) GRACE PERIOD 5 SECONDS", expression.toString());
+    assertEquals(
+        JoinWindows.of(Duration.ofMinutes(30))
+            .after(Duration.ofHours(40))
+            .grace(Duration.ofSeconds(5)),
+        expression.joinWindow());
+  }
 }

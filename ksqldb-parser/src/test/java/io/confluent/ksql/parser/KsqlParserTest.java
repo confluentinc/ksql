@@ -1006,6 +1006,38 @@ public class KsqlParserTest {
   }
 
   @Test
+  public void shouldSetWithinExpressionWithBeforeAndAfterAndGracePeriod() {
+    final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 JOIN ORDERS "
+        + "WITHIN (10 seconds, 20 minutes) GRACE PERIOD 10 minutes "
+        + "ON TEST1.col1 = ORDERS.ORDERID ;";
+
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
+        .getStatement();
+
+    assertThat(statement, instanceOf(CreateStreamAsSelect.class));
+
+    final CreateStreamAsSelect createStreamAsSelect = (CreateStreamAsSelect) statement;
+
+    final Query query = createStreamAsSelect.getQuery();
+
+    assertThat(query.getFrom(), instanceOf(Join.class));
+
+    final JoinedSource join = Iterables.getOnlyElement(((Join) query.getFrom()).getRights());
+
+    assertTrue(join.getWithinExpression().isPresent());
+
+    final WithinExpression withinExpression = join.getWithinExpression().get();
+
+    assertThat(withinExpression.getBefore(), is(10L));
+    assertThat(withinExpression.getAfter(), is(20L));
+    assertThat(withinExpression.getBeforeTimeUnit(), is(TimeUnit.SECONDS));
+    assertThat(withinExpression.getAfterTimeUnit(), is(TimeUnit.MINUTES));
+    assertThat(withinExpression.getGrace(),
+        is(Optional.of(new WindowTimeClause(10, TimeUnit.MINUTES))));
+    assertThat(join.getType(), is(JoinedSource.Type.INNER));
+  }
+
+  @Test
   public void shouldHaveInnerJoinTypeWithExplicitInnerKeyword() {
     final String statementString = "CREATE STREAM foobar as SELECT * from TEST1 INNER JOIN TEST2 "
         + "ON TEST1.col1 = TEST2.col1;";

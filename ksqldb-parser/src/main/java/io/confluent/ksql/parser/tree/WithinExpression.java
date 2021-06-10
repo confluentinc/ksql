@@ -49,6 +49,16 @@ public class WithinExpression extends AstNode {
       final long before,
       final long after,
       final TimeUnit beforeTimeUnit,
+      final TimeUnit afterTimeUnit,
+      final WindowTimeClause gracePeriod
+  ) {
+    this(Optional.empty(), before, after, beforeTimeUnit, afterTimeUnit, Optional.of(gracePeriod));
+  }
+
+  public WithinExpression(
+      final long before,
+      final long after,
+      final TimeUnit beforeTimeUnit,
       final TimeUnit afterTimeUnit
   ) {
     this(Optional.empty(), before, after, beforeTimeUnit, afterTimeUnit, Optional.empty());
@@ -86,13 +96,6 @@ public class WithinExpression extends AstNode {
     builder.append(" WITHIN ");
     if (before == after) {
       builder.append(before).append(' ').append(beforeTimeUnit);
-
-      if (gracePeriod.isPresent()) {
-        builder.append(" GRACE PERIOD ")
-            .append(gracePeriod.get().getValue())
-            .append(' ')
-            .append(gracePeriod.get().getTimeUnit());
-      }
     } else {
       builder.append('(')
           .append(before)
@@ -104,6 +107,14 @@ public class WithinExpression extends AstNode {
           .append(afterTimeUnit)
           .append(")");
     }
+
+    if (gracePeriod.isPresent()) {
+      builder.append(" GRACE PERIOD ")
+          .append(gracePeriod.get().getValue())
+          .append(' ')
+          .append(gracePeriod.get().getTimeUnit());
+    }
+
     return builder.toString();
   }
 

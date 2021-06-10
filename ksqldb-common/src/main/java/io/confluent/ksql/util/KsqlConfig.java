@@ -278,6 +278,14 @@ public class KsqlConfig extends AbstractConfig {
           + "functions, aggregations, or joins, but may include projections and filters.";
   public static final boolean KSQL_QUERY_PUSH_SCALABLE_ENABLED_DEFAULT = false;
 
+  public static final String KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED
+      = "ksql.query.push.scalable.interpreter.enabled";
+  public static final String KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED_DOC =
+      "Enables whether we use the interpreter for expression evaluation for scalable push queries, "
+          + "or the default code generator. They should produce the same results, but may have "
+          + "different performance characteristics.";
+  public static final boolean KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED_DEFAULT = true;
+
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE = "ksql.cast.strings.preserve.nulls";
   public static final String KSQL_STRING_CASE_CONFIG_TOGGLE_DOC =
       "When casting a SQLType to string, if false, use String.valueof(), else if true use"
@@ -887,6 +895,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_QUERY_PUSH_SCALABLE_ENABLED_DEFAULT,
             Importance.LOW,
             KSQL_QUERY_PUSH_SCALABLE_ENABLED_DOC
+        )
+        .define(
+            KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED,
+            Type.BOOLEAN,
+            KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED_DOC
         )
         .define(
             KSQL_ERROR_CLASSIFIER_REGEX_PREFIX,

@@ -24,6 +24,7 @@ import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
 import io.confluent.ksql.config.SessionConfig;
+import io.confluent.ksql.engine.QueryExecutionUtil.ColumnReferenceRewriter;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.streams.RoutingOptions;
@@ -72,6 +73,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PlanSummary;
+import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -101,6 +103,7 @@ final class EngineExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger LOG = LoggerFactory.getLogger(EngineExecutor.class);
+  private static final String NO_OUTPUT_TOPIC_PREFIX = "";
 
   private final EngineContext engineContext;
   private final ServiceContext serviceContext;
@@ -180,10 +183,11 @@ final class EngineExecutor {
     RoutingNodeType routingNodeType = null;
 
     try {
-      final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(engineContext.getMetaStore(), "");
+      final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(engineContext.getMetaStore(),
+          NO_OUTPUT_TOPIC_PREFIX);
       final ImmutableAnalysis analysis = new RewrittenAnalysis(
           queryAnalyzer.analyze(statement.getStatement(), Optional.empty()),
-          new PullQueryExecutionUtil.ColumnReferenceRewriter()::process
+          new ColumnReferenceRewriter()::process
       );
       // Do not set sessionConfig.getConfig to true! The copying is inefficient and slows down pull
       // query performance significantly.  Instead use QueryPlannerOptions which check overrides
@@ -262,28 +266,18 @@ final class EngineExecutor {
       final ConfiguredStatement<Query> statement,
       final PushRouting pushRouting,
       final PushRoutingOptions pushRoutingOptions,
+      final QueryPlannerOptions queryPlannerOptions,
       final Context context
   ) {
     final SessionConfig sessionConfig = statement.getSessionConfig();
     try {
-      final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(engineContext.getMetaStore(), "");
+      final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(engineContext.getMetaStore(),
+          NO_OUTPUT_TOPIC_PREFIX);
       final ImmutableAnalysis analysis = new RewrittenAnalysis(
           queryAnalyzer.analyze(statement.getStatement(), Optional.empty()),
-          new PullQueryExecutionUtil.ColumnReferenceRewriter()::process
+          new ColumnReferenceRewriter()::process
       );
       final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
-      final QueryPlannerOptions queryPlannerOptions = new QueryPlannerOptions() {
-        @Override
-        public boolean getTableScansEnabled() {
-          // We're scanning everything as it streams in, so there's no need to extract keys
-          return true;
-        }
-
-        @Override
-        public boolean getInterpreterEnabled() {
-          return true;
-        }
-      };
       final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
           statement, analysis, ksqlConfig, queryPlannerOptions, true);
       final PushPhysicalPlan physicalPlan = buildScalablePushPhysicalPlan(
@@ -293,7 +287,7 @@ final class EngineExecutor {
       );
       final TransientQueryQueue transientQueryQueue
           = new TransientQueryQueue(analysis.getLimitClause());
-      final TransientQueryMetadata.ResultType resultType =
+      final PushQueryMetadata.ResultType resultType =
           physicalPlan.getScalablePushRegistry().isTable()
           ? physicalPlan.getScalablePushRegistry().isWindowed() ? ResultType.WINDOWED_TABLE
               : ResultType.TABLE
@@ -313,9 +307,7 @@ final class EngineExecutor {
       return metadata;
     } catch (final Exception e) {
       throw new KsqlStatementException(
-          e.getMessage() == null
-              ? "Server Error" + Arrays.toString(e.getStackTrace())
-              : e.getMessage(),
+          e.getMessage(),
           statement.getStatementText(),
           e
       );
@@ -461,7 +453,7 @@ final class EngineExecutor {
       final boolean isScalablePush
   ) {
     final OutputNode outputNode = new LogicalPlanner(config, analysis, engineContext.getMetaStore())
-        .buildPullLogicalPlan(queryPlannerOptions, isScalablePush);
+        .buildQueryLogicalPlan(queryPlannerOptions, isScalablePush);
     return new LogicalPlanNode(
         statement.getStatementText(),
         Optional.of(outputNode)

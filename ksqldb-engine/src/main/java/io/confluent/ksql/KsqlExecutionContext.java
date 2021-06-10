@@ -181,6 +181,7 @@ public interface KsqlExecutionContext {
       ConfiguredStatement<Query> statement,
       PushRouting pushRouting,
       PushRoutingOptions pushRoutingOptions,
+      QueryPlannerOptions queryPlannerOptions,
       Context context
   );
 

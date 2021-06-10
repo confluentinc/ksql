@@ -44,7 +44,7 @@ public final class ScalablePushQueryExecutionUtil {
 
     if (queries.size() > 1) {
       throw new IllegalStateException(
-          "Scalable push queries on work on sources that have a single writer query. "
+          "Scalable push queries only work on sources that have a single writer query. "
               + "Source Name: " + sourceName + " Queries: " + queries);
     }
 
@@ -53,6 +53,6 @@ public final class ScalablePushQueryExecutionUtil {
     return engineContext
         .getQueryRegistry()
         .getPersistentQuery(queryId)
-        .orElseThrow(() -> new KsqlException("Persistent query has been stopped"));
+        .orElseThrow(() -> new KsqlException("Persistent query has been stopped: " + queryId));
   }
 }

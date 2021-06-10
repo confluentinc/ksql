@@ -101,8 +101,13 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
           ImmutableMap.of()
       );
 
+      final PushQueryConfigPlannerOptions plannerOptions = new PushQueryConfigPlannerOptions(
+              query.getSessionConfig().getConfig(false),
+              query.getSessionConfig().getOverrides());
+
       queryMetadata = ksqlEngine
-          .executeScalablePushQuery(serviceContext, query, pushRouting, routingOptions, context);
+          .executeScalablePushQuery(serviceContext, query, pushRouting, routingOptions,
+              plannerOptions, context);
     } else {
       queryMetadata = ksqlEngine
           .executeQuery(serviceContext, query, true);

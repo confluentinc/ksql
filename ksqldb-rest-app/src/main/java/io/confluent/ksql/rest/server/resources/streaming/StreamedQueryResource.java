@@ -38,7 +38,6 @@ import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
-import io.confluent.ksql.physical.scalablepush.ScalablePushUtil;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
@@ -55,6 +54,7 @@ import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
+import io.confluent.ksql.rest.util.ScalablePushUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -282,7 +282,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
               metricsCallbackHolder
           );
         }
-        if (ScalablePushUtil.isScalablePushQuery(statement.getStatement(), ksqlConfig,
+        if (ScalablePushUtil.isScalablePushQuery(statement.getStatement(), ksqlEngine, ksqlConfig,
             configProperties)) {
           return handleScalablePushQuery(
               securityContext.getServiceContext(),
@@ -430,19 +430,24 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private EndpointResponse handleScalablePushQuery(
       final ServiceContext serviceContext,
       final PreparedStatement<Query> statement,
-      final Map<String, Object> streamsProperties,
+      final Map<String, Object> configOverrides,
       final Map<String, Object> requestProperties,
       final CompletableFuture<Void> connectionClosedFuture,
       final Context context
   ) {
     final ConfiguredStatement<Query> configured = ConfiguredStatement
-        .of(statement, SessionConfig.of(ksqlConfig, streamsProperties));
+        .of(statement, SessionConfig.of(ksqlConfig, configOverrides));
 
     final PushQueryConfigRoutingOptions routingOptions =
         new PushQueryConfigRoutingOptions(requestProperties);
 
+    final PushQueryConfigPlannerOptions plannerOptions =
+        new PushQueryConfigPlannerOptions(ksqlConfig, configOverrides);
+
     final ScalablePushQueryMetadata query = ksqlEngine
-        .executeScalablePushQuery(serviceContext, configured, pushRouting, routingOptions, context);
+        .executeScalablePushQuery(serviceContext, configured, pushRouting, routingOptions,
+            plannerOptions, context);
+
 
     final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
         query,

@@ -20,41 +20,18 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
-import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
-import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.QualifiedColumnReferenceExp;
-import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
-import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import java.util.Optional;
 import java.util.Set;
 
 public final class PullQueryExecutionUtil {
 
   private PullQueryExecutionUtil() {
 
-  }
-
-  @VisibleForTesting
-  public static final class ColumnReferenceRewriter
-      extends VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
-
-    ColumnReferenceRewriter() {
-      super(Optional.empty());
-    }
-
-    @Override
-    public Optional<Expression> visitQualifiedColumnReference(
-        final QualifiedColumnReferenceExp node,
-        final Context<Void> ctx
-    ) {
-      return Optional.of(new UnqualifiedColumnReferenceExp(node.getColumnName()));
-    }
   }
 
   @VisibleForTesting

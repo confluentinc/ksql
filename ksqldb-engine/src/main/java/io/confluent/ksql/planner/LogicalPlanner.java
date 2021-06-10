@@ -182,7 +182,7 @@ public class LogicalPlanner {
     return buildOutputNode(currentNode);
   }
 
-  public OutputNode buildPullLogicalPlan(
+  public OutputNode buildQueryLogicalPlan(
       final QueryPlannerOptions queryPlannerOptions,
       final boolean isScalablePush
   ) {

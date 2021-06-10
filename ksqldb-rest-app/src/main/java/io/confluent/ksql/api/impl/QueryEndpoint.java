@@ -37,17 +37,18 @@ import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
-import io.confluent.ksql.physical.scalablepush.ScalablePushUtil;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.resources.streaming.PullQueryConfigPlannerOptions;
 import io.confluent.ksql.rest.server.resources.streaming.PullQueryConfigRoutingOptions;
+import io.confluent.ksql.rest.server.resources.streaming.PushQueryConfigPlannerOptions;
 import io.confluent.ksql.rest.server.resources.streaming.PushQueryConfigRoutingOptions;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
+import io.confluent.ksql.rest.util.ScalablePushUtil;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.services.ServiceContext;
@@ -69,7 +70,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class QueryEndpoint {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final KsqlEngine ksqlEngine;
   private final KsqlConfig ksqlConfig;
@@ -125,8 +128,8 @@ public class QueryEndpoint {
       return createPullQueryPublisher(
           context, serviceContext, statement, pullQueryMetrics, workerExecutor,
           metricsCallbackHolder);
-    } else if (ScalablePushUtil.isScalablePushQuery(statement.getStatement(), ksqlConfig,
-        properties)) {
+    } else if (ScalablePushUtil.isScalablePushQuery(statement.getStatement(), ksqlEngine,
+        ksqlConfig, properties)) {
       return createScalablePushQueryPublisher(context, serviceContext, statement, workerExecutor,
           requestProperties);
     } else {
@@ -146,8 +149,13 @@ public class QueryEndpoint {
     final PushQueryConfigRoutingOptions routingOptions =
         new PushQueryConfigRoutingOptions(requestProperties);
 
+    final PushQueryConfigPlannerOptions plannerOptions = new PushQueryConfigPlannerOptions(
+        ksqlConfig,
+        statement.getSessionConfig().getOverrides());
+
     final ScalablePushQueryMetadata query = ksqlEngine
-        .executeScalablePushQuery(serviceContext, statement, pushRouting, routingOptions, context);
+        .executeScalablePushQuery(serviceContext, statement, pushRouting, routingOptions,
+            plannerOptions, context);
 
 
     publisher.setQueryHandle(new KsqlQueryHandle(query), false, true);

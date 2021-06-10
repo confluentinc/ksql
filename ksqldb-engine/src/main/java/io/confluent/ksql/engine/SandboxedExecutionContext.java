@@ -195,6 +195,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
       final ConfiguredStatement<Query> statement,
       final PushRouting pushRouting,
       final PushRoutingOptions pushRoutingOptions,
+      final QueryPlannerOptions queryPlannerOptions,
       final Context context
   ) {
     return EngineExecutor.create(
@@ -205,6 +206,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
         statement,
         pushRouting,
         pushRoutingOptions,
+        queryPlannerOptions,
         context
     );
   }

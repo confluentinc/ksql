@@ -286,11 +286,13 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ConfiguredStatement<Query> statement,
       final PushRouting pushRouting,
       final PushRoutingOptions pushRoutingOptions,
+      final QueryPlannerOptions queryPlannerOptions,
       final Context context
   ) {
     final ScalablePushQueryMetadata query = EngineExecutor
         .create(primaryContext, serviceContext, statement.getSessionConfig())
-        .executeScalablePushQuery(statement, pushRouting, pushRoutingOptions, context);
+        .executeScalablePushQuery(statement, pushRouting, pushRoutingOptions, queryPlannerOptions,
+            context);
     return query;
   }
 

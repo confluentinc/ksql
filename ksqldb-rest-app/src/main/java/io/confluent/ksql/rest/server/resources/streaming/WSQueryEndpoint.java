@@ -31,7 +31,6 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
-import io.confluent.ksql.physical.scalablepush.ScalablePushUtil;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.Errors;
@@ -43,6 +42,7 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
+import io.confluent.ksql.rest.util.ScalablePushUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -334,7 +334,7 @@ public class WSQueryEndpoint {
           routing
       );
     } else if (ScalablePushUtil.isScalablePushQuery(
-        statement.getStatement(), ksqlConfig, clientLocalProperties)) {
+        statement.getStatement(), ksqlEngine, ksqlConfig, clientLocalProperties)) {
       scalablePushQueryPublisher.start(
           ksqlEngine,
           info.securityContext.getServiceContext(),

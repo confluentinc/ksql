@@ -386,7 +386,7 @@ public class WSQueryEndpoint {
       final WebSocketSubscriber<StreamedRow> streamSubscriber,
       final Optional<LocalCommands> localCommands
   ) {
-    new PushQueryPublisher(ksqlEngine, serviceContext, exec, query, localCommands)
+    PushQueryPublisher.createPublisher(ksqlEngine, serviceContext, exec, query, localCommands)
         .subscribe(streamSubscriber);
   }
 
@@ -399,7 +399,8 @@ public class WSQueryEndpoint {
       final Context context,
       final WebSocketSubscriber<StreamedRow> streamSubscriber
   ) {
-    new PushQueryPublisher(ksqlEngine, serviceContext, exec, query, pushRouting, context)
+    PushQueryPublisher.createScalablePublisher(ksqlEngine, serviceContext, exec, query, pushRouting,
+        context)
         .subscribe(streamSubscriber);
   }
 

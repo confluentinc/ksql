@@ -45,7 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("UnstableApiUsage")
-class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
+final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
   private static final Logger log = LoggerFactory.getLogger(PushQueryPublisher.class);
 
@@ -58,7 +58,7 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   private final boolean isScalablePush;
   private final Context context;
 
-  PushQueryPublisher(
+  private PushQueryPublisher(
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
@@ -75,7 +75,7 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     this.context = null;
   }
 
-  PushQueryPublisher(
+  private PushQueryPublisher(
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
@@ -91,6 +91,27 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     this.pushRouting = requireNonNull(pushRouting, "pushRouting");
     this.isScalablePush = true;
     this.context = requireNonNull(context, "context");
+  }
+
+  public static PushQueryPublisher createPublisher(
+      final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext,
+      final ListeningScheduledExecutorService exec,
+      final ConfiguredStatement<Query> query,
+      final Optional<LocalCommands> localCommands
+  ) {
+    return new PushQueryPublisher(ksqlEngine, serviceContext, exec, query, localCommands);
+  }
+
+  public static PushQueryPublisher createScalablePublisher(
+      final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext,
+      final ListeningScheduledExecutorService exec,
+      final ConfiguredStatement<Query> query,
+      final PushRouting pushRouting,
+      final Context context
+  ) {
+    return new PushQueryPublisher(ksqlEngine, serviceContext, exec, query, pushRouting, context);
   }
 
   @Override

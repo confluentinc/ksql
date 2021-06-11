@@ -22,7 +22,6 @@ import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 
@@ -35,8 +34,11 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
   private final ResultType resultType;
   private final PushQueryQueuePopulator pushQueryQueuePopulator;
 
-  private CompletableFuture<Void> future = new CompletableFuture<>();
-  private final AtomicReference<PushConnectionsHandle> handleRef = new AtomicReference<>();
+  // Future for the start of the connections, which creates a handle
+  private CompletableFuture<PushConnectionsHandle> startFuture = new CompletableFuture<>();
+  // Future for the operation of the SPQ. Since there's no defined ending (since limit is enforced
+  // on the forwarding node), this is tracks errors.
+  private CompletableFuture<Void> runningFuture = new CompletableFuture<>();
 
   public ScalablePushQueryMetadata(
       final LogicalSchema logicalSchema,
@@ -55,20 +57,23 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
   @Override
   public void start() {
     pushQueryQueuePopulator.run().thenApply(handle -> {
-      handleRef.set(handle);
-      handle.onException(future::completeExceptionally);
+      startFuture.complete(handle);
+      handle.onException(runningFuture::completeExceptionally);
       return null;
-    })
-    .exceptionally(future::completeExceptionally);
+    }).exceptionally(t -> {
+      startFuture.completeExceptionally(t);
+      runningFuture.completeExceptionally(t);
+      return null;
+    });
   }
 
   @Override
   public void close() {
     rowQueue.close();
-    final PushConnectionsHandle handle = handleRef.get();
-    if (handle != null) {
+    startFuture.thenApply(handle -> {
       handle.close();
-    }
+      return null;
+    });
     closed = true;
   }
 
@@ -108,7 +113,7 @@ public class ScalablePushQueryMetadata implements PushQueryMetadata {
   }
 
   public void onException(final Consumer<Throwable> consumer) {
-    future.exceptionally(t -> {
+    runningFuture.exceptionally(t -> {
       consumer.accept(t);
       return null;
     });

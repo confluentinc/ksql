@@ -72,6 +72,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -212,6 +213,7 @@ public class PullQuerySingleNodeFunctionalTest {
         REST_APP_0, ImmutableList.of(host0));
   }
 
+  @Ignore
   @Test
   public void restoreAfterClearState() {
     waitForStreamsMetadataToInitialize(REST_APP_0, ImmutableList.of(host0));

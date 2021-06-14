@@ -37,7 +37,7 @@ public class WithinExpression extends AstNode {
   private final Optional<WindowTimeClause> gracePeriod;
 
   public WithinExpression(final long size, final TimeUnit timeUnit) {
-    this(size, size, timeUnit, timeUnit);
+    this(Optional.empty(), size, size, timeUnit, timeUnit, Optional.empty());
   }
 
   public WithinExpression(final long size, final TimeUnit timeUnit,

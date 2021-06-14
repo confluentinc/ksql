@@ -46,7 +46,7 @@ public class WithinExpressionTest {
   }
 
   @Test
-  public void shouldDisplayCorrectStringWithSingleGracePeriod() {
+  public void shouldDisplayCorrectStringWithGracePeriod() {
     final WindowTimeClause gracePeriod = new WindowTimeClause(5, TimeUnit.SECONDS);
     final WithinExpression expression = new WithinExpression(20, TimeUnit.SECONDS, gracePeriod);
     assertEquals(" WITHIN 20 SECONDS GRACE PERIOD 5 SECONDS", expression.toString());

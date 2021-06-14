@@ -281,6 +281,10 @@ The `AVRO` format supports Avro binary serialization of all SQL
 [data types](/reference/sql/data-types), including records and
 top-level primitives, arrays, and maps.
 
+!!! note
+    ksqlDB doesn't support creating streams or tables from topics that
+    have recursive Avro schemas.
+
 The format requires ksqlDB to be configured to store and retrieve the Avro
 schemas from the {{ site.srlong }}. For more information, see
 [Configure ksqlDB for Avro, Protobuf, and JSON schemas](../operate-and-deploy/installation/server-config/avro-schema.md).

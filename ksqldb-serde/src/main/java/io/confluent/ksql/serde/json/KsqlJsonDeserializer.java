@@ -59,7 +59,9 @@ import org.apache.kafka.connect.data.Timestamp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class KsqlJsonDeserializer<T> implements Deserializer<T> {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger LOG = LoggerFactory.getLogger(KsqlJsonDeserializer.class);
   private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(word -> false);

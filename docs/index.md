@@ -18,6 +18,8 @@ for stream processing applications on top of {{ site.aktm }}.
     <strong>Quickstarts</strong>
     <ul class="card-items">
       <li><a href="https://ksqldb.io/quickstart.html">Standalone quickstart</a></li>
+      <li><a href="https://ksqldb.io/quickstart-cloud.html">Confluent Cloud quickstart</a></li>
+      <li><a href="https://ksqldb.io/quickstart-platform.html">Confluent Platform quickstart</a></li>
     </ul>
   </div>
 

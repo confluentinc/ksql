@@ -82,11 +82,15 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
 
     @Override
     public void onDeregister(final QueryMetadata query) {
-        kafkaStreams.remove(query.getKafkaStreams());
-        previousPollTime.remove("poll-time-total");
-        previousRestoreConsumerPollTime.remove("restore-consumer-poll-time-total");
-        previousSendTime.remove("send-time-total");
-        previousFlushTime.remove("flush-time-total");
+        final KafkaStreams streams = query.getKafkaStreams();
+        kafkaStreams.remove(streams);
+        for (ThreadMetadata thread : streams.localThreadsMetadata()) {
+            final String name = thread.threadName();
+            previousPollTime.remove(name);
+            previousRestoreConsumerPollTime.remove(name);
+            previousSendTime.remove(name);
+            previousFlushTime.remove(name);
+        }
     }
 
     @Override

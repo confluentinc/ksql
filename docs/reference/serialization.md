@@ -282,8 +282,8 @@ The `AVRO` format supports Avro binary serialization of all SQL
 top-level primitives, arrays, and maps.
 
 !!! note
-    ksqlDB doesn't support creating streams or tables from topics that
-    have recursive Avro schemas.
+    ksqlDB doesn't support creating streams or tables from a topic that
+    has a recursive Avro schema.
 
 The format requires ksqlDB to be configured to store and retrieve the Avro
 schemas from the {{ site.srlong }}. For more information, see

@@ -62,7 +62,6 @@ import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
-import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.testutil.TestExpressions;
@@ -1056,15 +1055,6 @@ public class ExpressionTypeManagerTest {
             + System.lineSeparator()
             + "DEFAULT type: BOOLEAN."
     ));
-  }
-
-  @Test
-  public void shouldThrowOnTimeLiteral() {
-    // When:
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> expressionTypeManager.getExpressionSqlType(new TimeLiteral("TIME '00:00:00'"))
-    );
   }
 
   @Test

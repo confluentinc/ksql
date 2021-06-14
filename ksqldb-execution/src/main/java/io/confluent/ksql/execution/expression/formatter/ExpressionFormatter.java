@@ -62,6 +62,7 @@ import io.confluent.ksql.name.Name;
 import io.confluent.ksql.schema.ksql.SqlTimestamps;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlConstants;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -191,7 +192,7 @@ public final class ExpressionFormatter {
 
     @Override
     public String visitTimeLiteral(final TimeLiteral node, final Context context) {
-      return "TIME '" + node.getValue() + "'";
+      return SqlTimestamps.formatTime(node.getValue());
     }
 
     @Override

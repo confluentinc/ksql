@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -17,34 +17,32 @@ package io.confluent.ksql.execution.expression.tree;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
-import java.sql.Time;
+import java.sql.Date;
 import java.util.Objects;
 import java.util.Optional;
 
-@Immutable
-public class TimeLiteral extends Literal {
-
+public class DateLiteral extends Literal {
   private final long value;
 
-  public TimeLiteral(final Time value) {
+  public DateLiteral(final Date value) {
     this(Optional.empty(), value);
   }
 
-  public TimeLiteral(final Optional<NodeLocation> location, final Time value) {
+  public DateLiteral(final Optional<NodeLocation> location, final Date value) {
     super(location);
     this.value = requireNonNull(value, "value").getTime();
   }
 
   @Override
-  public Time getValue() {
-    return new Time(value);
+  public Date getValue() {
+    return new Date(value);
   }
 
   @Override
   public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
-    return visitor.visitTimeLiteral(this, context);
+    // return visitor.visitDateLiteral(this, context);
+    return null;
   }
 
   @Override
@@ -56,7 +54,7 @@ public class TimeLiteral extends Literal {
       return false;
     }
 
-    final TimeLiteral that = (TimeLiteral) o;
+    final DateLiteral that = (DateLiteral) o;
     return Objects.equals(value, that.value);
   }
 

@@ -64,7 +64,6 @@ import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
-import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -1146,15 +1145,6 @@ public class SqlToJavaVisitorTest {
     assertThrows(
         UnsupportedOperationException.class,
         () -> sqlToJavaVisitor.process(expression)
-    );
-  }
-
-  @Test
-  public void shouldThrowOnTimeLiteral() {
-    // When:
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> sqlToJavaVisitor.process(new TimeLiteral("TIME '00:00:00'"))
     );
   }
 

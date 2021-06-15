@@ -50,14 +50,14 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.PersistentQueriesInSharedRuntimesImpl;
-import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.PersistentQueriesInSharedRuntimesImpl;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
 
@@ -79,6 +79,8 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopologyStreamsBuilder;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 final class QueryExecutor {
@@ -143,7 +145,7 @@ final class QueryExecutor {
     );
     this.streams = new ArrayList<>();
 
-    SharedKafkaStreamsRuntime stream = new SharedKafkaStreamsRuntime(
+    final SharedKafkaStreamsRuntime stream = new SharedKafkaStreamsRuntime(
         kafkaStreamsBuilder,
         config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE)
     );
@@ -256,7 +258,11 @@ final class QueryExecutor {
         = applyScalablePushProcessor(querySchema.logicalSchema(), result, allPersistentQueries,
         sinkDataSource.getKsqlTopic().getKeyFormat().isWindowed(),
         streamsProperties, ksqlConfig);
-    final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
+    final NamedTopologyStreamsBuilder namedTopologyStreamsBuilder = new NamedTopologyStreamsBuilder(
+            queryId.toString()
+    );
+    final NamedTopology topology = namedTopologyStreamsBuilder
+            .buildNamedTopology(PropertiesUtil.asProperties(streamsProperties));
 
     final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
         materializationProviderBuilder = getMaterializationInfo(result).map(info ->
@@ -276,15 +282,15 @@ final class QueryExecutor {
 
     final boolean useBinPacked = true;
     if (useBinPacked) {
-      SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getStream(sources);
-      PersistentQueriesInSharedRuntimesImpl binPackedPersistentQueryMetadata = new PersistentQueriesInSharedRuntimesImpl(
+      final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getStream(sources);
+      final PersistentQueriesInSharedRuntimesImpl binPackedPersistentQueryMetadata = new PersistentQueriesInSharedRuntimesImpl(
           statementText,
           querySchema,
           sources,
           planSummary,
           applicationId,
           topology,
-              sharedKafkaStreamsRuntime,
+          sharedKafkaStreamsRuntime,
           runtimeBuildContext.getSchemas(),
           config.getOverrides(),
           queryId,
@@ -294,10 +300,14 @@ final class QueryExecutor {
           sinkDataSource,
           listener
       );
-      sharedKafkaStreamsRuntime.addQuery(classifier, streamsProperties, binPackedPersistentQueryMetadata, queryId);
+      sharedKafkaStreamsRuntime.addQuery(
+              classifier,
+              streamsProperties,
+              binPackedPersistentQueryMetadata,
+              queryId
+      );
       return binPackedPersistentQueryMetadata;
     } else {
-
       return new PersistentQueryMetadataImpl(
           statementText,
           querySchema,
@@ -326,12 +336,12 @@ final class QueryExecutor {
   }
 
   private SharedKafkaStreamsRuntime getStream(final Set<SourceName> sources) {
-    for (SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
+    for (final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
       if (sharedKafkaStreamsRuntime.getSources().stream().noneMatch(sources::contains)) {
         return sharedKafkaStreamsRuntime;
       }
     }
-    SharedKafkaStreamsRuntime stream = new SharedKafkaStreamsRuntime(
+    final SharedKafkaStreamsRuntime stream = new SharedKafkaStreamsRuntime(
         kafkaStreamsBuilder,
         config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE)
     );

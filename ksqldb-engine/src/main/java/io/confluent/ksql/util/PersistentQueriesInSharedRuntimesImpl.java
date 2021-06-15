@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.util;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Ticker;
 import com.google.common.collect.ImmutableList;
@@ -35,22 +37,19 @@ import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.LagInfo;
-import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
-import org.apache.kafka.streams.state.StreamsMetadata;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-
-import static java.util.Objects.requireNonNull;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.LagInfo;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
+import org.apache.kafka.streams.state.StreamsMetadata;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMetadata {
 
@@ -60,7 +59,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   private final String statementString;
   private final String executionPlan;
   private final String queryApplicationId;
-  private final Topology topology;
+  private final NamedTopology topology;
   private final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime;
   private final QuerySchemas schemas;
   private final Map<String, Object> overriddenProperties;
@@ -91,7 +90,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
       final Set<SourceName> sourceNames,
       final String executionPlan,
       final String queryApplicationId,
-      final Topology topology,
+      final NamedTopology topology,
       final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime,
       final QuerySchemas schemas,
       final Map<String, Object> overriddenProperties,
@@ -239,7 +238,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   }
 
   @Override
-  public Topology getTopology() {
+  public NamedTopology getTopology() {
     return topology;
   }
 

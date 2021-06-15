@@ -51,7 +51,7 @@ the order was placed, and shipped within 2 hours of the payment being received.
 ```sql
    CREATE STREAM shipped_orders AS
      SELECT 
-        o.id as orderId 
+        o.id as orderId,
         o.itemid as itemId,
         s.id as shipmentId,
         p.id as paymentId

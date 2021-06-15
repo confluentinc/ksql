@@ -58,7 +58,7 @@ public final class ScalablePushUtil {
     }
     // Find all of the writers to this particular source.
     final SourceName sourceName = sourceFinder.getSourceName().get();
-    final Set<QueryId> queries = ksqlEngine.getQueriesWithSink(sourceName);
+    final Set<QueryId> upstreamQueries = ksqlEngine.getQueriesWithSink(sourceName);
     // See if the config or override have set the stream to be "latest"
     final boolean isLatest = overrides.containsKey(STREAMS_AUTO_OFFSET_RESET_CONFIG)
         ? LATEST_VALUE.equals(overrides.get(STREAMS_AUTO_OFFSET_RESET_CONFIG))
@@ -80,7 +80,7 @@ public final class ScalablePushUtil {
         // Must be reading from "latest"
         && isLatest
         // We only handle a single sink source at the moment from a CTAS/CSAS
-        && queries.size() == 1;
+        && upstreamQueries.size() == 1;
   }
 
   /**

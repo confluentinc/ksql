@@ -158,7 +158,6 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
 
     public void process(final Object key, final GenericRow value) {
       handleRow(key, value, this.context.timestamp());
-      this.context.forward(key, value);
     }
 
     @Override

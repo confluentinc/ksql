@@ -62,7 +62,6 @@ import io.confluent.ksql.name.Name;
 import io.confluent.ksql.schema.ksql.SqlTimestamps;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlConstants;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;

@@ -1991,7 +1991,7 @@ public class ClientTest extends BaseApiTest {
     }
   }
 
-  private static class LegacySourceDescriptionEntity {
+  private static class LegacySourceDescriptionEntity extends KsqlEntity{
 
     @JsonProperty("statementText") final String statementText;
     @JsonProperty("sourceDescription") final LegacySourceDescription sourceDescription;
@@ -2002,6 +2002,7 @@ public class ClientTest extends BaseApiTest {
         final LegacySourceDescription sourceDescription,
         final List<KsqlWarning> warnings
     ) {
+      super(statementText);
       this.statementText = statementText;
       this.sourceDescription = sourceDescription;
       this.warnings = warnings;

@@ -64,6 +64,7 @@ import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
+import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -82,6 +83,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.math.BigDecimal;
+import java.sql.Time;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -1146,6 +1148,11 @@ public class SqlToJavaVisitorTest {
         UnsupportedOperationException.class,
         () -> sqlToJavaVisitor.process(expression)
     );
+  }
+
+  @Test
+  public void shouldProcessTimeLiteral() {
+    assertThat(sqlToJavaVisitor.process(new TimeLiteral(new Time(1000))), is("00:00:01"));
   }
 
   private void givenUdf(

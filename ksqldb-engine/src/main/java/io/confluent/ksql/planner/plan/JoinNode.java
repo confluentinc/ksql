@@ -427,6 +427,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
               rightStream,
               joinNode.getKeyColumnName(),
               joinNode.withinExpression.get().joinWindow(),
+              joinNode.withinExpression.get().getGrace(),
               JoiningNode.getValueFormatForSource(joinNode.left).getFormatInfo(),
               JoiningNode.getValueFormatForSource(joinNode.right).getFormatInfo(),
               contextStacker
@@ -436,6 +437,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
               rightStream,
               joinNode.getKeyColumnName(),
               joinNode.withinExpression.get().joinWindow(),
+              joinNode.withinExpression.get().getGrace(),
               JoiningNode.getValueFormatForSource(joinNode.left).getFormatInfo(),
               JoiningNode.getValueFormatForSource(joinNode.right).getFormatInfo(),
               contextStacker
@@ -445,6 +447,7 @@ public class JoinNode extends PlanNode implements JoiningNode {
               rightStream,
               joinNode.getKeyColumnName(),
               joinNode.withinExpression.get().joinWindow(),
+              joinNode.withinExpression.get().getGrace(),
               JoiningNode.getValueFormatForSource(joinNode.left).getFormatInfo(),
               JoiningNode.getValueFormatForSource(joinNode.right).getFormatInfo(),
               contextStacker

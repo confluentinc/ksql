@@ -40,6 +40,7 @@ import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StepSchemaResolver;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
@@ -196,6 +197,7 @@ public class SchemaKStream<K> {
       final SchemaKStream<K> otherSchemaKStream,
       final ColumnName keyColName,
       final JoinWindows joinWindows,
+      final Optional<WindowTimeClause> gracePeriod,
       final FormatInfo leftFormat,
       final FormatInfo rightFormat,
       final Stacker contextStacker
@@ -210,7 +212,8 @@ public class SchemaKStream<K> {
         InternalFormats.of(keyFormat, rightFormat),
         sourceStep,
         otherSchemaKStream.sourceStep,
-        joinWindows
+        joinWindows,
+        gracePeriod
     );
 
     return new SchemaKStream<>(
@@ -252,6 +255,7 @@ public class SchemaKStream<K> {
       final SchemaKStream<K> otherSchemaKStream,
       final ColumnName keyColName,
       final JoinWindows joinWindows,
+      final Optional<WindowTimeClause> gracePeriod,
       final FormatInfo leftFormat,
       final FormatInfo rightFormat,
       final Stacker contextStacker
@@ -266,7 +270,8 @@ public class SchemaKStream<K> {
         InternalFormats.of(keyFormat, rightFormat),
         sourceStep,
         otherSchemaKStream.sourceStep,
-        joinWindows
+        joinWindows,
+        gracePeriod
     );
 
     return new SchemaKStream<>(
@@ -282,6 +287,7 @@ public class SchemaKStream<K> {
       final SchemaKStream<K> otherSchemaKStream,
       final ColumnName keyColName,
       final JoinWindows joinWindows,
+      final Optional<WindowTimeClause> gracePeriod,
       final FormatInfo leftFormat,
       final FormatInfo rightFormat,
       final Stacker contextStacker
@@ -296,7 +302,8 @@ public class SchemaKStream<K> {
         InternalFormats.of(keyFormat, rightFormat),
         sourceStep,
         otherSchemaKStream.sourceStep,
-        joinWindows
+        joinWindows,
+        gracePeriod
     );
 
     return new SchemaKStream<>(

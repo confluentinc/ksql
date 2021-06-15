@@ -48,6 +48,8 @@ import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeFeatures;
 import java.time.Duration;
+import java.util.Optional;
+
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.JoinWindows;
@@ -102,7 +104,14 @@ public class StreamStreamJoinBuilderTest {
 
   private static final Duration BEFORE = Duration.ofMillis(1000);
   private static final Duration AFTER = Duration.ofMillis(2000);
-  private static final JoinWindows WINDOWS = JoinWindows.of(BEFORE).after(AFTER);
+  private static final Duration GRACE = Duration.ofMillis(3000);
+  private static final JoinWindows WINDOWS_NO_GRACE = JoinWindows
+      .of(BEFORE)
+      .after(AFTER);
+  private static final JoinWindows WINDOWS_WITH_GRACE = JoinWindows
+      .of(BEFORE)
+      .after(AFTER)
+      .grace(GRACE);
 
   private final QueryContext CTX =
       new QueryContext.Stacker().push("jo").push("in").getQueryContext();
@@ -181,7 +190,7 @@ public class StreamStreamJoinBuilderTest {
     verify(leftKStream).leftJoin(
         same(rightKStream),
         eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0)),
-        eq(WINDOWS),
+        eq(WINDOWS_NO_GRACE),
         same(joined)
     );
     verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);
@@ -201,7 +210,27 @@ public class StreamStreamJoinBuilderTest {
     verify(leftKStream).leftJoin(
         same(rightKStream),
         eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 1)),
-        eq(WINDOWS),
+        eq(WINDOWS_NO_GRACE),
+        same(joined)
+    );
+    verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);
+    assertThat(result.getStream(), is(resultKStream));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
+  }
+
+  @Test
+  public void shouldDoLeftJoinWithGrace() {
+    // Given:
+    givenLeftJoin(L_KEY, Optional.of(GRACE));
+
+    // When:
+    final KStreamHolder<Struct> result = join.build(planBuilder, planInfo);
+
+    // Then:
+    verify(leftKStream).leftJoin(
+        same(rightKStream),
+        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0)),
+        eq(WINDOWS_WITH_GRACE),
         same(joined)
     );
     verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);
@@ -221,7 +250,27 @@ public class StreamStreamJoinBuilderTest {
     verify(leftKStream).outerJoin(
         same(rightKStream),
         eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 1)),
-        eq(WINDOWS),
+        eq(WINDOWS_NO_GRACE),
+        same(joined)
+    );
+    verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);
+    assertThat(result.getStream(), is(resultKStream));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
+  }
+
+  @Test
+  public void shouldDoOuterJoinWithGrace() {
+    // Given:
+    givenOuterJoin(Optional.of(GRACE));
+
+    // When:
+    final KStreamHolder<Struct> result = join.build(planBuilder, planInfo);
+
+    // Then:
+    verify(leftKStream).outerJoin(
+        same(rightKStream),
+        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 1)),
+        eq(WINDOWS_WITH_GRACE),
         same(joined)
     );
     verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);
@@ -241,7 +290,7 @@ public class StreamStreamJoinBuilderTest {
     verify(leftKStream).join(
         same(rightKStream),
         eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0)),
-        eq(WINDOWS),
+        eq(WINDOWS_NO_GRACE),
         same(joined)
     );
     verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);
@@ -261,7 +310,27 @@ public class StreamStreamJoinBuilderTest {
     verify(leftKStream).join(
         same(rightKStream),
         eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 1)),
-        eq(WINDOWS),
+        eq(WINDOWS_NO_GRACE),
+        same(joined)
+    );
+    verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);
+    assertThat(result.getStream(), is(resultKStream));
+    assertThat(result.getExecutionKeyFactory(), is(executionKeyFactory));
+  }
+
+  @Test
+  public void shouldDoInnerJoinWithGrace() {
+    // Given:
+    givenInnerJoin(L_KEY, Optional.of(GRACE));
+
+    // When:
+    final KStreamHolder<Struct> result = join.build(planBuilder, planInfo);
+
+    // Then:
+    verify(leftKStream).join(
+        same(rightKStream),
+        eq(new KsqlValueJoiner(LEFT_SCHEMA.value().size(), RIGHT_SCHEMA.value().size(), 0)),
+        eq(WINDOWS_WITH_GRACE),
         same(joined)
     );
     verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);
@@ -298,7 +367,8 @@ public class StreamStreamJoinBuilderTest {
         left,
         right,
         BEFORE,
-        AFTER
+        AFTER,
+        Optional.empty()
     );
 
     // When:
@@ -363,6 +433,10 @@ public class StreamStreamJoinBuilderTest {
   }
 
   private void givenLeftJoin(final ColumnName keyName) {
+    givenLeftJoin(keyName, Optional.empty());
+  }
+
+  private void givenLeftJoin(final ColumnName keyName, final Optional<Duration> grace) {
     join = new StreamStreamJoin<>(
         new ExecutionStepPropertiesV1(CTX),
         JoinType.LEFT,
@@ -372,11 +446,16 @@ public class StreamStreamJoinBuilderTest {
         left,
         right,
         BEFORE,
-        AFTER
+        AFTER,
+        grace
     );
   }
 
   private void givenOuterJoin() {
+    givenOuterJoin(Optional.empty());
+  }
+
+  private void givenOuterJoin(final Optional<Duration> grace) {
     join = new StreamStreamJoin<>(
         new ExecutionStepPropertiesV1(CTX),
         JoinType.OUTER,
@@ -386,11 +465,16 @@ public class StreamStreamJoinBuilderTest {
         left,
         right,
         BEFORE,
-        AFTER
+        AFTER,
+        grace
     );
   }
 
   private void givenInnerJoin(final ColumnName keyName) {
+    givenInnerJoin(keyName, Optional.empty());
+  }
+
+  private void givenInnerJoin(final ColumnName keyName, final Optional<Duration> grace) {
     join = new StreamStreamJoin<>(
         new ExecutionStepPropertiesV1(CTX),
         JoinType.INNER,
@@ -400,7 +484,8 @@ public class StreamStreamJoinBuilderTest {
         left,
         right,
         BEFORE,
-        AFTER
+        AFTER,
+        grace
     );
   }
 }

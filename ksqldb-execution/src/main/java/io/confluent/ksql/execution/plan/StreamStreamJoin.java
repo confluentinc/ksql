@@ -61,7 +61,7 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
       final ExecutionStep<KStreamHolder<K>> rightSource,
       @JsonProperty(value = "beforeMillis", required = true) final Duration beforeMillis,
       @JsonProperty(value = "afterMillis", required = true) final Duration afterMillis,
-      @JsonProperty(value = "graceMillis") final Duration graceMillis
+      @JsonProperty(value = "graceMillis") final Optional<Duration> graceMillis
   ) {
     this(
         props,
@@ -73,7 +73,7 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
         rightSource,
         beforeMillis,
         afterMillis,
-        Optional.ofNullable(graceMillis)
+        graceMillis
     );
   }
 

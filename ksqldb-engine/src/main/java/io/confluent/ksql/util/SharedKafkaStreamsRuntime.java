@@ -24,14 +24,6 @@ import io.confluent.ksql.query.QueryError;
 import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.LagInfo;
-import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.errors.StreamsException;
-import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
-import org.apache.kafka.streams.state.StreamsMetadata;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -42,13 +34,22 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.LagInfo;
+import org.apache.kafka.streams.errors.StreamsException;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
+import org.apache.kafka.streams.state.StreamsMetadata;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class SharedKafkaStreamsRuntime {
 
   private static final Logger LOG = LoggerFactory.getLogger(SharedKafkaStreamsRuntime.class);
 
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private QueryErrorClassifier errorClassifier ;
-  private KafkaStreams kafkaStreams;
+  private KafkaStreamsNamedTopologyWrapper kafkaStreams;
   private ImmutableMap<String, Object> streamsProperties;
   private final QueryMetadataImpl.TimeBoundedQueue queryErrors;
   private final Map<String, PersistentQueriesInSharedRuntimesImpl> metadata;
@@ -137,7 +138,8 @@ public class SharedKafkaStreamsRuntime {
   }
 
   public void restart(final QueryId queryId) {
-    final KafkaStreams newKafkaStreams = kafkaStreamsBuilder.build(null, streamsProperties);
+    final KafkaStreamsNamedTopologyWrapper newKafkaStreams = kafkaStreamsBuilder
+            .build(null, streamsProperties);
     for (PersistentQueriesInSharedRuntimesImpl query: metadata.values()) {
       newKafkaStreams.addNamedTopology(query.getTopology());
     }
@@ -174,10 +176,6 @@ public class SharedKafkaStreamsRuntime {
 
   public Map<String, Object> getStreamProperties() {
     return streamsProperties;
-  }
-
-  public List<QueryError> getQueryErrors() {
-    return queryErrors.toImmutableList();
   }
 
   public Set<SourceName> getSources() {

@@ -51,7 +51,6 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
-import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
 import io.confluent.ksql.execution.expression.tree.LambdaVariable;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
@@ -90,8 +89,8 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
+import java.sql.Time;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
@@ -1059,12 +1058,8 @@ public class ExpressionTypeManagerTest {
   }
 
   @Test
-  public void shouldThrowOnTimeLiteral() {
-    // When:
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> expressionTypeManager.getExpressionSqlType(new TimeLiteral("TIME '00:00:00'"))
-    );
+  public void shouldProcessTimeLiteral() {
+    assertThat(expressionTypeManager.getExpressionSqlType(new TimeLiteral(new Time(1000))), is(SqlTypes.TIME));
   }
 
   @Test

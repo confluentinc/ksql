@@ -573,7 +573,8 @@ public class ExpressionTypeManager {
     public Void visitTimeLiteral(
         final TimeLiteral timeLiteral, final Context context
     ) {
-      throw VisitorUtil.unsupportedOperation(this, timeLiteral);
+      context.setSqlType(SqlTypes.TIME);
+      return null;
     }
 
     @Override

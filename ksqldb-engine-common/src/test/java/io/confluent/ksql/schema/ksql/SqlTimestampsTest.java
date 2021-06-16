@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.util.KsqlException;
+import java.sql.Time;
 import java.sql.Timestamp;
 import org.junit.Test;
 
@@ -39,5 +40,11 @@ public class SqlTimestampsTest {
   @Test
   public void shouldFormatTimestamp() {
     assertThat(SqlTimestamps.formatTimestamp(new Timestamp(1552816800000L)), is("2019-03-17T10:00:00.000"));
+  }
+
+  @Test
+  public void shouldFormatTime() {
+    assertThat(SqlTimestamps.formatTime(new Time(1000)), is("00:00:01"));
+    assertThat(SqlTimestamps.formatTime(new Time(1005)), is("00:00:01"));
   }
 }

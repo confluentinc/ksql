@@ -83,6 +83,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.math.BigDecimal;
+import java.sql.Time;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -1150,12 +1151,8 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
-  public void shouldThrowOnTimeLiteral() {
-    // When:
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> sqlToJavaVisitor.process(new TimeLiteral("TIME '00:00:00'"))
-    );
+  public void shouldProcessTimeLiteral() {
+    assertThat(sqlToJavaVisitor.process(new TimeLiteral(new Time(1000))), is("00:00:01"));
   }
 
   private void givenUdf(

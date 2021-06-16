@@ -26,7 +26,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.util.KeyValue;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.TransientQueryMetadata;
+import io.confluent.ksql.util.PushQueryMetadata;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +44,7 @@ class QueryStreamWriter implements StreamingOutput {
 
   private static final Logger log = LoggerFactory.getLogger(QueryStreamWriter.class);
 
-  private final TransientQueryMetadata queryMetadata;
+  private final PushQueryMetadata queryMetadata;
   private final long disconnectCheckInterval;
   private final ObjectMapper objectMapper;
   private final TombstoneFactory tombstoneFactory;
@@ -55,7 +54,7 @@ class QueryStreamWriter implements StreamingOutput {
   private boolean closed;
 
   QueryStreamWriter(
-      final TransientQueryMetadata queryMetadata,
+      final PushQueryMetadata queryMetadata,
       final long disconnectCheckInterval,
       final ObjectMapper objectMapper,
       final CompletableFuture<Void> connectionClosedFuture

@@ -27,8 +27,8 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.util.KeyValue;
-import io.confluent.ksql.util.TransientQueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
+import io.confluent.ksql.util.PushQueryMetadata;
+import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +46,7 @@ public final class TombstoneFactory {
   private final ImmutableMap<Integer, Integer> keyIndexes;
   private final int numColumns;
 
-  public static TombstoneFactory create(final TransientQueryMetadata query) {
+  public static TombstoneFactory create(final PushQueryMetadata query) {
     return new TombstoneFactory(buildKeyIdx(query), query.getLogicalSchema().value().size());
   }
 
@@ -85,7 +85,7 @@ public final class TombstoneFactory {
   }
 
   private static ImmutableMap<Integer, Integer> buildKeyIdx(
-      final TransientQueryMetadata query
+      final PushQueryMetadata query
   ) {
     final List<ColumnName> keyColumns = keyColumnNames(query);
 
@@ -110,7 +110,7 @@ public final class TombstoneFactory {
     return builder.build();
   }
 
-  private static List<ColumnName> keyColumnNames(final TransientQueryMetadata query) {
+  private static List<ColumnName> keyColumnNames(final PushQueryMetadata query) {
     final LogicalSchema schema = query.getLogicalSchema();
 
     final List<ColumnName> keyNames = schema.key().stream()

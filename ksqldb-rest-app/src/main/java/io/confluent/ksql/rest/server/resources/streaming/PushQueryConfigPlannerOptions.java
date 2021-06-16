@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -19,12 +19,12 @@ import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;
 
-public class PullQueryConfigPlannerOptions implements QueryPlannerOptions {
+public class PushQueryConfigPlannerOptions implements QueryPlannerOptions {
 
   private final KsqlConfig ksqlConfig;
   private final Map<String, ?> configOverrides;
 
-  public PullQueryConfigPlannerOptions(final KsqlConfig ksqlConfig,
+  public PushQueryConfigPlannerOptions(final KsqlConfig ksqlConfig,
       final Map<String, ?> configOverrides) {
     this.ksqlConfig = ksqlConfig;
     this.configOverrides = configOverrides;
@@ -32,17 +32,15 @@ public class PullQueryConfigPlannerOptions implements QueryPlannerOptions {
 
   @Override
   public boolean getTableScansEnabled() {
-    if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED)) {
-      return (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED);
-    }
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_TABLE_SCAN_ENABLED);
+    // We're scanning everything as it streams in, so there's no need to extract keys
+    return true;
   }
 
   @Override
   public boolean getInterpreterEnabled() {
-    if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED)) {
-      return (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED);
+    if (configOverrides.containsKey(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED)) {
+      return (Boolean) configOverrides.get(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED);
     }
-    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PULL_INTERPRETER_ENABLED);
+    return ksqlConfig.getBoolean(KsqlConfig.KSQL_QUERY_PUSH_SCALABLE_INTERPRETER_ENABLED);
   }
 }

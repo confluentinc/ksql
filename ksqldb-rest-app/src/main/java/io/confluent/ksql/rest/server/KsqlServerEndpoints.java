@@ -162,8 +162,8 @@ public class KsqlServerEndpoints implements Endpoints {
             .createQueryPublisher(
                 sql,
                 properties,
-                requestProperties,
                 sessionVariables,
+                requestProperties,
                 context,
                 workerExecutor,
                 ksqlSecurityContext.getServiceContext(),

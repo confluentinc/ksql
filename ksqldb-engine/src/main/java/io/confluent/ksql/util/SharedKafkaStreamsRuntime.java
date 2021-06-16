@@ -64,10 +64,11 @@ public class SharedKafkaStreamsRuntime {
     metadata = new HashMap<>();
   }
 
-  public void addQuery(final QueryErrorClassifier errorClassifier,
-                       final Map<String, Object> streamsProperties,
-                       final PersistentQueriesInSharedRuntimesImpl persistentQueriesInSharedRuntimesImpl,
-                       final QueryId queryId) {
+  public void addQuery(
+          final QueryErrorClassifier errorClassifier,
+          final Map<String, Object> streamsProperties,
+          final PersistentQueriesInSharedRuntimesImpl persistentQueriesInSharedRuntimesImpl,
+          final QueryId queryId) {
     this.errorClassifier = errorClassifier;
     this.streamsProperties =
         ImmutableMap.copyOf(
@@ -79,7 +80,7 @@ public class SharedKafkaStreamsRuntime {
 
   protected StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
       final Throwable e
-                                                                                         ) {
+  ) {
     QueryError.Type errorType = QueryError.Type.UNKNOWN;
     try {
       errorType = errorClassifier.classify(e);

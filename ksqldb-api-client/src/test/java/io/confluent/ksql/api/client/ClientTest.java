@@ -66,11 +66,13 @@ import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.PushQueryId;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
+import io.confluent.ksql.rest.entity.QueryOffsetSummary;
 import io.confluent.ksql.rest.entity.QueryStatusCount;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SchemaInfo;
@@ -1419,6 +1421,68 @@ public class ClientTest extends BaseApiTest {
   }
 
   @Test
+  public void shouldDescribeSourceWithoutSourceConstraints() throws Exception {
+    // Given
+    final LegacySourceDescription sd =
+        new LegacySourceDescription(
+            "name",
+            Optional.of(WindowType.TUMBLING),
+            Collections.singletonList(new RunningQuery(
+                "query_sql",
+                ImmutableSet.of("sink"),
+                ImmutableSet.of("sink_topic"),
+                new QueryId("a_persistent_query"),
+                new QueryStatusCount(ImmutableMap.of(KsqlQueryStatus.RUNNING, 1)),
+                KsqlQueryType.PERSISTENT)),
+            Collections.emptyList(),
+            ImmutableList.of(
+                new FieldInfo("f1", new SchemaInfo(SqlBaseType.STRING, null, null), Optional.of(FieldType.KEY)),
+                new FieldInfo("f2", new SchemaInfo(SqlBaseType.INTEGER, null, null), Optional.empty())),
+            "TABLE",
+            "",
+            false,
+            "KAFKA",
+            "JSON",
+            "topic",
+            4,
+            1,
+            "sql",
+            Collections.emptyList()
+        );
+    final LegacySourceDescriptionEntity entity = new LegacySourceDescriptionEntity(
+        "describe source;", sd, Collections.emptyList());
+    testEndpoints.setKsqlEndpointResponse(Collections.singletonList(entity));
+
+    // When
+    final SourceDescription description = javaClient.describeSource("source").get();
+
+    // Then
+    assertThat(description.name(), is("name"));
+    assertThat(description.type(), is("TABLE"));
+    assertThat(description.fields(), hasSize(2));
+    assertThat(description.fields().get(0).name(), is("f1"));
+    assertThat(description.fields().get(0).type().getType(), is(ColumnType.Type.STRING));
+    assertThat(description.fields().get(0).isKey(), is(true));
+    assertThat(description.fields().get(1).name(), is("f2"));
+    assertThat(description.fields().get(1).type().getType(), is(ColumnType.Type.INTEGER));
+    assertThat(description.fields().get(1).isKey(), is(false));
+    assertThat(description.topic(), is("topic"));
+    assertThat(description.keyFormat(), is("KAFKA"));
+    assertThat(description.valueFormat(), is("JSON"));
+    assertThat(description.readQueries(), hasSize(1));
+    assertThat(description.readQueries().get(0).getQueryType(), is(QueryType.PERSISTENT));
+    assertThat(description.readQueries().get(0).getId(), is("a_persistent_query"));
+    assertThat(description.readQueries().get(0).getSql(), is("query_sql"));
+    assertThat(description.readQueries().get(0).getSink(), is(Optional.of("sink")));
+    assertThat(description.readQueries().get(0).getSinkTopic(), is(Optional.of("sink_topic")));
+    assertThat(description.writeQueries(), hasSize(0));
+    assertThat(description.timestampColumn(), is(Optional.empty()));
+    assertThat(description.windowType(), is(Optional.of("TUMBLING")));
+    assertThat(description.sqlStatement(), is("sql"));
+    assertThat(description.getSourceConstraints().size(), is(0));
+  }
+
+  @Test
   public void shouldGetServerInfo() throws Exception {
     final ServerInfo serverInfo = javaClient.serverInfo().get();
     assertThat(serverInfo.getServerVersion(), is(AppInfo.getVersion()));
@@ -1871,6 +1935,77 @@ public class ClientTest extends BaseApiTest {
     public LegacyTablesList(final String sql, final List<LegacyTableInfo> tables) {
       super(sql);
       this.tables = tables;
+    }
+  }
+
+  private static class LegacySourceDescription {
+
+    @JsonProperty("name") private final String name;
+    @JsonProperty("windowType") private final Optional<WindowType> windowType;
+    @JsonProperty("readQueries") private final List<RunningQuery> readQueries;
+    @JsonProperty("writeQueries") final List<RunningQuery> writeQueries;
+    @JsonProperty("fields") final List<FieldInfo> fields;
+    @JsonProperty("type") final String type;
+    @JsonProperty("timestamp") final String timestamp;
+    @JsonProperty("extended") final boolean extended;
+    @JsonProperty("keyFormat") final String keyFormat;
+    @JsonProperty("valueFormat") final String valueFormat;
+    @JsonProperty("topic") final String topic;
+    @JsonProperty("partitions") final int partitions;
+    @JsonProperty("replication") final int replication;
+    @JsonProperty("statement") final String statement;
+    @JsonProperty("queryOffsetSummaries") final List<QueryOffsetSummary> queryOffsetSummaries;
+
+    public LegacySourceDescription(
+        final String name,
+        final Optional<WindowType> windowType,
+        final List<RunningQuery> readQueries,
+        final List<RunningQuery> writeQueries,
+        final List<FieldInfo> fields,
+        final String type,
+        final String timestamp,
+        final boolean extended,
+        final String keyFormat,
+        final String valueFormat,
+        final String topic,
+        final int partitions,
+        final int replication,
+        final String statement,
+        final List<QueryOffsetSummary> queryOffsetSummaries
+    ) {
+      this.name = name;
+      this.windowType = windowType;
+      this.readQueries = readQueries;
+      this.writeQueries = writeQueries;
+      this.fields = fields;
+      this.type = type;
+      this.timestamp = timestamp;
+      this.extended = extended;
+      this.keyFormat = keyFormat;
+      this.valueFormat = valueFormat;
+      this.topic = topic;
+      this.partitions = partitions;
+      this.replication = replication;
+      this.statement = statement;
+      this.queryOffsetSummaries = queryOffsetSummaries;
+    }
+  }
+
+  private static class LegacySourceDescriptionEntity extends KsqlEntity{
+
+    @JsonProperty("statementText") final String statementText;
+    @JsonProperty("sourceDescription") final LegacySourceDescription sourceDescription;
+    @JsonProperty("warnings") final List<KsqlWarning> warnings;
+
+    public LegacySourceDescriptionEntity(
+        final String statementText,
+        final LegacySourceDescription sourceDescription,
+        final List<KsqlWarning> warnings
+    ) {
+      super(statementText);
+      this.statementText = statementText;
+      this.sourceDescription = sourceDescription;
+      this.warnings = warnings;
     }
   }
 }

@@ -338,7 +338,7 @@ final class AdminResponseHandlers {
           Optional.ofNullable(emptyToNull(source.getString("timestamp"))),
           Optional.ofNullable(emptyToNull(source.getString("windowType"))),
           source.getString("statement"),
-          source.getJsonArray("sourceConstraints").stream()
+          source.getJsonArray("sourceConstraints", new JsonArray()).stream()
               .map(o -> (String)o)
               .collect(Collectors.toList())
       ));

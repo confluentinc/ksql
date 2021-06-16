@@ -230,4 +230,30 @@ public final class MetadataUtil {
     final ServerInfo serverInfo = getServerInfo(ksqlClient, ksqlServerUrl);
     return versionSupportsMultiKeyPullQuery(serverInfo.getServerVersion());
   }
+
+  public static boolean isVersionMigrated(
+      final String version,
+      final MigrationConfig config,
+      final Client ksqlClient
+  ) {
+    final String migrationTableName = config
+        .getString(MigrationConfig.KSQL_MIGRATIONS_TABLE_NAME);
+    final BatchedQueryResult result = ksqlClient.executeQuery(
+        "SELECT state FROM "
+            + migrationTableName + " WHERE version_key = '" + version + "';");
+
+    final Row resultRow;
+    try {
+      final List<Row> resultRows = result.get();
+      if (resultRows.size() == 0) {
+        return false;
+      }
+      resultRow = resultRows.get(0);
+    } catch (InterruptedException | ExecutionException e) {
+      throw new MigrationException(String.format(
+          "Failed to query state for migration with version %s: %s", version, e.getMessage()));
+    }
+
+    return resultRow.getString(1).equals(MigrationState.MIGRATED.name());
+  }
 }

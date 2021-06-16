@@ -266,6 +266,7 @@ public class MigrationsTest {
     assertThat(applyStatus, is(0));
 
     verifyMigrationsApplied();
+    assertThat(MIGRATIONS_CLI.parse("--config-file", configFilePath, "apply", "-v", "2").runCommand(), is(1));
   }
 
   private void shouldDisplayInfo() {

@@ -208,7 +208,7 @@ public class ApplyMigrationCommand extends BaseCommand {
     LOGGER.info("Loading migration files");
     final List<MigrationFile> migrations;
     try {
-      migrations = loadMigrationsToApply(migrationsDir, minimumVersion);
+      migrations = loadMigrationsToApply(migrationsDir, minimumVersion, config, ksqlClient);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
       return false;
@@ -232,7 +232,9 @@ public class ApplyMigrationCommand extends BaseCommand {
 
   private List<MigrationFile> loadMigrationsToApply(
       final String migrationsDir,
-      final int minimumVersion
+      final int minimumVersion,
+      final MigrationConfig config,
+      final Client ksqlClient
   ) {
     if (version > 0) {
       final Optional<MigrationFile> migration =
@@ -240,12 +242,19 @@ public class ApplyMigrationCommand extends BaseCommand {
       if (!migration.isPresent()) {
         throw new MigrationException("No migration file with version " + version + " exists.");
       }
+      if (MetadataUtil.isVersionMigrated(String.valueOf(version), config, ksqlClient)) {
+        throw new MigrationException("Version " + version + " has already been applied.");
+      }
       return Collections.singletonList(migration.get());
     }
 
     final List<MigrationFile> migrations = getAllMigrations(migrationsDir).stream()
         .filter(migration -> {
           if (migration.getVersion() < minimumVersion) {
+            return false;
+          }
+          if (MetadataUtil
+              .isVersionMigrated(String.valueOf(migration.getVersion()), config, ksqlClient)) {
             return false;
           }
           if (untilVersion > 0) {

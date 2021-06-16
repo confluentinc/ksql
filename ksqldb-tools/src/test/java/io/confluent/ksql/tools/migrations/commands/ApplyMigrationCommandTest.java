@@ -110,6 +110,8 @@ public class ApplyMigrationCommandTest {
   @Mock
   private BatchedQueryResult infoQueryResult;
   @Mock
+  private BatchedQueryResult stateQueryResult;
+  @Mock
   private ExecuteStatementResult statementResult;
   @Mock
   private SourceDescription sourceDescription;
@@ -156,6 +158,16 @@ public class ApplyMigrationCommandTest {
     when(fooDescriptionCf.get()).thenReturn(fooDescription);
     when(fooDescription.fields()).thenReturn(Collections.singletonList(field));
     when(field.name()).thenReturn("A");
+    when(stateQueryResult.get()).thenReturn(Collections.EMPTY_LIST);
+    when(ksqlClient.executeQuery(
+        "SELECT state FROM " + MIGRATIONS_TABLE + " WHERE version_key = '1';"))
+        .thenReturn(stateQueryResult);
+    when(ksqlClient.executeQuery(
+        "SELECT state FROM " + MIGRATIONS_TABLE + " WHERE version_key = '2';"))
+        .thenReturn(stateQueryResult);
+    when(ksqlClient.executeQuery(
+        "SELECT state FROM " + MIGRATIONS_TABLE + " WHERE version_key = '3';"))
+        .thenReturn(stateQueryResult);
 
     migrationsDir = folder.getRoot().getPath();
   }
@@ -639,6 +651,54 @@ public class ApplyMigrationCommandTest {
         () -> inOrder.verify(ksqlClient).dropConnector("WOOF"));
     inOrder.verify(ksqlClient).close();
     inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void shouldNotApplyAppliedMigration() throws Exception {
+    // Given:
+    command = PARSER.parse("-v", "1");
+    createMigrationFile(1, NAME, migrationsDir, COMMAND);
+    givenCurrentMigrationVersion("1");
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
+    final Row row = mock(Row.class);
+    when(row.getString(1)).thenReturn(MigrationState.MIGRATED.name());
+    when(stateQueryResult.get()).thenReturn(Collections.singletonList(row));
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(1));
+  }
+
+  @Test
+  public void shouldSkipAppliedMigrations() throws Exception {
+    // Given:
+    command = PARSER.parse("-a");
+    createMigrationFile(1, NAME, migrationsDir, COMMAND);
+    createMigrationFile(2, NAME, migrationsDir, COMMAND);
+    createMigrationFile(3, NAME, migrationsDir, COMMAND);
+    when(versionQueryResult.get()).thenReturn(ImmutableList.of());
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
+
+    final BatchedQueryResult migratedResult = mock(BatchedQueryResult.class);
+    final Row row = mock(Row.class);
+    when(row.getString(1)).thenReturn(MigrationState.MIGRATED.name());
+    when(migratedResult.get()).thenReturn(Collections.singletonList(row));
+    when(ksqlClient.executeQuery(
+        "SELECT state FROM " + MIGRATIONS_TABLE + " WHERE version_key = '2';"))
+        .thenReturn(migratedResult);
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(0));
+    final InOrder inOrder = inOrder(ksqlClient);
+    verifyMigratedVersion(inOrder, 1, "<none>", MigrationState.MIGRATED);
+    verifyMigratedVersion(inOrder, 3, "1", MigrationState.MIGRATED);
   }
 
   private void createMigrationFile(

@@ -133,11 +133,11 @@ public final class JsonSerdeUtils {
 
   static Time toTime(final JsonNode object) {
     if (object instanceof NumericNode) {
-      return new Time(object.asLong());
+      return new Time(object.asInt());
     }
     if (object instanceof TextNode) {
       try {
-        return new Time(Long.parseLong(object.textValue()));
+        return new Time(Integer.parseInt(object.textValue()));
       } catch (final NumberFormatException e) {
         throw failedStringCoercionException(SqlBaseType.TIME);
       }

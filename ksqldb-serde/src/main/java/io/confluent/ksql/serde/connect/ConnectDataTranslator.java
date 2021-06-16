@@ -227,7 +227,7 @@ public class ConnectDataTranslator implements DataTranslator {
         }
       case INT32:
         if (schema.name() == Time.LOGICAL_NAME) {
-          return new java.sql.Time(((Number) convertedValue).longValue());
+          return new java.sql.Time(((Number) convertedValue).intValue());
         } else {
           return ((Number) convertedValue).intValue();
         }

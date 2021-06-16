@@ -131,7 +131,7 @@ class KsqlDelimitedDeserializer implements Deserializer<List<?>> {
   }
 
   private static Parser timeParser(final SqlType sqlType) {
-    return v -> new Time(Long.parseLong(v));
+    return v -> new Time(Integer.parseInt(v));
   }
 
   private static Parser timestampParser(final SqlType sqlType) {

@@ -55,12 +55,13 @@ public class SharedKafkaStreamsRuntime {
   private final Map<String, PersistentQueriesInSharedRuntimesImpl> metadata;
 
   public SharedKafkaStreamsRuntime(final KafkaStreamsBuilder kafkaStreamsBuilder,
-                                   final int maxQueryErrorsQueueSize) {
+                                   final int maxQueryErrorsQueueSize,
+                                   final Map<String, Object> streamsProperties) {
     this.kafkaStreamsBuilder = kafkaStreamsBuilder;
     kafkaStreams = kafkaStreamsBuilder.build(null, streamsProperties);
     queryErrors
         = new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
-
+    this.streamsProperties = ImmutableMap.copyOf(streamsProperties);
     metadata = new HashMap<>();
   }
 
@@ -70,9 +71,6 @@ public class SharedKafkaStreamsRuntime {
           final PersistentQueriesInSharedRuntimesImpl persistentQueriesInSharedRuntimesImpl,
           final QueryId queryId) {
     this.errorClassifier = errorClassifier;
-    this.streamsProperties =
-        ImmutableMap.copyOf(
-            Objects.requireNonNull(streamsProperties, "streamsProperties"));
     this.metadata.put(queryId.toString(), persistentQueriesInSharedRuntimesImpl);
     kafkaStreams.addNamedTopology(persistentQueriesInSharedRuntimesImpl.getTopology());
     LOG.error("mapping {}", metadata);
@@ -133,8 +131,7 @@ public class SharedKafkaStreamsRuntime {
   }
 
   public void stop(final QueryId queryId) {
-    metadata.remove(queryId);
-
+    metadata.remove(queryId.toString());
     kafkaStreams.removeNamedTopology(queryId.toString());
   }
 

@@ -48,6 +48,7 @@ import java.util.Set;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -79,7 +80,7 @@ public class QueryMetadataTest {
   @Mock
   private Topology topoplogy;
   @Mock
-  private KafkaStreams kafkaStreams;
+  private KafkaStreamsNamedTopologyWrapper kafkaStreams;
   @Mock
   private QueryMetadataImpl.Listener listener;
   @Mock

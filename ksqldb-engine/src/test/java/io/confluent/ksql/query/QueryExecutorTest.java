@@ -78,6 +78,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -158,7 +159,7 @@ public class QueryExecutorTest {
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
-  private KafkaStreams kafkaStreams;
+  private KafkaStreamsNamedTopologyWrapper kafkaStreams;
   @Mock
   private Topology topology;
   @Mock

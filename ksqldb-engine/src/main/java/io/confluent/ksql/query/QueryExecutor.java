@@ -290,7 +290,8 @@ final class QueryExecutor {
     final boolean useBinPacked = true;
     if (useBinPacked) {
       final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getStream(sources);
-      final PersistentQueriesInSharedRuntimesImpl binPackedPersistentQueryMetadata = new PersistentQueriesInSharedRuntimesImpl(
+      final PersistentQueriesInSharedRuntimesImpl binPackedPersistentQueryMetadata
+              = new PersistentQueriesInSharedRuntimesImpl(
           statementText,
           querySchema,
           sources,

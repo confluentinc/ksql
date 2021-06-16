@@ -49,6 +49,7 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -68,7 +69,7 @@ public class PersistentQueryMetadataTest {
   @Mock
   private KafkaStreamsBuilder kafkaStreamsBuilder;
   @Mock
-  private KafkaStreams kafkaStreams;
+  private KafkaStreamsNamedTopologyWrapper kafkaStreams;
   @Mock
   private PhysicalSchema physicalSchema;
   @Mock
@@ -175,7 +176,7 @@ public class PersistentQueryMetadataTest {
 
   @Test
   public void shouldRestartKafkaStreams() {
-    final KafkaStreams newKafkaStreams = mock(KafkaStreams.class);
+    final KafkaStreamsNamedTopologyWrapper newKafkaStreams = mock(KafkaStreamsNamedTopologyWrapper.class);
     final MaterializationProvider newMaterializationProvider = mock(MaterializationProvider.class);
 
     // Given:

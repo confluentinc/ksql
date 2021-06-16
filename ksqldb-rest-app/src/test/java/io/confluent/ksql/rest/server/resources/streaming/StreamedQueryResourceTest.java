@@ -129,6 +129,7 @@ import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.codehaus.plexus.util.StringUtils;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
@@ -705,7 +706,7 @@ public class StreamedQueryResourceTest {
     rowQueuePopulatorThread.setUncaughtExceptionHandler(threadExceptionHandler);
     rowQueuePopulatorThread.start();
 
-    final KafkaStreams mockKafkaStreams = mock(KafkaStreams.class);
+    final KafkaStreamsNamedTopologyWrapper mockKafkaStreams = mock(KafkaStreamsNamedTopologyWrapper.class);
 
     when(mockStatementParser.<Query>parseSingleStatement(queryString))
         .thenReturn(query);

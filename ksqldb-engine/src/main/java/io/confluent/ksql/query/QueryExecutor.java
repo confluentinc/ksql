@@ -149,7 +149,8 @@ final class QueryExecutor {
 
     final SharedKafkaStreamsRuntime stream = new SharedKafkaStreamsRuntime(
         kafkaStreamsBuilder,
-        config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE)
+        config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
+        buildStreamsProperties("applicationId", new QueryId(""))
     );
     streams.add(stream);
 
@@ -351,7 +352,8 @@ final class QueryExecutor {
     }
     final SharedKafkaStreamsRuntime stream = new SharedKafkaStreamsRuntime(
         kafkaStreamsBuilder,
-        config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE)
+        config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
+        buildStreamsProperties("applicationId", new QueryId(""))
     );
     streams.add(stream);
     return stream;

@@ -167,7 +167,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   public Optional<Materialization> getMaterialization(
       final QueryId queryId,
       final QueryContext.Stacker contextStacker) {
-    return null;
+    return Optional.empty();
   }
 
   @Override

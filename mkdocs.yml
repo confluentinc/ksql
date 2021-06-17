@@ -83,6 +83,7 @@ nav:
       - Logging: operate-and-deploy/logging.md
       - Monitoring: operate-and-deploy/monitoring.md
       - Exactly once semantics: operate-and-deploy/exactly-once-semantics.md
+      - High availability: operate-and-deploy/high-availability.md
       - Schema Registry integration: operate-and-deploy/schema-registry-integration.md
       - Plan Capacity: operate-and-deploy/capacity-planning.md
       - Performance Guidelines: operate-and-deploy/performance-guidelines.md

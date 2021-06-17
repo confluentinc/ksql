@@ -384,8 +384,6 @@ over a secure connection, see
 
 ## `ksql.service.id`
 
-**Per query:** yes
-
 The service ID of the ksqlDB server. This is used to define the ksqlDB
 cluster membership of a ksqlDB Server instance.
 
@@ -468,6 +466,10 @@ For more information, see the
 [Streams parameter reference](https://docs.confluent.io/current/streams/developer-guide/config-streams.html#optional-configuration-parameters)
 and
 [CACHE_MAX_BYTES_BUFFERING_CONFIG](https://docs.confluent.io/{{ site.ksqldbversion }}/streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG).
+
+## `ksql.streams.num.standby.replicas`
+
+The number of standby replicas. Standby replicas are shadow copies of tables. ksqlDB, through Kafka Streams, attempts to create the specified number of replicas and keep them up to date as long as there are enough instances running. Standby replicas are used to minimize the latency of failover. A table that was previously hosted on a failed instance is preferred to restart on an instance that has standby replicas so that the local state store restoration process from its changelog can be minimized.
 
 ## `ksql.streams.num.stream.threads`
 

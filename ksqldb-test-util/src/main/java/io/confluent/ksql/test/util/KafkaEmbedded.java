@@ -93,7 +93,8 @@ class KafkaEmbedded {
    */
   String brokerList() {
     final EndPoint endPoint = kafka.advertisedListeners().head();
-    return endPoint.host() + ":" + endPoint.port();
+    final String hostname = endPoint.host() == null ? "" : endPoint.host();
+    return hostname + ":" + endPoint.port();
   }
 
   /**
@@ -106,7 +107,8 @@ class KafkaEmbedded {
    */
   String brokerList(final SecurityProtocol securityProtocol) {
     final EndPoint endPoint = kafka.advertisedListeners().head();
-    return endPoint.host() + ":"
+    final String hostname = endPoint.host() == null ? "" : endPoint.host();
+    return hostname + ":"
            + kafka.boundPort(new ListenerName(securityProtocol.toString()));
   }
 

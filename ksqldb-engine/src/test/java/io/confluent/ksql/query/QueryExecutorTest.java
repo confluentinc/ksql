@@ -619,6 +619,31 @@ public class QueryExecutorTest {
   }
 
   @Test
+  public void shouldMakePersistentQueriesWithSameSources() {
+    // When:
+    queryBuilder.buildPersistentQuery(
+            STATEMENT_TEXT,
+            QUERY_ID,
+            sink,
+            SOURCES,
+            physicalPlan,
+            SUMMARY,
+            queryListener,
+            Collections::emptyList
+    );
+    queryBuilder.buildPersistentQuery(
+            STATEMENT_TEXT,
+            QUERY_ID,
+            sink,
+            SOURCES,
+            physicalPlan,
+            SUMMARY,
+            queryListener,
+            Collections::emptyList
+    );
+  }
+
+  @Test
   public void shouldConfigureProducerErrorHandler() {
     final ProcessingLogger logger = mock(ProcessingLogger.class);
     when(processingLoggerFactory.getLogger(QUERY_ID.toString())).thenReturn(logger);

@@ -55,6 +55,8 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,6 +89,9 @@ public class BaseApiTest {
   protected Server server;
   protected TestEndpoints testEndpoints;
   protected ServerState serverState;
+
+  @Rule
+  public final Timeout timeout = Timeout.seconds(90);
 
   @Before
   public void setUp() {

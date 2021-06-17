@@ -9,6 +9,8 @@ High availability is turned off by default, but you can enable it with the follo
 1. Set [`ksql.heartbeat.enable`](/reference/server-configuration/#ksqlheartbeatenable) to `true`.
 1. Set [`ksql.lag.reporting.enable`](/reference/server-configuration/#ksqllagreportingenable) to `true`.
 
+In addition, make sure that all of your nodes identify as part of the same cluster by setting [`ksql.service.id`](/reference/server-configuration/#ksqlserviceid) to the same value.
+
 ## Controlling consistency
 
 Because ksqlDB replicates data between its servers asynchronously, you may want to bound the potential staleness that your query will tolerate. You can control this per pull query using the [`ksql.query.pull.max.allowed.offset.lag`](/reference/server-configuration/#ksqlquerypullmaxallowedoffsetlag) parameter. For instance, a value of 10,000 means that results of pull queries forwarded to servers whose current offset is more than 10,000 positions behind the end offset of the changelog topic will be rejected.

@@ -20,6 +20,7 @@ import static io.confluent.ksql.util.KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
@@ -236,6 +237,7 @@ final class QueryExecutor {
     return registry;
   }
 
+  @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE")
   PersistentQueryMetadata buildPersistentQuery(
       final KsqlConstants.PersistentQueryType persistentQueryType,
       final String statementText,
@@ -263,9 +265,14 @@ final class QueryExecutor {
     // Creates a ProcessorSupplier, a ScalablePushRegistry, to apply to the topology, if
     // scalable push queries are enabled.
     final Optional<ScalablePushRegistry> scalablePushRegistry
-        = applyScalablePushProcessor(querySchema.logicalSchema(), result, allPersistentQueries,
-        sinkDataSource.getKsqlTopic().getKeyFormat().isWindowed(),
-        streamsProperties, ksqlConfig);
+        = applyScalablePushProcessor(
+            querySchema.logicalSchema(),
+            result,
+            allPersistentQueries,
+            sinkDataSource.getKsqlTopic().getKeyFormat().isWindowed(),
+            streamsProperties,
+            ksqlConfig
+    );
     final NamedTopologyStreamsBuilder namedTopologyStreamsBuilder = new NamedTopologyStreamsBuilder(
             queryId.toString()
     );

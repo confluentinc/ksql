@@ -31,6 +31,7 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.DurationParser;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.schema.query.QuerySchemas.SchemaInfo;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.KeyFormat;
@@ -118,7 +119,21 @@ public class TopicInfoCache {
       return Optional.empty();
     }
 
-    return Optional.of(cache.getUnchecked(topicName));
+    final TopicInfo topicInfo = cache.getUnchecked(topicName);
+
+    // The problem I am fixing is that sometimes the first record found in a topic has a null value.
+    // This causes the QuerySchemas#getTopicInfo() to return a EMPTY_SCHEMA for the value.
+    // When that info is obtained from the load function, then it is kept in the cache for some
+    // time. I assume that the null value is just something that may not
+    // happen too often, so a new record in the changelog topic should allow the TrackSerde to
+    // detect the value format. However, the cache will not have the new format until the item
+    // expires, so in cases of the NONE value found, I refresh the cache so it triggers the load
+    // method again in case the value format was detected.
+    if (topicInfo.getValueFormat().getFormat().equals(FormatFactory.NONE.name())) {
+      cache.refresh(topicName);
+    }
+
+    return Optional.of(topicInfo);
   }
 
   public List<TopicInfo> all() {
@@ -156,15 +171,14 @@ public class TopicInfoCache {
             .orElseThrow(() ->
                 new TestFrameworkException("Unknown queryId for internal topic: " + queryId));
 
-        final SchemaInfo schemaInfo = query.getQuerySchemas().getTopicInfo(topicName);
-
-        final KeyFormat keyFormat = schemaInfo.keyFormat().orElseThrow(IllegalStateException::new);
+        final QuerySchemas.TopicFormatsInfo formatsInfo = query.getQuerySchemas()
+            .getTopicFormatsInfo(topicName);
 
         return new TopicInfo(
             topicName,
             query.getLogicalSchema(),
-            internalTopic.get().keyFormat(keyFormat, query),
-            schemaInfo.valueFormat().orElseThrow(IllegalStateException::new),
+            internalTopic.get().keyFormat(formatsInfo.keyFormat(), query),
+            formatsInfo.valueFormat(),
             internalTopic.get().changeLogWindowSize(query)
         );
       }

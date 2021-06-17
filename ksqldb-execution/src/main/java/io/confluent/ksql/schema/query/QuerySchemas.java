@@ -22,7 +22,10 @@ import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.runtime.RuntimeBuildContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,6 +35,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Pojo for holding data about the schemas and formats in use at the different stages within a
@@ -56,6 +60,17 @@ public final class QuerySchemas {
 
   // Maps topic name -> (map of key/value flag -> set of logger name prefixes)
   private final Map<String, Map<Boolean, Set<String>>> topicsToLoggers = new HashMap<>();
+
+  private static final boolean IS_KEY = true;
+  private static final boolean IS_VALUE = false;
+
+  private static final SchemaInfo EMPTY_SCHEMA = new SchemaInfo(
+      LogicalSchema.builder().build(), Optional.empty(), Optional.empty()
+  );
+
+  private static final ValueFormat NONE_VALUE_FORMAT = ValueFormat.of(
+      FormatInfo.of(FormatFactory.NONE.name()), SerdeFeatures.of()
+  );
 
   /**
    * Called when creating a key serde.
@@ -118,47 +133,83 @@ public final class QuerySchemas {
     return Collections.unmodifiableMap(loggerToSchemas);
   }
 
-  /**
-   * Builds complete SchemaInfo for a topic:
-   */
-  public SchemaInfo getTopicInfo(final String topicName) {
+  Map<String, Map<Boolean, Set<String>>> getTopicsToLoggers() {
+    return Collections.unmodifiableMap(topicsToLoggers);
+  }
+
+  public TopicFormatsInfo getTopicFormatsInfo(final String topicName) {
     final Map<Boolean, Set<String>> kvLoggerNames = topicsToLoggers.get(topicName);
     if (kvLoggerNames == null) {
       throw new IllegalArgumentException("Unknown topic: " + topicName);
     }
 
-    final Set<String> keyLoggerNames = kvLoggerNames.getOrDefault(true, ImmutableSet.of());
-    if (keyLoggerNames.size() != 1) {
-      throw new IllegalStateException("Multiple key logger names registered for topic."
+    final Map<SchemaInfo, Set<String>> keyLoggerSchemas = getLoggerSchemas(
+        kvLoggerNames,
+        IS_KEY
+    );
+
+    final Map<SchemaInfo, Set<String>> valueLoggerSchemas = getLoggerSchemas(
+        kvLoggerNames,
+        IS_VALUE
+    );
+
+    final Set<SchemaInfo> keySchemaInfo = Optional.of(keyLoggerSchemas.keySet())
+        .orElseGet(() -> ImmutableSet.of(EMPTY_SCHEMA));
+    final Set<SchemaInfo> valueSchemaInfo = Optional.of(valueLoggerSchemas.keySet())
+        .orElseGet(() -> ImmutableSet.of(EMPTY_SCHEMA));
+
+    final Set<KeyFormat> keyFormats = keySchemaInfo.stream()
+        .map(s -> s.keyFormat)
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .collect(Collectors.toSet());
+
+    if (keyFormats.size() != 1) {
+      final String result = keyFormats.size() == 0 ? "Zero" : "Multiple";
+
+      throw new IllegalStateException(result + " key formats registered for topic."
           + System.lineSeparator()
           + "topic: " + topicName
-          + "loggers: " + keyLoggerNames
+          + "formats: " + keyFormats.stream().map(KeyFormat::getFormat)
+          .sorted().collect(Collectors.toList())
+          + "loggers: " + keyLoggerSchemas.values()
       );
     }
 
-    final Set<String> valueTopicNames = kvLoggerNames.getOrDefault(false, ImmutableSet.of());
-    if (valueTopicNames.size() != 1) {
-      throw new IllegalStateException("Multiple value logger names registered for topic."
+    final Set<ValueFormat> valueFormats = valueSchemaInfo.stream()
+        .map(s -> s.valueFormat)
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .collect(Collectors.toSet());
+
+    if (valueFormats.size() > 1) {
+      throw new IllegalStateException("Multiple value formats registered for topic."
           + System.lineSeparator()
           + "topic: " + topicName
-          + "loggers: " + valueTopicNames
+          + "formats: " + valueFormats.stream().map(ValueFormat::getFormat)
+          .sorted().collect(Collectors.toList())
+          + "loggers: " + valueLoggerSchemas.values()
       );
     }
 
-    final SchemaInfo keyInfo = loggerToSchemas.get(Iterables.getOnlyElement(keyLoggerNames));
-    final SchemaInfo valueInfo = loggerToSchemas.get(Iterables.getOnlyElement(valueTopicNames));
-    if (keyInfo == null || valueInfo == null) {
-      throw new IllegalStateException("Incomplete schema info for topic."
-          + System.lineSeparator()
-          + "topic: " + topicName
-          + "keyInfo: " + keyInfo
-          + "valueInfo: " + valueInfo
-      );
+    final KeyFormat keyFormat = Iterables.getOnlyElement(keyFormats);
+    final ValueFormat valueFormat = !valueFormats.isEmpty()
+        ? Iterables.getOnlyElement(valueFormats)
+        : NONE_VALUE_FORMAT;
+
+    return new TopicFormatsInfo(keyFormat, valueFormat);
+  }
+
+  private Map<SchemaInfo, Set<String>> getLoggerSchemas(
+      final Map<Boolean, Set<String>> kvLoggerNames, final boolean isKeyLogger) {
+
+    final Map<SchemaInfo, Set<String>> schemaToLoggers = new HashMap<>();
+    for (final String loggerName : kvLoggerNames.getOrDefault(isKeyLogger, ImmutableSet.of())) {
+      final SchemaInfo keyInfo = loggerToSchemas.getOrDefault(loggerName, EMPTY_SCHEMA);
+      schemaToLoggers.computeIfAbsent(keyInfo, k -> new HashSet<>()).add(loggerName);
     }
 
-    return keyInfo.equals(valueInfo)
-        ? valueInfo
-        : valueInfo.merge(keyInfo.keyFormat, keyInfo.valueFormat);
+    return schemaToLoggers;
   }
 
   @Override
@@ -197,6 +248,48 @@ public final class QuerySchemas {
 
       return existing.merge(keyFormat, valueFormat);
     });
+  }
+
+  public static final class TopicFormatsInfo {
+    private final KeyFormat keyFormat;
+    private final ValueFormat valueFormat;
+
+    public TopicFormatsInfo(final KeyFormat keyFormat, final ValueFormat valueFormat) {
+      this.keyFormat = requireNonNull(keyFormat, "keyFormat");
+      this.valueFormat = requireNonNull(valueFormat, "valueFormat");
+    }
+
+    public KeyFormat keyFormat() {
+      return keyFormat;
+    }
+
+    public ValueFormat valueFormat() {
+      return valueFormat;
+    }
+
+    @Override
+    public String toString() {
+      return "keyFormat=" + keyFormat
+          + ", valueFormat=" + valueFormat;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final TopicFormatsInfo that = (TopicFormatsInfo) o;
+      return Objects.equals(keyFormat, that.keyFormat)
+          && Objects.equals(valueFormat, that.valueFormat);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(keyFormat, valueFormat);
+    }
   }
 
   @Immutable

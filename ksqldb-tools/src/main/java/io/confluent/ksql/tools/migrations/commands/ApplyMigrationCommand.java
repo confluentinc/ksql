@@ -240,6 +240,11 @@ public class ApplyMigrationCommand extends BaseCommand {
       if (!migration.isPresent()) {
         throw new MigrationException("No migration file with version " + version + " exists.");
       }
+      if (version < minimumVersion) {
+        throw new MigrationException(
+            "Version must be newer than the last version migrated. Last version migrated was "
+                + (minimumVersion - 1));
+      }
       return Collections.singletonList(migration.get());
     }
 

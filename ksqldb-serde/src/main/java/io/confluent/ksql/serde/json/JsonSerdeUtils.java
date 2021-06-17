@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.serde.json;
 
+import static io.confluent.ksql.serde.SerdeUtils.returnTimeOrThrow;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
@@ -133,11 +135,11 @@ public final class JsonSerdeUtils {
 
   static Time toTime(final JsonNode object) {
     if (object instanceof NumericNode) {
-      return new Time(object.asInt());
+      return returnTimeOrThrow(object.asLong());
     }
     if (object instanceof TextNode) {
       try {
-        return new Time(Integer.parseInt(object.textValue()));
+        return returnTimeOrThrow(Long.parseLong(object.textValue()));
       } catch (final NumberFormatException e) {
         throw failedStringCoercionException(SqlBaseType.TIME);
       }

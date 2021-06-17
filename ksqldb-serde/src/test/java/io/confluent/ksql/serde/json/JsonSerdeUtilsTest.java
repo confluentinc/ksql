@@ -145,15 +145,51 @@ public class JsonSerdeUtilsTest {
   }
 
   @Test
-  public void shouldConvertLongToTimeCorrectly() {
+  public void shouldConvertIntToTimeCorrectly() {
     final Time d = JsonSerdeUtils.toTime(JsonNodeFactory.instance.numberNode(100));
     assertThat(d.getTime(), equalTo(100L));
+  }
+
+  @Test
+  public void shouldNotConvertOverflowNumberToTime() {
+    try {
+      JsonSerdeUtils.toTime(JsonNodeFactory.instance.numberNode(3000000000L));
+    } catch (Exception e) {
+      assertThat(e.getMessage(), equalTo("Time values must use number of milliseconds greater than 0 and less than 86400000."));
+    }
+  }
+
+  @Test
+  public void shouldNotConvertNegativeNumberToTime() {
+    try {
+      JsonSerdeUtils.toTime(JsonNodeFactory.instance.numberNode(-5));
+    } catch (Exception e) {
+      assertThat(e.getMessage(), equalTo("Time values must use number of milliseconds greater than 0 and less than 86400000."));
+    }
   }
 
   @Test
   public void shouldConvertStringToTimeCorrectly() {
     final Time d = JsonSerdeUtils.toTime(JsonNodeFactory.instance.textNode("100"));
     assertThat(d.getTime(), equalTo(100L));
+  }
+
+  @Test
+  public void shouldNotConvertOverflowStringToTime() {
+    try {
+      JsonSerdeUtils.toTime(JsonNodeFactory.instance.textNode("3000000000"));
+    } catch (Exception e) {
+      assertThat(e.getMessage(), equalTo("Time values must use number of milliseconds greater than 0 and less than 86400000."));
+    }
+  }
+
+  @Test
+  public void shouldNotConvertNegativeStringToTime() {
+    try {
+      JsonSerdeUtils.toTime(JsonNodeFactory.instance.textNode("-5"));
+    } catch (Exception e) {
+      assertThat(e.getMessage(), equalTo("Time values must use number of milliseconds greater than 0 and less than 86400000."));
+    }
   }
 
   @Test(expected = IllegalArgumentException.class)

@@ -324,6 +324,50 @@ public class KsqlDelimitedDeserializerTest {
         containsString("The 'DELIMITED' format does not support type 'STRUCT', column: `ids`"));
   }
 
+  @Test
+  public void shouldThrowOnOverflowTime() {
+    // Given:
+    KsqlDelimitedDeserializer deserializer = createDeserializer(persistenceSchema(
+        column(
+            "ids",
+            SqlTypes.TIME
+        )
+    ));
+    final byte[] bytes = "3000000000".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize("", bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause().getMessage(),
+        containsString("Time values must use number of milliseconds greater than 0 and less than 86400000."));
+  }
+
+  @Test
+  public void shouldThrowOnNegativeTime() {
+    // Given:
+    KsqlDelimitedDeserializer deserializer = createDeserializer(persistenceSchema(
+        column(
+            "ids",
+            SqlTypes.TIME
+        )
+    ));
+    final byte[] bytes = "-5".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize("", bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause().getMessage(),
+        containsString("Time values must use number of milliseconds greater than 0 and less than 86400000."));
+  }
+
   private static SimpleColumn column(final String name, final SqlType type) {
     final SimpleColumn column = mock(SimpleColumn.class);
     when(column.name()).thenReturn(ColumnName.of(name));

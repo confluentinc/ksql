@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.serde.delimited;
 
+import static io.confluent.ksql.serde.SerdeUtils.returnTimeOrThrow;
+
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SimpleColumn;
@@ -131,7 +133,7 @@ class KsqlDelimitedDeserializer implements Deserializer<List<?>> {
   }
 
   private static Parser timeParser(final SqlType sqlType) {
-    return v -> new Time(Integer.parseInt(v));
+    return v -> returnTimeOrThrow(Long.parseLong(v));
   }
 
   private static Parser timestampParser(final SqlType sqlType) {

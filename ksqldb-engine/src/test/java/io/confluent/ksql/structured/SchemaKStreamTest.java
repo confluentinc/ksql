@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
+import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -475,8 +476,7 @@ public class SchemaKStreamTest {
     SchemaKStream join(
         SchemaKStream otherSchemaKStream,
         ColumnName keyNameCol,
-        JoinWindows joinWindows,
-        Optional<WindowTimeClause> grace,
+        WithinExpression withinExpression,
         FormatInfo leftFormat,
         FormatInfo rightFormat,
         QueryContext.Stacker contextStacker
@@ -506,13 +506,13 @@ public class SchemaKStreamTest {
 
     final JoinWindows joinWindows = JoinWindows.of(Duration.ofSeconds(1));
     final WindowTimeClause grace = new WindowTimeClause(5, TimeUnit.SECONDS);
+    final WithinExpression withinExpression = new WithinExpression(1, TimeUnit.SECONDS, grace);
 
     for (final Pair<JoinType, StreamStreamJoin> testcase : cases) {
       final SchemaKStream joinedKStream = testcase.right.join(
           schemaKStream,
           KEY,
-          joinWindows,
-          Optional.of(grace),
+          withinExpression,
           valueFormat.getFormatInfo(),
           valueFormat.getFormatInfo(),
           childContextStacker

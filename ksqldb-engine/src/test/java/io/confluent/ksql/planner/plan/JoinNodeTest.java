@@ -289,8 +289,7 @@ public class JoinNodeTest {
     verify(leftSchemaKStream).leftJoin(
         rightSchemaKStream,
         SYNTH_KEY,
-        WITHIN_EXPRESSION.get().joinWindow(),
-        Optional.empty(),
+        WITHIN_EXPRESSION.get(),
         VALUE_FORMAT.getFormatInfo(),
         OTHER_FORMAT.getFormatInfo(),
         CONTEXT_STACKER
@@ -314,8 +313,7 @@ public class JoinNodeTest {
     verify(leftSchemaKStream).leftJoin(
         rightSchemaKStream,
         SYNTH_KEY,
-        WITHIN_EXPRESSION_WITH_GRACE.get().joinWindow(),
-        Optional.of(GRACE_PERIOD),
+        WITHIN_EXPRESSION_WITH_GRACE.get(),
         VALUE_FORMAT.getFormatInfo(),
         OTHER_FORMAT.getFormatInfo(),
         CONTEXT_STACKER
@@ -338,8 +336,7 @@ public class JoinNodeTest {
     verify(leftSchemaKStream).innerJoin(
         rightSchemaKStream,
         SYNTH_KEY,
-        WITHIN_EXPRESSION.get().joinWindow(),
-        Optional.empty(),
+        WITHIN_EXPRESSION.get(),
         VALUE_FORMAT.getFormatInfo(),
         OTHER_FORMAT.getFormatInfo(),
         CONTEXT_STACKER
@@ -363,8 +360,7 @@ public class JoinNodeTest {
     verify(leftSchemaKStream).innerJoin(
         rightSchemaKStream,
         SYNTH_KEY,
-        WITHIN_EXPRESSION_WITH_GRACE.get().joinWindow(),
-        Optional.of(GRACE_PERIOD),
+        WITHIN_EXPRESSION_WITH_GRACE.get(),
         VALUE_FORMAT.getFormatInfo(),
         OTHER_FORMAT.getFormatInfo(),
         CONTEXT_STACKER
@@ -387,8 +383,7 @@ public class JoinNodeTest {
     verify(leftSchemaKStream).outerJoin(
         rightSchemaKStream,
         SYNTH_KEY,
-        WITHIN_EXPRESSION.get().joinWindow(),
-        Optional.empty(),
+        WITHIN_EXPRESSION.get(),
         VALUE_FORMAT.getFormatInfo(),
         OTHER_FORMAT.getFormatInfo(),
         CONTEXT_STACKER
@@ -412,8 +407,7 @@ public class JoinNodeTest {
     verify(leftSchemaKStream).outerJoin(
         rightSchemaKStream,
         SYNTH_KEY,
-        WITHIN_EXPRESSION_WITH_GRACE.get().joinWindow(),
-        Optional.of(GRACE_PERIOD),
+        WITHIN_EXPRESSION_WITH_GRACE.get(),
         VALUE_FORMAT.getFormatInfo(),
         OTHER_FORMAT.getFormatInfo(),
         CONTEXT_STACKER

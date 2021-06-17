@@ -33,6 +33,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Supplier;
+import kafka.cluster.EndPoint;
 import kafka.server.KafkaConfig;
 import kafka.server.KafkaServer;
 import kafka.utils.TestUtils;
@@ -91,8 +92,8 @@ class KafkaEmbedded {
    * @return the broker list
    */
   String brokerList() {
-    final ListenerName listenerName = kafka.config().advertisedListeners().apply(0).listenerName();
-    return kafka.config().hostName() + ":" + kafka.boundPort(listenerName);
+    final EndPoint endPoint = kafka.advertisedListeners().head();
+    return endPoint.host() + ":" + endPoint.port();
   }
 
   /**
@@ -104,7 +105,8 @@ class KafkaEmbedded {
    * @return the broker list
    */
   String brokerList(final SecurityProtocol securityProtocol) {
-    return kafka.config().hostName() + ":"
+    final EndPoint endPoint = kafka.advertisedListeners().head();
+    return endPoint.host() + ":"
            + kafka.boundPort(new ListenerName(securityProtocol.toString()));
   }
 

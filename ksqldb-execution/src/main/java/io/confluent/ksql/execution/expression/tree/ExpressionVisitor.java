@@ -81,6 +81,8 @@ public interface ExpressionVisitor<R, C> {
 
   R visitTimeLiteral(TimeLiteral exp, C context);
 
+  R visitDateLiteral(DateLiteral exp, C context);
+
   R visitTimestampLiteral(TimestampLiteral exp, C context);
 
   R visitType(Type exp, C context);

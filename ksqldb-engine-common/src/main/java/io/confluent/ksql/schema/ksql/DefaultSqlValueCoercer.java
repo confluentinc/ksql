@@ -299,7 +299,7 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
             .put(key(DOUBLE, DOUBLE), Coercer.PASS_THROUGH)
             // STRING:
             .put(key(STRING, STRING), Coercer.PASS_THROUGH)
-            .put(key(STRING, TIMESTAMP), parser((v, t) -> SqlTimestamps.parseTimestamp(v)))
+            .put(key(STRING, TIMESTAMP), parser((v, t) -> SqlTimeTypes.parseTimestamp(v)))
             // ARRAY:
             .put(key(ARRAY, ARRAY), coercer(
                 DefaultSqlValueCoercer::canCoerceToArray,
@@ -343,7 +343,7 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
             .put(key(STRING, DOUBLE), parser((v, t) -> SqlDoubles.parseDouble(v)))
             // TIMESTAMP:
             .put(key(TIMESTAMP, STRING), coercer((c, v, t)
-                -> Result.of(SqlTimestamps.formatTimestamp((Timestamp) v))))
+                -> Result.of(SqlTimeTypes.formatTimestamp((Timestamp) v))))
             .build();
 
     private static Coercer parser(final BiFunction<String, SqlType, Object> parserFunction) {

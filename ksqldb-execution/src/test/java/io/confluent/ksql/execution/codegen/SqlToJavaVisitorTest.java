@@ -848,7 +848,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(COL10.compareTo(SqlTimestamps.parseTimestamp(\"2020-01-01T00:00:00\")) == 0)"));
+    assertThat(java, containsString("(COL10.compareTo(SqlTimeTypes.parseTimestamp(\"2020-01-01T00:00:00\")) == 0)"));
   }
 
   @Test
@@ -864,7 +864,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(SqlTimestamps.parseTimestamp(\"2020-01-01T00:00:00\").compareTo(COL10) >= 0)"));
+    assertThat(java, containsString("(SqlTimeTypes.parseTimestamp(\"2020-01-01T00:00:00\").compareTo(COL10) >= 0)"));
   }
 
   @Test

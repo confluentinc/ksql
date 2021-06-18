@@ -218,9 +218,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
     final PreparedStatement<?> statement = parseStatement(request);
 
-    // log validated statements for query anonymization
-    QueryLogger.info("Transient query created", statement.getStatementText());
-
     CommandStoreUtil.httpWaitForCommandSequenceNumber(
         commandQueue, request, commandQueueCatchupTimeout);
 
@@ -282,6 +279,10 @@ public class StreamedQueryResource implements KsqlConfigurable {
               metricsCallbackHolder
           );
         }
+
+        // log validated statements for query anonymization
+        QueryLogger.info("Transient query created", statement.getStatementText());
+
         if (ScalablePushUtil.isScalablePushQuery(statement.getStatement(), ksqlEngine, ksqlConfig,
             configProperties)) {
           return handleScalablePushQuery(

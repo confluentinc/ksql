@@ -41,6 +41,7 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -139,6 +140,9 @@ public class JoinNodeTest {
 
   private static final Optional<WithinExpression> WITHIN_EXPRESSION =
       Optional.of(new WithinExpression(10, TimeUnit.SECONDS));
+  private static final WindowTimeClause GRACE_PERIOD = new WindowTimeClause(5, TimeUnit.SECONDS);
+  private static final Optional<WithinExpression> WITHIN_EXPRESSION_WITH_GRACE =
+      Optional.of(new WithinExpression(10, TimeUnit.SECONDS, GRACE_PERIOD));
 
   private static final PlanNodeId nodeId = new PlanNodeId("join");
   private static final QueryContext.Stacker CONTEXT_STACKER =
@@ -285,7 +289,31 @@ public class JoinNodeTest {
     verify(leftSchemaKStream).leftJoin(
         rightSchemaKStream,
         SYNTH_KEY,
-        WITHIN_EXPRESSION.get().joinWindow(),
+        WITHIN_EXPRESSION.get(),
+        VALUE_FORMAT.getFormatInfo(),
+        OTHER_FORMAT.getFormatInfo(),
+        CONTEXT_STACKER
+    );
+  }
+
+  @Test
+  public void shouldPerformStreamToStreamLeftJoinWithGracePeriod() {
+    // Given:
+    setupStream(left, leftSchemaKStream);
+    setupStream(right, rightSchemaKStream);
+
+    final JoinNode joinNode =
+        new JoinNode(nodeId, LEFT, joinKey, true, left, right,
+            WITHIN_EXPRESSION_WITH_GRACE, "KAFKA");
+
+    // When:
+    joinNode.buildStream(planBuildContext);
+
+    // Then:
+    verify(leftSchemaKStream).leftJoin(
+        rightSchemaKStream,
+        SYNTH_KEY,
+        WITHIN_EXPRESSION_WITH_GRACE.get(),
         VALUE_FORMAT.getFormatInfo(),
         OTHER_FORMAT.getFormatInfo(),
         CONTEXT_STACKER
@@ -308,7 +336,31 @@ public class JoinNodeTest {
     verify(leftSchemaKStream).innerJoin(
         rightSchemaKStream,
         SYNTH_KEY,
-        WITHIN_EXPRESSION.get().joinWindow(),
+        WITHIN_EXPRESSION.get(),
+        VALUE_FORMAT.getFormatInfo(),
+        OTHER_FORMAT.getFormatInfo(),
+        CONTEXT_STACKER
+    );
+  }
+
+  @Test
+  public void shouldPerformStreamToStreamInnerJoinWithGracePeriod() {
+    // Given:
+    setupStream(left, leftSchemaKStream);
+    setupStream(right, rightSchemaKStream);
+
+    final JoinNode joinNode =
+        new JoinNode(nodeId, INNER, joinKey, true, left, right,
+            WITHIN_EXPRESSION_WITH_GRACE, "KAFKA");
+
+    // When:
+    joinNode.buildStream(planBuildContext);
+
+    // Then:
+    verify(leftSchemaKStream).innerJoin(
+        rightSchemaKStream,
+        SYNTH_KEY,
+        WITHIN_EXPRESSION_WITH_GRACE.get(),
         VALUE_FORMAT.getFormatInfo(),
         OTHER_FORMAT.getFormatInfo(),
         CONTEXT_STACKER
@@ -331,7 +383,31 @@ public class JoinNodeTest {
     verify(leftSchemaKStream).outerJoin(
         rightSchemaKStream,
         SYNTH_KEY,
-        WITHIN_EXPRESSION.get().joinWindow(),
+        WITHIN_EXPRESSION.get(),
+        VALUE_FORMAT.getFormatInfo(),
+        OTHER_FORMAT.getFormatInfo(),
+        CONTEXT_STACKER
+    );
+  }
+
+  @Test
+  public void shouldPerformStreamToStreamOuterJoinWithGrace() {
+    // Given:
+    setupStream(left, leftSchemaKStream);
+    setupStream(right, rightSchemaKStream);
+
+    final JoinNode joinNode =
+        new JoinNode(nodeId, OUTER, joinKey, true, left, right,
+            WITHIN_EXPRESSION_WITH_GRACE, "KAFKA");
+
+    // When:
+    joinNode.buildStream(planBuildContext);
+
+    // Then:
+    verify(leftSchemaKStream).outerJoin(
+        rightSchemaKStream,
+        SYNTH_KEY,
+        WITHIN_EXPRESSION_WITH_GRACE.get(),
         VALUE_FORMAT.getFormatInfo(),
         OTHER_FORMAT.getFormatInfo(),
         CONTEXT_STACKER

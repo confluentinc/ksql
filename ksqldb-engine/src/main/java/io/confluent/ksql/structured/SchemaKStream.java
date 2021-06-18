@@ -43,6 +43,7 @@ import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -60,8 +61,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import org.apache.kafka.streams.kstream.JoinWindows;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -195,7 +194,7 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> leftJoin(
       final SchemaKStream<K> otherSchemaKStream,
       final ColumnName keyColName,
-      final JoinWindows joinWindows,
+      final WithinExpression withinExpression,
       final FormatInfo leftFormat,
       final FormatInfo rightFormat,
       final Stacker contextStacker
@@ -210,7 +209,8 @@ public class SchemaKStream<K> {
         InternalFormats.of(keyFormat, rightFormat),
         sourceStep,
         otherSchemaKStream.sourceStep,
-        joinWindows
+        withinExpression.joinWindow(),
+        withinExpression.getGrace()
     );
 
     return new SchemaKStream<>(
@@ -251,7 +251,7 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> innerJoin(
       final SchemaKStream<K> otherSchemaKStream,
       final ColumnName keyColName,
-      final JoinWindows joinWindows,
+      final WithinExpression withinExpression,
       final FormatInfo leftFormat,
       final FormatInfo rightFormat,
       final Stacker contextStacker
@@ -266,7 +266,8 @@ public class SchemaKStream<K> {
         InternalFormats.of(keyFormat, rightFormat),
         sourceStep,
         otherSchemaKStream.sourceStep,
-        joinWindows
+        withinExpression.joinWindow(),
+        withinExpression.getGrace()
     );
 
     return new SchemaKStream<>(
@@ -281,7 +282,7 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> outerJoin(
       final SchemaKStream<K> otherSchemaKStream,
       final ColumnName keyColName,
-      final JoinWindows joinWindows,
+      final WithinExpression withinExpression,
       final FormatInfo leftFormat,
       final FormatInfo rightFormat,
       final Stacker contextStacker
@@ -296,7 +297,8 @@ public class SchemaKStream<K> {
         InternalFormats.of(keyFormat, rightFormat),
         sourceStep,
         otherSchemaKStream.sourceStep,
-        joinWindows
+        withinExpression.joinWindow(),
+        withinExpression.getGrace()
     );
 
     return new SchemaKStream<>(

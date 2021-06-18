@@ -54,6 +54,7 @@ import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.plan.WindowedTableSource;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.RefinementInfo;
@@ -228,7 +229,8 @@ public final class ExecutionStepFactory {
       final Formats rightFormats,
       final ExecutionStep<KStreamHolder<K>> left,
       final ExecutionStep<KStreamHolder<K>> right,
-      final JoinWindows joinWindows
+      final JoinWindows joinWindows,
+      final Optional<WindowTimeClause> gracePeriod
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamStreamJoin<>(
@@ -240,7 +242,8 @@ public final class ExecutionStepFactory {
         left,
         right,
         Duration.ofMillis(joinWindows.beforeMs),
-        Duration.ofMillis(joinWindows.afterMs)
+        Duration.ofMillis(joinWindows.afterMs),
+        gracePeriod.map(grace -> Duration.ofMillis(grace.toDuration().toMillis()))
     );
   }
 

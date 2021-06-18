@@ -146,15 +146,8 @@ final class QueryExecutor {
         materializationProviderBuilderFactory,
         "materializationProviderBuilderFactory"
     );
+
     this.streams = new ArrayList<>();
-
-    final SharedKafkaStreamsRuntime stream = new SharedKafkaStreamsRuntime(
-        kafkaStreamsBuilder,
-        config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
-        buildStreamsProperties("applicationId", new QueryId(""))
-    );
-    streams.add(stream);
-
   }
 
   TransientQueryMetadata buildTransientQuery(
@@ -294,8 +287,7 @@ final class QueryExecutor {
         .map(userErrorClassifiers::and)
         .orElse(userErrorClassifiers);
 
-    final boolean useBinPacked = true;
-    if (useBinPacked) {
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
       final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getStream(sources);
       final PersistentQueriesInSharedRuntimesImpl binPackedPersistentQueryMetadata
               = new PersistentQueriesInSharedRuntimesImpl(

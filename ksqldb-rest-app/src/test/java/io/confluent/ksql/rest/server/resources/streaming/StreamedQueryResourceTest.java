@@ -359,7 +359,25 @@ public class StreamedQueryResourceTest {
   }
 
   @Test
-  public void queryLoggerShouldReceiveStatementsWhenHandleKsqlStatement() {
+  public void queryLoggerShouldReceiveStatementsWhenHandlePushQuery() {
+    when(mockStatementParser.<Query>parseSingleStatement(PUSH_QUERY_STRING))
+        .thenReturn(query);
+    try (MockedStatic<QueryLogger> logger = Mockito.mockStatic(QueryLogger.class)) {
+      testResource.streamQuery(
+          securityContext,
+          new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), Collections.emptyMap(), null),
+          new CompletableFuture<>(),
+          Optional.empty(),
+          KsqlMediaType.LATEST_FORMAT,
+          new MetricsCallbackHolder());
+
+      logger.verify(() -> QueryLogger.info("Transient query created",
+          PUSH_QUERY_STRING), never());
+    }
+  }
+
+  @Test
+  public void queryLoggerShouldNotReceiveStatementsWhenHandlePullQuery() {
     try (MockedStatic<QueryLogger> logger = Mockito.mockStatic(QueryLogger.class)) {
       testResource.streamQuery(
           securityContext,
@@ -370,7 +388,7 @@ public class StreamedQueryResourceTest {
           new MetricsCallbackHolder());
 
       logger.verify(() -> QueryLogger.info("Transient query created",
-          PULL_QUERY_STRING), times(1));
+          PULL_QUERY_STRING), never());
     }
   }
 

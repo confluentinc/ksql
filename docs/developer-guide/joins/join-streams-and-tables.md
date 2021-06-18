@@ -40,6 +40,9 @@ CREATE STREAM pageviews_enriched AS
   EMIT CHANGES;
 ```
 
+> Note: Currently, the join expression must be a simple comparison.
+Non-equi joins, or joins on multiple columns are not supported yet. 
+
 When you join two streams, you must specify a WITHIN clause for matching
 records that both occur within a specified time interval. For valid time
 units, see [Time Units](/reference/sql/time/#time-units).

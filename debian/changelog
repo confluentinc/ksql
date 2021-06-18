@@ -1,3 +1,9 @@
+confluent-ksqldb (0.18.0-rc15) unstable; urgency=medium
+
+  * Release version 0.18.0-rc15
+
+ -- Confluent Packaging <packages@confluent.io>  Fri, 18 Jun 2021 00:40:16 +0000
+
 confluent-ksqldb (0.18.0-1) unstable; urgency=medium
 
   * Release version 0.18.0-1

@@ -51,13 +51,14 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
+import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -203,18 +204,22 @@ final class QueryExecutor {
       return Optional.empty();
     }
     final KStream<?, GenericRow> stream;
+    final boolean isTable;
     if (result instanceof KTableHolder) {
       stream = ((KTableHolder<?>) result).getTable().toStream();
+      isTable = true;
     } else {
       stream = ((KStreamHolder<?>) result).getStream();
+      isTable = false;
     }
     final Optional<ScalablePushRegistry> registry = ScalablePushRegistry.create(schema,
-        allPersistentQueries, windowed, streamsProperties);
+        allPersistentQueries, isTable, windowed, streamsProperties);
     registry.ifPresent(r -> stream.process(registry.get()));
     return registry;
   }
 
   PersistentQueryMetadata buildPersistentQuery(
+      final KsqlConstants.PersistentQueryType persistentQueryType,
       final String statementText,
       final QueryId queryId,
       final DataSource sinkDataSource,
@@ -262,6 +267,7 @@ final class QueryExecutor {
         .orElse(userErrorClassifiers);
 
     return new PersistentQueryMetadataImpl(
+        persistentQueryType,
         statementText,
         querySchema,
         sources,

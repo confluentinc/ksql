@@ -37,7 +37,9 @@ import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.pull.PullQueryResult;
-import io.confluent.ksql.planner.PullPlannerOptions;
+import io.confluent.ksql.physical.scalablepush.PushRouting;
+import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
+import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.planner.plan.ConfiguredKsqlPlan;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
@@ -48,7 +50,9 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
+import io.vertx.core.Context;
 import java.io.Closeable;
 import java.util.List;
 import java.util.Map;
@@ -277,12 +281,28 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   }
 
   @Override
+  public ScalablePushQueryMetadata executeScalablePushQuery(
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<Query> statement,
+      final PushRouting pushRouting,
+      final PushRoutingOptions pushRoutingOptions,
+      final QueryPlannerOptions queryPlannerOptions,
+      final Context context
+  ) {
+    final ScalablePushQueryMetadata query = EngineExecutor
+        .create(primaryContext, serviceContext, statement.getSessionConfig())
+        .executeScalablePushQuery(statement, pushRouting, pushRoutingOptions, queryPlannerOptions,
+            context);
+    return query;
+  }
+
+  @Override
   public PullQueryResult executePullQuery(
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
       final HARouting routing,
       final RoutingOptions routingOptions,
-      final PullPlannerOptions plannerOptions,
+      final QueryPlannerOptions plannerOptions,
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final boolean startImmediately
   ) {

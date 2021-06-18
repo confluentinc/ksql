@@ -37,7 +37,6 @@ import io.confluent.ksql.schema.query.QuerySchemas;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 
@@ -46,7 +45,7 @@ import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
  */
 public class PersistentQueryMetadataImpl
     extends QueryMetadataImpl implements PersistentQueryMetadata {
-
+  private final KsqlConstants.PersistentQueryType persistentQueryType;
   private final DataSource sinkDataSource;
   private final QuerySchemas schemas;
   private final PhysicalSchema resultSchema;
@@ -54,12 +53,13 @@ public class PersistentQueryMetadataImpl
   private final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
       materializationProviderBuilder;
   private final Optional<ScalablePushRegistry> scalablePushRegistry;
+  private final ProcessingLogger processingLogger;
 
   private Optional<MaterializationProvider> materializationProvider;
-  private ProcessingLogger processingLogger;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public PersistentQueryMetadataImpl(
+      final KsqlConstants.PersistentQueryType persistentQueryType,
       final String statementString,
       final PhysicalSchema schema,
       final Set<SourceName> sourceNames,
@@ -111,6 +111,7 @@ public class PersistentQueryMetadataImpl
         requireNonNull(materializationProviderBuilder, "materializationProviderBuilder");
     this.processingLogger = requireNonNull(processingLogger, "processingLogger");
     this.scalablePushRegistry = requireNonNull(scalablePushRegistry, "scalablePushRegistry");
+    this.persistentQueryType = requireNonNull(persistentQueryType, "persistentQueryType");
   }
 
   // for creating sandbox instances
@@ -127,6 +128,7 @@ public class PersistentQueryMetadataImpl
     this.materializationProviderBuilder = original.materializationProviderBuilder;
     this.processingLogger = original.processingLogger;
     this.scalablePushRegistry = original.scalablePushRegistry;
+    this.persistentQueryType = original.getPersistentQueryType();
   }
 
   @Override
@@ -179,6 +181,10 @@ public class PersistentQueryMetadataImpl
     return sinkDataSource;
   }
 
+  public KsqlConstants.PersistentQueryType getPersistentQueryType() {
+    return persistentQueryType;
+  }
+
   @VisibleForTesting
   public Optional<MaterializationProvider> getMaterializationProvider() {
     return materializationProvider;
@@ -194,23 +200,6 @@ public class PersistentQueryMetadataImpl
       final QueryContext.Stacker contextStacker
   ) {
     return materializationProvider.map(builder -> builder.build(queryId, contextStacker));
-  }
-
-  public synchronized void restart() {
-    if (isClosed()) {
-      throw new IllegalStateException(String.format(
-          "Query with application id %s is already closed, cannot restart.",
-          getQueryApplicationId()));
-    }
-
-    closeKafkaStreams();
-
-    final KafkaStreams newKafkaStreams = buildKafkaStreams();
-    materializationProvider = materializationProviderBuilder.flatMap(
-        builder -> builder.apply(newKafkaStreams, getTopology()));
-
-    resetKafkaStreams(newKafkaStreams);
-    start();
   }
 
   /**

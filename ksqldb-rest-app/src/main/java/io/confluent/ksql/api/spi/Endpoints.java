@@ -30,6 +30,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.reactivestreams.Subscriber;
@@ -51,8 +52,10 @@ public interface Endpoints {
    * @param workerExecutor The worker executor to use for blocking operations
    * @return A CompletableFuture representing the future result of the operation
    */
-  CompletableFuture<QueryPublisher> createQueryPublisher(String sql, JsonObject properties,
-      JsonObject sessionVariables, Context context, WorkerExecutor workerExecutor,
+  CompletableFuture<QueryPublisher> createQueryPublisher(String sql,
+      Map<String, Object> properties,
+      Map<String, Object> sessionVariables, Map<String, Object> requestProperties,
+      Context context, WorkerExecutor workerExecutor,
       ApiSecurityContext apiSecurityContext, MetricsCallbackHolder metricsCallbackHolder);
 
   /**
@@ -86,7 +89,8 @@ public interface Endpoints {
       CompletableFuture<Void> connectionClosedFuture, ApiSecurityContext apiSecurityContext,
       Optional<Boolean> isInternalRequest,
       KsqlMediaType mediaType,
-      MetricsCallbackHolder metricsCallbackHolder);
+      MetricsCallbackHolder metricsCallbackHolder,
+      Context context);
 
   CompletableFuture<EndpointResponse> executeInfo(ApiSecurityContext apiSecurityContext);
 
@@ -115,6 +119,7 @@ public interface Endpoints {
 
   // This is the legacy websocket based query streaming API
   void executeWebsocketStream(ServerWebSocket webSocket, MultiMap requstParams,
-      WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext);
+      WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext,
+      Context context);
 
 }

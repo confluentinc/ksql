@@ -17,12 +17,14 @@ package io.confluent.ksql.schema.ksql;
 
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
+import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Helpers for working with Sql {@code TIMESTAMP}.
+ * Helpers for working with SQL time types.
  */
 public final class SqlTimestamps {
 
@@ -48,5 +50,9 @@ public final class SqlTimestamps {
         .ofPattern(KsqlConstants.DATE_TIME_PATTERN)
         .withZone(ZoneId.of("Z"))
         .format(timestamp.toInstant());
+  }
+
+  public static String formatTime(final Time time) {
+    return LocalTime.ofSecondOfDay(time.getTime() / 1000).toString();
   }
 }

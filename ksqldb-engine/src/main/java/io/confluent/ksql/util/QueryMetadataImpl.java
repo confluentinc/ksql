@@ -39,7 +39,6 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.LagInfo;
@@ -70,9 +69,10 @@ public class QueryMetadataImpl implements QueryMetadata {
   private final RetryEvent retryEvent;
   private final Listener listener;
 
-  private boolean everStarted = false;
-  protected boolean closed = false;
-  private StreamsUncaughtExceptionHandler uncaughtExceptionHandler = this::uncaughtHandler;
+  private volatile boolean everStarted = false;
+  protected volatile boolean closed = false;
+  // These fields don't need synchronization because they are initialized in initialize() before
+  // the object is made available to other threads.
   private KafkaStreams kafkaStreams;
   private boolean initialized = false;
 
@@ -146,7 +146,6 @@ public class QueryMetadataImpl implements QueryMetadata {
     this.closeTimeout = other.closeTimeout;
     this.queryId = other.getQueryId();
     this.errorClassifier = other.errorClassifier;
-    this.uncaughtExceptionHandler = other.uncaughtExceptionHandler;
     this.everStarted = other.everStarted;
     this.queryErrors = new TimeBoundedQueue(Duration.ZERO, 0);
     this.retryEvent = new RetryEvent(
@@ -222,7 +221,6 @@ public class QueryMetadataImpl implements QueryMetadata {
   }
 
   public void setUncaughtExceptionHandler(final StreamsUncaughtExceptionHandler handler) {
-    this.uncaughtExceptionHandler = handler;
     kafkaStreams.setUncaughtExceptionHandler(handler);
   }
 
@@ -304,9 +302,9 @@ public class QueryMetadataImpl implements QueryMetadata {
     return listener;
   }
 
-  protected void resetKafkaStreams(final KafkaStreams kafkaStreams) {
+  private void resetKafkaStreams(final KafkaStreams kafkaStreams) {
     this.kafkaStreams = kafkaStreams;
-    setUncaughtExceptionHandler(uncaughtExceptionHandler);
+    setUncaughtExceptionHandler(this::uncaughtHandler);
     kafkaStreams.setStateListener((b, a) -> listener.onStateChange(this, b, a));
   }
 
@@ -320,10 +318,6 @@ public class QueryMetadataImpl implements QueryMetadata {
         );
       }
     }
-  }
-
-  protected KafkaStreams buildKafkaStreams() {
-    return kafkaStreamsBuilder.build(topology, streamsProperties);
   }
 
   /**

@@ -51,6 +51,8 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collection;
@@ -599,7 +601,7 @@ public class CastEvaluatorTest {
           is(ImmutableSet.of(
               SqlBaseType.BOOLEAN, SqlBaseType.INTEGER, SqlBaseType.BIGINT, SqlBaseType.DECIMAL,
               SqlBaseType.DOUBLE, SqlBaseType.STRING, SqlBaseType.ARRAY, MAP,
-              SqlBaseType.STRUCT, SqlBaseType.TIMESTAMP
+              SqlBaseType.STRUCT, SqlBaseType.TIME, SqlBaseType.DATE, SqlBaseType.TIMESTAMP
           ))
       );
     }
@@ -663,6 +665,8 @@ public class CastEvaluatorTest {
         .put(SqlBaseType.STRUCT, SqlTypes.struct()
             .field("Bob", SqlTypes.STRING)
             .build())
+        .put(SqlBaseType.TIME, SqlTypes.TIME)
+        .put(SqlBaseType.DATE, SqlTypes.DATE)
         .put(SqlBaseType.TIMESTAMP, SqlTypes.TIMESTAMP)
         .build();
 
@@ -687,6 +691,8 @@ public class CastEvaluatorTest {
         .put(SqlBaseType.DECIMAL, new BigDecimal("12.01"))
         .put(SqlBaseType.DOUBLE, 34.98d)
         .put(SqlBaseType.STRING, "\t 11 \t")
+        .put(SqlBaseType.TIME, new Time(500L))
+        .put(SqlBaseType.DATE, new Date(500L))
         .put(SqlBaseType.TIMESTAMP, new Timestamp(500))
         .build();
 
@@ -799,6 +805,12 @@ public class CastEvaluatorTest {
             .put(SqlBaseType.STRUCT, ImmutableSet.<SqlBaseType>builder()
                 .add(SqlBaseType.STRUCT)
                 .add(SqlBaseType.STRING)
+                .build())
+            .put(SqlBaseType.TIME, ImmutableSet.<SqlBaseType>builder()
+                .add(SqlBaseType.TIME)
+                .build())
+            .put(SqlBaseType.DATE, ImmutableSet.<SqlBaseType>builder()
+                .add(SqlBaseType.DATE)
                 .build())
             .put(SqlBaseType.TIMESTAMP, ImmutableSet.<SqlBaseType>builder()
                 .add(SqlBaseType.TIMESTAMP)

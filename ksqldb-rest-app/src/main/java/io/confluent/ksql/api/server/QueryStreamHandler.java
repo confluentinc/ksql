@@ -80,7 +80,8 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     final MetricsCallbackHolder metricsCallbackHolder = new MetricsCallbackHolder();
     final long startTimeNanos = Time.SYSTEM.nanoseconds();
     endpoints.createQueryPublisher(queryStreamArgs.get().sql, queryStreamArgs.get().properties,
-        queryStreamArgs.get().sessionVariables, context, server.getWorkerExecutor(),
+        queryStreamArgs.get().sessionVariables, queryStreamArgs.get().requestProperties,
+        context, server.getWorkerExecutor(),
         DefaultApiSecurityContext.create(routingContext), metricsCallbackHolder)
         .thenAccept(queryPublisher -> {
 
@@ -99,6 +100,14 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
                   routingContext.request().bytesRead(),
                   routingContext.response().bytesWritten(),
                   startTimeNanos);
+            });
+          }  else if (queryPublisher.isScalablePushQuery()) {
+            metadata = new QueryResponseMetadata(
+                queryPublisher.queryId().toString(),
+                queryPublisher.getColumnNames(),
+                queryPublisher.getColumnTypes());
+            routingContext.response().endHandler(v -> {
+              queryPublisher.close();
             });
           } else {
             final PushQueryHolder query = connectionQueryManager

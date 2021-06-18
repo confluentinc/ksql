@@ -29,6 +29,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
@@ -165,6 +166,9 @@ public class QueryRegistryImpl implements QueryRegistry {
     final QueryExecutor executor =
         executorFactory.create(config, processingLogContext, serviceContext, metaStore);
     final PersistentQueryMetadata query = executor.buildPersistentQuery(
+        createAsQuery
+            ? KsqlConstants.PersistentQueryType.CREATE_AS
+            : KsqlConstants.PersistentQueryType.INSERT,
         statementText,
         queryId,
         sinkDataSource,
@@ -269,6 +273,8 @@ public class QueryRegistryImpl implements QueryRegistry {
         unregisterQuery(oldQuery);
       }
 
+      // Initialize the query before it's exposed to other threads via the map/sets.
+      persistentQuery.initialize();
       persistentQueries.put(queryId, persistentQuery);
       if (createAsQuery) {
         createAsQueries.put(persistentQuery.getSinkName(), queryId);
@@ -278,9 +284,11 @@ public class QueryRegistryImpl implements QueryRegistry {
             insertQueries.computeIfAbsent(sourceName,
                 x -> Collections.synchronizedSet(new HashSet<>())).add(queryId));
       }
+    } else {
+      // Initialize the query before it's exposed to other threads via {@link allLiveQueries}.
+      query.initialize();
     }
     allLiveQueries.add(query);
-    query.initialize();
     notifyCreate(serviceContext, metaStore, query);
   }
 
@@ -290,16 +298,21 @@ public class QueryRegistryImpl implements QueryRegistry {
       final QueryId queryId = persistentQuery.getQueryId();
       persistentQueries.remove(queryId);
 
-      // If query is a INSERT query, then this line should not cause any effect
-      createAsQueries.remove(persistentQuery.getSinkName());
-
-      // If query is a C*AS query, then these lines should not cause any effect
-      sinkAndSources(persistentQuery).forEach(sourceName ->
-          insertQueries.computeIfPresent(sourceName, (s, queries) -> {
-            queries.remove(queryId);
-            return (queries.isEmpty()) ? null : queries;
-          })
-      );
+      switch (persistentQuery.getPersistentQueryType()) {
+        case CREATE_AS:
+          createAsQueries.remove(persistentQuery.getSinkName());
+          break;
+        case INSERT:
+          sinkAndSources(persistentQuery).forEach(sourceName ->
+              insertQueries.computeIfPresent(sourceName, (s, queries) -> {
+                queries.remove(queryId);
+                return (queries.isEmpty()) ? null : queries;
+              })
+          );
+          break;
+        default:
+          // nothing to do with unknown query types
+      }
     }
 
     allLiveQueries.remove(query);

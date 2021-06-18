@@ -17,7 +17,9 @@ for stream processing applications on top of {{ site.aktm }}.
   <div class="card getting-started">
     <strong>Quickstarts</strong>
     <ul class="card-items">
-      <li><a href="https://ksqldb.io/quickstart.html">Standalone quickstart</a></li>
+      <li><a href="https://ksqldb.io/quickstart.html">With Standalone</a></li>
+      <li><a href="https://ksqldb.io/quickstart-cloud.html">With Confluent Cloud</a></li>
+      <li><a href="https://ksqldb.io/quickstart-platform.html">With Confluent Platform</a></li>
     </ul>
   </div>
 

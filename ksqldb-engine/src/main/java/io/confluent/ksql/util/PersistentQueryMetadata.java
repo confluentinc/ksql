@@ -46,14 +46,14 @@ public interface PersistentQueryMetadata extends QueryMetadata {
 
   DataSource getSink();
 
+  KsqlConstants.PersistentQueryType getPersistentQueryType();
+
   ProcessingLogger getProcessingLogger();
 
   Optional<Materialization> getMaterialization(
       QueryId queryId,
       QueryContext.Stacker contextStacker
   );
-
-  void restart();
 
   void stop();
 

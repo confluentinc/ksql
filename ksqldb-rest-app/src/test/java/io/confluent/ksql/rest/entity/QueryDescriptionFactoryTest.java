@@ -43,18 +43,18 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryStatus;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
+import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
@@ -150,6 +150,7 @@ public class QueryDescriptionFactoryTest {
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery, Collections.emptyMap());
 
     persistentQuery = new PersistentQueryMetadataImpl(
+        KsqlConstants.PersistentQueryType.CREATE_AS,
         SQL_TEXT,
         PhysicalSchema.from(PERSISTENT_SCHEMA, SerdeFeatures.of(), SerdeFeatures.of()),
         SOURCE_NAMES,

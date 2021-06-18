@@ -151,11 +151,11 @@ limitClause
     ;
 
 retentionClause
-    : ',' RETENTION number windowUnit
+    : RETENTION number windowUnit
     ;
 
 gracePeriodClause
-    : ',' GRACE PERIOD number windowUnit
+    : GRACE PERIOD number windowUnit
     ;
 
 windowExpression
@@ -164,15 +164,15 @@ windowExpression
     ;
 
 tumblingWindowExpression
-    : TUMBLING '(' SIZE number windowUnit (retentionClause)? (gracePeriodClause)?')'
+    : TUMBLING '(' SIZE number windowUnit (',' retentionClause)? (',' gracePeriodClause)?')'
     ;
 
 hoppingWindowExpression
-    : HOPPING '(' SIZE number windowUnit ',' ADVANCE BY number windowUnit (retentionClause)? (gracePeriodClause)?')'
+    : HOPPING '(' SIZE number windowUnit ',' ADVANCE BY number windowUnit (',' retentionClause)? (',' gracePeriodClause)?')'
     ;
 
 sessionWindowExpression
-    : SESSION '(' number windowUnit (retentionClause)? (gracePeriodClause)?')'
+    : SESSION '(' number windowUnit (',' retentionClause)? (',' gracePeriodClause)?')'
     ;
 
 windowUnit
@@ -228,8 +228,8 @@ joinWindow
     ;
 
 withinExpression
-    : '(' joinWindowSize ',' joinWindowSize ')' # joinWindowWithBeforeAndAfter
-    | joinWindowSize # singleJoinWindow
+    : '(' joinWindowSize ',' joinWindowSize ')' (gracePeriodClause)?  # joinWindowWithBeforeAndAfter
+    | joinWindowSize (gracePeriodClause)?                             # singleJoinWindow
     ;
 
 joinWindowSize

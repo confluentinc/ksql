@@ -128,7 +128,7 @@ public class SecureIntegrationTest {
 
 
   @Rule
-  public final Timeout timeout = Timeout.seconds(30);
+  public final Timeout timeout = Timeout.seconds(90);
 
   private QueryId queryId;
   private KsqlConfig ksqlConfig;

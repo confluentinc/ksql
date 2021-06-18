@@ -339,10 +339,10 @@ public class SqlToJavaVisitor {
 
     @Override
     public Pair<String, SqlType> visitTimeLiteral(
-        final TimeLiteral timeLiteral,
+        final TimeLiteral node,
         final Context context
     ) {
-      return visitUnsupported(timeLiteral);
+      return new Pair<>(node.toString(), SqlTypes.TIME);
     }
 
     @Override

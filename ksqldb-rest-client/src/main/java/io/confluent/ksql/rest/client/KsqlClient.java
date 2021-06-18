@@ -25,6 +25,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.VertxException;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.http.HttpVersion;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.SocketAddress;
 import java.net.URI;
@@ -48,6 +49,8 @@ public final class KsqlClient implements AutoCloseable {
   private final Vertx vertx;
   private final HttpClient httpNonTlsClient;
   private final HttpClient httpTlsClient;
+  private final Optional<HttpClient> httpNonTlsClientHttp2;
+  private final Optional<HttpClient> httpTlsClientHttp2;
   private final LocalProperties localProperties;
   private final Optional<String> basicAuthHeader;
   private final BiFunction<Integer, String, SocketAddress> socketAddressFactory;
@@ -64,7 +67,8 @@ public final class KsqlClient implements AutoCloseable {
       final Map<String, String> clientProps,
       final Optional<BasicCredentials> credentials,
       final LocalProperties localProperties,
-      final HttpClientOptions httpClientOptions
+      final HttpClientOptions httpClientOptions,
+      final Optional<HttpClientOptions> httpClientOptionsHttp2
   ) {
     this.vertx = Vertx.vertx();
     this.basicAuthHeader = createBasicAuthHeader(
@@ -73,6 +77,10 @@ public final class KsqlClient implements AutoCloseable {
     this.socketAddressFactory = SocketAddress::inetSocketAddress;
     this.httpNonTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, false);
     this.httpTlsClient = createHttpClient(vertx, clientProps, httpClientOptions, true);
+    this.httpNonTlsClientHttp2 = httpClientOptionsHttp2.map(
+        options -> createHttpClient(vertx, clientProps, validateHttp2(options), false));
+    this.httpTlsClientHttp2 = httpClientOptionsHttp2.map(
+        options -> createHttpClient(vertx, clientProps, validateHttp2(options), true));
     this.ownedVertx = true;
   }
 
@@ -90,6 +98,7 @@ public final class KsqlClient implements AutoCloseable {
       final Optional<BasicCredentials> credentials,
       final LocalProperties localProperties,
       final Function<Boolean, HttpClientOptions> httpClientOptionsFactory,
+      final Function<Boolean, HttpClientOptions> httpClientOptionsFactory2,
       final BiFunction<Integer, String, SocketAddress> socketAddressFactory,
       final Vertx vertx
   ) {
@@ -101,12 +110,25 @@ public final class KsqlClient implements AutoCloseable {
         socketAddressFactory, "socketAddressFactory");
     this.httpNonTlsClient = createHttpClient(vertx, httpClientOptionsFactory, false);
     this.httpTlsClient = createHttpClient(vertx, httpClientOptionsFactory, true);
+    this.httpNonTlsClientHttp2 = Optional.of(
+        createHttpClient(vertx, validateHttp2(httpClientOptionsFactory2), false));
+    this.httpTlsClientHttp2 = Optional.of(
+        createHttpClient(vertx, validateHttp2(httpClientOptionsFactory2), true));
     this.ownedVertx = false;
   }
 
   public KsqlTarget target(final URI server) {
     final boolean isUriTls = server.getScheme().equalsIgnoreCase("https");
     final HttpClient client = isUriTls ? httpTlsClient : httpNonTlsClient;
+    return new KsqlTarget(client,
+        socketAddressFactory.apply(server.getPort(), server.getHost()), localProperties,
+        basicAuthHeader, server.getHost());
+  }
+
+  public KsqlTarget targetHttp2(final URI server) {
+    final boolean isUriTls = server.getScheme().equalsIgnoreCase("https");
+    final HttpClient client = (isUriTls ? httpTlsClientHttp2 : httpNonTlsClientHttp2).orElseThrow(
+        () -> new IllegalStateException("Must provide http2 options to use targetHttp2"));
     return new KsqlTarget(client,
         socketAddressFactory.apply(server.getPort(), server.getHost()), localProperties,
         basicAuthHeader, server.getHost());
@@ -198,5 +220,18 @@ public final class KsqlClient implements AutoCloseable {
     }
 
     httpClientOptions.setVerifyHost(false);
+  }
+
+  private static HttpClientOptions validateHttp2(final HttpClientOptions httpClientOptions) {
+    if (httpClientOptions.getProtocolVersion() != HttpVersion.HTTP_2) {
+      throw new IllegalArgumentException("Expecting http2 protocol version");
+    }
+    return httpClientOptions;
+  }
+
+  private static Function<Boolean, HttpClientOptions> validateHttp2(
+      final Function<Boolean, HttpClientOptions> httpClientOptionsFactory
+  ) {
+    return tls -> validateHttp2(httpClientOptionsFactory.apply(tls));
   }
 }

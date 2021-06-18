@@ -97,6 +97,7 @@ public class SandboxedPersistentQueryMetadataImplTest {
         .thenReturn(Optional.of(materializationProvider));
 
     final PersistentQueryMetadataImpl query = new PersistentQueryMetadataImpl(
+        KsqlConstants.PersistentQueryType.CREATE_AS,
         SQL,
         physicalSchema,
         Collections.emptySet(),

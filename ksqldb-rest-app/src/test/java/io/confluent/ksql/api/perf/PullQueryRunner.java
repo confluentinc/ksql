@@ -28,6 +28,7 @@ import io.confluent.ksql.api.server.InsertsStreamSubscriber;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BufferedPublisher;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
@@ -47,6 +48,7 @@ import io.vertx.ext.web.client.HttpResponse;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -118,8 +120,9 @@ public class PullQueryRunner extends BasePerfRunner {
 
     @Override
     public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
-        final JsonObject properties,
-        final JsonObject sessionVariables,
+        final Map<String, Object> properties,
+        final Map<String, Object> sessionVariables,
+        final Map<String, Object> requestProperties,
         final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext,
@@ -155,7 +158,8 @@ public class PullQueryRunner extends BasePerfRunner {
     public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
         WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
         ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest,
-        KsqlMediaType mediaType, final MetricsCallbackHolder metricsCallbackHolder) {
+        KsqlMediaType mediaType, final MetricsCallbackHolder metricsCallbackHolder,
+        Context context) {
       return null;
     }
 
@@ -220,7 +224,7 @@ public class PullQueryRunner extends BasePerfRunner {
 
     @Override
     public void executeWebsocketStream(ServerWebSocket webSocket, MultiMap requstParams,
-        WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext) {
+        WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext, Context context) {
 
     }
 
@@ -252,6 +256,16 @@ public class PullQueryRunner extends BasePerfRunner {
     @Override
     public boolean isPullQuery() {
       return true;
+    }
+
+    @Override
+    public boolean isScalablePushQuery() {
+      return false;
+    }
+
+    @Override
+    public QueryId queryId() {
+      return new QueryId("queryId");
     }
   }
 }

@@ -41,6 +41,7 @@ import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -65,8 +66,13 @@ public class TestEndpoints implements Endpoints {
   private ApiSecurityContext lastApiSecurityContext;
 
   @Override
-  public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
-      final JsonObject properties, JsonObject sessionVariables, final Context context, final WorkerExecutor workerExecutor,
+  public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(
+      final String sql,
+      final Map<String, Object> properties,
+      final Map<String, Object> sessionVariables,
+      final Map<String, Object> requestProperties,
+      final Context context,
+      final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext,
       final MetricsCallbackHolder metricsCallbackHolder) {
     CompletableFuture<QueryPublisher> completableFuture = new CompletableFuture<>();
@@ -75,8 +81,8 @@ public class TestEndpoints implements Endpoints {
       completableFuture.completeExceptionally(createQueryPublisherException);
     } else {
       this.lastSql = sql;
-      this.lastProperties = properties;
-      this.lastSessionVariables = sessionVariables;
+      this.lastProperties = new JsonObject(properties);
+      this.lastSessionVariables = new JsonObject(sessionVariables);
       this.lastApiSecurityContext = apiSecurityContext;
       final boolean push = sql.toLowerCase().contains("emit changes");
       final int limit = extractLimit(sql);
@@ -148,7 +154,7 @@ public class TestEndpoints implements Endpoints {
   public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
       WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
       ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest,
-      KsqlMediaType mediaType, final MetricsCallbackHolder metricsCallbackHolder) {
+      KsqlMediaType mediaType, final MetricsCallbackHolder metricsCallbackHolder, Context context) {
     return null;
   }
 
@@ -218,7 +224,7 @@ public class TestEndpoints implements Endpoints {
 
   @Override
   public void executeWebsocketStream(ServerWebSocket webSocket, MultiMap requstParams,
-      WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext) {
+      WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext, Context context) {
 
   }
 

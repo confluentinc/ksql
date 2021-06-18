@@ -55,7 +55,6 @@ import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
-import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
@@ -570,6 +569,7 @@ public class AstBuilder {
     private static Node visitWithinExpression(final SqlBaseParser.WithinExpressionContext ctx) {
       final Pair<Long, TimeUnit> beforeSize;
       final Pair<Long, TimeUnit> afterSize;
+      final Optional<WindowTimeClause> gracePeriod;
 
       if (ctx instanceof SqlBaseParser.SingleJoinWindowContext) {
 
@@ -578,24 +578,27 @@ public class AstBuilder {
 
         beforeSize = getSizeAndUnitFromJoinWindowSize(singleWithin.joinWindowSize());
         afterSize = beforeSize;
+        gracePeriod = gracePeriodClause(singleWithin.gracePeriodClause());
       } else if (ctx instanceof SqlBaseParser.JoinWindowWithBeforeAndAfterContext) {
         final SqlBaseParser.JoinWindowWithBeforeAndAfterContext beforeAndAfterJoinWindow
             = (SqlBaseParser.JoinWindowWithBeforeAndAfterContext) ctx;
 
         beforeSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(0));
         afterSize = getSizeAndUnitFromJoinWindowSize(beforeAndAfterJoinWindow.joinWindowSize(1));
-
+        gracePeriod = gracePeriodClause(beforeAndAfterJoinWindow.gracePeriodClause());
       } else {
         throw new RuntimeException("Expecting either a single join window, ie \"WITHIN 10 "
-            + "seconds\", or a join window with before and after specified, "
-            + "ie. \"WITHIN (10 seconds, 20 seconds)");
+            + "seconds\" or \"WITHIN 10 seconds GRACE PERIOD 2 seconds\", or a join window with "
+            + "before and after specified, ie. \"WITHIN (10 seconds, 20 seconds)\" or "
+            + "WITHIN (10 seconds, 20 seconds) GRACE PERIOD 5 seconds");
       }
       return new WithinExpression(
           getLocation(ctx),
           beforeSize.left,
           afterSize.left,
           beforeSize.right,
-          afterSize.right
+          afterSize.right,
+          gracePeriod
       );
     }
 
@@ -1265,9 +1268,6 @@ public class AstBuilder {
       final String value = ParserUtil.unquote(context.STRING().getText(), "'");
       final Optional<NodeLocation> location = getLocation(context);
 
-      if (type.equals("TIME")) {
-        return new TimeLiteral(location, value);
-      }
       if (type.equals("DECIMAL")) {
         return new DecimalLiteral(location, new BigDecimal(value));
       }

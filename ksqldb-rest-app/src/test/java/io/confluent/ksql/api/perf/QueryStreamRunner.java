@@ -29,6 +29,7 @@ import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.spi.Endpoints;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
@@ -45,6 +46,7 @@ import io.vertx.core.parsetools.RecordParser;
 import io.vertx.ext.web.codec.BodyCodec;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -97,15 +99,16 @@ public class QueryStreamRunner extends BasePerfRunner {
 
     @Override
     public synchronized CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
-        final JsonObject properties,
-        final JsonObject sessionVariables,
+        final Map<String, Object> properties,
+        final Map<String, Object> sessionVariables,
+        final Map<String, Object> requestProperties,
         final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext,
         final MetricsCallbackHolder metricsCallbackHolder) {
       QueryStreamPublisher publisher = new QueryStreamPublisher(context,
           server.getWorkerExecutor());
-      publisher.setQueryHandle(new TestQueryHandle(), false);
+      publisher.setQueryHandle(new TestQueryHandle(), false, false);
       publishers.add(publisher);
       publisher.start();
       return CompletableFuture.completedFuture(publisher);
@@ -142,7 +145,8 @@ public class QueryStreamRunner extends BasePerfRunner {
         ApiSecurityContext apiSecurityContext,
         Optional<Boolean> isInternalRequest,
         KsqlMediaType mediaType,
-        final MetricsCallbackHolder metricsCallbackHolder) {
+        final MetricsCallbackHolder metricsCallbackHolder,
+        Context context) {
       return null;
     }
 
@@ -207,7 +211,7 @@ public class QueryStreamRunner extends BasePerfRunner {
 
     @Override
     public void executeWebsocketStream(ServerWebSocket webSocket, MultiMap requstParams,
-        WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext) {
+        WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext, Context context) {
 
     }
 
@@ -242,6 +246,11 @@ public class QueryStreamRunner extends BasePerfRunner {
     }
 
     @Override
+    public QueryId getQueryId() {
+      return new QueryId("queryId");
+    }
+
+    @Override
     public void start() {
     }
 
@@ -267,9 +276,10 @@ public class QueryStreamRunner extends BasePerfRunner {
     }
 
     @Override
-    public void setQueryHandle(final QueryHandle queryHandle, boolean isPullQuery) {
+    public void setQueryHandle(final QueryHandle queryHandle, boolean isPullQuery,
+        boolean isScalablePushQuery) {
       this.queue = (TransientQueryQueue) queryHandle.getQueue();
-      super.setQueryHandle(queryHandle, isPullQuery);
+      super.setQueryHandle(queryHandle, isPullQuery, isScalablePushQuery);
     }
 
     public void close() {

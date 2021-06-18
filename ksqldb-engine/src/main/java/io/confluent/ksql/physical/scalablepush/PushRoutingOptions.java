@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,23 +13,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.planner;
+package io.confluent.ksql.physical.scalablepush;
 
-public interface PullPlannerOptions {
+/**
+ * Routing options given to scalable push queries.
+ */
+public interface PushRoutingOptions {
 
-  boolean getTableScansEnabled();
-
-  boolean getInterpreterEnabled();
-
-  /**
-   * @return a human readable representation of the {@code PullPlannerOptions},
-   *         used to debug requests
-   */
-  default String debugString() {
-    return "PullPlannerOptions{"
-        + "tableScansEnabled: " + getTableScansEnabled()
-        + ", interpreterEnabled: " + getInterpreterEnabled()
-        + "}";
-  }
-
+  // If we should avoid skipping forwarding the request because it's already been forwarded.
+  boolean getIsSkipForwardRequest();
 }

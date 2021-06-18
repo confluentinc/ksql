@@ -42,7 +42,7 @@ import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.planner.PullPlannerOptions;
+import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.planner.plan.QueryFilterNode.WindowBounds;
 import io.confluent.ksql.planner.plan.QueryFilterNode.WindowBounds.WindowRange;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -86,7 +86,7 @@ public class QueryFilterNodeTest {
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
-  private PullPlannerOptions plannerOptions;
+  private QueryPlannerOptions plannerOptions;
 
   @Before
   public void setUp() {

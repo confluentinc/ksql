@@ -31,6 +31,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.physical.pull.HARouting;
+import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.HeartbeatMessage;
@@ -57,6 +58,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.WorkerExecutor;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonObject;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -88,6 +90,7 @@ public class KsqlServerEndpoints implements Endpoints {
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter pullConcurrencyLimiter;
   private final HARouting routing;
+  private final PushRouting pushRouting;
   private final Optional<LocalCommands> localCommands;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumber
@@ -111,6 +114,7 @@ public class KsqlServerEndpoints implements Endpoints {
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
       final HARouting routing,
+      final PushRouting pushRouting,
       final Optional<LocalCommands> localCommands
   ) {
 
@@ -135,13 +139,15 @@ public class KsqlServerEndpoints implements Endpoints {
     this.rateLimiter = Objects.requireNonNull(rateLimiter);
     this.pullConcurrencyLimiter = pullConcurrencyLimiter;
     this.routing = Objects.requireNonNull(routing);
+    this.pushRouting = pushRouting;
     this.localCommands = Objects.requireNonNull(localCommands);
   }
 
   @Override
   public CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
-      final JsonObject properties,
-      final JsonObject sessionVariables,
+      final Map<String, Object> properties,
+      final Map<String, Object> sessionVariables,
+      final Map<String, Object> requestProperties,
       final Context context,
       final WorkerExecutor workerExecutor,
       final ApiSecurityContext apiSecurityContext,
@@ -152,11 +158,12 @@ public class KsqlServerEndpoints implements Endpoints {
       try {
         return new QueryEndpoint(
             ksqlEngine, ksqlConfig, ksqlRestConfig, routingFilterFactory, pullQueryMetrics,
-            rateLimiter, pullConcurrencyLimiter, routing, localCommands)
+            rateLimiter, pullConcurrencyLimiter, routing, pushRouting, localCommands)
             .createQueryPublisher(
                 sql,
                 properties,
                 sessionVariables,
+                requestProperties,
                 context,
                 workerExecutor,
                 ksqlSecurityContext.getServiceContext(),
@@ -200,7 +207,8 @@ public class KsqlServerEndpoints implements Endpoints {
       final ApiSecurityContext apiSecurityContext,
       final Optional<Boolean> isInternalRequest,
       final KsqlMediaType mediaType,
-      final MetricsCallbackHolder metricsCallbackHolder
+      final MetricsCallbackHolder metricsCallbackHolder,
+      final Context context
   ) {
     return executeOldApiEndpointOnWorker(apiSecurityContext,
         ksqlSecurityContext -> streamedQueryResource.streamQuery(
@@ -209,7 +217,8 @@ public class KsqlServerEndpoints implements Endpoints {
             connectionClosedFuture,
             isInternalRequest,
             mediaType,
-            metricsCallbackHolder
+            metricsCallbackHolder,
+            context
         ), workerExecutor);
   }
 
@@ -306,14 +315,15 @@ public class KsqlServerEndpoints implements Endpoints {
   @Override
   public void executeWebsocketStream(final ServerWebSocket webSocket, final MultiMap requestParams,
       final WorkerExecutor workerExecutor,
-      final ApiSecurityContext apiSecurityContext) {
+      final ApiSecurityContext apiSecurityContext,
+      final Context context) {
 
     executeOnWorker(() -> {
       final KsqlSecurityContext ksqlSecurityContext = ksqlSecurityContextProvider
           .provide(apiSecurityContext);
       try {
         wsQueryEndpoint
-            .executeStreamQuery(webSocket, requestParams, ksqlSecurityContext);
+            .executeStreamQuery(webSocket, requestParams, ksqlSecurityContext, context);
       } finally {
         ksqlSecurityContext.getServiceContext().close();
       }

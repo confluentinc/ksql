@@ -191,7 +191,7 @@ public final class ExpressionFormatter {
 
     @Override
     public String visitTimeLiteral(final TimeLiteral node, final Context context) {
-      return "TIME '" + node.getValue() + "'";
+      return SqlTimestamps.formatTime(node.getValue());
     }
 
     @Override

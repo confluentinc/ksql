@@ -223,7 +223,8 @@ to the specified grace period. Events that arrive after the grace period has pas
 and not joined with older records.
 
 The default grace period, if not used in the join, is 24 hours. This could cause a huge amount
-of disk usage on high throughput streams. Setting a specific GRACE PERIOD is recommended to
+of disk usage on high-throughput streams. Setting a specific GRACE PERIOD is recommended to
+
 reduce high disk usage.
 
 ```sql
@@ -262,4 +263,3 @@ ksqlDB supports the following output refinement types.
 
 This is the standard output refinement for push queries, for when we would like to see all changes 
 happening.
-

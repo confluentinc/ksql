@@ -17,20 +17,23 @@ package io.confluent.ksql.schema.ksql;
 
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
+import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Helpers for working with SQL time types.
  */
-public final class SqlTimestamps {
+public final class SqlTimeTypes {
 
   private static PartialStringToTimestampParser PARSER = new PartialStringToTimestampParser();
 
-  private SqlTimestamps() {
+  private SqlTimeTypes() {
   }
 
   /**
@@ -54,5 +57,9 @@ public final class SqlTimestamps {
 
   public static String formatTime(final Time time) {
     return LocalTime.ofSecondOfDay(time.getTime() / 1000).toString();
+  }
+
+  public static String formatDate(final Date date) {
+    return LocalDate.ofEpochDay(TimeUnit.MILLISECONDS.toDays(date.getTime())).toString();
   }
 }

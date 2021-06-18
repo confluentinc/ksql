@@ -35,6 +35,7 @@ import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
+import io.confluent.ksql.execution.expression.tree.DateLiteral;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -222,6 +223,14 @@ public class TermCompiler implements ExpressionVisitor<Term, Context> {
       final Context context
   ) {
     return visitUnsupported(timeLiteral);
+  }
+
+  @Override
+  public Term visitDateLiteral(
+      final DateLiteral dateLiteral,
+      final Context context
+  ) {
+    return visitUnsupported(dateLiteral);
   }
 
   @Override

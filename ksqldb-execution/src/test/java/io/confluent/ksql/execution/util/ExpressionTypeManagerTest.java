@@ -45,6 +45,7 @@ import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
+import io.confluent.ksql.execution.expression.tree.DateLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -89,6 +90,7 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
+import java.sql.Date;
 import java.sql.Time;
 import java.util.Optional;
 import org.hamcrest.Matchers;
@@ -1060,6 +1062,11 @@ public class ExpressionTypeManagerTest {
   @Test
   public void shouldProcessTimeLiteral() {
     assertThat(expressionTypeManager.getExpressionSqlType(new TimeLiteral(new Time(1000))), is(SqlTypes.TIME));
+  }
+
+  @Test
+  public void shouldProcessDateLiteral() {
+    assertThat(expressionTypeManager.getExpressionSqlType(new DateLiteral(new Date(86400000))), is(SqlTypes.DATE));
   }
 
   @Test

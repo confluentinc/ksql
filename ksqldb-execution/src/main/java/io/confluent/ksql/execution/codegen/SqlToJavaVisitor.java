@@ -46,6 +46,7 @@ import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
+import io.confluent.ksql.execution.expression.tree.DateLiteral;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -95,7 +96,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlBooleans;
 import io.confluent.ksql.schema.ksql.SqlDoubles;
-import io.confluent.ksql.schema.ksql.SqlTimestamps;
+import io.confluent.ksql.schema.ksql.SqlTimeTypes;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
@@ -163,7 +164,7 @@ public class SqlToJavaVisitor {
       InListEvaluator.class.getCanonicalName(),
       SqlDoubles.class.getCanonicalName(),
       SqlBooleans.class.getCanonicalName(),
-      SqlTimestamps.class.getCanonicalName()
+      SqlTimeTypes.class.getCanonicalName()
   );
 
   private static final Map<Operator, String> DECIMAL_OPERATOR_NAME = ImmutableMap
@@ -343,6 +344,14 @@ public class SqlToJavaVisitor {
         final Context context
     ) {
       return new Pair<>(node.toString(), SqlTypes.TIME);
+    }
+
+    @Override
+    public Pair<String, SqlType> visitDateLiteral(
+        final DateLiteral node,
+        final Context context
+    ) {
+      return new Pair<>(node.toString(), SqlTypes.DATE);
     }
 
     @Override
@@ -725,7 +734,7 @@ public class SqlToJavaVisitor {
         case TIMESTAMP:
           return "%" + index + "$s";
         case STRING:
-          return "SqlTimestamps.parseTimestamp(%" + index + "$s)";
+          return "SqlTimeTypes.parseTimestamp(%" + index + "$s)";
         default:
           throw new KsqlException("Unexpected comparison to TIMESTAMP: " + schema.baseType());
       }

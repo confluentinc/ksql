@@ -89,7 +89,7 @@ public final class CastEvaluator {
       .put(key(STRING, BIGINT), nonNullSafeCode("Long.parseLong(%s.trim())"))
       .put(key(STRING, DECIMAL), CastEvaluator::castToDecimal)
       .put(key(STRING, DOUBLE), nonNullSafeCode("SqlDoubles.parseDouble(%s.trim())"))
-      .put(key(STRING, TIMESTAMP), nonNullSafeCode("SqlTimestamps.parseTimestamp(%s.trim())"))
+      .put(key(STRING, TIMESTAMP), nonNullSafeCode("SqlTimeTypes.parseTimestamp(%s.trim())"))
       // ARRAY:
       .put(key(ARRAY, ARRAY), CastEvaluator::castArrayToArray)
       .put(key(ARRAY, STRING), CastEvaluator::castToString)
@@ -100,7 +100,7 @@ public final class CastEvaluator {
       .put(key(STRUCT, STRUCT), CastEvaluator::castStructToStruct)
       .put(key(STRUCT, STRING), CastEvaluator::castToString)
       // TIMESTAMP:
-      .put(key(TIMESTAMP, STRING), nonNullSafeCode("SqlTimestamps.formatTimestamp(%s)"))
+      .put(key(TIMESTAMP, STRING), nonNullSafeCode("SqlTimeTypes.formatTimestamp(%s)"))
       .build();
 
   private CastEvaluator() {

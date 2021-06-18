@@ -20,31 +20,38 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.util.KsqlException;
+import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import org.junit.Test;
 
-public class SqlTimestampsTest {
+public class SqlTimeTypesTest {
   @Test
   public void shouldParseTimestamp() {
-    assertThat(SqlTimestamps.parseTimestamp("2019-03-17T10:00:00"), is(new Timestamp(1552816800000L)));
-    assertThat(SqlTimestamps.parseTimestamp("2019-03-17T03:00-0700"), is(new Timestamp(1552816800000L)));
+    assertThat(SqlTimeTypes.parseTimestamp("2019-03-17T10:00:00"), is(new Timestamp(1552816800000L)));
+    assertThat(SqlTimeTypes.parseTimestamp("2019-03-17T03:00-0700"), is(new Timestamp(1552816800000L)));
   }
 
   @Test
   public void shouldNotParseTimestamp() {
-    assertThrows(KsqlException.class, () -> SqlTimestamps.parseTimestamp("abc"));
-    assertThrows(KsqlException.class, () -> SqlTimestamps.parseTimestamp("2019-03-17 03:00"));
+    assertThrows(KsqlException.class, () -> SqlTimeTypes.parseTimestamp("abc"));
+    assertThrows(KsqlException.class, () -> SqlTimeTypes.parseTimestamp("2019-03-17 03:00"));
   }
 
   @Test
   public void shouldFormatTimestamp() {
-    assertThat(SqlTimestamps.formatTimestamp(new Timestamp(1552816800000L)), is("2019-03-17T10:00:00.000"));
+    assertThat(SqlTimeTypes.formatTimestamp(new Timestamp(1552816800000L)), is("2019-03-17T10:00:00.000"));
   }
 
   @Test
   public void shouldFormatTime() {
-    assertThat(SqlTimestamps.formatTime(new Time(1000)), is("00:00:01"));
-    assertThat(SqlTimestamps.formatTime(new Time(1005)), is("00:00:01"));
+    assertThat(SqlTimeTypes.formatTime(new Time(1000)), is("00:00:01"));
+    assertThat(SqlTimeTypes.formatTime(new Time(1005)), is("00:00:01"));
+  }
+
+  @Test
+  public void shouldFormatDate() {
+    assertThat(SqlTimeTypes.formatDate(new Date(864000000)), is("1970-01-11"));
+    assertThat(SqlTimeTypes.formatDate(new Date(864000000 - 10)), is("1970-01-10"));
   }
 }

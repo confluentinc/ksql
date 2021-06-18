@@ -189,6 +189,11 @@ public abstract class TraversalExpressionVisitor<C> implements ExpressionVisitor
   }
 
   @Override
+  public Void visitDateLiteral(final DateLiteral node, final C context) {
+    return null;
+  }
+
+  @Override
   public Void visitTimestampLiteral(final TimestampLiteral node, final C context) {
     return null;
   }

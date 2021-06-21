@@ -56,18 +56,26 @@ records that both occur within a specified time interval. For valid time
 units, see [Time Units](/reference/sql/time/#time-units).
 
 The key of the resulting stream is determined by the following rules, in order of priority:
- 1. if the query has a `PARTITION BY`, then the resulting number of key columns will match the
-    number of expressions in the `PARTITION BY` clause. For each expression: 
-    1. if the `PARTITION BY` expression is a single source column reference, the corresponding key
-       column will match the name, type and contents of the source column.
-    1. if the `PARTITION BY` expression is a reference to a field within a `STRUCT`-type column, then the
-       corresponding key column will match the name, type, and contents of the `STRUCT` field.
-    1. if the `PARTITION BY` expression is any other expression, the key column will have a system 
-       generated name, unless you provide an alias in the projection, and will match the type and 
-       contents of the result of the expression.
- 1. if the query has a join see [Join Synthetic Key Columns](/developer-guide/joins/synthetic-keys) for more info.
- 1. otherwise, the key will match the name, unless you provide an alias in the projection, 
-    and type of the source stream's key.
+
+1. If the query has a `PARTITION BY`, then the resulting number of key columns will match the
+   number of expressions in the `PARTITION BY` clause. For each expression:
+
+    1. If the `PARTITION BY` expression is a single source-column reference,
+       the corresponding key column matches the name, type, and contents of
+       the source column.
+
+    2. If the `PARTITION BY` expression is a reference to a field within a
+       `STRUCT`-type column, the corresponding key column matches the name,
+       type, and contents of the `STRUCT` field.
+
+    3. If the `PARTITION BY` expression is any other expression, the key column
+       has a system-generated name, unless you provide an alias in the projection,
+       and matches the type and contents of the result of the expression.
+
+1. If the query has a join. For more information, see
+   [Join Synthetic Key Columns](/developer-guide/joins/synthetic-keys).
+1. Otherwise, the key matches the name, unless you provide an alias in the projection, 
+   and type of the source stream's key.
 
 The projection must include all columns required in the result, including any key columns.
 

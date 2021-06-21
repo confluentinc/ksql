@@ -48,18 +48,27 @@ See [Partition Data to Enable Joins](../joins/partition-data.md) for more inform
 correctly partition your data for joins.
 
 The primary key of the resulting table is determined by the following rules, in order of priority:
- 1. if the query has a  `GROUP BY`, then the resulting number of primary key columns will match the
-    number of grouping expressions. For each grouping expression: 
-    1. if the grouping expression is a single source column reference, the corresponding primary key
-       column will match the name, type and contents of the source column.
-    1. if the grouping expression is a reference to a field within a `STRUCT`-type column, then the
-       corresponding primary key column will match the name, type, and contents of the `STRUCT` field.
-    1. if the `GROUP BY` is any other expression, the primary key will have a system 
-       generated name, unless you provide an alias in the projection, and will match the type and 
-       contents of the result of the expression.
- 1. if the query has a join see [Join Synthetic Key Columns](/developer-guide/joins/synthetic-keys) for more info.
- 1. otherwise, the primary key will match the name, unless you provide an alias in the projection, 
-    and type of the source table's primary key.
+
+1. If the query has a  `GROUP BY`, then the resulting number of primary key
+   columns will match the number of grouping expressions. For each grouping
+   expression: 
+
+    1. If the grouping expression is a single source-column reference, the
+       corresponding primary key column matches the name, type, and contents
+       of the source column.
+
+    2. If the grouping expression is a reference to a field within a
+       `STRUCT`-type column, the corresponding primary key column matches the
+       name, type, and contents of the `STRUCT` field.
+
+    3. If the `GROUP BY` is any other expression, the primary key has a
+       system-generated name, unless you provide an alias in the projection,
+       and matches the type and contents of the result of the expression.
+
+1. If the query has a join. For more information, see
+   [Join Synthetic Key Columns](/developer-guide/joins/synthetic-keys).
+1. Otherwise, the primary key matches the name, unless you provide an alias
+   in the projection, and type of the source table's primary key.
  
 The projection must include all columns required in the result, including any primary key columns.
 

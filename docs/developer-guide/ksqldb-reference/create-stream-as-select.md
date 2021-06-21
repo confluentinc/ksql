@@ -47,9 +47,11 @@ correctly partition your data for joins.
 
 !!! note
 
-    Partitioning streams and tables is especially important for stateful or otherwise
-    intensive queries. For more information, see
-    [Parallelization](/operate-and-deploy/performance-guidelines/#parallelization).
+    - Partitioning streams and tables is especially important for stateful or otherwise
+      intensive queries. For more information, see
+      [Parallelization](/operate-and-deploy/performance-guidelines/#parallelization).
+    - Once a stream is created, tou can't change the number of partitions.
+      To change the partition count, you must drop the stream and create it again.
 
 For stream-stream joins, you must specify a WITHIN clause for matching
 records that both occur within a specified time interval. For valid time

@@ -47,6 +47,14 @@ not supported. For more information, see [Join Event Streams with ksqlDB](../joi
 See [Partition Data to Enable Joins](../joins/partition-data.md) for more information about how to
 correctly partition your data for joins.
 
+!!! note
+
+    - Partitioning streams and tables is especially important for stateful or otherwise
+      intensive queries. For more information, see
+      [Parallelization](/operate-and-deploy/performance-guidelines/#parallelization).
+    - Once a table is created, you can't change the number of partitions.
+      To change the partition count, you must drop the table and create it again.
+
 The primary key of the resulting table is determined by the following rules, in order of priority:
 
 1. If the query has a  `GROUP BY`, then the resulting number of primary key

@@ -164,7 +164,7 @@ final class QueryExecutor {
   ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
     final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
-    final RuntimeBuildContext runtimeBuildContext = buildContext(applicationId, queryId);
+    final RuntimeBuildContext runtimeBuildContext = buildContext(applicationId, queryId, streamsBuilder);
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
     final Object buildResult = buildQueryImplementation(physicalPlan, runtimeBuildContext);
@@ -253,7 +253,11 @@ final class QueryExecutor {
         sinkDataSource.getKsqlTopic().getValueFormat().getFeatures()
     );
 
-    final RuntimeBuildContext runtimeBuildContext = buildContext(applicationId, queryId);
+    final NamedTopologyStreamsBuilder namedTopologyStreamsBuilder = new NamedTopologyStreamsBuilder(
+            queryId.toString()
+    );
+
+    final RuntimeBuildContext runtimeBuildContext = buildContext(applicationId, queryId, namedTopologyStreamsBuilder);
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     // Creates a ProcessorSupplier, a ScalablePushRegistry, to apply to the topology, if
     // scalable push queries are enabled.
@@ -265,9 +269,6 @@ final class QueryExecutor {
             sinkDataSource.getKsqlTopic().getKeyFormat().isWindowed(),
             streamsProperties,
             ksqlConfig
-    );
-    final NamedTopologyStreamsBuilder namedTopologyStreamsBuilder = new NamedTopologyStreamsBuilder(
-            queryId.toString()
     );
     final NamedTopology topology = namedTopologyStreamsBuilder
             .buildNamedTopology(PropertiesUtil.asProperties(streamsProperties));
@@ -406,7 +407,7 @@ final class QueryExecutor {
     return physicalPlan.build(planBuilder);
   }
 
-  private RuntimeBuildContext buildContext(final String applicationId, final QueryId queryId) {
+  private RuntimeBuildContext buildContext(final String applicationId, final QueryId queryId, final StreamsBuilder streamsBuilder) {
     return RuntimeBuildContext.of(
         streamsBuilder,
         config.getConfig(true),

@@ -4,10 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -296,7 +293,6 @@ public class QueryExecutorTest {
     assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES));
     assertThat(queryMetadata.getDataSourceType(), equalTo(DataSourceType.KSTREAM));
     assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
-    assertThat(queryMetadata.getTopology(), is(topology));
     assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
     assertThat(queryMetadata.getStreamsProperties(), equalTo(capturedStreamsProperties()));
     assertThat(queryMetadata.getProcessingLogger(), equalTo(uncaughtProcessingLogger));
@@ -408,8 +404,8 @@ public class QueryExecutorTest {
     final Map<String, Object> properties = capturedStreamsProperties();
     verify(ksMaterializationFactory).create(
         eq(STORE_NAME),
-        same(kafkaStreams),
-        same(topology),
+        isA(KafkaStreams.class),
+        isA(Topology.class),
         same(aggregationSchema),
         any(),
         eq(Optional.empty()),

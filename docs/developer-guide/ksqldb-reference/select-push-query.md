@@ -17,7 +17,7 @@ SELECT select_expr [, ...]
   FROM from_item
   [[ LEFT | FULL | INNER ]
     JOIN join_item
-        [WITHIN [<size> <timeunit> | (<before_size> <timeunit>, <after_size> <timeunit>)] [, GRACE PERIOD <grace_size> <timeunit>]]
+        [WITHIN [<size> <timeunit> | (<before_size> <timeunit>, <after_size> <timeunit>)] [GRACE PERIOD <grace_size> <timeunit>]]
     ON join_criteria]*
   [ WINDOW window_expression ]
   [ WHERE where_condition ]
@@ -218,14 +218,20 @@ the order was placed, and shipped within 2 hours of the payment being received.
         INNER JOIN shipments s WITHIN 2 HOURS ON s.id = o.id;
 ```
 
-The GRACE PERIOD, part of the WITHIN clause, allows the join to process late records for up
+The GRACE PERIOD, part of the WITHIN clause, allows the join to process out-of-order records for up
 to the specified grace period. Events that arrive after the grace period has passed are dropped
-and not joined with older records.
+as _late_ record and not joined.
 
-The default grace period, if not used in the join, is 24 hours. This could cause a huge amount
-of disk usage on high-throughput streams. Setting a specific GRACE PERIOD is recommended to
-
+The default grace period, i.e., if no explicitly specified, is 24 hours. This could cause a huge
+amount of disk usage on high-throughput streams. Setting a specific GRACE PERIOD is recommended to
 reduce high disk usage.
+
+!!! note
+    If you specify a GRACE PERIOD for left/outer joins, the grace period define when left/outer
+    join result will be emitted. If you don't specify a GRACE PERIOD for left/outer joins,
+    left/outer join results are emitted eagerly, what may lead to "spurious" result records. Thus,
+    it's highly recommended to specify a GRACE PERIOD. For this reason, we plan to make
+    GRACE PERIOD a mandatory clause in the future.
 
 ```sql
    CREATE STREAM shipped_orders AS

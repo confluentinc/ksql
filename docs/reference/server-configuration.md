@@ -469,7 +469,7 @@ and
 
 ## `ksql.streams.num.standby.replicas`
 
-The number of standby replicas. Standby replicas are shadow copies of tables. ksqlDB, through Kafka Streams, attempts to create the specified number of replicas and keep them up to date as long as there are enough instances running. Standby replicas are used to minimize the latency of failover. A table that was previously hosted on a failed instance is preferred to restart on an instance that has standby replicas so that the local state store restoration process from its changelog can be minimized.
+The number of standby replicas. Standby replicas are shadow copies of tables. ksqlDB, through {{ site.kstreams }}, attempts to create the specified number of replicas and keep them up to date as long as there are enough instances running. Standby replicas are used to minimize the latency of failover. A table that was previously hosted on a failed instance is preferred to restart on an instance that has standby replicas so that the local state store restoration process from its changelog can be minimized.
 
 ## `ksql.streams.num.stream.threads`
 

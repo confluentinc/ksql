@@ -112,8 +112,6 @@ public class UdfIndex<T extends FunctionSignature> {
       );
     }
 
-    final int order = allFunctions.size();
-
     Node curr = root;
     Node parent = curr;
     for (final ParamType parameter : parameters) {
@@ -125,14 +123,14 @@ public class UdfIndex<T extends FunctionSignature> {
     if (function.isVariadic()) {
       // first add the function to the parent to address the
       // case of empty varargs
-      parent.update(function, order);
+      parent.update(function);
 
       // then add a new child node with the parameter value type
       // and add this function to that node
       final ParamType varargSchema = Iterables.getLast(parameters);
       final Parameter vararg = new Parameter(varargSchema, true);
       final Node leaf = parent.children.computeIfAbsent(vararg, ignored -> new Node());
-      leaf.update(function, order);
+      leaf.update(function);
 
       // add a self referential loop for varargs so that we can
       // add as many of the same param at the end and still retrieve
@@ -140,33 +138,40 @@ public class UdfIndex<T extends FunctionSignature> {
       leaf.children.putIfAbsent(vararg, leaf);
     }
 
-    curr.update(function, order);
+    curr.update(function);
   }
 
   T getFunction(final List<SqlArgument> arguments) {
     final List<Node> candidates = new ArrayList<>();
 
-    // first try to get the candidates without any implicit casting
-    getCandidates(arguments, 0, root, candidates, new HashMap<>(), false);
-    final Optional<T> fun = candidates
-        .stream()
-        .max(Node::compare)
-        .map(node -> node.value);
-
-    if (fun.isPresent()) {
-      return fun.get();
+    Optional<T> candidate = findMatchingCandidate(candidates, arguments, false);
+    if (candidate.isPresent()) {
+      return candidate.get();
     } else if (!supportsImplicitCasts) {
       throw createNoMatchingFunctionException(arguments);
     }
+    candidates.clear();
 
-    // if none were found (candidates is empty) try again with
-    // implicit casting
-    getCandidates(arguments, 0, root, candidates, new HashMap<>(), true);
-    return candidates
-        .stream()
-        .max(Node::compare)
-        .map(node -> node.value)
-        .orElseThrow(() -> createNoMatchingFunctionException(arguments));
+    candidate = findMatchingCandidate(candidates, arguments, true);
+    if (candidate.isPresent()) {
+      return candidate.get();
+    }
+    throw createNoMatchingFunctionException(arguments);
+  }
+
+  //returns an optional containing a single matching candidate if there is one
+  private Optional<T> findMatchingCandidate(final List<Node> candidates, final List<SqlArgument> arguments, final boolean allowCasts) {
+    getCandidates(arguments, 0, root, candidates, new HashMap<>(), allowCasts);
+    candidates.sort(Node::compare);
+
+    final int len = candidates.size();
+    if (len == 1) {
+      return Optional.of(candidates.get(0).value);
+    } else if (len > 1 && candidates.get(len - 1).compare(candidates.get(len - 2)) > 0) {
+      return Optional.of(candidates.get(len - 1).value);
+    }
+
+    return Optional.empty();
   }
 
   private void getCandidates(
@@ -269,21 +274,20 @@ public class UdfIndex<T extends FunctionSignature> {
             Comparator
                 .<T, Integer>comparing(fun -> fun.isVariadic() ? 0 : 1)
                 .thenComparing(fun -> fun.parameters().size())
+
         );
 
     private final Map<Parameter, Node> children;
     private T value;
-    private int order = 0;
 
     private Node() {
       this.children = new HashMap<>();
       this.value = null;
     }
 
-    private void update(final T function, final int order) {
+    private void update(final T function) {
       if (compareFunctions.compare(function, value) > 0) {
         value = function;
-        this.order = order;
       }
     }
 
@@ -307,8 +311,21 @@ public class UdfIndex<T extends FunctionSignature> {
     }
 
     int compare(final Node other) {
-      final int compare = compareFunctions.compare(value, other.value);
-      return compare == 0 ? -(order - other.order) : compare;
+      final int compareVal = compareFunctions.compare(value, other.value);
+      if (compareVal == 0) {
+        final int genericCountThis = value.parameters().stream()
+            .filter(GenericsUtil::hasGenerics)
+            .mapToInt(p -> 1)
+            .sum();
+
+        final int genericCountThat = other.value.parameters().stream()
+            .filter(GenericsUtil::hasGenerics)
+            .mapToInt(p -> 1)
+            .sum();
+
+        return genericCountThat - genericCountThis;
+      }
+      return compareVal;
     }
 
   }

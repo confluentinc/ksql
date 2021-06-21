@@ -1,0 +1,134 @@
+{
+  "comments": [
+    "Tests covering the least function."
+  ],
+  "tests": [
+    {
+      "name": "test least with numeric types",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, N1 INT, N2 INT, N3 INT, N4 INT) WITH (kafka_topic='input_topic',value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT ID, LEAST(N1, N2, N3, N4, null, null, 5) AS LOWEST FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 1, "value": {"N1": 1, "N2": -1, "N3":  0, "N4": null}},
+        {"topic": "input_topic", "key": 2, "value": {"N1": 2147483647, "N2": -2147483648, "N3":  0, "N4": null}},
+        {"topic": "input_topic", "key": 3, "value": {"N1": null, "N2": null, "N3":  null, "N4": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"LOWEST": -1}},
+        {"topic": "OUTPUT", "key": 2, "value": {"LOWEST": -2147483648}},
+        {"topic": "OUTPUT", "key": 3, "value": {"LOWEST": 5}}
+      ]
+    },
+    {
+      "name": "test implicit casting to long",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, N1 INT, N2 BIGINT) WITH (kafka_topic='input_topic',value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT ID, LEAST(N1, N2) AS LOWEST FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Function 'least' does not accept parameters (INTEGER, BIGINT)."
+      }
+    },
+    {
+      "name": "test implicit casting to decimal",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, N1 INT, N2 BIGINT, N3 DECIMAL(50,30)) WITH (kafka_topic='input_topic',value_format='{FORMAT}');",
+
+        "CREATE STREAM OUTPUT AS SELECT ID, LEAST(N1, N2, N3) AS LOWEST FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Function 'least' does not accept parameters (INTEGER, BIGINT, DECIMAL(50, 30))."
+      }
+    },
+    {
+      "name": "test implicit casting to double",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, N1 INT, N2 BIGINT, N3 DECIMAL(30,18), N4 DOUBLE) WITH (kafka_topic='input_topic',value_format='{FORMAT}');",
+
+        "CREATE STREAM OUTPUT AS SELECT ID, LEAST(N1, N2, N3, N4, null) AS LOWEST FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 1, "value": {"N1": 1, "N2": -1000000000000, "N3": -99999.99999}, "N4": 0.0},
+        {"topic": "input_topic", "key": 2, "value": {"N1": 1, "N2": -1, "N3": -55555.555555555555555555}, "N4": 0.0},
+        {"topic": "input_topic", "key": 3, "value": {"N1": -500000, "N2": -1, "N3": -99999.99999}, "N4": 0.0}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"LOWEST": -1000000000000}},
+        {"topic": "OUTPUT", "key": 2, "value": {"LOWEST": -55555.555555555555}},
+        {"topic": "OUTPUT", "key": 3, "value": {"LOWEST": -500000.0}}
+      ]
+    },
+    {
+      "name": "test least with strings",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, S1 STRING, S2 STRING, S3 STRING, S4 STRING) WITH (kafka_topic='input_topic',value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT ID, LEAST(S1, S2, S3, S4, null, null, 'hello') AS LOWEST FROM INPUT;",
+        "CREATE STREAM OUTPUT2 AS SELECT ID, LEAST('\"', S1) AS LOWEST FROM INPUT;",
+        "CREATE STREAM OUTPUT3 AS SELECT ID, LEAST('\\foo\"', S1) AS LOWEST FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 1, "value": {"S1": "apple", "S2": "banana", "S3": "aardvark",  "S4": null}},
+        {"topic": "input_topic", "key": 2, "value": {"S1": null, "S2": null, "S3": null,  "S4": null}},
+        {"topic": "input_topic", "key": 3, "value": {"S1": "!", "S2": "Zebra", "S3": "aardvark",  "S4": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"LOWEST": "aardvark"}},
+        {"topic": "OUTPUT", "key": 2, "value": {"LOWEST": "hello"}},
+        {"topic": "OUTPUT", "key": 3, "value": {"LOWEST": "!"}},
+
+        {"topic": "OUTPUT2", "key": 1, "value": {"LOWEST":"\""}},
+        {"topic": "OUTPUT2", "key": 2, "value": {"LOWEST":"\""}},
+        {"topic": "OUTPUT2", "key": 3, "value": {"LOWEST":"!"}},
+
+        {"topic": "OUTPUT3", "key": 1, "value": {"LOWEST":"\\foo\""}},
+        {"topic": "OUTPUT3", "key": 2, "value": {"LOWEST":"\\foo\""}},
+        {"topic": "OUTPUT3", "key": 3, "value": {"LOWEST":"!"}}
+      ]
+    },
+    {
+      "name": "test all null input",
+      "format": ["JSON"],
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, N1 INT, N2 INT) WITH (kafka_topic='input_topic',value_format='{FORMAT}');",
+
+        "CREATE STREAM OUTPUT1 AS SELECT ID, 1(null, null, null, null) AS LOWEST FROM INPUT;",
+        "CREATE STREAM OUTPUT2 AS SELECT ID, LEAST(N1, N2) AS LOWEST FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException"
+      }
+    },
+    {
+      "name": "test no parameters",
+      "format": ["JSON"],
+      "statements":[
+        "CREATE STREAM INPUT (ID STRING KEY) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT ID, LEAST() AS LOWEST FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Function 'least' does not accept parameters ()."
+      }
+    },
+    {
+      "name": "test trying to compare numeric and string",
+      "format": ["JSON"],
+      "statements":[
+        "CREATE STREAM INPUT (ID STRING KEY, NUM INT) WITH (kafka_topic='test_topic', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT ID, LEAST(ID, NUM) AS LOWEST FROM INPUT;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Function 'least' does not accept parameters (STRING, INTEGER)."
+      }
+    }
+  ]
+}

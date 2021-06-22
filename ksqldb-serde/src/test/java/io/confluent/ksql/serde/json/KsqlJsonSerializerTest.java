@@ -53,6 +53,7 @@ import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.hamcrest.CoreMatchers;
 import org.junit.Before;
@@ -77,6 +78,7 @@ public class KsqlJsonSerializerTest {
   private static final String ARRAYCOL = "ARRAYCOL";
   private static final String MAPCOL = "MAPCOL";
   private static final String DECIMALCOL = "DECIMALCOL";
+  private static final String TIMECOL = "TIMECOL";
   private static final String TIMESTAMPCOL = "TIMESTAMPCOL";
 
   private static final Schema ORDER_SCHEMA = SchemaBuilder.struct()
@@ -93,6 +95,7 @@ public class KsqlJsonSerializerTest {
           .optional()
           .build())
       .field(DECIMALCOL, Decimal.builder(5).optional().parameter(DecimalUtil.PRECISION_FIELD, "10").build())
+      .field(TIMECOL, Time.builder().optional().build())
       .field(TIMESTAMPCOL, Timestamp.builder().optional().build())
       .build();
 
@@ -197,6 +200,7 @@ public class KsqlJsonSerializerTest {
         .put(ARRAYCOL, Collections.singletonList(100.0))
         .put(MAPCOL, Collections.singletonMap("key1", 100.0))
         .put(DECIMALCOL, new BigDecimal("1.12345"))
+        .put(TIMECOL, new java.sql.Time(1000))
         .put(TIMESTAMPCOL, new java.sql.Timestamp(1000));
 
     // When:
@@ -216,6 +220,7 @@ public class KsqlJsonSerializerTest {
             + "\"ARRAYCOL\":[100.0],"
             + "\"MAPCOL\":" + mapCol + ","
             + "\"DECIMALCOL\":1.12345,"
+            + "\"TIMECOL\":1000,"
             + "\"TIMESTAMPCOL\":1000"
             + "}"));
   }
@@ -340,6 +345,21 @@ public class KsqlJsonSerializerTest {
 
     // Then:
     assertThat(asJsonString(bytes), is("12.0"));
+  }
+
+  @Test
+  public void shouldSerializeTime() {
+    // Given:
+    final Serializer<java.sql.Time> serializer = givenSerializerForSchema(
+        Time.SCHEMA,
+        java.sql.Time.class
+    );
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, new java.sql.Time(500L));
+
+    // Then:
+    assertThat(asJsonString(bytes), is("500"));
   }
 
   @Test
@@ -540,6 +560,7 @@ public class KsqlJsonSerializerTest {
         .put(ARRAYCOL, null)
         .put(MAPCOL, null)
         .put(DECIMALCOL, null)
+        .put(TIMECOL, null)
         .put(TIMESTAMPCOL, null);
 
     // When:
@@ -555,6 +576,7 @@ public class KsqlJsonSerializerTest {
             + "\"ARRAYCOL\":null,"
             + "\"MAPCOL\":null,"
             + "\"DECIMALCOL\":null,"
+            + "\"TIMECOL\":null,"
             + "\"TIMESTAMPCOL\":null"
             + "}"));
   }

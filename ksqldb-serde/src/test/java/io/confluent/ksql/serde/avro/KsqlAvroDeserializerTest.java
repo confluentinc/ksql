@@ -63,6 +63,7 @@ import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.junit.Before;
 import org.junit.Test;
@@ -1293,6 +1294,17 @@ public class KsqlAvroDeserializerTest {
             LocalDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT),
             LocalDateTime.now()),
         Schema.OPTIONAL_INT64_SCHEMA
+    );
+  }
+
+  @Test
+  public void shouldDeserializeTimeFieldToTime() {
+    shouldDeserializeFieldTypeCorrectly(
+        LogicalTypes.timeMillis().addToSchema(
+            org.apache.avro.SchemaBuilder.builder().intType()),
+        500,
+        Time.SCHEMA,
+        new java.sql.Time(500)
     );
   }
 

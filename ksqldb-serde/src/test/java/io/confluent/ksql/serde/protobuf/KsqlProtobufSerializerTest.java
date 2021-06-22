@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.google.protobuf.Timestamp;
+import com.google.type.TimeOfDay;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -64,6 +65,13 @@ public class KsqlProtobufSerializerTest {
                           "    { key: \"scale\", value: \"2\" }\n" +
                           "  ]}];\n" +
                           "}\n");
+  private static final ParsedSchema TIME_SCHEMA =
+      parseProtobufSchema(
+          "syntax = \"proto3\";\n" +
+              "\n" +
+              "import \"google/type/TimeOfDay.proto\";\n" +
+              "\n" +
+              "message ConnectDefault1 {google.type.TimeOfDay F1 = 1;}\n");
   private static final ParsedSchema TIMESTAMP_SCHEMA =
       parseProtobufSchema(
           "syntax = \"proto3\";\n" +
@@ -99,6 +107,16 @@ public class KsqlProtobufSerializerTest {
         decimal,
         DECIMAL_SCHEMA,
         bytes
+    );
+  }
+
+  @Test
+  public void shouldSerializeTimeField() {
+    shouldSerializeFieldTypeCorrectly(
+        org.apache.kafka.connect.data.Time.SCHEMA,
+        new java.sql.Time(2000),
+        TIME_SCHEMA,
+        TimeOfDay.newBuilder().setSeconds(2).build()
     );
   }
 

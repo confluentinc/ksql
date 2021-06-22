@@ -21,6 +21,7 @@ import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.junit.Before;
 import org.junit.Test;
@@ -76,6 +77,26 @@ public class KsqlProtobufDeserializerTest {
         givenDeserializerForSchema(schema,
             Struct.class);
     final Struct value = new Struct(schema).put("f0", new BigDecimal("12.34"));
+    final byte[] bytes = givenConnectSerialized(value, schema);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(value));
+  }
+
+  @Test
+  public void shouldDeserializeTimeField() {
+    final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
+        .field("f0", Time.SCHEMA)
+        .build();
+
+    // Given:
+    final Deserializer<Struct> deserializer =
+        givenDeserializerForSchema(schema,
+            Struct.class);
+    final Struct value = new Struct(schema).put("f0", new java.sql.Time(2000));
     final byte[] bytes = givenConnectSerialized(value, schema);
 
     // When:

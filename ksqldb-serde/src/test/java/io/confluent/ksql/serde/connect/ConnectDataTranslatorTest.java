@@ -32,6 +32,7 @@ import java.util.Map;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.apache.kafka.connect.errors.DataException;
 import org.junit.Test;
@@ -317,6 +318,19 @@ public class ConnectDataTranslatorTest {
     // Then:
     assertThat(row.schema(), is(rowSchema));
     assertThat(row.get("STRUCT"), is(nullValue()));
+  }
+
+  @Test
+  public void shouldReturnTimeType() {
+    // Given:
+    final ConnectDataTranslator connectToKsqlTranslator = new ConnectDataTranslator(Time.SCHEMA);
+
+    // When:
+    final Object row = connectToKsqlTranslator.toKsqlRow(Time.SCHEMA, new Date(100L));
+
+    // Then:
+    assertTrue(row instanceof java.sql.Time);
+    assertThat(((java.sql.Time) row).getTime(), is(100L));
   }
 
   @Test

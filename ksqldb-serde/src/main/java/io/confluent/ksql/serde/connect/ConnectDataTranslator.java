@@ -226,7 +226,11 @@ public class ConnectDataTranslator implements DataTranslator {
           return ((Number) convertedValue).longValue();
         }
       case INT32:
-        return ((Number) convertedValue).intValue();
+        if (schema.name() == Time.LOGICAL_NAME) {
+          return new java.sql.Time(((Number) convertedValue).intValue());
+        } else {
+          return ((Number) convertedValue).intValue();
+        }
       case FLOAT64:
         return ((Number) convertedValue).doubleValue();
       case BYTES:

@@ -1,0 +1,57 @@
+{
+  "comments": ["tests for timestamp functionality"],
+  "tests": [
+    {
+      "name": "DELIMITED in/out",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, time TIME) WITH (kafka_topic='test', value_format='DELIMITED');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": "10"}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": "10"}
+      ]
+    },
+    {
+      "name": "AVRO in/out",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, time TIME) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"TIME": 10}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"TIME": 10}}
+      ]
+    },
+    {
+      "name": "JSON in/out",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, time TIME) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"time": 10}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"TIME": 10}}
+      ]
+    },
+    {
+      "name": "PROTOBUF in/out",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, time TIME) WITH (kafka_topic='test', value_format='PROTOBUF');",
+        "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"time": 10}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"TIME": 10}}
+      ]
+    }
+  ]
+}

@@ -21,12 +21,14 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.NumericNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.fasterxml.jackson.databind.ser.std.DateSerializer;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
@@ -52,17 +54,21 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class KsqlJsonDeserializer<T> implements Deserializer<T> {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger LOG = LoggerFactory.getLogger(KsqlJsonDeserializer.class);
   private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(word -> false);
   private static final ObjectMapper MAPPER = new ObjectMapper()
       .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
-      .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
+      .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true))
+      .registerModule(new SimpleModule().addSerializer(java.sql.Time.class, new DateSerializer()));
 
   private static final Schema STRING_ARRAY = SchemaBuilder
       .array(Schema.OPTIONAL_STRING_SCHEMA).build();
@@ -70,7 +76,7 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
   private static final Map<Schema.Type, Function<JsonValueContext, Object>> HANDLERS = ImmutableMap
       .<Schema.Type, Function<JsonValueContext, Object>>builder()
       .put(Type.BOOLEAN, context -> JsonSerdeUtils.toBoolean(context.val))
-      .put(Type.INT32, context -> JsonSerdeUtils.toInteger(context.val))
+      .put(Type.INT32, KsqlJsonDeserializer::handleInt)
       .put(Type.INT64, KsqlJsonDeserializer::handleLong)
       .put(Type.FLOAT64, context -> JsonSerdeUtils.toDouble(context.val))
       .put(Type.STRING, KsqlJsonDeserializer::processString)
@@ -160,6 +166,14 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
       throw new CoercionException(e.getRawMessage(), pathPart + e.getPath(), e);
     } catch (final Exception e) {
       throw new CoercionException(e.getMessage(), pathPart, e);
+    }
+  }
+
+  private static Object handleInt(final JsonValueContext context) {
+    if (context.schema.name() == Time.LOGICAL_NAME) {
+      return JsonSerdeUtils.toTime(context.val);
+    } else {
+      return JsonSerdeUtils.toInteger(context.val);
     }
   }
 

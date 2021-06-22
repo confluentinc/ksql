@@ -15,9 +15,6 @@
 
 package io.confluent.ksql.rest.server;
 
-import static io.confluent.ksql.rest.server.KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG;
-import static java.util.Objects.requireNonNull;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -114,6 +111,13 @@ import io.vertx.core.VertxOptions;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.ext.dropwizard.Match;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.utils.Time;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.log4j.LogManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.Console;
 import java.io.File;
 import java.io.OutputStreamWriter;
@@ -139,12 +143,9 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.common.utils.Time;
-import org.apache.kafka.streams.StreamsConfig;
-import org.apache.log4j.LogManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static io.confluent.ksql.rest.server.KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG;
+import static java.util.Objects.requireNonNull;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class KsqlRestApplication implements Executable {
@@ -465,7 +466,7 @@ public final class KsqlRestApplication implements Executable {
         processingLogContext.getConfig(),
         ksqlConfigNoPort
     );
-    commandRunner.processPriorCommands();
+    commandRunner.processPriorCommands(ksqlConfigNoPort.getKsqlStreamConfigProps().get(StreamsConfig.STATE_DIR_CONFIG).toString());
     commandRunner.start();
     maybeCreateProcessingLogStream(
         processingLogContext.getConfig(),

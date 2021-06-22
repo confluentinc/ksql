@@ -303,7 +303,7 @@ public class TermCompiler implements ExpressionVisitor<Term, Context> {
 
   @Override
   public Term visitIntervalUnit(final IntervalUnit exp, final Context context) {
-    return visitUnsupported(exp);
+    return LiteralTerms.of(exp.getUnit());
   }
 
   @Override

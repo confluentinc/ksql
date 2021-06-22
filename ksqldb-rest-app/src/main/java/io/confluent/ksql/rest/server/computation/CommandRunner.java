@@ -26,30 +26,15 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
-import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
-import org.apache.kafka.common.errors.SerializationException;
-import org.apache.kafka.common.errors.WakeupException;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -57,6 +42,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
+import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.errors.WakeupException;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Handles the logic of reading distributed commands, including pre-existing commands that were
@@ -258,7 +249,7 @@ public class CommandRunner implements Closeable {
   /**
    * Read and execute all commands on the command topic, starting at the earliest offset.
    */
-  public void processPriorCommands(final String stateDir) {
+  public void processPriorCommands() {
     try {
       final List<QueuedCommand> restoreCommands = commandStore.getRestoreCommands();
       final List<QueuedCommand> compatibleCommands = checkForIncompatibleCommands(restoreCommands);
@@ -296,22 +287,6 @@ public class CommandRunner implements Closeable {
       LOG.info("Restarting {} queries.", queries.size());
 
       queries.forEach(PersistentQueryMetadata::start);
-      final Set<String> stateStoreNames = new HashSet<>();
-      for (PersistentQueryMetadata metadata : queries) {
-        stateStoreNames.add(metadata.getQueryId().toString());
-      }
-      Files.list(Paths.get(stateDir)).map(Path::toFile).forEach(f -> {
-        if (!stateStoreNames.contains(f.getName())) {
-          try {
-            Files.walk(f.toPath())
-                    .sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
-          } catch (IOException e) {
-            LOG.error("Error cleaning up obsolete {} state directory", f.getName());
-          }
-        }
-      });
 
       LOG.info("Restore complete");
 

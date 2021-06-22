@@ -15,21 +15,6 @@
 
 package io.confluent.ksql.rest.server;
 
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.anyShort;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
@@ -54,9 +39,9 @@ import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
-import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.state.ServerState;
+import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -83,90 +68,70 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyShort;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlRestApplicationTest {
   private static final String LOG_STREAM_NAME = "log_stream";
   private static final String LOG_TOPIC_NAME = "log_topic";
   private static final String CMD_TOPIC_NAME = "command_topic";
   private static final String LIST_STREAMS_SQL = "list streams;";
-
-  @Mock
-  private ServiceContext serviceContext;
-  @Mock
-  private KsqlEngine ksqlEngine;
-  @Mock
-  private KsqlConfig ksqlConfig;
-  @Mock
-  private ProcessingLogConfig processingLogConfig;
-  @Mock
-  private CommandRunner commandRunner;
-  @Mock
-  private StatusResource statusResource;
-  @Mock
-  private StreamedQueryResource streamedQueryResource;
-  @Mock
-  private KsqlResource ksqlResource;
-  @Mock
-  private VersionCheckerAgent versionCheckerAgent;
-  @Mock
-  private CommandStore commandQueue;
-  @Mock
-  private KsqlSecurityExtension securityExtension;
-  @Mock
-  private ProcessingLogContext processingLogContext;
-  @Mock
-  private ServerState serverState;
-  @Mock
-  private KafkaTopicClient topicClient;
-  @Mock
-  private KsqlServerPrecondition precondition1;
-  @Mock
-  private KsqlServerPrecondition precondition2;
-  @Mock
-  private ParsedStatement parsedStatement;
-  @Mock
-  private PreparedStatement<?> preparedStatement;
-  @Mock
-  private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
-  @Mock
-  private HeartbeatAgent heartbeatAgent;
-  @Mock
-  private LagReportingAgent lagReportingAgent;
-  @Mock
-  private EndpointResponse response;
-  @Mock
-  private DenyListPropertyValidator denyListPropertyValidator;
-  @Mock
-  private RoutingFilterFactory routingFilterFactory;
-  @Mock
-  private RateLimiter rateLimiter;
-  @Mock
-  private ConcurrencyLimiter concurrencyLimiter;
-  @Mock
-  private HARouting haRouting;
-  @Mock
-  private PushRouting pushRouting;
-
-  @Mock
-  private Vertx vertx;
-
+  private final ArgumentCaptor<KsqlSecurityContext> securityContextArgumentCaptor =
+      ArgumentCaptor.forClass(KsqlSecurityContext.class);
+  @Mock private ServiceContext serviceContext;
+  @Mock private KsqlEngine ksqlEngine;
+  @Mock private KsqlConfig ksqlConfig;
+  @Mock private ProcessingLogConfig processingLogConfig;
+  @Mock private CommandRunner commandRunner;
+  @Mock private StatusResource statusResource;
+  @Mock private StreamedQueryResource streamedQueryResource;
+  @Mock private KsqlResource ksqlResource;
+  @Mock private VersionCheckerAgent versionCheckerAgent;
+  @Mock private CommandStore commandQueue;
+  @Mock private KsqlSecurityExtension securityExtension;
+  @Mock private ProcessingLogContext processingLogContext;
+  @Mock private ServerState serverState;
+  @Mock private KafkaTopicClient topicClient;
+  @Mock private KsqlServerPrecondition precondition1;
+  @Mock private KsqlServerPrecondition precondition2;
+  @Mock private ParsedStatement parsedStatement;
+  @Mock private PreparedStatement<?> preparedStatement;
+  @Mock private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
+  @Mock private HeartbeatAgent heartbeatAgent;
+  @Mock private LagReportingAgent lagReportingAgent;
+  @Mock private EndpointResponse response;
+  @Mock private DenyListPropertyValidator denyListPropertyValidator;
+  @Mock private RoutingFilterFactory routingFilterFactory;
+  @Mock private RateLimiter rateLimiter;
+  @Mock private ConcurrencyLimiter concurrencyLimiter;
+  @Mock private HARouting haRouting;
+  @Mock private PushRouting pushRouting;
+  @Mock private Vertx vertx;
   private String logCreateStatement;
   private KsqlRestApplication app;
   private KsqlRestConfig restConfig;
   private KsqlSecurityContext securityContext;
 
-  private final ArgumentCaptor<KsqlSecurityContext> securityContextArgumentCaptor =
-      ArgumentCaptor.forClass(KsqlSecurityContext.class);
-
   @SuppressWarnings({"unchecked", "rawtypes"})
   @Before
   public void setUp() {
-    when(processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE))
-        .thenReturn(true);
+    when(processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)).thenReturn(true);
     when(processingLogConfig.getString(ProcessingLogConfig.STREAM_NAME))
         .thenReturn(LOG_STREAM_NAME);
-    when(processingLogConfig.getString(ProcessingLogConfig.TOPIC_NAME))
-        .thenReturn(LOG_TOPIC_NAME);
+    when(processingLogConfig.getString(ProcessingLogConfig.TOPIC_NAME)).thenReturn(LOG_TOPIC_NAME);
 
     when(processingLogConfig.getBoolean(ProcessingLogConfig.TOPIC_AUTO_CREATE)).thenReturn(true);
     when(processingLogContext.getConfig()).thenReturn(processingLogConfig);
@@ -177,29 +142,28 @@ public class KsqlRestApplicationTest {
     when(commandQueue.getCommandTopicName()).thenReturn(CMD_TOPIC_NAME);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(topicClient.isTopicExists(CMD_TOPIC_NAME)).thenReturn(false);
-    
+
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("ksql-id");
-  
+    when(ksqlConfig.getKsqlStreamConfigProps())
+        .thenReturn(ImmutableMap.of(StreamsConfig.STATE_DIR_CONFIG, "/tmp/cat"));
+
     when(precondition1.checkPrecondition(any(), any())).thenReturn(Optional.empty());
     when(precondition2.checkPrecondition(any(), any())).thenReturn(Optional.empty());
 
     when(response.getStatus()).thenReturn(200);
-    when(response.getEntity()).thenReturn(new KsqlEntityList(
-        Collections.singletonList(new StreamsList(
-            LIST_STREAMS_SQL,
-            Collections.emptyList()))));
+    when(response.getEntity())
+        .thenReturn(
+            new KsqlEntityList(
+                Collections.singletonList(
+                    new StreamsList(LIST_STREAMS_SQL, Collections.emptyList()))));
 
-    when(ksqlResource.handleKsqlStatements(
-        any(),
-        any())
-    ).thenReturn(response);
+    when(ksqlResource.handleKsqlStatements(any(), any())).thenReturn(response);
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
-    logCreateStatement = ProcessingLogServerUtils.processingLogStreamCreateStatement(
-        processingLogConfig,
-        ksqlConfig
-    );
+    logCreateStatement =
+        ProcessingLogServerUtils.processingLogStreamCreateStatement(
+            processingLogConfig, ksqlConfig);
     MetricCollectors.initialize();
 
     givenAppWithRestConfig(ImmutableMap.of(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0"));
@@ -247,10 +211,12 @@ public class KsqlRestApplicationTest {
     app.startKsql(ksqlConfig);
 
     // Then:
-    verify(ksqlResource).handleKsqlStatements(
-        securityContextArgumentCaptor.capture(),
-        eq(new KsqlRequest(logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null))
-    );
+    verify(ksqlResource)
+        .handleKsqlStatements(
+            securityContextArgumentCaptor.capture(),
+            eq(
+                new KsqlRequest(
+                    logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null)));
     assertThat(securityContextArgumentCaptor.getValue().getUserPrincipal(), is(Optional.empty()));
     assertThat(securityContextArgumentCaptor.getValue().getServiceContext(), is(serviceContext));
   }
@@ -258,17 +224,17 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldNotCreateLogStreamIfAutoCreateNotConfigured() {
     // Given:
-    when(processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE))
-        .thenReturn(false);
+    when(processingLogConfig.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)).thenReturn(false);
 
     // When:
     app.startKsql(ksqlConfig);
 
     // Then:
-    verify(ksqlResource, never()).handleKsqlStatements(
-        securityContext,
-        new KsqlRequest(logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null)
-    );
+    verify(ksqlResource, never())
+        .handleKsqlStatements(
+            securityContext,
+            new KsqlRequest(
+                logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null));
   }
 
   @Test
@@ -279,23 +245,23 @@ public class KsqlRestApplicationTest {
         new StreamsList(
             LIST_STREAMS_SQL,
             Collections.singletonList(new SourceInfo.Stream(LOG_STREAM_NAME, "", "", "", false)));
-    when(response.getEntity()).thenReturn(new KsqlEntityList(Collections.singletonList(streamsList)));
-    
-    when(ksqlResource.handleKsqlStatements(
-        any(),
-        any())
-    ).thenReturn(response);
+    when(response.getEntity())
+        .thenReturn(new KsqlEntityList(Collections.singletonList(streamsList)));
+
+    when(ksqlResource.handleKsqlStatements(any(), any())).thenReturn(response);
 
     // When:
     app.startKsql(ksqlConfig);
 
     // Then:
-    verify(ksqlResource, never()).handleKsqlStatements(
-        securityContextArgumentCaptor.capture(),
-        eq(new KsqlRequest(logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null))
-    );
+    verify(ksqlResource, never())
+        .handleKsqlStatements(
+            securityContextArgumentCaptor.capture(),
+            eq(
+                new KsqlRequest(
+                    logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null)));
   }
-  
+
   @Test
   public void shouldStartCommandStoreAndCommandRunnerBeforeCreatingLogStream() {
     // When:
@@ -306,10 +272,13 @@ public class KsqlRestApplicationTest {
     inOrder.verify(commandQueue).start();
     inOrder.verify(commandRunner).processPriorCommands();
     inOrder.verify(commandRunner).start();
-    inOrder.verify(ksqlResource).handleKsqlStatements(
-        securityContextArgumentCaptor.capture(),
-        eq(new KsqlRequest(logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null))
-    );
+    inOrder
+        .verify(ksqlResource)
+        .handleKsqlStatements(
+            securityContextArgumentCaptor.capture(),
+            eq(
+                new KsqlRequest(
+                    logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null)));
     assertThat(securityContextArgumentCaptor.getValue().getUserPrincipal(), is(Optional.empty()));
     assertThat(securityContextArgumentCaptor.getValue().getServiceContext(), is(serviceContext));
   }
@@ -322,10 +291,13 @@ public class KsqlRestApplicationTest {
     // Then:
     final InOrder inOrder = Mockito.inOrder(topicClient, ksqlResource);
     inOrder.verify(topicClient).createTopic(eq(LOG_TOPIC_NAME), anyInt(), anyShort());
-    inOrder.verify(ksqlResource).handleKsqlStatements(
-        securityContextArgumentCaptor.capture(),
-        eq(new KsqlRequest(logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null))
-    );
+    inOrder
+        .verify(ksqlResource)
+        .handleKsqlStatements(
+            securityContextArgumentCaptor.capture(),
+            eq(
+                new KsqlRequest(
+                    logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null)));
     assertThat(securityContextArgumentCaptor.getValue().getUserPrincipal(), is(Optional.empty()));
     assertThat(securityContextArgumentCaptor.getValue().getServiceContext(), is(serviceContext));
   }
@@ -360,10 +332,12 @@ public class KsqlRestApplicationTest {
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(ksqlResource, serverState);
-    verify(ksqlResource).handleKsqlStatements(
-        securityContextArgumentCaptor.capture(),
-        eq(new KsqlRequest(logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null))
-    );
+    verify(ksqlResource)
+        .handleKsqlStatements(
+            securityContextArgumentCaptor.capture(),
+            eq(
+                new KsqlRequest(
+                    logCreateStatement, Collections.emptyMap(), Collections.emptyMap(), null)));
     assertThat(securityContextArgumentCaptor.getValue().getUserPrincipal(), is(Optional.empty()));
     assertThat(securityContextArgumentCaptor.getValue().getServiceContext(), is(serviceContext));
     inOrder.verify(serverState).setReady();
@@ -372,10 +346,12 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldCheckPreconditionsBeforeUsingServiceContext() {
     // Given:
-    when(precondition2.checkPrecondition(any(), any())).then(a -> {
-      verifyNoMoreInteractions(serviceContext);
-      return Optional.empty();
-    });
+    when(precondition2.checkPrecondition(any(), any()))
+        .then(
+            a -> {
+              verifyNoMoreInteractions(serviceContext);
+              return Optional.empty();
+            });
 
     // When:
     app.startKsql(ksqlConfig);
@@ -394,10 +370,12 @@ public class KsqlRestApplicationTest {
     final Queue<KsqlErrorMessage> errors = new LinkedList<>();
     errors.add(error1);
     errors.add(error2);
-    when(precondition2.checkPrecondition(any(), any())).then(a -> {
-      verifyNoMoreInteractions(serviceContext);
-      return Optional.ofNullable(errors.isEmpty() ? null : errors.remove());
-    });
+    when(precondition2.checkPrecondition(any(), any()))
+        .then(
+            a -> {
+              verifyNoMoreInteractions(serviceContext);
+              return Optional.ofNullable(errors.isEmpty() ? null : errors.remove());
+            });
 
     // When:
     app.startKsql(ksqlConfig);
@@ -426,10 +404,10 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldConfigureIQWithInterNodeListenerIfSet() {
     // Given:
-    givenAppWithRestConfig(ImmutableMap.of(
-        KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0",
-        KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://some.host:12345"
-    ));
+    givenAppWithRestConfig(
+        ImmutableMap.of(
+            KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0",
+            KsqlRestConfig.ADVERTISED_LISTENER_CONFIG, "https://some.host:12345"));
 
     // When:
     final KsqlConfig ksqlConfig = app.buildConfigWithPort();
@@ -437,16 +415,15 @@ public class KsqlRestApplicationTest {
     // Then:
     assertThat(
         ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.APPLICATION_SERVER_CONFIG),
-        is("https://some.host:12345")
-    );
+        is("https://some.host:12345"));
   }
 
   @Test
   public void shouldConfigureIQWithFirstListenerIfInterNodeNotSet() {
     // Given:
-    givenAppWithRestConfig(ImmutableMap.of(
-        KsqlRestConfig.LISTENERS_CONFIG, "http://some.host:1244,https://some.other.host:1258"
-    ));
+    givenAppWithRestConfig(
+        ImmutableMap.of(
+            KsqlRestConfig.LISTENERS_CONFIG, "http://some.host:1244,https://some.other.host:1258"));
 
     // When:
     final KsqlConfig ksqlConfig = app.buildConfigWithPort();
@@ -454,45 +431,43 @@ public class KsqlRestApplicationTest {
     // Then:
     assertThat(
         ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.APPLICATION_SERVER_CONFIG),
-        is("http://some.host:1244")
-    );
+        is("http://some.host:1244"));
   }
 
   private void givenAppWithRestConfig(final Map<String, Object> restConfigMap) {
 
     restConfig = new KsqlRestConfig(restConfigMap);
 
-    app = new KsqlRestApplication(
-        serviceContext,
-        ksqlEngine,
-        ksqlConfig,
-        restConfig,
-        commandRunner,
-        commandQueue,
-        statusResource,
-        streamedQueryResource,
-        ksqlResource,
-        versionCheckerAgent,
-        apiSecurityContext -> new KsqlSecurityContext(Optional.empty(), serviceContext),
-        securityExtension,
-        Optional.empty(),
-        serverState,
-        processingLogContext,
-        ImmutableList.of(precondition1, precondition2),
-        ImmutableList.of(ksqlResource, streamedQueryResource),
-        rocksDBConfigSetterHandler,
-        Optional.of(heartbeatAgent),
-        Optional.of(lagReportingAgent),
-        vertx,
-        denyListPropertyValidator,
-        Optional.empty(),
-        routingFilterFactory,
-        rateLimiter,
-        concurrencyLimiter,
-        haRouting,
-        pushRouting,
-        Optional.empty()
-    );
+    app =
+        new KsqlRestApplication(
+            serviceContext,
+            ksqlEngine,
+            ksqlConfig,
+            restConfig,
+            commandRunner,
+            commandQueue,
+            statusResource,
+            streamedQueryResource,
+            ksqlResource,
+            versionCheckerAgent,
+            apiSecurityContext -> new KsqlSecurityContext(Optional.empty(), serviceContext),
+            securityExtension,
+            Optional.empty(),
+            serverState,
+            processingLogContext,
+            ImmutableList.of(precondition1, precondition2),
+            ImmutableList.of(ksqlResource, streamedQueryResource),
+            rocksDBConfigSetterHandler,
+            Optional.of(heartbeatAgent),
+            Optional.of(lagReportingAgent),
+            vertx,
+            denyListPropertyValidator,
+            Optional.empty(),
+            routingFilterFactory,
+            rateLimiter,
+            concurrencyLimiter,
+            haRouting,
+            pushRouting,
+            Optional.empty());
   }
-
 }

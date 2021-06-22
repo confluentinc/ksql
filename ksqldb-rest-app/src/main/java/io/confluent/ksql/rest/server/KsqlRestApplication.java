@@ -50,6 +50,7 @@ import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.properties.PropertiesUtil;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.ErrorMessages;
 import io.confluent.ksql.rest.Errors;
@@ -100,6 +101,7 @@ import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.RetryUtil;
 import io.confluent.ksql.util.WelcomeMsgUtils;
@@ -111,28 +113,27 @@ import io.vertx.core.VertxOptions;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.ext.dropwizard.Match;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.common.utils.Time;
-import org.apache.kafka.streams.StreamsConfig;
-import org.apache.log4j.LogManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.Console;
 import java.io.File;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -143,6 +144,12 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.utils.Time;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.log4j.LogManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static io.confluent.ksql.rest.server.KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG;
 import static java.util.Objects.requireNonNull;
@@ -454,6 +461,39 @@ public final class KsqlRestApplication implements Executable {
     localCommands.ifPresent(lc -> lc.processLocalCommandFiles(serviceContext));
   }
 
+  private void cleanupOldStateDirectories(KsqlConfig configWithApplicationServer) {
+    final String stateDir =
+        configWithApplicationServer
+            .getKsqlStreamConfigProps()
+            .get(StreamsConfig.STATE_DIR_CONFIG)
+            .toString();
+
+    final Set<String> stateStoreNames =
+        ksqlEngine.getPersistentQueries().stream()
+            .map(PersistentQueryMetadata::getQueryId)
+            .map(QueryId::toString)
+            .collect(Collectors.toSet());
+    try {
+      Files.list(Paths.get(stateDir))
+          .map(Path::toFile)
+          .forEach(
+              f -> {
+                if (!stateStoreNames.contains(f.getName())) {
+                  try {
+                    Files.walk(f.toPath())
+                        .sorted(Comparator.reverseOrder())
+                        .map(Path::toFile)
+                        .forEach(File::delete);
+                  } catch (IOException e) {
+                    log.error("Error cleaning up obsolete {} state directory", f.getName());
+                  }
+                }
+              });
+    } catch (IOException e) {
+      log.error("Filed to clean a state directory {}", stateDir);
+    }
+  }
+
   private void initialize(final KsqlConfig configWithApplicationServer) {
     rocksDBConfigSetterHandler.accept(ksqlConfigNoPort);
 
@@ -462,11 +502,10 @@ public final class KsqlRestApplication implements Executable {
     commandStore.start();
 
     ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
-        serviceContext.getTopicClient(),
-        processingLogContext.getConfig(),
-        ksqlConfigNoPort
-    );
-    commandRunner.processPriorCommands(ksqlConfigNoPort.getKsqlStreamConfigProps().get(StreamsConfig.STATE_DIR_CONFIG).toString());
+        serviceContext.getTopicClient(), processingLogContext.getConfig(), ksqlConfigNoPort);
+    commandRunner.processPriorCommands();
+    cleanupOldStateDirectories(configWithApplicationServer);
+
     commandRunner.start();
     maybeCreateProcessingLogStream(
         processingLogContext.getConfig(),

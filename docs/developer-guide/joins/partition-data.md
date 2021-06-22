@@ -17,6 +17,10 @@ records based on the joining column. To ensure that records with the same
 join column are co-located on the same stream task, the join column must
 coincide with the column that the sources are partitioned by.
 
+Partitioning streams and tables is especially important for stateful or otherwise
+intensive queries. For more information, see
+[Parallelization](/operate-and-deploy/performance-guidelines/#parallelization).
+
 Keys
 ----
 

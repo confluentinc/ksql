@@ -140,10 +140,11 @@ public class UdfIndex<T extends FunctionSignature> {
 
     curr.update(function);
   }
-
+//
   T getFunction(final List<SqlArgument> arguments) {
     final List<Node> candidates = new ArrayList<>();
 
+    // first try to get the candidates without any implicit casting
     Optional<T> candidate = findMatchingCandidate(candidates, arguments, false);
     if (candidate.isPresent()) {
       return candidate.get();
@@ -152,6 +153,7 @@ public class UdfIndex<T extends FunctionSignature> {
     }
     candidates.clear();
 
+    //if non were found (candidate isn't present) try again with implicit casting
     candidate = findMatchingCandidate(candidates, arguments, true);
     if (candidate.isPresent()) {
       return candidate.get();
@@ -159,7 +161,6 @@ public class UdfIndex<T extends FunctionSignature> {
     throw createNoMatchingFunctionException(arguments);
   }
 
-  //returns an optional containing a single matching candidate if there is one
   private Optional<T> findMatchingCandidate(final List<Node> candidates, final List<SqlArgument> arguments, final boolean allowCasts) {
     getCandidates(arguments, 0, root, candidates, new HashMap<>(), allowCasts);
     candidates.sort(Node::compare);
@@ -274,7 +275,6 @@ public class UdfIndex<T extends FunctionSignature> {
             Comparator
                 .<T, Integer>comparing(fun -> fun.isVariadic() ? 0 : 1)
                 .thenComparing(fun -> fun.parameters().size())
-
         );
 
     private final Map<Parameter, Node> children;
@@ -310,6 +310,11 @@ public class UdfIndex<T extends FunctionSignature> {
       return value != null ? value.name().text() : "EMPTY";
     }
 
+    /**
+     * Description here
+     * @param other
+     * @return
+     */
     int compare(final Node other) {
       final int compareVal = compareFunctions.compare(value, other.value);
       if (compareVal == 0) {

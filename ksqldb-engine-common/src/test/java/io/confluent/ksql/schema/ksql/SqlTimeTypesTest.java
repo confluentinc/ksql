@@ -16,6 +16,7 @@
 package io.confluent.ksql.schema.ksql;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 
@@ -44,9 +45,49 @@ public class SqlTimeTypesTest {
   }
 
   @Test
+  public void shouldParseTime() {
+    assertThat(SqlTimeTypes.parseTime("10:00:00"), is(new Time(36000000)));
+    assertThat(SqlTimeTypes.parseTime("10:00"), is(new Time(36000000)));
+    assertThat(SqlTimeTypes.parseTime("10:00:00.001"), is(new Time(36000001)));
+  }
+
+  @Test
+  public void shouldNotParseTime() {
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> SqlTimeTypes.parseTime("foo")
+    );
+
+    // Then
+    assertThat(e.getMessage(), containsString(
+        "Required format is: \"HH:mm:ss.SSS\""));
+  }
+
+  @Test
   public void shouldFormatTime() {
     assertThat(SqlTimeTypes.formatTime(new Time(1000)), is("00:00:01"));
     assertThat(SqlTimeTypes.formatTime(new Time(1005)), is("00:00:01"));
+  }
+
+  @Test
+  public void shouldParseDate() {
+    assertThat(SqlTimeTypes.parseDate("1990"), is(new Date(631152000000L)));
+    assertThat(SqlTimeTypes.parseDate("1990-01"), is(new Date(631152000000L)));
+    assertThat(SqlTimeTypes.parseDate("1990-01-01"), is(new Date(631152000000L)));
+  }
+
+  @Test
+  public void shouldNotParseDate() {
+    // When:
+    final KsqlException e = assertThrows(
+        KsqlException.class,
+        () -> SqlTimeTypes.parseDate("foo")
+    );
+
+    // Then
+    assertThat(e.getMessage(), containsString(
+        "Required format is: \"yyyy-MM-dd\""));
   }
 
   @Test

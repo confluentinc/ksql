@@ -43,6 +43,8 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -300,6 +302,8 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
             // STRING:
             .put(key(STRING, STRING), Coercer.PASS_THROUGH)
             .put(key(STRING, TIMESTAMP), parser((v, t) -> SqlTimeTypes.parseTimestamp(v)))
+            .put(key(STRING, TIME), parser((v, t) -> SqlTimeTypes.parseTime(v)))
+            .put(key(STRING, DATE), parser((v, t) -> SqlTimeTypes.parseDate(v)))
             // ARRAY:
             .put(key(ARRAY, ARRAY), coercer(
                 DefaultSqlValueCoercer::canCoerceToArray,
@@ -341,9 +345,13 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
             .put(key(STRING, DECIMAL), parser((v, t) -> DecimalUtil
                 .ensureFit(new BigDecimal(v), (SqlDecimal) t)))
             .put(key(STRING, DOUBLE), parser((v, t) -> SqlDoubles.parseDouble(v)))
-            // TIMESTAMP:
+            // TIME:
             .put(key(TIMESTAMP, STRING), coercer((c, v, t)
                 -> Result.of(SqlTimeTypes.formatTimestamp((Timestamp) v))))
+            .put(key(TIME, STRING), coercer((c, v, t)
+                -> Result.of(SqlTimeTypes.formatTime((Time) v))))
+            .put(key(DATE, STRING), coercer((c, v, t)
+                -> Result.of(SqlTimeTypes.formatDate((Date) v))))
             .build();
 
     private static Coercer parser(final BiFunction<String, SqlType, Object> parserFunction) {

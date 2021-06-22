@@ -333,6 +333,42 @@ public class ApiSqlValueCoercerTest {
   }
 
   @Test
+  public void shouldCoerceToTime() {
+    assertThat(coercer.coerce("00:02:01", SqlTypes.TIME), is(Result.of(new Time(121000))));
+    assertThat(coercer.coerce(new Time(3213), SqlTypes.TIME), is(Result.of(new Time(3213))));
+  }
+
+  @Test
+  public void shouldNotCoerceToTime() {
+    assertThat(coercer.coerce(true, SqlTypes.TIME), is(Result.failure()));
+    assertThat(coercer.coerce(1, SqlTypes.TIME), is(Result.failure()));
+    assertThat(coercer.coerce(1L, SqlTypes.TIME), is(Result.failure()));
+    assertThat(coercer.coerce(1.0d, SqlTypes.TIME), is(Result.failure()));
+    assertThat(coercer.coerce("aaa", SqlTypes.TIME), is(Result.failure()));
+    assertThat(coercer.coerce(new Timestamp(1000L), SqlTypes.TIME), is(Result.failure()));
+    assertThat(coercer.coerce(new Date(1000L), SqlTypes.TIME), is(Result.failure()));
+    assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.TIME), is(Result.failure()));
+  }
+
+  @Test
+  public void shouldCoerceToDate() {
+    assertThat(coercer.coerce("2005-04-18", SqlTypes.DATE), is(Result.of(new Date(1113782400000L))));
+    assertThat(coercer.coerce(new Date(3213), SqlTypes.DATE), is(Result.of(new Date(3213))));
+  }
+
+  @Test
+  public void shouldNotCoerceToDate() {
+    assertThat(coercer.coerce(true, SqlTypes.DATE), is(Result.failure()));
+    assertThat(coercer.coerce(1, SqlTypes.DATE), is(Result.failure()));
+    assertThat(coercer.coerce(1L, SqlTypes.DATE), is(Result.failure()));
+    assertThat(coercer.coerce(1.0d, SqlTypes.DATE), is(Result.failure()));
+    assertThat(coercer.coerce("aaa", SqlTypes.DATE), is(Result.failure()));
+    assertThat(coercer.coerce(new Time(1000L), SqlTypes.DATE), is(Result.failure()));
+    assertThat(coercer.coerce(new Timestamp(1000L), SqlTypes.DATE), is(Result.failure()));
+    assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.DATE), is(Result.failure()));
+  }
+
+  @Test
   public void shouldCoerceAlmostUsingSameRulesAsBaseTypeUpCastRules() {
     for (final SqlBaseType fromBaseType : supportedTypes()) {
       // Given:
@@ -595,6 +631,12 @@ public class ApiSqlValueCoercerTest {
     );
     if (baseType == SqlBaseType.STRING && toType == SqlBaseType.TIMESTAMP) {
       return "2005-04-05T12:34:56.789";
+    }
+    if (baseType == SqlBaseType.STRING && toType == SqlBaseType.TIME) {
+      return "12:34:56";
+    }
+    if (baseType == SqlBaseType.STRING && toType == SqlBaseType.DATE) {
+      return "2005-04-05";
     }
     return instance;
   }

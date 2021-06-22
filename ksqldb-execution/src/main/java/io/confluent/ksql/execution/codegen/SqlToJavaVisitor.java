@@ -135,6 +135,8 @@ public class SqlToJavaVisitor {
       "io.confluent.ksql.logging.processing.RecordProcessingError",
       "java.lang.reflect.InvocationTargetException",
       "java.util.concurrent.TimeUnit",
+      "java.sql.Time",
+      "java.sql.Date",
       "java.sql.Timestamp",
       "java.util.Arrays",
       "java.util.HashMap",

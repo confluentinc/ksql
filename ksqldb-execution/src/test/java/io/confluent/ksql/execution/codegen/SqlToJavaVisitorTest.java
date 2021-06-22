@@ -48,6 +48,7 @@ import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
+import io.confluent.ksql.execution.expression.tree.DateLiteral;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -83,6 +84,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.Time;
 import java.util.Collections;
 import java.util.Optional;
@@ -877,6 +879,30 @@ public class SqlToJavaVisitorTest {
 
     // Then:
     assertThat(java, containsString("TimeUnit.DAYS"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForTime() {
+    // Given:
+    final TimeLiteral time = new TimeLiteral(new Time(185000));
+
+    // When:
+    final String java = sqlToJavaVisitor.process(time);
+
+    // Then:
+    assertThat(java, is("00:03:05"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDate() {
+    // Given:
+    final DateLiteral time = new DateLiteral(new Date(864000000));
+
+    // When:
+    final String java = sqlToJavaVisitor.process(time);
+
+    // Then:
+    assertThat(java, is("1970-01-11"));
   }
 
   @Test

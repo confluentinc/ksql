@@ -37,6 +37,7 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.apache.kafka.connect.storage.Converter;
 
@@ -123,7 +124,11 @@ public abstract class ConnectSerdeSupplier<T extends ParsedSchema>
 
       switch (schema.type()) {
         case INT32:
-          return Integer.valueOf(spec.toString());
+          final Integer intVal = Integer.valueOf(spec.toString());
+          if (Time.LOGICAL_NAME.equals(schema.name())) {
+            return new java.sql.Time(intVal);
+          }
+          return intVal;
         case INT64:
           final Long longVal = Long.valueOf(spec.toString());
           if (Timestamp.LOGICAL_NAME.equals(schema.name())) {
@@ -237,6 +242,10 @@ public abstract class ConnectSerdeSupplier<T extends ParsedSchema>
           }
           return data;
         case INT32:
+          if (Time.LOGICAL_NAME.equals(schema.name())) {
+            return Time.fromLogical(schema, (Date) data);
+          }
+          return data;
         case FLOAT32:
         case FLOAT64:
         case BOOLEAN:

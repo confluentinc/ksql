@@ -6,33 +6,41 @@ description: Syntax for the CREATE TABLE statement in ksqlDB
 keywords: ksqlDB, create, table
 ---
 
-Synopsis
---------
+## Synopsis
 
 ```sql
 CREATE [OR REPLACE] TABLE [IF NOT EXISTS] table_name ( { column_name data_type [PRIMARY KEY] } [, ...] )
   WITH ( property_name = expression [, ...] );
 ```
 
-Description
------------
+## Description
 
 Create a new table with the specified columns and properties.
 
 If the IF NOT EXISTS clause is present, the statement won't fail if a
 table with the same name already exists.
 
+### Partitioning
+
+Assign the PARTITIONS property in the WITH clause to specify the number of
+partitions in the stream's backing topic. Partitioning streams and tables is
+especially important for stateful or otherwise intensive queries. For more
+information, see [Parallelization](/operate-and-deploy/performance-guidelines/#parallelization).
+
+### PRIMARY KEY
+
 A ksqlDB TABLE works much like tables in other SQL systems. A table has zero or more rows. Each
 row is identified by its `PRIMARY KEY`. A row's `PRIMARY KEY` can not be `NULL`. A message in the
 underlying Kafka topic with the same key as an existing row will _replace_ the existing row in the
 table, or _delete_ the row if the message's value is `NULL`, i.e. a _tombstone_, as long as it has
-a later timestamp / `ROWTIME`. 
+a later timestamp / `ROWTIME`.
+
 This situation is handled differently by [ksqlDB STREAM](../create-stream), as shown in the following table.
 
 |                          |  STREAM                                                       | TABLE                                                             |
 | ------------------------ | --------------------------------------------------------------| ----------------------------------------------------------------- |
 | Key column type          | `KEY`                                                         | `PRIMARY KEY`                                                     |
-| NON NULL key constraint  | No                                                            | Yes <br> Messages in the Kafka topic with a NULL `PRIMARY KEY` are ignored. |
+| NON NULL key constraint  | No                                                            | Yes <br> Messages in the {{ site.ak }} topic with a NULL `PRIMARY KEY` are ignored. |
 | Unique key constraint    | No <br> Messages with the same key as another have no special meaning. | Yes <br> Later messages with the same key _replace_ earlier. |
 | Tombstones               | No <br> Messages with NULL values are ignored.                | Yes <br> NULL message values are treated as a _tombstone_ <br> Any existing row with a matching key is deleted. |
 
@@ -50,21 +58,27 @@ Each column is defined by:
    `PRIMARY KEY` columns. If a column is not marked as a `PRIMARY KEY` column ksqlDB loads it
    from the {{ site.ak }} message's value. Unlike a stream's `KEY` column, a table's `PRIMARY KEY` column(s)
    are NON NULL. Any records in the Kafka topic with NULL key columns are dropped.
-   
+
+### Serialization
+
 For supported [serialization formats](/reference/serialization),
 ksqlDB can integrate with [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).
 ksqlDB can use [Schema Inference](/operate-and-deploy/schema-registry-integration/#schema-inference) to
 spare you from defining columns manually in your `CREATE TABLE` statements.
-   
+
+### ROWTIME
+
 Each row within the table has a `ROWTIME` pseudo column, which represents the _last modified time_ 
 of the row. The timestamp has milliseconds accuracy. The timestamp is used by ksqlDB when updating
 a row, during any windowing operations and during joins, where data from each side of a join is 
 generally processed in time order.  
 
-By default `ROWTIME` is populated from the corresponding Kafka message timestamp. Set `TIMESTAMP` in
-the `WITH` clause to populate `ROWTIME` from a column in the Kafka message key or value.
+By default, `ROWTIME` is populated from the corresponding {{ site.ak }} message timestamp. Set `TIMESTAMP` in
+the `WITH` clause to populate `ROWTIME` from a column in the {{ site.ak }} message key or value.
+### Table properties
 
-The WITH clause supports the following properties:
+Specify details about your table by using the WITH clause, which supports the
+following properties:
 
 |        Property         |                                            Description                                            |
 | ----------------------- | ------------------------------------------------------------------------------------------------- |
@@ -72,7 +86,7 @@ The WITH clause supports the following properties:
 | KEY_FORMAT              | Specifies the serialization format of the message key in the topic. For supported formats, see [Serialization Formats](/reference/serialization).<br>If not supplied, the system default, defined by [ksql.persistence.default.format.key](/reference/server-configuration#ksqlpersistencedefaultformatkey), is used. If the default is also not set the statement will be rejected as invalid. |
 | VALUE_FORMAT            | Specifies the serialization format of the message value in the topic. For supported formats, see [Serialization Formats](/reference/serialization).<br>If not supplied, the system default, defined by [ksql.persistence.default.format.value](/reference/server-configuration#ksqlpersistencedefaultformatvalue), is used. If the default is also not set the statement will be rejected as invalid. |
 | FORMAT                  | Specifies the serialization format of both the message key and value in the topic. It is not valid to supply this property alongside either `KEY_FORMAT` or `VALUE_FORMAT`. For supported formats, see [Serialization Formats](/reference/serialization). |
-| PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a TABLE without an existing topic (the command will fail if the topic does not exist). |
+| PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a TABLE without an existing topic (the command will fail if the topic does not exist). You can't change the number of partitions on a table. To change the partition count, you must drop the table and create it again. |
 | REPLICAS                | The number of replicas in the backing topic. If this property is not set but PARTITIONS is set, then the default Kafka cluster configuration for replicas will be used for creating a new topic. |
 | VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter, defaults to ','. For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not an actual space or tab character. |
 | TIMESTAMP               | By default, the pseudo `ROWTIME` column is the timestamp of the message in the Kafka topic. The TIMESTAMP property can be used to override `ROWTIME` with the contents of the specified column within the Kafka message (similar to timestamp extractors in Kafka's Streams API). Timestamps have a millisecond accuracy. Time-based operations, such as windowing, will process a record according to the timestamp in `ROWTIME`. |

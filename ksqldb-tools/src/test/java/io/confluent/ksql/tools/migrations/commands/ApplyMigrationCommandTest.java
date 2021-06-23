@@ -641,6 +641,22 @@ public class ApplyMigrationCommandTest {
     inOrder.verifyNoMoreInteractions();
   }
 
+  @Test
+  public void shouldNotApplyOlderVersion() throws Exception {
+    // Given:
+    command = PARSER.parse("-v", "1");
+    createMigrationFile(1, NAME, migrationsDir, COMMAND);
+    givenAppliedMigration(1, NAME, MigrationState.MIGRATED);
+    givenCurrentMigrationVersion("1");
+
+    // When:
+    final int result = command.command(config, cfg -> ksqlClient, migrationsDir, Clock.fixed(
+        Instant.ofEpochMilli(1000), ZoneId.systemDefault()));
+
+    // Then:
+    assertThat(result, is(1));
+  }
+
   private void createMigrationFile(
       final int version,
       final String name,
@@ -718,6 +734,10 @@ public class ApplyMigrationCommandTest {
     when(row.getString(8)).thenReturn("no_error");
 
     when(infoQueryResult.get()).thenReturn(ImmutableList.of(row));
+    when(ksqlClient.executeQuery(
+        "SELECT version, checksum, previous, state, name, started_on, completed_on, error_reason FROM "
+            + MIGRATIONS_TABLE + " WHERE version_key = '" + version + "';"))
+        .thenReturn(infoQueryResult);
   }
 
   private void verifyMigratedVersion(

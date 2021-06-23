@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
@@ -172,6 +173,8 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
   private static Object handleInt(final JsonValueContext context) {
     if (context.schema.name() == Time.LOGICAL_NAME) {
       return JsonSerdeUtils.toTime(context.val);
+    } else if (context.schema.name() == Date.LOGICAL_NAME) {
+      return JsonSerdeUtils.toDate(context.val);
     } else {
       return JsonSerdeUtils.toInteger(context.val);
     }

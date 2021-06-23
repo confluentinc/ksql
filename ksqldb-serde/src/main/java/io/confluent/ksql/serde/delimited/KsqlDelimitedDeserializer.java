@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.delimited;
 
+import static io.confluent.ksql.serde.SerdeUtils.getDateFromEpochDays;
 import static io.confluent.ksql.serde.SerdeUtils.returnTimeOrThrow;
 
 import com.google.common.collect.ImmutableMap;
@@ -61,8 +62,9 @@ class KsqlDelimitedDeserializer implements Deserializer<List<?>> {
       .put(SqlBaseType.DOUBLE, t -> Double::parseDouble)
       .put(SqlBaseType.STRING, t -> v -> v)
       .put(SqlBaseType.DECIMAL, KsqlDelimitedDeserializer::decimalParser)
-      .put(SqlBaseType.TIME,KsqlDelimitedDeserializer::timeParser)
-      .put(SqlBaseType.TIMESTAMP,KsqlDelimitedDeserializer::timestampParser)
+      .put(SqlBaseType.TIME, KsqlDelimitedDeserializer::timeParser)
+      .put(SqlBaseType.DATE, KsqlDelimitedDeserializer::dateParser)
+      .put(SqlBaseType.TIMESTAMP, KsqlDelimitedDeserializer::timestampParser)
       .build();
 
   private final CSVFormat csvFormat;
@@ -133,6 +135,10 @@ class KsqlDelimitedDeserializer implements Deserializer<List<?>> {
 
   private static Parser timeParser(final SqlType sqlType) {
     return v -> returnTimeOrThrow(Long.parseLong(v));
+  }
+
+  private static Parser dateParser(final SqlType sqlType) {
+    return v -> getDateFromEpochDays(Integer.parseInt(v));
   }
 
   private static Parser timestampParser(final SqlType sqlType) {

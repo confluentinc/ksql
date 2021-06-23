@@ -49,6 +49,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -79,6 +80,7 @@ public class KsqlJsonSerializerTest {
   private static final String MAPCOL = "MAPCOL";
   private static final String DECIMALCOL = "DECIMALCOL";
   private static final String TIMECOL = "TIMECOL";
+  private static final String DATECOL = "DATECOL";
   private static final String TIMESTAMPCOL = "TIMESTAMPCOL";
 
   private static final Schema ORDER_SCHEMA = SchemaBuilder.struct()
@@ -96,6 +98,7 @@ public class KsqlJsonSerializerTest {
           .build())
       .field(DECIMALCOL, Decimal.builder(5).optional().parameter(DecimalUtil.PRECISION_FIELD, "10").build())
       .field(TIMECOL, Time.builder().optional().build())
+      .field(DATECOL, Date.builder().optional().build())
       .field(TIMESTAMPCOL, Timestamp.builder().optional().build())
       .build();
 
@@ -201,6 +204,7 @@ public class KsqlJsonSerializerTest {
         .put(MAPCOL, Collections.singletonMap("key1", 100.0))
         .put(DECIMALCOL, new BigDecimal("1.12345"))
         .put(TIMECOL, new java.sql.Time(1000))
+        .put(DATECOL, new java.sql.Date(864000000L))
         .put(TIMESTAMPCOL, new java.sql.Timestamp(1000));
 
     // When:
@@ -221,6 +225,7 @@ public class KsqlJsonSerializerTest {
             + "\"MAPCOL\":" + mapCol + ","
             + "\"DECIMALCOL\":1.12345,"
             + "\"TIMECOL\":1000,"
+            + "\"DATECOL\":10,"
             + "\"TIMESTAMPCOL\":1000"
             + "}"));
   }
@@ -360,6 +365,21 @@ public class KsqlJsonSerializerTest {
 
     // Then:
     assertThat(asJsonString(bytes), is("500"));
+  }
+
+  @Test
+  public void shouldSerializeDate() {
+    // Given:
+    final Serializer<java.sql.Date> serializer = givenSerializerForSchema(
+        Date.SCHEMA,
+        java.sql.Date.class
+    );
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, new java.sql.Date(864000000L));
+
+    // Then:
+    assertThat(asJsonString(bytes), is("10"));
   }
 
   @Test
@@ -561,6 +581,7 @@ public class KsqlJsonSerializerTest {
         .put(MAPCOL, null)
         .put(DECIMALCOL, null)
         .put(TIMECOL, null)
+        .put(DATECOL, null)
         .put(TIMESTAMPCOL, null);
 
     // When:
@@ -577,6 +598,7 @@ public class KsqlJsonSerializerTest {
             + "\"MAPCOL\":null,"
             + "\"DECIMALCOL\":null,"
             + "\"TIMECOL\":null,"
+            + "\"DATECOL\":null,"
             + "\"TIMESTAMPCOL\":null"
             + "}"));
   }

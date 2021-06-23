@@ -159,6 +159,11 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   }
 
   @Override
+  public KsqlConstants.PersistentQueryType getPersistentQueryType() {
+    return null;
+  }
+
+  @Override
   public ProcessingLogger getProcessingLogger() {
     return processingLogger;
   }
@@ -171,13 +176,8 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   }
 
   @Override
-  public void restart() {
-    sharedKafkaStreamsRuntime.restart(queryId);
-  }
-
-  @Override
   public void stop() {
-    sharedKafkaStreamsRuntime.stop(queryId);
+    sharedKafkaStreamsRuntime.close(queryId);
   }
 
   @Override

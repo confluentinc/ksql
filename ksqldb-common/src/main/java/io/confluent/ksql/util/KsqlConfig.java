@@ -396,8 +396,9 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_SHARED_RUNTIME_ENABLED = "ksql.SharedRuntime.enabled";
   public static final Boolean KSQL_SHARED_RUNTIME_ENABLED_DEFAULT = false;
   public static final String KSQL_SHARED_RUNTIME_ENABLED_DOC =
-          "Feature flag for sharing streams runtimes. Default is false. If false, persistent queries will use separate "
-                  + " runtimes, if true, new queries may share streams instances.";
+      "Feature flag for sharing streams runtimes. "
+          + "Default is false. If false, persistent queries will use separate "
+          + " runtimes, if true, new queries may share streams instances.";
 
 
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES = "ksql.suppress.buffer.size.bytes";

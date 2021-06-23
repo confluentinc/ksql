@@ -156,6 +156,8 @@ public final class ParamTypes {
         || base == SqlBaseType.BOOLEAN  && declared instanceof BooleanType
         || base == SqlBaseType.DOUBLE   && declared instanceof DoubleType
         || base == SqlBaseType.DECIMAL  && declared instanceof DecimalType
+        || base == SqlBaseType.TIME  && declared instanceof TimeType
+        || base == SqlBaseType.DATE  && declared instanceof DateType
         || base == SqlBaseType.TIMESTAMP  && declared instanceof TimestampType
         || allowCast && base.canImplicitlyCast(functionToSqlBaseConverter().toBaseType(declared));
     // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity

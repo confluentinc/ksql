@@ -337,11 +337,11 @@ public class QueryMetadataImpl implements QueryMetadata {
 
   void doClose(final boolean cleanUp) {
     closed = true;
-    boolean closed = closeKafkaStreams();
+    final boolean closedKafkaStreams = closeKafkaStreams();
 
-    if (cleanUp && closed) {
+    if (cleanUp && closedKafkaStreams) {
       kafkaStreams.cleanUp();
-    } else if (!closed) {
+    } else if (!closedKafkaStreams) {
       LOG.warn("Query has not successfully closed, skipping cleanup");
     }
   }

@@ -227,7 +227,7 @@ public class PullQueryRoutingFunctionalTest {
 
   @Rule
   public final Timeout timeout = Timeout.builder()
-      .withTimeout(1, TimeUnit.MINUTES)
+      .withTimeout(2, TimeUnit.MINUTES)
       .withLookingForStuckThread(true)
       .build();
 

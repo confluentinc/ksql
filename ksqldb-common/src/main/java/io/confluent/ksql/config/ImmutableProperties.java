@@ -31,6 +31,7 @@ public final class ImmutableProperties {
       .add(KsqlConfig.KSQL_EXT_DIR)
       .add(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
       .add(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)
+      .add(KsqlConfig.KSQL_SUPPRESS_ENABLED)
       .add(KsqlConfig.KSQL_HIDDEN_TOPICS_CONFIG)
       .add(KsqlConfig.KSQL_READONLY_TOPICS_CONFIG)
       .add(KsqlConfig.KSQL_SOURCE_TABLE_MATERIALIZATION_ENABLED)

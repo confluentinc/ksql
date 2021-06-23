@@ -46,7 +46,8 @@ public final class SandboxedPersistentQueryMetadataImpl extends PersistentQueryM
   }
 
   @Override
-  protected void closeKafkaStreams() {
+  protected boolean closeKafkaStreams() {
     // no-op
+    return true;
   }
 }

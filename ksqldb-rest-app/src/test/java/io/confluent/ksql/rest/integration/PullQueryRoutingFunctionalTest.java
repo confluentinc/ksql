@@ -95,7 +95,6 @@ import org.slf4j.LoggerFactory;
  * <p>For tests on general syntax and handled see RestQueryTranslationTest's
  * materialized-aggregate-static-queries.json
  */
-@Ignore
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 @Category({IntegrationTest.class})
 public class PullQueryRoutingFunctionalTest {
@@ -456,7 +455,7 @@ public class PullQueryRoutingFunctionalTest {
     waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
         clusterFormation.router.getHost(),
         HighAvailabilityTestUtil.lagsReported(clusterFormation.standBy.getHost(),
-            Optional.empty(), 5),
+            Optional.of(5L), 5),
         USER_CREDS);
 
     // Cut off standby from Kafka to simulate lag
@@ -475,7 +474,7 @@ public class PullQueryRoutingFunctionalTest {
     // Make sure that the lags get reported before we kill active
     waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
         clusterFormation.router.getHost(),
-        HighAvailabilityTestUtil.lagsReported(clusterFormation.active.getHost(), Optional.empty(),
+        HighAvailabilityTestUtil.lagsReported(clusterFormation.active.getHost(), Optional.of(10L),
             10),
         USER_CREDS);
 

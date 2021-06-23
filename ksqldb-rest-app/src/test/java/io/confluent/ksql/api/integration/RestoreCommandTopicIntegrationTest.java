@@ -15,12 +15,6 @@
 
 package io.confluent.ksql.api.integration;
 
-import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
@@ -63,6 +57,14 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 
 /**
  * Tests covering integration tests for backup/restore the command topic.
@@ -93,6 +95,7 @@ public class RestoreCommandTopicIntegrationTest {
         .builder(TEST_HARNESS::kafkaBootstrapServers)
         .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
         .withProperty(KSQL_METASTORE_BACKUP_LOCATION, BACKUP_LOCATION.getPath())
+        .withProperty(StreamsConfig.STATE_DIR_CONFIG, "/tmp/cat")
         .build();
   }
 
@@ -209,6 +212,36 @@ public class RestoreCommandTopicIntegrationTest {
     assertThat("Should have TOPIC4", streamsNames.contains("TOPIC4"), is(true));
     assertThat("Should have STREAM3", streamsNames.contains("STREAM3"), is(true));
     assertThat("Server should not be in degraded state", isDegradedState(), is(false));
+  }
+
+  @Test
+  public void shouldCleanUpLeftoverStateStores() {
+    // Given:
+    File tempDir = new File("/tmp/cat");
+    if (!tempDir.exists()){
+      tempDir.mkdirs();
+    }
+    File fakeStateStore = new File(tempDir.getAbsolutePath() + "/fakeStateStore");
+    if (!fakeStateStore.exists()){
+      fakeStateStore.mkdirs();
+    }
+    makeKsqlRequest("CREATE STREAM TOPIC3 (ID INT) "
+            + "WITH (KAFKA_TOPIC='temp_top', partitions=3, VALUE_FORMAT='JSON');");
+    makeKsqlRequest("CREATE STREAM stream3 AS SELECT * FROM topic3 EMIT CHANGES;");
+    File realStateStore = new File(tempDir.getAbsolutePath() + "_confluent-ksql-default_query_CSAS_STREAM3_1");
+
+    assertTrue(tempDir.exists());
+    assertTrue(fakeStateStore.exists());
+    assertTrue(realStateStore.exists());
+
+    // When:
+    REST_APP.stop();
+    REST_APP.start();
+
+    // Then:
+    assertFalse(fakeStateStore.exists());
+    assertTrue(realStateStore.exists());
+
   }
 
   private boolean isDegradedState() {

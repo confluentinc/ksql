@@ -29,6 +29,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -47,17 +48,15 @@ import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.vertx.core.Vertx;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Queue;
-import java.util.function.Consumer;
 import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.log4j.AppenderSkeleton;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.spi.LoggingEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -68,9 +67,21 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.function.Consumer;
+
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -145,7 +156,7 @@ public class KsqlRestApplicationTest {
 
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("ksql-id");
     when(ksqlConfig.getKsqlStreamConfigProps())
-        .thenReturn(ImmutableMap.of(StreamsConfig.STATE_DIR_CONFIG, "/tmp/cat"));
+        .thenReturn(ImmutableMap.of(StreamsConfig.STATE_DIR_CONFIG, "/tmp/cat/"));
 
     when(precondition1.checkPrecondition(any(), any())).thenReturn(Optional.empty());
     when(precondition2.checkPrecondition(any(), any())).thenReturn(Optional.empty());
@@ -434,6 +445,75 @@ public class KsqlRestApplicationTest {
         is("http://some.host:1244"));
   }
 
+  @Test
+  public void shouldDeleteExtraStateStores() {
+    // Given:
+    givenAppWithRestConfig(
+            ImmutableMap.of(
+                    KsqlRestConfig.LISTENERS_CONFIG, "http://some.host:1244,https://some.other.host:1258"));
+
+    File tempFile = new File(ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.STATE_DIR_CONFIG).toString());
+    if (!tempFile.exists()){
+      tempFile.mkdirs();
+    }
+    File fakeStateStore = new File(tempFile.getAbsolutePath() + "/fakeStateStore");
+    if (!fakeStateStore.exists()){
+      fakeStateStore.mkdirs();
+    }
+    assertTrue(fakeStateStore.exists());
+
+    // When:
+    app.startKsql(ksqlConfig);
+
+    // Then:
+    assertFalse(fakeStateStore.exists());
+  }
+
+  @Test
+  public void shouldKeepStateStoresBelongingToRunningQueries() {
+    // Given:
+    givenAppWithRestConfig(
+            ImmutableMap.of(
+                    KsqlRestConfig.LISTENERS_CONFIG, "http://some.host:1244,https://some.other.host:1258"));
+    final PersistentQueryMetadata runningQuery = mock(PersistentQueryMetadata.class);
+    when(runningQuery.getQueryId()).thenReturn(new QueryId("testQueryID"));
+    List<PersistentQueryMetadata> queryMocks = ImmutableList.of(runningQuery);
+    when(ksqlEngine.getPersistentQueries()).thenReturn(queryMocks);
+    File tempFile = new File(ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.STATE_DIR_CONFIG).toString());
+    if (!tempFile.exists()){
+      tempFile.mkdirs();
+    }
+    File fakeStateStore = new File(tempFile.getAbsolutePath() + runningQuery.getQueryId().toString());
+    if (!fakeStateStore.exists()){
+      fakeStateStore.mkdirs();
+    }
+    // When:
+    app.startKsql(ksqlConfig);
+    // Then:
+    assertTrue(fakeStateStore.exists());
+  }
+
+  @Test
+  public void shouldThrowExceptionIfNoStateStoreDir() {
+    // Given:
+    final TestAppender appender = new TestAppender();
+    final Logger logger = Logger.getRootLogger();
+    logger.addAppender(appender);
+    givenAppWithRestConfig(
+            ImmutableMap.of(
+                    KsqlRestConfig.LISTENERS_CONFIG, "http://some.host:1244,https://some.other.host:1258"));
+
+    // When:
+    app.startKsql(ksqlConfig);
+
+    // Then:
+    final List<LoggingEvent> log = appender.getLog();
+    // will probably be 2 instead of 0
+    final LoggingEvent firstLogEntry = log.get(0);
+    assertThat(firstLogEntry.getLevel(), is(Level.ERROR));
+    assertThat((String) firstLogEntry.getMessage(), is("Failed to clean a state directory /tmp/cat"));
+  }
+
   private void givenAppWithRestConfig(final Map<String, Object> restConfigMap) {
 
     restConfig = new KsqlRestConfig(restConfigMap);
@@ -469,5 +549,27 @@ public class KsqlRestApplicationTest {
             haRouting,
             pushRouting,
             Optional.empty());
+  }
+
+  class TestAppender extends AppenderSkeleton {
+    private final List<LoggingEvent> log = new ArrayList<LoggingEvent>();
+
+    @Override
+    public boolean requiresLayout() {
+      return false;
+    }
+
+    @Override
+    protected void append(final LoggingEvent loggingEvent) {
+      log.add(loggingEvent);
+    }
+
+    @Override
+    public void close() {
+    }
+
+    public List<LoggingEvent> getLog() {
+      return new ArrayList<LoggingEvent>(log);
+    }
   }
 }

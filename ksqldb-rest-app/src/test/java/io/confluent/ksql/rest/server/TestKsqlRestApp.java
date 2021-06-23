@@ -15,9 +15,6 @@
 
 package io.confluent.ksql.rest.server;
 
-import static java.util.Objects.requireNonNull;
-import static org.mockito.Mockito.mock;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext;
@@ -48,6 +45,10 @@ import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.vertx.core.Vertx;
 import io.vertx.core.net.SocketAddress;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.streams.StreamsConfig;
+import org.junit.rules.ExternalResource;
+
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -68,8 +69,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.junit.rules.ExternalResource;
+
+import static java.util.Objects.requireNonNull;
+import static org.mockito.Mockito.mock;
 
 /**
  * Junit external resource for managing an instance of {@link KsqlRestApplication}.
@@ -320,6 +322,8 @@ public class TestKsqlRestApp extends ExternalResource {
               PropertiesUtil.toMapStrings(ksqlRestConfig.originals()),
               SocketAddress::inetSocketAddress,
               vertx));
+      final KsqlConfig serverConfig = new KsqlConfig(ImmutableMap.of(StreamsConfig.STATE_DIR_CONFIG, "/tmp/cat"));
+      ksqlRestApplication.cleanupOldStateDirectories(serverConfig);
 
     } catch (final Exception e) {
       throw new RuntimeException("Failed to initialise", e);

@@ -140,7 +140,7 @@ public class UdfIndex<T extends FunctionSignature> {
 
     curr.update(function);
   }
-//
+
   T getFunction(final List<SqlArgument> arguments) {
     final List<Node> candidates = new ArrayList<>();
 
@@ -310,27 +310,16 @@ public class UdfIndex<T extends FunctionSignature> {
       return value != null ? value.name().text() : "EMPTY";
     }
 
-    /**
-     * Description here
-     * @param other
-     * @return
-     */
     int compare(final Node other) {
       final int compareVal = compareFunctions.compare(value, other.value);
-      if (compareVal == 0) {
-        final int genericCountThis = value.parameters().stream()
-            .filter(GenericsUtil::hasGenerics)
-            .mapToInt(p -> 1)
-            .sum();
+      return compareVal == 0 ? countGenerics(other) - countGenerics(this) : compareVal;
+    }
 
-        final int genericCountThat = other.value.parameters().stream()
-            .filter(GenericsUtil::hasGenerics)
-            .mapToInt(p -> 1)
-            .sum();
-
-        return genericCountThat - genericCountThis;
-      }
-      return compareVal;
+    private int countGenerics(final Node node) {
+      return node.value.parameters().stream()
+          .filter(GenericsUtil::hasGenerics)
+          .mapToInt(p -> 1)
+          .sum();
     }
 
   }

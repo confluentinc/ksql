@@ -393,7 +393,6 @@ public class KsqlConfig extends AbstractConfig {
           + "Default is false. If false, persistent queries will use separate "
           + " runtimes, if true, new queries may share streams instances.";
 
-
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES = "ksql.suppress.buffer.size.bytes";
   public static final Long KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DEFAULT = -1L;
   public static final String KSQL_SUPPRESS_BUFFER_SIZE_BYTES_DOC =

@@ -62,7 +62,6 @@ import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.TransientQueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -164,7 +163,11 @@ final class QueryExecutor {
   ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
     final String applicationId = QueryApplicationId.build(ksqlConfig, false, queryId);
-    final RuntimeBuildContext runtimeBuildContext = buildContext(applicationId, queryId, streamsBuilder);
+    final RuntimeBuildContext runtimeBuildContext = buildContext(
+        applicationId,
+        queryId,
+        streamsBuilder
+    );
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
     final Object buildResult = buildQueryImplementation(physicalPlan, runtimeBuildContext);
@@ -257,7 +260,11 @@ final class QueryExecutor {
             queryId.toString()
     );
 
-    final RuntimeBuildContext runtimeBuildContext = buildContext(applicationId, queryId, namedTopologyStreamsBuilder);
+    final RuntimeBuildContext runtimeBuildContext = buildContext(
+            applicationId,
+            queryId,
+            namedTopologyStreamsBuilder
+    );
     final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
     // Creates a ProcessorSupplier, a ScalablePushRegistry, to apply to the topology, if
     // scalable push queries are enabled.
@@ -407,7 +414,10 @@ final class QueryExecutor {
     return physicalPlan.build(planBuilder);
   }
 
-  private RuntimeBuildContext buildContext(final String applicationId, final QueryId queryId, final StreamsBuilder streamsBuilder) {
+  private RuntimeBuildContext buildContext(
+          final String applicationId,
+          final QueryId queryId,
+          final StreamsBuilder streamsBuilder) {
     return RuntimeBuildContext.of(
         streamsBuilder,
         config.getConfig(true),

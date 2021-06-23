@@ -675,6 +675,7 @@ public class QueryExecutorTest {
   public void shouldMakePersistentQueriesWithSameSources() {
     // When:
     queryBuilder.buildPersistentQuery(
+            KsqlConstants.PersistentQueryType.CREATE_AS,
             STATEMENT_TEXT,
             QUERY_ID,
             sink,
@@ -685,6 +686,7 @@ public class QueryExecutorTest {
             Collections::emptyList
     );
     queryBuilder.buildPersistentQuery(
+            KsqlConstants.PersistentQueryType.CREATE_AS,
             STATEMENT_TEXT,
             QUERY_ID,
             sink,

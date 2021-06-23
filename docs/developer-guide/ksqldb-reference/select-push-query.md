@@ -220,12 +220,11 @@ the order was placed, and shipped within 2 hours of the payment being received.
 
 The GRACE PERIOD, part of the WITHIN clause, allows the join to process out-of-order records for up
 to the specified grace period. Events that arrive after the grace period has passed are dropped
-as _late_ record and not joined.
+as _late_ records and not joined.
 
-If you don't specify it explicitly, the default grace period is 24 hours. This could cause a huge
-
-amount of disk usage on high-throughput streams. Setting a specific GRACE PERIOD is recommended to
-reduce high disk usage.
+If you don't specify a grace period explicitly, the default grace period is 24 hours. This could
+cause a huge amount of disk usage on high-throughput streams. Setting a specific GRACE PERIOD is
+recommended to reduce high disk usage.
 
 !!! note
     If you specify a GRACE PERIOD for left/outer joins, the grace period defines when the left/outer

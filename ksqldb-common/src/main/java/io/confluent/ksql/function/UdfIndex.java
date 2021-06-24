@@ -58,8 +58,8 @@ import org.slf4j.LoggerFactory;
  *       arguments.</li>
  *   <li>If two methods exist that match given the above rules, return the
  *       method with fewer generic arguments.</li>
- *   <li>If two methods exist that match given the above rules, an exception
- *       is thrown due to a vague function call</li>
+ *   <li>If two methods exist that match given the above rules, the function
+ *       call is ambiguous and an exception is thrown.</li>
  * </ul>
  */
 public class UdfIndex<T extends FunctionSignature> {
@@ -145,27 +145,27 @@ public class UdfIndex<T extends FunctionSignature> {
   }
 
   T getFunction(final List<SqlArgument> arguments) {
-    final List<Node> candidates = new ArrayList<>();
 
     // first try to get the candidates without any implicit casting
-    Optional<T> candidate = findMatchingCandidate(candidates, arguments, false);
+    Optional<T> candidate = findMatchingCandidate(arguments, false);
     if (candidate.isPresent()) {
       return candidate.get();
     } else if (!supportsImplicitCasts) {
       throw createNoMatchingFunctionException(arguments);
     }
-    candidates.clear();
 
-    //if non were found (candidate isn't present) try again with implicit casting
-    candidate = findMatchingCandidate(candidates, arguments, true);
+    // if none were found (candidate isn't present) try again with implicit casting
+    candidate = findMatchingCandidate(arguments, true);
     if (candidate.isPresent()) {
       return candidate.get();
     }
     throw createNoMatchingFunctionException(arguments);
   }
 
-  private Optional<T> findMatchingCandidate(final List<Node> candidates,
+  private Optional<T> findMatchingCandidate(
       final List<SqlArgument> arguments, final boolean allowCasts) {
+
+    final List<Node> candidates = new ArrayList<>();
 
     getCandidates(arguments, 0, root, candidates, new HashMap<>(), allowCasts);
     candidates.sort(Node::compare);

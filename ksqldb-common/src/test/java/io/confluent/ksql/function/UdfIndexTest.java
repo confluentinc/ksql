@@ -937,7 +937,7 @@ public class UdfIndexTest {
   }
 
   @Test
-  public void shouldThrowWhenGivenVagueImplicitCast() {
+  public void shouldThrowOnAmbiguousImplicitCastWithoutGenerics() {
     // Given:
     givenFunctions(
         function(FIRST_FUNC, false, LONG, LONG),
@@ -945,7 +945,7 @@ public class UdfIndexTest {
     );
 
     // When:
-    final Exception e = assertThrows(Exception.class,
+    final KsqlException e = assertThrows(KsqlException.class,
         () -> udfIndex
             .getFunction(ImmutableList.of(SqlArgument.of(INTEGER), SqlArgument.of(BIGINT))));
 
@@ -971,7 +971,7 @@ public class UdfIndexTest {
   }
 
   @Test
-  public void shouldThrowOnComparablyEqualFunctionsWithSameGenericCount() {
+  public void shouldThrowOnAmbiguousImplicitCastWithGenerics() {
     // Given:
     givenFunctions(
         function(FIRST_FUNC, false, LONG, GenericType.of("A"), GenericType.of("B")),
@@ -979,7 +979,7 @@ public class UdfIndexTest {
     );
 
     // When:
-    final Exception e = assertThrows(Exception.class,
+    final KsqlException e = assertThrows(KsqlException.class,
         () -> udfIndex
             .getFunction(ImmutableList
                 .of(SqlArgument.of(INTEGER), SqlArgument.of(INTEGER), SqlArgument.of(INTEGER))));

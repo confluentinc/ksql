@@ -54,6 +54,7 @@ import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.properties.PropertiesUtil;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.ErrorMessages;
 import io.confluent.ksql.rest.Errors;
@@ -104,6 +105,7 @@ import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.RetryUtil;
 import io.confluent.ksql.util.WelcomeMsgUtils;
@@ -117,19 +119,25 @@ import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.ext.dropwizard.Match;
 import java.io.Console;
 import java.io.File;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -461,6 +469,39 @@ public final class KsqlRestApplication implements Executable {
     localCommands.ifPresent(lc -> lc.processLocalCommandFiles(serviceContext));
   }
 
+  private void cleanupOldStateDirectories(KsqlConfig configWithApplicationServer) {
+    final String stateDir =
+        configWithApplicationServer
+            .getKsqlStreamConfigProps()
+            .get(StreamsConfig.STATE_DIR_CONFIG)
+            .toString();
+
+    final Set<String> stateStoreNames =
+        ksqlEngine.getPersistentQueries().stream()
+            .map(PersistentQueryMetadata::getQueryId)
+            .map(QueryId::toString)
+            .collect(Collectors.toSet());
+    try {
+      Files.list(Paths.get(stateDir))
+          .map(Path::toFile)
+          .forEach(
+              f -> {
+                if (!stateStoreNames.contains(f.getName())) {
+                  try {
+                    Files.walk(f.toPath())
+                        .sorted(Comparator.reverseOrder())
+                        .map(Path::toFile)
+                        .forEach(File::delete);
+                  } catch (IOException e) {
+                    log.error("Error cleaning up obsolete {} state directory", f.getName());
+                  }
+                }
+              });
+    } catch (IOException e) {
+      log.error("Filed to clean a state directory {}", stateDir);
+    }
+  }
+
   private void initialize(final KsqlConfig configWithApplicationServer) {
     rocksDBConfigSetterHandler.accept(ksqlConfigNoPort);
 
@@ -474,6 +515,8 @@ public final class KsqlRestApplication implements Executable {
         ksqlConfigNoPort
     );
     commandRunner.processPriorCommands();
+    cleanupOldStateDirectories(configWithApplicationServer);
+
     commandRunner.start();
     maybeCreateProcessingLogStream(
         processingLogContext.getConfig(),

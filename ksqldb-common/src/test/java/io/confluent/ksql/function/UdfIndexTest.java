@@ -950,7 +950,8 @@ public class UdfIndexTest {
             .getFunction(ImmutableList.of(SqlArgument.of(INTEGER), SqlArgument.of(BIGINT))));
 
     // Then:
-    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters "
+    assertThat(e.getMessage(), containsString("Function 'name' cannot be resolved due " +
+        "to ambiguous method parameters "
         + "(INTEGER, BIGINT)"));
   }
 
@@ -985,10 +986,10 @@ public class UdfIndexTest {
                 .of(SqlArgument.of(INTEGER), SqlArgument.of(INTEGER), SqlArgument.of(INTEGER))));
 
     // Then:
-    assertThat(e.getMessage(), containsString("Function 'name' does not accept parameters "
+    assertThat(e.getMessage(), containsString("Function 'name' cannot be resolved due " +
+        "to ambiguous method parameters "
         + "(INTEGER, INTEGER, INTEGER)"));
   }
-
 
   private void givenFunctions(final KsqlScalarFunction... functions) {
     Arrays.stream(functions).forEach(udfIndex::addFunction);

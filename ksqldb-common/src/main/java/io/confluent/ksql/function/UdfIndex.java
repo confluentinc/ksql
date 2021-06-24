@@ -173,8 +173,19 @@ public class UdfIndex<T extends FunctionSignature> {
     final int len = candidates.size();
     if (len == 1) {
       return Optional.of(candidates.get(0).value);
-    } else if (len > 1 && candidates.get(len - 1).compare(candidates.get(len - 2)) > 0) {
-      return Optional.of(candidates.get(len - 1).value);
+    } else if (len > 1) {
+      if (candidates.get(len - 1).compare(candidates.get(len - 2)) > 0) {
+        return Optional.of(candidates.get(len - 1).value);
+      }
+      throw new KsqlException("Function '" + udfName
+          + "' cannot be resolved due to ambiguous method parameters "
+          + getParamsAsString(arguments) + "."
+          + System.lineSeparator()
+          + "Valid function calls are:"
+          + System.lineSeparator()
+          + getAcceptedTypesAsString()
+          + System.lineSeparator()
+          + "For detailed information on a function run: DESCRIBE FUNCTION <Function-Name>;");
     }
 
     return Optional.empty();
@@ -205,10 +216,8 @@ public class UdfIndex<T extends FunctionSignature> {
     }
   }
 
-  private KsqlException createNoMatchingFunctionException(final List<SqlArgument> paramTypes) {
-    LOG.debug("Current UdfIndex:\n{}", describe());
-
-    final String requiredTypes = paramTypes.stream()
+  private String getParamsAsString(final List<SqlArgument> paramTypes) {
+    return paramTypes.stream()
         .map(argument -> {
           if (argument == null) {
             return "null";
@@ -217,10 +226,20 @@ public class UdfIndex<T extends FunctionSignature> {
           }
         })
         .collect(Collectors.joining(", ", "(", ")"));
+  }
 
-    final String acceptedTypes = allFunctions.values().stream()
+  private String getAcceptedTypesAsString() {
+    return allFunctions.values().stream()
         .map(UdfIndex::formatAvailableSignatures)
         .collect(Collectors.joining(System.lineSeparator()));
+  }
+
+  private KsqlException createNoMatchingFunctionException(final List<SqlArgument> paramTypes) {
+    LOG.debug("Current UdfIndex:\n{}", describe());
+
+    final String requiredTypes = getParamsAsString(paramTypes);
+
+    final String acceptedTypes = getAcceptedTypesAsString();
 
     return new KsqlException("Function '" + udfName
         + "' does not accept parameters " + requiredTypes + "."

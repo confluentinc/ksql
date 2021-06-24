@@ -34,7 +34,9 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.query.QuerySchemas;
 import io.confluent.ksql.schema.query.QuerySchemas.SchemaInfo;
 import io.confluent.ksql.serde.FormatFactory;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.test.TestFrameworkException;
@@ -100,6 +102,10 @@ public class TopicInfoCache {
       Pattern.compile(TOPIC_PATTERN_PREFIX + ".*-FK-JOIN-SUBSCRIPTION-STATE-STORE-\\d+-changelog")
   );
 
+  private static final ValueFormat NONE_VALUE_FORMAT = ValueFormat.of(
+      FormatInfo.of(FormatFactory.NONE.name()), SerdeFeatures.of()
+  );
+
   private final KsqlExecutionContext ksqlEngine;
   private final SchemaRegistryClient srClient;
   private final LoadingCache<String, TopicInfo> cache;
@@ -119,21 +125,7 @@ public class TopicInfoCache {
       return Optional.empty();
     }
 
-    final TopicInfo topicInfo = cache.getUnchecked(topicName);
-
-    // The problem I am fixing is that sometimes the first record found in a topic has a null value.
-    // This causes the QuerySchemas#getTopicInfo() to return a EMPTY_SCHEMA for the value.
-    // When that info is obtained from the load function, then it is kept in the cache for some
-    // time. I assume that the null value is just something that may not
-    // happen too often, so a new record in the changelog topic should allow the TrackSerde to
-    // detect the value format. However, the cache will not have the new format until the item
-    // expires, so in cases of the NONE value found, I refresh the cache so it triggers the load
-    // method again in case the value format was detected.
-    if (topicInfo.getValueFormat().getFormat().equals(FormatFactory.NONE.name())) {
-      cache.refresh(topicName);
-    }
-
-    return Optional.of(topicInfo);
+    return Optional.of(cache.getUnchecked(topicName));
   }
 
   public List<TopicInfo> all() {
@@ -171,14 +163,45 @@ public class TopicInfoCache {
             .orElseThrow(() ->
                 new TestFrameworkException("Unknown queryId for internal topic: " + queryId));
 
-        final QuerySchemas.TopicFormatsInfo formatsInfo = query.getQuerySchemas()
-            .getTopicFormatsInfo(topicName);
+        final QuerySchemas.MultiSchemaInfo schemasInfo = query.getQuerySchemas()
+            .getTopicInfo(topicName);
+
+        final Set<KeyFormat> keyFormats = schemasInfo.getKeyFormats();
+        final Set<ValueFormat> valueFormats = schemasInfo.getValueFormats();
+
+        // The QTT framework only supports one key and value serdes. All joins tests in QTT
+        // are using same serdes. If we add tests that use different key/value serdes, then QTT
+        // will have to support those. See https://github.com/confluentinc/ksql/issues/7586
+
+        // Only one key format is allowed for QTT. We should support multiple key formats for
+        // foreign key joins once the above github issue is implemented.
+        if (keyFormats.size() != 1) {
+          final String result = keyFormats.size() == 0 ? "Zero" : "Multiple";
+
+          throw new Exception(result + " key formats registered for topic."
+              + System.lineSeparator()
+              + "topic: " + topicName
+              + "formats: " + keyFormats.stream().map(KeyFormat::getFormat)
+              .sorted().collect(Collectors.toList())
+          );
+        }
+
+        // Zero or one value format is allowed for QTT. We should support multiple value formats
+        // for stream-stream left/outer joins once the above github issue is implemented.
+        if (valueFormats.size() > 1) {
+          throw new Exception("Multiple value formats registered for topic."
+              + System.lineSeparator()
+              + "topic: " + topicName
+              + "formats: " + valueFormats.stream().map(ValueFormat::getFormat)
+              .sorted().collect(Collectors.toList())
+          );
+        }
 
         return new TopicInfo(
             topicName,
             query.getLogicalSchema(),
-            internalTopic.get().keyFormat(formatsInfo.keyFormat(), query),
-            formatsInfo.valueFormat(),
+            internalTopic.get().keyFormat(Iterables.getOnlyElement(keyFormats), query),
+            Iterables.getOnlyElement(valueFormats, NONE_VALUE_FORMAT),
             internalTopic.get().changeLogWindowSize(query)
         );
       }

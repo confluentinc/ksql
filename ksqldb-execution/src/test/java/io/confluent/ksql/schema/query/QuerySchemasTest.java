@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -15,13 +15,13 @@
 
 package io.confluent.ksql.schema.query;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -45,6 +45,10 @@ public class QuerySchemasTest {
 
     private static final KeyFormat AVRO_KEY_FORMAT = KeyFormat.of(
         FormatInfo.of(FormatFactory.AVRO.name()), SerdeFeatures.of(), Optional.empty()
+    );
+
+    private static final KeyFormat NONE_KEY_FORMAT = KeyFormat.of(
+        FormatInfo.of(FormatFactory.NONE.name()), SerdeFeatures.of(), Optional.empty()
     );
 
     private static final ValueFormat JSON_VALUE_FORMAT = ValueFormat.of(
@@ -142,7 +146,7 @@ public class QuerySchemasTest {
     }
 
     @Test
-    public void shouldReturnFormatsInfoWithOneKeyAndValueFormat() {
+    public void shouldGetKeyAndValueSchemaWithOneLoggerWriting() {
         // Given
         querySchemas.trackKeySerdeCreation("K_LOGGER", LOGICAL_SCHEMA_X, JSON_KEY_FORMAT);
         querySchemas.trackValueSerdeCreation("V_LOGGER", LOGICAL_SCHEMA_X, JSON_VALUE_FORMAT);
@@ -150,15 +154,25 @@ public class QuerySchemasTest {
         querySchemas.trackSerdeOp("topic1", IS_VALUE, "V_LOGGER");
 
         // When
-        final QuerySchemas.TopicFormatsInfo info = querySchemas.getTopicFormatsInfo("topic1");
+        final QuerySchemas.MultiSchemaInfo info = querySchemas.getTopicInfo("topic1");
 
         // Then
-        assertThat(info.keyFormat(), is(JSON_KEY_FORMAT));
-        assertThat(info.valueFormat(), is(JSON_VALUE_FORMAT));
+        assertThat(info.getKeySchemas().size(), is(1));
+        assertThat(info.getValueSchemas().size(), is(1));
+        assertThat(Iterables.getOnlyElement(info.getKeySchemas()), is(
+            new QuerySchemas.SchemaInfo(LOGICAL_SCHEMA_X,
+                Optional.of(JSON_KEY_FORMAT),
+                Optional.empty())));
+        assertThat(Iterables.getOnlyElement(info.getValueSchemas()), is(
+            new QuerySchemas.SchemaInfo(LOGICAL_SCHEMA_X,
+                Optional.empty(),
+                Optional.of(JSON_VALUE_FORMAT))));
+        assertThat(Iterables.getOnlyElement(info.getKeyFormats()), is(JSON_KEY_FORMAT));
+        assertThat(Iterables.getOnlyElement(info.getValueFormats()), is(JSON_VALUE_FORMAT));
     }
 
     @Test
-    public void shouldReturnFormatsInfoWithOneSingleKVFormatWhenMultipleLoggersWithSameKVFormatsAreFound() {
+    public void shouldGetCombinedKeyAndValueSchemaWithMultipleLoggersWriting() {
         // Given
         querySchemas.trackKeySerdeCreation("K_LOGGER_1", LOGICAL_SCHEMA_X, JSON_KEY_FORMAT);
         querySchemas.trackKeySerdeCreation("K_LOGGER_2", LOGICAL_SCHEMA_X, JSON_KEY_FORMAT);
@@ -170,47 +184,101 @@ public class QuerySchemasTest {
         querySchemas.trackSerdeOp("topic1", IS_VALUE, "V_LOGGER_2");
 
         // When
-        final QuerySchemas.TopicFormatsInfo info = querySchemas.getTopicFormatsInfo("topic1");
+        final QuerySchemas.MultiSchemaInfo info = querySchemas.getTopicInfo("topic1");
 
         // Then
-        assertThat(info.keyFormat(), is(JSON_KEY_FORMAT));
-        assertThat(info.valueFormat(), is(JSON_VALUE_FORMAT));
+        assertThat(info.getKeySchemas().size(), is(1));
+        assertThat(info.getValueSchemas().size(), is(1));
+        assertThat(Iterables.getOnlyElement(info.getKeySchemas()), is(
+            new QuerySchemas.SchemaInfo(LOGICAL_SCHEMA_X,
+                Optional.of(JSON_KEY_FORMAT),
+                Optional.empty())));
+        assertThat(Iterables.getOnlyElement(info.getValueSchemas()), is(
+            new QuerySchemas.SchemaInfo(LOGICAL_SCHEMA_X,
+                Optional.empty(),
+                Optional.of(JSON_VALUE_FORMAT))));
+        assertThat(Iterables.getOnlyElement(info.getKeyFormats()), is(JSON_KEY_FORMAT));
+        assertThat(Iterables.getOnlyElement(info.getValueFormats()), is(JSON_VALUE_FORMAT));
     }
 
     @Test
-    public void shouldReturnFormatsInfoWithEmptyValueFormatIsNoValueSchemaIsFound() {
+    public void shouldGetMultiKeyAndValueSchemaWithMultipleLoggersWritingDifferentFormats() {
+        // Given
+        querySchemas.trackKeySerdeCreation("K_LOGGER_1", LOGICAL_SCHEMA_X, JSON_KEY_FORMAT);
+        querySchemas.trackKeySerdeCreation("K_LOGGER_2", LOGICAL_SCHEMA_X, AVRO_KEY_FORMAT);
+        querySchemas.trackValueSerdeCreation("V_LOGGER_1", LOGICAL_SCHEMA_X, JSON_VALUE_FORMAT);
+        querySchemas.trackValueSerdeCreation("V_LOGGER_2", LOGICAL_SCHEMA_X, AVRO_VALUE_FORMAT);
+        querySchemas.trackSerdeOp("topic1", IS_KEY, "K_LOGGER_1");
+        querySchemas.trackSerdeOp("topic1", IS_KEY, "K_LOGGER_2");
+        querySchemas.trackSerdeOp("topic1", IS_VALUE, "V_LOGGER_1");
+        querySchemas.trackSerdeOp("topic1", IS_VALUE, "V_LOGGER_2");
+
+        // When
+        final QuerySchemas.MultiSchemaInfo info = querySchemas.getTopicInfo("topic1");
+
+        // Then
+        assertThat(info.getKeySchemas().size(), is(2));
+        assertThat(info.getValueSchemas().size(), is(2));
+        assertThat(info.getKeySchemas(), is(
+            ImmutableSet.of(
+                new QuerySchemas.SchemaInfo(LOGICAL_SCHEMA_X,
+                    Optional.of(JSON_KEY_FORMAT),
+                    Optional.empty()),
+                new QuerySchemas.SchemaInfo(LOGICAL_SCHEMA_X,
+                    Optional.of(AVRO_KEY_FORMAT),
+                    Optional.empty()))));
+        assertThat(info.getValueSchemas(), is(
+            ImmutableSet.of(
+                new QuerySchemas.SchemaInfo(LOGICAL_SCHEMA_X,
+                    Optional.empty(),
+                    Optional.of(JSON_VALUE_FORMAT)),
+                new QuerySchemas.SchemaInfo(LOGICAL_SCHEMA_X,
+                    Optional.empty(),
+                    Optional.of(AVRO_VALUE_FORMAT)))));
+        assertThat(info.getKeyFormats(),
+            is(ImmutableSet.of(AVRO_KEY_FORMAT, JSON_KEY_FORMAT)));
+        assertThat(info.getValueFormats(),
+            is(ImmutableSet.of(AVRO_VALUE_FORMAT, JSON_VALUE_FORMAT)));
+    }
+
+    @Test
+    public void shouldGetEmptyValueSchemaIfNoValueWasDetected() {
         // Given
         querySchemas.trackSerdeOp("topic1", IS_KEY, "K_LOGGER_1");
         querySchemas.trackKeySerdeCreation("K_LOGGER_1", LOGICAL_SCHEMA_X, JSON_KEY_FORMAT);
 
         // When
-        final QuerySchemas.TopicFormatsInfo info = querySchemas.getTopicFormatsInfo("topic1");
+        final QuerySchemas.MultiSchemaInfo info = querySchemas.getTopicInfo("topic1");
 
         // Then
-        assertThat(info.keyFormat(), is(JSON_KEY_FORMAT));
-        assertThat(info.valueFormat(), is(NONE_VALUE_FORMAT));
+        assertThat(info.getKeySchemas().size(), is(1));
+        assertThat(info.getValueSchemas().size(), is(0));
+        assertThat(Iterables.getOnlyElement(info.getKeySchemas()), is(
+            new QuerySchemas.SchemaInfo(LOGICAL_SCHEMA_X,
+                Optional.of(JSON_KEY_FORMAT),
+                Optional.empty())));
+        assertThat(info.getValueFormats().size(), is(0));
+        assertThat(Iterables.getOnlyElement(info.getKeyFormats()), is(JSON_KEY_FORMAT));
     }
 
     @Test
-    public void shouldThrowFormatsInfoIfNoKeySchemaIsFound() {
+    public void shouldGetEmptyKeySchemaIfNoKeyWasDetected() {
         // Given
         querySchemas.trackSerdeOp("topic1", IS_VALUE, "V_LOGGER_1");
         querySchemas.trackValueSerdeCreation("V_LOGGER_1", LOGICAL_SCHEMA_X, JSON_VALUE_FORMAT);
 
         // When
-        final Exception e = assertThrows(
-            IllegalStateException.class,
-            () -> querySchemas.getTopicFormatsInfo("topic1"));
+        final QuerySchemas.MultiSchemaInfo info = querySchemas.getTopicInfo("topic1");
 
         // Then
-        assertThat(e.getMessage(),
-            containsString("Zero key formats registered for topic."));
-        assertThat(e.getMessage(),
-            containsString("topic: topic1"));
-        assertThat(e.getMessage(),
-            containsString("formats: []"));
-        assertThat(e.getMessage(),
-            containsString("loggers: []"));
+        assertThat(info.getKeySchemas().size(), is(0));
+        assertThat(info.getValueSchemas().size(), is(1));
+        assertThat(Iterables.getOnlyElement(info.getValueSchemas()), is(
+            new QuerySchemas.SchemaInfo(LOGICAL_SCHEMA_X,
+                Optional.empty(),
+                Optional.of(JSON_VALUE_FORMAT))));
+        assertThat(info.getKeyFormats().size(), is(0));
+        assertThat(Iterables.getOnlyElement(info.getValueFormats()), is(JSON_VALUE_FORMAT));
     }
 
     @Test
@@ -218,82 +286,9 @@ public class QuerySchemasTest {
         // When
         final Exception e = assertThrows(
             IllegalArgumentException.class,
-            () -> querySchemas.getTopicFormatsInfo("t1"));
+            () -> querySchemas.getTopicInfo("t1"));
 
         // Then
         assertThat(e.getMessage(), is("Unknown topic: t1"));
-    }
-
-    @Test
-    public void shouldThrowIfMultipleKeyLoggersSchemasAreFound() {
-        // Given
-        querySchemas.trackKeySerdeCreation("K_LOGGER_1", LOGICAL_SCHEMA_X, JSON_KEY_FORMAT);
-        querySchemas.trackKeySerdeCreation("K_LOGGER_2", LOGICAL_SCHEMA_X, AVRO_KEY_FORMAT);
-        querySchemas.trackSerdeOp("topic1", IS_KEY, "K_LOGGER_1");
-        querySchemas.trackSerdeOp("topic1", IS_KEY, "K_LOGGER_2");
-
-        // When
-        final Exception e = assertThrows(
-            IllegalStateException.class,
-            () -> querySchemas.getTopicFormatsInfo("topic1"));
-
-        // Then
-        assertThat(e.getMessage(),
-            containsString("Multiple key formats registered for topic."));
-        assertThat(e.getMessage(),
-            containsString("topic: topic1"));
-        assertThat(e.getMessage(),
-            containsString("formats: [AVRO, JSON]"));
-        assertThat(e.getMessage(),
-            containsString("loggers: [[K_LOGGER_1], [K_LOGGER_2]]"));
-    }
-
-    @Test
-    public void shouldThrowIfMultipleValueLoggersSchemasAreFound() {
-        // Given
-        querySchemas.trackKeySerdeCreation("K_LOGGER_1", LOGICAL_SCHEMA_X, JSON_KEY_FORMAT);
-        querySchemas.trackValueSerdeCreation("V_LOGGER_1", LOGICAL_SCHEMA_X, JSON_VALUE_FORMAT);
-        querySchemas.trackValueSerdeCreation("V_LOGGER_2", LOGICAL_SCHEMA_X, AVRO_VALUE_FORMAT);
-        querySchemas.trackSerdeOp("topic1", IS_KEY, "K_LOGGER_1");
-        querySchemas.trackSerdeOp("topic1", IS_VALUE, "V_LOGGER_1");
-        querySchemas.trackSerdeOp("topic1", IS_VALUE, "V_LOGGER_2");
-
-        // When
-        final Exception e = assertThrows(
-            IllegalStateException.class,
-            () -> querySchemas.getTopicFormatsInfo("topic1"));
-
-        // Then
-        assertThat(e.getMessage(),
-            containsString("Multiple value formats registered for topic."));
-        assertThat(e.getMessage(),
-            containsString("topic: topic1"));
-        assertThat(e.getMessage(),
-            containsString("formats: [AVRO, JSON]"));
-        assertThat(e.getMessage(),
-            containsString("loggers: [[V_LOGGER_1], [V_LOGGER_2]"));
-    }
-
-    @Test
-    public void shouldThrowIfKeySchemaIsNotFound() {
-        // Given
-        querySchemas.trackSerdeOp("topic1", IS_KEY, "K_LOGGER_1");
-        querySchemas.trackSerdeOp("topic1", IS_VALUE, "V_LOGGER_1");
-        querySchemas.trackValueSerdeCreation("V_LOGGER_1", LOGICAL_SCHEMA_X, JSON_VALUE_FORMAT);
-
-        // When
-        final Exception e = assertThrows(
-            IllegalStateException.class,
-            () -> querySchemas.getTopicFormatsInfo("topic1"));
-
-        // Then
-        assertThat(e.getMessage(),
-            containsString("Zero key formats registered for topic."));
-        assertThat(e.getMessage(),
-            containsString("topic: topic1"));
-        assertThat(e.getMessage(),
-            containsString("formats: []"));
-        assertThat(e.getMessage(),
-            containsString("loggers: [[K_LOGGER_1]]"));
     }
 }

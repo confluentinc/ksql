@@ -469,7 +469,7 @@ public final class KsqlRestApplication implements Executable {
     localCommands.ifPresent(lc -> lc.processLocalCommandFiles(serviceContext));
   }
 
-  private void cleanupOldStateDirectories(KsqlConfig configWithApplicationServer) {
+  public void cleanupOldStateDirectories(final KsqlConfig configWithApplicationServer) {
     final String stateDir =
         configWithApplicationServer
             .getKsqlStreamConfigProps()
@@ -498,7 +498,7 @@ public final class KsqlRestApplication implements Executable {
                 }
               });
     } catch (IOException e) {
-      log.error("Filed to clean a state directory {}", stateDir);
+      log.error("Failed to clean a state directory {}", stateDir);
     }
   }
 

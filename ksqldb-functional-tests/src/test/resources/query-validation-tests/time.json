@@ -52,6 +52,74 @@
       "outputs": [
         {"topic": "TEST2", "value": {"TIME": 10}}
       ]
+    },
+    {
+      "name": "casting - time to string",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, TIME TIME) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT ID, CAST(TIME AS STRING) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"TIME": 5000}},
+        {"topic": "test", "value": {"TIME": null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"RESULT": "00:00:05"}},
+        {"topic": "TEST2", "value": {"RESULT": null}}
+      ]
+    },
+    {
+      "name": "casting - string to time",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, TIME STRING) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT ID, CAST(TIME AS TIME) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"TIME": "foo"}},
+        {"topic": "test", "value": {"TIME": "00:00:00.010"}},
+        {"topic": "test", "value": {"TIME": "00:00:01"}},
+        {"topic": "test", "value": {"TIME": "00:01"}},
+        {"topic": "test", "value": {"TIME": null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"RESULT": null}},
+        {"topic": "TEST2", "value": {"RESULT": 10}},
+        {"topic": "TEST2", "value": {"RESULT": 1000}},
+        {"topic": "TEST2", "value": {"RESULT": 60000}},
+        {"topic": "TEST2", "value": {"RESULT": null}}
+      ]
+    },
+    {
+      "name": "casting - timestamp to time",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, TIME TIMESTAMP) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT ID, CAST(TIME AS TIME) AS RESULT FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"TIME": 5000}},
+        {"topic": "test", "value": {"TIME": -2000}},
+        {"topic": "test", "value": {"TIME": 86400100}},
+        {"topic": "test", "value": {"TIME": null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"RESULT": 5000}},
+        {"topic": "TEST2", "value": {"RESULT": 86398000}},
+        {"topic": "TEST2", "value": {"RESULT": 100}},
+        {"topic": "TEST2", "value": {"RESULT": null}}
+      ]
+    },
+    {
+      "name": "time in complex types",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, S STRUCT<TIME TIME>, A ARRAY<TIME>, M MAP<STRING, TIME>) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT ID, S -> TIME AS S, A[1] AS A, M['TIME'] AS M FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": {"S": {"TIME": "1"}, "A":  ["5", "10"], "M":  {"TIME": "4"}}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": {"S": 1, "A":  5, "M": 4}}
+      ]
     }
   ]
 }

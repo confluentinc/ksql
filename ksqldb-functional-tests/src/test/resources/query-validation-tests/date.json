@@ -8,10 +8,12 @@
         "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": "10"}
+        {"topic": "test", "value": "10"},
+        {"topic": "test", "value": "-10"}
       ],
       "outputs": [
-        {"topic": "TEST2", "value": "10"}
+        {"topic": "TEST2", "value": "10"},
+        {"topic": "TEST2", "value": "\"-10\""}
       ]
     },
     {
@@ -21,10 +23,12 @@
         "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"DATE": 10}}
+        {"topic": "test", "value": {"DATE": 10}},
+        {"topic": "test", "value": {"DATE": -10}}
       ],
       "outputs": [
-        {"topic": "TEST2", "value": {"DATE": 10}}
+        {"topic": "TEST2", "value": {"DATE": 10}},
+        {"topic": "TEST2", "value": {"DATE": -10}}
       ]
     },
     {
@@ -34,10 +38,12 @@
         "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"date": 10}}
+        {"topic": "test", "value": {"date": 10}},
+        {"topic": "test", "value": {"date": -10}}
       ],
       "outputs": [
-        {"topic": "TEST2", "value": {"DATE": 10}}
+        {"topic": "TEST2", "value": {"DATE": 10}},
+        {"topic": "TEST2", "value": {"DATE": -10}}
       ]
     },
     {
@@ -47,10 +53,12 @@
         "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "value": {"date": 10}}
+        {"topic": "test", "value": {"date": 10}},
+        {"topic": "test", "value": {"date": -10}}
       ],
       "outputs": [
-        {"topic": "TEST2", "value": {"DATE": 10}}
+        {"topic": "TEST2", "value": {"DATE": 10}},
+        {"topic": "TEST2", "value": {"DATE": -10}}
       ]
     }
   ]

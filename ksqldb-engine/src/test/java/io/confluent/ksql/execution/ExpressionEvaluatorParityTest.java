@@ -37,6 +37,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -148,6 +149,7 @@ public class ExpressionEvaluatorParityTest {
   public void shouldDoUdfs() throws Exception {
     assertOrders("CONCAT('abc-', 'def')", "abc-def");
     assertOrders("SPLIT('a-b-c', '-')", ImmutableList.of("a", "b", "c"));
+    assertOrders("TIMESTAMPADD(SECONDS, 1, '2020-01-01')", new Timestamp(1577836801000L));
     assertOrdersError("SPLIT(123, '2')",
         compileTime("Function 'split' does not accept parameters (INTEGER, STRING)"),
         compileTime("Function 'split' does not accept parameters (INTEGER, STRING)"));

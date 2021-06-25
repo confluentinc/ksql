@@ -40,6 +40,7 @@ import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.restore.KsqlRestoreCommandTopic;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
+import java.util.stream.Stream;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.streams.StreamsConfig;
@@ -216,7 +217,7 @@ public class RestoreCommandTopicIntegrationTest {
   }
 
   @Test
-  public void shouldCleanUpLeftoverStateStores() {
+  public void shouldCleanUpLeftoverStateStores() throws SecurityException {
     // Given:
     File tempDir = new File("/tmp/cat");
     if (!tempDir.exists()){
@@ -226,10 +227,10 @@ public class RestoreCommandTopicIntegrationTest {
     if (!fakeStateStore.exists()){
       fakeStateStore.mkdirs();
     }
-    makeKsqlRequest("CREATE STREAM TOPIC3 (ID INT) "
+    makeKsqlRequest("CREATE STREAM TOPIC3 (ID INT, price int) "
             + "WITH (KAFKA_TOPIC='temp_top', partitions=3, VALUE_FORMAT='JSON');");
-    makeKsqlRequest("CREATE STREAM stream3 AS SELECT * FROM topic3 EMIT CHANGES;");
-    File realStateStore = new File(tempDir.getAbsolutePath() + "_confluent-ksql-default_query_CSAS_STREAM3_1");
+    makeKsqlRequest("CREATE TABLE stream3 AS SELECT id, sum(price) FROM topic3 group by ID;");
+    File realStateStore = new File(tempDir.getAbsolutePath() + "/_confluent-ksql-default_query_CTAS_STREAM3_1");
 
     assertTrue(tempDir.exists());
     assertTrue(fakeStateStore.exists());
@@ -242,7 +243,6 @@ public class RestoreCommandTopicIntegrationTest {
     // Then:
     assertFalse(fakeStateStore.exists());
     assertTrue(realStateStore.exists());
-
   }
 
   private boolean isDegradedState() {

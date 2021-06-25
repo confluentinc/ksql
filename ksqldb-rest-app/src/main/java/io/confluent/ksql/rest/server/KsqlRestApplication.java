@@ -477,11 +477,14 @@ public final class KsqlRestApplication implements Executable {
             .toString();
 
     final Set<String> stateStoreNames =
-        ksqlEngine.getPersistentQueries().stream()
+        ksqlEngine.getPersistentQueries()
+            .stream()
             .map(PersistentQueryMetadata::getQueryId)
             .map(QueryId::toString)
             .collect(Collectors.toSet());
     try {
+
+
       Files.list(Paths.get(stateDir))
           .map(Path::toFile)
           .forEach(

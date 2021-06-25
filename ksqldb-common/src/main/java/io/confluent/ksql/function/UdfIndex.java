@@ -177,15 +177,7 @@ public class UdfIndex<T extends FunctionSignature> {
       if (candidates.get(len - 1).compare(candidates.get(len - 2)) > 0) {
         return Optional.of(candidates.get(len - 1).value);
       }
-      throw new KsqlException("Function '" + udfName
-          + "' cannot be resolved due to ambiguous method parameters "
-          + getParamsAsString(arguments) + "."
-          + System.lineSeparator()
-          + "Valid function calls are:"
-          + System.lineSeparator()
-          + getAcceptedTypesAsString()
-          + System.lineSeparator()
-          + "For detailed information on a function run: DESCRIBE FUNCTION <Function-Name>;");
+      throw createVagueImplicitCastException(arguments);
     }
 
     return Optional.empty();
@@ -232,6 +224,21 @@ public class UdfIndex<T extends FunctionSignature> {
     return allFunctions.values().stream()
         .map(UdfIndex::formatAvailableSignatures)
         .collect(Collectors.joining(System.lineSeparator()));
+  }
+
+  private KsqlException createVagueImplicitCastException(final List<SqlArgument> paramTypes) {
+    LOG.debug("Current UdfIndex:\n{}", describe());
+    throw new KsqlException("Function '" + udfName
+        + "' cannot be resolved due to ambiguous method parameters "
+        + getParamsAsString(paramTypes) + "."
+        + System.lineSeparator()
+        + "Use CAST() to explicitly cast your parameters to one of the supported function calls."
+        + System.lineSeparator()
+        + "Valid function calls are:"
+        + System.lineSeparator()
+        + getAcceptedTypesAsString()
+        + System.lineSeparator()
+        + "For detailed information on a function run: DESCRIBE FUNCTION <Function-Name>;");
   }
 
   private KsqlException createNoMatchingFunctionException(final List<SqlArgument> paramTypes) {

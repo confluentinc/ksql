@@ -62,6 +62,7 @@ public class SharedKafkaStreamsRuntime {
         = new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
     this.streamsProperties = ImmutableMap.copyOf(streamsProperties);
     metadata = new HashMap<>();
+    kafkaStreams.start();
   }
 
   public void addQuery(

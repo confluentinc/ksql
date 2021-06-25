@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.function.KsqlFunctionException;
+import java.sql.Time;
 import java.sql.Timestamp;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,20 +36,19 @@ public class ConvertTzTest {
 
   @Test
   public void shouldConvertTimezoneWithOffset() {
-    // When:
-    final Object result = udf.convertTz(Timestamp.valueOf("2000-01-01 00:00:00"), "+0200", "+0500");
-
-    // Then:
-    assertThat(result, is(Timestamp.valueOf("2000-01-01 03:00:00")));
+    assertThat(udf.convertTz(Timestamp.valueOf("2000-01-01 00:00:00"), "+0200", "+0500"),
+        is(Timestamp.valueOf("2000-01-01 03:00:00")));
+    assertThat(udf.convertTz(Time.valueOf("00:00:00"), "+0200", "+0500"),
+        is(Time.valueOf("03:00:00")));
   }
 
   @Test
   public void shouldConvertTimezoneWithName() {
     // When:
-    final Object result = udf.convertTz(Timestamp.valueOf("2000-01-01 00:00:00"), "America/Los_Angeles", "America/New_York");
-
-    // Then:
-    assertThat(result, is(Timestamp.valueOf("2000-01-01 03:00:00")));
+    assertThat(udf.convertTz(Timestamp.valueOf("2000-01-01 00:00:00"), "America/Los_Angeles", "America/New_York"),
+        is(Timestamp.valueOf("2000-01-01 03:00:00")));
+    assertThat(udf.convertTz(Time.valueOf("00:00:00"), "America/Los_Angeles", "America/New_York"),
+        is(Time.valueOf("03:00:00")));
   }
 
   @Test
@@ -65,10 +65,15 @@ public class ConvertTzTest {
 
   @Test
   public void shouldReturnNull() {
-    // When:
-    final Object result = udf.convertTz(null, "America/Los_Angeles", "America/New_York");
+    assertNull(udf.convertTz((Timestamp) null, "America/Los_Angeles", "America/New_York"));
+    assertNull(udf.convertTz((Time) null, "America/Los_Angeles", "America/New_York"));
+  }
 
-    // Then:
-    assertNull(result);
+  @Test
+  public void shouldReturnTimeWhenConversionGoesToAnotherDay() {
+    assertThat(udf.convertTz(new Time(82800000), "America/Los_Angeles", "America/New_York"),
+        is(new Time(7200000)));
+    assertThat(udf.convertTz(new Time(7200000), "America/New_York", "America/Los_Angeles"),
+        is(new Time(82800000)));
   }
 }

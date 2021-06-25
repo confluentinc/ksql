@@ -21,10 +21,14 @@ import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.util.KsqlConstants;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.DateTimeException;
+import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 
 @UdfDescription(
     name = "convert_tz",
@@ -51,6 +55,33 @@ public class ConvertTz {
       final long offset = TimeZone.getTimeZone(ZoneId.of(toTimeZone)).getOffset(timestamp.getTime())
           - TimeZone.getTimeZone(ZoneId.of(fromTimeZone)).getOffset(timestamp.getTime());
       return new Timestamp(timestamp.getTime() + offset);
+    } catch (DateTimeException e) {
+      throw new KsqlFunctionException("Invalid time zone: " + e.getMessage());
+    }
+  }
+
+  @Udf(description = "Converts a TIME value from one timezone to another")
+  public Time convertTz(
+      @UdfParameter(
+          description = "The TIME value.") final Time time,
+      @UdfParameter(
+          description =  "The fromTimeZone in java.util.TimeZone ID format. For example: \"UTC\","
+              + " \"America/Los_Angeles\", \"PST\", \"Europe/London\"") final String fromTimeZone,
+      @UdfParameter(
+          description =  "The toTimeZone in java.util.TimeZone ID format. For example: \"UTC\","
+              + " \"America/Los_Angeles\", \"PST\", \"Europe/London\"") final String toTimeZone
+  ) {
+    if (time == null) {
+      return null;
+    }
+    try {
+      final long offset = TimeZone.getTimeZone(ZoneId.of(toTimeZone)).getOffset(time.getTime())
+          - TimeZone.getTimeZone(ZoneId.of(fromTimeZone)).getOffset(time.getTime());
+      final long convertedNanoTime = LocalTime
+          .ofNanoOfDay(TimeUnit.MILLISECONDS.toNanos(time.getTime()))
+          .plus(offset, ChronoUnit.MILLIS)
+          .toNanoOfDay();
+      return new Time(TimeUnit.NANOSECONDS.toMillis(convertedNanoTime));
     } catch (DateTimeException e) {
       throw new KsqlFunctionException("Invalid time zone: " + e.getMessage());
     }

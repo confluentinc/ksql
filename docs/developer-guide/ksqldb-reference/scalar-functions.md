@@ -1205,7 +1205,7 @@ TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, fo
 CONVERT_TZ(col1, 'from_timezone', 'to_timezone')
 ```
 
-Converts a TIMESTAMP value from `from_timezone` to `to_timezone`. `from_timezone` and
+Converts a TIME or TIMESTAMP value from `from_timezone` to `to_timezone`. `from_timezone` and
 `to_timezone` are `java.util.TimeZone` ID formats, for example: "UTC", "America/Los_Angeles",
 "PDT","Europe/London". For more information on timestamp formats,
 see [DateTimeFormatter](https://cnfl.io/java-dtf).

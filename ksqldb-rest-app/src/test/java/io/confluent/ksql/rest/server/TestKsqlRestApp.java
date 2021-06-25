@@ -48,10 +48,6 @@ import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.vertx.core.Vertx;
 import io.vertx.core.net.SocketAddress;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.streams.StreamsConfig;
-import org.junit.rules.ExternalResource;
-
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -324,8 +320,6 @@ public class TestKsqlRestApp extends ExternalResource {
               PropertiesUtil.toMapStrings(ksqlRestConfig.originals()),
               SocketAddress::inetSocketAddress,
               vertx));
-      final KsqlConfig serverConfig = new KsqlConfig(ImmutableMap.of(StreamsConfig.STATE_DIR_CONFIG, "/tmp/cat"));
-      ksqlRestApplication.cleanupOldStateDirectories(serverConfig);
 
     } catch (final Exception e) {
       throw new RuntimeException("Failed to initialise", e);

@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
@@ -40,19 +41,6 @@ import io.confluent.ksql.rest.server.computation.InternalTopicSerdes;
 import io.confluent.ksql.rest.server.restore.KsqlRestoreCommandTopic;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ReservedInternalTopics;
-import java.util.stream.Stream;
-import kafka.zookeeper.ZooKeeperClientException;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.streams.StreamsConfig;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TemporaryFolder;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -65,8 +53,17 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-
+import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.streams.StreamsConfig;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * Tests covering integration tests for backup/restore the command topic.
@@ -216,6 +213,7 @@ public class RestoreCommandTopicIntegrationTest {
     assertThat("Server should not be in degraded state", isDegradedState(), is(false));
   }
 
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
   @Test
   public void shouldCleanUpLeftoverStateStores() throws SecurityException {
     // Given:

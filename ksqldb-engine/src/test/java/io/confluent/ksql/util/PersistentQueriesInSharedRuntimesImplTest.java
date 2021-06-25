@@ -1,0 +1,129 @@
+/*
+ * Copyright 2020 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
+package io.confluent.ksql.util;
+
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.query.QueryErrorClassifier;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.query.QuerySchemas;
+import io.confluent.ksql.util.QueryMetadata.Listener;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
+import org.apache.kafka.streams.KafkaStreams.State;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InOrder;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+
+@RunWith(MockitoJUnitRunner.class)
+public class PersistentQueriesInSharedRuntimesImplTest {
+    private static final String SQL = "sql";
+    private static final String EXECUTION_PLAN = "execution plan";
+    private static final QueryId QUERY_ID = new QueryId("queryId");
+    private static final String APPLICATION_ID = "applicationId";
+
+    @Mock
+    private PhysicalSchema physicalSchema;
+    @Mock
+    private DataSource sinkDataSource;
+    @Mock
+    private NamedTopology topology;
+    @Mock
+    private QuerySchemas schemas;
+    @Mock
+    private Map<String, Object> overrides;
+    @Mock
+    private QueryErrorClassifier queryErrorClassifier;
+    @Mock
+    private ExecutionStep<?> physicalPlan;
+    @Mock
+    private ProcessingLogger processingLogger;
+    @Mock
+    private Listener listener;
+    @Mock
+    private SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime;
+
+
+    private PersistentQueryMetadata query;
+
+    @Before
+    public void setUp()  {
+        query = new PersistentQueriesInSharedRuntimesImpl(
+            SQL,
+            physicalSchema,
+            Collections.EMPTY_SET,
+            EXECUTION_PLAN,
+            APPLICATION_ID,
+            topology,
+            sharedKafkaStreamsRuntime,
+            schemas,
+            overrides,
+            QUERY_ID,
+            Optional.empty(),
+            physicalPlan,
+            processingLogger,
+            sinkDataSource,
+            listener
+        );
+
+        query.initialize();
+    }
+
+    @Test
+    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
+    public void shouldCloseKafkaStreamsOnStop() {
+        // When:
+        query.stop();
+
+        // Then:
+        final InOrder inOrder = inOrder(sharedKafkaStreamsRuntime);
+        inOrder.verify(sharedKafkaStreamsRuntime).close(QUERY_ID);
+        inOrder.verifyNoMoreInteractions();
+    }
+
+    @Test
+    public void shouldNotCallCloseCallbackOnStop() {
+        // When:
+        query.stop();
+
+        // Then:
+        verify(listener, times(0)).onClose(query);
+    }
+
+    @Test
+    public void shouldCallKafkaStreamsCloseOnStop() {
+        // When:
+        query.stop();
+
+        // Then:
+        verify(sharedKafkaStreamsRuntime).close(QUERY_ID);
+    }
+}

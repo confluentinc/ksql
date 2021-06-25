@@ -255,7 +255,7 @@ public class ConnectIntegrationTest {
   }
 
   @Test
-  public void shouldReadTimestampsFromConnect() {
+  public void shouldReadTimeTypesFromConnect() {
     // Given:
     create("mock-source", ImmutableMap.<String, String> builder()
         .put("connector.class", "org.apache.kafka.connect.tools.VerifiableSourceConnector")

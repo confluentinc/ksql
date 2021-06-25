@@ -63,6 +63,7 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -147,6 +148,12 @@ public class KsqlAvroSerializerTest {
           "{"
               + "\"type\": \"int\","
               + "\"logicalType\": \"time-millis\""
+              + "}");
+  private static final org.apache.avro.Schema DATE_SCHEMA =
+      parseAvroSchema(
+          "{"
+              + "\"type\": \"int\","
+              + "\"logicalType\": \"date\""
               + "}");
 
   private static final String SOME_TOPIC = "bob";
@@ -488,6 +495,21 @@ public class KsqlAvroSerializerTest {
     // Then:
     assertThat(deserialize(bytes), is(500));
     assertThat(avroSchemaStoredInSchemaRegistry(), is(TIME_SCHEMA));
+  }
+
+  @Test
+  public void shouldSerializeDate() {
+    // Given:
+    final Serializer<java.sql.Date> serializer =
+        givenSerializerForSchema(Date.SCHEMA, java.sql.Date.class);
+    final java.sql.Date value = new java.sql.Date(864000000L);
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, value);
+
+    // Then:
+    assertThat(deserialize(bytes), is(10));
+    assertThat(avroSchemaStoredInSchemaRegistry(), is(DATE_SCHEMA));
   }
 
   @Test

@@ -19,6 +19,7 @@ import com.google.common.collect.Sets;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.serde.unwrapped.UnwrappedDeserializer;
 import io.confluent.ksql.serde.unwrapped.UnwrappedSerializer;
+import java.sql.Date;
 import java.sql.Time;
 import java.util.List;
 import java.util.Set;
@@ -146,6 +147,20 @@ public final class SerdeUtils {
       throw new IllegalArgumentException(
           "Time values must use number of milliseconds greater than 0 and less than "
               + TimeUnit.DAYS.toMillis(1) + ".");
+    }
+  }
+
+  public static Date getDateFromEpochDays(final long days) {
+    return new Date(TimeUnit.DAYS.toMillis(days));
+  }
+
+  public static int toEpochDays(final Date date) {
+    final long days = TimeUnit.MILLISECONDS.toDays(date.getTime());
+    if (date.getTime() == TimeUnit.DAYS.toMillis(days)) {
+      return (int) days;
+    } else {
+      throw new IllegalArgumentException(
+          "Date type should not have any time fields set to non-zero values.");
     }
   }
 }

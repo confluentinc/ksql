@@ -334,6 +334,20 @@ public class ConnectDataTranslatorTest {
   }
 
   @Test
+  public void shouldReturnDateType() {
+    // Given:
+    final ConnectDataTranslator connectToKsqlTranslator = new ConnectDataTranslator(
+        org.apache.kafka.connect.data.Date.SCHEMA);
+
+    // When:
+    final Object row = connectToKsqlTranslator.toKsqlRow(org.apache.kafka.connect.data.Date.SCHEMA, new Date(864000000L));
+
+    // Then:
+    assertTrue(row instanceof java.sql.Date);
+    assertThat(((java.sql.Date) row).getTime(), is(864000000L));
+  }
+
+  @Test
   public void shouldReturnTimestampType() {
     // Given:
     final ConnectDataTranslator connectToKsqlTranslator = new ConnectDataTranslator(Timestamp.SCHEMA);

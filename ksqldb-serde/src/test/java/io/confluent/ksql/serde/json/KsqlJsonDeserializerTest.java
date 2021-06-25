@@ -27,9 +27,12 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.IntNode;
@@ -37,8 +40,10 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.ser.std.DateSerializer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -51,6 +56,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -77,6 +83,7 @@ public class KsqlJsonDeserializerTest {
   private static final String MAPCOL = "MAPCOL";
   private static final String CASE_SENSITIVE_FIELD = "caseField";
   private static final String TIMEFIELD = "TIMEFIELD";
+  private static final String DATEFIELD = "DATEFIELD";
   private static final String TIMESTAMPFIELD = "TIMESTAMPFIELD";
 
   private static final Schema ORDER_SCHEMA = SchemaBuilder.struct()
@@ -94,6 +101,7 @@ public class KsqlJsonDeserializerTest {
           .optional()
           .build())
       .field(TIMEFIELD, Time.builder().optional().build())
+      .field(DATEFIELD, Date.builder().optional().build())
       .field(TIMESTAMPFIELD, Timestamp.builder().optional().build())
       .build();
 
@@ -106,13 +114,17 @@ public class KsqlJsonDeserializerTest {
       .put("mapcol", Collections.singletonMap("key1", 10.0))
       .put("caseField", 1L)
       .put("timefield", new java.sql.Time(1000))
+      .put("datefield", new java.sql.Date(864000000L))
       .put("timestampfield", new java.sql.Timestamp(1000))
       .build();
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
       .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
       .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true))
-      .registerModule(new SimpleModule().addSerializer(java.sql.Time.class, new DateSerializer()));
+      .registerModule(new SimpleModule()
+          .addSerializer(java.sql.Time.class, new DateSerializer())
+          .addSerializer(java.sql.Date.class, new EpochDaySerializer())
+      );
 
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
@@ -139,6 +151,7 @@ public class KsqlJsonDeserializerTest {
         .put(MAPCOL, ImmutableMap.of("key1", 10.0))
         .put(CASE_SENSITIVE_FIELD, 1L)
         .put(TIMEFIELD, new java.sql.Time(1000))
+        .put(DATEFIELD, new java.sql.Date(864000000L))
         .put(TIMESTAMPFIELD, new java.sql.Timestamp(1000));
 
     deserializer = givenDeserializerForSchema(ORDER_SCHEMA, Struct.class);
@@ -274,6 +287,7 @@ public class KsqlJsonDeserializerTest {
     row.put("arrayCol", new Double[]{0.0, null});
     row.put("mapCol", mapValue);
     row.put("timefield", null);
+    row.put("datefield", null);
     row.put("timestampfield", null);
 
     final byte[] bytes = serializeJson(row);
@@ -291,6 +305,7 @@ public class KsqlJsonDeserializerTest {
         .put(MAPCOL, mapValue)
         .put(CASE_SENSITIVE_FIELD, null)
         .put(TIMEFIELD, null)
+        .put(DATEFIELD, null)
         .put(TIMESTAMPFIELD, null)
     ));
   }
@@ -639,6 +654,21 @@ public class KsqlJsonDeserializerTest {
   }
 
   @Test
+  public void shouldDeserializeToDate() {
+    // Given:
+    final KsqlJsonDeserializer<java.sql.Date> deserializer =
+        givenDeserializerForSchema(Date.SCHEMA, java.sql.Date.class);
+
+    final byte[] bytes = serializeJson(10);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(((java.sql.Date) result).getTime(), is(864000000L));
+  }
+
+  @Test
   public void shouldDeserializeToTimestamp() {
     // Given:
     final KsqlJsonDeserializer<java.sql.Timestamp> deserializer =
@@ -670,6 +700,25 @@ public class KsqlJsonDeserializerTest {
     // Then:
     assertThat(e.getCause(), (hasMessage(startsWith(
         "Can't convert type. sourceType: BooleanNode, requiredType: TIME"))));
+  }
+
+  @Test
+  public void shouldThrowIfCanNotCoerceToDate() {
+    // Given:
+    final KsqlJsonDeserializer<java.sql.Date> deserializer =
+        givenDeserializerForSchema(Date.SCHEMA, java.sql.Date.class);
+
+    final byte[] bytes = serializeJson(BooleanNode.valueOf(true));
+
+    // When:
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause(), (hasMessage(startsWith(
+        "Can't convert type. sourceType: BooleanNode, requiredType: DATE"))));
   }
 
   @Test
@@ -1031,6 +1080,14 @@ public class KsqlJsonDeserializerTest {
       return ArrayUtils.addAll(new byte[]{/*magic*/ 0x00, /*schema*/ 0x00, 0x00, 0x00, 0x01}, json);
     } else {
       return json;
+    }
+  }
+
+  public static class EpochDaySerializer extends JsonSerializer<java.sql.Date> {
+    @Override
+    public void serialize(java.sql.Date date, JsonGenerator jsonGenerator,
+        SerializerProvider serializerProvider) throws IOException {
+      jsonGenerator.writeNumber(SerdeUtils.toEpochDays(date));
     }
   }
 }

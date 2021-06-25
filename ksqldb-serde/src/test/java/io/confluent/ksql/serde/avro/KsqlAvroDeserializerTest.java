@@ -60,6 +60,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -1305,6 +1306,17 @@ public class KsqlAvroDeserializerTest {
         500,
         Time.SCHEMA,
         new java.sql.Time(500)
+    );
+  }
+
+  @Test
+  public void shouldDeserializeDateFieldToDate() {
+    shouldDeserializeFieldTypeCorrectly(
+        LogicalTypes.date().addToSchema(
+            org.apache.avro.SchemaBuilder.builder().intType()),
+        10,
+        Date.SCHEMA,
+        new java.sql.Date(864000000L)
     );
   }
 

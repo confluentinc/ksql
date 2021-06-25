@@ -672,6 +672,8 @@ public class QueryExecutorTest {
 
   @Test
   public void shouldMakePersistentQueriesWithSameSources() {
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
+
     // When:
     queryBuilder.buildPersistentQuery(
             KsqlConstants.PersistentQueryType.CREATE_AS,
@@ -683,7 +685,7 @@ public class QueryExecutorTest {
             SUMMARY,
             queryListener,
             Collections::emptyList
-    );
+    ).start();
     queryBuilder.buildPersistentQuery(
             KsqlConstants.PersistentQueryType.CREATE_AS,
             STATEMENT_TEXT,
@@ -694,7 +696,36 @@ public class QueryExecutorTest {
             SUMMARY,
             queryListener,
             Collections::emptyList
-    );
+    ).start();
+  }
+
+  @Test
+  public void shouldMakePersistentQueriesWithDifferentSources() {
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
+
+    // When:
+    queryBuilder.buildPersistentQuery(
+            KsqlConstants.PersistentQueryType.CREATE_AS,
+            STATEMENT_TEXT,
+            QUERY_ID,
+            sink,
+            SOURCES,
+            physicalPlan,
+            SUMMARY,
+            queryListener,
+            Collections::emptyList
+    ).start();
+    queryBuilder.buildPersistentQuery(
+            KsqlConstants.PersistentQueryType.CREATE_AS,
+            STATEMENT_TEXT,
+            QUERY_ID,
+            sink,
+            ImmutableSet.of(SourceName.of("food"), SourceName.of("bard")),
+            physicalPlan,
+            SUMMARY,
+            queryListener,
+            Collections::emptyList
+    ).start();
   }
 
   @Test

@@ -1240,6 +1240,28 @@ TIMESTAMPSUB(unit, interval, COL0)
 Subtracts an interval from a timestamp. Intervals are defined by an integer value and a supported
 [time unit](../../reference/sql/time.md#Time units).
 
+### TIMEADD
+
+Since: 0.20
+
+```sql
+TIMEADD(unit, interval, COL0)
+```
+
+Adds an interval to a time. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+### TIMESUB
+
+Since: 0.20
+
+```sql
+TIMESUB(unit, interval, COL0)
+```
+
+Subtracts an interval from a time. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
 ## URLs
 
 !!! note

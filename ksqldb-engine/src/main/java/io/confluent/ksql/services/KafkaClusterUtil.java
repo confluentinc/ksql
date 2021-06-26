@@ -19,6 +19,10 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.links.DocumentationLinks;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlServerException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.Config;
@@ -31,11 +35,6 @@ import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.apache.kafka.common.errors.UnsupportedVersionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 public final class KafkaClusterUtil {
   private static final Logger LOG = LoggerFactory.getLogger(KafkaClusterUtil.class);

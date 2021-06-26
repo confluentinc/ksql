@@ -33,33 +33,45 @@ public class UtilizationMetricsListenerTest {
   @Mock
   private KafkaStreams s1;
   @Mock
-  private KafkaMetric poll;
+  private KafkaMetric ioWaitTime;
   @Mock
-  private KafkaMetric restoreConsumer;
+  private KafkaMetric ioTime;
   @Mock
   private KafkaMetric flush;
   @Mock
-  private KafkaMetric send;
+  private KafkaMetric bufferpool;
   @Mock
   private KafkaMetric startTime;
   @Mock
-  private KafkaMetric poll_1;
+  private KafkaMetric ioWaitTimeRC;
   @Mock
-  private KafkaMetric restoreConsumer_1;
+  private KafkaMetric ioTimeRC;
+  @Mock
+  private KafkaMetric ioWaitTime_1;
+  @Mock
+  private KafkaMetric ioTime_1;
   @Mock
   private KafkaMetric flush_1;
   @Mock
-  private KafkaMetric send_1;
+  private KafkaMetric bufferpool_1;
   @Mock
   private KafkaMetric startTime_1;
   @Mock
-  private KafkaMetric poll_2;
+  private KafkaMetric ioWaitTime_2;
   @Mock
-  private KafkaMetric restoreConsumer_2;
+  private KafkaMetric ioWaitTimeRC_1;
+  @Mock
+  private KafkaMetric ioTimeRC_1;
+  @Mock
+  private KafkaMetric ioTime_2;
   @Mock
   private KafkaMetric flush_2;
   @Mock
-  private KafkaMetric send_2;
+  private KafkaMetric bufferpool_2;
+  @Mock
+  private KafkaMetric ioWaitTimeRC_2;
+  @Mock
+  private KafkaMetric ioTimeRC_2;
   @Mock
   private KafkaMetric startTime_2;
   @Mock
@@ -77,12 +89,12 @@ public class UtilizationMetricsListenerTest {
     streamsList = new ArrayList<>();
     streamsList.add(s1);
 
-    listener = new UtilizationMetricsListener(300L, streamsList, time, 200L);
+    listener = new UtilizationMetricsListener(streamsList, time, 200L);
 
     metricNames = new ArrayList<>();
-    metricNames.add("poll-time-total");
-    metricNames.add("restore-consumer-poll-time-total");
-    metricNames.add("send-time-total");
+    metricNames.add("io-waittime-total");
+    metricNames.add("iotime-total");
+    metricNames.add("bufferpool-wait-time-total");
     metricNames.add("flush-time-total");
 
     when(time.milliseconds()).thenReturn(500L);
@@ -93,21 +105,27 @@ public class UtilizationMetricsListenerTest {
 
     when(s1.localThreadsMetadata()).thenReturn(ImmutableSet.of(s1_t1, s1_t2, s1_t3));
 
-    when(poll.metricName()).thenReturn(new MetricName("poll-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", "s1_t1")));
-    when(restoreConsumer.metricName()).thenReturn(new MetricName("restore-consumer-poll-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", "s1_t1")));
-    when(send.metricName()).thenReturn(new MetricName("send-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", "s1_t1")));
+    when(ioWaitTime.metricName()).thenReturn(new MetricName("io-waittime-total", "stream-thread-metrics", "", ImmutableMap.of("client-id", "s1_t1")));
+    when(ioWaitTimeRC.metricName()).thenReturn(new MetricName("io-waittime-total", "stream-thread-metrics", "", ImmutableMap.of("client-id", "s1_t1_restore-consumer")));
+    when(ioTime.metricName()).thenReturn(new MetricName("iotime-total", "stream-thread-metrics", "", ImmutableMap.of("client-id", "s1_t1")));
+    when(ioTimeRC.metricName()).thenReturn(new MetricName("iotime-total", "stream-thread-metrics", "", ImmutableMap.of("client-id", "s1_t1_restore-consumer")));
+    when(bufferpool.metricName()).thenReturn(new MetricName("bufferpool-wait-time-total", "stream-thread-metrics", "", ImmutableMap.of("client-id", "s1_t1")));
     when(flush.metricName()).thenReturn(new MetricName("flush-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", "s1_t1")));
     when(startTime.metricName()).thenReturn(new MetricName("thread-start-time", "stream-thread-metrics", "", ImmutableMap.of("thread-id", "s1_t1")));
 
-    when(poll_1.metricName()).thenReturn(new MetricName("poll-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", "s1_t2")));
-    when(restoreConsumer_1.metricName()).thenReturn(new MetricName("restore-consumer-poll-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", "s1_t2")));
-    when(send_1.metricName()).thenReturn(new MetricName("send-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", "s1_t2")));
+    when(ioWaitTime_1.metricName()).thenReturn(new MetricName("io-waittime-total", "stream-thread-metrics", "", ImmutableMap.of("client-id", "s1_t2")));
+    when(ioWaitTimeRC_1.metricName()).thenReturn(new MetricName("io-waittime-total", "stream-thread-metrics", "", ImmutableMap.of("client-id", "s1_t2")));
+    when(ioTime_1.metricName()).thenReturn(new MetricName("iotime-total", "stream-thread-metrics", "", ImmutableMap.of("client-id", "s1_t2_restore-consumer")));
+    when(ioTimeRC_1.metricName()).thenReturn(new MetricName("iotime-total", "stream-thread-metrics", "", ImmutableMap.of("client-id", "s1_t2_restore-consumer")));
+    when(bufferpool_1.metricName()).thenReturn(new MetricName("bufferpool-wait-time-total", "stream-thread-metrics", "", ImmutableMap.of("client-id", "s1_t2")));
     when(flush_1.metricName()).thenReturn(new MetricName("flush-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", "s1_t2")));
     when(startTime_1.metricName()).thenReturn(new MetricName("thread-start-time", "stream-thread-metrics", "", ImmutableMap.of("thread-id", "s1_t2")));
 
-    when(poll_2.metricName()).thenReturn(new MetricName("poll-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", "s1_t3")));
-    when(restoreConsumer_2.metricName()).thenReturn(new MetricName("restore-consumer-poll-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", "s1_t3")));
-    when(send_2.metricName()).thenReturn(new MetricName("send-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", "s1_t3")));
+    when(ioWaitTime_2.metricName()).thenReturn(new MetricName("io-waittime-total", "stream-thread-metrics", "", ImmutableMap.of("client-id", "s1_t3")));
+    when(ioWaitTimeRC_2.metricName()).thenReturn(new MetricName("io-waittime-total", "stream-thread-metrics", "", ImmutableMap.of("client-id", "s1_t3_restore-consumer")));
+    when(ioTime_2.metricName()).thenReturn(new MetricName("iotime-total", "stream-thread-metrics", "", ImmutableMap.of("client-id", "s1_t3")));
+    when(ioTimeRC_2.metricName()).thenReturn(new MetricName("iotime-total", "stream-thread-metrics", "", ImmutableMap.of("client-id", "s1_t3_restore-consumer")));
+    when(bufferpool_2.metricName()).thenReturn(new MetricName("bufferpool-wait-time-total", "stream-thread-metrics", "", ImmutableMap.of("client-id", "s1_t3")));
     when(flush_2.metricName()).thenReturn(new MetricName("flush-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", "s1_t3")));
     when(startTime_2.metricName()).thenReturn(new MetricName("thread-start-time", "stream-thread-metrics", "", ImmutableMap.of("thread-id", "s1_t3")));
   }
@@ -118,23 +136,29 @@ public class UtilizationMetricsListenerTest {
 
     // All threads started before window
     // Thread 1 -> blocked for 65 / 300
-    when(poll.metricValue()).thenReturn(20.0);
-    when(restoreConsumer.metricValue()).thenReturn(15.0);
+    when(ioWaitTime.metricValue()).thenReturn(10.0);
+    when(ioWaitTimeRC.metricValue()).thenReturn(10.0);
+    when(ioTime.metricValue()).thenReturn(10.0);
+    when(ioTimeRC.metricValue()).thenReturn(5.0);
     when(flush.metricValue()).thenReturn(10.0);
-    when(send.metricValue()).thenReturn(20.0);
+    when(bufferpool.metricValue()).thenReturn(20.0);
     when(startTime.metricValue()).thenReturn(200L);
 
-    when(poll_1.metricValue()).thenReturn(50.0);
-    when(restoreConsumer_1.metricValue()).thenReturn(11.0);
+    when(ioWaitTime_1.metricValue()).thenReturn(25.0);
+    when(ioWaitTimeRC_1.metricValue()).thenReturn(25.0);
+    when(ioTime_1.metricValue()).thenReturn(10.0);
+    when(ioTimeRC_1.metricValue()).thenReturn(1.0);
     when(flush_1.metricValue()).thenReturn(13.0);
-    when(send_1.metricValue()).thenReturn(25.0);
+    when(bufferpool_1.metricValue()).thenReturn(25.0);
     when(startTime_1.metricValue()).thenReturn(200L);
 
     // thread 3 -> blocked for 9
-    when(poll_2.metricValue()).thenReturn(5.0);
-    when(restoreConsumer_2.metricValue()).thenReturn(1.0);
+    when(ioWaitTime_2.metricValue()).thenReturn(3.0);
+    when(ioWaitTimeRC_2.metricValue()).thenReturn(2.0);
+    when(ioTime_2.metricValue()).thenReturn(1.0);
+    when(ioTimeRC_2.metricValue()).thenReturn(0.0);
     when(flush_2.metricValue()).thenReturn(1.0);
-    when(send_2.metricValue()).thenReturn(2.0);
+    when(bufferpool_2.metricValue()).thenReturn(2.0);
     when(startTime_2.metricValue()).thenReturn(200L);
 
     assertThat(listener.processingRatio(), equalTo(97.0));
@@ -145,17 +169,17 @@ public class UtilizationMetricsListenerTest {
     doReturn(createMetrics("s1_t1", "s1_t2", "")).when(s1).metrics();
 
     // Thread 1 -> blocked for 65 / 300
-    when(poll.metricValue()).thenReturn(20.0);
-    when(restoreConsumer.metricValue()).thenReturn(15.0);
+    when(ioWaitTime.metricValue()).thenReturn(20.0);
+    when(ioTime.metricValue()).thenReturn(15.0);
     when(flush.metricValue()).thenReturn(10.0);
-    when(send.metricValue()).thenReturn(20.0);
+    when(bufferpool.metricValue()).thenReturn(20.0);
     when(startTime.metricValue()).thenReturn(200L);
 
     // thread 2 -> blocked for 99 / 300
-    when(poll_1.metricValue()).thenReturn(50.0);
-    when(restoreConsumer_1.metricValue()).thenReturn(11.0);
+    when(ioWaitTime_1.metricValue()).thenReturn(50.0);
+    when(ioTime_1.metricValue()).thenReturn(11.0);
     when(flush_1.metricValue()).thenReturn(13.0);
-    when(send_1.metricValue()).thenReturn(25.0);
+    when(bufferpool_1.metricValue()).thenReturn(25.0);
     when(startTime_1.metricValue()).thenReturn(200L);
 
     // thread 3 -> missing
@@ -168,24 +192,24 @@ public class UtilizationMetricsListenerTest {
     doReturn(createMetrics("s1_t1", "s1_t2", "s1_t3")).when(s1).metrics();
 
     // Thread 1 -> blocked for 750 / 300
-    when(poll.metricValue()).thenReturn(200.0);
-    when(restoreConsumer.metricValue()).thenReturn(150.0);
+    when(ioWaitTime.metricValue()).thenReturn(200.0);
+    when(ioTime.metricValue()).thenReturn(150.0);
     when(flush.metricValue()).thenReturn(100.0);
-    when(send.metricValue()).thenReturn(300.0);
+    when(bufferpool.metricValue()).thenReturn(300.0);
     when(startTime.metricValue()).thenReturn(200L);
 
     // thread 2 -> blocked for 945 / 300
-    when(poll_1.metricValue()).thenReturn(500.0);
-    when(restoreConsumer_1.metricValue()).thenReturn(110.0);
+    when(ioWaitTime_1.metricValue()).thenReturn(500.0);
+    when(ioTime_1.metricValue()).thenReturn(110.0);
     when(flush_1.metricValue()).thenReturn(130.0);
-    when(send_1.metricValue()).thenReturn(205.0);
+    when(bufferpool_1.metricValue()).thenReturn(205.0);
     when(startTime_1.metricValue()).thenReturn(200L);
 
     // thread 3 -> blocked for 150 / 300
-    when(poll_2.metricValue()).thenReturn(50.0);
-    when(restoreConsumer_2.metricValue()).thenReturn(100.0);
+    when(ioWaitTime_2.metricValue()).thenReturn(50.0);
+    when(ioTime_2.metricValue()).thenReturn(100.0);
     when(flush_2.metricValue()).thenReturn(0.0);
-    when(send_2.metricValue()).thenReturn(0.0);
+    when(bufferpool_2.metricValue()).thenReturn(0.0);
     when(startTime_2.metricValue()).thenReturn(200L);
 
     assertThat(listener.processingRatio(), equalTo(50.0));
@@ -197,18 +221,18 @@ public class UtilizationMetricsListenerTest {
 
     // window start is 200L
     // Thread 1 -> blocked for 165 / 300
-    when(poll.metricValue()).thenReturn(20.0);
-    when(restoreConsumer.metricValue()).thenReturn(15.0);
+    when(ioWaitTime.metricValue()).thenReturn(20.0);
+    when(ioTime.metricValue()).thenReturn(15.0);
     when(flush.metricValue()).thenReturn(100.0);
-    when(send.metricValue()).thenReturn(30.0);
+    when(bufferpool.metricValue()).thenReturn(30.0);
     when(startTime.metricValue()).thenReturn(100L);
 
     // thread 2 -> blocked for 55 / 300 -> obvious min but since started within
     // the window, should not get this value for blocked time
-    when(poll_1.metricValue()).thenReturn(10.0);
-    when(restoreConsumer_1.metricValue()).thenReturn(12.0);
+    when(ioWaitTime_1.metricValue()).thenReturn(10.0);
+    when(ioTime_1.metricValue()).thenReturn(12.0);
     when(flush_1.metricValue()).thenReturn(13.0);
-    when(send_1.metricValue()).thenReturn(20.0);
+    when(bufferpool_1.metricValue()).thenReturn(20.0);
     when(startTime_1.metricValue()).thenReturn(350L);
 
     assertThat(listener.processingRatio(), equalTo(45.0));
@@ -217,23 +241,29 @@ public class UtilizationMetricsListenerTest {
 
   private Map<MetricName, KafkaMetric> createMetrics(final String threadOne, final String threadTwo, final String threadThree) {
     final Map<MetricName, KafkaMetric> metricMap = new HashMap<>();
-    metricMap.put(new MetricName("poll-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", threadOne)), poll);
-    metricMap.put(new MetricName("restore-consumer-poll-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", threadOne)), restoreConsumer);
-    metricMap.put(new MetricName("send-time-total", "-tream-thread-metrics", "", ImmutableMap.of("thread-id", threadOne)), send);
+    metricMap.put(new MetricName("io-waittime-total", "consumer-metrics", "", ImmutableMap.of("client-id", threadOne)), ioWaitTime);
+    metricMap.put(new MetricName("io-waittime-total", "consumer-metrics", "", ImmutableMap.of("client-id", threadOne + "_restore-consumer")), ioWaitTimeRC);
+    metricMap.put(new MetricName("iotime-total", "consumer-metrics", "", ImmutableMap.of("client-id", threadOne)), ioTime);
+    metricMap.put(new MetricName("iotime-total", "consumer-metrics", "", ImmutableMap.of("client-id", threadOne + "_restore-consumer")), ioTimeRC);
+    metricMap.put(new MetricName("bufferpool-wait-time-total", "stream-thread-metrics", "", ImmutableMap.of("client-id", threadOne)), bufferpool);
     metricMap.put(new MetricName("flush-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", threadOne)), flush);
     metricMap.put(new MetricName("thread-start-time", "stream-thread-metrics", "", ImmutableMap.of("thread-id", threadOne)), startTime);
 
 
-    metricMap.put(new MetricName("poll-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", threadTwo)), poll_1);
-    metricMap.put(new MetricName("restore-consumer-poll-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", threadTwo)), restoreConsumer_1);
-    metricMap.put(new MetricName("send-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", threadTwo)), send_1);
+    metricMap.put(new MetricName("io-waittime-total", "consumer-metrics", "", ImmutableMap.of("client-id", threadTwo)), ioWaitTime_1);
+    metricMap.put(new MetricName("io-waittime-total", "consumer-metrics", "", ImmutableMap.of("client-id", threadTwo + "_restore-consumer")), ioWaitTimeRC_1);
+    metricMap.put(new MetricName("iotime-total", "consumer-metrics", "", ImmutableMap.of("client-id", threadTwo)), ioTime_1);
+    metricMap.put(new MetricName("iotime-total", "consumer-metrics", "", ImmutableMap.of("client-id", threadTwo + "_restore-consumer")), ioTimeRC_1);
+    metricMap.put(new MetricName("bufferpool-wait-time-total", "stream-thread-metrics", "", ImmutableMap.of("client-id", threadTwo)), bufferpool_1);
     metricMap.put(new MetricName("flush-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", threadTwo)), flush_1);
     metricMap.put(new MetricName("thread-start-time", "stream-thread-metrics", "", ImmutableMap.of("thread-id", threadTwo)), startTime_1);
 
     if (!threadThree.equals("")) {
-      metricMap.put(new MetricName("poll-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", threadThree)), poll_2);
-      metricMap.put(new MetricName("restore-consumer-poll-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", threadThree)), restoreConsumer_2);
-      metricMap.put(new MetricName("send-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", threadThree)), send_2);
+      metricMap.put(new MetricName("io-waittime-total", "consumer-metrics", "", ImmutableMap.of("client-id", threadThree)), ioWaitTime_2);
+      metricMap.put(new MetricName("io-waittime-total", "consumer-metrics", "", ImmutableMap.of("client-id", threadThree + "_restore-consumer")), ioWaitTimeRC_2);
+      metricMap.put(new MetricName("iotime-total", "consumer-metrics", "", ImmutableMap.of("client-id", threadThree)), ioTime_2);
+      metricMap.put(new MetricName("iotime-total", "consumer-metrics", "", ImmutableMap.of("client-id", threadThree + "_restore-consumer")), ioTimeRC_2);
+      metricMap.put(new MetricName("bufferpool-wait-time-total", "stream-thread-metrics", "", ImmutableMap.of("client-id", threadThree)), bufferpool_2);
       metricMap.put(new MetricName("flush-time-total", "stream-thread-metrics", "", ImmutableMap.of("thread-id", threadThree)), flush_2);
       metricMap.put(new MetricName("thread-start-time", "stream-thread-metrics", "", ImmutableMap.of("thread-id", threadThree)), startTime_2);
     }

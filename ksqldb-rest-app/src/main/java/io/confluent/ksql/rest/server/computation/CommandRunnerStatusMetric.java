@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import java.io.Closeable;
 import java.util.Collections;
@@ -34,8 +35,8 @@ public class CommandRunnerStatusMetric implements Closeable {
   private static final String METRIC_GROUP_POST_FIX = "-command-runner";
   
   private final Metrics metrics;
-  private final MetricName metricName;
-  private final String metricGroupName;
+  private final MetricName commandRunnerStatusMetricNameLegacy;
+  private final MetricName commandRunnerStatusMetricName;
 
   CommandRunnerStatusMetric(
       final String ksqlServiceId,
@@ -58,15 +59,26 @@ public class CommandRunnerStatusMetric implements Closeable {
       final String metricsGroupPrefix
   ) {
     this.metrics =  Objects.requireNonNull(metrics, "metrics");
-    this.metricGroupName = metricsGroupPrefix + METRIC_GROUP_POST_FIX;
-    this.metricName = metrics.metricName(
+    final String metricGroupName = metricsGroupPrefix + METRIC_GROUP_POST_FIX;
+    this.commandRunnerStatusMetricNameLegacy = metrics.metricName(
         "status",
         ReservedInternalTopics.KSQL_INTERNAL_TOPIC_PREFIX + ksqlServiceId + metricGroupName,
        "The status of the commandRunner thread as it processes the command topic.",
         Collections.emptyMap()
     );
 
-    this.metrics.addMetric(metricName, (Gauge<String>)
+    // Metrics with the ksql service id as a tag instead of in the metric name
+    this.commandRunnerStatusMetricName = metrics.metricName(
+        "status",
+        ReservedInternalTopics.CONFLUENT_PREFIX + metricGroupName,
+        "The status of the commandRunner thread as it processes the command topic.",
+        Collections.singletonMap(KsqlConstants.KSQL_SERVICE_ID_METRICS_TAG, ksqlServiceId)
+    );
+    
+
+    this.metrics.addMetric(commandRunnerStatusMetricNameLegacy, (Gauge<String>)
+        (config, now) -> commandRunner.checkCommandRunnerStatus().name());
+    this.metrics.addMetric(commandRunnerStatusMetricName, (Gauge<String>)
         (config, now) -> commandRunner.checkCommandRunnerStatus().name());
   }
 
@@ -75,6 +87,7 @@ public class CommandRunnerStatusMetric implements Closeable {
    */
   @Override
   public void close() {
-    metrics.removeMetric(metricName);
+    metrics.removeMetric(commandRunnerStatusMetricName);
+    metrics.removeMetric(commandRunnerStatusMetricNameLegacy);
   }
 }

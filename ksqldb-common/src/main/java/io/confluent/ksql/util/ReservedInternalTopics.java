@@ -29,7 +29,8 @@ public final class ReservedInternalTopics {
 
   // These constant should not be part of KsqlConfig.SYSTEM_INTERNAL_TOPICS_CONFIG because they're
   // not configurable.
-  public static final String KSQL_INTERNAL_TOPIC_PREFIX = "_confluent-ksql-";
+  public static final String CONFLUENT_PREFIX = "_confluent-";
+  public static final String KSQL_INTERNAL_TOPIC_PREFIX = CONFLUENT_PREFIX + "ksql-";
   public static final String KSQL_COMMAND_TOPIC_SUFFIX = "command_topic";
   public static final String KSQL_CONFIGS_TOPIC_SUFFIX = "configs";
 

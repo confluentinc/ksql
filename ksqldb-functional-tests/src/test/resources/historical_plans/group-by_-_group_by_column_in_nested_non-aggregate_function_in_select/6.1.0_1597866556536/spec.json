@@ -1,0 +1,162 @@
+{
+  "version" : "6.1.0",
+  "timestamp" : 1597866556536,
+  "path" : "query-validation-tests/group-by.json",
+  "schemas" : {
+    "CTAS_OUTPUT_0.Aggregate.GroupBy" : {
+      "schema" : "`KSQL_COL_0` STRING KEY, `COL1` STRING, `COL2` STRING, `COL3` STRING, `ROWTIME` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.KsqlTopic.Source" : {
+      "schema" : "`ID` INTEGER KEY, `COL1` STRING, `COL2` STRING, `COL3` STRING",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.Aggregate.Aggregate.Materialize" : {
+      "schema" : "`KSQL_COL_0` STRING KEY, `COL1` STRING, `COL2` STRING, `COL3` STRING, `ROWTIME` BIGINT, `KSQL_AGG_VARIABLE_0` BIGINT",
+      "serdeOptions" : [ ]
+    },
+    "CTAS_OUTPUT_0.OUTPUT" : {
+      "schema" : "`KSQL_COL_1` STRING KEY, `FOO` STRING, `KSQL_COL_0` BIGINT",
+      "serdeOptions" : [ ]
+    }
+  },
+  "testCase" : {
+    "name" : "group by column in nested non-aggregate function in select",
+    "inputs" : [ {
+      "topic" : "test_topic",
+      "key" : 0,
+      "value" : {
+        "col1" : "smells",
+        "col2" : "like",
+        "col3" : "teen spirit"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 1,
+      "value" : {
+        "col1" : "the",
+        "col2" : "man who",
+        "col3" : "stole the world"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 2,
+      "value" : {
+        "col1" : "smells",
+        "col2" : "like",
+        "col3" : "spring"
+      }
+    }, {
+      "topic" : "test_topic",
+      "key" : 3,
+      "value" : {
+        "col1" : "smells",
+        "col2" : "like",
+        "col3" : "   teen spirit   "
+      }
+    } ],
+    "outputs" : [ {
+      "topic" : "OUTPUT",
+      "key" : "Smells|+|like|+|teen spirit",
+      "value" : {
+        "FOO" : "Smellsliketeen spirit",
+        "KSQL_COL_0" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "The|+|man who|+|stole the world",
+      "value" : {
+        "FOO" : "Theman whostole the world",
+        "KSQL_COL_0" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "Smells|+|like|+|spring",
+      "value" : {
+        "FOO" : "Smellslikespring",
+        "KSQL_COL_0" : 1
+      }
+    }, {
+      "topic" : "OUTPUT",
+      "key" : "Smells|+|like|+|   teen spirit   ",
+      "value" : {
+        "FOO" : "Smellsliketeen spirit",
+        "KSQL_COL_0" : 1
+      }
+    } ],
+    "topics" : [ {
+      "name" : "OUTPUT",
+      "replicas" : 1,
+      "numPartitions" : 4
+    }, {
+      "name" : "test_topic",
+      "replicas" : 1,
+      "numPartitions" : 4
+    } ],
+    "statements" : [ "CREATE STREAM INPUT (id INT KEY, col1 VARCHAR, col2 VARCHAR, col3 VARCHAR) WITH (kafka_topic='test_topic', value_format='json');", "CREATE TABLE OUTPUT AS SELECT INITCAP(COL1) AS G1, COL2 AS G2, COL3 AS G3, concat(initcap(col1), col2, trim(col3)) AS foo, COUNT(*) FROM input GROUP BY INITCAP(col1), col2, col3;" ],
+    "post" : {
+      "sources" : [ {
+        "name" : "OUTPUT",
+        "type" : "TABLE",
+        "schema" : "`KSQL_COL_1` STRING KEY, `FOO` STRING, `KSQL_COL_0` BIGINT",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      }, {
+        "name" : "INPUT",
+        "type" : "STREAM",
+        "schema" : "`ID` INTEGER KEY, `COL1` STRING, `COL2` STRING, `COL3` STRING",
+        "keyFormat" : {
+          "format" : "KAFKA"
+        },
+        "serdeOptions" : [ ]
+      } ],
+      "topics" : {
+        "topics" : [ {
+          "name" : "test_topic",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-GroupBy-repartition",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-Aggregate-Materialize-changelog",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          }
+        }, {
+          "name" : "OUTPUT",
+          "keyFormat" : {
+            "formatInfo" : {
+              "format" : "KAFKA"
+            }
+          },
+          "valueFormat" : {
+            "format" : "JSON"
+          },
+          "partitions" : 4
+        } ]
+      }
+    }
+  }
+}

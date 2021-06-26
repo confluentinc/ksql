@@ -363,6 +363,174 @@
       }
     },
     {
+      "name": "subscript in group-by and select",
+      "statements": [
+        "CREATE STREAM INPUT (id INT KEY, col1 MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='json');",
+        "CREATE TABLE OUTPUT AS SELECT col1['foo'] AS NEW_KEY, COUNT(*) AS COUNT FROM INPUT GROUP BY col1['foo'];"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"col1": {"foo" : "lala"}}},
+        {"topic": "test_topic", "key": 1, "value": {"col1": {"foo" : "kaka"}}},
+        {"topic": "test_topic", "key": 2, "value": {"col1": {"alice" : "wonderland"}}},
+        {"topic": "test_topic", "key": 3, "value": {"col1": {"mary" : "lamb"}}},
+        {"topic": "test_topic", "key": 4, "value": {"col1": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "lala", "value": {"COUNT": 1}},
+        {"topic": "OUTPUT", "key": "kaka", "value": {"COUNT": 1}}
+      ]
+    },
+    {
+      "name": "subscript in group-by and having",
+      "statements": [
+        "CREATE STREAM INPUT (id INT KEY, col1 MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='json');",
+        "CREATE TABLE OUTPUT AS SELECT col1['foo'] AS NEW_KEY, COUNT(*) AS COUNT FROM INPUT GROUP BY col1['foo'] HAVING col1['foo']='lala';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"col1": {"foo" : "lala"}}},
+        {"topic": "test_topic", "key": 1, "value": {"col1": {"foo" : "kaka"}}},
+        {"topic": "test_topic", "key": 2, "value": {"col1": {"alice" : "wonderland"}}},
+        {"topic": "test_topic", "key": 3, "value": {"col1": {"mary" : "lamb"}}},
+        {"topic": "test_topic", "key": 4, "value": {"col1": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "lala", "value": {"COUNT": 1}},
+        {"topic": "OUTPUT", "key": "kaka", "value": null}
+      ]
+    },
+    {
+      "name": "subscript in group-by and non aggregate function in select",
+      "statements": [
+        "CREATE STREAM INPUT (id INT KEY, col1 MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='json');",
+        "CREATE TABLE OUTPUT AS SELECT col1['foo'] AS NEW_KEY, AS_VALUE(col1['foo']) as VV, COUNT(*) AS COUNT FROM INPUT GROUP BY col1['foo'];"
+
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"col1": {"foo" : "lala"}}},
+        {"topic": "test_topic", "key": 1, "value": {"col1": {"foo" : "kaka"}}},
+        {"topic": "test_topic", "key": 2, "value": {"col1": {"alice" : "wonderland"}}},
+        {"topic": "test_topic", "key": 3, "value": {"col1": {"mary" : "lamb"}}},
+        {"topic": "test_topic", "key": 4, "value": {"col1": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "lala", "value": {"VV": "lala","COUNT": 1}},
+        {"topic": "OUTPUT", "key": "kaka", "value": {"VV": "kaka","COUNT": 1}}
+      ]
+    },
+    {
+      "name": "struct in group-by and non aggregate function in select",
+      "statements": [
+        "CREATE STREAM INPUT (id INT KEY, col1 STRUCT<a VARCHAR, b INT>) WITH (kafka_topic='test_topic', value_format='json');",
+        "CREATE TABLE OUTPUT AS SELECT col1->a AS NEW_KEY, AS_VALUE(col1->a) as VV, COUNT(*) AS COUNT FROM INPUT GROUP BY col1->a;"
+
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"col1": {"a" : "lala", "b": 1}}},
+        {"topic": "test_topic", "key": 1, "value": {"col1": {"a" : "lala", "b":  2}}},
+        {"topic": "test_topic", "key": 2, "value": {"col1": {"a" : "wonderland", "b": 3}}},
+        {"topic": "test_topic", "key": 3, "value": {"col1": {"a" : "lamb", "b": 4}}},
+        {"topic": "test_topic", "key": 4, "value": {"col1": null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "lala", "value": {"VV": "lala","COUNT": 1}},
+        {"topic": "OUTPUT", "key": "lala", "value": {"VV": "lala","COUNT": 2}},
+        {"topic": "OUTPUT", "key": "wonderland", "value": {"VV": "wonderland","COUNT": 1}},
+        {"topic": "OUTPUT", "key": "lamb", "value": {"VV": "lamb","COUNT": 1}}
+      ]
+    },
+    {
+      "name": "function in group-by and nested function in select",
+      "statements": [
+        "CREATE STREAM INPUT (id INT KEY, col1 VARCHAR, col2 VARCHAR, col3 VARCHAR) WITH (kafka_topic='test_topic', value_format='json');",
+        "CREATE TABLE OUTPUT AS SELECT INITCAP(COL1) AS G1, COL2 AS G2, TRIM(COL3) AS G3, concat(initcap(col1), col2, trim(col3)) AS foo, COUNT(*) FROM input GROUP BY INITCAP(col1), col2, TRIM(col3);"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"col1": "smells", "col2": "like", "col3": "teen spirit"}},
+        {"topic": "test_topic", "key": 1, "value": {"col1": "the", "col2": "man who", "col3": "stole the world"}},
+        {"topic": "test_topic", "key": 2, "value": {"col1": "smells", "col2": "like", "col3": "spring"}},
+        {"topic": "test_topic", "key": 3, "value": {"col1": "smells", "col2": "like", "col3": "   teen spirit   "}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "Smells|+|like|+|teen spirit", "value": {"FOO": "Smellsliketeen spirit", "KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": "The|+|man who|+|stole the world", "value": {"FOO": "Theman whostole the world", "KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": "Smells|+|like|+|spring", "value": {"FOO": "Smellslikespring","KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": "Smells|+|like|+|teen spirit", "value": {"FOO": "Smellsliketeen spirit","KSQL_COL_0": 2}}
+      ]
+    },
+    {
+      "name": "group by column in nested non-aggregate function in select",
+      "statements": [
+        "CREATE STREAM INPUT (id INT KEY, col1 VARCHAR, col2 VARCHAR, col3 VARCHAR) WITH (kafka_topic='test_topic', value_format='json');",
+        "CREATE TABLE OUTPUT AS SELECT INITCAP(COL1) AS G1, COL2 AS G2, COL3 AS G3, concat(initcap(col1), col2, trim(col3)) AS foo, COUNT(*) FROM input GROUP BY INITCAP(col1), col2, col3;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"col1": "smells", "col2": "like", "col3": "teen spirit"}},
+        {"topic": "test_topic", "key": 1, "value": {"col1": "the", "col2": "man who", "col3": "stole the world"}},
+        {"topic": "test_topic", "key": 2, "value": {"col1": "smells", "col2": "like", "col3": "spring"}},
+        {"topic": "test_topic", "key": 3, "value": {"col1": "smells", "col2": "like", "col3": "   teen spirit   "}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "Smells|+|like|+|teen spirit", "value": {"FOO": "Smellsliketeen spirit", "KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": "The|+|man who|+|stole the world", "value": {"FOO": "Theman whostole the world", "KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": "Smells|+|like|+|spring", "value": {"FOO": "Smellslikespring","KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": "Smells|+|like|+|   teen spirit   ", "value": {"FOO": "Smellsliketeen spirit","KSQL_COL_0": 1}}
+      ]
+    },
+    {
+      "name": "function group by column used in non-aggregate function in having",
+      "statements": [
+        "CREATE STREAM INPUT (id INT KEY, col1 VARCHAR, col2 VARCHAR, col3 VARCHAR) WITH (kafka_topic='test_topic', value_format='json');",
+        "CREATE TABLE OUTPUT AS SELECT INITCAP(COL1) AS G1, COL2 AS G2, trim(COL3) AS G3, COUNT(*) FROM input GROUP BY INITCAP(col1), col2, trim(col3) HAVING substring(trim(col3),1,4) = 'teen';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"col1": "smells", "col2": "like", "col3": "teen spirit"}},
+        {"topic": "test_topic", "key": 1, "value": {"col1": "the", "col2": "man who", "col3": "stole the world"}},
+        {"topic": "test_topic", "key": 2, "value": {"col1": "smells", "col2": "like", "col3": "spring"}},
+        {"topic": "test_topic", "key": 3, "value": {"col1": "smells", "col2": "like", "col3": "   teen spirit   "}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "Smells|+|like|+|teen spirit", "value": {"KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": "The|+|man who|+|stole the world", "value": null},
+        {"topic": "OUTPUT", "key": "Smells|+|like|+|spring", "value": null},
+        {"topic": "OUTPUT", "key": "Smells|+|like|+|teen spirit", "value": {"KSQL_COL_0": 2}}
+      ]
+    },
+    {
+      "name": "arithmetic in group by column used in non-aggregate function in select",
+      "statements": [
+        "CREATE STREAM INPUT (id INT KEY, col1 INT, col2 INT) WITH (kafka_topic='test_topic', value_format='json');",
+        "CREATE TABLE OUTPUT AS SELECT col1+col2 AS G1, AS_VALUE(col1+col2), COUNT(*) FROM input GROUP BY col1+col2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"col1": 1, "col2": 1}},
+        {"topic": "test_topic", "key": 1, "value": {"col1": 2, "col2": 2}},
+        {"topic": "test_topic", "key": 2, "value": {"col1": 3, "col2": 3}},
+        {"topic": "test_topic", "key": 3, "value": {"col1": 4, "col2": 4}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 2, "value": {"KSQL_COL_0": 2, "KSQL_COL_1": 1}},
+        {"topic": "OUTPUT", "key": 4, "value": {"KSQL_COL_0": 4, "KSQL_COL_1": 1}},
+        {"topic": "OUTPUT", "key": 6, "value": {"KSQL_COL_0": 6, "KSQL_COL_1": 1}},
+        {"topic": "OUTPUT", "key": 8, "value": {"KSQL_COL_0": 8, "KSQL_COL_1": 1}}
+      ]
+    },
+    {
+      "name": "expressions used in non-aggregate function in select whose children are not part of group-by",
+      "statements": [
+        "CREATE STREAM INPUT (id INT KEY, col1 MAP<VARCHAR, INT>, col2 MAP<VARCHAR, INT>) WITH (kafka_topic='test_topic', value_format='json');",
+        "CREATE TABLE OUTPUT AS SELECT col1['foo']+col2['bar'] AS G1, AS_VALUE(col1['foo']+col2['bar']), COUNT(*) FROM input GROUP BY col1['foo']+col2['bar'];"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"col1": {"a" : 1}, "col2": {"b" : 1}}},
+        {"topic": "test_topic", "key": 1, "value": {"col1": {"foo" : 1}, "col2": {"bar" : 1}}},
+        {"topic": "test_topic", "key": 2, "value": {"col1": {"bar" : 1}, "col2": {"foo" : 1}}},
+        {"topic": "test_topic", "key": 3, "value": {"col1": {"foo" : 1}, "col2": {"foo" : 1}}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 2, "value": {"KSQL_COL_0": 2, "KSQL_COL_1": 1}}
+      ]
+    },
+    {
       "name": "unknown function",
       "statements": [
         "CREATE STREAM TEST (ID INT KEY, data STRING) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -509,6 +677,17 @@
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Duplicate value columns found in schema: `COUNT` BIGINT"
+      }
+    },
+    {
+      "name": "map used in non-aggregate function in select when group by uses subscript",
+      "statements": [
+        "CREATE STREAM INPUT (id INT KEY, col1 MAP<VARCHAR, VARCHAR>) WITH (kafka_topic='test_topic', value_format='json');",
+        "CREATE TABLE OUTPUT AS SELECT col1['foo'], AS_VALUE(col1) AS foo, COUNT(*) FROM input GROUP BY col1['foo'];"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: AS_VALUE(COL1)\nEither add the column(s) to the GROUP BY or remove them from the SELECT."
       }
     },
     {
@@ -1231,7 +1410,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Column used in aggregate SELECT expression(s) outside of aggregate functions not part of GROUP BY: F1"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: (F1 * SUM(F2))\nEither add the column(s) to the GROUP BY or remove them from the SELECT."
       }
     },
     {

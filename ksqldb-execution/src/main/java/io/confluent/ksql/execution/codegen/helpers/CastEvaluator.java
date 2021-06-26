@@ -105,8 +105,8 @@ public final class CastEvaluator {
       .put(key(STRUCT, STRING), CastEvaluator::castToString)
       // TIME:
       .put(key(TIMESTAMP, STRING), nonNullSafeCode("SqlTimeTypes.formatTimestamp(%s)"))
-      .put(key(TIMESTAMP, TIME), nonNullSafeCode("new Time(%s.getTime())"))
-      .put(key(TIMESTAMP, DATE), nonNullSafeCode("new Date(%s.getTime())"))
+      .put(key(TIMESTAMP, TIME), nonNullSafeCode("SqlTimeTypes.timestampToTime(%s)"))
+      .put(key(TIMESTAMP, DATE), nonNullSafeCode("SqlTimeTypes.timestampToDate(%s)"))
       .put(key(DATE, TIMESTAMP), nonNullSafeCode("new Timestamp(%s.getTime())"))
       .put(key(TIME, STRING), nonNullSafeCode("SqlTimeTypes.formatTime(%s)"))
       .put(key(DATE, STRING), nonNullSafeCode("SqlTimeTypes.formatDate(%s)"))

@@ -263,6 +263,15 @@ public class CastEvaluatorTest {
       // Then:
       assertThat(exception.getMessage(), containsString("Required format is: \"yyyy-MM-dd\""));
     }
+
+    @Test
+    public void shouldCastDateToTimestamp() throws Exception {
+      // Given:
+      final Evaluator evaluator = cookCode(SqlTypes.DATE, SqlTypes.TIMESTAMP, config);
+
+      // Then:
+      assertThat(evaluator.rawEvaluate(new Date(864000000)), is(new Timestamp(864000000)));
+    }
   }
 
   @RunWith(MockitoJUnitRunner.class)
@@ -283,6 +292,24 @@ public class CastEvaluatorTest {
 
       // Then:
       assertThat(exception.getMessage(), containsString("Required format is: \"yyyy-MM-dd'T'HH:mm:ss.SSS\", with an optional numeric"));
+    }
+
+    @Test
+    public void shouldCastTimestampToDate() throws Exception {
+      // Given:
+      final Evaluator evaluator = cookCode(SqlTypes.TIMESTAMP, SqlTypes.DATE, config);
+
+      // Then:
+      assertThat(evaluator.rawEvaluate(new Timestamp(864033000)), is(new Date(864000000)));
+    }
+
+    @Test
+    public void shouldCastTimestampToTime() throws Exception {
+      // Given:
+      final Evaluator evaluator = cookCode(SqlTypes.TIMESTAMP, SqlTypes.TIME, config);
+
+      // Then:
+      assertThat(evaluator.rawEvaluate(new Timestamp(864033000)), is(new Time(33000)));
     }
   }
 

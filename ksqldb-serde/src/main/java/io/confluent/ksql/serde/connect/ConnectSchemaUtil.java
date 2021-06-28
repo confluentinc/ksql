@@ -22,10 +22,13 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
 import java.util.function.Function;
+import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Time;
+import org.apache.kafka.connect.data.Timestamp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,8 +43,8 @@ public final class ConnectSchemaUtil {
       ImmutableMap.<Type, Function<Schema, Schema>>builder()
       .put(Type.INT8, s -> Schema.OPTIONAL_INT32_SCHEMA)
       .put(Type.INT16, s -> Schema.OPTIONAL_INT32_SCHEMA)
-      .put(Type.INT32, s -> Schema.OPTIONAL_INT32_SCHEMA)
-      .put(Type.INT64, s -> Schema.OPTIONAL_INT64_SCHEMA)
+      .put(Type.INT32, ConnectSchemaUtil::convertInt32Schema)
+      .put(Type.INT64, ConnectSchemaUtil::convertInt64Schema)
       .put(Type.FLOAT32, s -> Schema.OPTIONAL_FLOAT64_SCHEMA)
       .put(Type.FLOAT64, s -> Schema.OPTIONAL_FLOAT64_SCHEMA)
       .put(Type.STRING, s -> Schema.OPTIONAL_STRING_SCHEMA)
@@ -101,6 +104,24 @@ public final class ConnectSchemaUtil {
         return;
       default:
         throw new UnsupportedTypeException("Unsupported type for map key: " + type.getName());
+    }
+  }
+
+  private static Schema convertInt64Schema(final Schema schema) {
+    if (schema.name() == Timestamp.LOGICAL_NAME) {
+      return Timestamp.builder().optional().build();
+    } else {
+      return Schema.OPTIONAL_INT64_SCHEMA;
+    }
+  }
+
+  private static Schema convertInt32Schema(final Schema schema) {
+    if (schema.name() == Time.LOGICAL_NAME) {
+      return Time.builder().optional().build();
+    } else if (schema.name() == Date.LOGICAL_NAME) {
+      return Date.builder().optional().build();
+    } else {
+      return Schema.OPTIONAL_INT32_SCHEMA;
     }
   }
 

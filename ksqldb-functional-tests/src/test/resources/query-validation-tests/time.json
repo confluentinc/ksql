@@ -120,6 +120,27 @@
       "outputs": [
         {"topic": "TEST2", "value": {"S": 1, "A":  5, "M": 4}}
       ]
+    },
+    {
+      "name": "time schema inference",
+      "statements": [
+        "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AVRO');",
+        "CREATE STREAM OUTPUT as SELECT CAST(c1 AS STRING) AS C2 FROM input;"
+      ],
+      "topics": [
+        {
+          "name": "input",
+          "valueSchema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": {"connect.name": "org.apache.kafka.connect.data.Time", "connect.version": 1, "logicalType": "time-millis", "type": "int"}}]},
+          "valueFormat": "AVRO"
+        },
+        {
+          "name": "OUTPUT",
+          "valueFormat": "AVRO",
+          "partitions": 4
+        }
+      ],
+      "inputs": [{"topic": "input", "value": {"c1": 4000}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"C2": "00:00:04"}}]
     }
   ]
 }

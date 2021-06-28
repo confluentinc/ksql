@@ -65,7 +65,7 @@ public enum ApiJsonMapper {
 
   public static class TimeSerializer extends JsonSerializer<Time> {
     @Override
-    public void serialize(Time time, JsonGenerator jsonGenerator,
+    public void serialize(final Time time, final JsonGenerator jsonGenerator,
         SerializerProvider serializerProvider) throws IOException {
       jsonGenerator.writeString(SqlTimeTypes.formatTime(time));
     }
@@ -73,7 +73,7 @@ public enum ApiJsonMapper {
 
   public static class DateSerializer extends JsonSerializer<Date> {
     @Override
-    public void serialize(Date date, JsonGenerator jsonGenerator,
+    public void serialize(final Date date, final JsonGenerator jsonGenerator,
         SerializerProvider serializerProvider) throws IOException {
       jsonGenerator.writeString(SqlTimeTypes.formatDate(date));
     }

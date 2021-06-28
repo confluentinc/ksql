@@ -37,7 +37,9 @@ import java.util.TimeZone;
 /**
  * Mapper used by the Rest Api.
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public enum ApiJsonMapper {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   INSTANCE;
 

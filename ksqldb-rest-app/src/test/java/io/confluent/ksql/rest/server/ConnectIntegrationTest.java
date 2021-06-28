@@ -272,8 +272,8 @@ public class ConnectIntegrationTest {
 
     // When:
     final RestResponse<List<StreamedRow>> queryTimestamp = ksqlRestClient.makeQueryRequest("SELECT * FROM TIMESTAMP_STREAM EMIT CHANGES LIMIT 1;", 1L);
-    final RestResponse<List<StreamedRow>> queryTime = ksqlRestClient.makeQueryRequest("SELECT CAST(PAYLOAD AS STRING) FROM TIME_STREAM EMIT CHANGES LIMIT 1;", 1L);
-    final RestResponse<List<StreamedRow>> queryDate = ksqlRestClient.makeQueryRequest("SELECT CAST(PAYLOAD AS STRING) FROM DATE_STREAM EMIT CHANGES LIMIT 1;", 1L);
+    final RestResponse<List<StreamedRow>> queryTime = ksqlRestClient.makeQueryRequest("SELECT * FROM TIME_STREAM EMIT CHANGES LIMIT 1;", 1L);
+    final RestResponse<List<StreamedRow>> queryDate = ksqlRestClient.makeQueryRequest("SELECT * FROM DATE_STREAM EMIT CHANGES LIMIT 1;", 1L);
 
     // Then:
     assertThat("successfully queried TIMESTAMP_STREAM", queryTimestamp.isSuccessful());

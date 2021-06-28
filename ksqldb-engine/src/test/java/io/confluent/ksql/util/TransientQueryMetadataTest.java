@@ -53,7 +53,7 @@ public class TransientQueryMetadataTest {
   @Mock
   private KafkaStreamsBuilder kafkaStreamsBuilder;
   @Mock
-  private KafkaStreamsNamedTopologyWrapper kafkaStreams;
+  private KafkaStreams kafkaStreams;
   @Mock
   private LogicalSchema logicalSchema;
   @Mock

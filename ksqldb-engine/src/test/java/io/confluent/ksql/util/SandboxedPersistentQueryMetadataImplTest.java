@@ -57,7 +57,7 @@ public class SandboxedPersistentQueryMetadataImplTest {
   @Mock
   private KafkaStreamsBuilder kafkaStreamsBuilder;
   @Mock
-  private KafkaStreamsNamedTopologyWrapper kafkaStreams;
+  private KafkaStreams kafkaStreams;
   @Mock
   private PhysicalSchema physicalSchema;
   @Mock

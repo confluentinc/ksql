@@ -80,7 +80,7 @@ public class QueryMetadataTest {
   @Mock
   private Topology topoplogy;
   @Mock
-  private KafkaStreamsNamedTopologyWrapper kafkaStreams;
+  private KafkaStreams kafkaStreams;
   @Mock
   private QueryMetadataImpl.Listener listener;
   @Mock

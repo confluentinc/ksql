@@ -94,7 +94,7 @@ public class QueryDescriptionFactoryTest {
   @Mock
   private KafkaStreamsBuilder kafkaStreamsBuilder;
   @Mock
-  private KafkaStreamsNamedTopologyWrapper queryStreams;
+  private KafkaStreams queryStreams;
   @Mock
   private Topology topology;
   @Mock(name = TOPOLOGY_TEXT)

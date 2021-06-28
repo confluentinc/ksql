@@ -43,7 +43,6 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;

@@ -723,8 +723,8 @@ public class SqlToJavaVisitor {
         throw new KsqlException("Unexpected scalar comparison: " + type.getValue());
       }
 
-      String compareLeft;
-      String compareRight;
+      final String compareLeft;
+      final String compareRight;
 
       if (left.baseType() == SqlBaseType.TIME || right.baseType() == SqlBaseType.TIME) {
         compareLeft = toTime(left, 1);

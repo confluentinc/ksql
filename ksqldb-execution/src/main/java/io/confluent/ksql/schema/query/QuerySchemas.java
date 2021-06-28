@@ -144,15 +144,14 @@ public final class QuerySchemas {
    * The isKeySchema is a boolean value that specifies whether to look at the key schema (True)
    * or at the value schema (False).
    * </p>
-   * Each schema information is tracked by the loggers the topicName has. The logger is
-   * a changelog topic. Some topics may have multiple schemas and serde formats if the topicName
-   * is used with stream-stream joins and foreign key joins.
+   * Each schema information is tracked by the loggers the topicName has. Some topics may have
+   * multiple schemas and serde formats if the topicName is used with stream-stream joins and
+   * foreign key joins.
    */
   private Set<SchemaInfo> getTopicSchemas(final String topicName,
                                           final boolean isKeySchema) {
-    // Look at the different changelog topics that tne topicName uses. There might be multiple
-    // changelog topics if the topicName was used by joins, which contains internal state stores
-    // with a changelog per store.
+    // Look at the different loggers that tne topicName uses. There might be multiple
+    // loggers if the topicName was used by joins, which contains internal state stores.
     final Map<Boolean, Set<String>> kvLoggerNames = topicsToLoggers.get(topicName);
     if (kvLoggerNames == null) {
       throw new IllegalArgumentException("Unknown topic: " + topicName);
@@ -160,12 +159,12 @@ public final class QuerySchemas {
 
     final Map<SchemaInfo, Set<String>> schemaToLoggers = new HashMap<>();
 
-    // Look at the changelogs linked to the key or value serde, and get all schema and formats
+    // Look at the loggers linked to the key or value serde, and get all schema and formats
     // detected.
     for (final String loggerName : kvLoggerNames.getOrDefault(isKeySchema, ImmutableSet.of())) {
-      final SchemaInfo keyInfo = loggerToSchemas.get(loggerName);
-      if (keyInfo != null) {
-        schemaToLoggers.computeIfAbsent(keyInfo, k -> new HashSet<>()).add(loggerName);
+      final SchemaInfo schemaInfo = loggerToSchemas.get(loggerName);
+      if (schemaInfo != null) {
+        schemaToLoggers.computeIfAbsent(schemaInfo, k -> new HashSet<>()).add(loggerName);
       }
     }
 
@@ -212,13 +211,13 @@ public final class QuerySchemas {
 
   public static class MultiSchemaInfo {
     private final Set<SchemaInfo> keySchemas;
-    private final Set<SchemaInfo> valueSchema;
+    private final Set<SchemaInfo> valueSchemas;
     private final Set<KeyFormat> keyFormats;
     private final Set<ValueFormat> valueFormats;
 
     public MultiSchemaInfo(final Set<SchemaInfo> keySchemas, final Set<SchemaInfo> valueSchemas) {
       this.keySchemas = ImmutableSet.copyOf(requireNonNull(keySchemas, "keySchemas"));
-      this.valueSchema = ImmutableSet.copyOf(requireNonNull(valueSchemas, "valuesSchemas"));
+      this.valueSchemas = ImmutableSet.copyOf(requireNonNull(valueSchemas, "valuesSchemas"));
 
       keyFormats = keySchemas.stream()
           .map(SchemaInfo::keyFormat)
@@ -238,7 +237,7 @@ public final class QuerySchemas {
     }
 
     public Set<SchemaInfo> getValueSchemas() {
-      return valueSchema;
+      return valueSchemas;
     }
 
     public Set<KeyFormat> getKeyFormats() {

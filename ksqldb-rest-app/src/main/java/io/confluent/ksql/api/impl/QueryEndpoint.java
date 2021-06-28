@@ -55,7 +55,6 @@ import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
@@ -218,7 +217,7 @@ public class QueryEndpoint {
             PullQueryResult::getPlanType).orElse(PullPhysicalPlanType.UNKNOWN);
         final RoutingNodeType routingNodeType = Optional.ofNullable(r).map(
             PullQueryResult::getRoutingNodeType).orElse(RoutingNodeType.UNKNOWN);
-        pullBandRateLimiter.add(startTimeNanos / 1000000, responseBytes);
+        pullBandRateLimiter.add(startTimeNanos / 1000000000, responseBytes);
         metrics.recordResponseSize(responseBytes, sourceType, planType, routingNodeType);
         metrics.recordLatency(startTimeNanos, sourceType, planType, routingNodeType);
         metrics.recordRowsReturned(
@@ -243,9 +242,7 @@ public class QueryEndpoint {
 
     PullQueryExecutionUtil.checkRateLimit(rateLimiter);
     final Decrementer decrementer = pullConcurrencyLimiter.increment();
-    if (!pullBandRateLimiter.allow(Time.SYSTEM.milliseconds())) {
-      throw new KsqlException("Host is at bandwidth rate limit for pull queries");
-    }
+    pullBandRateLimiter.allow(Time.SYSTEM.milliseconds());
 
     try {
       final PullQueryResult result = ksqlEngine.executePullQuery(

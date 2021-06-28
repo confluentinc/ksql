@@ -42,11 +42,11 @@ import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KeyValue;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.utils.Time;
 
 class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
@@ -106,9 +106,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
     PullQueryExecutionUtil.checkRateLimit(rateLimiter);
     final Decrementer decrementer = concurrencyLimiter.increment();
-    if (!pullBandRateLimiter.allow(startTimeNanos / 1000000)) {
-      throw new KsqlException("Host is at bandwidth rate limit for pull queries");
-    }
+    pullBandRateLimiter.allow(Time.SYSTEM.milliseconds());
 
     PullQueryResult result = null;
     try {

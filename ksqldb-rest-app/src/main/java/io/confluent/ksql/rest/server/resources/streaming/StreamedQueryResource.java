@@ -356,8 +356,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
             PullQueryResult::getPlanType).orElse(PullPhysicalPlanType.UNKNOWN);
         final RoutingNodeType routingNodeType = Optional.ofNullable(r).map(
             PullQueryResult::getRoutingNodeType).orElse(RoutingNodeType.UNKNOWN);
+        pullBandRateLimiter.add(startTimeNanos / 1000000000, responseBytes);
         metrics.recordResponseSize(responseBytes, sourceType, planType, routingNodeType);
-        pullBandRateLimiter.add(startTimeNanos / 1000000, responseBytes);
         metrics.recordLatency(startTimeNanos, sourceType, planType, routingNodeType);
         metrics.recordRowsReturned(
             Optional.ofNullable(r).map(PullQueryResult::getTotalRowsReturned).orElse(0L),
@@ -407,9 +407,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       PullQueryExecutionUtil.checkRateLimit(rateLimiter);
       decrementer = concurrencyLimiter.increment();
     }
-    if (!pullBandRateLimiter.allow(Time.SYSTEM.milliseconds())) {
-      throw new KsqlException("Host is at bandwidth rate limit for pull queries");
-    }
+    pullBandRateLimiter.allow(Time.SYSTEM.milliseconds());
 
     final Optional<Decrementer> optionalDecrementer = Optional.ofNullable(decrementer);
 

@@ -15,29 +15,32 @@
 
 package io.confluent.ksql.api.server;
 
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.util.LinkedList;
 import java.util.Queue;
 
 public class SlidingWindowRateLimiter {
+  private static long NUM_BYTES_IN_ONE_MEGABYTE = 1048576;
   private final Queue<Pair<Long, Long>> queue;  // <timestamp, bytes>
-  private static final long requestLimit = 1000;
-  private static final long timeLimit = 1000 * 60 * 60;  //1 hour in miliseconds
+  private final long requestLimit;       //MEASURED IN BYTES
+  private final long timeLimit;  //1 hour in miliseconds
   private long lastHourBytes;
 
-  public SlidingWindowRateLimiter() {
+  public SlidingWindowRateLimiter(final int requestLimitInMB, final long timeLimit) {
+    this.requestLimit = (long) requestLimitInMB * NUM_BYTES_IN_ONE_MEGABYTE;
+    this.timeLimit = timeLimit;
     this.queue = new LinkedList<>();
     this.lastHourBytes = 0;
   }
 
-  public boolean allow(final long timestamp) {
+  public void allow(final long timestamp) throws KsqlException {
     while (!queue.isEmpty() && queue.peek().left - timestamp >= timeLimit) {
       this.lastHourBytes -= queue.poll().right;
     }
-    if (this.lastHourBytes < requestLimit) {
-      return true;
+    if (this.lastHourBytes > requestLimit) {
+      throw new KsqlException("Host is at bandwidth rate limit for pull queries.");
     }
-    return false;
   }
 
   public void add(final long timestamp, final long bytes) {

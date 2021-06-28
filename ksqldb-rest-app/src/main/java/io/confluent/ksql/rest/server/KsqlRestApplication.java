@@ -751,8 +751,9 @@ public final class KsqlRestApplication implements Executable {
     final ConcurrencyLimiter pullQueryConcurrencyLimiter = new ConcurrencyLimiter(
         ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_MAX_CONCURRENT_REQUESTS_CONFIG),
         "pull queries");
-    final SlidingWindowRateLimiter pullBandRateLimiter = new SlidingWindowRateLimiter();
-
+    final SlidingWindowRateLimiter pullBandRateLimiter = new SlidingWindowRateLimiter(
+            ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_CONFIG),
+            3600 * 1000);
     final DenyListPropertyValidator denyListPropertyValidator = new DenyListPropertyValidator(
         ksqlConfig.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));
 

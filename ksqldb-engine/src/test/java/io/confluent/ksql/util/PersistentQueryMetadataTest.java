@@ -43,9 +43,10 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+
+import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -65,7 +66,7 @@ public class PersistentQueryMetadataTest {
   @Mock
   private KafkaStreamsBuilder kafkaStreamsBuilder;
   @Mock
-  private KafkaStreamsNamedTopologyWrapper kafkaStreams;
+  private KafkaStreams kafkaStreams;
   @Mock
   private PhysicalSchema physicalSchema;
   @Mock
@@ -130,6 +131,7 @@ public class PersistentQueryMetadataTest {
 
     query.initialize();
   }
+
   @Test
   public void shouldReturnInsertQueryType() {
     // Given

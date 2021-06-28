@@ -22,6 +22,7 @@ import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
+import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.PullQueryExecutionUtil;
@@ -78,6 +79,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
+import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,6 +104,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter concurrencyLimiter;
+  private final SlidingWindowRateLimiter pullBandRateLimiter;
   private final HARouting routing;
   private final PushRouting pushRouting;
   private final Optional<LocalCommands> localCommands;
@@ -124,6 +127,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter concurrencyLimiter,
+      final SlidingWindowRateLimiter pullBandRateLimiter,
       final HARouting routing,
       final PushRouting pushRouting,
       final Optional<LocalCommands> localCommands
@@ -143,6 +147,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         routingFilterFactory,
         rateLimiter,
         concurrencyLimiter,
+        pullBandRateLimiter,
         routing,
         pushRouting,
         localCommands
@@ -167,6 +172,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter concurrencyLimiter,
+      final SlidingWindowRateLimiter pullBandRateLimiter,
       final HARouting routing,
       final PushRouting pushRouting,
       final Optional<LocalCommands> localCommands
@@ -190,6 +196,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         Objects.requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = Objects.requireNonNull(rateLimiter, "rateLimiter");
     this.concurrencyLimiter = Objects.requireNonNull(concurrencyLimiter, "concurrencyLimiter");
+    this.pullBandRateLimiter = Objects.requireNonNull(pullBandRateLimiter, "pullBandRateLimiter");
     this.routing = Objects.requireNonNull(routing, "routing");
     this.pushRouting = pushRouting;
     this.localCommands = Objects.requireNonNull(localCommands, "localCommands");
@@ -222,7 +229,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         commandQueue, request, commandQueueCatchupTimeout);
 
     return handleStatement(securityContext, request, statement, connectionClosedFuture,
-        isInternalRequest, mediaType, metricsCallbackHolder, context);
+        isInternalRequest, mediaType, metricsCallbackHolder, context, pullBandRateLimiter);
   }
 
   private void throwIfNotConfigured() {
@@ -253,7 +260,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Optional<Boolean> isInternalRequest,
       final KsqlMediaType mediaType,
       final MetricsCallbackHolder metricsCallbackHolder,
-      final Context context
+      final Context context,
+      final SlidingWindowRateLimiter pullBandRateLimiter
   ) {
     try {
       authorizationValidator.ifPresent(validator ->
@@ -276,7 +284,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
               request.getRequestProperties(),
               isInternalRequest,
               connectionClosedFuture,
-              metricsCallbackHolder
+              metricsCallbackHolder,
+              pullBandRateLimiter
           );
         }
 
@@ -331,7 +340,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Map<String, Object> requestProperties,
       final Optional<Boolean> isInternalRequest,
       final CompletableFuture<Void> connectionClosedFuture,
-      final MetricsCallbackHolder metricsCallbackHolder
+      final MetricsCallbackHolder metricsCallbackHolder,
+      final SlidingWindowRateLimiter pullBandRateLimiter
   ) {
     // First thing, set the metrics callback so that it gets called, even if we hit an error
     final AtomicReference<PullQueryResult> resultForMetrics = new AtomicReference<>(null);
@@ -396,6 +406,10 @@ public class StreamedQueryResource implements KsqlConfigurable {
       PullQueryExecutionUtil.checkRateLimit(rateLimiter);
       decrementer = concurrencyLimiter.increment();
     }
+    if (!pullBandRateLimiter.allow(Time.SYSTEM.milliseconds())) {
+      throw new KsqlException("Host is at bandwidth rate limit for pull queries");
+    }
+
     final Optional<Decrementer> optionalDecrementer = Optional.ofNullable(decrementer);
 
     try {

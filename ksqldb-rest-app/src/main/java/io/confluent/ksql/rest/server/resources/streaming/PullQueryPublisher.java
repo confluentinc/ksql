@@ -23,6 +23,7 @@ import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.PullQueryExecutionUtil;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
@@ -41,6 +42,7 @@ import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KeyValue;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -57,10 +59,13 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   private final RoutingFilterFactory routingFilterFactory;
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter concurrencyLimiter;
+  private final SlidingWindowRateLimiter pullBandRateLimiter;
   private final HARouting routing;
 
   @VisibleForTesting
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   PullQueryPublisher(
+      // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
@@ -70,6 +75,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       final RoutingFilterFactory routingFilterFactory,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter concurrencyLimiter,
+      final SlidingWindowRateLimiter pullBandRateLimiter,
       final HARouting routing
   ) {
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
@@ -81,6 +87,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     this.routingFilterFactory = requireNonNull(routingFilterFactory, "routingFilterFactory");
     this.rateLimiter = requireNonNull(rateLimiter, "rateLimiter");
     this.concurrencyLimiter = concurrencyLimiter;
+    this.pullBandRateLimiter = requireNonNull(pullBandRateLimiter, "pullBandRateLimiter");
     this.routing = requireNonNull(routing, "routing");
   }
 
@@ -99,6 +106,9 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
     PullQueryExecutionUtil.checkRateLimit(rateLimiter);
     final Decrementer decrementer = concurrencyLimiter.increment();
+    if (!pullBandRateLimiter.allow(startTimeNanos / 1000000)) {
+      throw new KsqlException("Host is at bandwidth rate limit for pull queries");
+    }
 
     PullQueryResult result = null;
     try {

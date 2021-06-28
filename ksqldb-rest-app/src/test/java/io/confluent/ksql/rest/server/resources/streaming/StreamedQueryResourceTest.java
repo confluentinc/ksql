@@ -51,6 +51,7 @@ import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.StreamingOutput;
+import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.PullQueryExecutionUtil;
@@ -198,6 +199,8 @@ public class StreamedQueryResourceTest {
   @Mock
   private ConcurrencyLimiter concurrencyLimiter;
   @Mock
+  private SlidingWindowRateLimiter pullBandRateLimiter;
+  @Mock
   private KsqlConfig ksqlConfig;
   @Mock
   private KsqlRestConfig ksqlRestConfig;
@@ -256,6 +259,7 @@ public class StreamedQueryResourceTest {
         routingFilterFactory,
         rateLimiter,
         concurrencyLimiter,
+        pullBandRateLimiter,
         haRouting,
         pushRouting,
         Optional.empty()
@@ -344,6 +348,7 @@ public class StreamedQueryResourceTest {
         routingFilterFactory,
         pullQueryRateLimiter,
         concurrencyLimiter,
+        pullBandRateLimiter,
         haRouting,
         pushRouting,
         Optional.empty()
@@ -452,6 +457,7 @@ public class StreamedQueryResourceTest {
         routingFilterFactory,
         rateLimiter,
         concurrencyLimiter,
+        pullBandRateLimiter,
         haRouting,
         pushRouting,
         Optional.empty()
@@ -634,6 +640,7 @@ public class StreamedQueryResourceTest {
         routingFilterFactory,
         rateLimiter,
         concurrencyLimiter,
+        pullBandRateLimiter,
         haRouting,
         pushRouting,
         Optional.empty()

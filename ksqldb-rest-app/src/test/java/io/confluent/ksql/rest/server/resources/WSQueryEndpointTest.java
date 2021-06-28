@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -86,6 +87,7 @@ public class WSQueryEndpointTest {
         mock(RoutingFilterFactory.class),
         mock(RateLimiter.class),
         mock(ConcurrencyLimiter.class),
+        mock(SlidingWindowRateLimiter.class),
         mock(HARouting.class),
         Optional.empty(),
         mock(PushRouting.class)

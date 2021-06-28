@@ -59,7 +59,7 @@ public class StreamsTaskMetadata {
       );
     }
     return new StreamsTaskMetadata(
-        taskMetadata.taskId(),
+        taskMetadata.getTaskId().toString(),
         topicOffsets,
         taskMetadata.timeCurrentIdlingStarted());
   }

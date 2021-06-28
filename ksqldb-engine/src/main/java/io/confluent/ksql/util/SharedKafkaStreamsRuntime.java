@@ -57,7 +57,7 @@ public class SharedKafkaStreamsRuntime {
                                    final int maxQueryErrorsQueueSize,
                                    final Map<String, Object> streamsProperties) {
     this.kafkaStreamsBuilder = kafkaStreamsBuilder;
-    kafkaStreams = kafkaStreamsBuilder.build(null, streamsProperties);
+    kafkaStreams = kafkaStreamsBuilder.build(streamsProperties);
     queryErrors
         = new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
     this.streamsProperties = ImmutableMap.copyOf(streamsProperties);
@@ -137,7 +137,7 @@ public class SharedKafkaStreamsRuntime {
 
   public void restart(final QueryId queryId) {
     final KafkaStreamsNamedTopologyWrapper newKafkaStreams = kafkaStreamsBuilder
-            .build(null, streamsProperties);
+            .build(streamsProperties);
     for (PersistentQueriesInSharedRuntimesImpl query: metadata.values()) {
       newKafkaStreams.addNamedTopology(query.getTopology());
     }

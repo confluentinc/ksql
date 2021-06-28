@@ -36,9 +36,9 @@ public class KafkaStreamsBuilderImpl implements KafkaStreamsBuilder {
           final Map<String, Object> conf
   ) {
     return new KafkaStreams(
-            topology,
-            PropertiesUtil.asProperties(conf),
-            clientSupplier
+        topology,
+        PropertiesUtil.asProperties(conf),
+        clientSupplier
     );
   }
 

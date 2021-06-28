@@ -59,7 +59,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
-import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

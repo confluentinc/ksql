@@ -296,7 +296,7 @@ final class QueryExecutor {
         .orElse(userErrorClassifiers);
 
     if (ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
-      final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getStream(sources);
+      final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getStream(sources, queryId);
       final PersistentQueriesInSharedRuntimesImpl binPackedPersistentQueryMetadata
               = new PersistentQueriesInSharedRuntimesImpl(
           statementText,
@@ -351,7 +351,7 @@ final class QueryExecutor {
     }
   }
 
-  private SharedKafkaStreamsRuntime getStream(final Set<SourceName> sources) {
+  private SharedKafkaStreamsRuntime getStream(final Set<SourceName> sources, QueryId queryID) {
     for (final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
       if (sharedKafkaStreamsRuntime.getSources().stream().noneMatch(sources::contains)) {
         return sharedKafkaStreamsRuntime;
@@ -360,7 +360,7 @@ final class QueryExecutor {
     final SharedKafkaStreamsRuntime stream = new SharedKafkaStreamsRuntime(
         kafkaStreamsBuilder,
         config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
-        buildStreamsProperties("applicationId", new QueryId(""))
+        buildStreamsProperties("ksql-application-" + streams.size(), queryID)
     );
     streams.add(stream);
     return stream;

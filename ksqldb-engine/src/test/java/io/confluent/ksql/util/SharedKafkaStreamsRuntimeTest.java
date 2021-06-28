@@ -29,7 +29,8 @@ public class SharedKafkaStreamsRuntimeTest {
         );
     }
 
-    @Test void shouldAddQuery() {
+    @Test
+    public void shouldAddQuery() {
 //        sharedKafkaStreamsRuntime.addQuery();
     }
 }

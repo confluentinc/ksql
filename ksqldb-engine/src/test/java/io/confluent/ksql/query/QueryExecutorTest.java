@@ -157,7 +157,9 @@ public class QueryExecutorTest {
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
-  private KafkaStreamsNamedTopologyWrapper kafkaStreams;
+  private KafkaStreams kafkaStreams;
+  @Mock
+  private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
   @Mock
   private NamedTopology topology;
   @Mock
@@ -195,6 +197,7 @@ public class QueryExecutorTest {
     when(ksqlTopic.getKeyFormat()).thenReturn(KEY_FORMAT);
     when(ksqlTopic.getValueFormat()).thenReturn(VALUE_FORMAT);
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
+    when(kafkaStreamsBuilder.build(any())).thenReturn(kafkaStreamsNamedTopologyWrapper);
     when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.of(materializationBuilder));
     when(materializationBuilder.build()).thenReturn(materializationInfo);
     when(materializationInfo.getStateStoreSchema()).thenReturn(aggregationSchema);

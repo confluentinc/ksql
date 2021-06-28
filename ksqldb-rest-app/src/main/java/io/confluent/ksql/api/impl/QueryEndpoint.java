@@ -218,6 +218,7 @@ public class QueryEndpoint {
             PullQueryResult::getPlanType).orElse(PullPhysicalPlanType.UNKNOWN);
         final RoutingNodeType routingNodeType = Optional.ofNullable(r).map(
             PullQueryResult::getRoutingNodeType).orElse(RoutingNodeType.UNKNOWN);
+        pullBandRateLimiter.add(startTimeNanos / 1000000, responseBytes);
         metrics.recordResponseSize(responseBytes, sourceType, planType, routingNodeType);
         metrics.recordLatency(startTimeNanos, sourceType, planType, routingNodeType);
         metrics.recordRowsReturned(

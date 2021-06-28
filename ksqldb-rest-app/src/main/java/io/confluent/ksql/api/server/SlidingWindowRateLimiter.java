@@ -21,7 +21,7 @@ import java.util.Queue;
 
 public class SlidingWindowRateLimiter {
   private final Queue<Pair<Long, Long>> queue;  // <timestamp, bytes>
-  private static final long requestLimit = 199229440;
+  private static final long requestLimit = 1000;
   private static final long timeLimit = 1000 * 60 * 60;  //1 hour in miliseconds
   private long lastHourBytes;
 

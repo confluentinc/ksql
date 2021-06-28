@@ -357,6 +357,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         final RoutingNodeType routingNodeType = Optional.ofNullable(r).map(
             PullQueryResult::getRoutingNodeType).orElse(RoutingNodeType.UNKNOWN);
         metrics.recordResponseSize(responseBytes, sourceType, planType, routingNodeType);
+        pullBandRateLimiter.add(startTimeNanos / 1000000, responseBytes);
         metrics.recordLatency(startTimeNanos, sourceType, planType, routingNodeType);
         metrics.recordRowsReturned(
             Optional.ofNullable(r).map(PullQueryResult::getTotalRowsReturned).orElse(0L),

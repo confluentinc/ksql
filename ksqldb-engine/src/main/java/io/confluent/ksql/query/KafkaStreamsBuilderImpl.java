@@ -19,6 +19,7 @@ import io.confluent.ksql.properties.PropertiesUtil;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.kafka.streams.KafkaClientSupplier;
+import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
 
@@ -30,8 +31,19 @@ public class KafkaStreamsBuilderImpl implements KafkaStreamsBuilder {
   }
 
   @Override
-  public KafkaStreamsNamedTopologyWrapper build(
+  public KafkaStreams build(
           final Topology topology,
+          final Map<String, Object> conf
+  ) {
+    return new KafkaStreams(
+            topology,
+            PropertiesUtil.asProperties(conf),
+            clientSupplier
+    );
+  }
+
+  @Override
+  public KafkaStreamsNamedTopologyWrapper build(
           final Map<String, Object> conf
   ) {
     return new KafkaStreamsNamedTopologyWrapper(

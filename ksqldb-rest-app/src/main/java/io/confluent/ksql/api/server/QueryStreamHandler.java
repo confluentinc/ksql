@@ -70,8 +70,6 @@ public class QueryStreamHandler implements Handler<RoutingContext> {
     } else {
       queryStreamResponseWriter = new JsonQueryStreamResponseWriter(routingContext.response());
     }
-    final long responseSize = routingContext.response().bytesWritten();
-    System.out.println(responseSize);
 
     final Optional<QueryStreamArgs> queryStreamArgs = ServerUtils
         .deserialiseObject(routingContext.getBody(), routingContext, QueryStreamArgs.class);

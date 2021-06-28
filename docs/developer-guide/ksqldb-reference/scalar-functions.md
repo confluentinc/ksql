@@ -1206,11 +1206,11 @@ TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, fo
 ### `FORMAT_DATE`
 
 ```sql
-FORMAT_DATE(timestamp, 'yyyy-MM-dd')
+FORMAT_DATE(date, 'yyyy-MM-dd')
 ```
 
-Converts DATE value into a string representing the date in the given format.
-Single quotes in the timestamp format can be escaped with two successive single
+Converts a DATE value into a string that represents the date in the given format.
+You can escape single-quote characters in the timestamp format by using two successive single
 quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
 
 ### `PARSE_DATE`
@@ -1220,8 +1220,8 @@ PARSE_DATE(col1, 'yyyy-MM-dd')
 ```
 
 Converts a string representation of a date in the
-given format into a DATE value. Single quotes in the timestamp
-format can be escaped with two successive single
+given format into a DATE value. You can escape
+single-quote characters in the timestamp format by using two successive single
 quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
 
 ### `CONVERT_TZ`

@@ -46,6 +46,17 @@ public class FormatDateTest {
   }
 
   @Test
+  public void shouldThrowOnUnsupportedFields() {
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> udf.formatDate(Date.valueOf("2014-11-09"), "yyyy-MM-dd HH:mm"));
+
+    // Then:
+    assertThat(e.getMessage(), is("Failed to format date 2014-11-09 with formatter 'yyyy-MM-dd HH:mm': Unsupported field: HourOfDay"));
+  }
+
+  @Test
   public void shouldRoundTripWithStringToDate() {
     final String format = "dd/MM/yyyy'Freya'";
     final ParseDate parseDate = new ParseDate();

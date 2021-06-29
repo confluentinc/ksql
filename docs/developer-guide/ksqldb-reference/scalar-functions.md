@@ -669,17 +669,19 @@ The result of EXTRACTJSONFIELD is always a STRING. Use `CAST` to convert the res
 type. For example, `CAST(EXTRACTJSONFIELD(message, '$.log.instance') AS INT)` will extract the
 instance number from the above JSON object as a INT.
 
+Because the return type of the UDF must always be a STRING, JSONPaths that select
+multiple elements, e.g., those containing wildcards, are not supported.
+
 !!! note
     EXTRACTJSONFIELD is useful for extracting data from JSON where either the schema of the JSON
     data is not static, or where the JSON data is embedded in a row encoded using a different
     format, for example, a JSON field within an Avro-encoded message.
 
     If the whole row is encoded as JSON with a known schema or structure, use the `JSON` format and
-
     define the structure as the source's columns.  For example, a stream of JSON objects similar to
     the example above could be defined using a statement similar to this:
 
-    `CREATE STREAM LOGS (LOG STRUCT<CLOUD STRING, APP STRING, INSTANCE INT, ...) WITH (VALUE_FORMAT=JSON, ...)`
+    `CREATE STREAM LOGS (LOG STRUCT<CLOUD STRING, APP STRING, INSTANCE INT>, ...) WITH (VALUE_FORMAT='JSON', ...)`
 
 ### `INITCAP`
 

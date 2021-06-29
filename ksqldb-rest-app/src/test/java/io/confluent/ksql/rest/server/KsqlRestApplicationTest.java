@@ -192,7 +192,8 @@ public class KsqlRestApplicationTest {
     when(topicClient.isTopicExists(CMD_TOPIC_NAME)).thenReturn(false);
     
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn("ksql-id");
-  
+    when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of("state.dir", "/tmp/cat"));
+
     when(precondition1.checkPrecondition(any(), any())).thenReturn(Optional.empty());
     when(precondition2.checkPrecondition(any(), any())).thenReturn(Optional.empty());
 
@@ -479,6 +480,10 @@ public class KsqlRestApplicationTest {
             ImmutableMap.of(
                     KsqlRestConfig.LISTENERS_CONFIG, "http://some.host:1244,https://some.other.host:1258"));
 
+    final TestAppender appender = new TestAppender();
+    final Logger logger = Logger.getRootLogger();
+    logger.addAppender(appender);
+
     File tempFile = new File(ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.STATE_DIR_CONFIG).toString());
     if (!tempFile.exists()){
       tempFile.mkdirs();
@@ -493,7 +498,15 @@ public class KsqlRestApplicationTest {
     app.startKsql(ksqlConfig);
 
     // Then:
+    final List<LoggingEvent> log = appender.getLog();
+    final LoggingEvent firstLogEntry = log.get(1);
+
+    assertThat(firstLogEntry.getLevel(), is(Level.WARN));
+    assertThat((String) firstLogEntry.getMessage(), is(
+            "Deleted local state store for non-existing query fakeStateStore. " +
+                    "This is not expected and was likely due to a race condition when the query was dropped before."));
     assertFalse(fakeStateStore.exists());
+    assertTrue(tempFile.exists());
   }
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
@@ -517,29 +530,10 @@ public class KsqlRestApplicationTest {
     }
     // When:
     app.startKsql(ksqlConfig);
+
     // Then:
     assertTrue(fakeStateStore.exists());
-  }
-
-  @Test
-  public void shouldThrowExceptionIfNoStateStoreDir() {
-    // Given:
-    final TestAppender appender = new TestAppender();
-    final Logger logger = Logger.getRootLogger();
-    logger.addAppender(appender);
-    givenAppWithRestConfig(
-            ImmutableMap.of(
-                    KsqlRestConfig.LISTENERS_CONFIG, "http://some.host:1244,https://some.other.host:1258"));
-
-    // When:
-    app.startKsql(ksqlConfig);
-
-    // Then:
-    final List<LoggingEvent> log = appender.getLog();
-    // will probably be 2 instead of 0
-    final LoggingEvent firstLogEntry = log.get(0);
-    assertThat(firstLogEntry.getLevel(), is(Level.ERROR));
-    assertThat((String) firstLogEntry.getMessage(), is("Failed to clean a state directory /tmp/cat"));
+    assertTrue(tempFile.exists());
   }
 
   private void givenAppWithRestConfig(final Map<String, Object> restConfigMap) {

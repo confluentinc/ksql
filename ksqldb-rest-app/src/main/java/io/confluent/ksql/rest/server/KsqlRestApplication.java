@@ -51,7 +51,6 @@ import io.confluent.ksql.physical.pull.HARouting;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
 import io.confluent.ksql.properties.PropertiesUtil;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.SpecificQueryIdGenerator;
 import io.confluent.ksql.rest.ErrorMessages;
 import io.confluent.ksql.rest.Errors;
@@ -130,12 +129,14 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Duration;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -471,36 +472,52 @@ public final class KsqlRestApplication implements Executable {
   }
 
   public void cleanupOldStateDirectories(final KsqlConfig configWithApplicationServer) {
-    final String stateDir =
-        configWithApplicationServer
-            .getKsqlStreamConfigProps()
-            .get(StreamsConfig.STATE_DIR_CONFIG)
-            .toString();
+    final String stateDir = configWithApplicationServer.getKsqlStreamConfigProps().getOrDefault(
+            StreamsConfig.STATE_DIR_CONFIG,
+            StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG)).toString();
 
     final Set<String> stateStoreNames =
         ksqlEngine.getPersistentQueries()
             .stream()
-            .map(PersistentQueryMetadata::getQueryId)
-            .map(QueryId::toString)
+            .map(PersistentQueryMetadata::getQueryApplicationId)
             .collect(Collectors.toSet());
     try {
-      Files.list(Paths.get(stateDir))
-          .map(Path::toFile)
-          .forEach(
-              f -> {
-                if (stateStoreNames.stream().noneMatch((name) -> f.getName().endsWith(name))) {
-                  try {
-                    Files.walk(f.toPath())
-                        .sorted(Comparator.reverseOrder())
-                        .map(Path::toFile)
-                        .forEach(File::delete);
-                  } catch (IOException e) {
-                    log.error("Error cleaning up obsolete {} state directory", f.getName());
-                  }
-                }
-              });
+      Files.walkFileTree(Paths.get(stateDir), new SimpleFileVisitor<Path>() {
+        @Override
+        public FileVisitResult visitFileFailed(Path path, IOException exc) {
+          log.error("Error cleaning up obsolete state directories \n", exc);
+          return FileVisitResult.CONTINUE;
+        }
+
+        @Override
+        public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) {
+          if (!stateStoreNames.contains(path.getFileName())) {
+            try {
+              Files.delete(path);
+              log.warn("Deleted local state store for non-existing query {}. This is not expected and was likely due to a " +
+                      "race condition when the query was dropped before.", path.getFileName());
+            } catch (IOException e) {
+              log.error("Error cleaning up state directory {}\n. {}", path.getFileName(), e);
+            }
+          }
+          return FileVisitResult.CONTINUE;
+        }
+
+        public FileVisitResult postVisitDirectory(Path path, IOException exc) {
+          if (!path.toString().equals(stateDir)) {
+            try {
+              Files.delete(path);
+              log.warn("Deleted local state store for non-existing query {}. This is not expected and was likely due to a " +
+                      "race condition when the query was dropped before.", path.getFileName());
+            } catch (IOException e) {
+              log.error("Error cleaning up state directory {}\n. {}", path.getFileName(), e);
+            }
+          }
+          return FileVisitResult.CONTINUE;
+        }
+      });
     } catch (IOException e) {
-      log.error("Failed to clean a state directory {}", stateDir);
+      log.error("Failed to clean state directory {}\n {}", stateDir, e);
     }
   }
 

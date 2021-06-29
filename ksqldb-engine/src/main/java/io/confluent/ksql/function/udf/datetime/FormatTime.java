@@ -28,6 +28,7 @@ import java.sql.Time;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 @UdfDescription(
     name = "format_time",
@@ -58,7 +59,7 @@ public class FormatTime {
     }
     try {
       final DateTimeFormatter formatter = formatters.get(formatPattern);
-      return LocalTime.ofNanoOfDay(time.getTime() * 1000000).format(formatter);
+      return LocalTime.ofNanoOfDay(TimeUnit.MILLISECONDS.toNanos(time.getTime())).format(formatter);
     } catch (ExecutionException | RuntimeException e) {
       throw new KsqlFunctionException("Failed to format time "
           + LocalTime.ofNanoOfDay(time.getTime() * 1000000)

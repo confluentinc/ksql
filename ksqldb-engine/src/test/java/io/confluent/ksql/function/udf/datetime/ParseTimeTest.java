@@ -46,6 +46,17 @@ public class ParseTimeTest {
   }
 
   @Test
+  public void shouldThrowOnUnsupportedFields() {
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> udf.parseTime("2020 000105", "yyyy HHmmss"));
+
+    // Then:
+    assertThat(e.getMessage(), is("Failed to parse time '2020 000105' with formatter 'yyyy HHmmss': Unsupported field: Year"));
+  }
+
+  @Test
   public void shouldSupportEmbeddedChars() {
     // When:
     final Time result = udf.parseTime("000105.000Fred", "HHmmss.SSS'Fred'");

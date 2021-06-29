@@ -1204,10 +1204,10 @@ TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, fo
 Since: 0.20
 
 ```sql
-FORMAT_TIME(timestamp, 'HH:mm:ss.SSS')
+FORMAT_TIME(time, 'HH:mm:ss.SSS')
 ```
 
-Converts a TIME value into the string representation of the timestamp in the given format.
+Converts a TIME value into the string representation of the time in the given format.
 Single quotes in the time format can be escaped with two successive single quotes, `''`, for
 example: `'''T''HH:mm:ssX'`.
 

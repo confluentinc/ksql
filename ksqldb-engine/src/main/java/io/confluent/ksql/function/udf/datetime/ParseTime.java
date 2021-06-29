@@ -27,7 +27,12 @@ import io.confluent.ksql.util.KsqlConstants;
 import java.sql.Time;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoField;
+import java.time.temporal.TemporalAccessor;
+import java.util.Arrays;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 @UdfDescription(
     name = "parse_time",
@@ -52,8 +57,17 @@ public class ParseTime {
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern) {
     try {
-      final DateTimeFormatter formatter = formatters.get(formatPattern);
-      return new Time(LocalTime.parse(formattedTime, formatter).toNanoOfDay() / 1000000);
+      final TemporalAccessor ta = formatters.get(formatPattern).parse(formattedTime);
+      final Optional<ChronoField> dateFieldCount = Arrays.stream(ChronoField.values())
+          .filter(field -> field.isDateBased())
+          .filter(field -> ta.isSupported(field))
+          .findFirst();
+
+      if (dateFieldCount.isPresent()) {
+        throw new KsqlFunctionException("Unsupported field: " + dateFieldCount.get().toString());
+      }
+
+      return new Time(TimeUnit.NANOSECONDS.toMillis(LocalTime.from(ta).toNanoOfDay()));
     } catch (ExecutionException | RuntimeException e) {
       throw new KsqlFunctionException("Failed to parse time '" + formattedTime
           + "' with formatter '" + formatPattern

@@ -47,6 +47,17 @@ public class FormatTimeTest {
   }
 
   @Test
+  public void shouldRejectUnsupportedFields() {
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> udf.formatTime(new Time(65000), "yyyy HHmmss"));
+
+    // Then:
+    assertThat(e.getMessage(), is("Failed to format time 00:01:05 with formatter 'yyyy HHmmss': Unsupported field: YearOfEra"));
+  }
+
+  @Test
   public void shouldSupportEmbeddedChars() {
     // When:
     final Object result = udf.formatTime(new Time(65000), "HH:mm:ss.SSS'Fred'");

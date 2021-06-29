@@ -22,7 +22,7 @@ import io.confluent.ksql.execution.interpreter.terms.CastTerm.ComparableCastFunc
 import io.confluent.ksql.execution.interpreter.terms.Term;
 import io.confluent.ksql.schema.ksql.SqlBooleans;
 import io.confluent.ksql.schema.ksql.SqlDoubles;
-import io.confluent.ksql.schema.ksql.SqlTimestamps;
+import io.confluent.ksql.schema.ksql.SqlTimeTypes;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
@@ -180,7 +180,7 @@ public final class CastInterpreter {
     if (from.baseType() == SqlBaseType.DECIMAL) {
       return object -> ((BigDecimal) object).toPlainString();
     } else if (from.baseType() == SqlBaseType.TIMESTAMP) {
-      return object -> SqlTimestamps.formatTimestamp(((Timestamp) object));
+      return object -> SqlTimeTypes.formatTimestamp(((Timestamp) object));
     }
     return object -> config.getBoolean(KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE)
         ? Objects.toString(object, null)
@@ -202,7 +202,7 @@ public final class CastInterpreter {
       final SqlType from
   ) {
     if (from.baseType() == SqlBaseType.STRING) {
-      return object -> SqlTimestamps.parseTimestamp(((String) object).trim());
+      return object -> SqlTimeTypes.parseTimestamp(((String) object).trim());
     } else if (from.baseType() == SqlBaseType.TIMESTAMP) {
       return object -> (Timestamp) object;
     }

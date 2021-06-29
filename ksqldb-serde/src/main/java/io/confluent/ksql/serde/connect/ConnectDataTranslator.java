@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.connect;
 
+import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlPreconditions;
 import java.math.BigDecimal;
@@ -226,7 +227,14 @@ public class ConnectDataTranslator implements DataTranslator {
           return ((Number) convertedValue).longValue();
         }
       case INT32:
-        return ((Number) convertedValue).intValue();
+        final int intVal = ((Number) convertedValue).intValue();
+        if (schema.name() == Time.LOGICAL_NAME) {
+          return new java.sql.Time(intVal);
+        } else if (schema.name() == Date.LOGICAL_NAME) {
+          return SerdeUtils.getDateFromEpochDays(intVal);
+        } else {
+          return intVal;
+        }
       case FLOAT64:
         return ((Number) convertedValue).doubleValue();
       case BYTES:

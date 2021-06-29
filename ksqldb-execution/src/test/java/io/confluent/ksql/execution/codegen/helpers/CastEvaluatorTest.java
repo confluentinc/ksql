@@ -16,8 +16,10 @@
 package io.confluent.ksql.execution.codegen.helpers;
 
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.ARRAY;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.DATE;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.MAP;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.STRUCT;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.TIME;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.TIMESTAMP;
 import static java.util.Objects.requireNonNull;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -155,6 +157,8 @@ public class CastEvaluatorTest {
         // Given:
         final Matcher<Object> expected = returnJavaType.equals(String.class)
             && !from.equals(SqlTypes.STRING)
+            && !from.equals(SqlTypes.TIME)
+            && !from.equals(SqlTypes.DATE)
             && !from.equals(SqlTypes.TIMESTAMP)
             && !from.baseType().equals(SqlBaseType.DECIMAL)
             && !config.getBoolean(KsqlConfig.KSQL_STRING_CASE_CONFIG_TOGGLE)
@@ -220,13 +224,64 @@ public class CastEvaluatorTest {
   }
 
   @RunWith(MockitoJUnitRunner.class)
+  public static final class TimeTest {
+
+    @Mock
+    private KsqlConfig config;
+
+    @Test
+    public void shouldNotCastIncorrectlyFormattedString() {
+      // Given:
+      final Evaluator evaluator = cookCode(SqlTypes.STRING, SqlTypes.TIME, config);
+      // When:
+      final Exception exception = assertThrows(
+          KsqlException.class,
+          () -> evaluator.rawEvaluate("woof")
+      );
+
+      // Then:
+      assertThat(exception.getMessage(), containsString("Required format is: \"HH:mm:ss.SSS\""));
+    }
+  }
+
+  @RunWith(MockitoJUnitRunner.class)
+  public static final class DateTest {
+
+    @Mock
+    private KsqlConfig config;
+
+    @Test
+    public void shouldNotCastIncorrectlyFormattedString() {
+      // Given:
+      final Evaluator evaluator = cookCode(SqlTypes.STRING, SqlTypes.DATE, config);
+      // When:
+      final Exception exception = assertThrows(
+          KsqlException.class,
+          () -> evaluator.rawEvaluate("woof")
+      );
+
+      // Then:
+      assertThat(exception.getMessage(), containsString("Required format is: \"yyyy-MM-dd\""));
+    }
+
+    @Test
+    public void shouldCastDateToTimestamp() throws Exception {
+      // Given:
+      final Evaluator evaluator = cookCode(SqlTypes.DATE, SqlTypes.TIMESTAMP, config);
+
+      // Then:
+      assertThat(evaluator.rawEvaluate(new Date(864000000)), is(new Timestamp(864000000)));
+    }
+  }
+
+  @RunWith(MockitoJUnitRunner.class)
   public static final class TimestampTest {
 
     @Mock
     private KsqlConfig config;
 
     @Test
-    public void shouldNotCastPositiveInfinite() {
+    public void shouldNotCastIncorrectlyFormattedString() {
       // Given:
       final Evaluator evaluator = cookCode(SqlTypes.STRING, SqlTypes.TIMESTAMP, config);
       // When:
@@ -237,6 +292,24 @@ public class CastEvaluatorTest {
 
       // Then:
       assertThat(exception.getMessage(), containsString("Required format is: \"yyyy-MM-dd'T'HH:mm:ss.SSS\", with an optional numeric"));
+    }
+
+    @Test
+    public void shouldCastTimestampToDate() throws Exception {
+      // Given:
+      final Evaluator evaluator = cookCode(SqlTypes.TIMESTAMP, SqlTypes.DATE, config);
+
+      // Then:
+      assertThat(evaluator.rawEvaluate(new Timestamp(864033000)), is(new Date(864000000)));
+    }
+
+    @Test
+    public void shouldCastTimestampToTime() throws Exception {
+      // Given:
+      final Evaluator evaluator = cookCode(SqlTypes.TIMESTAMP, SqlTypes.TIME, config);
+
+      // Then:
+      assertThat(evaluator.rawEvaluate(new Timestamp(864033000)), is(new Time(33000)));
     }
   }
 
@@ -735,6 +808,10 @@ public class CastEvaluatorTest {
         case STRING:
           if (to.baseType() == TIMESTAMP) {
             return "2020-05-26T07:59:58.000";
+          } else if (to.baseType() == TIME) {
+            return "07:59:58";
+          } else if (to.baseType() == DATE) {
+            return "2020-05-26";
           }
           // Intentional fall through
         default:
@@ -792,6 +869,8 @@ public class CastEvaluatorTest {
                 .add(SqlBaseType.DECIMAL)
                 .add(SqlBaseType.DOUBLE)
                 .add(SqlBaseType.STRING)
+                .add(SqlBaseType.TIME)
+                .add(SqlBaseType.DATE)
                 .add(SqlBaseType.TIMESTAMP)
                 .build())
             .put(SqlBaseType.ARRAY, ImmutableSet.<SqlBaseType>builder()
@@ -808,12 +887,17 @@ public class CastEvaluatorTest {
                 .build())
             .put(SqlBaseType.TIME, ImmutableSet.<SqlBaseType>builder()
                 .add(SqlBaseType.TIME)
+                .add(SqlBaseType.STRING)
                 .build())
             .put(SqlBaseType.DATE, ImmutableSet.<SqlBaseType>builder()
                 .add(SqlBaseType.DATE)
+                .add(SqlBaseType.TIMESTAMP)
+                .add(SqlBaseType.STRING)
                 .build())
             .put(SqlBaseType.TIMESTAMP, ImmutableSet.<SqlBaseType>builder()
                 .add(SqlBaseType.TIMESTAMP)
+                .add(SqlBaseType.TIME)
+                .add(SqlBaseType.DATE)
                 .add(SqlBaseType.STRING)
                 .build())
             .build();

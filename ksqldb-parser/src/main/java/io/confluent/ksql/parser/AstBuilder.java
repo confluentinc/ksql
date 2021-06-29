@@ -55,7 +55,6 @@ import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
-import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
@@ -1269,9 +1268,6 @@ public class AstBuilder {
       final String value = ParserUtil.unquote(context.STRING().getText(), "'");
       final Optional<NodeLocation> location = getLocation(context);
 
-      if (type.equals("TIME")) {
-        return new TimeLiteral(location, value);
-      }
       if (type.equals("DECIMAL")) {
         return new DecimalLiteral(location, new BigDecimal(value));
       }

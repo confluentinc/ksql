@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.serde.json;
 
+import static io.confluent.ksql.serde.SerdeUtils.getDateFromEpochDays;
+import static io.confluent.ksql.serde.SerdeUtils.returnTimeOrThrow;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
@@ -24,6 +27,8 @@ import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
 import javax.annotation.Nonnull;
 
@@ -128,6 +133,34 @@ public final class JsonSerdeUtils {
     }
 
     throw invalidConversionException(object, SqlBaseType.DOUBLE);
+  }
+
+  static Time toTime(final JsonNode object) {
+    if (object instanceof NumericNode) {
+      return returnTimeOrThrow(object.asLong());
+    }
+    if (object instanceof TextNode) {
+      try {
+        return returnTimeOrThrow(Long.parseLong(object.textValue()));
+      } catch (final NumberFormatException e) {
+        throw failedStringCoercionException(SqlBaseType.TIME);
+      }
+    }
+    throw invalidConversionException(object, SqlBaseType.TIME);
+  }
+
+  static Date toDate(final JsonNode object) {
+    if (object instanceof NumericNode) {
+      return getDateFromEpochDays(object.asLong());
+    }
+    if (object instanceof TextNode) {
+      try {
+        return getDateFromEpochDays(Long.parseLong(object.textValue()));
+      } catch (final NumberFormatException e) {
+        throw failedStringCoercionException(SqlBaseType.DATE);
+      }
+    }
+    throw invalidConversionException(object, SqlBaseType.DATE);
   }
 
   static Timestamp toTimestamp(final JsonNode object) {

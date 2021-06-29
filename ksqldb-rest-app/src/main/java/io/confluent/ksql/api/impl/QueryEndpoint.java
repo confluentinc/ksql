@@ -36,20 +36,27 @@ import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullPhysicalPlanType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.PullSourceType;
 import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullQueryResult;
+import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.LocalCommands;
 import io.confluent.ksql.rest.server.resources.streaming.PullQueryConfigPlannerOptions;
 import io.confluent.ksql.rest.server.resources.streaming.PullQueryConfigRoutingOptions;
+import io.confluent.ksql.rest.server.resources.streaming.PushQueryConfigPlannerOptions;
+import io.confluent.ksql.rest.server.resources.streaming.PushQueryConfigRoutingOptions;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
+import io.confluent.ksql.rest.util.ScalablePushUtil;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.PushQueryMetadata;
+import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.VertxUtils;
 import io.vertx.core.Context;
@@ -63,7 +70,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class QueryEndpoint {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final KsqlEngine ksqlEngine;
   private final KsqlConfig ksqlConfig;
@@ -73,6 +82,7 @@ public class QueryEndpoint {
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter pullConcurrencyLimiter;
   private final HARouting routing;
+  private final PushRouting pushRouting;
   private final Optional<LocalCommands> localCommands;
 
   public QueryEndpoint(
@@ -84,6 +94,7 @@ public class QueryEndpoint {
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
       final HARouting routing,
+      final PushRouting pushRouting,
       final Optional<LocalCommands> localCommands
   ) {
     this.ksqlEngine = ksqlEngine;
@@ -94,6 +105,7 @@ public class QueryEndpoint {
     this.rateLimiter = rateLimiter;
     this.pullConcurrencyLimiter = pullConcurrencyLimiter;
     this.routing = routing;
+    this.pushRouting = pushRouting;
     this.localCommands = localCommands;
   }
 
@@ -101,6 +113,7 @@ public class QueryEndpoint {
       final String sql,
       final Map<String, Object> properties,
       final Map<String, Object> sessionVariables,
+      final Map<String, Object> requestProperties,
       final Context context,
       final WorkerExecutor workerExecutor,
       final ServiceContext serviceContext,
@@ -115,9 +128,39 @@ public class QueryEndpoint {
       return createPullQueryPublisher(
           context, serviceContext, statement, pullQueryMetrics, workerExecutor,
           metricsCallbackHolder);
+    } else if (ScalablePushUtil.isScalablePushQuery(statement.getStatement(), ksqlEngine,
+        ksqlConfig, properties)) {
+      return createScalablePushQueryPublisher(context, serviceContext, statement, workerExecutor,
+          requestProperties);
     } else {
       return createPushQueryPublisher(context, serviceContext, statement, workerExecutor);
     }
+  }
+
+  private QueryPublisher createScalablePushQueryPublisher(
+      final Context context,
+      final ServiceContext serviceContext,
+      final ConfiguredStatement<Query> statement,
+      final WorkerExecutor workerExecutor,
+      final Map<String, Object> requestProperties
+  ) {
+    final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
+
+    final PushQueryConfigRoutingOptions routingOptions =
+        new PushQueryConfigRoutingOptions(requestProperties);
+
+    final PushQueryConfigPlannerOptions plannerOptions = new PushQueryConfigPlannerOptions(
+        ksqlConfig,
+        statement.getSessionConfig().getOverrides());
+
+    final ScalablePushQueryMetadata query = ksqlEngine
+        .executeScalablePushQuery(serviceContext, statement, pushRouting, routingOptions,
+            plannerOptions, context);
+
+
+    publisher.setQueryHandle(new KsqlQueryHandle(query), false, true);
+
+    return publisher;
   }
 
   private QueryPublisher createPushQueryPublisher(
@@ -141,7 +184,7 @@ public class QueryEndpoint {
 
     localCommands.ifPresent(lc -> lc.write(queryMetadata));
 
-    publisher.setQueryHandle(new KsqlQueryHandle(queryMetadata), false);
+    publisher.setQueryHandle(new KsqlQueryHandle(queryMetadata), false, false);
 
     return publisher;
   }
@@ -210,7 +253,7 @@ public class QueryEndpoint {
 
       final BlockingQueryPublisher publisher = new BlockingQueryPublisher(context, workerExecutor);
 
-      publisher.setQueryHandle(new KsqlPullQueryHandle(result, pullQueryMetrics), true);
+      publisher.setQueryHandle(new KsqlPullQueryHandle(result, pullQueryMetrics), true, false);
 
       return publisher;
     } catch (Throwable t) {
@@ -259,9 +302,9 @@ public class QueryEndpoint {
 
   private static class KsqlQueryHandle implements QueryHandle {
 
-    private final TransientQueryMetadata queryMetadata;
+    private final PushQueryMetadata queryMetadata;
 
-    KsqlQueryHandle(final TransientQueryMetadata queryMetadata) {
+    KsqlQueryHandle(final PushQueryMetadata queryMetadata) {
       this.queryMetadata = Objects.requireNonNull(queryMetadata, "queryMetadata");
     }
 
@@ -294,6 +337,11 @@ public class QueryEndpoint {
     public void onException(final Consumer<Throwable> onException) {
       // We don't try to do anything on exception for push queries, but rely on the
       // existing exception handling
+    }
+
+    @Override
+    public QueryId getQueryId() {
+      return queryMetadata.getQueryId();
     }
   }
 
@@ -347,6 +395,11 @@ public class QueryEndpoint {
         onException.accept(t);
         return null;
       });
+    }
+
+    @Override
+    public QueryId getQueryId() {
+      return result.getQueryId();
     }
   }
 }

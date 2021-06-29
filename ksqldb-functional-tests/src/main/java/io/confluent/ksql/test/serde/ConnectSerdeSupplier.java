@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
+import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConstants;
@@ -37,6 +38,7 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.apache.kafka.connect.storage.Converter;
 
@@ -123,7 +125,14 @@ public abstract class ConnectSerdeSupplier<T extends ParsedSchema>
 
       switch (schema.type()) {
         case INT32:
-          return Integer.valueOf(spec.toString());
+          final Integer intVal = Integer.valueOf(spec.toString());
+          if (Time.LOGICAL_NAME.equals(schema.name())) {
+            return new java.sql.Time(intVal);
+          }
+          if (org.apache.kafka.connect.data.Date.LOGICAL_NAME.equals(schema.name())) {
+            return SerdeUtils.getDateFromEpochDays(intVal);
+          }
+          return intVal;
         case INT64:
           final Long longVal = Long.valueOf(spec.toString());
           if (Timestamp.LOGICAL_NAME.equals(schema.name())) {
@@ -237,6 +246,13 @@ public abstract class ConnectSerdeSupplier<T extends ParsedSchema>
           }
           return data;
         case INT32:
+          if (Time.LOGICAL_NAME.equals(schema.name())) {
+            return Time.fromLogical(schema, (Date) data);
+          }
+          if (org.apache.kafka.connect.data.Date.LOGICAL_NAME.equals(schema.name())) {
+            return org.apache.kafka.connect.data.Date.fromLogical(schema, (Date) data);
+          }
+          return data;
         case FLOAT32:
         case FLOAT64:
         case BOOLEAN:

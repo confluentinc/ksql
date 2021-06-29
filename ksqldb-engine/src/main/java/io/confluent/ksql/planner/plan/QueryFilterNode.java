@@ -39,7 +39,7 @@ import io.confluent.ksql.execution.interpreter.InterpretedExpressionFactory;
 import io.confluent.ksql.execution.transform.ExpressionEvaluator;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.planner.PullPlannerOptions;
+import io.confluent.ksql.planner.QueryPlannerOptions;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.Column.Namespace;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
@@ -90,7 +90,7 @@ public class QueryFilterNode extends SingleSourcePlanNode {
   private final List<LookupConstraint> lookupConstraints;
   private final Set<UnqualifiedColumnReferenceExp> keyColumns = new HashSet<>();
   private final Set<UnqualifiedColumnReferenceExp> systemColumns = new HashSet<>();
-  private final PullPlannerOptions pullPlannerOptions;
+  private final QueryPlannerOptions queryPlannerOptions;
   private final boolean requiresTableScan;
 
   public QueryFilterNode(
@@ -100,14 +100,14 @@ public class QueryFilterNode extends SingleSourcePlanNode {
       final MetaStore metaStore,
       final KsqlConfig ksqlConfig,
       final boolean isWindowed,
-      final PullPlannerOptions pullPlannerOptions
+      final QueryPlannerOptions queryPlannerOptions
   ) {
     super(id, source.getNodeOutputType(), source.getSourceName(), source);
 
     Objects.requireNonNull(predicate, "predicate");
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-    this.pullPlannerOptions = pullPlannerOptions;
+    this.queryPlannerOptions = queryPlannerOptions;
     // The predicate is rewritten as DNF.  Discussion for why this format is chosen and how it helps
     // to extract keys in various scenarios can be found here:
     // https://github.com/confluentinc/ksql/pull/6874
@@ -130,7 +130,7 @@ public class QueryFilterNode extends SingleSourcePlanNode {
         source.getSchema().withoutPseudoAndKeyColsInValue(),
         addAdditionalColumnsToIntermediateSchema, isWindowed);
     compiledWhereClause = getExpressionEvaluator(
-        rewrittenPredicate, intermediateSchema, metaStore, ksqlConfig, pullPlannerOptions);
+        rewrittenPredicate, intermediateSchema, metaStore, ksqlConfig, queryPlannerOptions);
   }
 
   public Expression getRewrittenPredicate() {
@@ -175,7 +175,7 @@ public class QueryFilterNode extends SingleSourcePlanNode {
         return true;
       }
       if (!validator.isKeyedQuery) {
-        if (pullPlannerOptions.getTableScansEnabled()) {
+        if (queryPlannerOptions.getTableScansEnabled()) {
           return true;
         } else {
           throw invalidWhereClauseException("WHERE clause missing key column for disjunct: "
@@ -185,7 +185,7 @@ public class QueryFilterNode extends SingleSourcePlanNode {
 
       if (!validator.seenKeys.isEmpty()
           && validator.seenKeys.cardinality() != schema.key().size()) {
-        if (pullPlannerOptions.getTableScansEnabled()) {
+        if (queryPlannerOptions.getTableScansEnabled()) {
           return true;
         } else {
           final List<ColumnName> seenKeyNames = validator.seenKeys
@@ -358,7 +358,7 @@ public class QueryFilterNode extends SingleSourcePlanNode {
     }
 
     private void setTableScanOrElseThrow(final Supplier<KsqlException> exceptionSupplier) {
-      if (pullPlannerOptions.getTableScansEnabled()) {
+      if (queryPlannerOptions.getTableScansEnabled()) {
         requiresTableScan = true;
       } else {
         throw exceptionSupplier.get();
@@ -470,7 +470,7 @@ public class QueryFilterNode extends SingleSourcePlanNode {
             metaStore,
             config,
             "pull query",
-            pullPlannerOptions.getInterpreterEnabled()
+            queryPlannerOptions.getInterpreterEnabled()
         ).resolve(exp);
       }
 
@@ -618,7 +618,7 @@ public class QueryFilterNode extends SingleSourcePlanNode {
             metaStore,
             ksqlConfig,
             "pull query window bounds extractor",
-            pullPlannerOptions.getInterpreterEnabled()
+            queryPlannerOptions.getInterpreterEnabled()
         ).resolve(other);
 
         return Instant.ofEpochMilli(value);
@@ -883,9 +883,9 @@ public class QueryFilterNode extends SingleSourcePlanNode {
       final LogicalSchema schema,
       final MetaStore metaStore,
       final KsqlConfig ksqlConfig,
-      final PullPlannerOptions pullPlannerOptions) {
+      final QueryPlannerOptions queryPlannerOptions) {
 
-    if (pullPlannerOptions.getInterpreterEnabled()) {
+    if (queryPlannerOptions.getInterpreterEnabled()) {
       return InterpretedExpressionFactory.create(
           expression,
           schema,

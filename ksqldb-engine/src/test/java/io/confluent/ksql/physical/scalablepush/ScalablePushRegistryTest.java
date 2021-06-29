@@ -75,7 +75,7 @@ public class ScalablePushRegistryTest {
   @Test
   public void shouldRegisterAndGetQueueOffer_nonWindowed() {
     // Given:
-    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false);
+    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false, false);
     when(genericKey.values()).thenAnswer(a -> KEY);
     when(genericRow.values()).thenAnswer(a -> VALUE);
     when(processorContext.timestamp()).thenReturn(TIMESTAMP);
@@ -97,7 +97,7 @@ public class ScalablePushRegistryTest {
   @Test
   public void shouldRegisterAndGetQueueOffer_windowed() {
     // Given:
-    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, true);
+    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, true, true);
     when(genericKey.values()).thenAnswer(a -> KEY);
     when(genericRow.values()).thenAnswer(a -> VALUE);
     when(processorContext.timestamp()).thenReturn(TIMESTAMP);
@@ -122,7 +122,7 @@ public class ScalablePushRegistryTest {
   @Test
   public void shouldCatchException() {
     // Given:
-    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false);
+    ScalablePushRegistry registry = new ScalablePushRegistry(locator, SCHEMA, false, false);
     when(genericKey.values()).thenAnswer(a -> KEY);
     when(genericRow.values()).thenAnswer(a -> VALUE);
     when(processorContext.timestamp()).thenReturn(TIMESTAMP);
@@ -141,7 +141,7 @@ public class ScalablePushRegistryTest {
   public void shouldCreate() {
     // When:
     final Optional<ScalablePushRegistry> registry =
-        ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false,
+        ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false, false,
             ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "http://localhost:8088"));
 
     // Then:
@@ -153,7 +153,7 @@ public class ScalablePushRegistryTest {
     // When
     final Exception e = assertThrows(
         IllegalArgumentException.class,
-        () -> ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false,
+        () -> ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false, false,
             ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, 123))
     );
 
@@ -166,7 +166,7 @@ public class ScalablePushRegistryTest {
     // When
     final Exception e = assertThrows(
         IllegalArgumentException.class,
-        () -> ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false,
+        () -> ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false, false,
             ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "abc"))
     );
 
@@ -178,7 +178,7 @@ public class ScalablePushRegistryTest {
   public void shouldCreate_noApplicationServer() {
     // When
     final Optional<ScalablePushRegistry> registry =
-        ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false,
+        ScalablePushRegistry.create(SCHEMA, Collections::emptyList, false, false,
             ImmutableMap.of());
 
     // Then

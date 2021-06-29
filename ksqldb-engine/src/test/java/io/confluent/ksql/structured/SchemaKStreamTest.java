@@ -23,6 +23,8 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.windows.WindowTimeClause;
+import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.PlanBuildContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -53,6 +55,7 @@ import io.confluent.ksql.schema.ksql.ColumnNames;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.InternalFormats;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.serde.ValueFormat;
@@ -62,9 +65,13 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
+
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.junit.Before;
 import org.junit.Test;
@@ -93,12 +100,15 @@ public class SchemaKStreamTest {
 
   private SchemaKStream initialSchemaKStream;
   private SchemaKTable schemaKTable;
+  private SchemaKStream schemaKStream;
   private KsqlStream<?> ksqlStream;
   private InternalFunctionRegistry functionRegistry;
   private StepSchemaResolver schemaResolver;
 
   @Mock
   private ExecutionStep tableSourceStep;
+  @Mock
+  private ExecutionStep streamSourceStep;
   @Mock
   private ExecutionStep sourceStep;
   @Mock
@@ -117,6 +127,12 @@ public class SchemaKStreamTest {
     schemaKTable = new SchemaKTable(
         tableSourceStep,
         ksqlTable.getSchema(),
+        keyFormat,
+        ksqlConfig,
+        functionRegistry);
+    schemaKStream = new SchemaKStream(
+        streamSourceStep,
+        ksqlStream.getSchema(),
         keyFormat,
         ksqlConfig,
         functionRegistry);
@@ -459,9 +475,10 @@ public class SchemaKStreamTest {
   private interface StreamStreamJoin {
     SchemaKStream join(
         SchemaKStream otherSchemaKStream,
-        JoinWindows joinWindows,
-        ValueFormat leftFormat,
-        ValueFormat rightFormat,
+        ColumnName keyNameCol,
+        WithinExpression withinExpression,
+        FormatInfo leftFormat,
+        FormatInfo rightFormat,
         QueryContext.Stacker contextStacker
     );
   }
@@ -474,6 +491,51 @@ public class SchemaKStreamTest {
         FormatInfo leftFormat,
         QueryContext.Stacker contextStacker
     );
+  }
+
+  @Test
+  public void shouldBuildStepForStreamStreamJoin() {
+    // Given:
+    final SchemaKStream initialSchemaKStream = buildSchemaKStreamForJoin(ksqlStream);
+
+    final List<Pair<JoinType, StreamStreamJoin>> cases = ImmutableList.of(
+        Pair.of(JoinType.OUTER, initialSchemaKStream::outerJoin),
+        Pair.of(JoinType.LEFT, initialSchemaKStream::leftJoin),
+        Pair.of(JoinType.INNER, initialSchemaKStream::innerJoin)
+    );
+
+    final JoinWindows joinWindows = JoinWindows.of(Duration.ofSeconds(1));
+    final WindowTimeClause grace = new WindowTimeClause(5, TimeUnit.SECONDS);
+    final WithinExpression withinExpression = new WithinExpression(1, TimeUnit.SECONDS, grace);
+
+    for (final Pair<JoinType, StreamStreamJoin> testcase : cases) {
+      final SchemaKStream joinedKStream = testcase.right.join(
+          schemaKStream,
+          KEY,
+          withinExpression,
+          valueFormat.getFormatInfo(),
+          valueFormat.getFormatInfo(),
+          childContextStacker
+      );
+
+      // Then:
+      assertThat(
+          joinedKStream.getSourceStep(),
+          equalTo(
+              ExecutionStepFactory.streamStreamJoin(
+                  childContextStacker,
+                  testcase.left,
+                  KEY,
+                  InternalFormats.of(keyFormat, valueFormat.getFormatInfo()),
+                  InternalFormats.of(keyFormat, valueFormat.getFormatInfo()),
+                  initialSchemaKStream.getSourceStep(),
+                  schemaKStream.getSourceStep(),
+                  joinWindows,
+                  Optional.of(grace)
+              )
+          )
+      );
+    }
   }
 
   @Test

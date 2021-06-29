@@ -26,6 +26,7 @@ import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.DateLiteral;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -573,7 +574,16 @@ public class ExpressionTypeManager {
     public Void visitTimeLiteral(
         final TimeLiteral timeLiteral, final Context context
     ) {
-      throw VisitorUtil.unsupportedOperation(this, timeLiteral);
+      context.setSqlType(SqlTypes.TIME);
+      return null;
+    }
+
+    @Override
+    public Void visitDateLiteral(
+        final DateLiteral dateLiteral, final Context context
+    ) {
+      context.setSqlType(SqlTypes.DATE);
+      return null;
     }
 
     @Override

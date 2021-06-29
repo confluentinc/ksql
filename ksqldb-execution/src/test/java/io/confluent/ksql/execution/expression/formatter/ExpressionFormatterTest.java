@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.expression.formatter;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
@@ -31,6 +32,7 @@ import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
+import io.confluent.ksql.execution.expression.tree.DateLiteral;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -70,6 +72,8 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.Optional;
@@ -169,7 +173,12 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatTimeLiteral() {
-    assertThat(ExpressionFormatter.formatExpression(new TimeLiteral("17/9/2017")), equalTo("TIME '17/9/2017'"));
+    assertThat(ExpressionFormatter.formatExpression(new TimeLiteral(new Time(10000))), equalTo("00:00:10"));
+  }
+
+  @Test
+  public void shouldFormatDateLiteral() {
+    assertThat(ExpressionFormatter.formatExpression(new DateLiteral(new Date(864000000))), equalTo("1970-01-11"));
   }
 
   @Test

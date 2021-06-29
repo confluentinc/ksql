@@ -18,9 +18,11 @@ package io.confluent.ksql.serde.protobuf;
 import com.google.common.collect.ImmutableMap;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Time;
 import org.apache.kafka.connect.data.Timestamp;
 import org.junit.Before;
 import org.junit.Test;
@@ -76,6 +78,46 @@ public class KsqlProtobufDeserializerTest {
         givenDeserializerForSchema(schema,
             Struct.class);
     final Struct value = new Struct(schema).put("f0", new BigDecimal("12.34"));
+    final byte[] bytes = givenConnectSerialized(value, schema);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(value));
+  }
+
+  @Test
+  public void shouldDeserializeTimeField() {
+    final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
+        .field("f0", Time.SCHEMA)
+        .build();
+
+    // Given:
+    final Deserializer<Struct> deserializer =
+        givenDeserializerForSchema(schema,
+            Struct.class);
+    final Struct value = new Struct(schema).put("f0", new java.sql.Time(2000));
+    final byte[] bytes = givenConnectSerialized(value, schema);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(value));
+  }
+
+  @Test
+  public void shouldDeserializeDateField() {
+    final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
+        .field("f0", Date.SCHEMA)
+        .build();
+
+    // Given:
+    final Deserializer<Struct> deserializer =
+        givenDeserializerForSchema(schema,
+            Struct.class);
+    final Struct value = new Struct(schema).put("f0", new java.sql.Date(864000000L));
     final byte[] bytes = givenConnectSerialized(value, schema);
 
     // When:

@@ -55,10 +55,10 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
+import io.confluent.ksql.util.PushQueryMetadata.ResultType;
 import io.confluent.ksql.util.QueryApplicationId;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
-import io.confluent.ksql.util.TransientQueryMetadata.ResultType;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -204,13 +204,16 @@ final class QueryExecutor {
       return Optional.empty();
     }
     final KStream<?, GenericRow> stream;
+    final boolean isTable;
     if (result instanceof KTableHolder) {
       stream = ((KTableHolder<?>) result).getTable().toStream();
+      isTable = true;
     } else {
       stream = ((KStreamHolder<?>) result).getStream();
+      isTable = false;
     }
     final Optional<ScalablePushRegistry> registry = ScalablePushRegistry.create(schema,
-        allPersistentQueries, windowed, streamsProperties);
+        allPersistentQueries, isTable, windowed, streamsProperties);
     registry.ifPresent(r -> stream.process(registry.get()));
     return registry;
   }

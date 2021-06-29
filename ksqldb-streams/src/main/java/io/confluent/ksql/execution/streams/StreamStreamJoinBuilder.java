@@ -85,8 +85,16 @@ public final class StreamStreamJoinBuilder {
     final JoinParams joinParams = JoinParamsFactory
         .create(join.getKeyColName(), leftSchema, rightSchema);
 
-    final JoinWindows joinWindows =
+    JoinWindows joinWindows =
         JoinWindows.of(join.getBeforeMillis()).after(join.getAfterMillis());
+
+    // Grace, as optional, helps to identify if a user use the new GRACE PERIOD syntax in the
+    // join window or not. If used, then we'll call the new KStreams API ofSizeAndGrace() which
+    // enables the bugfix with left/outer joins (see KAFKA-10847).
+    if (join.getGraceMillis().isPresent()) {
+      joinWindows = joinWindows.grace(join.getGraceMillis().get());
+    }
+
     final KStream<K, GenericRow> result;
     switch (join.getJoinType()) {
       case LEFT:

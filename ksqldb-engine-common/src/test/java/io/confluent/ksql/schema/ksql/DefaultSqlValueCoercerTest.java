@@ -288,6 +288,17 @@ public class DefaultSqlValueCoercerTest {
             .put(TIMESTAMP, new Timestamp(1535792475000L))
             .build()
         )
+        .put("09:01:15", ImmutableMap.<SqlType, Object>builder()
+            .put(STRING, "09:01:15")
+            .put(TIME, new Time(32475000L))
+            .build()
+        )
+        .put("2018-09-01", ImmutableMap.<SqlType, Object>builder()
+            .put(STRING, "2018-09-01")
+            .put(DATE, new Date(1535760000000L))
+            .put(TIMESTAMP, new Timestamp(1535760000000L))
+            .build()
+        )
         // TIMESTAMP:
         .put(new Timestamp(1535792475000L), ImmutableMap.<SqlType, Object>builder()
             .put(TIMESTAMP, new Timestamp(1535792475000L))
@@ -296,10 +307,12 @@ public class DefaultSqlValueCoercerTest {
         )
         .put(new Time(1000L), ImmutableMap.<SqlType, Object>builder()
             .put(TIME, new Time(1000L))
+            .put(STRING, laxOnly("00:00:01"))
             .build()
         )
         .put(new Date(636451200000L), ImmutableMap.<SqlType, Object>builder()
             .put(DATE, new Date(636451200000L))
+            .put(STRING, laxOnly("1990-03-03"))
             .build()
         )
         // ARRAY:
@@ -313,6 +326,8 @@ public class DefaultSqlValueCoercerTest {
             .put(array(array(BOOLEAN)), ImmutableList.of())
             .put(array(map(STRING, STRING)), ImmutableList.of())
             .put(array(SqlTypes.struct().field("a", INTEGER).build()), ImmutableList.of())
+            .put(array(TIME), ImmutableList.of())
+            .put(array(DATE), ImmutableList.of())
             .put(array(TIMESTAMP), ImmutableList.of())
             .build()
         )
@@ -408,6 +423,14 @@ public class DefaultSqlValueCoercerTest {
                 .put(
                     struct().field("a", TIMESTAMP).build(),
                     createStruct(struct().field("a", TIMESTAMP).build())
+                )
+                .put(
+                    struct().field("abc", TIME).build(),
+                    createStruct(struct().field("abc", TIME).build())
+                )
+                .put(
+                    struct().field("def", DATE).build(),
+                    createStruct(struct().field("def", DATE).build())
                 )
                 .build()
         )
@@ -1134,6 +1157,12 @@ public class DefaultSqlValueCoercerTest {
           if (to.baseType() == SqlBaseType.TIMESTAMP) {
             return "2018-09-01T09:01:15.000";
           }
+          if (to.baseType() == SqlBaseType.TIME) {
+            return "09:01:15";
+          }
+          if (to.baseType() == SqlBaseType.DATE) {
+            return "2018-09-01";
+          }
           // Intentional fall through
         default:
           final Object instance = INSTANCES.get(from.baseType());
@@ -1174,6 +1203,8 @@ public class DefaultSqlValueCoercerTest {
                 .build())
             .put(SqlBaseType.STRING, ImmutableSet.<SqlBaseType>builder()
                 .add(SqlBaseType.STRING)
+                .add(SqlBaseType.TIME)
+                .add(SqlBaseType.DATE)
                 .add(SqlBaseType.TIMESTAMP)
                 .build())
             .put(SqlBaseType.ARRAY, ImmutableSet.<SqlBaseType>builder()
@@ -1227,6 +1258,12 @@ public class DefaultSqlValueCoercerTest {
                 .add(SqlBaseType.STRING)
                 .build())
             .put(SqlBaseType.TIMESTAMP, ImmutableSet.<SqlBaseType>builder()
+                .add(SqlBaseType.STRING)
+                .build())
+            .put(SqlBaseType.TIME, ImmutableSet.<SqlBaseType>builder()
+                .add(SqlBaseType.STRING)
+                .build())
+            .put(SqlBaseType.DATE, ImmutableSet.<SqlBaseType>builder()
                 .add(SqlBaseType.STRING)
                 .build())
             .build();

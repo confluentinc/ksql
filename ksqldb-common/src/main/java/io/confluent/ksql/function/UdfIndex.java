@@ -56,8 +56,10 @@ import org.slf4j.LoggerFactory;
  *   <li>If two methods exist that match given the above rules, and both
  *       have variable arguments, return the method with the more non-variable
  *       arguments.</li>
- *   <li>If two methods exist that match only null values, return the one
- *       that was added first.</li>
+ *   <li>If two methods exist that match given the above rules, return the
+ *       method with fewer generic arguments.</li>
+ *   <li>If two methods exist that match given the above rules, the function
+ *       call is ambiguous and an exception is thrown.</li>
  * </ul>
  */
 public class UdfIndex<T extends FunctionSignature> {
@@ -112,6 +114,7 @@ public class UdfIndex<T extends FunctionSignature> {
       );
     }
 
+
     Node curr = root;
     Node parent = curr;
     for (final ParamType parameter : parameters) {
@@ -142,34 +145,39 @@ public class UdfIndex<T extends FunctionSignature> {
   }
 
   T getFunction(final List<SqlArgument> arguments) {
-    final List<Node> candidates = new ArrayList<>();
 
     // first try to get the candidates without any implicit casting
-    Optional<T> candidate = findMatchingCandidate(candidates, arguments, false);
+    Optional<T> candidate = findMatchingCandidate(arguments, false);
     if (candidate.isPresent()) {
       return candidate.get();
     } else if (!supportsImplicitCasts) {
       throw createNoMatchingFunctionException(arguments);
     }
-    candidates.clear();
 
-    //if non were found (candidate isn't present) try again with implicit casting
-    candidate = findMatchingCandidate(candidates, arguments, true);
+    // if none were found (candidate isn't present) try again with implicit casting
+    candidate = findMatchingCandidate(arguments, true);
     if (candidate.isPresent()) {
       return candidate.get();
     }
     throw createNoMatchingFunctionException(arguments);
   }
 
-  private Optional<T> findMatchingCandidate(final List<Node> candidates, final List<SqlArgument> arguments, final boolean allowCasts) {
+  private Optional<T> findMatchingCandidate(
+      final List<SqlArgument> arguments, final boolean allowCasts) {
+
+    final List<Node> candidates = new ArrayList<>();
+
     getCandidates(arguments, 0, root, candidates, new HashMap<>(), allowCasts);
     candidates.sort(Node::compare);
 
     final int len = candidates.size();
     if (len == 1) {
       return Optional.of(candidates.get(0).value);
-    } else if (len > 1 && candidates.get(len - 1).compare(candidates.get(len - 2)) > 0) {
-      return Optional.of(candidates.get(len - 1).value);
+    } else if (len > 1) {
+      if (candidates.get(len - 1).compare(candidates.get(len - 2)) > 0) {
+        return Optional.of(candidates.get(len - 1).value);
+      }
+      throw createVagueImplicitCastException(arguments);
     }
 
     return Optional.empty();
@@ -200,10 +208,8 @@ public class UdfIndex<T extends FunctionSignature> {
     }
   }
 
-  private KsqlException createNoMatchingFunctionException(final List<SqlArgument> paramTypes) {
-    LOG.debug("Current UdfIndex:\n{}", describe());
-
-    final String requiredTypes = paramTypes.stream()
+  private String getParamsAsString(final List<SqlArgument> paramTypes) {
+    return paramTypes.stream()
         .map(argument -> {
           if (argument == null) {
             return "null";
@@ -212,10 +218,35 @@ public class UdfIndex<T extends FunctionSignature> {
           }
         })
         .collect(Collectors.joining(", ", "(", ")"));
+  }
 
-    final String acceptedTypes = allFunctions.values().stream()
+  private String getAcceptedTypesAsString() {
+    return allFunctions.values().stream()
         .map(UdfIndex::formatAvailableSignatures)
         .collect(Collectors.joining(System.lineSeparator()));
+  }
+
+  private KsqlException createVagueImplicitCastException(final List<SqlArgument> paramTypes) {
+    LOG.debug("Current UdfIndex:\n{}", describe());
+    throw new KsqlException("Function '" + udfName
+        + "' cannot be resolved due to ambiguous method parameters "
+        + getParamsAsString(paramTypes) + "."
+        + System.lineSeparator()
+        + "Use CAST() to explicitly cast your parameters to one of the supported function calls."
+        + System.lineSeparator()
+        + "Valid function calls are:"
+        + System.lineSeparator()
+        + getAcceptedTypesAsString()
+        + System.lineSeparator()
+        + "For detailed information on a function run: DESCRIBE FUNCTION <Function-Name>;");
+  }
+
+  private KsqlException createNoMatchingFunctionException(final List<SqlArgument> paramTypes) {
+    LOG.debug("Current UdfIndex:\n{}", describe());
+
+    final String requiredTypes = getParamsAsString(paramTypes);
+
+    final String acceptedTypes = getAcceptedTypesAsString();
 
     return new KsqlException("Function '" + udfName
         + "' does not accept parameters " + requiredTypes + "."

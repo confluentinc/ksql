@@ -15,18 +15,18 @@
 
 package io.confluent.ksql.planner;
 
-public interface PullPlannerOptions {
+public interface QueryPlannerOptions {
 
   boolean getTableScansEnabled();
 
   boolean getInterpreterEnabled();
 
   /**
-   * @return a human readable representation of the {@code PullPlannerOptions},
+   * @return a human readable representation of the {@code QueryPlannerOptions},
    *         used to debug requests
    */
   default String debugString() {
-    return "PullPlannerOptions{"
+    return "QueryPlannerOptions{"
         + "tableScansEnabled: " + getTableScansEnabled()
         + ", interpreterEnabled: " + getInterpreterEnabled()
         + "}";

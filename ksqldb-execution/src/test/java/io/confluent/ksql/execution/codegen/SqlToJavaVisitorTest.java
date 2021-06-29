@@ -20,8 +20,10 @@ import static io.confluent.ksql.execution.testutil.TestExpressions.COL0;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL1;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL3;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL7;
+import static io.confluent.ksql.execution.testutil.TestExpressions.DATECOL;
 import static io.confluent.ksql.execution.testutil.TestExpressions.MAPCOL;
 import static io.confluent.ksql.execution.testutil.TestExpressions.SCHEMA;
+import static io.confluent.ksql.execution.testutil.TestExpressions.TIMECOL;
 import static io.confluent.ksql.execution.testutil.TestExpressions.TIMESTAMPCOL;
 import static io.confluent.ksql.execution.testutil.TestExpressions.literal;
 import static io.confluent.ksql.name.SourceName.of;
@@ -48,6 +50,7 @@ import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
+import io.confluent.ksql.execution.expression.tree.DateLiteral;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -82,7 +85,10 @@ import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -819,6 +825,98 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
+  public void shouldGenerateCorrectCodeForTimeTimeLT() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.LESS_THAN,
+        TIMECOL,
+        TIMECOL
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(COL12.compareTo(COL12) < 0)"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForTimeStringEQ() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.EQUAL,
+        TIMECOL,
+        new StringLiteral("01:23:45")
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(COL12.compareTo(SqlTimeTypes.parseTime(\"01:23:45\")) == 0)"));
+  }
+
+  @Test
+  public void shouldThrowOnTimestampTimeLEQ() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.LESS_THAN_OR_EQUAL,
+        TIMESTAMPCOL,
+        TIMECOL
+    );
+
+    // Then:
+    final Exception e = assertThrows(KsqlException.class, () -> sqlToJavaVisitor.process(compExp));
+    assertThat(e.getMessage(), is("Unexpected comparison to TIME: TIMESTAMP"));
+  }
+
+  @Test
+  public void shouldThrowOnTimeDateNEQ() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.NOT_EQUAL,
+        TIMECOL,
+        DATECOL
+    );
+
+    // Then:
+    final Exception e = assertThrows(KsqlException.class, () -> sqlToJavaVisitor.process(compExp));
+    assertThat(e.getMessage(), is("Unexpected comparison to TIME: DATE"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDateDateLT() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.LESS_THAN,
+        DATECOL,
+        DATECOL
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(COL13.compareTo(COL13) < 0)"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDateStringEQ() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.EQUAL,
+        DATECOL,
+        new StringLiteral("2021-06-23")
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(COL13.compareTo(SqlTimeTypes.parseDate(\"2021-06-23\")) == 0)"));
+  }
+
+  @Test
   public void shouldGenerateCorrectCodeForTimestampTimestampLT() {
     // Given:
     final ComparisonExpression compExp = new ComparisonExpression(
@@ -847,7 +945,7 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(COL10.compareTo(SqlTimestamps.parseTimestamp(\"2020-01-01T00:00:00\")) == 0)"));
+    assertThat(java, containsString("(COL10.compareTo(SqlTimeTypes.parseTimestamp(\"2020-01-01T00:00:00\")) == 0)"));
   }
 
   @Test
@@ -863,7 +961,23 @@ public class SqlToJavaVisitorTest {
     final String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
-    assertThat(java, containsString("(SqlTimestamps.parseTimestamp(\"2020-01-01T00:00:00\").compareTo(COL10) >= 0)"));
+    assertThat(java, containsString("(SqlTimeTypes.parseTimestamp(\"2020-01-01T00:00:00\").compareTo(COL10) >= 0)"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForTimestampDateGT() {
+    // Given:
+    final ComparisonExpression compExp = new ComparisonExpression(
+        Type.GREATER_THAN,
+        TIMESTAMPCOL,
+        DATECOL
+    );
+
+    // When:
+    final String java = sqlToJavaVisitor.process(compExp);
+
+    // Then:
+    assertThat(java, containsString("(COL10.compareTo(COL13) > 0)"));
   }
 
   @Test
@@ -876,6 +990,30 @@ public class SqlToJavaVisitorTest {
 
     // Then:
     assertThat(java, containsString("TimeUnit.DAYS"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForTime() {
+    // Given:
+    final TimeLiteral time = new TimeLiteral(new Time(185000));
+
+    // When:
+    final String java = sqlToJavaVisitor.process(time);
+
+    // Then:
+    assertThat(java, is("00:03:05"));
+  }
+
+  @Test
+  public void shouldGenerateCorrectCodeForDate() {
+    // Given:
+    final DateLiteral time = new DateLiteral(new Date(864000000));
+
+    // When:
+    final String java = sqlToJavaVisitor.process(time);
+
+    // Then:
+    assertThat(java, is("1970-01-11"));
   }
 
   @Test
@@ -1150,12 +1288,8 @@ public class SqlToJavaVisitorTest {
   }
 
   @Test
-  public void shouldThrowOnTimeLiteral() {
-    // When:
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> sqlToJavaVisitor.process(new TimeLiteral("TIME '00:00:00'"))
-    );
+  public void shouldProcessTimeLiteral() {
+    assertThat(sqlToJavaVisitor.process(new TimeLiteral(new Time(1000))), is("00:00:01"));
   }
 
   private void givenUdf(

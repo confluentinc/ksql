@@ -20,6 +20,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.api.server.QueryHandle;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.query.BlockingRowQueue;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.reactive.BasePublisher;
 import io.confluent.ksql.util.KeyValue;
 import io.vertx.core.Context;
@@ -48,9 +49,11 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, Gene
   private final WorkerExecutor workerExecutor;
   private BlockingRowQueue queue;
   private boolean isPullQuery;
+  private boolean isScalablePushQuery;
   private QueryHandle queryHandle;
   private List<String> columnNames;
   private List<String> columnTypes;
+  private QueryId queryId;
   private boolean complete;
   private volatile boolean closed;
 
@@ -60,11 +63,14 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, Gene
     this.workerExecutor = Objects.requireNonNull(workerExecutor);
   }
 
-  public void setQueryHandle(final QueryHandle queryHandle, final boolean isPullQuery) {
+  public void setQueryHandle(final QueryHandle queryHandle, final boolean isPullQuery,
+      final boolean isScalablePushQuery) {
     this.columnNames = queryHandle.getColumnNames();
     this.columnTypes = queryHandle.getColumnTypes();
     this.queue = queryHandle.getQueue();
     this.isPullQuery = isPullQuery;
+    this.isScalablePushQuery = isScalablePushQuery;
+    this.queryId = queryHandle.getQueryId();
     this.queue.setQueuedCallback(this::maybeSend);
     this.queue.setLimitHandler(() -> {
       complete = true;
@@ -100,6 +106,16 @@ public class BlockingQueryPublisher extends BasePublisher<KeyValue<List<?>, Gene
   @Override
   public boolean isPullQuery() {
     return isPullQuery;
+  }
+
+  @Override
+  public boolean isScalablePushQuery() {
+    return isScalablePushQuery;
+  }
+
+  @Override
+  public QueryId queryId() {
+    return queryId;
   }
 
   @Override

@@ -77,6 +77,11 @@ public abstract class VisitParentExpressionVisitor<R, C> implements ExpressionVi
   }
 
   @Override
+  public R visitDateLiteral(final DateLiteral node, final C context) {
+    return visitLiteral(node, context);
+  }
+
+  @Override
   public R visitTimestampLiteral(final TimestampLiteral node, final C context) {
     return visitLiteral(node, context);
   }

@@ -163,6 +163,7 @@ public class InsertsStreamRunner extends BasePerfRunner {
     public CompletableFuture<QueryPublisher> createQueryPublisher(final String sql,
         final Map<String, Object> properties,
         final Map<String, Object> sessionVariables,
+        final Map<String, Object> requestProperties,
         final Context context,
         final WorkerExecutor workerExecutor,
         final ApiSecurityContext apiSecurityContext,
@@ -196,7 +197,8 @@ public class InsertsStreamRunner extends BasePerfRunner {
     public CompletableFuture<EndpointResponse> executeQueryRequest(KsqlRequest request,
         WorkerExecutor workerExecutor, CompletableFuture<Void> connectionClosedFuture,
         ApiSecurityContext apiSecurityContext, Optional<Boolean> isInternalRequest,
-        KsqlMediaType mediaType, final MetricsCallbackHolder metricsCallbackHolder) {
+        KsqlMediaType mediaType, final MetricsCallbackHolder metricsCallbackHolder,
+        Context context) {
       return null;
     }
 
@@ -261,7 +263,7 @@ public class InsertsStreamRunner extends BasePerfRunner {
 
     @Override
     public void executeWebsocketStream(ServerWebSocket webSocket, MultiMap requstParams,
-        WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext) {
+        WorkerExecutor workerExecutor, ApiSecurityContext apiSecurityContext, Context context) {
 
     }
   }

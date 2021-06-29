@@ -650,6 +650,9 @@
         "afterMillis" : {
           "type" : "integer"
         },
+        "graceMillis" : {
+          "type" : "integer"
+        },
         "keyColName" : {
           "type" : "string"
         }

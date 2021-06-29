@@ -32,13 +32,7 @@ import org.apache.kafka.streams.Topology;
 /**
  * Metadata of a transient query, e.g. {@code SELECT * FROM FOO;}.
  */
-public class TransientQueryMetadata extends QueryMetadataImpl {
-
-  public enum ResultType {
-    STREAM,
-    TABLE,
-    WINDOWED_TABLE
-  }
+public class TransientQueryMetadata extends QueryMetadataImpl implements PushQueryMetadata {
 
   private final BlockingRowQueue rowQueue;
   private final ResultType resultType;

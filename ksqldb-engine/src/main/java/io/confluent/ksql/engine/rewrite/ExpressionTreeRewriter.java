@@ -28,6 +28,7 @@ import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
+import io.confluent.ksql.execution.expression.tree.DateLiteral;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -527,6 +528,11 @@ public final class ExpressionTreeRewriter<C> {
 
     @Override
     public Expression visitTimeLiteral(final TimeLiteral node, final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
+    }
+
+    @Override
+    public Expression visitDateLiteral(final DateLiteral node, final C context) {
       return plugin.apply(node, new Context<>(context, this)).orElse(node);
     }
 

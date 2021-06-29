@@ -38,6 +38,7 @@ import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
+import io.confluent.ksql.execution.expression.tree.DateLiteral;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -76,6 +77,8 @@ import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
@@ -99,7 +102,8 @@ public class ExpressionTreeRewriterTest {
       new StringLiteral("abcd"),
       new NullLiteral(),
       new DecimalLiteral(BigDecimal.ONE),
-      new TimeLiteral("00:00:00"),
+      new TimeLiteral(new Time(1000L)),
+      new DateLiteral(new Date(864000000L)),
       new TimestampLiteral(new Timestamp(0))
   );
 

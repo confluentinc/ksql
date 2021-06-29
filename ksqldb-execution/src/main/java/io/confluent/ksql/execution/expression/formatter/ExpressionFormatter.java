@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
+import io.confluent.ksql.execution.expression.tree.DateLiteral;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -59,7 +60,7 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.UnqualifiedColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.name.Name;
-import io.confluent.ksql.schema.ksql.SqlTimestamps;
+import io.confluent.ksql.schema.ksql.SqlTimeTypes;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
@@ -191,12 +192,17 @@ public final class ExpressionFormatter {
 
     @Override
     public String visitTimeLiteral(final TimeLiteral node, final Context context) {
-      return "TIME '" + node.getValue() + "'";
+      return SqlTimeTypes.formatTime(node.getValue());
+    }
+
+    @Override
+    public String visitDateLiteral(final DateLiteral node, final Context context) {
+      return SqlTimeTypes.formatDate(node.getValue());
     }
 
     @Override
     public String visitTimestampLiteral(final TimestampLiteral node, final Context context) {
-      return SqlTimestamps.formatTimestamp(node.getValue());
+      return SqlTimeTypes.formatTimestamp(node.getValue());
     }
 
     @Override

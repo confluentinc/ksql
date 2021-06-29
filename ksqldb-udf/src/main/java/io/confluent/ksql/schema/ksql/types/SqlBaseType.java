@@ -32,6 +32,13 @@ public enum SqlBaseType {
   }
 
   /**
+   * @return {@code true} if time type.
+   */
+  public boolean isTime() {
+    return this == TIME || this == DATE || this == TIMESTAMP;
+  }
+
+  /**
    * Test to see if this type can be <i>implicitly</i> cast to another.
    *
    * <p>Types can always be cast to themselves. Only numeric types can be implicitly cast to other
@@ -45,8 +52,8 @@ public enum SqlBaseType {
       return false;
     }
     final boolean canCastNumber = (isNumber() && to.isNumber() && this.ordinal() <= to.ordinal());
-    final boolean canCastTimestamp = this.equals(STRING) && to.equals(TIMESTAMP);
-    return this.equals(to) || canCastNumber || canCastTimestamp;
+    final boolean canCastTime = this.equals(STRING) && to.isTime();
+    return this.equals(to) || canCastNumber || canCastTime;
   }
 
   public static Stream<SqlBaseType> numbers() {

@@ -1,0 +1,35 @@
+{
+  "comments": [
+    "Tests covering Pull queries of (materialized) aggregate tables"
+  ],
+  "tests": [
+    {
+      "name": "only key column",
+      "statements": [
+        "CREATE STREAM I (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT K FROM INPUT EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": "12", "value": {"id": 101}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` STRING"}},
+          {"row":{"columns":["11"]}},
+          {"row":{"columns":["12"]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    }
+  ]
+}

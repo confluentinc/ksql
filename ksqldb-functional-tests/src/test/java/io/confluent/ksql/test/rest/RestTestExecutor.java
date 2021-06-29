@@ -30,13 +30,17 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.TestFunctionRegistry;
+import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.client.StreamPublisher;
+import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.integration.HighAvailabilityTestUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.ExpectedRecordComparator;
@@ -52,26 +56,33 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.RetryUtil;
+import io.vertx.core.Context;
 import java.io.Closeable;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
+import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -129,7 +140,16 @@ public class RestTestExecutor implements Closeable {
         return;
       }
 
-      produceInputs(testCase.getInputsByTopic());
+      final boolean waitForQueryHeaderToProduceInput = testCase.getInputConditions().isPresent()
+          && testCase.getInputConditions().get().getWaitForQueryHeader();
+//      produceInputs(testCase.getInputsByTopic(), 0);
+      final Optional<Runnable> postQueryHeaderRunnable;
+      if (!waitForQueryHeaderToProduceInput) {
+        produceInputs(testCase.getInputsByTopic());
+        postQueryHeaderRunnable = Optional.empty();
+      } else {
+        postQueryHeaderRunnable = Optional.of(() -> produceInputs(testCase.getInputsByTopic()));
+      }
 
       if (!testCase.expectedError().isPresent()
           && testCase.getExpectedResponses().size() > statements.admin.size()) {
@@ -138,9 +158,14 @@ public class RestTestExecutor implements Closeable {
             testCase.getExpectedResponses()
                 .subList(statements.admin.size(), testCase.getExpectedResponses().size())
         );
+        if (testCase.getInputConditions().isPresent()
+            && testCase.getInputConditions().get().getWaitForQueryHeader()) {
+          waitForRunningScalablePushQueries(statements.queries);
+        }
       }
 
-      final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries);
+      final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries,
+          postQueryHeaderRunnable);
       if (!queryResults.isEmpty()) {
         failIfExpectingError(testCase);
       }
@@ -237,6 +262,19 @@ public class RestTestExecutor implements Closeable {
         throw new RuntimeException("Failed to send record to " + topicName, e);
       }
     });
+    System.out.println("Finished producing");
+//    inputs.forEach((topicName, records) -> {
+//      final TopicInfo topicInfo = topicInfoCache.get(topicName)
+//          .orElseThrow(() -> new KsqlException("No information found for topic: " + topicName));
+//      final List<? extends ConsumerRecord<?, ?>> received = kafkaCluster
+//          .verifyAvailableRecords(
+//              topicName,
+//              indexStart == 2 ? 4 : 2,
+//              topicInfo.getKeyDeserializer(),
+//              topicInfo.getValueDeserializer()
+//          );
+//      System.out.println("Received " + received);
+//    });
   }
 
   private static StatementSplit splitStatements(final RestTestCase testCase) {
@@ -295,10 +333,21 @@ public class RestTestExecutor implements Closeable {
 
   private List<RqttResponse> sendQueryStatements(
       final RestTestCase testCase,
-      final List<String> statements
+      final List<String> statements,
+      final Optional<Runnable> afterHeader
   ) {
+    // We only produce inputs after the first query at the moment to simplify things
+    final boolean[] runAfterHeader = new boolean[1];
     return statements.stream()
-        .map(stmt -> sendQueryStatement(testCase, stmt))
+        .map(stmt -> {
+          if (afterHeader.isPresent() && !runAfterHeader[0]) {
+            runAfterHeader[0] = true;
+            Optional<List<StreamedRow>> rows =
+                sendQueryStatement(testCase, stmt, afterHeader.get());
+            return rows;
+          }
+          return sendQueryStatement(testCase, stmt);
+        })
         .filter(Optional::isPresent)
         .map(Optional::get)
         .map(RqttResponse::query)
@@ -317,6 +366,63 @@ public class RestTestExecutor implements Closeable {
     }
 
     return Optional.of(resp.getResponse());
+  }
+
+  private Optional<List<StreamedRow>> sendQueryStatement(
+      final RestTestCase testCase,
+      final String sql,
+      final Runnable afterHeader
+  ) {
+    final RestResponse<StreamPublisher<StreamedRow>> resp
+        = restClient.makeQueryRequestStreamed(sql, null);
+
+    if (resp.isErroneous()) {
+      handleErrorResponse(testCase, resp);
+      return Optional.empty();
+    }
+
+    return handleRowPublisher(resp.getResponse(), afterHeader, testCase);
+  }
+
+  private Optional<List<StreamedRow>> handleRowPublisher(
+      final StreamPublisher<StreamedRow> publisher,
+      final Runnable afterHeader,
+      final RestTestCase testCase
+  ) {
+    final CompletableFuture<List<StreamedRow>> future = new CompletableFuture<>();
+    final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
+    final QueryStreamSubscriber subscriber = new QueryStreamSubscriber(publisher.getContext(),
+        future, header);
+    publisher.subscribe(subscriber);
+
+    try {
+      header.get();
+    } catch (Exception e) {
+      LOG.error("Error awaiting header", e);
+      throw new RuntimeException(e);
+    }
+
+    try {
+      afterHeader.run();
+    } catch (Exception e) {
+      LOG.error("Error doing after header", e);
+    }
+//    try {
+//      Thread.sleep(120000);
+//    } catch (InterruptedException e) {
+//      e.printStackTrace();
+//    }
+
+    try {
+      return Optional.of(future.get());
+    } catch (Exception e) {
+      LOG.error("Error awaiting rows", e);
+      throw new RuntimeException(e);
+    } finally {
+      subscriber.close();
+      publisher.close();
+    }
+//    return Optional.empty();
   }
 
   private void verifyOutput(final RestTestCase testCase) {
@@ -535,6 +641,49 @@ public class RestTestExecutor implements Closeable {
     LOG.info("Timed out waiting for correct response");
   }
 
+private void waitForRunningScalablePushQueries(
+      final List<String> queries
+  ) {
+    for (int i = 0; i != queries.size(); ++i) {
+      final String queryStatement = queries.get(i);
+      waitForRunningScalablePush(queryStatement);
+    }
+  }
+
+  private void waitForRunningScalablePush(
+      final String querySql
+  ) {
+    // Special handling for pull queries is required, as they depend on materialized state stores
+    // being warmed up.  Initial requests may return no rows.
+
+    if (!(querySql.contains("EMIT CHANGES"))) {
+      // Not a scalable push query, so not needed
+      return;
+    }
+
+    final long threshold = System.currentTimeMillis() + MAX_STATIC_WARM_UP.toMillis();
+    while (System.currentTimeMillis() < threshold) {
+      final RestResponse<StreamPublisher<StreamedRow>> resp
+          = restClient.makeQueryRequestStreamed(querySql, null);
+      if (resp.isErroneous()) {
+        final KsqlErrorMessage errorMessage = resp.getErrorMessage();
+        LOG.info("Server responded with an error code to a scalable push query. "
+            + "This could be because the persistent query hasn't started yet"
+            + System.lineSeparator() + errorMessage);
+        threadYield();
+      } else {
+        resp.getResponse().close();
+        return;
+      }
+    }
+//    while (System.currentTimeMillis() < threshold) {
+//      final RestResponse<ClusterStatusResponse> resp = restClient.makeClusterStatusRequest();
+//      System.out.println("FOo " + resp);
+//    }
+//    HighAvailabilityTestUtil.sendClusterStatusRequest();
+    LOG.info("Timed out waiting for non error");
+  }
+
   private static void threadYield() {
     try {
       // More reliable than Thread.yield
@@ -700,6 +849,62 @@ public class RestTestExecutor implements Closeable {
     private StatementSplit(final List<String> admin, final List<String> queries) {
       this.admin = ImmutableList.copyOf(admin);
       this.queries = ImmutableList.copyOf(queries);
+    }
+  }
+
+  private class QueryStreamSubscriber extends BaseSubscriber<StreamedRow> {
+
+    private final CompletableFuture<List<StreamedRow>> future;
+    private final CompletableFuture<StreamedRow> header;
+    private boolean closed;
+    private List<StreamedRow> rows = new ArrayList<>();
+
+    QueryStreamSubscriber(
+        final Context context,
+        final CompletableFuture<List<StreamedRow>> future,
+        final CompletableFuture<StreamedRow> header
+    ) {
+      super(context);
+      this.future = Objects.requireNonNull(future);
+      this.header = Objects.requireNonNull(header);
+    }
+
+    @Override
+    protected void afterSubscribe(final Subscription subscription) {
+      makeRequest(1);
+    }
+
+    @Override
+    protected synchronized void handleValue(final StreamedRow row) {
+      if (closed) {
+        return;
+      }
+      rows.add(row);
+      if (row.isTerminal()) {
+        future.complete(rows);
+//        close();
+        return;
+      }
+      if (row.getHeader().isPresent()) {
+        header.complete(row);
+      }
+      makeRequest(1);
+    }
+
+    @Override
+    protected void handleComplete() {
+      future.complete(rows);
+    }
+
+    @Override
+    protected void handleError(final Throwable t) {
+      header.completeExceptionally(t);
+      future.completeExceptionally(t);
+    }
+
+    private void close() {
+      closed = true;
+      context.runOnContext(v -> cancel());
     }
   }
 }

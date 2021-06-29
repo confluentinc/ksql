@@ -76,6 +76,9 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.processor.Processor;
+import org.apache.kafka.streams.processor.ProcessorContext;
+import org.apache.kafka.streams.processor.ProcessorSupplier;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 final class QueryExecutor {
@@ -157,6 +160,7 @@ final class QueryExecutor {
 
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
     final Object buildResult = buildQueryImplementation(physicalPlan, runtimeBuildContext);
+//    addFailing(buildResult);
     final BlockingRowQueue queue = buildTransientQueryQueue(buildResult, limit, excludeTombstones);
     final Topology topology = streamsBuilder.build(PropertiesUtil.asProperties(streamsProperties));
 
@@ -217,6 +221,46 @@ final class QueryExecutor {
         allPersistentQueries, isTable, windowed, streamsProperties);
     registry.ifPresent(r -> stream.process(registry.get()));
     return registry;
+  }
+
+  private final static class ErrorProcessor implements Processor<Object, GenericRow> {
+
+    private ProcessorContext context;
+
+    private ErrorProcessor() {
+    }
+
+    public void init(final ProcessorContext context) {
+      this.context = context;
+    }
+
+    public void process(final Object key, final GenericRow value) {
+      throw new RuntimeException("ERROR!");
+    }
+
+    @Override
+    public void close() {
+    }
+  }
+
+  private final static class ErrorProcessorSupplier implements ProcessorSupplier<Object, GenericRow> {
+
+    @Override
+    public Processor<Object, GenericRow> get() {
+      return new ErrorProcessor();
+    }
+  }
+
+  private static void addFailing(
+      final Object result
+  ) {
+    final KStream<?, GenericRow> stream;
+    if (result instanceof KTableHolder) {
+      stream = ((KTableHolder<?>) result).getTable().toStream();
+    } else {
+      stream = ((KStreamHolder<?>) result).getStream();
+    }
+    stream.process(new ErrorProcessorSupplier());
   }
 
   PersistentQueryMetadata buildPersistentQuery(

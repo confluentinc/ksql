@@ -47,6 +47,7 @@ import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import io.vertx.core.net.SocketAddress;
 import java.net.URI;
 import java.net.URL;
@@ -548,9 +549,9 @@ public class TestKsqlRestApp extends ExternalResource {
 
     final Map<String, Object> configMap = new HashMap<>();
     configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "application.id", "KSQL");
-    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "commit.interval.ms", 0);
-    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "cache.max.bytes.buffering", 0);
-    configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "auto.offset.reset", "earliest");
+    //configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "commit.interval.ms", 0);
+    //configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "cache.max.bytes.buffering", 0);
+    //configMap.put(KsqlConfig.KSQL_STREAMS_PREFIX + "auto.offset.reset", "earliest");
     configMap.put(KsqlConfig.KSQL_ENABLE_UDFS, false);
     configMap.put(KsqlRestConfig.KSQL_HEARTBEAT_ENABLE_CONFIG, false);
     configMap.putAll(additionalProps);

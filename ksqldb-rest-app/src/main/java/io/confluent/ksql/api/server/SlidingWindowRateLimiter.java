@@ -34,7 +34,7 @@ public class SlidingWindowRateLimiter {
     this.lastHourBytes = 0;
   }
 
-  public void allow(final long timestamp) throws KsqlException {
+  public synchronized void allow(final long timestamp) throws KsqlException {
     while (!queue.isEmpty() && queue.peek().left - timestamp >= timeLimit) {
       this.lastHourBytes -= queue.poll().right;
     }
@@ -43,7 +43,7 @@ public class SlidingWindowRateLimiter {
     }
   }
 
-  public void add(final long timestamp, final long bytes) {
+  public synchronized void add(final long timestamp, final long bytes) {
     queue.add(new Pair<>(timestamp, bytes));
     this.lastHourBytes += bytes;
   }

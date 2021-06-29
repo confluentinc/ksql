@@ -4,36 +4,74 @@
   ],
   "tests": [
     {
-      "name": "test least with numeric types",
+      "name": "test least with integer",
       "statements": [
-        "CREATE STREAM INPUT1 (ID BIGINT KEY, I1 INT, I2 INT, I3 INT) WITH (kafka_topic='input_topic_1', value_format='json');",
-        "CREATE STREAM INPUT2 (ID BIGINT KEY, B1 BIGINT, B2 BIGINT, B3 BIGINT) WITH (kafka_topic='input_topic_2', value_format='json');",
-        "CREATE STREAM INPUT3 (ID BIGINT KEY, DE1 DECIMAL(9,3), DE2 DECIMAL(9,3), DE3 DECIMAL(9,3)) WITH (kafka_topic='input_topic_3', value_format='json');",
-        "CREATE STREAM INPUT4 (ID BIGINT KEY, DO1 DOUBLE, DO2 DOUBLE, DO3 DOUBLE) WITH (kafka_topic='input_topic_4', value_format='json');",
-
-        "CREATE STREAM OUTPUT1 AS SELECT ID, LEAST(I1, I2, I3, null, 5) AS LOWEST FROM INPUT1;",
-        "CREATE STREAM OUTPUT2 AS SELECT ID, LEAST(B1, B2, B3, null) AS LOWEST FROM INPUT2;",
-        "CREATE STREAM OUTPUT3 AS SELECT ID, LEAST(DE1, DE2, DE3, null) AS LOWEST FROM INPUT3;",
-        "CREATE STREAM OUTPUT4 AS SELECT ID, LEAST(DO1, DO2, DO3, null) AS LOWEST FROM INPUT4;"
+        "CREATE STREAM INPUT (ID BIGINT KEY, I1 INT, I2 INT, I3 INT) WITH (kafka_topic='input_topic', value_format='json');",
+        "CREATE STREAM OUTPUT AS SELECT ID, LEAST(I1, I2, I3, null, 5) AS LOWEST FROM INPUT;"
       ],
       "inputs": [
-        {"topic": "input_topic_1", "key": 1, "value": {"I1": 2147483647, "I2": -2147483648, "I3":  null}},
-        {"topic": "input_topic_2", "key": 1, "value": {"B1": 9223372036854775807, "B2": -9223372036854775808, "B3":  null}},
-        {"topic": "input_topic_3", "key": 1, "value": {"DE1": 123456.789, "DE2": -987654.321, "DE3":  null}},
-        {"topic": "input_topic_4", "key": 1, "value": {"DO1": 50000.555, "DO2": -99999.555, "DO3":  null}}
+        {"topic": "input_topic", "key": 1, "value": {"I1": 2147483647, "I2": -2147483648, "I3":  null}}
       ],
       "outputs": [
-        {"topic": "OUTPUT1", "key": 1, "value": {"LOWEST": -2147483648}},
-        {"topic": "OUTPUT2", "key": 1, "value": {"LOWEST": -9223372036854775808}},
-        {"topic": "OUTPUT3", "key": 1, "value": {"LOWEST": -987654.321}},
-        {"topic": "OUTPUT4", "key": 1, "value": {"LOWEST": -99999.555}}
+        {"topic": "OUTPUT", "key": 1, "value": {"LOWEST": -2147483648}}
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT1", "type": "stream", "schema": "ID BIGINT KEY, LOWEST INT"},
-          {"name": "OUTPUT2", "type": "stream", "schema": "ID BIGINT KEY, LOWEST BIGINT"},
-          {"name": "OUTPUT3", "type": "stream", "schema": "ID BIGINT KEY, LOWEST DECIMAL(9,3)"},
-          {"name": "OUTPUT4", "type": "stream", "schema": "ID BIGINT KEY, LOWEST DOUBLE"}
+          {"name": "OUTPUT", "type": "stream", "schema": "ID BIGINT KEY, LOWEST INT"}
+        ]
+      }
+    },
+    {
+      "name": "test least with bigint",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, B1 BIGINT, B2 BIGINT, B3 BIGINT) WITH (kafka_topic='input_topic', value_format='json');",
+        "CREATE STREAM OUTPUT AS SELECT ID, LEAST(B1, B2, B3, null) AS LOWEST FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 1, "value": {"B1": 9223372036854775807, "B2": -9223372036854775808, "B3":  null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"LOWEST": -9223372036854775808}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID BIGINT KEY, LOWEST BIGINT"}
+        ]
+      }
+    },
+    {
+      "name": "test least with decimal",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, DE1 DECIMAL(9,3), DE2 DECIMAL(9,3), DE3 DECIMAL(9,3)) WITH (kafka_topic='input_topic', value_format='json');",
+        "CREATE STREAM OUTPUT AS SELECT ID, LEAST(DE1, DE2, DE3, null) AS LOWEST FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 1, "value": {"DE1": 123456.789, "DE2": -987654.321, "DE3":  null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"LOWEST": -987654.321}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID BIGINT KEY, LOWEST DECIMAL(9,3)"}
+        ]
+      }
+    },
+    {
+      "name": "test least with double",
+      "statements": [
+        "CREATE STREAM INPUT (ID BIGINT KEY, DO1 DOUBLE, DO2 DOUBLE, DO3 DOUBLE) WITH (kafka_topic='input_topic', value_format='json');",
+        "CREATE STREAM OUTPUT AS SELECT ID, LEAST(DO1, DO2, DO3, null) AS LOWEST FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 1, "value": {"DO1": 50000.555, "DO2": -99999.555, "DO3":  null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"LOWEST": -99999.555}}
+      ],
+      "post": {
+        "sources": [
+          {"name": "OUTPUT", "type": "stream", "schema": "ID BIGINT KEY, LOWEST DOUBLE"}
         ]
       }
     },
@@ -45,26 +83,24 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Function 'least' does not accept parameters (INTEGER, BIGINT)."
+        "message": "Function 'least' cannot be resolved due to ambiguous method parameters (INTEGER, BIGINT)."
       }
     },
     {
       "name": "test implicit casting to decimal",
       "statements": [
         "CREATE STREAM INPUT (ID BIGINT KEY, N1 INT, N2 BIGINT, N3 DECIMAL(50,30)) WITH (kafka_topic='input_topic',value_format='json');",
-
         "CREATE STREAM OUTPUT AS SELECT ID, LEAST(N1, N2, N3) AS LOWEST FROM INPUT;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Function 'least' does not accept parameters (INTEGER, BIGINT, DECIMAL(50, 30))."
+        "message": "Function 'least' cannot be resolved due to ambiguous method parameters (INTEGER, BIGINT, DECIMAL(50, 30))."
       }
     },
     {
       "name": "test implicit casting to double",
       "statements": [
         "CREATE STREAM INPUT (ID BIGINT KEY, N1 INT, N2 BIGINT, N3 DECIMAL(30,18), N4 DOUBLE) WITH (kafka_topic='input_topic',value_format='json');",
-
         "CREATE STREAM OUTPUT AS SELECT ID, LEAST(N1, N2, N3, N4, null) AS LOWEST FROM INPUT;"
       ],
       "inputs": [
@@ -82,9 +118,7 @@
       "name": "test least with strings",
       "statements": [
         "CREATE STREAM INPUT (ID BIGINT KEY, S1 STRING, S2 STRING, S3 STRING, S4 STRING) WITH (kafka_topic='input_topic',value_format='json');",
-        "CREATE STREAM OUTPUT AS SELECT ID, LEAST(S1, S2, S3, S4, null, null, 'hello') AS LOWEST FROM INPUT;",
-        "CREATE STREAM OUTPUT2 AS SELECT ID, LEAST('\"', S1) AS LOWEST FROM INPUT;",
-        "CREATE STREAM OUTPUT3 AS SELECT ID, LEAST('\\foo\"', S1) AS LOWEST FROM INPUT;"
+        "CREATE STREAM OUTPUT AS SELECT ID, LEAST(S1, S2, S3, S4, null, null, 'hello') AS LOWEST FROM INPUT;"
       ],
       "inputs": [
         {"topic": "input_topic", "key": 1, "value": {"S1": "apple", "S2": "banana", "S3": "aardvark",  "S4": null}},
@@ -94,15 +128,7 @@
       "outputs": [
         {"topic": "OUTPUT", "key": 1, "value": {"LOWEST": "aardvark"}},
         {"topic": "OUTPUT", "key": 2, "value": {"LOWEST": "hello"}},
-        {"topic": "OUTPUT", "key": 3, "value": {"LOWEST": "!"}},
-
-        {"topic": "OUTPUT2", "key": 1, "value": {"LOWEST":"\""}},
-        {"topic": "OUTPUT2", "key": 2, "value": {"LOWEST":"\""}},
-        {"topic": "OUTPUT2", "key": 3, "value": {"LOWEST":"!"}},
-
-        {"topic": "OUTPUT3", "key": 1, "value": {"LOWEST":"\\foo\""}},
-        {"topic": "OUTPUT3", "key": 2, "value": {"LOWEST":"\\foo\""}},
-        {"topic": "OUTPUT3", "key": 3, "value": {"LOWEST":"!"}}
+        {"topic": "OUTPUT", "key": 3, "value": {"LOWEST": "!"}}
       ]
     },
     {
@@ -127,12 +153,11 @@
       "name": "test all null input",
       "statements": [
         "CREATE STREAM INPUT (ID BIGINT KEY) WITH (kafka_topic='input_topic',value_format='json');",
-
         "CREATE STREAM OUTPUT AS SELECT ID, least(null, null, null, null) AS LOWEST FROM INPUT;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Function 'least' does not accept parameters (null, null, null, null)"
+        "message": "Function 'least' cannot be resolved due to ambiguous method parameters (null, null, null, null)."
       }
     },
     {
@@ -158,7 +183,7 @@
       }
     },
     {
-      "name": "test trying to call least(*)",
+      "name": "test trying to call LEAST(*)",
       "statements": [
         "CREATE STREAM INPUT (ID STRING KEY, NUM INT) WITH (kafka_topic='test_topic', value_format='json');",
         "CREATE STREAM OUTPUT AS SELECT LEAST(*) AS LOWEST FROM INPUT;"

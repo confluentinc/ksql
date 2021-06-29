@@ -138,23 +138,25 @@ in decimal degrees. An optional final parameter specifies `KM`
 
 ### `GREATEST`
 
-Since: 0.18.0
+Since: 0.20.0
 
 ```sql
 GREATEST(col1, col2...)
 ```
 
-The largest value among the provided elements.
+The largest value among the provided elements. Returns null if all
+elements are null, otherwise ignores null values.
 
 ### `LEAST`
 
-Since: 0.18.0
+Since: 0.20.0
 
 ```sql
 LEAST(col1, col2...)
 ```
 
-The smallest value among the provided elements.
+The smallest value among the provided elements. Returns null if all
+elements are null, otherwise ignores null values.
 
 ### `LN`
 

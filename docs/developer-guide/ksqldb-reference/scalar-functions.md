@@ -136,6 +136,26 @@ The great-circle distance between two lat-long points, both specified
 in decimal degrees. An optional final parameter specifies `KM`
 (the default) or `miles`.
 
+### `GREATEST`
+
+Since: 0.18.0
+
+```sql
+GREATEST(col1, col2...)
+```
+
+The largest value among the provided elements.
+
+### `LEAST`
+
+Since: 0.18.0
+
+```sql
+LEAST(col1, col2...)
+```
+
+The smallest value among the provided elements.
+
 ### `LN`
 
 Since: 0.6.0

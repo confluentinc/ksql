@@ -127,8 +127,7 @@ The following functions will be added/updated:
 * `PARSE_DATE(format, date_string)` - converts a date string in the specified format to a DATE
 * `PARSE_TIME(format, time_string)` - converts a time string in the specified format to a TIME
 * `UNIX_DATE(date)` - returns an INTEGER number of days that have passed between Unix epoch and the specified date
-* `UNIX_TIME(time)` -  returns an INTEGER number of milliseconds that have passed 00:00:00.000 and the specified time
-* `CONVERT_TZ(time, from_tz, to_tz)` - converts a time from one timezone to another
+* `FROM_DAYS(int)` -  convert epoch days to a DATE value
 * `DATEADD(time unit, integer, date)` - Adds an interval to the date. The time unit must be `DAYS` or `YEARS`. If it is not,
 then the function will throw an error
 * `DATESUB(time unit, integer, date)` - Subtracts an interval from the date. The time unit must be `DAYS` or `YEARS`. If it is not,

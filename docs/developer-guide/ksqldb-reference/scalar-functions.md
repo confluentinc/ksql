@@ -1078,11 +1078,14 @@ complex type are not inspected.
 Since: 0.6.0
 
 ```sql
-UNIX_DATE()
+UNIX_DATE([date])
 ```
- 
-Gets an integer representing days since epoch. The returned timestamp
-may differ depending on the local time of different ksqlDB Server instances.
+
+If `UNIX_DATE` is called with the date parameter, the function returns the DATE
+value as an INTEGER value representing the number of days since `1970-01-01`.
+
+If the `date` parameter is not provided, it returns an integer representing days since `1970-01-01`.
+The returned integer may differ depending on the local time of different ksqlDB Server instances.
 
 ### `UNIX_TIMESTAMP`
 

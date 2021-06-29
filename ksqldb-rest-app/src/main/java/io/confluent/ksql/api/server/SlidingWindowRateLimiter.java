@@ -35,7 +35,7 @@ public class SlidingWindowRateLimiter {
   }
 
   public synchronized void allow(final long timestamp) throws KsqlException {
-    while (!queue.isEmpty() && queue.peek().left - timestamp >= timeLimit) {
+    while (!queue.isEmpty() && timestamp - queue.peek().left >= timeLimit) {
       this.lastHourBytes -= queue.poll().right;
     }
     if (this.lastHourBytes > requestLimit) {

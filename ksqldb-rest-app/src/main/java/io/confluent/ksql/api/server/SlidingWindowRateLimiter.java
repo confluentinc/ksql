@@ -24,31 +24,31 @@ import java.util.Queue;
 
 public class SlidingWindowRateLimiter {
   private static long NUM_BYTES_IN_ONE_MEGABYTE = 1048576;
-  private final Queue<Pair<Long, Long>> queue;  // <timestamp, bytes>
-  private final long requestLimit;       //MEASURED IN BYTES
-  private final long timeLimit;  //1 hour in miliseconds
-  private long lastHourBytes;
+  private final Queue<Pair<Long, Long>> responseSizesLog;      // Pair<timestamp in miliseconds, response size in Bytes>
+  private final long throttleLimit;                            // throttle limit in Bytes
+  private final long slidingWindowSize;                        // window size in miliseconds
+  private long numBytesInWindow;                               // bandwidth in the last window
 
-  public SlidingWindowRateLimiter(final int requestLimitInMB, final long timeLimit) {
+  public SlidingWindowRateLimiter(final int requestLimitInMB, final long slidingWindowSize) {
     checkArgument(requestLimitInMB >= 0,
             "Pull Query bandwidth limit can't be negative.");
-    checkArgument(timeLimit >= 0,
+    checkArgument(slidingWindowSize >= 0,
             "Pull Query throttle window size can't be negative");
 
-    this.requestLimit = (long) requestLimitInMB * NUM_BYTES_IN_ONE_MEGABYTE;
-    this.timeLimit = timeLimit;
-    this.queue = new LinkedList<>();
-    this.lastHourBytes = 0;
+    this.throttleLimit = (long) requestLimitInMB * NUM_BYTES_IN_ONE_MEGABYTE;
+    this.slidingWindowSize = slidingWindowSize;
+    this.responseSizesLog = new LinkedList<>();
+    this.numBytesInWindow = 0;
   }
 
   public synchronized void allow(final long timestamp) throws KsqlException {
     checkArgument(timestamp >= 0,
             "Timestamp can't be negative.");
 
-    while (!queue.isEmpty() && timestamp - queue.peek().left >= timeLimit) {
-      this.lastHourBytes -= queue.poll().right;
+    while (!responseSizesLog.isEmpty() && timestamp - responseSizesLog.peek().left >= slidingWindowSize) {
+      this.numBytesInWindow -= responseSizesLog.poll().right;
     }
-    if (this.lastHourBytes > requestLimit) {
+    if (this.numBytesInWindow > throttleLimit) {
       throw new KsqlException("Host is at bandwidth rate limit for pull queries.");
     }
   }
@@ -59,7 +59,7 @@ public class SlidingWindowRateLimiter {
     checkArgument(responseSizeInBytes >= 0,
             "Response size can't be negative.");
 
-    queue.add(new Pair<>(timestamp, responseSizeInBytes));
-    this.lastHourBytes += responseSizeInBytes;
+    responseSizesLog.add(new Pair<>(timestamp, responseSizeInBytes));
+    this.numBytesInWindow += responseSizeInBytes;
   }
 }

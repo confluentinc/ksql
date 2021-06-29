@@ -53,7 +53,7 @@ public class ParseTimeTest {
         () -> udf.parseTime("2020 000105", "yyyy HHmmss"));
 
     // Then:
-    assertThat(e.getMessage(), is("Failed to parse time '2020 000105' with formatter 'yyyy HHmmss': Unsupported field: Year"));
+    assertThat(e.getMessage(), is("Failed to parse time '2020 000105' with formatter 'yyyy HHmmss': Time format contains date field."));
   }
 
   @Test

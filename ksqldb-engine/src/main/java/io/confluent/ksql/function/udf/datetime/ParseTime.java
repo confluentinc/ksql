@@ -58,13 +58,13 @@ public class ParseTime {
               + " java.time.format.DateTimeFormatter.") final String formatPattern) {
     try {
       final TemporalAccessor ta = formatters.get(formatPattern).parse(formattedTime);
-      final Optional<ChronoField> dateFieldCount = Arrays.stream(ChronoField.values())
+      final Optional<ChronoField> dateField = Arrays.stream(ChronoField.values())
           .filter(field -> field.isDateBased())
           .filter(field -> ta.isSupported(field))
           .findFirst();
 
-      if (dateFieldCount.isPresent()) {
-        throw new KsqlFunctionException("Unsupported field: " + dateFieldCount.get().toString());
+      if (dateField.isPresent()) {
+        throw new KsqlFunctionException("Time format contains date field.");
       }
 
       return new Time(TimeUnit.NANOSECONDS.toMillis(LocalTime.from(ta).toNanoOfDay()));

@@ -669,8 +669,8 @@ The result of EXTRACTJSONFIELD is always a STRING. Use `CAST` to convert the res
 type. For example, `CAST(EXTRACTJSONFIELD(message, '$.log.instance') AS INT)` will extract the
 instance number from the above JSON object as a INT.
 
-Because the return type of the UDF must always be a STRING, JSONPaths that select
-multiple elements, e.g., those containing wildcards, are not supported.
+The return type of the UDF is STRING, so JSONPaths that select
+multiple elements, like those containing wildcards, aren't supported.
 
 !!! note
     EXTRACTJSONFIELD is useful for extracting data from JSON where either the schema of the JSON

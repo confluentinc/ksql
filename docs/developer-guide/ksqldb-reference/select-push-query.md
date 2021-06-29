@@ -228,11 +228,8 @@ recommended to reduce high disk usage.
 
 !!! note
     If you specify a GRACE PERIOD for left/outer joins, the grace period defines when the left/outer
-
     join result is emitted. If you don't specify a GRACE PERIOD for left/outer joins,
-
     left/outer join results are emitted eagerly, which may cause "spurious" result records, so
-
     we recommended that you specify a GRACE PERIOD.
 
 

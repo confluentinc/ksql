@@ -27,6 +27,10 @@ import io.confluent.ksql.util.KsqlConstants;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoField;
+import java.time.temporal.TemporalAccessor;
+import java.util.Arrays;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -54,9 +58,19 @@ public class ParseDate {
           description = "The format pattern should be in the format expected by"
               + " java.time.format.DateTimeFormatter.") final String formatPattern) {
     try {
-      final DateTimeFormatter formatter = formatters.get(formatPattern);
+
+      final TemporalAccessor ta = formatters.get(formatPattern).parse(formattedDate);
+      final Optional<ChronoField> timeField= Arrays.stream(ChronoField.values())
+          .filter(field -> field.isTimeBased())
+          .filter(field -> ta.isSupported(field))
+          .findFirst();
+
+      if (timeField.isPresent()) {
+        throw new KsqlFunctionException("Date format contains time field.");
+      }
+
       return new Date(
-          TimeUnit.DAYS.toMillis(LocalDate.parse(formattedDate, formatter).toEpochDay()));
+          TimeUnit.DAYS.toMillis(LocalDate.from(ta).toEpochDay()));
     } catch (final ExecutionException | RuntimeException e) {
       throw new KsqlFunctionException("Failed to parse date '" + formattedDate
           + "' with formatter '" + formatPattern

@@ -46,6 +46,17 @@ public class ParseDateTest {
   }
 
   @Test
+  public void shouldThrowOnUnsupportedFields() {
+    // When:
+    final Exception e = assertThrows(
+        KsqlFunctionException.class,
+        () -> udf.parseDate("2021-12-01 05:40:34", "yyyy-MM-dd HH:mm:ss"));
+
+    // Then:
+    assertThat(e.getMessage(), is("Failed to parse date '2021-12-01 05:40:34' with formatter 'yyyy-MM-dd HH:mm:ss': Date format contains time field."));
+  }
+
+  @Test
   public void shouldSupportEmbeddedChars() {
     // When:
     final Date result = udf.parseDate("2021-12-01Fred", "yyyy-MM-dd'Fred'");

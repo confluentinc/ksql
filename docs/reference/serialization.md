@@ -139,9 +139,9 @@ This data format supports all SQL
 [data types](/reference/sql/data-types) except `ARRAY`, `MAP` and
 `STRUCT`. 
 
-`TIMESTAMP` typed data is serialized as a long value indicating the Unix epoch time in milliseconds.
-`TIME` typed data is serialized as an int value indicating the number of milliseconds since the beginning of the day.
-`DATA` typed data is serialized as an int value indicating the number of days since the Unix epoch.
+`TIMESTAMP` typed data is serialized as a `long` value indicating the Unix epoch time in milliseconds.
+`TIME` typed data is serialized as an `int` value indicating the number of milliseconds since the beginning of the day.
+`DATA` typed data is serialized as an `int` value indicating the number of days since the Unix epoch.
 
 ### JSON
 

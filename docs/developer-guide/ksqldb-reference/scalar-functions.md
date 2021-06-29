@@ -1221,6 +1221,14 @@ FROM_UNIXTIME(milliseconds)
 
 Converts a BIGINT millisecond timestamp value into a TIMESTAMP value.
 
+### `FROM_DAYS`
+
+```sql
+FROM_DAYS(days)
+```
+
+Converts an INT number of days since epoch to a DATE value.
+
 ### TIMESTAMPADD
 
 Since: 0.17

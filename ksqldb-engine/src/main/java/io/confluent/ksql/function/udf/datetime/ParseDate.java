@@ -60,7 +60,7 @@ public class ParseDate {
     try {
 
       final TemporalAccessor ta = formatters.get(formatPattern).parse(formattedDate);
-      final Optional<ChronoField> timeField= Arrays.stream(ChronoField.values())
+      final Optional<ChronoField> timeField = Arrays.stream(ChronoField.values())
           .filter(field -> field.isTimeBased())
           .filter(field -> ta.isSupported(field))
           .findFirst();

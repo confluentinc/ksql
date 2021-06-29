@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.server;
 
+import static io.confluent.ksql.util.KsqlPreconditions.checkArgument;
+
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.util.LinkedList;
@@ -28,6 +30,11 @@ public class SlidingWindowRateLimiter {
   private long lastHourBytes;
 
   public SlidingWindowRateLimiter(final int requestLimitInMB, final long timeLimit) {
+    checkArgument(requestLimitInMB >= 0,
+            "Pull Query bandwidth limit can't be negative.");
+    checkArgument(timeLimit >= 0,
+            "Pull Query throttle window size can't be negative");
+
     this.requestLimit = (long) requestLimitInMB * NUM_BYTES_IN_ONE_MEGABYTE;
     this.timeLimit = timeLimit;
     this.queue = new LinkedList<>();
@@ -35,6 +42,9 @@ public class SlidingWindowRateLimiter {
   }
 
   public synchronized void allow(final long timestamp) throws KsqlException {
+    checkArgument(timestamp >= 0,
+            "Timestamp can't be negative.");
+
     while (!queue.isEmpty() && timestamp - queue.peek().left >= timeLimit) {
       this.lastHourBytes -= queue.poll().right;
     }
@@ -43,8 +53,13 @@ public class SlidingWindowRateLimiter {
     }
   }
 
-  public synchronized void add(final long timestamp, final long bytes) {
-    queue.add(new Pair<>(timestamp, bytes));
-    this.lastHourBytes += bytes;
+  public synchronized void add(final long timestamp, final long responseSizeInBytes) {
+    checkArgument(timestamp >= 0,
+            "Timestamp can't be negative.");
+    checkArgument(responseSizeInBytes >= 0,
+            "Response size can't be negative.");
+
+    queue.add(new Pair<>(timestamp, responseSizeInBytes));
+    this.lastHourBytes += responseSizeInBytes;
   }
 }

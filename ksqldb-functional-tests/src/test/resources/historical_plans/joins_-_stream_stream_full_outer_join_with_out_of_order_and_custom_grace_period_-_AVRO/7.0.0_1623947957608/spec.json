@@ -106,31 +106,11 @@
       "key" : 0,
       "value" : {
         "T_ID" : 0,
-        "TT_ID" : null,
-        "L1" : "A",
-        "L2" : null
-      },
-      "timestamp" : 0
-    }, {
-      "topic" : "OUTER_JOIN",
-      "key" : 0,
-      "value" : {
-        "T_ID" : 0,
         "TT_ID" : 0,
         "L1" : "A",
         "L2" : "a"
       },
       "timestamp" : 60000
-    }, {
-      "topic" : "OUTER_JOIN",
-      "key" : 1,
-      "value" : {
-        "T_ID" : null,
-        "TT_ID" : 1,
-        "L1" : null,
-        "L2" : "b"
-      },
-      "timestamp" : 330000
     }, {
       "topic" : "OUTER_JOIN",
       "key" : 2,

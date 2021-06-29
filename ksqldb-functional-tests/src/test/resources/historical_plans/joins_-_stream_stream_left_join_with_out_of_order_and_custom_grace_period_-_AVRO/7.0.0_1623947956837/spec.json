@@ -106,25 +106,9 @@
       "key" : 0,
       "value" : {
         "L1" : "A",
-        "L2" : null
-      },
-      "timestamp" : 0
-    }, {
-      "topic" : "LEFT_JOIN",
-      "key" : 0,
-      "value" : {
-        "L1" : "A",
         "L2" : "a"
       },
       "timestamp" : 60000
-    }, {
-      "topic" : "LEFT_JOIN",
-      "key" : 1,
-      "value" : {
-        "L1" : "B",
-        "L2" : null
-      },
-      "timestamp" : 330000
     }, {
       "topic" : "LEFT_JOIN",
       "key" : 2,

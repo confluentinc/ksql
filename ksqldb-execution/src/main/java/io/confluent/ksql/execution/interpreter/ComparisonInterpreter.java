@@ -16,9 +16,11 @@
 package io.confluent.ksql.execution.interpreter;
 
 import static io.confluent.ksql.execution.interpreter.CastInterpreter.castToBigDecimalFunction;
+import static io.confluent.ksql.execution.interpreter.CastInterpreter.castToDateFunction;
 import static io.confluent.ksql.execution.interpreter.CastInterpreter.castToDoubleFunction;
 import static io.confluent.ksql.execution.interpreter.CastInterpreter.castToIntegerFunction;
 import static io.confluent.ksql.execution.interpreter.CastInterpreter.castToLongFunction;
+import static io.confluent.ksql.execution.interpreter.CastInterpreter.castToTimeFunction;
 import static io.confluent.ksql.execution.interpreter.CastInterpreter.castToTimestampFunction;
 
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
@@ -105,6 +107,14 @@ public final class ComparisonInterpreter {
     } else if (either(leftType, rightType, SqlBaseType.TIMESTAMP)) {
       final ComparableCastFunction<Date> castLeft = castToTimestampFunction(left.getSqlType());
       final ComparableCastFunction<Date> castRight = castToTimestampFunction(right.getSqlType());
+      return Optional.of((o1, o2) -> castLeft.cast(o1).compareTo(castRight.cast(o2)));
+    } else if (either(leftType, rightType, SqlBaseType.DATE)) {
+      final ComparableCastFunction<Date> castLeft = castToDateFunction(left.getSqlType());
+      final ComparableCastFunction<Date> castRight = castToDateFunction(right.getSqlType());
+      return Optional.of((o1, o2) -> castLeft.cast(o1).compareTo(castRight.cast(o2)));
+    } else if (either(leftType, rightType, SqlBaseType.TIME)) {
+      final ComparableCastFunction<Date> castLeft = castToTimeFunction(left.getSqlType());
+      final ComparableCastFunction<Date> castRight = castToTimeFunction(right.getSqlType());
       return Optional.of((o1, o2) -> castLeft.cast(o1).compareTo(castRight.cast(o2)));
     } else if (leftType == SqlBaseType.STRING) {
       return Optional.of((o1, o2) -> o1.toString().compareTo(o2.toString()));

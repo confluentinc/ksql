@@ -149,6 +149,9 @@ public final class MetaStoreFixture {
         .valueColumn(ColumnName.of("ARRAYCOL"), SqlTypes.array(SqlTypes.DOUBLE))
         .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(SqlTypes.STRING, SqlTypes.DOUBLE))
         .valueColumn(ColumnName.of("ADDRESS"), addressSchema)
+        .valueColumn(ColumnName.of("TIMESTAMPCOL"), SqlTypes.TIMESTAMP)
+        .valueColumn(ColumnName.of("TIMECOL"), SqlTypes.TIME)
+        .valueColumn(ColumnName.of("DATECOL"), SqlTypes.DATE)
         .build();
 
     final KsqlTopic ksqlTopicOrders = new KsqlTopic(

@@ -24,7 +24,7 @@ import java.util.Queue;
 
 public class SlidingWindowRateLimiter {
   private static long NUM_BYTES_IN_ONE_MEGABYTE = 1048576;
-  private final Queue<Pair<Long, Long>> responseSizesLog;      // Pair<timestamp in miliseconds, response size in Bytes>
+  private final Queue<Pair<Long, Long>> responseSizesLog;
   private final long throttleLimit;                            // throttle limit in Bytes
   private final long slidingWindowSize;                        // window size in miliseconds
   private long numBytesInWindow;                               // bandwidth in the last window
@@ -45,7 +45,8 @@ public class SlidingWindowRateLimiter {
     checkArgument(timestamp >= 0,
             "Timestamp can't be negative.");
 
-    while (!responseSizesLog.isEmpty() && timestamp - responseSizesLog.peek().left >= slidingWindowSize) {
+    while (!responseSizesLog.isEmpty()
+            && timestamp - responseSizesLog.peek().left >= slidingWindowSize) {
       this.numBytesInWindow -= responseSizesLog.poll().right;
     }
     if (this.numBytesInWindow > throttleLimit) {

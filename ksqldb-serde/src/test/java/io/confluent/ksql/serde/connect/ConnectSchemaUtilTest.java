@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.serde.connect;
 
+import static io.confluent.ksql.serde.connect.ConnectSchemaUtil.OPTIONAL_DATE_SCHEMA;
+import static io.confluent.ksql.serde.connect.ConnectSchemaUtil.OPTIONAL_TIMESTAMP_SCHEMA;
+import static io.confluent.ksql.serde.connect.ConnectSchemaUtil.OPTIONAL_TIME_SCHEMA;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -192,9 +195,9 @@ public class ConnectSchemaUtilTest {
 
     final Schema ksqlSchema = ConnectSchemaUtil.toKsqlSchema(connectSchema);
 
-    assertThat(ksqlSchema.field("TIMEFIELD").schema(), equalTo(Time.builder().optional().build()));
-    assertThat(ksqlSchema.field("DATEFIELD").schema(), equalTo(Date.builder().optional().build()));
-    assertThat(ksqlSchema.field("TIMESTAMPFIELD").schema(), equalTo(Timestamp.builder().optional().build()));
+    assertThat(ksqlSchema.field("TIMEFIELD").schema(), equalTo(OPTIONAL_TIME_SCHEMA));
+    assertThat(ksqlSchema.field("DATEFIELD").schema(), equalTo(OPTIONAL_DATE_SCHEMA));
+    assertThat(ksqlSchema.field("TIMESTAMPFIELD").schema(), equalTo(OPTIONAL_TIMESTAMP_SCHEMA));
   }
 
   @Test

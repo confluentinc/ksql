@@ -55,6 +55,10 @@ public final class ConnectSchemaUtil {
       .put(Type.STRUCT, ConnectSchemaUtil::toKsqlStructSchema)
       .build();
 
+  public static final Schema OPTIONAL_TIMESTAMP_SCHEMA = Timestamp.builder().optional().build();
+  public static final Schema OPTIONAL_TIME_SCHEMA = Time.builder().optional().build();
+  public static final Schema OPTIONAL_DATE_SCHEMA = Date.builder().optional().build();
+
   private ConnectSchemaUtil() {
   }
 
@@ -109,7 +113,7 @@ public final class ConnectSchemaUtil {
 
   private static Schema convertInt64Schema(final Schema schema) {
     if (schema.name() == Timestamp.LOGICAL_NAME) {
-      return Timestamp.builder().optional().build();
+      return OPTIONAL_TIMESTAMP_SCHEMA;
     } else {
       return Schema.OPTIONAL_INT64_SCHEMA;
     }
@@ -117,9 +121,9 @@ public final class ConnectSchemaUtil {
 
   private static Schema convertInt32Schema(final Schema schema) {
     if (schema.name() == Time.LOGICAL_NAME) {
-      return Time.builder().optional().build();
+      return OPTIONAL_TIME_SCHEMA;
     } else if (schema.name() == Date.LOGICAL_NAME) {
-      return Date.builder().optional().build();
+      return OPTIONAL_DATE_SCHEMA;
     } else {
       return Schema.OPTIONAL_INT32_SCHEMA;
     }

@@ -2,7 +2,6 @@ package io.confluent.ksql.function;
 
 import static io.confluent.ksql.function.KsqlScalarFunction.INTERNAL_PATH;
 import static io.confluent.ksql.function.types.ArrayType.of;
-import static io.confluent.ksql.schema.ksql.types.SqlTypes.BIGINT;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.INTEGER;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.BIGINT;
 import static java.lang.System.lineSeparator;
@@ -109,23 +108,6 @@ public class UdfIndexTest {
 
     // Then:
     assertThat(fun.name(), equalTo(EXPECTED));
-  }
-
-  @Test
-  public void shouldThrowWhenGivenComparablyEqualFunctions() {
-    // Given:
-    givenFunctions(
-        function(FIRST_FUNC, false, LONG, LONG),
-        function(SECOND_FUNC, false, DOUBLE, DOUBLE)
-    );
-
-    // When:
-    final Exception e = assertThrows(Exception.class,
-        () -> udfIndex.getFunction(ImmutableList.of(SqlArgument.of(INTEGER), SqlArgument.of(BIGINT))));
-
-
-    // Then:
-    assertThat(e.getMessage(), containsString("does not accept parameters"));
   }
 
   @Test

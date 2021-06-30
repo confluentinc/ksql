@@ -100,6 +100,13 @@
         "L2" : "d"
       },
       "timestamp" : 60000
+    }, {
+      "topic" : "left_topic",
+      "key" : 4,
+      "value" : {
+        "L1" : "dummy record that emits expired record B"
+      },
+      "timestamp" : 800000
     } ],
     "outputs" : [ {
       "topic" : "LEFT_JOIN",
@@ -133,6 +140,14 @@
         "L2" : null
       },
       "timestamp" : 60000
+    }, {
+      "topic" : "LEFT_JOIN",
+      "key" : 1,
+      "value" : {
+        "L1" : "B",
+        "L2" : null
+      },
+      "timestamp" : 330000
     } ],
     "topics" : [ {
       "name" : "right_topic",

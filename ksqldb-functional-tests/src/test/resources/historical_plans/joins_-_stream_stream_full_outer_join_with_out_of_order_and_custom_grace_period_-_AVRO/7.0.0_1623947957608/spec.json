@@ -100,6 +100,13 @@
         "L1" : "D"
       },
       "timestamp" : 60000
+    }, {
+      "topic" : "right_topic",
+      "key" : 4,
+      "value" : {
+        "L2" : "dummy record that emits expired record b"
+      },
+      "timestamp" : 800000
     } ],
     "outputs" : [ {
       "topic" : "OUTER_JOIN",
@@ -151,6 +158,16 @@
         "L2" : null
       },
       "timestamp" : 60000
+    }, {
+      "topic" : "OUTER_JOIN",
+      "key" : 1,
+      "value" : {
+        "T_ID" : null,
+        "TT_ID" : 1,
+        "L1" : null,
+        "L2" : "b"
+      },
+      "timestamp" : 330000
     } ],
     "topics" : [ {
       "name" : "OUTER_JOIN",

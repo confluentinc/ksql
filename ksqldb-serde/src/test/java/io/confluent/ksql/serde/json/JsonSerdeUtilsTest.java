@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import java.io.IOException;
+import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -200,6 +201,28 @@ public class JsonSerdeUtilsTest {
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingIncompatibleTime() {
     JsonSerdeUtils.toTime(JsonNodeFactory.instance.booleanNode(false));
+  }
+
+  @Test
+  public void shouldConvertIntToDateCorrectly() {
+    final Date d = JsonSerdeUtils.toDate(JsonNodeFactory.instance.numberNode(10));
+    assertThat(d.getTime(), equalTo(864000000L));
+  }
+
+  @Test
+  public void shouldConvertStringToDateCorrectly() {
+    final Date d = JsonSerdeUtils.toDate(JsonNodeFactory.instance.textNode("10"));
+    assertThat(d.getTime(), equalTo(864000000L));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldNotConvertIncorrectStringToDate() {
+    JsonSerdeUtils.toDate(JsonNodeFactory.instance.textNode("ha"));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldFailWhenConvertingIncompatibleDate() {
+    JsonSerdeUtils.toDate(JsonNodeFactory.instance.booleanNode(false));
   }
 
   @Test

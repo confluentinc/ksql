@@ -201,14 +201,11 @@ public class ApplyMigrationCommand extends BaseCommand {
       final Clock clock
   ) {
     String previous = MetadataUtil.getLatestMigratedVersion(config, ksqlClient);
-    final int minimumVersion = previous.equals(MetadataUtil.NONE_VERSION)
-        ? 1
-        : Integer.parseInt(previous) + 1;
 
     LOGGER.info("Loading migration files");
     final List<MigrationFile> migrations;
     try {
-      migrations = loadMigrationsToApply(migrationsDir, minimumVersion);
+      migrations = loadMigrationsToApply(migrationsDir, previous);
     } catch (MigrationException e) {
       LOGGER.error(e.getMessage());
       return false;
@@ -232,13 +229,21 @@ public class ApplyMigrationCommand extends BaseCommand {
 
   private List<MigrationFile> loadMigrationsToApply(
       final String migrationsDir,
-      final int minimumVersion
+      final String previousVersion
   ) {
+    final int minimumVersion = previousVersion.equals(MetadataUtil.NONE_VERSION)
+        ? 1
+        : Integer.parseInt(previousVersion) + 1;
     if (version > 0) {
       final Optional<MigrationFile> migration =
           getMigrationForVersion(String.valueOf(version), migrationsDir);
       if (!migration.isPresent()) {
         throw new MigrationException("No migration file with version " + version + " exists.");
+      }
+      if (version < minimumVersion) {
+        throw new MigrationException(
+            "Version must be newer than the last version migrated. Last version migrated was "
+                + previousVersion);
       }
       return Collections.singletonList(migration.get());
     }

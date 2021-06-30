@@ -186,6 +186,20 @@ public class QueryMetadataTest {
   }
 
   @Test
+  public void shouldSkipCleanUpKStreamsAppAfterCloseOnCloseIfRunning() {
+    // Given:
+    when(kafkaStreams.state()).thenReturn(State.RUNNING);
+
+    // When:
+    query.close();
+
+    // Then:
+    final InOrder inOrder = inOrder(kafkaStreams);
+    inOrder.verify(kafkaStreams).close(Duration.ofMillis(closeTimeout));
+    inOrder.verify(kafkaStreams, never()).cleanUp();
+  }
+
+  @Test
   public void shouldReturnSources() {
     assertThat(query.getSourceNames(), is(SOME_SOURCES));
   }

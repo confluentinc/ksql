@@ -308,7 +308,10 @@ public class QueryMetadataImpl implements QueryMetadata {
     kafkaStreams.setStateListener((b, a) -> listener.onStateChange(this, b, a));
   }
 
-  protected void closeKafkaStreams() {
+  /**
+   * @return If the close was successful
+   */
+  protected boolean closeKafkaStreams() {
     if (initialized) {
       kafkaStreams.close(closeTimeout);
       if (!getState().equals(State.NOT_RUNNING)) {
@@ -316,8 +319,10 @@ public class QueryMetadataImpl implements QueryMetadata {
             "query has not terminated even after close. "
                 + "This may happen when streams threads are hung. State: " + getState()
         );
+        return false;
       }
     }
+    return true;
   }
 
   /**
@@ -332,10 +337,12 @@ public class QueryMetadataImpl implements QueryMetadata {
 
   void doClose(final boolean cleanUp) {
     closed = true;
-    closeKafkaStreams();
+    final boolean closedKafkaStreams = closeKafkaStreams();
 
-    if (cleanUp) {
+    if (cleanUp && closedKafkaStreams) {
       kafkaStreams.cleanUp();
+    } else if (!closedKafkaStreams) {
+      LOG.warn("Query has not successfully closed, skipping cleanup");
     }
   }
 

@@ -266,6 +266,9 @@ public class MigrationsTest {
     assertThat(applyStatus, is(0));
 
     verifyMigrationsApplied();
+
+    // Verify that older versions cannot be applied
+    assertThat(MIGRATIONS_CLI.parse("--config-file", configFilePath, "apply", "-v", "1").runCommand(), is(1));
   }
 
   private void shouldDisplayInfo() {

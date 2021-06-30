@@ -123,6 +123,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -713,7 +714,13 @@ public class StreamedQueryResourceTest {
     final Map<String, Object> requestStreamsProperties = Collections.emptyMap();
     final KafkaStreamsBuilder kafkaStreamsBuilder = mock(KafkaStreamsBuilder.class);
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(mockKafkaStreams);
-    when(mockKafkaStreams.state()).thenReturn(State.RUNNING);
+    MutableBoolean closed = new MutableBoolean(false);
+    when(mockKafkaStreams.close(any())).thenAnswer(i -> {
+      closed.setValue(true);
+      return true;
+    });
+    when(mockKafkaStreams.state()).thenAnswer(i ->
+        closed.getValue() ? State.NOT_RUNNING : State.RUNNING);
 
     final TransientQueryMetadata transientQueryMetadata =
         new TransientQueryMetadata(

@@ -25,6 +25,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.DecimalNode;
 import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
 import org.junit.Test;
 
@@ -78,5 +80,23 @@ public class ApiJsonMapperTest {
 
     // Then:
     assertThat(result, is("\"1999-11-30T11:00:00.000\""));
+  }
+
+  @Test
+  public void shouldFormatTime() throws Exception {
+    // When:
+    final String result = OBJECT_MAPPER.writeValueAsString(new Time(10000));
+
+    // Then:
+    assertThat(result, is("\"00:00:10\""));
+  }
+
+  @Test
+  public void shouldFormatDate() throws Exception {
+    // When:
+    final String result = OBJECT_MAPPER.writeValueAsString(new Date(864000000));
+
+    // Then:
+    assertThat(result, is("\"1970-01-11\""));
   }
 }

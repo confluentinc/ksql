@@ -52,6 +52,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.IntervalUnit;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
 import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LambdaFunctionCall;
@@ -73,6 +74,7 @@ import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.types.ArrayType;
 import io.confluent.ksql.function.types.GenericType;
 import io.confluent.ksql.function.types.IntegerType;
+import io.confluent.ksql.function.types.IntervalUnitType;
 import io.confluent.ksql.function.types.LambdaType;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.UdfMetadata;
@@ -88,6 +90,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
@@ -391,6 +394,31 @@ public class InterpretedExpressionTest {
 
     // Then:
     assertThat(object, is(2));
+  }
+
+  @Test
+  public void shouldHandleFunctionCalls_intervalParam() {
+    // Given:
+    final UdfFactory udfFactory = mock(UdfFactory.class);
+    final KsqlScalarFunction udf = mock(KsqlScalarFunction.class);
+    when(udf.newInstance(any())).thenReturn(new toMillisUdf());
+    givenUdf("FOO", udfFactory, udf);
+    when(udf.parameters()).thenReturn(ImmutableList.of(IntervalUnitType.INSTANCE, IntegerType.INSTANCE));
+
+    // When:
+    InterpretedExpression interpreter1 = interpreter(
+        new FunctionCall(
+            FunctionName.of("FOO"),
+            ImmutableList.of(
+                new IntervalUnit(TimeUnit.SECONDS),
+                new IntegerLiteral(1))
+        )
+    );
+    final Object object = interpreter1.evaluate(ROW);
+
+
+    // Then:
+    assertThat(object, is(1000));
   }
 
   @Test
@@ -1097,6 +1125,16 @@ public class InterpretedExpressionTest {
         result.add(b.apply(value));
       }
       return result;
+    }
+  }
+
+  private static class toMillisUdf implements Kudf {
+
+    @Override
+    public Object evaluate(Object... args) {
+      TimeUnit a = (TimeUnit) args[0];
+      int b = (Integer) args[1];
+      return (int) a.toMillis(b);
     }
   }
 }

@@ -97,4 +97,14 @@ public final class SqlTimeTypes {
   public static String formatDate(final Date date) {
     return LocalDate.ofEpochDay(TimeUnit.MILLISECONDS.toDays(date.getTime())).toString();
   }
+
+  public static Date timestampToDate(final Timestamp timestamp) {
+    final long epochDay = timestamp.toInstant().atZone(ZoneId.of("Z")).toLocalDate().toEpochDay();
+    return new Date(TimeUnit.DAYS.toMillis(epochDay));
+  }
+
+  public static Time timestampToTime(final Timestamp timestamp) {
+    final long nanoOfDay = timestamp.toInstant().atZone(ZoneId.of("Z")).toLocalTime().toNanoOfDay();
+    return new Time(TimeUnit.NANOSECONDS.toMillis(nanoOfDay));
+  }
 }

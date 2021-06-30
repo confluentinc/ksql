@@ -20,6 +20,7 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("checkstyle:ClassDataAbstractionCoupling")
 public final class LiteralTerms {
@@ -52,6 +53,10 @@ public final class LiteralTerms {
 
   public static Term of(final Timestamp value) {
     return new TimestampTermImpl(value);
+  }
+
+  public static Term of(final TimeUnit value) {
+    return new IntervalUnitTermImpl(value);
   }
 
   public static NullTerm ofNull() {
@@ -207,6 +212,25 @@ public final class LiteralTerms {
     @Override
     public SqlType getSqlType() {
       return SqlTypes.TIMESTAMP;
+    }
+  }
+
+  public static class IntervalUnitTermImpl implements Term {
+
+    private final TimeUnit value;
+
+    public IntervalUnitTermImpl(final TimeUnit timeUnit) {
+      this.value = timeUnit;
+    }
+
+    @Override
+    public Object getValue(final TermEvaluationContext context) {
+      return value;
+    }
+
+    @Override
+    public SqlType getSqlType() {
+      return null;
     }
   }
 }

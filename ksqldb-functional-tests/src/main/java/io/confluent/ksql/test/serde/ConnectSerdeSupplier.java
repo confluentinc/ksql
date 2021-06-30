@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig;
+import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConstants;
@@ -127,6 +128,9 @@ public abstract class ConnectSerdeSupplier<T extends ParsedSchema>
           final Integer intVal = Integer.valueOf(spec.toString());
           if (Time.LOGICAL_NAME.equals(schema.name())) {
             return new java.sql.Time(intVal);
+          }
+          if (org.apache.kafka.connect.data.Date.LOGICAL_NAME.equals(schema.name())) {
+            return SerdeUtils.getDateFromEpochDays(intVal);
           }
           return intVal;
         case INT64:
@@ -244,6 +248,9 @@ public abstract class ConnectSerdeSupplier<T extends ParsedSchema>
         case INT32:
           if (Time.LOGICAL_NAME.equals(schema.name())) {
             return Time.fromLogical(schema, (Date) data);
+          }
+          if (org.apache.kafka.connect.data.Date.LOGICAL_NAME.equals(schema.name())) {
+            return org.apache.kafka.connect.data.Date.fromLogical(schema, (Date) data);
           }
           return data;
         case FLOAT32:

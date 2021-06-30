@@ -54,7 +54,7 @@
       "topic" : "test_topic",
       "key" : 0,
       "value" : "1",
-      "timestamp" : 70010
+      "timestamp" : 100010
     }, {
       "topic" : "test_topic",
       "key" : 0,
@@ -100,10 +100,10 @@
       "topic" : "S2",
       "key" : 0,
       "value" : "1",
-      "timestamp" : 70010,
+      "timestamp" : 100010,
       "window" : {
-        "start" : 70010,
-        "end" : 70010,
+        "start" : 100010,
+        "end" : 100010,
         "type" : "SESSION"
       }
     }, {

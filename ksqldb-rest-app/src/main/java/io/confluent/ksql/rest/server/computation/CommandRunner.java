@@ -466,6 +466,7 @@ public class CommandRunner implements Closeable {
         );
         closeEarly();
       } finally {
+        LOG.info("Closing command store");
         commandStore.close();
       }
     }

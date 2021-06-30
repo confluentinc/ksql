@@ -27,6 +27,8 @@ values.
 | `DOUBLE`  | `double`, `java.lang.Double`          |
 | `DECIMAL` | `java.math.BigDecimal`                |
 | `VARCHAR` | `java.lang.String`                    |
+| `TIME`    | `java.sql.Time`                       |
+| `DATE`    | `java.sql.Date`                       |
 |`TIMESTAMP`| `java.sql.Timestamp`                  |
 | `ARRAY`   | `java.util.List`                      |
 | `MAP`     | `java.util.Map`                       |

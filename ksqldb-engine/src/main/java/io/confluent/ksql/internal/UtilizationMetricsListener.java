@@ -7,7 +7,7 @@ import io.confluent.ksql.util.QueryMetadata;
 import org.apache.kafka.common.Metric;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.processor.ThreadMetadata;
+import org.apache.kafka.streams.ThreadMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,7 +71,7 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
     public void onDeregister(final QueryMetadata query) {
         final KafkaStreams streams = query.getKafkaStreams();
         kafkaStreams.remove(streams);
-        for (ThreadMetadata thread : streams.localThreadsMetadata()) {
+        for (ThreadMetadata thread : streams.metadataForLocalThreads()) {
             final String name = thread.threadName();
             previousFlushTime.remove(name);
             previousConsumerIOTime.remove(name);
@@ -95,7 +95,7 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
         double blockedTime;
         blockedTime = sampleTime - lastSampleTime;
         for (KafkaStreams stream : kafkaStreams) {
-            for (ThreadMetadata thread : stream.localThreadsMetadata()) {
+            for (ThreadMetadata thread : stream.metadataForLocalThreads()) {
                 final double threadTimes = getProcessingRatio(thread.threadName(), stream, windowStart, windowSize);
                 blockedTime = Math.min(threadTimes, blockedTime);
             }
@@ -113,6 +113,7 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
             final Map<String, Double> consumerMetrics = allMetrics.stream()
                 .filter(m -> m.metricName().group().equals(CONSUMER_METRICS)
                     && metrics.contains(m.metricName().name())
+                    && !m.metricName().tags().getOrDefault("client-id", "").contains("global-consumer")
                     && !m.metricName().tags().getOrDefault("client-id", "").contains("restore-consumer")
                     && m.metricName().tags().getOrDefault("client-id", "").contains(threadName))
                 .collect(Collectors.toMap(k -> k.metricName().name(), v -> (Double) v.metricValue()));
@@ -120,6 +121,7 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
             final Map<String, Double> restoreConsumerMetrics = allMetrics.stream()
                 .filter(m -> m.metricName().group().equals(CONSUMER_METRICS)
                     && metrics.contains(m.metricName().name())
+                    && !m.metricName().tags().getOrDefault("client-id", "").contains("global-consumer")
                     && m.metricName().tags().getOrDefault("client-id", "").contains("restore-consumer")
                     && m.metricName().tags().getOrDefault("client-id", "").contains(threadName))
                 .collect(Collectors.toMap(k -> k.metricName().name(), v -> (Double) v.metricValue()));
@@ -137,9 +139,8 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
                     .collect(Collectors.toMap(k -> k.metricName().name(), v -> (Double) v.metricValue()));
 
             final List<Metric> startTimeList = allMetrics.stream()
-                    .filter(m -> m.metricName().group().equals(STREAM_METRICS) &&
-                            m.metricName().tags().getOrDefault(THREAD_ID, "").equals(threadName) &&
-                            m.metricName().name().equals("thread-start-time"))
+                    .filter(m -> m.metricName().name().equals("thread-start-time") &&
+                            m.metricName().tags().getOrDefault(THREAD_ID, "").equals(threadName))
                     .collect(Collectors.toList());
             final Long threadStartTime = startTimeList.size() != 0 ? (Long) startTimeList.get(0).metricValue() : 0L;
 
@@ -147,14 +148,14 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
             if (threadStartTime > windowStart) {
                 blockedTime += threadStartTime - windowStart;
             }
-            final double newFlushTime = threadMetrics.getOrDefault("flush-time-total", windowSize);
-            double newConsumerIOTime = consumerMetrics.getOrDefault("io-waittime-total", windowSize)
-                + consumerMetrics.getOrDefault("iotime-total", windowSize)
-                + restoreConsumerMetrics.getOrDefault("io-waittime-total", windowSize)
-                + restoreConsumerMetrics.getOrDefault("iotime-total", windowSize);
+            final double newFlushTime = threadMetrics.getOrDefault("flush-time-total", 0.0);
+            double newConsumerIOTime = consumerMetrics.getOrDefault("io-waittime-total", 0.0)
+                + consumerMetrics.getOrDefault("iotime-total", 0.0)
+                + restoreConsumerMetrics.getOrDefault("io-waittime-total", 0.0)
+                + restoreConsumerMetrics.getOrDefault("iotime-total", 0.0);
             newConsumerIOTime = newConsumerIOTime / (1000 * 1000);
 
-            double newProducerBufferBlockTime = producerMetrics.getOrDefault("bufferpool-wait-time-total", windowSize);
+            double newProducerBufferBlockTime = producerMetrics.getOrDefault("bufferpool-wait-time-total", 0.0);
             newProducerBufferBlockTime = newProducerBufferBlockTime / (1000 * 1000);
 
             blockedTime += Math.max(newFlushTime - previousFlushTime.getOrDefault(threadName, 0.0), 0);

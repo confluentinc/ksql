@@ -30,7 +30,7 @@ import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_DEFAULT_KEY_FORMAT_CONFIG;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_CONFIG;
+import static io.confluent.ksql.util.KsqlConfig.KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PageViewDataProvider;
@@ -84,7 +84,7 @@ public class PullBandwidthThrottleIntegrationTest {
             .withProperty("sasl.jaas.config", SecureKafkaHelper.buildJaasConfig(NORMAL_USER))
             .withProperty("ksql.query.pull.table.scan.enabled", true)
             .withProperties(ClientTrustStore.trustStoreProps())
-            .withProperty(KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_CONFIG, 1)
+            .withProperty(KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_MEGABYTES_CONFIG, 1)
             .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
             .withProperty(KSQL_DEFAULT_KEY_FORMAT_CONFIG, "JSON")
             .build();

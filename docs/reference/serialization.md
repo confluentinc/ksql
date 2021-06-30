@@ -121,7 +121,14 @@ delimiter characters by specifying the KEY_DELIMITER and/or VALUE_DELIMITER when
 FORMAT='DELIMITED' in a WITH clause. Only a single character is valid
 as a delimiter. The default is the comma character. For space- and
 tab-delimited values, use the special values `SPACE` or `TAB`, not an actual
-space or tab character.
+space or tab character. 
+
+The delimiter is a Unicode character, as defined in `java.lang.Character`.
+For example, the smiley-face character works:
+
+```sql
+CREATE STREAM delim_stream (f1 STRING, f2 STRING) with (KAFKA_TOPIC='delim', FORMAT='DELIMITED', VALUE_DELIMITER='☺', ...);
+```
 
 The serialized object should be a Kafka-serialized string, which will be
 split into columns.

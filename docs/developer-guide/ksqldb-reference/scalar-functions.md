@@ -55,7 +55,11 @@ Converts one type to another. The following casts are supported:
 | any  | `STRING` | Converts the type to its string representation. |
 | `VARCHAR` | `BOOLEAN` | Any string that exactly matches `true`, case-insensitive, is converted to `true`. Any other value is converted to `false`. |
 | `VARCHAR` | `INT`, `BIGINT`, `DECIMAL`, `DOUBLE` | Converts string representation of numbers to number types. Conversion will fail if text does not contain a number or the number does not fit in the indicated type. |
+| `VARCHAR` | `TIME` | Converts time strings to `TIME`. Conversion fails if text is not in `HH:mm:ss` format.     |
+| `VARCHAR` | `DATE` | Converts date strings to `DATE`. Conversion fails if text is not in `yyyy-MM-dd` format.     |
 | `VARCHAR` | `TIMESTAMP` | Converts datestrings to `TIMESTAMP`. Conversion fails if text is not in ISO-8601 format.     |
+| `TIMESTAMP` | `TIME`, `DATE` | Converts a `TIMESTAMP` to `TIME` or `DATE` by extracting the time or date portion of the `TIMESTAMP`.|
+| `DATE` | `TIMESTAMP` | Converts a `DATE` to `TIMESTAMP` by setting the time portion to `00:00:00.000` |
 | `INT`, `BIGINT`, `DECIMAL`, `DOUBLE` | `INT`, `BIGINT`, `DECIMAL`, `DOUBLE` | Convert between numeric types. Conversion can result in rounding |
 | `ARRAY` | `ARRAY` | (Since 0.14) Convert between arrays of different element types |   
 | `MAP` | `MAP` | (Since 0.14) Convert between maps of different key and value types |   
@@ -1223,6 +1227,33 @@ Converts a string representation of a date in the
 given format into a DATE value. You can escape
 single-quote characters in the timestamp format by using two successive single
 quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
+
+### `FORMAT_TIME`
+
+Since: 0.20
+
+```sql
+FORMAT_TIME(time, 'HH:mm:ss.SSS')
+```
+
+Converts a TIME value into the string representation of the time in the given format.
+Single quotes in the time format can be escaped with two successive single quotes, `''`, for
+example: `'''T''HH:mm:ssX'`.
+
+For more information on time formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `PARSE_TIME`
+
+Since: 0.20
+
+```sql
+PARSE_TIME(col1, 'HH:mm:ss.SSS')
+```
+
+Converts a string value in the given format into a TIME value. Single quotes in the time
+format can be escaped with two successive single quotes, `''`, for example: `'''T''HH:mm:ssX'`.
+
+For more information on time formats, see [DateTimeFormatter](https://cnfl.io/java-dtf).
 
 ### `CONVERT_TZ`
 

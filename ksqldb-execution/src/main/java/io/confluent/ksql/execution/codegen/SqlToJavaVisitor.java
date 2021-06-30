@@ -713,27 +713,66 @@ public class SqlToJavaVisitor {
       }
     }
 
-    private String visitTimestampComparisonExpression(
+    private String visitTimeComparisonExpression(
         final ComparisonExpression.Type type,
         final SqlType left,
         final SqlType right
     ) {
       final String comparator = SQL_COMPARE_TO_JAVA.get(type);
       if (comparator == null) {
-        throw new KsqlException("Unexpected timestamp comparison: " + type.getValue());
+        throw new KsqlException("Unexpected scalar comparison: " + type.getValue());
+      }
+
+      final String compareLeft;
+      final String compareRight;
+
+      if (left.baseType() == SqlBaseType.TIME || right.baseType() == SqlBaseType.TIME) {
+        compareLeft = toTime(left, 1);
+        compareRight = toTime(right, 2);
+      } else if (
+          left.baseType() == SqlBaseType.TIMESTAMP || right.baseType() == SqlBaseType.TIMESTAMP
+      ) {
+        compareLeft = toTimestamp(left, 1);
+        compareRight = toTimestamp(right, 2);
+      } else {
+        compareLeft = toDate(left, 1);
+        compareRight = toDate(right, 2);
       }
 
       return String.format(
           "(%s.compareTo(%s) %s 0)",
-          toTimestamp(left, 1),
-          toTimestamp(right, 2),
+          compareLeft,
+          compareRight,
           comparator
       );
+    }
+
+    private String toTime(final SqlType schema, final int index) {
+      switch (schema.baseType()) {
+        case TIME:
+          return "%" + index + "$s";
+        case STRING:
+          return "SqlTimeTypes.parseTime(%" + index + "$s)";
+        default:
+          throw new KsqlException("Unexpected comparison to TIME: " + schema.baseType());
+      }
+    }
+
+    private String toDate(final SqlType schema, final int index) {
+      switch (schema.baseType()) {
+        case DATE:
+          return "%" + index + "$s";
+        case STRING:
+          return "SqlTimeTypes.parseDate(%" + index + "$s)";
+        default:
+          throw new KsqlException("Unexpected comparison to DATE: " + schema.baseType());
+      }
     }
 
     private String toTimestamp(final SqlType schema, final int index) {
       switch (schema.baseType()) {
         case TIMESTAMP:
+        case DATE:
           return "%" + index + "$s";
         case STRING:
           return "SqlTimeTypes.parseTimestamp(%" + index + "$s)";
@@ -755,9 +794,8 @@ public class SqlToJavaVisitor {
           || right.getRight().baseType() == SqlBaseType.DECIMAL) {
         exprFormat += visitBytesComparisonExpression(
             node.getType(), left.getRight(), right.getRight());
-      } else if (left.getRight().baseType() == SqlBaseType.TIMESTAMP
-          || right.getRight().baseType() == SqlBaseType.TIMESTAMP) {
-        exprFormat += visitTimestampComparisonExpression(
+      } else if (left.getRight().baseType().isTime() || right.getRight().baseType().isTime()) {
+        exprFormat += visitTimeComparisonExpression(
             node.getType(), left.getRight(), right.getRight());
       } else {
         switch (left.getRight().baseType()) {

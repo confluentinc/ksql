@@ -335,7 +335,10 @@ public class QueryEndpoint {
 
     @Override
     public void onException(final Consumer<Throwable> onException) {
-      queryMetadata.setUncaughtExceptionHandler(throwable  -> {onException.accept(throwable); return null;});
+      queryMetadata.setUncaughtExceptionHandler(throwable  -> {
+        onException.accept(throwable);
+        return null;
+      });
     }
 
     @Override

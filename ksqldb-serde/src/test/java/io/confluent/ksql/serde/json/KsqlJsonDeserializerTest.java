@@ -41,6 +41,7 @@ import com.fasterxml.jackson.databind.ser.std.DateSerializer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.serde.SerdeUtils;
+import io.confluent.ksql.serde.connect.ConnectSchemaUtil;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
@@ -100,9 +101,9 @@ public class KsqlJsonDeserializerTest {
           .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
           .optional()
           .build())
-      .field(TIMEFIELD, Time.builder().optional().build())
-      .field(DATEFIELD, Date.builder().optional().build())
-      .field(TIMESTAMPFIELD, Timestamp.builder().optional().build())
+      .field(TIMEFIELD, ConnectSchemaUtil.OPTIONAL_TIME_SCHEMA)
+      .field(DATEFIELD, ConnectSchemaUtil.OPTIONAL_DATE_SCHEMA)
+      .field(TIMESTAMPFIELD, ConnectSchemaUtil.OPTIONAL_TIMESTAMP_SCHEMA)
       .build();
 
   private static final Map<String, Object> AN_ORDER = ImmutableMap.<String, Object>builder()

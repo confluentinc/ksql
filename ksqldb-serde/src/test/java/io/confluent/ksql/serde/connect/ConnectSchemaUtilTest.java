@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.serde.connect;
 
+import static io.confluent.ksql.serde.connect.ConnectSchemaUtil.OPTIONAL_DATE_SCHEMA;
+import static io.confluent.ksql.serde.connect.ConnectSchemaUtil.OPTIONAL_TIMESTAMP_SCHEMA;
+import static io.confluent.ksql.serde.connect.ConnectSchemaUtil.OPTIONAL_TIME_SCHEMA;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -24,8 +27,11 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThrows;
 
 import io.confluent.ksql.util.KsqlException;
+import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Time;
+import org.apache.kafka.connect.data.Timestamp;
 import org.junit.Test;
 
 
@@ -54,6 +60,9 @@ public class ConnectSchemaUtilTest {
           equalTo(connectSchema.fields().get(i).schema().type()));
       assertThat(ksqlSchema.fields().get(i).schema().isOptional(), is(true));
     }
+    // Make sure that regular int32/int64 fields do not get converted to date/time/timestamp
+    assertThat(ksqlSchema.field("LONGFIELD").schema(), is(Schema.OPTIONAL_INT64_SCHEMA));
+    assertThat(ksqlSchema.field("INTFIELD").schema(), is(Schema.OPTIONAL_INT32_SCHEMA));
   }
 
   @Test
@@ -173,6 +182,22 @@ public class ConnectSchemaUtilTest {
     assertThat(mapSchema.type(), equalTo(Schema.Type.MAP));
     assertThat(mapSchema.keySchema(), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
     assertThat(mapSchema.valueSchema(), equalTo(Schema.OPTIONAL_INT32_SCHEMA));
+  }
+
+  @Test
+  public void shouldTranslateTimeTypes() {
+    final Schema connectSchema = SchemaBuilder
+        .struct()
+        .field("timefield", Time.SCHEMA)
+        .field("datefield", Date.SCHEMA)
+        .field("timestampfield", Timestamp.SCHEMA)
+        .build();
+
+    final Schema ksqlSchema = ConnectSchemaUtil.toKsqlSchema(connectSchema);
+
+    assertThat(ksqlSchema.field("TIMEFIELD").schema(), equalTo(OPTIONAL_TIME_SCHEMA));
+    assertThat(ksqlSchema.field("DATEFIELD").schema(), equalTo(OPTIONAL_DATE_SCHEMA));
+    assertThat(ksqlSchema.field("TIMESTAMPFIELD").schema(), equalTo(OPTIONAL_TIMESTAMP_SCHEMA));
   }
 
   @Test

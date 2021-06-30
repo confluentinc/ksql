@@ -35,7 +35,7 @@ import java.util.stream.Stream;
 @UdfDescription(
     name = "least",
     category = FunctionCategory.MATHEMATICAL,
-    description = "Returns the lowest value among a variable number of comparable columns",
+    description = "Returns the lowest non-null value among a variable number of comparable columns",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class Least {

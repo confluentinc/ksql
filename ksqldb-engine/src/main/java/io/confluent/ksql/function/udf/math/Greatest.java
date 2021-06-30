@@ -35,7 +35,8 @@ import java.util.stream.Stream;
 @UdfDescription(
     name = "greatest",
     category = FunctionCategory.MATHEMATICAL,
-    description = "Returns the highest value among a variable number of comparable columns",
+    description = "Returns the highest non-null value among a"
+        + " variable number of comparable columns.",
     author = KsqlConstants.CONFLUENT_AUTHOR
 )
 public class Greatest {

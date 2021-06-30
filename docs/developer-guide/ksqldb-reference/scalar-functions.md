@@ -144,8 +144,7 @@ Since: 0.20.0
 GREATEST(col1, col2...)
 ```
 
-The largest value among the provided elements. Returns null if all
-elements are null, otherwise ignores null values.
+The highest non-null value among a variable number of comparable columns.
 
 ### `LEAST`
 
@@ -155,8 +154,7 @@ Since: 0.20.0
 LEAST(col1, col2...)
 ```
 
-The smallest value among the provided elements. Returns null if all
-elements are null, otherwise ignores null values.
+The lowest non-null value among a variable number of comparable columns.
 
 ### `LN`
 

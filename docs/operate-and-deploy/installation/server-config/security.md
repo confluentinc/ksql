@@ -145,7 +145,8 @@ the following additional setting:
 ssl.client.authentication=REQUIRED
 ```
 
-!!! note The `ssl.client.auth` setting is deprecated.
+!!! note
+    The `ssl.client.auth` setting is deprecated.
 
 ### Additional server configuration options for HTTPS
 

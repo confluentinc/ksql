@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.integration;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.api.utils.QueryResponse;
 import io.confluent.ksql.integration.IntegrationTestHarness;
@@ -134,6 +135,7 @@ public class PullBandwidthThrottleIntegrationTest {
         REST_APP.getServiceContext().close();
     }
 
+    @SuppressFBWarnings({"DLS_DEAD_LOCAL_STORE"})
     @Test
     public void pullBandwidthThrottleTest() {
         String veryLong = createDataSize(100000);

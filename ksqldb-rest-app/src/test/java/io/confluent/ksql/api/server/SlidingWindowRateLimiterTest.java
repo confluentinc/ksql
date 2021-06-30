@@ -18,14 +18,14 @@ public class SlidingWindowRateLimiterTest {
 
     @Before
     public void setUp() {
-        limiter = new SlidingWindowRateLimiter(1, 5 * 1000);
+        limiter = new SlidingWindowRateLimiter(1, 5L * 1000L);
     }
 
     @Test
     public void bigInitialResponse() {
         Throwable exception = assertThrows(KsqlException.class, () -> {
-            limiter.add(0, 1148576);
-            limiter.allow(1000);
+            limiter.add(0L, 1148576L);
+            limiter.allow(1000L);
         });
         assertEquals(RATE_LIMIT_MESSAGE, exception.getMessage());
     }
@@ -33,9 +33,9 @@ public class SlidingWindowRateLimiterTest {
     @Test
     public void uniformResponsesUnderLimit() {
         try {
-            for (int i = 0; i < 30; i += 1) {
-                limiter.add(i * 500, 100000);
-                limiter.allow(i * 500 + 1);
+            for (long i = 0L; i < 30L; i += 1L) {
+                limiter.add(i * 500L, 100000L);
+                limiter.allow(i * 500L + 1L);
             }
         } catch (Exception e) {
             fail(TEST_SHOULD_NOT_FAIL);
@@ -45,9 +45,9 @@ public class SlidingWindowRateLimiterTest {
     @Test
     public void uniformResponsesOverLimit() {
         Throwable exception = assertThrows(KsqlException.class, () -> {
-            for (int i = 0; i < 11; i += 1) {
-                limiter.add(i * 400, 100000);
-                limiter.allow(i * 400 + 1);
+            for (long i = 0L; i < 11L; i += 1L) {
+                limiter.add(i * 400L, 100000L);
+                limiter.allow(i * 400L + 1L);
             }
         });
 
@@ -57,25 +57,25 @@ public class SlidingWindowRateLimiterTest {
     @Test
     public void justUnderForAWhileThenOverLimit() {
         try {
-            for (int i = 0; i < 5; i += 1) {
-                limiter.add(i * 500, i * 100000);
-                limiter.allow(i * 500 + 1);
+            for (long i = 0L; i < 5L; i += 1L) {
+                limiter.add(i * 500L, i * 100000L);
+                limiter.allow(i * 500L + 1L);
             }
         } catch (Exception e) {
             fail(TEST_SHOULD_NOT_FAIL);
         }
 
         try {
-            limiter.allow(3499);
-            limiter.add(3500, 80000);
+            limiter.allow(3499L);
+            limiter.add(3500L, 80000L);
         } catch (Exception e) {
             fail(TEST_SHOULD_NOT_FAIL);
         }
 
         Throwable exception = assertThrows(KsqlException.class, () -> {
-            for (int i = 10; i < 18; i += 1) {
-                limiter.add(i * 600, 140000);
-                limiter.allow(i * 600 + 1);
+            for (long i = 10L; i < 18L; i += 1L) {
+                limiter.add(i * 600L, 140000L);
+                limiter.allow(i * 600L + 1L);
             }
         });
 

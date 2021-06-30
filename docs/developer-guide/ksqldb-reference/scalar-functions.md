@@ -145,7 +145,8 @@ GREATEST(col1, col2...)
 ```
 
 The highest non-null value among a variable number of comparable columns.
-It is suggested to use CAST to explicitly cast these columns to the same type.
+If comparing columns of different numerical types, use [CAST](#cast) to first
+cast them to be of the same type.
 
 ### `LEAST`
 
@@ -156,7 +157,8 @@ LEAST(col1, col2...)
 ```
 
 The highest non-null value among a variable number of comparable columns.
-It is suggested to use CAST to explicitly cast these columns to the same type.
+If comparing columns of different numerical types, use [CAST](#cast) to first
+cast them to be of the same type.
 
 ### `LN`
 

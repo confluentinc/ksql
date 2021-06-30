@@ -153,6 +153,8 @@ public final class KsqlRestApplication implements Executable {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlRestApplication.class);
 
+  private static final int NUM_MILLISECONDS_IN_HOUR = 3600 * 1000;
+
   private static final SourceName COMMANDS_STREAM_NAME = SourceName.of("KSQL_COMMANDS");
 
   private final KsqlConfig ksqlConfigNoPort;
@@ -753,7 +755,7 @@ public final class KsqlRestApplication implements Executable {
         "pull queries");
     final SlidingWindowRateLimiter pullBandRateLimiter = new SlidingWindowRateLimiter(
             ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_PULL_MAX_HOURLY_BANDWIDTH_CONFIG),
-            3600 * 1000);
+            NUM_MILLISECONDS_IN_HOUR);
     final DenyListPropertyValidator denyListPropertyValidator = new DenyListPropertyValidator(
         ksqlConfig.getList(KsqlConfig.KSQL_PROPERTIES_OVERRIDES_DENYLIST));
 

@@ -46,7 +46,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.utils.Time;
 
 class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
@@ -106,7 +105,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
     PullQueryExecutionUtil.checkRateLimit(rateLimiter);
     final Decrementer decrementer = concurrencyLimiter.increment();
-    pullBandRateLimiter.allow(Time.SYSTEM.milliseconds());
+    pullBandRateLimiter.allow();
 
     PullQueryResult result = null;
     try {

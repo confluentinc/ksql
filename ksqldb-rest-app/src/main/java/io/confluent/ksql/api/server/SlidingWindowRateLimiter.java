@@ -17,36 +17,76 @@ package io.confluent.ksql.api.server;
 
 import static io.confluent.ksql.util.KsqlPreconditions.checkArgument;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import java.util.LinkedList;
 import java.util.Queue;
+import org.apache.kafka.common.utils.Time;
+
+/**
+ * SlidingWindowRateLimiter keeps a log of timestamps and the size for each response returned by
+ * pull queries. When a response comes, we first pop all outdated timestamps outside of past hour
+ * before appending the new response time and size to the log. Then we decide whether this response
+ * should be processed depending on whether the log size has exceeded the throttleLimit.
+ * Many rate limiters require you to ask for access before it's granted whereas this method always
+ * records access (post-facto) but asks that you check first via allow if previous calls put you in
+ * debt. This is due to not knowing the size of the response upfront.
+ */
 
 public class SlidingWindowRateLimiter {
-  private static long NUM_BYTES_IN_ONE_MEGABYTE = 1048576;
-  private final Queue<Pair<Long, Long>> responseSizesLog;
-  private final long throttleLimit;                            // throttle limit in Bytes
-  private final long slidingWindowSize;                        // window size in miliseconds
-  private long numBytesInWindow;                               // bandwidth in the last window
 
-  public SlidingWindowRateLimiter(final int requestLimitInMB, final long slidingWindowSize) {
+  private static long NUM_BYTES_IN_ONE_MEGABYTE = 1 * 1024 * 1024;
+
+  /**
+   * The log of all the responses returned in the past hour.
+   * It is a Queue ofPairs of (timestamp in milliseconds, response size in Bytes).
+   */
+  private final Queue<Pair<Long, Long>> responseSizesLog;
+
+  /**
+   * Throttle limit measured in Bytes.
+   */
+  private final long throttleLimit;
+
+  /**
+   * Window size over which the throttle is supposed to be enforced measured in milliseconds.
+   */
+  private final long slidingWindowSizeMs;
+
+  /**
+   * Aggregate of pull query response sizes in the past hour
+   */
+  private long numBytesInWindow;
+
+  public SlidingWindowRateLimiter(final int requestLimitInMB, final long slidingWindowSizeMs) {
     checkArgument(requestLimitInMB >= 0,
             "Pull Query bandwidth limit can't be negative.");
-    checkArgument(slidingWindowSize >= 0,
+    checkArgument(slidingWindowSizeMs >= 0,
             "Pull Query throttle window size can't be negative");
 
     this.throttleLimit = (long) requestLimitInMB * NUM_BYTES_IN_ONE_MEGABYTE;
-    this.slidingWindowSize = slidingWindowSize;
+    this.slidingWindowSizeMs = slidingWindowSizeMs;
     this.responseSizesLog = new LinkedList<>();
     this.numBytesInWindow = 0;
   }
 
-  public synchronized void allow(final long timestamp) throws KsqlException {
+  /**
+   * Checks if pull queries have returned more than the throttleLimit in the past hour.
+   * Throws a KsqlException is the limit has been breached
+   * @throws KsqlException Exception that the throttle limit has been reached for pull queries
+   */
+  public synchronized void allow() throws KsqlException {
+    this.allow(Time.SYSTEM.milliseconds());
+  }
+
+  @VisibleForTesting
+  protected synchronized void allow(final long timestamp) throws KsqlException {
     checkArgument(timestamp >= 0,
             "Timestamp can't be negative.");
 
     while (!responseSizesLog.isEmpty()
-            && timestamp - responseSizesLog.peek().left >= slidingWindowSize) {
+            && timestamp - responseSizesLog.peek().left >= slidingWindowSizeMs) {
       this.numBytesInWindow -= responseSizesLog.poll().right;
     }
     if (this.numBytesInWindow > throttleLimit) {
@@ -54,7 +94,17 @@ public class SlidingWindowRateLimiter {
     }
   }
 
-  public synchronized void add(final long timestamp, final long responseSizeInBytes) {
+  /**
+   * Adds the responseSizeInBytes and its timestamp to the queue of all response sizes
+   * in the past hour.
+   * @param responseSizeInBytes pull query response size measured in Bytes
+   */
+  public synchronized void add(final long responseSizeInBytes) {
+    add(Time.SYSTEM.milliseconds(), responseSizeInBytes);
+  }
+
+  @VisibleForTesting
+  protected synchronized void add(final long timestamp, final long responseSizeInBytes) {
     checkArgument(timestamp >= 0,
             "Timestamp can't be negative.");
     checkArgument(responseSizeInBytes >= 0,

@@ -70,7 +70,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.utils.Time;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class QueryEndpoint {
@@ -217,7 +216,6 @@ public class QueryEndpoint {
             PullQueryResult::getPlanType).orElse(PullPhysicalPlanType.UNKNOWN);
         final RoutingNodeType routingNodeType = Optional.ofNullable(r).map(
             PullQueryResult::getRoutingNodeType).orElse(RoutingNodeType.UNKNOWN);
-        pullBandRateLimiter.add(startTimeNanos / 1000000000, responseBytes);
         metrics.recordResponseSize(responseBytes, sourceType, planType, routingNodeType);
         metrics.recordLatency(startTimeNanos, sourceType, planType, routingNodeType);
         metrics.recordRowsReturned(
@@ -226,6 +224,7 @@ public class QueryEndpoint {
         metrics.recordRowsProcessed(
             Optional.ofNullable(r).map(PullQueryResult::getTotalRowsProcessed).orElse(0L),
             sourceType, planType, routingNodeType);
+        pullBandRateLimiter.add(responseBytes);
       });
     });
 
@@ -242,7 +241,7 @@ public class QueryEndpoint {
 
     PullQueryExecutionUtil.checkRateLimit(rateLimiter);
     final Decrementer decrementer = pullConcurrencyLimiter.increment();
-    pullBandRateLimiter.allow(Time.SYSTEM.milliseconds());
+    pullBandRateLimiter.allow();
 
     try {
       final PullQueryResult result = ksqlEngine.executePullQuery(

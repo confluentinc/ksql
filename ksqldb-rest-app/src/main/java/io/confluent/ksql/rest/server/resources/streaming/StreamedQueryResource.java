@@ -79,7 +79,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
-import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -356,7 +355,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
             PullQueryResult::getPlanType).orElse(PullPhysicalPlanType.UNKNOWN);
         final RoutingNodeType routingNodeType = Optional.ofNullable(r).map(
             PullQueryResult::getRoutingNodeType).orElse(RoutingNodeType.UNKNOWN);
-        pullBandRateLimiter.add(startTimeNanos / 1000000000, responseBytes);
         metrics.recordResponseSize(responseBytes, sourceType, planType, routingNodeType);
         metrics.recordLatency(startTimeNanos, sourceType, planType, routingNodeType);
         metrics.recordRowsReturned(
@@ -365,6 +363,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         metrics.recordRowsProcessed(
             Optional.ofNullable(r).map(PullQueryResult::getTotalRowsProcessed).orElse(0L),
             sourceType, planType, routingNodeType);
+        pullBandRateLimiter.add(responseBytes);
       });
     });
 
@@ -407,7 +406,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       PullQueryExecutionUtil.checkRateLimit(rateLimiter);
       decrementer = concurrencyLimiter.increment();
     }
-    pullBandRateLimiter.allow(Time.SYSTEM.milliseconds());
+    pullBandRateLimiter.allow();
 
     final Optional<Decrementer> optionalDecrementer = Optional.ofNullable(decrementer);
 

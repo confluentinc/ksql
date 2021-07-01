@@ -37,6 +37,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlParserTestUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
@@ -69,6 +71,9 @@ public class ExpressionEvaluatorParityTest {
   private static final long CATEGORY_ID = 456;
   private static final String CATEGORY_NAME = "cat";
   private static final int ORDER_UNITS = 20;
+  private static final Timestamp TIMESTAMP = new Timestamp(1273881610000L);
+  private static final Time TIME = new Time(7205000);
+  private static final Date DATE = new Date(864000000);
 
   private GenericRow ordersRow;
 
@@ -102,7 +107,7 @@ public class ExpressionEvaluatorParityTest {
     final Map<String, Double> map = ImmutableMap.of("abc", 6.75d, "def", 9.5d);
     // Note key isn't included first since it's assumed that it's provided as a value
     ordersRow = GenericRow.genericRow(ORDER_ID, ITEM_ID, itemInfo, ORDER_UNITS,
-        doubleArray, map, null, ROW_TIME, ORDER_TIME);
+        doubleArray, map, null, TIMESTAMP, TIME, DATE, ROW_TIME, ORDER_TIME);
   }
 
   @After
@@ -125,6 +130,12 @@ public class ExpressionEvaluatorParityTest {
     assertOrdersError("ARRAYCOL = MAPCOL",
         compileTime("Cannot compare ARRAYCOL (ARRAY<DOUBLE>) to MAPCOL (MAP<STRING, DOUBLE>)"),
         compileTime("Cannot compare ARRAYCOL (ARRAY<DOUBLE>) to MAPCOL (MAP<STRING, DOUBLE>)"));
+    assertOrders("TIMESTAMPCOL > DATECOL", true);
+    assertOrders("TIMECOL > '03:00:00'", false);
+    assertOrders("DATECOL = '1970-01-11'", true);
+    assertOrdersError("TIMESTAMPCOL = TIMECOL",
+        compileTime("Unexpected comparison to TIME: TIMESTAMP"),
+        compileTime("Cannot compare TIMESTAMPCOL (TIMESTAMP) to TIMECOL (TIME)"));
   }
 
   @Test
@@ -241,6 +252,13 @@ public class ExpressionEvaluatorParityTest {
         compileTime("Unsupported cast from STRING to ARRAY<INTEGER>"));
     assertOrders("CAST('true' as BOOLEAN)", true);
     assertOrders("TRUE AND CAST('true' as BOOLEAN)", true);
+    assertOrders("CAST('01:00:00.005' as TIME)", new Time(3600005));
+    assertOrders("CAST('2002-02-20' as DATE)", new Date(1014163200000L));
+    assertOrders("CAST(TIMESTAMPCOL as DATE)", new Date(1273881600000L));
+    assertOrders("CAST(TIMESTAMPCOL as TIME)", new Time(10000));
+    assertOrdersError("CAST(TIMECOL as TIMESTAMP)",
+        compileTime("Cast of TIME to TIMESTAMP is not supported"),
+        compileTime("Unsupported cast from TIME to TIMESTAMP"));
   }
 
   @Test

@@ -140,6 +140,30 @@ The great-circle distance between two lat-long points, both specified
 in decimal degrees. An optional final parameter specifies `KM`
 (the default) or `miles`.
 
+### `GREATEST`
+
+Since: 0.20.0
+
+```sql
+GREATEST(col1, col2...)
+```
+
+The highest non-null value among a variable number of comparable columns.
+If comparing columns of different numerical types, use [CAST](#cast) to first
+cast them to be of the same type.
+
+### `LEAST`
+
+Since: 0.20.0
+
+```sql
+LEAST(col1, col2...)
+```
+
+The highest non-null value among a variable number of comparable columns.
+If comparing columns of different numerical types, use [CAST](#cast) to first
+cast them to be of the same type.
+
 ### `LN`
 
 Since: 0.6.0

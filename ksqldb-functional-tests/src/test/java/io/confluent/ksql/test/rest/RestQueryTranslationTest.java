@@ -104,8 +104,11 @@ public class RestQueryTranslationTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
+    final String testRegex = System.getProperty("ksql.rqtt.regex");
+
     return JsonTestLoader.of(TEST_DIR, RqttTestFile.class)
         .load()
+        .filter(testCase -> testRegex == null || testCase.getName().matches(testRegex))
         .map(testCase -> new Object[]{testCase.getName(), testCase})
         .collect(Collectors.toCollection(ArrayList::new));
   }

@@ -51,6 +51,15 @@ mvn test -pl ksqldb-functional-tests -Dtest=QueryTranslationTest -Dksql.test.fil
 
 The above commands can execute only a single test (sum.json) or multiple tests (sum.json and substring.json).
 
+There is also a version of `QueryTranslationTest` that runs a full KSQL server in order to
+verify REST responses: `RestQueryTranslationTest`. These tests are much slower and should
+be used sparingly. To run a subset of these tests, supply a regex of the test name:
+
+```
+mvn test -pl ksqldb-functional-tests -Dtest=RestQueryTranslationTest -Dksql.rqtt.regex="pull-queries.*join"
+```
+
+
 ## Adding new tests
 
 The following is a template test file:

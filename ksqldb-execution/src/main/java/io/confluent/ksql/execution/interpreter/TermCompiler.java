@@ -219,18 +219,18 @@ public class TermCompiler implements ExpressionVisitor<Term, Context> {
 
   @Override
   public Term visitTimeLiteral(
-      final TimeLiteral timeLiteral,
+      final TimeLiteral node,
       final Context context
   ) {
-    return visitUnsupported(timeLiteral);
+    return LiteralTerms.of(node.getValue());
   }
 
   @Override
   public Term visitDateLiteral(
-      final DateLiteral dateLiteral,
+      final DateLiteral node,
       final Context context
   ) {
-    return visitUnsupported(dateLiteral);
+    return LiteralTerms.of(node.getValue());
   }
 
   @Override

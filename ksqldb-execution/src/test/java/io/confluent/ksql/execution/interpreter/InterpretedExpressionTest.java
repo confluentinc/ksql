@@ -20,7 +20,10 @@ import static io.confluent.ksql.execution.testutil.TestExpressions.COL11;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL3;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL7;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL8;
+import static io.confluent.ksql.execution.testutil.TestExpressions.DATECOL;
 import static io.confluent.ksql.execution.testutil.TestExpressions.SCHEMA;
+import static io.confluent.ksql.execution.testutil.TestExpressions.TIMECOL;
+import static io.confluent.ksql.execution.testutil.TestExpressions.TIMESTAMPCOL;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -44,6 +47,7 @@ import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
 import io.confluent.ksql.execution.expression.tree.CreateMapExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression;
 import io.confluent.ksql.execution.expression.tree.CreateStructExpression.Field;
+import io.confluent.ksql.execution.expression.tree.DateLiteral;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -64,6 +68,7 @@ import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
+import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
@@ -84,6 +89,8 @@ import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -122,7 +129,8 @@ public class InterpretedExpressionTest {
 
   private GenericRow ROW = new GenericRow().appendAll(ImmutableList.of(
       15, "A", "b", 4.5, ImmutableList.of(2.5), ImmutableMap.of(123, 6.7), ADDRESS, 35,
-      new BigDecimal("3.4"), new BigDecimal("8.9"), new Timestamp(1234), true
+      new BigDecimal("3.4"), new BigDecimal("8.9"), new Timestamp(1234), true,
+      new Time(1234), new Date(864000000)
   ));
 
   @Mock
@@ -295,6 +303,71 @@ public class InterpretedExpressionTest {
     assertThat(interpreter5.evaluate(make(8, new BigDecimal("7.5"))), is(false));
     assertThat(interpreter6.evaluate(make(8, new BigDecimal("7"))), is(true));
     assertThat(interpreter6.evaluate(make(8, new BigDecimal("19.567"))), is(false));
+  }
+
+  @Test
+  public void shouldEvaluateComparisons_time() {
+    // Given:
+    final Expression expression1 = new ComparisonExpression(
+        ComparisonExpression.Type.GREATER_THAN,
+        TIMESTAMPCOL,
+        new TimestampLiteral(new Timestamp(1000))
+    );
+    final Expression expression2 = new ComparisonExpression(
+        ComparisonExpression.Type.LESS_THAN,
+        TIMESTAMPCOL,
+        new StringLiteral("2017-11-13T23:59:58")
+    );
+    final Expression expression3 = new ComparisonExpression(
+        ComparisonExpression.Type.EQUAL,
+        TIMESTAMPCOL,
+        new DateLiteral(new Date(864000000))
+    );
+    final Expression expression4 = new ComparisonExpression(
+        ComparisonExpression.Type.NOT_EQUAL,
+        TIMECOL,
+        new TimeLiteral(new Time(1000))
+    );
+    final Expression expression5 = new ComparisonExpression(
+        ComparisonExpression.Type.LESS_THAN_OR_EQUAL,
+        TIMECOL,
+        new StringLiteral("00:01:32")
+    );
+    final Expression expression6 = new ComparisonExpression(
+        ComparisonExpression.Type.GREATER_THAN_OR_EQUAL,
+        DATECOL,
+        new StringLiteral("1970-01-20")
+    );
+    final Expression expression7 = new ComparisonExpression(
+        ComparisonExpression.Type.GREATER_THAN_OR_EQUAL,
+        DATECOL,
+        new DateLiteral(new Date(864000000))
+    );
+    final Expression expression8 = new ComparisonExpression(
+        ComparisonExpression.Type.EQUAL,
+        DATECOL,
+        new TimestampLiteral(new Timestamp(864000005))
+    );
+
+    // When:
+    InterpretedExpression interpreter1 = interpreter(expression1);
+    InterpretedExpression interpreter2 = interpreter(expression2);
+    InterpretedExpression interpreter3 = interpreter(expression3);
+    InterpretedExpression interpreter4 = interpreter(expression4);
+    InterpretedExpression interpreter5 = interpreter(expression5);
+    InterpretedExpression interpreter6 = interpreter(expression6);
+    InterpretedExpression interpreter7 = interpreter(expression7);
+    InterpretedExpression interpreter8 = interpreter(expression8);
+
+    // Then:
+    assertThat(interpreter1.evaluate(make(10, new Timestamp(1001))), is(true));
+    assertThat(interpreter2.evaluate(make(10, new Timestamp(151061759799L))), is(true));
+    assertThat(interpreter3.evaluate(make(10, new Timestamp(864000000))), is(true));
+    assertThat(interpreter4.evaluate(make(12, new Time(1000))), is(false));
+    assertThat(interpreter5.evaluate(make(12, new Time(4))), is(true));
+    assertThat(interpreter6.evaluate(make(13, new Date(86400000))), is(false));
+    assertThat(interpreter7.evaluate(make(13, new Date(864000000))), is(true));
+    assertThat(interpreter8.evaluate(make(13, new Date(864000000))), is(false));
   }
 
   @Test
@@ -604,14 +677,74 @@ public class InterpretedExpressionTest {
         new StringLiteral("2017-11-13T23:59:58"),
         new Type(SqlPrimitiveType.of("TIMESTAMP"))
     );
+    final Expression cast3 = new Cast(
+        new DateLiteral(new Date(864000000)),
+        new Type(SqlPrimitiveType.of("TIMESTAMP"))
+    );
 
     // When:
     InterpretedExpression interpreter1 = interpreter(cast1);
     InterpretedExpression interpreter2 = interpreter(cast2);
+    InterpretedExpression interpreter3 = interpreter(cast3);
 
     // Then:
     assertThat(interpreter1.evaluate(ROW), is(new Timestamp(1000L)));
     assertThat(interpreter2.evaluate(ROW), is(new Timestamp(1510617598000L)));
+    assertThat(interpreter3.evaluate(ROW), is(new Timestamp(864000000)));
+  }
+
+  @Test
+  public void shouldEvaluateCastToTime() {
+    // Given:
+    final Expression cast1 = new Cast(
+        new TimestampLiteral(Timestamp.from(Instant.ofEpochMilli(1000))),
+        new Type(SqlPrimitiveType.of("TIME"))
+    );
+    final Expression cast2 = new Cast(
+        new StringLiteral("23:59:58"),
+        new Type(SqlPrimitiveType.of("TIME"))
+    );
+    final Expression cast3 = new Cast(
+        new TimeLiteral(new Time(1000)),
+        new Type(SqlPrimitiveType.of("TIME"))
+    );
+
+    // When:
+    InterpretedExpression interpreter1 = interpreter(cast1);
+    InterpretedExpression interpreter2 = interpreter(cast2);
+    InterpretedExpression interpreter3 = interpreter(cast3);
+
+    // Then:
+    assertThat(interpreter1.evaluate(ROW), is(new Time(1000L)));
+    assertThat(interpreter2.evaluate(ROW), is(new Time(86398000)));
+    assertThat(interpreter3.evaluate(ROW), is(new Time(1000L)));
+  }
+
+  @Test
+  public void shouldEvaluateCastToDate() {
+    // Given:
+    final Expression cast1 = new Cast(
+        new TimestampLiteral(Timestamp.from(Instant.ofEpochMilli(864000500))),
+        new Type(SqlPrimitiveType.of("DATE"))
+    );
+    final Expression cast2 = new Cast(
+        new StringLiteral("2017-11-13"),
+        new Type(SqlPrimitiveType.of("DATE"))
+    );
+    final Expression cast3 = new Cast(
+        new DateLiteral(new Date(864000000)),
+        new Type(SqlPrimitiveType.of("DATE"))
+    );
+
+    // When:
+    InterpretedExpression interpreter1 = interpreter(cast1);
+    InterpretedExpression interpreter2 = interpreter(cast2);
+    InterpretedExpression interpreter3 = interpreter(cast3);
+
+    // Then:
+    assertThat(interpreter1.evaluate(ROW), is(new Date(864000000)));
+    assertThat(interpreter2.evaluate(ROW), is(new Date(1510531200000L)));
+    assertThat(interpreter3.evaluate(ROW), is(new Date(864000000)));
   }
 
   @Test

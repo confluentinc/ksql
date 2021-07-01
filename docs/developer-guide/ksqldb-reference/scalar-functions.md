@@ -1318,6 +1318,28 @@ TIMESUB(unit, interval, COL0)
 Subtracts an interval from a time. Intervals are defined by an integer value and a supported
 [time unit](../../reference/sql/time.md#Time units).
 
+### DATEADD
+
+Since: 0.20
+
+```sql
+DATEADD(unit, interval, COL0)
+```
+
+Adds an interval to a date. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
+### DATESUB
+
+Since: 0.20
+
+```sql
+DATESUB(unit, interval, COL0)
+```
+
+Subtracts an interval from a date. Intervals are defined by an integer value and a supported
+[time unit](../../reference/sql/time.md#Time units).
+
 ## URLs
 
 !!! note

@@ -27,8 +27,8 @@
         "CREATE STREAM TS AS select K, unix_date(date) as ts from test;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": "0", "value": "864000000"},
-        {"topic": "test_topic", "key": "0", "value": "8640000000"},
+        {"topic": "test_topic", "key": "0", "value": "10"},
+        {"topic": "test_topic", "key": "0", "value": "100"},
         {"topic": "test_topic", "key": "0", "value": null}
       ],
       "outputs": [

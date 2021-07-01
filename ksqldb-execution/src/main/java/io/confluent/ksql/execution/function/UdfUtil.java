@@ -32,6 +32,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -56,6 +57,7 @@ public final class UdfUtil {
       .put(Double.class, ParamTypes.DOUBLE)
       .put(double.class, ParamTypes.DOUBLE)
       .put(BigDecimal.class, ParamTypes.DECIMAL)
+      .put(Date.class, ParamTypes.DATE)
       .put(Timestamp.class, ParamTypes.TIMESTAMP)
       .put(Time.class, ParamTypes.TIME)
       .put(TimeUnit.class, ParamTypes.INTERVALUNIT)

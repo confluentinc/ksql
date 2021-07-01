@@ -1107,6 +1107,8 @@ ksqlDB Server instances.
 
 Since: -
 
+Deprecated since 0.20.0 (use FORMAT_DATE)
+
 ```sql
 DATETOSTRING(START_DATE, 'yyyy-MM-dd')
 ```
@@ -1120,6 +1122,8 @@ The integer represents days since epoch matching the encoding used by
 ### `STRINGTODATE`
 
 Since: -
+
+Deprecated since 0.20.0 (use PARSE_DATE)
 
 ```sql
 STRINGTODATE(col1, 'yyyy-MM-dd')
@@ -1202,6 +1206,27 @@ format can be escaped with two successive single quotes, `''`, for example: `'yy
 TIMEZONE is an optional parameter and it is a `java.util.TimeZone` ID format, for example: "UTC",
 "America/Los_Angeles", "PDT", "Europe/London". For more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).
+
+### `FORMAT_DATE`
+
+```sql
+FORMAT_DATE(date, 'yyyy-MM-dd')
+```
+
+Converts a DATE value into a string that represents the date in the given format.
+You can escape single-quote characters in the timestamp format by using two successive single
+quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
+
+### `PARSE_DATE`
+
+```sql
+PARSE_DATE(col1, 'yyyy-MM-dd')
+```
+
+Converts a string representation of a date in the
+given format into a DATE value. You can escape
+single-quote characters in the timestamp format by using two successive single
+quotes, `''`, for example: `'yyyy-MM-dd''T'''`.
 
 ### `FORMAT_TIME`
 

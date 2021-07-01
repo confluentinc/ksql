@@ -137,6 +137,24 @@ This will stop all processing and delete any internal topics in Kafka.
 
 ## Upgrade notes
 
+### Upgrading from ksqlDB 0.14.0 to 0.20.0
+
+In-place upgrades are supported from ksqlDB 0.14.0 to 0.20.0.
+See the [changelog](https://github.com/confluentinc/ksql/blob/master/CHANGELOG.md)
+for potential breaking changes that may affect the behavior or required syntax
+for new queries.
+
+#### Join statements
+
+The GRACE PERIOD clause is now supported in stream-stream joins since 0.20.0. However, when set
+explicitly, the grace period now defines when the left/outer non-joined results are emitted.
+Contrary to the old syntax (without GRACE PERIOD) that emits left/outer non-joined results eagerly,
+which may cause "spurious" result records.
+
+The use of GRACE PERIOD is highly recommended now that it is supported. It helps to reduce high
+disk usage when using small grace period values (default 24 hours if not set) and also provides
+better semantics for left/outer joins.
+
 ### Upgrading from ksqlDB 0.10.0 to 0.14.0
 
 In-place upgrades are supported from ksqlDB 0.10.0 to 0.14.0.

@@ -1,0 +1,65 @@
+{
+  "comments": ["tests for timeadd"],
+  "tests": [
+    {
+      "name": "adds",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, time TIME) WITH (kafka_topic='test', value_format='DELIMITED');",
+        "CREATE STREAM TEST2 AS SELECT id, timeadd(MILLISECONDS, 10, time) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "value": "10"},
+        {"topic": "test", "value": "86399995"}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "value": "20"},
+        {"topic": "TEST2", "value": "5"}
+      ]
+    },
+    {
+      "name": "throws on incorrect type",
+      "statements": [
+        "CREATE STREAM TEST (ID STRING KEY, time TIME) WITH (kafka_topic='test', value_format='DELIMITED');",
+        "CREATE STREAM TEST2 AS SELECT id, timeadd(time, 5, time) FROM TEST;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Function 'timeadd' does not accept parameters (TIME, INTEGER, TIME)."
+      }
+    },
+    {
+      "name": "adds negative intervals",
+      "statements": [
+        "CREATE STREAM TEST (ID INT KEY, time TIME) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT id, timeadd(MILLISECONDS, -5, time) AS VALUE FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "key": 0, "value": {"time": 5}},
+        {"topic": "test", "key": 0, "value": {"time": 10}},
+        {"topic": "test", "key": 0, "value": {"time": 2}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": 0}},
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": 5}},
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": 86399997}}
+      ]
+    },
+    {
+      "name": "handles null values",
+      "statements": [
+        "CREATE STREAM TEST (ID INT KEY, time TIME, num INTEGER) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST2 AS SELECT id, timeadd(MILLISECONDS, num, time) AS VALUE FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test", "key": 0, "value": {"time": null, "num": 5}},
+        {"topic": "test", "key": 0, "value": {"time": 5, "num": null}},
+        {"topic": "test", "key": 0, "value": {"time": null, "num": null}}
+      ],
+      "outputs": [
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": null}},
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": null}},
+        {"topic": "TEST2", "key": 0, "value": {"VALUE": null}}
+      ]
+    }
+  ]
+}

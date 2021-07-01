@@ -22,10 +22,10 @@ Topologies:
     Processor: Join-this-windowed (stores: [KSTREAM-OUTERTHIS-0000000008-store])
       --> Join-outer-this-join
       <-- PrependAliasLeft
-    Processor: Join-outer-other-join (stores: [KSTREAM-OUTERTHIS-0000000008-store])
+    Processor: Join-outer-other-join (stores: [KSTREAM-OUTERSHARED-0000000008-store, KSTREAM-OUTERTHIS-0000000008-store])
       --> Join-merge
       <-- Join-other-windowed
-    Processor: Join-outer-this-join (stores: [KSTREAM-OUTEROTHER-0000000009-store])
+    Processor: Join-outer-this-join (stores: [KSTREAM-OUTERSHARED-0000000008-store, KSTREAM-OUTEROTHER-0000000009-store])
       --> Join-merge
       <-- Join-this-windowed
     Processor: Join-merge (stores: [])

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server;
 
+import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -142,6 +143,8 @@ public class KsqlRestApplicationTest {
   private RateLimiter rateLimiter;
   @Mock
   private ConcurrencyLimiter concurrencyLimiter;
+  @Mock
+  private SlidingWindowRateLimiter pullBandRateLimiter;
   @Mock
   private HARouting haRouting;
   @Mock
@@ -489,6 +492,7 @@ public class KsqlRestApplicationTest {
         routingFilterFactory,
         rateLimiter,
         concurrencyLimiter,
+        pullBandRateLimiter,
         haRouting,
         pushRouting,
         Optional.empty()

@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
 import io.confluent.ksql.api.server.QueryHandle;
+import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
 import io.confluent.ksql.api.spi.QueryPublisher;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -81,11 +82,14 @@ public class QueryEndpoint {
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final RateLimiter rateLimiter;
   private final ConcurrencyLimiter pullConcurrencyLimiter;
+  private final SlidingWindowRateLimiter pullBandRateLimiter;
   private final HARouting routing;
   private final PushRouting pushRouting;
   private final Optional<LocalCommands> localCommands;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public QueryEndpoint(
+      // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
       final KsqlRestConfig ksqlRestConfig,
@@ -93,6 +97,7 @@ public class QueryEndpoint {
       final Optional<PullQueryExecutorMetrics> pullQueryMetrics,
       final RateLimiter rateLimiter,
       final ConcurrencyLimiter pullConcurrencyLimiter,
+      final SlidingWindowRateLimiter pullBandLimiter,
       final HARouting routing,
       final PushRouting pushRouting,
       final Optional<LocalCommands> localCommands
@@ -104,6 +109,7 @@ public class QueryEndpoint {
     this.pullQueryMetrics = pullQueryMetrics;
     this.rateLimiter = rateLimiter;
     this.pullConcurrencyLimiter = pullConcurrencyLimiter;
+    this.pullBandRateLimiter = pullBandLimiter;
     this.routing = routing;
     this.pushRouting = pushRouting;
     this.localCommands = localCommands;
@@ -218,6 +224,7 @@ public class QueryEndpoint {
         metrics.recordRowsProcessed(
             Optional.ofNullable(r).map(PullQueryResult::getTotalRowsProcessed).orElse(0L),
             sourceType, planType, routingNodeType);
+        pullBandRateLimiter.add(responseBytes);
       });
     });
 
@@ -234,6 +241,7 @@ public class QueryEndpoint {
 
     PullQueryExecutionUtil.checkRateLimit(rateLimiter);
     final Decrementer decrementer = pullConcurrencyLimiter.increment();
+    pullBandRateLimiter.allow();
 
     try {
       final PullQueryResult result = ksqlEngine.executePullQuery(

@@ -19,6 +19,8 @@ import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.concurrent.TimeUnit;
 
@@ -53,6 +55,14 @@ public final class LiteralTerms {
 
   public static Term of(final Timestamp value) {
     return new TimestampTermImpl(value);
+  }
+
+  public static Term of(final Time value) {
+    return new TimeTermImpl(value);
+  }
+
+  public static Term of(final Date value) {
+    return new DateTermImpl(value);
   }
 
   public static Term of(final TimeUnit value) {
@@ -212,6 +222,44 @@ public final class LiteralTerms {
     @Override
     public SqlType getSqlType() {
       return SqlTypes.TIMESTAMP;
+    }
+  }
+
+  public static class TimeTermImpl implements Term {
+
+    private final long timeMs;
+
+    public TimeTermImpl(final Time time) {
+      this.timeMs = time.getTime();
+    }
+
+    @Override
+    public Object getValue(final TermEvaluationContext context) {
+      return new Time(timeMs);
+    }
+
+    @Override
+    public SqlType getSqlType() {
+      return SqlTypes.TIME;
+    }
+  }
+
+  public static class DateTermImpl implements Term {
+
+    private final long dateMs;
+
+    public DateTermImpl(final Date date) {
+      this.dateMs = date.getTime();
+    }
+
+    @Override
+    public Object getValue(final TermEvaluationContext context) {
+      return new Date(dateMs);
+    }
+
+    @Override
+    public SqlType getSqlType() {
+      return SqlTypes.DATE;
     }
   }
 

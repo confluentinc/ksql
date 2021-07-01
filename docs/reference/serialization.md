@@ -121,7 +121,14 @@ delimiter characters by specifying the KEY_DELIMITER and/or VALUE_DELIMITER when
 FORMAT='DELIMITED' in a WITH clause. Only a single character is valid
 as a delimiter. The default is the comma character. For space- and
 tab-delimited values, use the special values `SPACE` or `TAB`, not an actual
-space or tab character.
+space or tab character. 
+
+The delimiter is a Unicode character, as defined in `java.lang.Character`.
+For example, the smiley-face character works:
+
+```sql
+CREATE STREAM delim_stream (f1 STRING, f2 STRING) with (KAFKA_TOPIC='delim', FORMAT='DELIMITED', VALUE_DELIMITER='☺', ...);
+```
 
 The serialized object should be a Kafka-serialized string, which will be
 split into columns.
@@ -137,7 +144,11 @@ with `ORGID KEY` of `120`, `ID KEY` of `21`, `NAME` of `bob` and `AGE` of `49`.
 
 This data format supports all SQL
 [data types](/reference/sql/data-types) except `ARRAY`, `MAP` and
-`STRUCT`. `TIMESTAMP` typed data is serialized as a long value indicating the Unix epoch time in milliseconds.
+`STRUCT`. 
+
+`TIMESTAMP` typed data is serialized as a `long` value indicating the Unix epoch time in milliseconds.
+`TIME` typed data is serialized as an `int` value indicating the number of milliseconds since the beginning of the day.
+`DATA` typed data is serialized as an `int` value indicating the number of days since the Unix epoch.
 
 ### JSON
 
@@ -257,6 +268,34 @@ a timestamp at `1970-01-01T00:00:00.001` is serialized as
 ```
 
 ksqlDb deserializes a number as a `TIMESTAMP` if it corresponds to a `TIMESTAMP` typed field in
+the stream.
+
+#### Time Serialization
+
+Times are serialized as numbers indicating the number of milliseconds since the beginning of the day.
+For example, `00:00:01` is serialized as
+
+```json
+{
+  "value": 1000
+}
+```
+
+ksqlDb deserializes a number as a `TIME` if it corresponds to a `TIME` typed field in
+the stream.
+
+#### Date Serialization
+
+Dates are serialized as numbers indicating the number of days since the Unix epoch. For example,
+a timestamp at `1970-01-03` is serialized as
+
+```json
+{
+  "value": 2
+}
+```
+
+ksqlDb deserializes a number as a `DATE` if it corresponds to a `DATE` typed field in
 the stream.
 
 #### Field Name Case Sensitivity

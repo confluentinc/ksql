@@ -142,8 +142,11 @@ To enable the server to authenticate clients (2-way authentication), use
 the following additional setting:
 
 ```properties
-ssl.client.auth=true
+ssl.client.authentication=REQUIRED
 ```
+
+!!! note
+    The `ssl.client.auth` setting is deprecated.
 
 ### Additional server configuration options for HTTPS
 

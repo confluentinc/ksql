@@ -176,7 +176,7 @@ CREATE TABLE purchase_stats AS
 
 After some time, they realize that the `purchase_stats` stream doesn't account
 properly for refunds. They're OK with having the initial purchase count toward
-the `purhcase_stats`, but they don't want the refund to increment the `COUNT(*)`
+the `purchase_stats`, but they don't want the refund to increment the `COUNT(*)`
 aggregation, so they update their query in place to add a filter for this
 condition:
 
@@ -199,7 +199,7 @@ replacing upgrade that read from the earliest offset in the `valid_purchases` st
 ```sql
 TERMINATE CTAS_PURCHASE_STATS_0;
 
-DROP STREAM purhcase_stats;
+DROP STREAM purchase_stats;
 
 SET 'auto.offset.reset'='earliest';
 

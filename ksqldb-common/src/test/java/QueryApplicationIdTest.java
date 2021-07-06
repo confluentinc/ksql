@@ -45,6 +45,6 @@ public class QueryApplicationIdTest {
   public void shouldBuildTransientQueryApplicationId() {
     final String queryAppId =
         QueryApplicationId.build(config, false, new QueryId("q1"));
-    assertTrue(queryAppId.startsWith("_confluent-ksql-s1transient_q1_"));
+    assertTrue(queryAppId.startsWith("_confluent_ksql_s1transient_q1_"));
   }
 }

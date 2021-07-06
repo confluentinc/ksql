@@ -3,7 +3,7 @@
 **Author**: Zara Lim (@jzaralim) | 
 **Release Target**: 0.21 | 
 **Status**: _In Discussion_ | 
-**Discussion**: 
+**Discussion**: https://github.com/confluentinc/ksql/pull/7764
 
 **tl;dr:** _Add support for the BYTES data type. This will allow users to work with BLOBs of data that don't fit into any other data type._
            

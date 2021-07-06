@@ -50,6 +50,6 @@ public final class QueryApplicationId {
   }
 
   private static String addTimeSuffix(final String original) {
-    return String.format("%s_%d", original, System.currentTimeMillis());
+    return String.format("%s_%d", original, System.currentTimeMillis()).replace("-","_");
   }
 }

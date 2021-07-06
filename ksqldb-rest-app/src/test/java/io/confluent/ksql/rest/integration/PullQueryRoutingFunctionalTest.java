@@ -292,34 +292,6 @@ public class PullQueryRoutingFunctionalTest {
   }
 
   @Test
-  public void shouldQueryActiveWhenActiveAliveQueryIssuedToStandby() throws Exception {
-    // Given:
-    ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);
-    waitForClusterToBeDiscovered(clusterFormation.standBy.getApp(), 3, USER_CREDS);
-    waitForRemoteServerToChangeStatus(clusterFormation.router.getApp(),
-        clusterFormation.router.getHost(), HighAvailabilityTestUtil.lagsReported(3), USER_CREDS);
-
-    waitForRemoteServerToChangeStatus(
-        clusterFormation.standBy.getApp(),
-        clusterFormation.active.getHost(),
-        HighAvailabilityTestUtil::remoteServerIsUp,
-        USER_CREDS);
-
-    // When:
-    List<StreamedRow> rows_0 =
-        makePullQueryRequest(clusterFormation.standBy.getApp(), sql, null, USER_CREDS);
-
-    // Then:
-    assertThat(rows_0, hasSize(HEADER + 1));
-    KsqlHostInfoEntity host = rows_0.get(1).getSourceHost().get();
-    assertThat(host.getHost(), is(clusterFormation.active.getHost().getHost()));
-    assertThat(host.getPort(), is(clusterFormation.active.getHost().getPort()));
-    assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
-    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(KEY, 1)));
-  }
-
-
-  @Test
   public void shouldQueryActiveWhenActiveAliveStandbyDeadQueryIssuedToRouter() {
     // Given:
     ClusterFormation clusterFormation = findClusterFormation(TEST_APP_0, TEST_APP_1, TEST_APP_2);

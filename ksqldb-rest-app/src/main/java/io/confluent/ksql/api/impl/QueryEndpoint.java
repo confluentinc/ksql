@@ -343,8 +343,10 @@ public class QueryEndpoint {
 
     @Override
     public void onException(final Consumer<Throwable> onException) {
-      // We don't try to do anything on exception for push queries, but rely on the
-      // existing exception handling
+      queryMetadata.setUncaughtExceptionHandler(throwable  -> {
+        onException.accept(throwable);
+        return null;
+      });
     }
 
     @Override

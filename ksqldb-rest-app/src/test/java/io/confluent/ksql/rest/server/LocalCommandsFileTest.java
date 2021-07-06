@@ -36,11 +36,11 @@ public class LocalCommandsFileTest {
   private static final String FILE_NAME = "local_commands_1607381558333.cmds";
   private static final LocalCommand LOCAL_COMMAND1
       = new TransientQueryLocalCommand(
-          "_confluent-ksql-default_transient_932097300573686369_1606940079718");
+          "_confluent_ksql_default_transient_932097300573686369_1606940079718");
 
   private static final LocalCommand LOCAL_COMMAND2
       = new TransientQueryLocalCommand(
-          "_confluent-ksql-default_transient_123457300573686369_1606940012343");
+          "_confluent_ksql_default_transient_123457300573686369_1606940012343");
 
   @Rule
   public TemporaryFolder commandsDir = new TemporaryFolder();
@@ -64,9 +64,9 @@ public class LocalCommandsFileTest {
     final List<String> commands = Files.readAllLines(internalCommandsFile.toPath());
     assertThat(commands.size(), is(2));
     assertThat(commands.get(0), is("{\"@type\":\"transient_query\",\"queryApplicationId\":"
-        + "\"_confluent-ksql-default_transient_932097300573686369_1606940079718\"}"));
+        + "\"_confluent_ksql_default_transient_932097300573686369_1606940079718\"}"));
     assertThat(commands.get(1), is("{\"@type\":\"transient_query\",\"queryApplicationId\":"
-        + "\"_confluent-ksql-default_transient_123457300573686369_1606940012343\"}"));
+        + "\"_confluent_ksql_default_transient_123457300573686369_1606940012343\"}"));
   }
 
   @Test
@@ -83,12 +83,12 @@ public class LocalCommandsFileTest {
     // Given
     Files.write(internalCommandsFile.toPath(),
         ("{\"@type\":\"transient_query\",\"queryApplicationId\":"
-            + "\"_confluent-ksql-default_transient_932097300573686369_1606940079718\"}\n")
+            + "\"_confluent_ksql_default_transient_932097300573686369_1606940079718\"}\n")
             .getBytes(StandardCharsets.UTF_8),
         StandardOpenOption.APPEND);
     Files.write(internalCommandsFile.toPath(),
         ("{\"@type\":\"transient_query\",\"queryApplicationId\":"
-            + "\"_confluent-ksql-default_transient_123457300573686369_1606940012343\"}\n")
+            + "\"_confluent_ksql_default_transient_123457300573686369_1606940012343\"}\n")
             .getBytes(StandardCharsets.UTF_8),
         StandardOpenOption.APPEND);
 
@@ -100,10 +100,10 @@ public class LocalCommandsFileTest {
     assertThat(commands.get(0).getType(), is(TransientQueryLocalCommand.TYPE));
     TransientQueryLocalCommand command = (TransientQueryLocalCommand) commands.get(0);
     assertThat(command.getQueryApplicationId(),
-        is("_confluent-ksql-default_transient_932097300573686369_1606940079718"));
+        is("_confluent_ksql_default_transient_932097300573686369_1606940079718"));
     assertThat(commands.get(1).getType(), is(TransientQueryLocalCommand.TYPE));
     command = (TransientQueryLocalCommand) commands.get(1);
     assertThat(command.getQueryApplicationId(),
-        is("_confluent-ksql-default_transient_123457300573686369_1606940012343"));
+        is("_confluent_ksql_default_transient_123457300573686369_1606940012343"));
   }
 }

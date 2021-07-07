@@ -19,7 +19,6 @@ the primitive types such as images, as well as BLOB/binary data from other datab
 * Support BYTES usage in STRUCT, MAP and ARRAY
 * Serialization and de-serialization of BYTES to Avro, JSON, Protobuf and Delimited formats
 * Adding/updating UDFs to support the BYTES type
-* Casting between BYTES and STRING
 
 ## What is not in scope
 * Fixed sized BYTES (`BYTES(3)` representing 3 bytes, for example) - This is supported by Kafka Connect by adding the `connect.fixed.size`
@@ -46,22 +45,16 @@ For example, the byte array `[91, 67]` will be displayed as:
 '0x5B43'
 ```
 
-Users can also represent BYTES as HEX strings, for example
-
-```roomsql
-> INSERT INTO STREAM VALUES ('0x5b43', 'string value');
-```
-
-The input and output formats can be configured using a new property, `ksql.bytes.format`.
-The accepted encodings are `hex`, `utf8`, `ascii`, and `base64`.
+Implicit conversions to BYTES will not be supported.
 
 ### UDF
 
 The following UDFs will be added:
 
-* `to_bytes(string, inputEncoding, outputEncoding)` - this will convert a STRING value in the specified encoding format to a BYTES in the specified encoding format.
-The allowed encoders are the same as the ones allowed in the existing `encode` function.
-* `decode(bytes, inputEncoding, outputEncoding)` - this will convert a BYTES value in the specified encoding format to a STRING in the specified encoding format.
+* `to_bytes(string, encoding)` - this will convert a STRING value to BYTES in the specified encoding.
+The accepted encoders are `hex`, `utf8`, `ascii`, and `base64`.
+* `from_bytes(bytes, encoding)` - this will convert a BYTES value to STRING in the specified encoding.
+The accepted encoders are `hex`, `utf8`, `ascii`, and `base64`.
 
 We will also update some of the existing STRING functions to accept BYTES as a parameter. In general, if a function works on ASCII characters for a STRING parameter,
 then it will work on bytes for a BYTES parameter.
@@ -100,13 +93,7 @@ The ksqlDB JSON and delimited deserializers will be updated to convert Base64 st
 
 ### Casting
 
-Casting BYTES to STRING will convert the BYTES value to a STRING value encoded by the format specified
-by `ksql.bytes.format`. Casting STRING to BYTES will convert the STRING to a BYTES value decoded by the
-format specified by `ksql.bytes.format`.
-
-Some other alternatives are:
-* Use UTF-8 for all casts, and throw if it fails (BigQuery does this)
-* Not support casting. This would make BYTES the only data type that cannot be cast to STRING.
+Casting between BYTES and other data types will not be supported. Users can use `to_bytes` and `from_bytes` if they would like to convert to/from STRING.
 
 ### Comparisons
 
@@ -133,7 +120,6 @@ The implementation can both be broken up as follows:
 * Serialization/deserialization - 4 days
 * Documentation - 2 days
 * Add to Connect integration test - 1 day
-* Casting - 2 days
 * Comparisons - 2 days
 * Adding UDFs + documentation - 1 week
 * Buffer time and manual testing - 3 days

@@ -170,6 +170,7 @@ final class QueryExecutor {
         sources,
         planSummary,
         queue,
+        queryId,
         applicationId,
         topology,
         kafkaStreamsBuilder,

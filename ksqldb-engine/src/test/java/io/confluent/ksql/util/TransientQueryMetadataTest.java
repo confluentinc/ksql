@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.BlockingRowQueue;
 import io.confluent.ksql.query.KafkaStreamsBuilder;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConstants.KsqlQueryType;
 import io.confluent.ksql.util.PushQueryMetadata.ResultType;
@@ -44,7 +45,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class TransientQueryMetadataTest {
 
-  private static final String QUERY_ID = "queryId";
+  private static final String QUERY_APPLICATION_ID = "queryApplicationId";
   private static final String EXECUTION_PLAN = "execution plan";
   private static final String SQL = "sql";
   private static final long CLOSE_TIMEOUT = 10L;
@@ -59,6 +60,8 @@ public class TransientQueryMetadataTest {
   private Set<SourceName> sourceNames;
   @Mock
   private BlockingRowQueue rowQueue;
+  @Mock
+  private QueryId queryId;
   @Mock
   private Topology topology;
   @Mock
@@ -83,7 +86,8 @@ public class TransientQueryMetadataTest {
         sourceNames,
         EXECUTION_PLAN,
         rowQueue,
-        QUERY_ID,
+        queryId,
+        QUERY_APPLICATION_ID,
         topology,
         kafkaStreamsBuilder,
         props,

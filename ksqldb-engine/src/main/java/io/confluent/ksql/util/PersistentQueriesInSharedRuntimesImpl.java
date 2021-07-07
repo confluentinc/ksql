@@ -123,6 +123,30 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
     this.listener = requireNonNull(listener, "listen");
   }
 
+
+  // for creating sandbox instances
+  protected PersistentQueriesInSharedRuntimesImpl(
+          final PersistentQueriesInSharedRuntimesImpl original,
+          final QueryMetadata.Listener listener
+  ) {
+    this.statementString = original.statementString;
+    this.executionPlan = original.executionPlan;
+    this.queryApplicationId = original.queryApplicationId;
+    this.topology = original.topology;
+    this.sharedKafkaStreamsRuntime = original.sharedKafkaStreamsRuntime;
+    this.sinkDataSource = original.sinkDataSource;
+    this.schemas = original.schemas;
+    this.overriddenProperties =
+            ImmutableMap.copyOf(original.overriddenProperties);
+    this.sourceNames = original.sourceNames;
+    this.queryId = original.queryId;
+    this.processingLogger = original.processingLogger;
+    this.physicalPlan = original.physicalPlan;
+    this.resultSchema = original.resultSchema;
+    this.materializationProviderBuilder = original.materializationProviderBuilder;
+    this.listener = requireNonNull(listener, "listen");
+  }
+
   @Override
   public DataSource.DataSourceType getDataSourceType() {
     return sinkDataSource.getDataSourceType();

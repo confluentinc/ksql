@@ -41,11 +41,11 @@ import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
-import org.apache.kafka.common.network.ListenerName;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.utils.SystemTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.collection.Iterator;
 
 /**
  * Runs an in-memory, "embedded" instance of a Kafka broker, which listens at `127.0.0.1:9092` by
@@ -106,10 +106,16 @@ class KafkaEmbedded {
    * @return the broker list
    */
   String brokerList(final SecurityProtocol securityProtocol) {
-    final EndPoint endPoint = kafka.advertisedListeners().head();
-    final String hostname = endPoint.host() == null ? "" : endPoint.host();
-    return hostname + ":"
-           + kafka.boundPort(new ListenerName(securityProtocol.toString()));
+    final Iterator<EndPoint> it = kafka.advertisedListeners().iterator();
+    while (it.hasNext()) {
+      final EndPoint endPoint = it.next();
+      if (endPoint.securityProtocol() == securityProtocol) {
+        final String hostname = endPoint.host() == null ? "" : endPoint.host();
+        return hostname + ":" + endPoint.port();
+      }
+    }
+
+    throw new RuntimeException("No listener with protocol " + securityProtocol);
   }
 
   /**

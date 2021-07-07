@@ -30,9 +30,11 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.PersistentQueriesInSharedRuntimesImpl;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SandboxedPersistentQueriesInSharedRuntimesImpl;
 import io.confluent.ksql.util.SandboxedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -85,14 +87,21 @@ public class QueryRegistryImpl implements QueryRegistry {
     createAsQueries = new ConcurrentHashMap<>();
     insertQueries = new ConcurrentHashMap<>();
     original.allLiveQueries.forEach(query -> {
-      if (query instanceof PersistentQueryMetadata) {
+      if (query instanceof PersistentQueryMetadataImpl) {
         final PersistentQueryMetadata sandboxed = SandboxedPersistentQueryMetadataImpl.of(
             (PersistentQueryMetadataImpl) query,
             new ListenerImpl()
         );
         persistentQueries.put(sandboxed.getQueryId(), sandboxed);
         allLiveQueries.add(sandboxed);
-      } else {
+      } else if (query instanceof PersistentQueriesInSharedRuntimesImpl) {
+        final PersistentQueryMetadata sandboxed = SandboxedPersistentQueriesInSharedRuntimesImpl.of(
+                (PersistentQueriesInSharedRuntimesImpl) query,
+                new ListenerImpl()
+        );
+        persistentQueries.put(sandboxed.getQueryId(), sandboxed);
+        allLiveQueries.add(sandboxed);
+      }  else {
         final TransientQueryMetadata sandboxed = SandboxedTransientQueryMetadata.of(
             (TransientQueryMetadata) query,
             new ListenerImpl()

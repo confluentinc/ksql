@@ -736,6 +736,7 @@ public class StreamedQueryResourceTest {
             Collections.emptySet(),
             "",
             new TestRowQueue(rowQueue),
+            queryId,
             "appId",
             mock(Topology.class),
             kafkaStreamsBuilder,

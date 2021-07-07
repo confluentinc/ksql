@@ -110,6 +110,8 @@ public class QueryDescriptionFactoryTest {
   private ProcessingLogger processingLogger;
   @Mock
   private QueryMetadata.Listener listener;
+  @Mock
+  private QueryId queryId;
 
   private QueryMetadata transientQuery;
   private PersistentQueryMetadata persistentQuery;
@@ -133,6 +135,7 @@ public class QueryDescriptionFactoryTest {
         SOURCE_NAMES,
         "execution plan",
         queryQueue,
+        queryId,
         APPLICATION_ID,
         topology,
         kafkaStreamsBuilder,
@@ -275,6 +278,7 @@ public class QueryDescriptionFactoryTest {
         SOURCE_NAMES,
         "execution plan",
         queryQueue,
+        queryId,
         "app id",
         topology,
         kafkaStreamsBuilder,
@@ -314,6 +318,7 @@ public class QueryDescriptionFactoryTest {
         SOURCE_NAMES,
         "execution plan",
         queryQueue,
+        queryId,
         "app id",
         topology,
         kafkaStreamsBuilder,

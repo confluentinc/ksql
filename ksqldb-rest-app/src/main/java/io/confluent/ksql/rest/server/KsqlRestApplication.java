@@ -693,7 +693,7 @@ public final class KsqlRestApplication implements Executable {
     final SpecificQueryIdGenerator specificQueryIdGenerator =
         new SpecificQueryIdGenerator();
 
-    ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1,
+    final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1,
         new ThreadFactoryBuilder()
             .setNameFormat("ksql-csu-metrics-reporter-%d")
             .build()

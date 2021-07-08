@@ -117,7 +117,11 @@ public class PersistentQueryMetadataImpl
     this.processingLogger = requireNonNull(processingLogger, "processingLogger");
     this.scalablePushRegistry = requireNonNull(scalablePushRegistry, "scalablePushRegistry");
     this.persistentQueryType = requireNonNull(persistentQueryType, "persistentQueryType");
-    this.executorService = Executors.newScheduledThreadPool(1, new ThreadFactoryBuilder().setNameFormat("ksql-csu-metrics-reporter-%d").build());
+    this.executorService =
+      Executors.newScheduledThreadPool(
+        1,
+        new ThreadFactoryBuilder().setNameFormat("ksql-csu-metrics-reporter-%d").build()
+      );
   }
 
   // for creating sandbox instances

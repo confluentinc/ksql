@@ -100,7 +100,9 @@ public final class QueryIdUtil {
     }
 
     if (!outputNode.getSinkName().isPresent()) {
-      return new QueryId(String.valueOf(Math.abs(ThreadLocalRandom.current().nextLong())));
+      final String prefix =
+          "transient_" + outputNode.getSource().getLeftmostSourceNode().getAlias().text() + "_";
+      return new QueryId(prefix + Math.abs(ThreadLocalRandom.current().nextLong()));
     }
 
     final KsqlStructuredDataOutputNode structured = (KsqlStructuredDataOutputNode) outputNode;

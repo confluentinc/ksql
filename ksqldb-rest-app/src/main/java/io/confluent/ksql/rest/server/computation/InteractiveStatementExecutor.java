@@ -39,7 +39,9 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -305,6 +307,11 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
 
     final Optional<PersistentQueryMetadata> query = ksqlEngine.getPersistentQuery(queryId.get());
     query.ifPresent(PersistentQueryMetadata::close);
+
+    if(!query.isPresent()) {
+      final TransientQueryMetadata transientQuery = (TransientQueryMetadata) ksqlEngine.getAllLiveQueries().get(0);
+      transientQuery.close();
+    }
   }
 
   private static void throwUnsupportedStatementError() {

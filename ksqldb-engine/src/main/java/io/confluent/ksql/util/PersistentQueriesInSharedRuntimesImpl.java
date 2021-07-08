@@ -56,6 +56,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   private static final Logger LOG = LoggerFactory
       .getLogger(PersistentQueriesInSharedRuntimesImpl.class);
 
+  private final KsqlConstants.PersistentQueryType persistentQueryType;
   private final String statementString;
   private final String executionPlan;
   private final String queryApplicationId;
@@ -85,6 +86,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
   public PersistentQueriesInSharedRuntimesImpl(
+      final KsqlConstants.PersistentQueryType persistentQueryType,
       final String statementString,
       final PhysicalSchema schema,
       final Set<SourceName> sourceNames,
@@ -96,12 +98,13 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
       final Map<String, Object> overriddenProperties,
       final QueryId queryId,
       final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
-          materializationProviderBuilder,
+      materializationProviderBuilder,
       final ExecutionStep<?> physicalPlan,
       final ProcessingLogger processingLogger,
       final DataSource sinkDataSource,
       final Listener listener) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
+    this.persistentQueryType = Objects.requireNonNull(persistentQueryType, "persistentQueryType");
     this.statementString = Objects.requireNonNull(statementString, "statementString");
     this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");
     this.queryApplicationId = Objects.requireNonNull(queryApplicationId, "queryApplicationId");
@@ -129,6 +132,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
           final PersistentQueriesInSharedRuntimesImpl original,
           final QueryMetadata.Listener listener
   ) {
+    this.persistentQueryType = original.persistentQueryType;
     this.statementString = original.statementString;
     this.executionPlan = original.executionPlan;
     this.queryApplicationId = original.queryApplicationId;
@@ -184,7 +188,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
 
   @Override
   public KsqlConstants.PersistentQueryType getPersistentQueryType() {
-    return null;
+    return persistentQueryType;
   }
 
   @Override

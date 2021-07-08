@@ -77,6 +77,7 @@ public class PersistentQueriesInSharedRuntimesImplTest {
     @Before
     public void setUp()  {
         query = new PersistentQueriesInSharedRuntimesImpl(
+            KsqlConstants.PersistentQueryType.CREATE_AS,
             SQL,
             physicalSchema,
             Collections.EMPTY_SET,

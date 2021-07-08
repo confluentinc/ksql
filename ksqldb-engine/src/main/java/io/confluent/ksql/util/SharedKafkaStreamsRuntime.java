@@ -147,7 +147,7 @@ public class SharedKafkaStreamsRuntime {
 
   public void close(final QueryId queryId) {
     metadata.remove(queryId.toString());
-    kafkaStreams.removeNamedTopology(queryId.toString());
+//    kafkaStreams.removeNamedTopology(queryId.toString());
   }
 
   public void start(final QueryId queryId) {

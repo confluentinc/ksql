@@ -130,11 +130,6 @@ public class SharedKafkaStreamsRuntime {
                        .collect(Collectors.toSet());
   }
 
-  public void stop(final QueryId queryId) {
-    metadata.remove(queryId.toString());
-    kafkaStreams.removeNamedTopology(queryId.toString());
-  }
-
   public void restart(final QueryId queryId) {
     final KafkaStreamsNamedTopologyWrapper newKafkaStreams = kafkaStreamsBuilder
             .build(streamsProperties);
@@ -152,7 +147,7 @@ public class SharedKafkaStreamsRuntime {
 
   public void close(final QueryId queryId) {
     metadata.remove(queryId.toString());
-    kafkaStreams.removeNamedTopology(queryId.toString());
+//    kafkaStreams.removeNamedTopology(queryId.toString());
   }
 
   public void start(final QueryId queryId) {

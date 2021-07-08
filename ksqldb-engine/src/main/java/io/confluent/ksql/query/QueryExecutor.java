@@ -299,6 +299,7 @@ final class QueryExecutor {
       final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getStream(sources, queryId);
       final PersistentQueriesInSharedRuntimesImpl binPackedPersistentQueryMetadata
               = new PersistentQueriesInSharedRuntimesImpl(
+          persistentQueryType,
           statementText,
           querySchema,
           sources,
@@ -362,7 +363,7 @@ final class QueryExecutor {
     final SharedKafkaStreamsRuntime stream = new SharedKafkaStreamsRuntime(
         kafkaStreamsBuilder,
         config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
-        buildStreamsProperties("ksql-application-" + streams.size(), queryID)
+        buildStreamsProperties("ksql-application-" + streams.size()+1, queryID)
     );
     streams.add(stream);
     return stream;

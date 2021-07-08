@@ -1,7 +1,7 @@
 {
   "version" : "7.0.0",
-  "timestamp" : 1625706002733,
-  "path" : "query-validation-tests/row_offset_and_partition.json",
+  "timestamp" : 1625759648324,
+  "path" : "query-validation-tests/row-offset-and-partition.json",
   "schemas" : {
     "CSAS_OUTPUT_0.KsqlTopic.Source" : {
       "schema" : "`ID` INTEGER KEY, `VAL` STRING, `OTHER_VAL` STRING",
@@ -23,7 +23,7 @@
     }
   },
   "testCase" : {
-    "name" : "create ROWOFFSET and ROWPARTITION user columns as STRINGs",
+    "name" : "create ROWOFFSET and ROWPARTITION sink user columns as STRINGs",
     "inputs" : [ {
       "topic" : "test_topic",
       "key" : 1,

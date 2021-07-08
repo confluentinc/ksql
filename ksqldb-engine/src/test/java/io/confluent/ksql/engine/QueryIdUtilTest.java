@@ -24,8 +24,10 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
+import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.QueryRegistry;
@@ -43,7 +45,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class QueryIdUtilTest {
 
   private static final SourceName SINK = SourceName.of("SINK");
-
+  private static final String SOURCE = "source";
   @Mock
   private KsqlBareOutputNode transientPlan;
   @Mock
@@ -54,7 +56,12 @@ public class QueryIdUtilTest {
   private EngineContext engineContext;
   @Mock
   private QueryRegistry queryRegistry;
-
+  @Mock
+  private PlanNode planNode;
+  @Mock
+  private DataSourceNode dataSourceNode;
+  @Mock
+  private SourceName sourceName;
   @Before
   public void setup() {
     when(engineContext.getQueryRegistry()).thenReturn(queryRegistry);
@@ -64,6 +71,10 @@ public class QueryIdUtilTest {
   public void shouldGenerateUniqueRandomIdsForTransientQueries() {
     // Given:
     when(transientPlan.getSinkName()).thenReturn(Optional.empty());
+    when(transientPlan.getSource()).thenReturn(planNode);
+    when(planNode.getLeftmostSourceNode()).thenReturn(dataSourceNode);
+    when(dataSourceNode.getAlias()).thenReturn(sourceName);
+    when(sourceName.text()).thenReturn(SOURCE);
 
     // When:
     long numUniqueIds = IntStream.range(0, 100)

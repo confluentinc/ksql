@@ -16,6 +16,8 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.engine.QueryCleanupService;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
@@ -23,18 +25,23 @@ import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.RetryUtil;
 import java.io.Closeable;
+import java.io.File;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +49,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import org.apache.avro.JsonProperties;
 import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.WakeupException;
@@ -249,7 +259,7 @@ public class CommandRunner implements Closeable {
   /**
    * Read and execute all commands on the command topic, starting at the earliest offset.
    */
-  public void processPriorCommands() {
+  public void processPriorCommands(final String stateDir, final ServiceContext serviceContext) {
     try {
       final List<QueuedCommand> restoreCommands = commandStore.getRestoreCommands();
       final List<QueuedCommand> compatibleCommands = checkForIncompatibleCommands(restoreCommands);
@@ -284,6 +294,19 @@ public class CommandRunner implements Closeable {
           .getKsqlEngine()
           .getPersistentQueries();
 
+      final Set<String> stateStoreNames =
+          queries
+              .stream()
+              .map(PersistentQueryMetadata::getQueryApplicationId)
+              .collect(Collectors.toSet());
+      try {
+        final Set<String> allStateStores = new HashSet<>(Arrays.asList(new File(stateDir).list()));
+        allStateStores.removeAll(stateStoreNames);
+        QueryCleanupService queryCleanupService = new QueryCleanupService();
+        allStateStores.forEach((appId) -> queryCleanupService.addCleanupTask(new QueryCleanupService.QueryCleanupTask(serviceContext, appId, false, stateDir)));
+      } catch (NullPointerException e) {
+        LOG.info("No state stores to clean up");
+      }
       LOG.info("Restarting {} queries.", queries.size());
 
       queries.forEach(PersistentQueryMetadata::start);

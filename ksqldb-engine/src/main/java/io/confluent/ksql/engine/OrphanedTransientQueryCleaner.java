@@ -23,6 +23,9 @@ import io.confluent.ksql.services.ServiceContext;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import io.confluent.ksql.util.KsqlConfig;
+import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,9 +34,11 @@ public class OrphanedTransientQueryCleaner {
   private static final Logger LOG = LoggerFactory.getLogger(OrphanedTransientQueryCleaner.class);
 
   private final QueryCleanupService cleanupService;
+  private final KsqlConfig ksqlConfig;
 
-  public OrphanedTransientQueryCleaner(final QueryCleanupService cleanupService) {
+  public OrphanedTransientQueryCleaner(final QueryCleanupService cleanupService, final KsqlConfig ksqlConfig) {
     this.cleanupService = requireNonNull(cleanupService);
+    this.ksqlConfig = ksqlConfig;
   }
 
   /**
@@ -65,7 +70,12 @@ public class OrphanedTransientQueryCleaner {
           new QueryCleanupService.QueryCleanupTask(
               serviceContext,
               queryApplicationId,
-              true
+              true,
+              ksqlConfig.getKsqlStreamConfigProps()
+                  .getOrDefault(
+                      StreamsConfig.STATE_DIR_CONFIG,
+                      StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
+                  .toString()
           ));
     }
   }

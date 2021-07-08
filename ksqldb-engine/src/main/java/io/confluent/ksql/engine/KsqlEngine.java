@@ -64,6 +64,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
+
+import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,7 +117,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final List<QueryEventListener> queryEventListeners
   ) {
     this.cleanupService = new QueryCleanupService();
-    this.orphanedTransientQueryCleaner = new OrphanedTransientQueryCleaner(this.cleanupService);
+    this.orphanedTransientQueryCleaner = new OrphanedTransientQueryCleaner(this.cleanupService, ksqlConfig);
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.engineMetrics = engineMetricsFactory.apply(this);
     this.primaryContext = EngineContext.create(
@@ -128,7 +130,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         ImmutableList.<QueryEventListener>builder()
             .addAll(queryEventListeners)
             .add(engineMetrics.getQueryEventListener())
-            .add(new CleanupListener(cleanupService, serviceContext))
+            .add(new CleanupListener(cleanupService, serviceContext, ksqlConfig))
             .build()
     );
     this.aggregateMetricsCollector = Executors.newSingleThreadScheduledExecutor();
@@ -369,12 +371,15 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private static final class CleanupListener implements QueryEventListener {
     final QueryCleanupService cleanupService;
     final ServiceContext serviceContext;
+    final KsqlConfig ksqlConfig;
 
     private CleanupListener(
         final QueryCleanupService cleanupService,
-        final ServiceContext serviceContext) {
+        final ServiceContext serviceContext,
+        final KsqlConfig ksqlConfig) {
       this.cleanupService = cleanupService;
       this.serviceContext = serviceContext;
+      this.ksqlConfig = ksqlConfig;
     }
 
     @Override
@@ -387,7 +392,12 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             new QueryCleanupService.QueryCleanupTask(
                 serviceContext,
                 applicationId,
-                query instanceof TransientQueryMetadata
+                query instanceof TransientQueryMetadata,
+                ksqlConfig.getKsqlStreamConfigProps()
+                    .getOrDefault(
+                        StreamsConfig.STATE_DIR_CONFIG,
+                        StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
+                    .toString()
             ));
       }
 

@@ -470,69 +470,6 @@ public final class KsqlRestApplication implements Executable {
     localCommands.ifPresent(lc -> lc.processLocalCommandFiles(serviceContext));
   }
 
-  public void cleanupOldStateDirectories(final KsqlConfig configWithApplicationServer) {
-    final String stateDir =
-        configWithApplicationServer
-            .getKsqlStreamConfigProps()
-            .getOrDefault(
-                StreamsConfig.STATE_DIR_CONFIG,
-                StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
-            .toString();
-
-    final Set<String> stateStoreNames =
-        ksqlEngine.getPersistentQueries()
-            .stream()
-            .map(PersistentQueryMetadata::getQueryApplicationId)
-            .collect(Collectors.toSet());
-    try {
-      Files.walkFileTree(
-          Paths.get(stateDir),
-          new SimpleFileVisitor<Path>() {
-            @Override
-            public FileVisitResult visitFileFailed(final Path path, final IOException exc) {
-              log.error("Error cleaning up obsolete state directories \n", exc);
-              return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult visitFile(final Path path, final BasicFileAttributes attrs) {
-              if (!stateStoreNames.contains(path.getFileName())) {
-                try {
-                  Files.delete(path);
-
-                  log.warn(
-                      "Deleted local state store for non-existing query {}. "
-                          + "This is not expected and was likely due to a "
-                          + "race condition when the query was dropped before.",
-                      path.getFileName());
-                } catch (IOException e) {
-                  log.error("Error cleaning up state directory {}\n. {}", path.getFileName(), e);
-                }
-              }
-              return FileVisitResult.CONTINUE;
-            }
-
-            public FileVisitResult postVisitDirectory(final Path path, final IOException exc) {
-              if (!path.toString().equals(stateDir)) {
-                try {
-                  Files.delete(path);
-                  log.warn(
-                      "Deleted local state store for non-existing query {}."
-                          + " This is not expected and was likely due to a "
-                          + "race condition when the query was dropped before.",
-                      path.getFileName());
-                } catch (IOException e) {
-                  log.error("Error cleaning up state directory {}\n. {}", path.getFileName(), e);
-                }
-              }
-              return FileVisitResult.CONTINUE;
-            }
-          });
-    } catch (IOException e) {
-      log.error("Failed to clean state directory {}\n {}", stateDir, e);
-    }
-  }
-
   private void initialize(final KsqlConfig configWithApplicationServer) {
     rocksDBConfigSetterHandler.accept(ksqlConfigNoPort);
 
@@ -545,8 +482,14 @@ public final class KsqlRestApplication implements Executable {
         processingLogContext.getConfig(),
         ksqlConfigNoPort
     );
-    commandRunner.processPriorCommands();
-    cleanupOldStateDirectories(configWithApplicationServer);
+    commandRunner.processPriorCommands(
+        configWithApplicationServer
+            .getKsqlStreamConfigProps()
+            .getOrDefault(
+                StreamsConfig.STATE_DIR_CONFIG,
+                StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
+        .toString(),
+        serviceContext);
 
     commandRunner.start();
     maybeCreateProcessingLogStream(

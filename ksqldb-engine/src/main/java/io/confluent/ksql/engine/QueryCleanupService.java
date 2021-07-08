@@ -17,8 +17,12 @@ package io.confluent.ksql.engine;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
+import com.spun.util.io.FileUtils;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.services.ServiceContext;
+
+import java.io.File;
+import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -36,6 +40,7 @@ import org.slf4j.LoggerFactory;
  * real/sandboxed engines.</p>
  */
 @SuppressWarnings("UnstableApiUsage")
+public
 class QueryCleanupService extends AbstractExecutionThreadService {
 
   private static final Logger LOG = LoggerFactory.getLogger(QueryCleanupService.class);
@@ -43,7 +48,7 @@ class QueryCleanupService extends AbstractExecutionThreadService {
 
   private final BlockingQueue<Runnable> cleanupTasks;
 
-  QueryCleanupService() {
+  public QueryCleanupService() {
     cleanupTasks = new LinkedBlockingDeque<>();
   }
 
@@ -85,19 +90,22 @@ class QueryCleanupService extends AbstractExecutionThreadService {
     cleanupTasks.add(task);
   }
 
-  static class QueryCleanupTask implements Runnable {
+  public static class QueryCleanupTask implements Runnable {
     private final String appId;
     private final boolean isTransient;
     private final ServiceContext serviceContext;
+    private String stateDir;
 
-    QueryCleanupTask(
+    public QueryCleanupTask(
         final ServiceContext serviceContext,
         final String appId,
-        final boolean isTransient
+        final boolean isTransient,
+        final String stateDir
     ) {
       this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
       this.appId = Objects.requireNonNull(appId, "appId");
       this.isTransient = isTransient;
+      this.stateDir = stateDir;
     }
 
     public String getAppId() {
@@ -106,6 +114,16 @@ class QueryCleanupService extends AbstractExecutionThreadService {
 
     @Override
     public void run() {
+      try {
+        FileUtils.deleteDirectory(new File(stateDir + appId));
+        LOG.warn(
+            "Deleted local state store for non-existing query {}. "
+                + "This is not expected and was likely due to a "
+                + "race condition when the query was dropped before.",
+            appId);
+      } catch (IOException e) {
+        LOG.error("Error cleaning up state directory {}\n. {}", appId, e);
+      }
       tryRun(
           () -> SchemaRegistryUtil.cleanupInternalTopicSchemas(
               appId,
@@ -128,6 +146,9 @@ class QueryCleanupService extends AbstractExecutionThreadService {
       } catch (final Exception e) {
         LOG.warn("Failed to cleanup {} for {}", resource, appId, e);
       }
+    }
+    public void setStateDir(final String newStateDir) {
+      stateDir = newStateDir;
     }
   }
 

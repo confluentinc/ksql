@@ -39,22 +39,22 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class OrphanedTransientQueryCleanerTest {
   private static final String TOPIC1
-      = "_confluent_ksql_default_transient_932097300573686369_1606940079718"
+      = "_confluent-ksql-default_transient_932097300573686369_1606940079718"
       + "-Aggregate-GroupBy-repartition";
   private static final String TOPIC2
-      = "_confluent_ksql_default_transient_932097300573686369_1606940079718"
+      = "_confluent-ksql-default_transient_932097300573686369_1606940079718"
       + "-Aggregate-Aggregate-Materialize-changelog";
   private static final String TOPIC3
-      = "_confluent_ksql_default_transient_123497300573686369_1606940012345"
+      = "_confluent-ksql-default_transient_123497300573686369_1606940012345"
       + "-Aggregate-Aggregate-Materialize-changelog";
 
   private static final String BAD_TOPIC_NAME
       = "_confluent-ksql-default_node0_transient_bad";
 
   private static final String APP_ID_1
-      = "_confluent_ksql_default_transient_932097300573686369_1606940079718";
+      = "_confluent-ksql-default_transient_932097300573686369_1606940079718";
   private static final String APP_ID_2
-      = "_confluent_ksql_default_transient_123497300573686369_1606940012345";
+      = "_confluent-ksql-default_transient_123497300573686369_1606940012345";
 
   @Mock
   private QueryCleanupService queryCleanupService;

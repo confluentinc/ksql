@@ -162,7 +162,7 @@ public class RestApiTest {
               )
               .withAcl(
                   NORMAL_USER,
-                  prefixedResource(GROUP, "_confluent_ksql_default_transient_"),
+                  prefixedResource(GROUP, "_confluent-ksql-default_transient_"),
                   ops(ALL)
               )
               .withAcl(

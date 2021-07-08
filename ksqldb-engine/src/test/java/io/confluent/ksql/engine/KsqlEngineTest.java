@@ -1076,7 +1076,7 @@ public class KsqlEngineTest {
 
     assertThat(
         Iterables.getOnlyElement(deletedConsumerGroups),
-        containsString("_confluent_ksql_default_transient_"));
+        containsString("_confluent-ksql-default_transient_"));
   }
 
   @Test

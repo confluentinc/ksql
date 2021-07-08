@@ -1,4 +1,4 @@
-# KLIP 46 - BYTES Data Type Support
+# KLIP 52 - BYTES Data Type Support
 
 **Author**: Zara Lim (@jzaralim) | 
 **Release Target**: 0.21 | 
@@ -51,7 +51,7 @@ Implicit conversions to BYTES will not be supported.
 
 The following UDFs will be added:
 
-* `to_bytes(string, encoding)` - this will convert a STRING value to BYTES in the specified encoding.
+* `to_bytes(string, encoding)` - this will convert a STRING value in the specified encoding to BYTES.
 The accepted encoders are `hex`, `utf8`, `ascii`, and `base64`.
 * `from_bytes(bytes, encoding)` - this will convert a BYTES value to STRING in the specified encoding.
 The accepted encoders are `hex`, `utf8`, `ascii`, and `base64`.

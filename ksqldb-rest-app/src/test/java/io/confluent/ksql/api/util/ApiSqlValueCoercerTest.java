@@ -31,6 +31,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -59,6 +60,7 @@ public class ApiSqlValueCoercerTest {
       .put(SqlBaseType.TIME, SqlTypes.TIME)
       .put(SqlBaseType.DATE, SqlTypes.DATE)
       .put(SqlBaseType.TIMESTAMP, SqlTypes.TIMESTAMP)
+      .put(SqlBaseType.BYTES, SqlTypes.BYTES)
       .put(SqlBaseType.ARRAY, SqlTypes.array(SqlTypes.BIGINT))
       .put(SqlBaseType.MAP, SqlTypes.map(SqlTypes.STRING, SqlTypes.BIGINT))
       .put(SqlBaseType.STRUCT, SqlTypes.struct().field("fred", SqlTypes.INTEGER).build())
@@ -75,6 +77,7 @@ public class ApiSqlValueCoercerTest {
       .put(SqlBaseType.TIME, new Time(300))
       .put(SqlBaseType.DATE, new Date(300))
       .put(SqlBaseType.TIMESTAMP, new Timestamp(300))
+      .put(SqlBaseType.BYTES, ByteBuffer.wrap(new byte[] {123}))
       .put(SqlBaseType.ARRAY, new JsonArray().add(1L).add(2L))
       .put(SqlBaseType.MAP, new JsonObject().put("k", 1L))
       .put(SqlBaseType.STRUCT, new JsonObject().put("fred", 11))
@@ -108,6 +111,7 @@ public class ApiSqlValueCoercerTest {
     assertThat(coercer.coerce(new Timestamp(3213), SqlTypes.BOOLEAN), is(Result.failure()));
     assertThat(coercer.coerce(new Time(3213), SqlTypes.BOOLEAN), is(Result.failure()));
     assertThat(coercer.coerce(new Date(3213), SqlTypes.BOOLEAN), is(Result.failure()));
+    assertThat(coercer.coerce(ByteBuffer.wrap(new byte[] {123}), SqlTypes.BOOLEAN), is(Result.failure()));
   }
 
   @Test
@@ -125,6 +129,7 @@ public class ApiSqlValueCoercerTest {
     assertThat(coercer.coerce(new Timestamp(3213), SqlTypes.INTEGER), is(Result.failure()));
     assertThat(coercer.coerce(new Time(3213), SqlTypes.INTEGER), is(Result.failure()));
     assertThat(coercer.coerce(new Date(3213), SqlTypes.INTEGER), is(Result.failure()));
+    assertThat(coercer.coerce(ByteBuffer.wrap(new byte[] {123}), SqlTypes.INTEGER), is(Result.failure()));
   }
 
   @Test
@@ -142,6 +147,7 @@ public class ApiSqlValueCoercerTest {
     assertThat(coercer.coerce(new Timestamp(3213), SqlTypes.BIGINT), is(Result.failure()));
     assertThat(coercer.coerce(new Time(3213), SqlTypes.BIGINT), is(Result.failure()));
     assertThat(coercer.coerce(new Date(3213), SqlTypes.BIGINT), is(Result.failure()));
+    assertThat(coercer.coerce(ByteBuffer.wrap(new byte[] {123}), SqlTypes.BIGINT), is(Result.failure()));
   }
 
   @Test
@@ -164,6 +170,7 @@ public class ApiSqlValueCoercerTest {
     assertThat(coercer.coerce(new Timestamp(3213), decimalType), is(Result.failure()));
     assertThat(coercer.coerce(new Time(3213), decimalType), is(Result.failure()));
     assertThat(coercer.coerce(new Date(3213), decimalType), is(Result.failure()));
+    assertThat(coercer.coerce(ByteBuffer.wrap(new byte[] {123}), decimalType), is(Result.failure()));
   }
 
   @Test
@@ -181,6 +188,7 @@ public class ApiSqlValueCoercerTest {
     assertThat(coercer.coerce(new Timestamp(3213), SqlTypes.DOUBLE), is(Result.failure()));
     assertThat(coercer.coerce(new Time(3213), SqlTypes.DOUBLE), is(Result.failure()));
     assertThat(coercer.coerce(new Date(3213), SqlTypes.DOUBLE), is(Result.failure()));
+    assertThat(coercer.coerce(ByteBuffer.wrap(new byte[] {123}), SqlTypes.DOUBLE), is(Result.failure()));
   }
 
   @Test
@@ -201,6 +209,7 @@ public class ApiSqlValueCoercerTest {
     assertThat(coercer.coerce(new Timestamp(3213), arrayType), is(Result.failure()));
     assertThat(coercer.coerce(new Time(3213), arrayType), is(Result.failure()));
     assertThat(coercer.coerce(new Date(3213), arrayType), is(Result.failure()));
+    assertThat(coercer.coerce(ByteBuffer.wrap(new byte[] {123}), arrayType), is(Result.failure()));
     assertThat(coercer.coerce(ImmutableMap.of("foo", 1), arrayType), is(Result.failure()));
     assertThat(coercer.coerce(new JsonObject().put("foo", 1), arrayType), is(Result.failure()));
   }
@@ -223,6 +232,7 @@ public class ApiSqlValueCoercerTest {
     assertThat(coercer.coerce(new Timestamp(3213), mapType), is(Result.failure()));
     assertThat(coercer.coerce(new Time(3213), mapType), is(Result.failure()));
     assertThat(coercer.coerce(new Date(3213), mapType), is(Result.failure()));
+    assertThat(coercer.coerce(ByteBuffer.wrap(new byte[] {123}), mapType), is(Result.failure()));
     assertThat(coercer.coerce(ImmutableList.of("foo"), mapType), is(Result.failure()));
     assertThat(coercer.coerce(new JsonArray().add("foo"), mapType), is(Result.failure()));
   }
@@ -312,6 +322,7 @@ public class ApiSqlValueCoercerTest {
     assertThat(coercer.coerce(new Time(1000L), SqlTypes.STRING), is(Result.failure()));
     assertThat(coercer.coerce(new Date(1000L), SqlTypes.STRING), is(Result.failure()));
     assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.STRING), is(Result.failure()));
+    assertThat(coercer.coerce(ByteBuffer.wrap(new byte[] {123}), SqlTypes.STRING), is(Result.failure()));
   }
 
   @Test
@@ -330,6 +341,7 @@ public class ApiSqlValueCoercerTest {
     assertThat(coercer.coerce(new Time(1000L), SqlTypes.TIMESTAMP), is(Result.failure()));
     assertThat(coercer.coerce(new Date(1000L), SqlTypes.TIMESTAMP), is(Result.failure()));
     assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.TIMESTAMP), is(Result.failure()));
+    assertThat(coercer.coerce(ByteBuffer.wrap(new byte[] {123}), SqlTypes.TIMESTAMP), is(Result.failure()));
   }
 
   @Test
@@ -348,6 +360,7 @@ public class ApiSqlValueCoercerTest {
     assertThat(coercer.coerce(new Timestamp(1000L), SqlTypes.TIME), is(Result.failure()));
     assertThat(coercer.coerce(new Date(1000L), SqlTypes.TIME), is(Result.failure()));
     assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.TIME), is(Result.failure()));
+    assertThat(coercer.coerce(ByteBuffer.wrap(new byte[] {123}), SqlTypes.TIME), is(Result.failure()));
   }
 
   @Test
@@ -366,6 +379,25 @@ public class ApiSqlValueCoercerTest {
     assertThat(coercer.coerce(new Time(1000L), SqlTypes.DATE), is(Result.failure()));
     assertThat(coercer.coerce(new Timestamp(1000L), SqlTypes.DATE), is(Result.failure()));
     assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.DATE), is(Result.failure()));
+    assertThat(coercer.coerce(ByteBuffer.wrap(new byte[] {123}), SqlTypes.DATE), is(Result.failure()));
+  }
+
+  @Test
+  public void shouldCoerceToBytes() {
+    assertThat(coercer.coerce(ByteBuffer.wrap(new byte[] {123}), SqlTypes.BYTES), is(Result.of(ByteBuffer.wrap(new byte[] {123}))));
+  }
+
+  @Test
+  public void shouldNotCoerceToBytes() {
+    assertThat(coercer.coerce(true, SqlTypes.BYTES), is(Result.failure()));
+    assertThat(coercer.coerce(1, SqlTypes.BYTES), is(Result.failure()));
+    assertThat(coercer.coerce(1L, SqlTypes.BYTES), is(Result.failure()));
+    assertThat(coercer.coerce(1.0d, SqlTypes.BYTES), is(Result.failure()));
+    assertThat(coercer.coerce("aaa", SqlTypes.BYTES), is(Result.failure()));
+    assertThat(coercer.coerce(new Time(1000L), SqlTypes.BYTES), is(Result.failure()));
+    assertThat(coercer.coerce(new Date(3213), SqlTypes.BYTES), is(Result.failure()));
+    assertThat(coercer.coerce(new Timestamp(1000L), SqlTypes.BYTES), is(Result.failure()));
+    assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.BYTES), is(Result.failure()));
   }
 
   @Test

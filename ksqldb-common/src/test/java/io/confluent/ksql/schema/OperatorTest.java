@@ -22,6 +22,7 @@ import static io.confluent.ksql.schema.Operator.MULTIPLY;
 import static io.confluent.ksql.schema.Operator.SUBTRACT;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.BIGINT;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.BOOLEAN;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.BYTES;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.DATE;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.DOUBLE;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.INTEGER;
@@ -66,6 +67,7 @@ public class OperatorTest {
       .put(SqlBaseType.TIME, TIME)
       .put(SqlBaseType.DATE, DATE)
       .put(SqlBaseType.TIMESTAMP, TIMESTAMP)
+      .put(SqlBaseType.BYTES, BYTES)
       .put(SqlBaseType.ARRAY, SqlTypes.array(BIGINT))
       .put(SqlBaseType.MAP, SqlTypes.map(SqlTypes.STRING, INTEGER))
       .put(SqlBaseType.STRUCT, SqlTypes.struct().field("f", INTEGER).build())

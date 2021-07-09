@@ -19,6 +19,7 @@ import io.confluent.ksql.execution.interpreter.TermEvaluationContext;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -67,6 +68,10 @@ public final class LiteralTerms {
 
   public static Term of(final TimeUnit value) {
     return new IntervalUnitTermImpl(value);
+  }
+
+  public static Term of(final ByteBuffer value) {
+    return new BytesTermImpl(value);
   }
 
   public static NullTerm ofNull() {
@@ -260,6 +265,25 @@ public final class LiteralTerms {
     @Override
     public SqlType getSqlType() {
       return SqlTypes.DATE;
+    }
+  }
+
+  public static class BytesTermImpl implements Term {
+
+    private final ByteBuffer value;
+
+    public BytesTermImpl(final ByteBuffer bytes) {
+      this.value = bytes;
+    }
+
+    @Override
+    public Object getValue(final TermEvaluationContext context) {
+      return value;
+    }
+
+    @Override
+    public SqlType getSqlType() {
+      return SqlTypes.BYTES;
     }
   }
 

@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
@@ -66,6 +67,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 
 public final class ExpressionFormatter {
 
@@ -188,6 +190,12 @@ public final class ExpressionFormatter {
     @Override
     public String visitDecimalLiteral(final DecimalLiteral node, final Context context) {
       return node.getValue().toString();
+    }
+
+    @Override
+    public String visitBytesLiteral(final BytesLiteral bytesLiteral, final Context context) {
+      return "ByteBuffer.wrap(new byte[]{"
+          + StringUtils.join(bytesLiteral.getByteArray(), ",") + "})";
     }
 
     @Override

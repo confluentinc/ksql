@@ -17,6 +17,7 @@ package io.confluent.ksql.schema.ksql;
 
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.BIGINT;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.BOOLEAN;
+import static io.confluent.ksql.schema.ksql.types.SqlTypes.BYTES;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.DATE;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.DOUBLE;
 import static io.confluent.ksql.schema.ksql.types.SqlTypes.INTEGER;
@@ -50,6 +51,7 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -315,6 +317,11 @@ public class DefaultSqlValueCoercerTest {
             .put(STRING, laxOnly("1990-03-03"))
             .build()
         )
+        // BYTES:
+        .put(ByteBuffer.wrap(new byte[] {110}), ImmutableMap.<SqlType, Object>builder()
+            .put(BYTES, ByteBuffer.wrap(new byte[] {110}))
+            .build()
+        )
         // ARRAY:
         .put(ImmutableList.of(), ImmutableMap.<SqlType, Object>builder()
             .put(array(BOOLEAN), ImmutableList.of())
@@ -329,6 +336,7 @@ public class DefaultSqlValueCoercerTest {
             .put(array(TIME), ImmutableList.of())
             .put(array(DATE), ImmutableList.of())
             .put(array(TIMESTAMP), ImmutableList.of())
+            .put(array(BYTES), ImmutableList.of())
             .build()
         )
         .put(ImmutableList.of(true, false), ImmutableMap.<SqlType, Object>builder()
@@ -431,6 +439,10 @@ public class DefaultSqlValueCoercerTest {
                 .put(
                     struct().field("def", DATE).build(),
                     createStruct(struct().field("def", DATE).build())
+                )
+                .put(
+                    struct().field("ghi", BYTES).build(),
+                    createStruct(struct().field("ghi", BYTES).build())
                 )
                 .build()
         )
@@ -1018,7 +1030,8 @@ public class DefaultSqlValueCoercerTest {
           is(ImmutableSet.of(
               SqlBaseType.BOOLEAN, SqlBaseType.INTEGER, SqlBaseType.BIGINT, SqlBaseType.DECIMAL,
               SqlBaseType.DOUBLE, SqlBaseType.STRING, SqlBaseType.ARRAY, SqlBaseType.MAP,
-              SqlBaseType.STRUCT, SqlBaseType.TIME, SqlBaseType.DATE, SqlBaseType.TIMESTAMP
+              SqlBaseType.STRUCT, SqlBaseType.TIME, SqlBaseType.DATE, SqlBaseType.TIMESTAMP,
+              SqlBaseType.BYTES
           ))
       );
     }
@@ -1092,6 +1105,7 @@ public class DefaultSqlValueCoercerTest {
         .put(SqlBaseType.TIME, SqlTypes.TIME)
         .put(SqlBaseType.DATE, SqlTypes.DATE)
         .put(SqlBaseType.TIMESTAMP, SqlTypes.TIMESTAMP)
+        .put(SqlBaseType.BYTES, BYTES)
         .build();
 
     static SqlType typeInstanceFor(final SqlBaseType baseType) {
@@ -1118,6 +1132,7 @@ public class DefaultSqlValueCoercerTest {
         .put(SqlBaseType.TIME, new Time(1000L))
         .put(SqlBaseType.DATE, new Date(636451200000L))
         .put(SqlBaseType.TIMESTAMP, new Timestamp(1535792475000L))
+        .put(SqlBaseType.BYTES, ByteBuffer.wrap(new byte[] {88, 34, 120}))
         .build();
 
     @SuppressWarnings("fallthrough")
@@ -1225,6 +1240,9 @@ public class DefaultSqlValueCoercerTest {
             .put(SqlBaseType.TIMESTAMP, ImmutableSet.<SqlBaseType>builder()
                 .add(SqlBaseType.TIMESTAMP)
                 .build())
+            .put(SqlBaseType.BYTES, ImmutableSet.<SqlBaseType>builder()
+                .add(SqlBaseType.BYTES)
+                .build())
             .build();
 
     private static final ImmutableMap<SqlBaseType, ImmutableSet<SqlBaseType>> LAX_ADDITIONAL =
@@ -1265,6 +1283,9 @@ public class DefaultSqlValueCoercerTest {
                 .build())
             .put(SqlBaseType.DATE, ImmutableSet.<SqlBaseType>builder()
                 .add(SqlBaseType.STRING)
+                .build())
+            .put(SqlBaseType.BYTES, ImmutableSet.<SqlBaseType>builder()
+                .add(SqlBaseType.BYTES)
                 .build())
             .build();
 

@@ -46,6 +46,7 @@ public class SqlTypeCodeGenTest {
         .put(SqlBaseType.STRUCT, SqlTypes.struct()
             .field("Bob", SqlTypes.STRING)
             .build())
+        .put(SqlBaseType.BYTES, SqlTypes.BYTES)
         .build();
 
     static SqlType typeInstanceFor(final SqlBaseType baseType) {

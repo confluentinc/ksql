@@ -46,6 +46,7 @@ public final class SqlTypeWalker {
       .put(SqlBaseType.TIME, (v, t) -> v.visitTime((SqlPrimitiveType) t))
       .put(SqlBaseType.DATE, (v, t) -> v.visitDate((SqlPrimitiveType) t))
       .put(SqlBaseType.TIMESTAMP, (v, t) -> v.visitTimestamp((SqlPrimitiveType) t))
+      .put(SqlBaseType.BYTES, (v, t) -> v.visitBytes((SqlPrimitiveType) t))
       .put(SqlBaseType.ARRAY, SqlTypeWalker::visitArray)
       .put(SqlBaseType.MAP, SqlTypeWalker::visitMap)
       .put(SqlBaseType.STRUCT, SqlTypeWalker::visitStruct)
@@ -97,6 +98,10 @@ public final class SqlTypeWalker {
     }
 
     default S visitTimestamp(final SqlPrimitiveType type) {
+      return visitPrimitive(type);
+    }
+
+    default S visitBytes(final SqlPrimitiveType type) {
       return visitPrimitive(type);
     }
 

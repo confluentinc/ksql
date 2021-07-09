@@ -94,4 +94,6 @@ public interface ExpressionVisitor<R, C> {
   R visitLambdaVariable(LambdaVariable exp, C context);
 
   R visitIntervalUnit(IntervalUnit exp, C context);
+
+  R visitBytesLiteral(BytesLiteral exp, C context);
 }

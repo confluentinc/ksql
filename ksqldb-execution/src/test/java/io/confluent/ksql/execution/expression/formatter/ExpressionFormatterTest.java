@@ -26,6 +26,7 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
@@ -72,6 +73,7 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.schema.utils.FormatOptions;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -87,6 +89,13 @@ public class ExpressionFormatterTest {
   @Test
   public void shouldFormatBooleanLiteral() {
     assertThat(ExpressionFormatter.formatExpression(new BooleanLiteral("true")), equalTo("true"));
+  }
+
+  @Test
+  public void shouldFormatBytesLiteral() {
+    assertThat(ExpressionFormatter.formatExpression(new BytesLiteral(ByteBuffer.wrap(new byte[] {123, 45}))), equalTo("ByteBuffer.wrap(new byte[]{123,45})"));
+    assertThat(ExpressionFormatter.formatExpression(new BytesLiteral(ByteBuffer.wrap(new byte[] {}))), equalTo("ByteBuffer.wrap(new byte[]{})"));
+    assertThat(ExpressionFormatter.formatExpression(new BytesLiteral(ByteBuffer.wrap(new byte[] {123}))), equalTo("ByteBuffer.wrap(new byte[]{123})"));
   }
 
   @Test

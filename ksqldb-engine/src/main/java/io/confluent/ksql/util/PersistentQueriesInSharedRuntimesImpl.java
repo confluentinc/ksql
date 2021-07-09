@@ -80,6 +80,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   };
   private final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
       materializationProviderBuilder;
+  private final Optional<MaterializationProvider> materializationProvider;
   private boolean everStarted = false;
 
 
@@ -124,6 +125,8 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
     this.materializationProviderBuilder =
         requireNonNull(materializationProviderBuilder, "materializationProviderBuilder");
     this.listener = requireNonNull(listener, "listen");
+    this.materializationProvider = materializationProviderBuilder
+            .flatMap(builder -> builder.apply(getKafkaStreams(), getTopology()));
   }
 
 
@@ -149,6 +152,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
     this.resultSchema = original.resultSchema;
     this.materializationProviderBuilder = original.materializationProviderBuilder;
     this.listener = requireNonNull(listener, "listen");
+    this.materializationProvider = original.materializationProvider;
   }
 
   @Override
@@ -200,7 +204,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   public Optional<Materialization> getMaterialization(
       final QueryId queryId,
       final QueryContext.Stacker contextStacker) {
-    return Optional.empty();
+    return materializationProvider.map(builder -> builder.build(queryId, contextStacker));
   }
 
   @Override
@@ -322,7 +326,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
 
   @Override
   public List<QueryError> getQueryErrors() {
-    return sharedKafkaStreamsRuntime.getQueryErrors(queryId);
+    return sharedKafkaStreamsRuntime.getQueryErrors();
   }
 
   @Override
@@ -333,6 +337,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   @Override
   public void close() {
     sharedKafkaStreamsRuntime.close(queryId);
+    listener.onClose(this);
   }
 
   @Override

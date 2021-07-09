@@ -473,6 +473,7 @@ public class SecureIntegrationTest {
         .execute(serviceContext, ksqlEngine, query, ksqlConfig, Collections.emptyMap()).get(0);
 
     queryMetadata.start();
+    System.err.println(queryMetadata.getState());
     assertThatEventually(
         "Wait for query to fail",
         () -> queryMetadata.getQueryErrors().size() > 0,

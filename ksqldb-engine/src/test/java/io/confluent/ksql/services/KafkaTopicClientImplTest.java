@@ -111,7 +111,7 @@ public class KafkaTopicClientImplTest {
     when(adminClient.listTopics()).thenAnswer(listTopicResult());
     when(adminClient.describeTopics(any(), any())).thenAnswer(describeTopicsResult());
     when(adminClient.createTopics(any(), any())).thenAnswer(createTopicsResult());
-    when(adminClient.deleteTopics(any())).thenAnswer(deleteTopicsResult());
+    when(adminClient.deleteTopics(Collections.singleton(any()))).thenAnswer(deleteTopicsResult());
     when(adminClient.describeConfigs(any())).thenAnswer(describeConfigsResult());
     when(adminClient.incrementalAlterConfigs(any())).thenAnswer(alterConfigsResult());
     when(adminClient.alterConfigs(any())).thenAnswer(alterConfigsResult());
@@ -438,7 +438,7 @@ public class KafkaTopicClientImplTest {
     kafkaTopicClient.deleteTopics(ImmutableList.of());
 
     // Then:
-    verify(adminClient, never()).deleteTopics(any());
+    verify(adminClient, never()).deleteTopics(Collections.singleton(any()));
   }
 
   @Test
@@ -465,7 +465,7 @@ public class KafkaTopicClientImplTest {
   @Test
   public void shouldFailToDeleteOnTopicDeletionDisabledException() {
     // Given:
-    when(adminClient.deleteTopics(any()))
+    when(adminClient.deleteTopics(Collections.singleton(any())))
         .thenAnswer(deleteTopicsResult(new TopicDeletionDisabledException("error")));
 
     // When:
@@ -478,7 +478,7 @@ public class KafkaTopicClientImplTest {
   @Test
   public void shouldFailToDeleteOnTopicAuthorizationException() {
     // Given:
-    when(adminClient.deleteTopics(any()))
+    when(adminClient.deleteTopics(Collections.singleton(any())))
         .thenAnswer(deleteTopicsResult(new TopicAuthorizationException("error")));
 
     // When:
@@ -495,7 +495,7 @@ public class KafkaTopicClientImplTest {
   @Test
   public void shouldFailToDeleteOnKafkaDeleteTopicsException() {
     // Given:
-    when(adminClient.deleteTopics(any()))
+    when(adminClient.deleteTopics(Collections.singleton(any())))
         .thenAnswer(deleteTopicsResult(new Exception("error")));
 
     // When:
@@ -508,7 +508,7 @@ public class KafkaTopicClientImplTest {
   @Test
   public void shouldNotThrowKafkaDeleteTopicsExceptionWhenMissingTopic() {
     // Given:
-    when(adminClient.deleteTopics(any()))
+    when(adminClient.deleteTopics(Collections.singleton(any())))
         .thenAnswer(deleteTopicsResult(new UnknownTopicOrPartitionException("error")));
 
     // When:

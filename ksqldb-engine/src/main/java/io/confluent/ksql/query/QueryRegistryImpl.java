@@ -56,6 +56,7 @@ public class QueryRegistryImpl implements QueryRegistry {
 
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
   private final Set<QueryMetadata> allLiveQueries;
+  private final Map<QueryId, QueryMetadata> allQueries;
   private final Map<SourceName, QueryId> createAsQueries;
   private final Map<SourceName, Set<QueryId>> insertQueries;
   private final Collection<QueryEventListener> eventListeners;
@@ -71,6 +72,7 @@ public class QueryRegistryImpl implements QueryRegistry {
   ) {
     this.persistentQueries = new ConcurrentHashMap<>();
     this.allLiveQueries = ConcurrentHashMap.newKeySet();
+    this.allQueries = new ConcurrentHashMap<>();
     this.createAsQueries = new ConcurrentHashMap<>();
     this.insertQueries = new ConcurrentHashMap<>();
     this.eventListeners = Objects.requireNonNull(eventListeners);
@@ -82,6 +84,7 @@ public class QueryRegistryImpl implements QueryRegistry {
     executorFactory = original.executorFactory;
     persistentQueries = new ConcurrentHashMap<>();
     allLiveQueries = ConcurrentHashMap.newKeySet();
+    allQueries = new ConcurrentHashMap<>();
     createAsQueries = new ConcurrentHashMap<>();
     insertQueries = new ConcurrentHashMap<>();
     original.allLiveQueries.forEach(query -> {
@@ -92,12 +95,14 @@ public class QueryRegistryImpl implements QueryRegistry {
         );
         persistentQueries.put(sandboxed.getQueryId(), sandboxed);
         allLiveQueries.add(sandboxed);
+        allQueries.put(sandboxed.getQueryId(), sandboxed);
       } else {
         final TransientQueryMetadata sandboxed = SandboxedTransientQueryMetadata.of(
             (TransientQueryMetadata) query,
             new ListenerImpl()
         );
         allLiveQueries.add(sandboxed);
+        allQueries.put(sandboxed.getQueryId(), sandboxed);
       }
     });
     createAsQueries.putAll(original.createAsQueries);
@@ -185,6 +190,11 @@ public class QueryRegistryImpl implements QueryRegistry {
   @Override
   public Optional<PersistentQueryMetadata> getPersistentQuery(final QueryId queryId) {
     return Optional.ofNullable(persistentQueries.get(queryId));
+  }
+
+  @Override
+  public Optional<QueryMetadata> getQuery(QueryId queryId) {
+    return Optional.ofNullable(allQueries.get(queryId));
   }
 
   @Override

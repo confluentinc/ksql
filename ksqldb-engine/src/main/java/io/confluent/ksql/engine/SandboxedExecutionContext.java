@@ -88,6 +88,11 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
+  public Optional<QueryMetadata> getQuery(QueryId queryId) {
+    return engineContext.getQueryRegistry().getQuery(queryId);
+  }
+
+  @Override
   public List<PersistentQueryMetadata> getPersistentQueries() {
     return ImmutableList.copyOf(engineContext.getQueryRegistry().getPersistentQueries().values());
   }

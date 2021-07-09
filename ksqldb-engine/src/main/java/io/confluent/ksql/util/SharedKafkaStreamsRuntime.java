@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.streams.KafkaStreams;
@@ -61,7 +62,7 @@ public class SharedKafkaStreamsRuntime {
     queryErrors
         = new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
     this.streamsProperties = ImmutableMap.copyOf(streamsProperties);
-    metadata = new HashMap<>();
+    metadata = new ConcurrentHashMap<>();
     kafkaStreams.start();
   }
 
@@ -147,7 +148,9 @@ public class SharedKafkaStreamsRuntime {
 
   public void close(final QueryId queryId) {
     metadata.remove(queryId.toString());
-//    kafkaStreams.removeNamedTopology(queryId.toString());
+    if (kafkaStreams.state() == KafkaStreams.State.RUNNING || kafkaStreams.state() == KafkaStreams.State.REBALANCING) {
+      kafkaStreams.removeNamedTopology(queryId.toString());
+    }
   }
 
   public void start(final QueryId queryId) {
@@ -178,5 +181,12 @@ public class SharedKafkaStreamsRuntime {
             .flatMap(t -> t.getSourceNames().stream())
             .collect(Collectors.toSet())
     );
+  }
+
+  public synchronized void close() {
+    for (String query: metadata.keySet()) {
+      metadata.remove(query);
+    }
+    kafkaStreams.close();
   }
 }

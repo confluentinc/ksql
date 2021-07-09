@@ -104,7 +104,9 @@ final class QueryExecutor {
       final SessionConfig config,
       final ProcessingLogContext processingLogContext,
       final ServiceContext serviceContext,
-      final FunctionRegistry functionRegistry) {
+      final FunctionRegistry functionRegistry,
+      final ArrayList<SharedKafkaStreamsRuntime> streams
+  ) {
     this(
         config,
         processingLogContext,
@@ -118,7 +120,8 @@ final class QueryExecutor {
             serviceContext,
             new KsMaterializationFactory(),
             new KsqlMaterializationFactory(processingLogContext)
-        )
+        ),
+        streams
     );
   }
 
@@ -130,7 +133,8 @@ final class QueryExecutor {
       final FunctionRegistry functionRegistry,
       final KafkaStreamsBuilder kafkaStreamsBuilder,
       final StreamsBuilder streamsBuilder,
-      final MaterializationProviderBuilderFactory materializationProviderBuilderFactory
+      final MaterializationProviderBuilderFactory materializationProviderBuilderFactory,
+      final ArrayList<SharedKafkaStreamsRuntime> streams
   ) {
     this.config = Objects.requireNonNull(config, "config");
     this.processingLogContext = Objects.requireNonNull(
@@ -146,7 +150,7 @@ final class QueryExecutor {
         "materializationProviderBuilderFactory"
     );
 
-    this.streams = new ArrayList<>();
+    this.streams = Objects.requireNonNull(streams, "streams");
   }
 
   TransientQueryMetadata buildTransientQuery(

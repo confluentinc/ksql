@@ -63,6 +63,7 @@ public class SharedKafkaStreamsRuntime {
         = new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
     this.streamsProperties = ImmutableMap.copyOf(streamsProperties);
     metadata = new ConcurrentHashMap<>();
+    kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
     kafkaStreams.start();
   }
 
@@ -136,6 +137,7 @@ public class SharedKafkaStreamsRuntime {
     for (PersistentQueriesInSharedRuntimesImpl query: metadata.values()) {
       newKafkaStreams.addNamedTopology(query.getTopology());
     }
+    newKafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
     newKafkaStreams.start();
     kafkaStreams.close();
     kafkaStreams = newKafkaStreams;
@@ -160,7 +162,7 @@ public class SharedKafkaStreamsRuntime {
     kafkaStreams.addNamedTopology(metadata.get(queryId.toString()).getTopology());
   }
 
-  public List<QueryError> getQueryErrors(final QueryId queryId) {
+  public List<QueryError> getQueryErrors() {
     return queryErrors.toImmutableList();
   }
 

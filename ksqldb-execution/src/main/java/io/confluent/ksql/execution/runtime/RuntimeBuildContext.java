@@ -132,7 +132,7 @@ public final class RuntimeBuildContext {
   }
 
   public String getApplicationId() {
-    return queryId.toString();
+    return applicationId;
   }
 
   public StreamsBuilder getStreamsBuilder() {

@@ -73,8 +73,7 @@ public class SharedKafkaStreamsRuntime {
           final QueryId queryId) {
     this.errorClassifier = errorClassifier;
     this.metadata.put(queryId.toString(), persistentQueriesInSharedRuntimesImpl);
-    kafkaStreams.addNamedTopology(persistentQueriesInSharedRuntimesImpl.getTopology());
-    LOG.error("mapping {}", metadata);
+    LOG.debug("mapping {}", metadata);
   }
 
   protected StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse uncaughtHandler(
@@ -149,7 +148,11 @@ public class SharedKafkaStreamsRuntime {
   public void close(final QueryId queryId) {
     metadata.remove(queryId.toString());
     if (kafkaStreams.state() == KafkaStreams.State.RUNNING || kafkaStreams.state() == KafkaStreams.State.REBALANCING) {
-      kafkaStreams.removeNamedTopology(queryId.toString());
+      try {
+        kafkaStreams.removeNamedTopology(queryId.toString());
+      } catch (IllegalArgumentException e) {
+
+      }
     }
   }
 

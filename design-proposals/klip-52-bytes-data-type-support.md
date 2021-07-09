@@ -45,7 +45,9 @@ ksql> SELECT b from STREAM;
 0x5B43
 ```
 
-API response objects will store BYTES data as base64 strings.
+API response objects will store BYTES data as base64 strings. The Java client's `Row` class will include a new function,
+`getBytes` that returns the value of a column as a `ByteBuffer` object. It will expect the raw value to be a Base64 string,
+and if it's not then the function will throw an error.
 
 Implicit conversions to BYTES will not be supported.
 

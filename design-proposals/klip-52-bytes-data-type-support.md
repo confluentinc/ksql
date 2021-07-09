@@ -29,7 +29,7 @@ key in a bytes schema, but this will not be included in this KLIP.
 ### BYTES
 
 The BYTES data type will store an array of raw bytes of an unspecified length. The maximum size of
-the array is limited by the maximum size of a Kafka message, as well as possibly by the value format being used.
+the array is limited by the maximum size of a Kafka message, as well as possibly by the serialization format being used.
 The syntax is as follows:
 
 ```roomsql
@@ -37,13 +37,15 @@ CREATE STREAM stream_name (b BYTES, COL2 STRING) AS ...
 CREATE TABLE table_name (col1 STRUCT<field BYTES>) AS ...
 ```
 
-By default, BYTES will be displayed in console as HEX strings, where each byte is represented by two characters.
+By default, BYTES will be displayed in the CLI as HEX strings, where each byte is represented by two characters.
 For example, the byte array `[91, 67]` will be displayed as:
 
 ```roomsql
-> SELECT b from STREAM;
-'0x5B43'
+ksql> SELECT b from STREAM;
+0x5B43
 ```
+
+API response objects will store BYTES data as base64 strings.
 
 Implicit conversions to BYTES will not be supported.
 
@@ -118,6 +120,7 @@ There will need to be tests for the following:
 The implementation can both be broken up as follows:
 * Adding the BYTES type to ksqlDB - 2 days
 * Serialization/deserialization - 4 days
+* Add BYTES to the Java client - 2 days
 * Documentation - 2 days
 * Add to Connect integration test - 1 day
 * Comparisons - 2 days

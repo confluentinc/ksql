@@ -426,6 +426,24 @@ ARRAY_UNION(ARRAY[1, 2, 3, 1, 2], [4, 1])  => [1, 2, 3, 4]
 ARRAY_UNION(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', NULL, 'cherry']
 ```
 
+### `ARRAY_CONCAT`
+
+Since: 0.20.0
+
+```sql
+ARRAY_CONCAT(array1, array2)
+```
+
+Returns an array representing the concatenation of both input arrays.
+
+Returns NULL if both input arrays are NULL. If only one argument is NULL, the result is the other argument.
+
+Examples:
+```sql 
+ARRAY_CONCAT(ARRAY[1, 2, 3, 1, 2], [4, 1])  => [1, 2, 3, 1, 2, 4, 1]
+ARRAY_CONCAT(ARRAY['apple', 'apple', NULL, 'cherry'], ARRAY['cherry'])  => ['apple', 'apple', NULL, 'cherry', 'cherry']
+```
+
 ### `AS_MAP`
 
 Since: 0.6.0

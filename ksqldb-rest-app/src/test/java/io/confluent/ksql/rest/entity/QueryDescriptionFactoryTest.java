@@ -84,7 +84,7 @@ public class QueryDescriptionFactoryTest {
   private static final Map<String, Object> STREAMS_PROPS = Collections.singletonMap("k1", "v1");
   private static final Map<String, Object> PROP_OVERRIDES = Collections.singletonMap("k2", "v2");
   private static final String APPLICATION_ID = "app id";
-  private static final QueryId QUERY_ID = new QueryId(APPLICATION_ID);
+  private static final QueryId QUERY_ID = new QueryId("queryId");
   private static final ImmutableSet<SourceName> SOURCE_NAMES = ImmutableSet.of(SourceName.of("s1"), SourceName.of("s2"));
   private static final String SQL_TEXT = "test statement";
   private static final String TOPOLOGY_TEXT = "Topology Text";
@@ -110,8 +110,7 @@ public class QueryDescriptionFactoryTest {
   private ProcessingLogger processingLogger;
   @Mock
   private QueryMetadata.Listener listener;
-  @Mock
-  private QueryId queryId;
+
 
   private QueryMetadata transientQuery;
   private PersistentQueryMetadata persistentQuery;
@@ -135,7 +134,7 @@ public class QueryDescriptionFactoryTest {
         SOURCE_NAMES,
         "execution plan",
         queryQueue,
-        queryId,
+        QUERY_ID,
         APPLICATION_ID,
         topology,
         kafkaStreamsBuilder,
@@ -183,8 +182,8 @@ public class QueryDescriptionFactoryTest {
   }
 
   @Test
-  public void shouldHaveApplicationIdAsQueryIdFromTransientQuery() {
-    assertThat(transientQueryDescription.getId().toString(), is(APPLICATION_ID));
+  public void shouldHaveQueryIdForTransientQuery() {
+    assertThat(transientQueryDescription.getId().toString(), is(QUERY_ID.toString()));
   }
 
   @Test
@@ -278,7 +277,7 @@ public class QueryDescriptionFactoryTest {
         SOURCE_NAMES,
         "execution plan",
         queryQueue,
-        queryId,
+        QUERY_ID,
         "app id",
         topology,
         kafkaStreamsBuilder,
@@ -318,7 +317,7 @@ public class QueryDescriptionFactoryTest {
         SOURCE_NAMES,
         "execution plan",
         queryQueue,
-        queryId,
+        QUERY_ID,
         "app id",
         topology,
         kafkaStreamsBuilder,

@@ -24,6 +24,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.generic.GenericRecordFactory;
 import io.confluent.ksql.engine.generic.KsqlGenericRecord;
+import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
@@ -274,7 +275,7 @@ public class InsertValuesExecutor {
           FormatFactory.fromName(dataSource.getKsqlTopic().getKeyFormat().getFormat()),
           topicName,
           true,
-          "write",
+          AclOperation.WRITE,
           e);
       LOG.error("Could not serialize key.", e);
       throw new KsqlException("Could not serialize key: " + keyValue, e);
@@ -311,7 +312,8 @@ public class InsertValuesExecutor {
           true);
 
     } catch (final KsqlException e) {
-      maybeThrowSchemaRegistryAuthError(format, dataSource.getKafkaTopicName(), true, "read", e);
+      maybeThrowSchemaRegistryAuthError(format, dataSource.getKafkaTopicName(), true,
+          AclOperation.READ, e);
       throw new KsqlException("Could not determine that insert values operations is safe; "
           + "operation potentially overrides existing key schema in schema registry.", e);
     }
@@ -355,7 +357,7 @@ public class InsertValuesExecutor {
           FormatFactory.fromName(dataSource.getKsqlTopic().getValueFormat().getFormat()),
           topicName,
           false,
-          "write",
+          AclOperation.WRITE,
           e);
       LOG.error("Could not serialize value.", e);
       throw new KsqlException("Could not serialize value: " + row + ". " + e.getMessage(), e);
@@ -366,7 +368,7 @@ public class InsertValuesExecutor {
       final Format format,
       final String topicName,
       final boolean isKey,
-      final String op,
+      final AclOperation op,
       final Exception e
   ) {
     if (format.supportsFeature(SerdeFeature.SCHEMA_INFERENCE)) {
@@ -375,11 +377,10 @@ public class InsertValuesExecutor {
         switch (((RestClientException) rootCause).getStatus()) {
           case HttpStatus.SC_UNAUTHORIZED:
           case HttpStatus.SC_FORBIDDEN:
-            throw new KsqlException(String.format(
-                "Not authorized to %s Schema Registry subject: [%s]",
+            throw new KsqlSchemaAuthorizationException(
                 op,
                 KsqlConstants.getSRSubject(topicName, isKey)
-            ));
+            );
           default:
             break;
         }

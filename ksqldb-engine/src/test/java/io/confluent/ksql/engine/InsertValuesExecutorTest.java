@@ -970,7 +970,8 @@ public class InsertValuesExecutorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Not authorized to read Schema Registry subject: [" + KsqlConstants.getSRSubject(TOPIC_NAME, true)));
+        "Authorization denied to Read on Schema Registry subject: ["
+            + KsqlConstants.getSRSubject(TOPIC_NAME, true)));
   }
 
   @Test
@@ -1006,7 +1007,8 @@ public class InsertValuesExecutorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Not authorized to write Schema Registry subject: [" + KsqlConstants.getSRSubject(TOPIC_NAME, true)));
+        "Authorization denied to Write on Schema Registry subject: ["
+            + KsqlConstants.getSRSubject(TOPIC_NAME, true)));
   }
 
   @Test
@@ -1042,7 +1044,8 @@ public class InsertValuesExecutorTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Not authorized to write Schema Registry subject: [" + KsqlConstants.getSRSubject(TOPIC_NAME, false)));
+        "Authorization denied to Write on Schema Registry subject: ["
+            + KsqlConstants.getSRSubject(TOPIC_NAME, false)));
   }
 
   private static ConfiguredStatement<InsertValues> givenInsertValues(

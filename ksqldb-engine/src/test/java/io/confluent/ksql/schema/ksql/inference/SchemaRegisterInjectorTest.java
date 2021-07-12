@@ -17,6 +17,7 @@ package io.confluent.ksql.schema.ksql.inference;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
@@ -40,6 +41,7 @@ import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchema;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlPlan;
+import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.Formats;
@@ -294,6 +296,25 @@ public class SchemaRegisterInjectorTest {
     // Then:
     assertThat(e.getMessage(), containsString(
         "Could not determine output schema for query due to error: fail!"));
+  }
+
+  @Test
+  public void shouldThrowAuthorizationException() throws Exception {
+    // Given:
+    givenStatement("CREATE STREAM sink WITH(value_format='AVRO') AS SELECT * FROM SOURCE;");
+    when(schemaRegistryClient.register(anyString(), any(ParsedSchema.class)))
+        .thenThrow(new RestClientException(
+            "User is denied operation Write on Subject", 403, 40301));
+
+    // When:
+    final Exception e = assertThrows(
+        KsqlSchemaAuthorizationException.class,
+        () -> injector.inject(statement)
+    );
+
+    // Then:
+    assertThat(e.getMessage(), equalTo(
+        "Authorization denied to Write on Schema Registry subject: [SINK-key]"));
   }
 
   @Test

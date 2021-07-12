@@ -172,8 +172,9 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
   private static SchemaResult notFound(final String topicName, final boolean isKey) {
     final String subject = getSRSubject(topicName, isKey);
     return SchemaResult.failure(new KsqlException(
-        "Schema for message " + (isKey ? "keys" : "values") +  " on topic " + topicName
+        "Schema for message " + (isKey ? "keys" : "values") +  " on topic '" + topicName + "'"
             + " does not exist in the Schema Registry."
+            + System.lineSeparator()
             + "Subject: " + subject
             + System.lineSeparator()
             + "Possible causes include:"
@@ -196,7 +197,7 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
             + "\t-> Use the REST API to list available subjects"
             + "\t" + DocumentationLinks.SR_REST_GETSUBJECTS_DOC_URL
             + System.lineSeparator()
-            + "- You do not have permissions to access the Schema Registry.Subject: " + subject
+            + "- You do not have permissions to access the Schema Registry."
             + System.lineSeparator()
             + "\t-> See " + DocumentationLinks.SCHEMA_REGISTRY_SECURITY_DOC_URL));
   }

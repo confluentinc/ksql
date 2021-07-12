@@ -219,4 +219,21 @@ public class QueryIdUtilTest {
     assertThat(e.getMessage(), containsString(
         "Query IDs may contain only alphanumeric characters and '_'. Got: 'WITH SPACE'"));
   }
+
+  @Test
+  public void shouldCreateTransientQueryIdWithSourceName() {
+    // Given:
+    when(transientPlan.getSinkName()).thenReturn(Optional.empty());
+    when(transientPlan.getSource()).thenReturn(planNode);
+    when(planNode.getLeftmostSourceNode()).thenReturn(dataSourceNode);
+    when(dataSourceNode.getAlias()).thenReturn(sourceName);
+    when(sourceName.text()).thenReturn(SOURCE);
+
+    // When:
+    final QueryId queryId = QueryIdUtil.buildId(engineContext, idGenerator, transientPlan,
+        false, Optional.empty());
+
+    // Then:
+    assertThat(queryId.toString(), containsString("transient_source"));
+  }
 }

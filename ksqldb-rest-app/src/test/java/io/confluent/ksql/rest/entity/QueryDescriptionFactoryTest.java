@@ -110,8 +110,7 @@ public class QueryDescriptionFactoryTest {
   private ProcessingLogger processingLogger;
   @Mock
   private QueryMetadata.Listener listener;
-
-
+  
   private QueryMetadata transientQuery;
   private PersistentQueryMetadata persistentQuery;
   private QueryDescription transientQueryDescription;

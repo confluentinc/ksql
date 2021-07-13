@@ -73,6 +73,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -237,19 +238,59 @@ final class QueryExecutor {
     return registry;
   }
 
-  @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE")
   PersistentQueryMetadata buildPersistentQuery(
-      final KsqlConstants.PersistentQueryType persistentQueryType,
-      final String statementText,
-      final QueryId queryId,
-      final DataSource sinkDataSource,
-      final Set<SourceName> sources,
-      final ExecutionStep<?> physicalPlan,
-      final String planSummary,
-      final QueryMetadata.Listener listener,
-      final Supplier<List<PersistentQueryMetadata>> allPersistentQueries
+          final KsqlConstants.PersistentQueryType persistentQueryType,
+          final String statementText,
+          final QueryId queryId,
+          final DataSource sinkDataSource,
+          final Set<SourceName> sources,
+          final ExecutionStep<?> physicalPlan,
+          final String planSummary,
+          final QueryMetadata.Listener listener,
+          final Supplier<List<PersistentQueryMetadata>> allPersistentQueries
   ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
+
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
+      return buildSharedPersistentQuery(
+              ksqlConfig,
+              persistentQueryType,
+              statementText,
+              queryId,
+              sinkDataSource,
+              sources, physicalPlan,
+              planSummary,
+              listener,
+              allPersistentQueries
+      );
+    } else {
+      return buildNotSharedPersistentQuery(
+              ksqlConfig,
+              persistentQueryType,
+              statementText,
+              queryId,
+              sinkDataSource,
+              sources, physicalPlan,
+              planSummary,
+              listener,
+              allPersistentQueries
+      );
+    }
+
+    }
+
+  @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE")
+  PersistentQueryMetadata buildNotSharedPersistentQuery(
+          KsqlConfig ksqlConfig, final KsqlConstants.PersistentQueryType persistentQueryType,
+          final String statementText,
+          final QueryId queryId,
+          final DataSource sinkDataSource,
+          final Set<SourceName> sources,
+          final ExecutionStep<?> physicalPlan,
+          final String planSummary,
+          final QueryMetadata.Listener listener,
+          final Supplier<List<PersistentQueryMetadata>> allPersistentQueries
+  ) {
 
     final String applicationId = QueryApplicationId.build(ksqlConfig, true, queryId);
     final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
@@ -300,61 +341,127 @@ final class QueryExecutor {
         .map(userErrorClassifiers::and)
         .orElse(userErrorClassifiers);
 
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)) {
-      final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getStream(sources, queryId);
-      final PersistentQueriesInSharedRuntimesImpl binPackedPersistentQueryMetadata
-              = new PersistentQueriesInSharedRuntimesImpl(
-          persistentQueryType,
-          statementText,
-          querySchema,
-          sources,
-          planSummary,
-          applicationId,
-          topology,
-          sharedKafkaStreamsRuntime,
-          runtimeBuildContext.getSchemas(),
-          config.getOverrides(),
-          queryId,
-          materializationProviderBuilder,
-          physicalPlan,
-          getUncaughtExceptionProcessingLogger(queryId),
-          sinkDataSource,
-          listener
-      );
-      sharedKafkaStreamsRuntime.addQuery(
-              classifier,
-              streamsProperties,
-              binPackedPersistentQueryMetadata,
-              queryId
-      );
-      return binPackedPersistentQueryMetadata;
-    } else {
-      return new PersistentQueryMetadataImpl(
-          persistentQueryType,
-          statementText,
-          querySchema,
-          sources,
-          sinkDataSource,
-          planSummary,
-          queryId,
-          materializationProviderBuilder,
-          applicationId,
-          topology,
-          kafkaStreamsBuilder,
-          runtimeBuildContext.getSchemas(),
-          streamsProperties,
-          config.getOverrides(),
-          ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
-          classifier,
-          physicalPlan,
-          ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
-          getUncaughtExceptionProcessingLogger(queryId),
-          ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
-          ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
-          listener,
-          scalablePushRegistry
-      );
-    }
+    return new PersistentQueryMetadataImpl(
+        persistentQueryType,
+        statementText,
+        querySchema,
+        sources,
+        sinkDataSource,
+        planSummary,
+        queryId,
+        materializationProviderBuilder,
+        applicationId,
+        topology,
+        kafkaStreamsBuilder,
+        runtimeBuildContext.getSchemas(),
+        streamsProperties,
+        config.getOverrides(),
+        ksqlConfig.getLong(KSQL_SHUTDOWN_TIMEOUT_MS_CONFIG),
+        classifier,
+        physicalPlan,
+        ksqlConfig.getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
+        getUncaughtExceptionProcessingLogger(queryId),
+        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_INITIAL_MS),
+        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_RETRY_BACKOFF_MAX_MS),
+        listener,
+        scalablePushRegistry
+    );
+
+  }
+
+  @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE")
+  PersistentQueryMetadata buildSharedPersistentQuery(
+          KsqlConfig ksqlConfig, final KsqlConstants.PersistentQueryType persistentQueryType,
+          final String statementText,
+          final QueryId queryId,
+          final DataSource sinkDataSource,
+          final Set<SourceName> sources,
+          final ExecutionStep<?> physicalPlan,
+          final String planSummary,
+          final QueryMetadata.Listener listener,
+          final Supplier<List<PersistentQueryMetadata>> allPersistentQueries
+  ) {
+    final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime = getStream(sources, queryId);
+
+    final String applicationId = sharedKafkaStreamsRuntime
+            .getStreamProperties()
+            .get(StreamsConfig.APPLICATION_ID_CONFIG)
+            .toString();
+    final Map<String, Object> streamsProperties = buildStreamsProperties(applicationId, queryId);
+
+    final PhysicalSchema querySchema = PhysicalSchema.from(
+            sinkDataSource.getSchema(),
+            sinkDataSource.getKsqlTopic().getKeyFormat().getFeatures(),
+            sinkDataSource.getKsqlTopic().getValueFormat().getFeatures()
+    );
+
+    final NamedTopologyStreamsBuilder namedTopologyStreamsBuilder = new NamedTopologyStreamsBuilder(
+            queryId.toString()
+    );
+
+    final RuntimeBuildContext runtimeBuildContext = buildContext(
+            applicationId,
+            queryId,
+            namedTopologyStreamsBuilder
+    );
+    final Object result = buildQueryImplementation(physicalPlan, runtimeBuildContext);
+    // Creates a ProcessorSupplier, a ScalablePushRegistry, to apply to the topology, if
+    // scalable push queries are enabled.
+    final Optional<ScalablePushRegistry> scalablePushRegistry
+            = applyScalablePushProcessor(
+            querySchema.logicalSchema(),
+            result,
+            allPersistentQueries,
+            sinkDataSource.getKsqlTopic().getKeyFormat().isWindowed(),
+            streamsProperties,
+            ksqlConfig
+    );
+    final NamedTopology topology = namedTopologyStreamsBuilder
+            .buildNamedTopology(PropertiesUtil.asProperties(streamsProperties));
+
+    final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
+            materializationProviderBuilder = getMaterializationInfo(result).map(info ->
+            materializationProviderBuilderFactory.materializationProviderBuilder(
+                    info,
+                    querySchema,
+                    sinkDataSource.getKsqlTopic().getKeyFormat(),
+                    streamsProperties,
+                    applicationId
+            ));
+
+    final QueryErrorClassifier userErrorClassifiers = new MissingTopicClassifier(applicationId)
+            .and(new AuthorizationClassifier(applicationId));
+    final QueryErrorClassifier classifier = buildConfiguredClassifiers(ksqlConfig, applicationId)
+            .map(userErrorClassifiers::and)
+            .orElse(userErrorClassifiers);
+
+    final PersistentQueriesInSharedRuntimesImpl binPackedPersistentQueryMetadata
+            = new PersistentQueriesInSharedRuntimesImpl(
+            persistentQueryType,
+            statementText,
+            querySchema,
+            sources,
+            planSummary,
+            applicationId,
+            topology,
+            sharedKafkaStreamsRuntime,
+            runtimeBuildContext.getSchemas(),
+            config.getOverrides(),
+            queryId,
+            materializationProviderBuilder,
+            physicalPlan,
+            getUncaughtExceptionProcessingLogger(queryId),
+            sinkDataSource,
+            listener
+    );
+    sharedKafkaStreamsRuntime.addQuery(
+            classifier,
+            streamsProperties,
+            binPackedPersistentQueryMetadata,
+            queryId
+    );
+    return binPackedPersistentQueryMetadata;
+
   }
 
   private SharedKafkaStreamsRuntime getStream(
@@ -368,7 +475,7 @@ final class QueryExecutor {
     final SharedKafkaStreamsRuntime stream = new SharedKafkaStreamsRuntime(
         kafkaStreamsBuilder,
         config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
-        buildStreamsProperties("ksql-application-" + streams.size()+1, queryID)
+        buildStreamsProperties("_confluent-ksql-" + streams.size() + UUID.randomUUID(), queryID)
     );
     streams.add(stream);
     return stream;

@@ -56,6 +56,7 @@ import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -125,6 +126,7 @@ public class WindowingIntTest {
   }
 
   @Test
+  @Ignore
   public void shouldAggregateWithNoWindow() {
     // Given:
     givenTable("CREATE TABLE %s AS "

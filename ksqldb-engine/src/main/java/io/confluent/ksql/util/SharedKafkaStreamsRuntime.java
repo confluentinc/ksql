@@ -159,7 +159,11 @@ public class SharedKafkaStreamsRuntime {
   }
 
   public void start(final QueryId queryId) {
-    kafkaStreams.addNamedTopology(metadata.get(queryId.toString()).getTopology());
+    if (metadata.containsKey(queryId.toString())) {
+      kafkaStreams.addNamedTopology(metadata.get(queryId.toString()).getTopology());
+    } else {
+      throw new IllegalArgumentException("query not added to runtime");
+    }
   }
 
   public List<QueryError> getQueryErrors() {

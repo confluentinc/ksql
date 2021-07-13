@@ -17,18 +17,16 @@ package io.confluent.ksql.execution.expression.tree;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.commons.lang3.ArrayUtils;
 
 @Immutable
 public class BytesLiteral extends Literal {
 
-  private final ImmutableList<Byte> value;
+  private final byte[] value;
 
   public BytesLiteral(final ByteBuffer value) {
     this(Optional.empty(), value);
@@ -36,18 +34,17 @@ public class BytesLiteral extends Literal {
 
   public BytesLiteral(final Optional<NodeLocation> location, final ByteBuffer value) {
     super(location);
-    final byte[] bytes = new byte[requireNonNull(value, "value").capacity()];
-    value.get(bytes);
-    this.value = ImmutableList.copyOf(ArrayUtils.toObject(bytes));
+    this.value = new byte[requireNonNull(value, "value").capacity()];
+    value.get(this.value);
   }
 
   @Override
   public ByteBuffer getValue() {
-    return ByteBuffer.wrap(ArrayUtils.toPrimitive(value.toArray(new Byte[0])));
+    return ByteBuffer.wrap(value.clone());
   }
 
-  public Byte[] getByteArray() {
-    return value.toArray(new Byte[0]);
+  public byte[] getByteArray() {
+    return value.clone();
   }
 
   @Override

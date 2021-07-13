@@ -195,7 +195,7 @@ public final class ExpressionFormatter {
     @Override
     public String visitBytesLiteral(final BytesLiteral bytesLiteral, final Context context) {
       return "ByteBuffer.wrap(new byte[]{"
-          + StringUtils.join(bytesLiteral.getByteArray(), ",") + "})";
+          + StringUtils.join(bytesLiteral.getByteArray(), ',') + "})";
     }
 
     @Override

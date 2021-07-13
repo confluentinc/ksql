@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.security;
 
-import static org.apache.kafka.common.acl.AclOperation.READ;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
@@ -24,6 +23,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.common.base.Ticker;
+import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.concurrent.TimeUnit;
@@ -37,6 +37,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlCacheAccessValidatorTest {
   private static final String TOPIC_1 = "topic1";
+  private static final String SUBJECT_1 = "subject1";
   private static final long ONE_SEC_IN_NS = TimeUnit.NANOSECONDS.convert(1, TimeUnit.SECONDS);
 
   @Mock
@@ -60,39 +61,76 @@ public class KsqlCacheAccessValidatorTest {
   }
 
   @Test
-  public void shouldCheckBackendValidatorOnFirstRequest() {
+  public void shouldCheckBackendValidatorOnFirstTopicAccessRequest() {
     // When
-    cache.checkAccess(securityContext, TOPIC_1, AclOperation.READ);
+    cache.checkTopicAccess(securityContext, TOPIC_1, AclOperation.READ);
 
     // Then
     verify(backendValidator, times(1))
-        .checkAccess(securityContext, TOPIC_1, AclOperation.READ);
+        .checkTopicAccess(securityContext, TOPIC_1, AclOperation.READ);
     verifyNoMoreInteractions(backendValidator);
   }
 
   @Test
-  public void shouldCheckCacheValidatorOnSecondRequest() {
+  public void shouldCheckCacheValidatorOnSecondTopicAccessRequest() {
     // When
-    cache.checkAccess(securityContext, TOPIC_1, AclOperation.READ);
+    cache.checkTopicAccess(securityContext, TOPIC_1, AclOperation.READ);
     when(fakeTicker.read()).thenReturn(ONE_SEC_IN_NS);
-    cache.checkAccess(securityContext, TOPIC_1, AclOperation.READ);
+    cache.checkTopicAccess(securityContext, TOPIC_1, AclOperation.READ);
 
     // Then
     verify(backendValidator, times(1))
-        .checkAccess(securityContext, TOPIC_1, AclOperation.READ);
+        .checkTopicAccess(securityContext, TOPIC_1, AclOperation.READ);
     verifyNoMoreInteractions(backendValidator);
   }
 
   @Test
-  public void shouldThrowAuthorizationExceptionWhenBackendValidatorIsDenied() {
+  public void shouldCheckBackendValidatorOnFirstSubjectAccessRequest() {
+    // When
+    cache.checkSubjectAccess(securityContext, SUBJECT_1, AclOperation.READ);
+
+    // Then
+    verify(backendValidator, times(1))
+        .checkSubjectAccess(securityContext, SUBJECT_1, AclOperation.READ);
+    verifyNoMoreInteractions(backendValidator);
+  }
+
+  @Test
+  public void shouldCheckCacheValidatorOnSecondSubjectAccessRequest() {
+    // When
+    cache.checkSubjectAccess(securityContext, SUBJECT_1, AclOperation.READ);
+    when(fakeTicker.read()).thenReturn(ONE_SEC_IN_NS);
+    cache.checkSubjectAccess(securityContext, SUBJECT_1, AclOperation.READ);
+
+    // Then
+    verify(backendValidator, times(1))
+        .checkSubjectAccess(securityContext, SUBJECT_1, AclOperation.READ);
+    verifyNoMoreInteractions(backendValidator);
+  }
+
+  @Test
+  public void shouldThrowAuthorizationExceptionWhenBackendTopicValidatorIsDenied() {
     // Given
     doThrow(KsqlTopicAuthorizationException.class).when(backendValidator)
-        .checkAccess(securityContext, TOPIC_1, READ);
+        .checkTopicAccess(securityContext, TOPIC_1, AclOperation.READ);
 
     // When:
     assertThrows(
         KsqlTopicAuthorizationException.class,
-        () -> cache.checkAccess(securityContext, TOPIC_1, READ)
+        () -> cache.checkTopicAccess(securityContext, TOPIC_1, AclOperation.READ)
+    );
+  }
+
+  @Test
+  public void shouldThrowAuthorizationExceptionWhenBackendSubjectValidatorIsDenied() {
+    // Given
+    doThrow(KsqlSchemaAuthorizationException.class).when(backendValidator)
+        .checkSubjectAccess(securityContext, SUBJECT_1, AclOperation.READ);
+
+    // When:
+    assertThrows(
+        KsqlSchemaAuthorizationException.class,
+        () -> cache.checkSubjectAccess(securityContext, SUBJECT_1, AclOperation.READ)
     );
   }
 
@@ -100,12 +138,25 @@ public class KsqlCacheAccessValidatorTest {
   public void shouldThrowExceptionWhenBackendValidatorThrowsAnException() {
     // Given
     doThrow(RuntimeException.class).when(backendValidator)
-        .checkAccess(securityContext, TOPIC_1, READ);
+        .checkTopicAccess(securityContext, TOPIC_1, AclOperation.READ);
 
     // When:
     assertThrows(
         RuntimeException.class,
-        () -> cache.checkAccess(securityContext, TOPIC_1, READ)
+        () -> cache.checkTopicAccess(securityContext, TOPIC_1, AclOperation.READ)
+    );
+  }
+
+  @Test
+  public void shouldThrowExceptionWhenBackendSubjectValidatorThrowsAnException() {
+    // Given
+    doThrow(RuntimeException.class).when(backendValidator)
+        .checkSubjectAccess(securityContext, SUBJECT_1, AclOperation.READ);
+
+    // When:
+    assertThrows(
+        RuntimeException.class,
+        () -> cache.checkSubjectAccess(securityContext, SUBJECT_1, AclOperation.READ)
     );
   }
 }

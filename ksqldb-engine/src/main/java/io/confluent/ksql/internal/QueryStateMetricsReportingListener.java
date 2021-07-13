@@ -132,9 +132,12 @@ public class QueryStateMetricsReportingListener implements QueryEventListener {
           "The current error status of the given query, if the state is in ERROR state",
           Collections.singletonMap("status", queryApplicationId)
       );
-
-      this.metrics.addMetric(stateMetricName, (Gauge<String>) (config, now) -> state);
-      this.metrics.addMetric(errorMetricName, (Gauge<String>) (config, now) -> error);
+      try {
+        this.metrics.addMetric(stateMetricName, (Gauge<String>) (config, now) -> state);
+        this.metrics.addMetric(errorMetricName, (Gauge<String>) (config, now) -> error);
+      } catch (IllegalArgumentException e) {
+        //skip if the metric is already there
+      }
     }
 
     public void onChange(final State newState, final State oldState) {

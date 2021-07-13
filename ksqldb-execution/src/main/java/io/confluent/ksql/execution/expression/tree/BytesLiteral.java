@@ -40,7 +40,7 @@ public class BytesLiteral extends Literal {
 
   @Override
   public ByteBuffer getValue() {
-    return ByteBuffer.wrap(value.clone());
+    return ByteBuffer.wrap(value).asReadOnlyBuffer();
   }
 
   public byte[] getByteArray() {

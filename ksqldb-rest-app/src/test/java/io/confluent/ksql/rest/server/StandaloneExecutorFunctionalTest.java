@@ -254,7 +254,7 @@ public class StandaloneExecutorFunctionalTest {
 
     // Then:
     assertThat(e.getMessage(), containsString(
-        "Schema for message values on topic topic-without-schema does not exist in the Schema Registry"));
+        "Schema for message values on topic 'topic-without-schema' does not exist in the Schema Registry"));
   }
 
   @Test

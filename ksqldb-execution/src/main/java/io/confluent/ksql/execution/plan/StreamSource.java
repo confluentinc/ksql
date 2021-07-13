@@ -14,7 +14,10 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty.Access;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericKey;
@@ -41,7 +44,27 @@ public final class StreamSource extends SourceStep<KStreamHolder<GenericKey>> {
       @JsonProperty(value = "topicName", required = true) final String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
-      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema
+      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
+      @JsonProperty(value = "versionNumber", required = false, defaultValue = "some-value") final int
+          versionNumber
+  ) {
+    super(
+        props,
+        topicName,
+        formats,
+        timestampColumn,
+        sourceSchema,
+        versionNumber
+    );
+  }
+
+  //while feature is being developed, continue to use old constructor for serialization
+  public StreamSource(
+      final ExecutionStepPropertiesV1 props,
+      final String topicName,
+      final Formats formats,
+      final Optional<TimestampColumn> timestampColumn,
+      final LogicalSchema sourceSchema
   ) {
     super(
         props,
@@ -114,4 +137,13 @@ public final class StreamSource extends SourceStep<KStreamHolder<GenericKey>> {
         sourceSchema
     );
   }
+
+  @JsonIgnore
+  public int getversionNumber() {
+    return versionNumber;
+  }
+
+  //tried this as well
+//  @JsonProperty("some-value")
+//  public int someValue = 0;
 }

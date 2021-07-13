@@ -57,6 +57,7 @@ import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.WindowTimeClause;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.serde.RefinementInfo;
 import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
@@ -103,7 +104,8 @@ public final class ExecutionStepFactory {
         topicName,
         formats,
         timestampColumn,
-        sourceSchema
+        sourceSchema,
+        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
     );
   }
 

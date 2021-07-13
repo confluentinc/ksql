@@ -15,10 +15,13 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -32,6 +35,7 @@ public abstract class SourceStep<K> implements ExecutionStep<K> {
   final Formats formats;
   final Optional<TimestampColumn> timestampColumn;
   final LogicalSchema sourceSchema;
+  int versionNumber = 1;
 
   @VisibleForTesting
   public SourceStep(
@@ -46,7 +50,25 @@ public abstract class SourceStep<K> implements ExecutionStep<K> {
     this.formats = Objects.requireNonNull(formats, "formats");
     this.timestampColumn = Objects.requireNonNull(timestampColumn, "timestampColumn");
     this.sourceSchema = Objects.requireNonNull(sourceSchema, "sourceSchema");
+    this.versionNumber = SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER;
   }
+
+  SourceStep(
+      final ExecutionStepPropertiesV1 properties,
+      final String topicName,
+      final Formats formats,
+      final Optional<TimestampColumn> timestampColumn,
+      final LogicalSchema sourceSchema,
+      final int versionNumber
+  ) {
+    this.properties = Objects.requireNonNull(properties, "properties");
+    this.topicName = Objects.requireNonNull(topicName, "topicName");
+    this.formats = Objects.requireNonNull(formats, "formats");
+    this.timestampColumn = Objects.requireNonNull(timestampColumn, "timestampColumn");
+    this.sourceSchema = Objects.requireNonNull(sourceSchema, "sourceSchema");
+    this.versionNumber = versionNumber;
+  }
+
 
   @Override
   public ExecutionStepPropertiesV1 getProperties() {

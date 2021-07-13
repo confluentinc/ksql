@@ -32,6 +32,8 @@ public final class SystemColumns {
   public static final ColumnName WINDOWEND_NAME = ColumnName.of("WINDOWEND");
   public static final SqlType WINDOWBOUND_TYPE = SqlTypes.BIGINT;
 
+  public static final int CURRENT_PSEUDOCOLUMN_VERSION_NUMBER = -2;
+
   private static final Set<ColumnName> PSEUDO_COLUMN_NAMES = ImmutableSet.of(
       ROWTIME_NAME
   );

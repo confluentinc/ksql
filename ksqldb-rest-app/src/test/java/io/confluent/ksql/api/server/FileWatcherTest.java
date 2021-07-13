@@ -91,7 +91,9 @@ public class FileWatcherTest {
     Files.write(filePath, someBytes);
 
     // Then:
-    verify(callback, timeout(TimeUnit.MINUTES.toMillis(1))).run();
+    // verify that this happens at least once, there's a possibility that the callback
+    // gets called multiple times for one underlying change
+    verify(callback, timeout(TimeUnit.MINUTES.toMillis(1)).atLeastOnce()).run();
   }
 
   @Test

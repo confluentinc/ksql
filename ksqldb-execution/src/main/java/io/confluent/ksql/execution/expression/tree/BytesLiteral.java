@@ -20,7 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
 import java.nio.ByteBuffer;
-import java.util.Objects;
+import java.util.Arrays;
 import java.util.Optional;
 
 @Immutable
@@ -62,11 +62,11 @@ public class BytesLiteral extends Literal {
     }
 
     final BytesLiteral that = (BytesLiteral) o;
-    return Objects.equals(value, that.value);
+    return Arrays.equals(value, that.value);
   }
 
   @Override
   public int hashCode() {
-    return value.hashCode();
+    return Arrays.hashCode(value);
   }
 }

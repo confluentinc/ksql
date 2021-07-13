@@ -631,6 +631,7 @@ public class MigrationsTest {
 
   private static List<StreamedRow> waitForNumRows(final String pullQuery, final int numRows) {
     return assertThatEventually(
+        "Query '" + pullQuery + "' never got " + numRows + " rows",
         () -> {
           try {
             return makeKsqlQuery(pullQuery);
@@ -644,7 +645,9 @@ public class MigrationsTest {
             }
           }
         },
-        hasSize(numRows)
+        hasSize(numRows),
+        1,
+        TimeUnit.MINUTES
     );
   }
 }

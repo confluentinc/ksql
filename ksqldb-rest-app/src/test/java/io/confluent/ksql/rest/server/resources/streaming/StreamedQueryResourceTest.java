@@ -736,6 +736,7 @@ public class StreamedQueryResourceTest {
             Collections.emptySet(),
             "",
             new TestRowQueue(rowQueue),
+            queryId,
             "appId",
             mock(Topology.class),
             kafkaStreamsBuilder,
@@ -803,7 +804,7 @@ public class StreamedQueryResourceTest {
       if (i == 0) {
         // Header:
         assertThat(jsonLine,
-            is("{\"header\":{\"queryId\":\"appId\",\"schema\":\"`f1` INTEGER\"}}"));
+            is("{\"header\":{\"queryId\":\"queryId\",\"schema\":\"`f1` INTEGER\"}}"));
         continue;
       }
 

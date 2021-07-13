@@ -1051,7 +1051,7 @@ public class KsqlEngineTest {
 
     assertThat(
         Iterables.getOnlyElement(deletedConsumerGroups),
-        containsString("_confluent-ksql-default_query_CTAS_BAR_0"));
+        containsString("_confluent-ksql"));
   }
 
   @Test

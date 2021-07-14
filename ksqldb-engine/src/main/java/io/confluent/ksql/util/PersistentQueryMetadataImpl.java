@@ -18,6 +18,7 @@ package io.confluent.ksql.util;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -40,6 +41,9 @@ import java.util.Set;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
 /**
  * Metadata of a persistent query, e.g. {@code CREATE STREAM FOO AS SELECT * FROM BAR;}.
  */
@@ -56,6 +60,7 @@ public class PersistentQueryMetadataImpl
   private final ProcessingLogger processingLogger;
 
   private Optional<MaterializationProvider> materializationProvider;
+  private final ScheduledExecutorService executorService;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public PersistentQueryMetadataImpl(
@@ -66,8 +71,7 @@ public class PersistentQueryMetadataImpl
       final DataSource sinkDataSource,
       final String executionPlan,
       final QueryId id,
-      final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
-          materializationProviderBuilder,
+      final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder> materializationProviderBuilder,
       final String queryApplicationId,
       final Topology topology,
       final KafkaStreamsBuilder kafkaStreamsBuilder,
@@ -112,6 +116,7 @@ public class PersistentQueryMetadataImpl
     this.processingLogger = requireNonNull(processingLogger, "processingLogger");
     this.scalablePushRegistry = requireNonNull(scalablePushRegistry, "scalablePushRegistry");
     this.persistentQueryType = requireNonNull(persistentQueryType, "persistentQueryType");
+    this.executorService = Executors.newScheduledThreadPool(1, new ThreadFactoryBuilder().setNameFormat("ksql-csu-metrics-reporter-%d").build());
   }
 
   // for creating sandbox instances
@@ -129,6 +134,7 @@ public class PersistentQueryMetadataImpl
     this.processingLogger = original.processingLogger;
     this.scalablePushRegistry = original.scalablePushRegistry;
     this.persistentQueryType = original.getPersistentQueryType();
+    this.executorService = original.executorService;
   }
 
   @Override

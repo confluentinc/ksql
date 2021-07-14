@@ -336,6 +336,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
           cleanupService.pendingApplicationIds()
       );
     }
+
     engineMetrics.close();
     aggregateMetricsCollector.shutdown();
   }

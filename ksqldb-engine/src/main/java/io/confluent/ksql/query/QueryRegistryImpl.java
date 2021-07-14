@@ -251,7 +251,7 @@ public class QueryRegistryImpl implements QueryRegistry {
 
   @Override
   public void close(final boolean closePersistent) {
-    for(SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime: streams) {
+    for (SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime: streams) {
       sharedKafkaStreamsRuntime.close();
     }
     for (final QueryMetadata queryMetadata : getAllLiveQueries()) {

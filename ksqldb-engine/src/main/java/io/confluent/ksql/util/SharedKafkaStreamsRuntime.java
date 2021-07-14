@@ -27,7 +27,6 @@ import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 
 import java.time.Duration;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,10 +35,10 @@ import java.util.stream.Collectors;
 
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
+import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
-import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,11 +119,11 @@ public class SharedKafkaStreamsRuntime {
   }
 
   public Collection<StreamsMetadata> allMetadata() {
-    return kafkaStreams.allMetadata();
+    return kafkaStreams.metadataForAllStreamsClients();
   }
 
   public Set<StreamsTaskMetadata> getTaskMetadata() {
-    return kafkaStreams.localThreadsMetadata()
+    return kafkaStreams.metadataForLocalThreads()
                        .stream()
                        .flatMap(t -> t.activeTasks().stream())
                        .map(StreamsTaskMetadata::fromStreamsTaskMetadata)
@@ -149,13 +148,21 @@ public class SharedKafkaStreamsRuntime {
 
   public void close(final QueryId queryId) {
     metadata.remove(queryId.toString());
-    if (kafkaStreams.state() == KafkaStreams.State.RUNNING || kafkaStreams.state() == KafkaStreams.State.REBALANCING) {
+    if (kafkaStreams.state() == KafkaStreams.State.RUNNING
+            || kafkaStreams.state() == KafkaStreams.State.REBALANCING) {
       try {
         kafkaStreams.removeNamedTopology(queryId.toString());
       } catch (IllegalArgumentException e) {
-
+          //don't block
       }
     }
+  }
+
+  public synchronized void close() {
+    for (String query: metadata.keySet()) {
+      metadata.remove(query);
+    }
+    kafkaStreams.close();
   }
 
   public void start(final QueryId queryId) {
@@ -190,12 +197,5 @@ public class SharedKafkaStreamsRuntime {
             .flatMap(t -> t.getSourceNames().stream())
             .collect(Collectors.toSet())
     );
-  }
-
-  public synchronized void close() {
-    for (String query: metadata.keySet()) {
-      metadata.remove(query);
-    }
-    kafkaStreams.close();
   }
 }

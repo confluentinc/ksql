@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -55,8 +55,8 @@ public interface MetricsReporter extends Closeable, Configurable {
         final Map<String, String> tags
     ) {
       this.name = Objects.requireNonNull(name, "name");
-      this.time = time;
-      this.value = value;
+      this.time = Objects.requireNonNull(time, "time");
+      this.value = Objects.requireNonNull(value, "value");
       this.tags = ImmutableMap.copyOf(Objects.requireNonNull(tags, "tags"));
     }
 

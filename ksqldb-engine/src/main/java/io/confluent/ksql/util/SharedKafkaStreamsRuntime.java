@@ -134,12 +134,12 @@ public class SharedKafkaStreamsRuntime {
   public void restart(final QueryId queryId) {
     final KafkaStreamsNamedTopologyWrapper newKafkaStreams = kafkaStreamsBuilder
             .build(streamsProperties);
+    newKafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
+    kafkaStreams.close();
+    newKafkaStreams.start();
     for (PersistentQueriesInSharedRuntimesImpl query: metadata.values()) {
       newKafkaStreams.addNamedTopology(query.getTopology());
     }
-    newKafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
-    newKafkaStreams.start();
-    kafkaStreams.close();
     kafkaStreams = newKafkaStreams;
   }
 

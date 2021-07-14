@@ -142,7 +142,12 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
         serviceContext,
         ksqlPlan.getConfig()
     ).execute(ksqlPlan.getPlan());
-    result.getQuery().ifPresent(query -> query.getKafkaStreams().close());
+    result.getQuery().ifPresent(
+        query -> {
+          if (query.getKafkaStreams() != null)
+            query.getKafkaStreams().close();
+        }
+    );
     return result;
   }
 

@@ -46,9 +46,9 @@ import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
+import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
-import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -131,7 +131,10 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
         requireNonNull(materializationProviderBuilder, "materializationProviderBuilder");
     this.listener = requireNonNull(listener, "listen");
     this.materializationProvider = materializationProviderBuilder
-            .flatMap(builder -> builder.apply(sharedKafkaStreamsRuntime.getKafkaStreams(), getTopology()));
+            .flatMap(builder -> builder.apply(
+                    sharedKafkaStreamsRuntime.getKafkaStreams(),
+                    getTopology()
+            ));
     this.classifier = requireNonNull(classifier, "classifier");
     this.streamsProperties = requireNonNull(streamsProperties, "streamsProperties");
   }
@@ -354,10 +357,10 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   public void start() {
     if (!everStarted) {
       sharedKafkaStreamsRuntime.addQuery(
-              classifier,
-              streamsProperties,
-              this,
-              queryId
+            classifier,
+            streamsProperties,
+            this,
+            queryId
       );
       sharedKafkaStreamsRuntime.start(queryId);
     }

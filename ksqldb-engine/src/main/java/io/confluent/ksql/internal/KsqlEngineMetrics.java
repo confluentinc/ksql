@@ -348,7 +348,7 @@ public class KsqlEngineMetrics implements Closeable {
     try {
       metrics.addMetric(metricName, gauge);
     } catch (IllegalArgumentException e) {
-
+      //not duplicate metrics, can be improved
     }
     countMetrics.add(countMetric);
   }

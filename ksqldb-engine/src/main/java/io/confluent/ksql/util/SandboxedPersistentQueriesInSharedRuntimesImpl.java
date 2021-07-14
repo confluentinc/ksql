@@ -19,28 +19,29 @@ package io.confluent.ksql.util;
  * Sandboxed {@link PersistentQueryMetadata} that prevents to modify the state of the internal
  * {@link org.apache.kafka.streams.KafkaStreams}.
  */
-public final class SandboxedPersistentQueriesInSharedRuntimesImpl extends PersistentQueriesInSharedRuntimesImpl {
-    public static SandboxedPersistentQueriesInSharedRuntimesImpl of(
-            final PersistentQueriesInSharedRuntimesImpl queryMetadata,
-            final QueryMetadata.Listener listener
-    ) {
-        return new SandboxedPersistentQueriesInSharedRuntimesImpl(queryMetadata, listener);
-    }
+public final class SandboxedPersistentQueriesInSharedRuntimesImpl
+    extends PersistentQueriesInSharedRuntimesImpl {
+  public static SandboxedPersistentQueriesInSharedRuntimesImpl of(
+      final PersistentQueriesInSharedRuntimesImpl queryMetadata,
+      final QueryMetadata.Listener listener
+  ) {
+    return new SandboxedPersistentQueriesInSharedRuntimesImpl(queryMetadata, listener);
+  }
 
-    private SandboxedPersistentQueriesInSharedRuntimesImpl(
-            final PersistentQueriesInSharedRuntimesImpl queryMetadata,
-            final QueryMetadata.Listener listener
-    ) {
-        super(queryMetadata, listener);
-    }
+  private SandboxedPersistentQueriesInSharedRuntimesImpl(
+      final PersistentQueriesInSharedRuntimesImpl queryMetadata,
+      final QueryMetadata.Listener listener
+  ) {
+    super(queryMetadata, listener);
+  }
 
-    @Override
-    public void close() {
-        getListener().onClose(this);
-    }
+  @Override
+  public void close() {
+    getListener().onClose(this);
+  }
 
-    @Override
-    public void start() {
-        // no-op
-    }
+  @Override
+  public void start() {
+    // no-op
+  }
 }

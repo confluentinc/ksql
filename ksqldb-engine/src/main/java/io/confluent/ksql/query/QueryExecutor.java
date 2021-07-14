@@ -239,15 +239,15 @@ final class QueryExecutor {
   }
 
   PersistentQueryMetadata buildPersistentQuery(
-          final KsqlConstants.PersistentQueryType persistentQueryType,
-          final String statementText,
-          final QueryId queryId,
-          final DataSource sinkDataSource,
-          final Set<SourceName> sources,
-          final ExecutionStep<?> physicalPlan,
-          final String planSummary,
-          final QueryMetadata.Listener listener,
-          final Supplier<List<PersistentQueryMetadata>> allPersistentQueries
+        final KsqlConstants.PersistentQueryType persistentQueryType,
+        final String statementText,
+        final QueryId queryId,
+        final DataSource sinkDataSource,
+        final Set<SourceName> sources,
+        final ExecutionStep<?> physicalPlan,
+        final String planSummary,
+        final QueryMetadata.Listener listener,
+        final Supplier<List<PersistentQueryMetadata>> allPersistentQueries
   ) {
     final KsqlConfig ksqlConfig = config.getConfig(true);
 
@@ -277,11 +277,12 @@ final class QueryExecutor {
       );
     }
 
-    }
+  }
 
   @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE")
   PersistentQueryMetadata buildNotSharedPersistentQuery(
-          KsqlConfig ksqlConfig, final KsqlConstants.PersistentQueryType persistentQueryType,
+          final KsqlConfig ksqlConfig,
+          final KsqlConstants.PersistentQueryType persistentQueryType,
           final String statementText,
           final QueryId queryId,
           final DataSource sinkDataSource,
@@ -371,7 +372,8 @@ final class QueryExecutor {
 
   @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE")
   PersistentQueryMetadata buildSharedPersistentQuery(
-          KsqlConfig ksqlConfig, final KsqlConstants.PersistentQueryType persistentQueryType,
+          final KsqlConfig ksqlConfig,
+          final KsqlConstants.PersistentQueryType persistentQueryType,
           final String statementText,
           final QueryId queryId,
           final DataSource sinkDataSource,
@@ -435,8 +437,7 @@ final class QueryExecutor {
             .map(userErrorClassifiers::and)
             .orElse(userErrorClassifiers);
 
-    final PersistentQueriesInSharedRuntimesImpl binPackedPersistentQueryMetadata
-            = new PersistentQueriesInSharedRuntimesImpl(
+    return new PersistentQueriesInSharedRuntimesImpl(
             persistentQueryType,
             statementText,
             querySchema,
@@ -452,15 +453,10 @@ final class QueryExecutor {
             physicalPlan,
             getUncaughtExceptionProcessingLogger(queryId),
             sinkDataSource,
-            listener
-    );
-    sharedKafkaStreamsRuntime.addQuery(
+            listener,
             classifier,
-            streamsProperties,
-            binPackedPersistentQueryMetadata,
-            queryId
+            streamsProperties
     );
-    return binPackedPersistentQueryMetadata;
 
   }
 

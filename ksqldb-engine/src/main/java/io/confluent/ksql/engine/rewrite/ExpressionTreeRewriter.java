@@ -22,6 +22,7 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
@@ -539,6 +540,13 @@ public final class ExpressionTreeRewriter<C> {
     @Override
     public Expression visitTimestampLiteral(
         final TimestampLiteral node,
+        final C context) {
+      return plugin.apply(node, new Context<>(context, this)).orElse(node);
+    }
+
+    @Override
+    public Expression visitBytesLiteral(
+        final BytesLiteral node,
         final C context) {
       return plugin.apply(node, new Context<>(context, this)).orElse(node);
     }

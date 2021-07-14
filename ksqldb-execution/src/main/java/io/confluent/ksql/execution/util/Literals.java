@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.util;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.DateLiteral;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
@@ -28,6 +29,7 @@ import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.schema.ksql.types.SqlBaseType;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -51,6 +53,7 @@ public final class Literals {
           .put(SqlBaseType.TIME, v -> new TimeLiteral((Time) v))
           .put(SqlBaseType.DATE, v -> new DateLiteral((Date) v))
           .put(SqlBaseType.TIMESTAMP, v -> new TimestampLiteral((Timestamp) v))
+          .put(SqlBaseType.BYTES, v -> new BytesLiteral((ByteBuffer) v))
           .build();
 
   private Literals() {

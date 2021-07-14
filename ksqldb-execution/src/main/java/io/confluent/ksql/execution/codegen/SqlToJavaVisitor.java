@@ -40,6 +40,7 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.BytesLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.CreateArrayExpression;
@@ -331,6 +332,16 @@ public class SqlToJavaVisitor {
         final InListExpression inListExpression, final Context context
     ) {
       return visitUnsupported(inListExpression);
+    }
+
+    @Override
+    public Pair<String, SqlType> visitBytesLiteral(
+        final BytesLiteral node, final Context context
+    ) {
+      return new Pair<>(
+          node.toString(),
+          SqlTypes.BYTES
+      );
     }
 
     @Override

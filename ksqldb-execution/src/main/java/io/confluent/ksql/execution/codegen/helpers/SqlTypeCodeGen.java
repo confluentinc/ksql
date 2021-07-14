@@ -81,6 +81,11 @@ public final class SqlTypeCodeGen {
     }
 
     @Override
+    public String visitBytes(final SqlPrimitiveType type) {
+      return "SqlTypes.BYTES";
+    }
+
+    @Override
     public String visitDecimal(final SqlDecimal type) {
       return "SqlTypes.decimal(" + type.getPrecision() + "," + type.getScale() + ")";
     }

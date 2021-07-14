@@ -53,6 +53,7 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -674,7 +675,8 @@ public class CastEvaluatorTest {
           is(ImmutableSet.of(
               SqlBaseType.BOOLEAN, SqlBaseType.INTEGER, SqlBaseType.BIGINT, SqlBaseType.DECIMAL,
               SqlBaseType.DOUBLE, SqlBaseType.STRING, SqlBaseType.ARRAY, MAP,
-              SqlBaseType.STRUCT, SqlBaseType.TIME, SqlBaseType.DATE, SqlBaseType.TIMESTAMP
+              SqlBaseType.STRUCT, SqlBaseType.TIME, SqlBaseType.DATE, SqlBaseType.TIMESTAMP,
+              SqlBaseType.BYTES
           ))
       );
     }
@@ -741,6 +743,7 @@ public class CastEvaluatorTest {
         .put(SqlBaseType.TIME, SqlTypes.TIME)
         .put(SqlBaseType.DATE, SqlTypes.DATE)
         .put(SqlBaseType.TIMESTAMP, SqlTypes.TIMESTAMP)
+        .put(SqlBaseType.BYTES, SqlTypes.BYTES)
         .build();
 
     static SqlType typeInstanceFor(final SqlBaseType baseType) {
@@ -767,6 +770,7 @@ public class CastEvaluatorTest {
         .put(SqlBaseType.TIME, new Time(500L))
         .put(SqlBaseType.DATE, new Date(500L))
         .put(SqlBaseType.TIMESTAMP, new Timestamp(500))
+        .put(SqlBaseType.BYTES, ByteBuffer.wrap(new byte[] {123}))
         .build();
 
     @SuppressWarnings("fallthrough")
@@ -899,6 +903,9 @@ public class CastEvaluatorTest {
                 .add(SqlBaseType.TIME)
                 .add(SqlBaseType.DATE)
                 .add(SqlBaseType.STRING)
+                .build())
+            .put(SqlBaseType.BYTES, ImmutableSet.<SqlBaseType>builder()
+                .add(SqlBaseType.BYTES)
                 .build())
             .build();
 

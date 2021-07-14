@@ -18,6 +18,7 @@ package io.confluent.ksql.schema.ksql;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.ARRAY;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.BIGINT;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.BOOLEAN;
+import static io.confluent.ksql.schema.ksql.types.SqlBaseType.BYTES;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.DATE;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.DECIMAL;
 import static io.confluent.ksql.schema.ksql.types.SqlBaseType.DOUBLE;
@@ -323,6 +324,8 @@ public enum DefaultSqlValueCoercer implements SqlValueCoercer {
             .put(key(TIMESTAMP, TIMESTAMP), Coercer.PASS_THROUGH)
             .put(key(TIME, TIME), Coercer.PASS_THROUGH)
             .put(key(DATE, DATE), Coercer.PASS_THROUGH)
+            // BYTES:
+            .put(key(BYTES, BYTES), Coercer.PASS_THROUGH)
             .build();
 
     private static final ImmutableMap<SupportedCoercion, Coercer> LAX_ADDITIONAL =

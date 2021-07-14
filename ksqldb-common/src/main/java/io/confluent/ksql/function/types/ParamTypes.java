@@ -44,6 +44,7 @@ public final class ParamTypes {
   public static final DateType DATE = DateType.INSTANCE;
   public static final TimestampType TIMESTAMP = TimestampType.INSTANCE;
   public static final IntervalUnitType INTERVALUNIT = IntervalUnitType.INSTANCE;
+  public static final BytesType BYTES = BytesType.INSTANCE;
 
   public static boolean areCompatible(final SqlArgument actual, final ParamType declared) {
     return areCompatible(actual, declared, false);
@@ -159,6 +160,7 @@ public final class ParamTypes {
         || base == SqlBaseType.TIME  && declared instanceof TimeType
         || base == SqlBaseType.DATE  && declared instanceof DateType
         || base == SqlBaseType.TIMESTAMP  && declared instanceof TimestampType
+        || base == SqlBaseType.BYTES  && declared instanceof BytesType
         || allowCast && base.canImplicitlyCast(functionToSqlBaseConverter().toBaseType(declared));
     // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
   }

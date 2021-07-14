@@ -70,7 +70,10 @@ public class PersistentQueriesInSharedRuntimesImplTest {
     private Listener listener;
     @Mock
     private SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime;
-
+    @Mock
+    private QueryErrorClassifier classifier;
+    @Mock
+    private Map<String, Object> streamsProperties;
 
     private PersistentQueryMetadata query;
 
@@ -92,7 +95,9 @@ public class PersistentQueriesInSharedRuntimesImplTest {
             physicalPlan,
             processingLogger,
             sinkDataSource,
-            listener
+            listener,
+            classifier,
+            streamsProperties
         );
 
         query.initialize();

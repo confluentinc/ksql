@@ -32,6 +32,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.physical.scalablepush.ScalablePushRegistry;
 import io.confluent.ksql.query.MaterializationProviderBuilderFactory;
 import io.confluent.ksql.query.QueryError;
+import io.confluent.ksql.query.QueryErrorClassifier;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.StreamsTaskMetadata;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -82,28 +83,32 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
       materializationProviderBuilder;
   private final Optional<MaterializationProvider> materializationProvider;
   private boolean everStarted = false;
+  private QueryErrorClassifier classifier;
+  private Map<String, Object> streamsProperties;
 
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   @VisibleForTesting
   public PersistentQueriesInSharedRuntimesImpl(
-      final KsqlConstants.PersistentQueryType persistentQueryType,
-      final String statementString,
-      final PhysicalSchema schema,
-      final Set<SourceName> sourceNames,
-      final String executionPlan,
-      final String queryApplicationId,
-      final NamedTopology topology,
-      final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime,
-      final QuerySchemas schemas,
-      final Map<String, Object> overriddenProperties,
-      final QueryId queryId,
-      final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
-      materializationProviderBuilder,
-      final ExecutionStep<?> physicalPlan,
-      final ProcessingLogger processingLogger,
-      final DataSource sinkDataSource,
-      final Listener listener) {
+        final KsqlConstants.PersistentQueryType persistentQueryType,
+        final String statementString,
+        final PhysicalSchema schema,
+        final Set<SourceName> sourceNames,
+        final String executionPlan,
+        final String queryApplicationId,
+        final NamedTopology topology,
+        final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime,
+        final QuerySchemas schemas,
+        final Map<String, Object> overriddenProperties,
+        final QueryId queryId,
+        final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
+                materializationProviderBuilder,
+        final ExecutionStep<?> physicalPlan,
+        final ProcessingLogger processingLogger,
+        final DataSource sinkDataSource,
+        final Listener listener,
+        final QueryErrorClassifier classifier,
+        final Map<String, Object> streamsProperties) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.persistentQueryType = Objects.requireNonNull(persistentQueryType, "persistentQueryType");
     this.statementString = Objects.requireNonNull(statementString, "statementString");
@@ -126,7 +131,9 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
         requireNonNull(materializationProviderBuilder, "materializationProviderBuilder");
     this.listener = requireNonNull(listener, "listen");
     this.materializationProvider = materializationProviderBuilder
-            .flatMap(builder -> builder.apply(getKafkaStreams(), getTopology()));
+            .flatMap(builder -> builder.apply(sharedKafkaStreamsRuntime.getKafkaStreams(), getTopology()));
+    this.classifier = requireNonNull(classifier, "classifier");
+    this.streamsProperties = requireNonNull(streamsProperties, "streamsProperties");
   }
 
 
@@ -220,7 +227,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
 
   @Override
   public Optional<MaterializationProvider> getMaterializationProvider() {
-    return Optional.empty();
+    return materializationProvider;
   }
 
   @Override
@@ -331,7 +338,10 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
 
   @Override
   public KafkaStreams getKafkaStreams() {
-    return sharedKafkaStreamsRuntime.getKafkaStreams();
+    if (everStarted) {
+      return sharedKafkaStreamsRuntime.getKafkaStreams();
+    }
+    return null;
   }
 
   @Override
@@ -342,8 +352,16 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
 
   @Override
   public void start() {
+    if (!everStarted) {
+      sharedKafkaStreamsRuntime.addQuery(
+              classifier,
+              streamsProperties,
+              this,
+              queryId
+      );
+      sharedKafkaStreamsRuntime.start(queryId);
+    }
     everStarted = true;
-    sharedKafkaStreamsRuntime.start(queryId);
   }
 
   Listener getListener() {

@@ -16,6 +16,7 @@
 package io.confluent.ksql.serde.protobuf;
 
 import com.google.common.collect.ImmutableMap;
+import java.nio.ByteBuffer;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Date;
@@ -145,6 +146,26 @@ public class KsqlProtobufDeserializerTest {
 
     // Then:
     assertThat(result, is(value));
+  }
+
+  @Test
+  public void shouldDeserializeBytesField() {
+    final ConnectSchema schema = (ConnectSchema) SchemaBuilder.struct()
+        .field("f0", Schema.BYTES_SCHEMA)
+        .build();
+
+    // Given:
+    final Deserializer<Struct> deserializer =
+        givenDeserializerForSchema(schema,
+            Struct.class);
+    final Struct value = new Struct(schema).put("f0", ByteBuffer.wrap(new byte[] {123}));
+    final byte[] bytes = givenConnectSerialized(value, schema);
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(((Struct) result).getBytes("f0"), is(value.getBytes("f0")));
   }
 
   private byte[] givenConnectSerialized(

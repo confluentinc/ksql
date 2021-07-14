@@ -201,12 +201,11 @@ public class ConnectSchemaUtilTest {
   }
 
   @Test
-  public void shouldIgnoreUnsupportedType() {
+  public void shouldHandleBytesType() {
     // Given:
     final Schema connectSchema = SchemaBuilder
         .struct()
-        .field("unsupported", Schema.BYTES_SCHEMA)
-        .field("supported", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("abc", Schema.BYTES_SCHEMA)
         .build();
 
     // When:
@@ -214,28 +213,6 @@ public class ConnectSchemaUtilTest {
 
     // Then:
     assertThat(ksqlSchema.fields(), hasSize(1));
-    assertThat(ksqlSchema.fields().get(0).name(), is("SUPPORTED"));
-  }
-
-  @Test
-  public void shouldThrowIfAllUnsupportedTypes() {
-    // Given:
-    final Schema connectSchema = SchemaBuilder
-        .struct()
-        .field("bytesField", Schema.BYTES_SCHEMA)
-        .build();
-
-    // When:
-    final Exception e = assertThrows(
-        KsqlException.class,
-        () -> ConnectSchemaUtil.toKsqlSchema(connectSchema)
-    );
-
-    // Then:
-    assertThat(e.getMessage(), containsString(
-        "Schema does not include any columns with "
-            + "types that ksqlDB supports."
-            + System.lineSeparator()
-            + "schema: bytesField BYTES"));
+    assertThat(ksqlSchema.fields().get(0).name(), is("ABC"));
   }
 }

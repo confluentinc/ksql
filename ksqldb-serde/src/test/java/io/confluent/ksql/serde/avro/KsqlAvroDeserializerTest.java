@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.avro;
 
+import static org.apache.kafka.connect.data.Schema.OPTIONAL_BYTES_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -38,6 +39,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlPreconditions;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -80,6 +82,12 @@ public class KsqlAvroDeserializerTest {
 
   private static final org.apache.avro.Schema OPTIONAL_BOOLEAN_AVRO_SCHEMA =
       parseAvroSchema("[\"null\", \"boolean\"]");
+
+  private static final org.apache.avro.Schema BYTES_AVRO_SCHEMA =
+      parseAvroSchema("{\"type\": \"bytes\"}");
+
+  private static final org.apache.avro.Schema OPTIONAL_BYTES_AVRO_SCHEMA =
+      parseAvroSchema("[\"null\", \"bytes\"]");
 
   private static final org.apache.avro.Schema INT_AVRO_SCHEMA =
       parseAvroSchema("{\"type\": \"int\"}");
@@ -1355,6 +1363,30 @@ public class KsqlAvroDeserializerTest {
   }
 
   @Test
+  public void shouldDeserializeAvroBytes() {
+    // Given:
+    final Deserializer<ByteBuffer> deserializer =
+        givenDeserializerForSchema((ConnectSchema) Schema.OPTIONAL_BYTES_SCHEMA, ByteBuffer.class);
+
+    final Map<org.apache.avro.Schema, Object> validCoercions = ImmutableMap
+        .<org.apache.avro.Schema, Object>builder()
+        .put(BYTES_AVRO_SCHEMA, "abc".getBytes())
+        .put(OPTIONAL_BYTES_AVRO_SCHEMA, "def".getBytes())
+        .build();
+
+    validCoercions.forEach((schema, value) -> {
+
+      final byte[] bytes = givenAvroSerialized(value, schema);
+
+      // When:
+      final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+      // Then:
+      assertThat(result, is(ByteBuffer.wrap((byte[]) value)));
+    });
+  }
+
+  @Test
   public void shouldDeserializeUnionFieldToStruct() {
     final org.apache.avro.Schema avroSchema = org.apache.avro.SchemaBuilder.unionOf()
         .intType().and()
@@ -1628,13 +1660,15 @@ public class KsqlAvroDeserializerTest {
 
     switch (schema.getType()) {
       case BYTES:
-        KsqlPreconditions.checkArgument(
-            value instanceof BigDecimal, "expected BigDecimal BYTES value");
-        final BigDecimal decimal = (BigDecimal) value;
-        return new DecimalConversion().toBytes(
-            decimal,
-            avroSchema,
-            LogicalTypes.decimal(decimal.precision(), decimal.scale())).array();
+        if (value instanceof BigDecimal) {
+          final BigDecimal decimal = (BigDecimal) value;
+          return new DecimalConversion().toBytes(
+              decimal,
+              avroSchema,
+              LogicalTypes.decimal(decimal.precision(), decimal.scale())).array();
+        } else {
+          return value;
+        }
       case RECORD:
         return givenAvroRecord(schema, (Map<String, ?>) value);
       case ARRAY:

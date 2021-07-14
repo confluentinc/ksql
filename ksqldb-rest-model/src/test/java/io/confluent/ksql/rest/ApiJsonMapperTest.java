@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.DecimalNode;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -98,5 +99,14 @@ public class ApiJsonMapperTest {
 
     // Then:
     assertThat(result, is("\"1970-01-11\""));
+  }
+
+  @Test
+  public void shouldFormatByteBuffer() throws Exception {
+    // When:
+    final String result = OBJECT_MAPPER.writeValueAsString(ByteBuffer.wrap(new byte[] {123}));
+
+    // Then:
+    assertThat(result, is("\"ew==\""));
   }
 }

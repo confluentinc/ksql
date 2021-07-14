@@ -46,6 +46,7 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
@@ -86,6 +87,7 @@ public class KsqlJsonDeserializerTest {
   private static final String TIMEFIELD = "TIMEFIELD";
   private static final String DATEFIELD = "DATEFIELD";
   private static final String TIMESTAMPFIELD = "TIMESTAMPFIELD";
+  private static final String BYTESFIELD = "BYTESFIELD";
 
   private static final Schema ORDER_SCHEMA = SchemaBuilder.struct()
       .field(ORDERTIME, Schema.OPTIONAL_INT64_SCHEMA)
@@ -104,6 +106,7 @@ public class KsqlJsonDeserializerTest {
       .field(TIMEFIELD, ConnectSchemaUtil.OPTIONAL_TIME_SCHEMA)
       .field(DATEFIELD, ConnectSchemaUtil.OPTIONAL_DATE_SCHEMA)
       .field(TIMESTAMPFIELD, ConnectSchemaUtil.OPTIONAL_TIMESTAMP_SCHEMA)
+      .field(BYTESFIELD, Schema.OPTIONAL_BYTES_SCHEMA)
       .build();
 
   private static final Map<String, Object> AN_ORDER = ImmutableMap.<String, Object>builder()
@@ -117,6 +120,7 @@ public class KsqlJsonDeserializerTest {
       .put("timefield", new java.sql.Time(1000))
       .put("datefield", new java.sql.Date(864000000L))
       .put("timestampfield", new java.sql.Timestamp(1000))
+      .put("bytesfield", ByteBuffer.wrap(new byte[] {123}))
       .build();
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
@@ -153,7 +157,8 @@ public class KsqlJsonDeserializerTest {
         .put(CASE_SENSITIVE_FIELD, 1L)
         .put(TIMEFIELD, new java.sql.Time(1000))
         .put(DATEFIELD, new java.sql.Date(864000000L))
-        .put(TIMESTAMPFIELD, new java.sql.Timestamp(1000));
+        .put(TIMESTAMPFIELD, new java.sql.Timestamp(1000))
+        .put(BYTESFIELD, ByteBuffer.wrap(new byte[] {123}));
 
     deserializer = givenDeserializerForSchema(ORDER_SCHEMA, Struct.class);
   }
@@ -290,6 +295,7 @@ public class KsqlJsonDeserializerTest {
     row.put("timefield", null);
     row.put("datefield", null);
     row.put("timestampfield", null);
+    row.put("bytesfield", null);
 
     final byte[] bytes = serializeJson(row);
 
@@ -308,6 +314,7 @@ public class KsqlJsonDeserializerTest {
         .put(TIMEFIELD, null)
         .put(DATEFIELD, null)
         .put(TIMESTAMPFIELD, null)
+        .put(BYTESFIELD, null)
     ));
   }
 
@@ -682,6 +689,21 @@ public class KsqlJsonDeserializerTest {
 
     // Then:
     assertThat(((java.sql.Timestamp) result).getTime(), is(100L));
+  }
+
+  @Test
+  public void shouldDeserializeToBytes() {
+    // Given:
+    final KsqlJsonDeserializer<ByteBuffer> deserializer =
+        givenDeserializerForSchema(Schema.OPTIONAL_BYTES_SCHEMA, ByteBuffer.class);
+
+    final byte[] bytes = serializeJson(ByteBuffer.wrap(new byte[] {123}));
+
+    // When:
+    final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(ByteBuffer.wrap(new byte[] {123})));
   }
 
   @Test

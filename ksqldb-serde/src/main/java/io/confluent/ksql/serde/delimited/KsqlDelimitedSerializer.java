@@ -20,10 +20,12 @@ import io.confluent.ksql.schema.ksql.SimpleColumn;
 import io.confluent.ksql.serde.SerdeUtils;
 import java.io.StringWriter;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -95,6 +97,8 @@ class KsqlDelimitedSerializer implements Serializer<List<?>> {
       switch (column.type().baseType()) {
         case DECIMAL:
           return handleDecimal((BigDecimal) value);
+        case BYTES:
+          return handleBytes((ByteBuffer) value);
         case TIME:
           return handleTime((Time) value);
         case DATE:
@@ -104,6 +108,13 @@ class KsqlDelimitedSerializer implements Serializer<List<?>> {
         default:
           return value;
       }
+    }
+
+    private static String handleBytes(final ByteBuffer value) {
+      // Return base64 encoding
+      return value == null
+          ? null
+          : Base64.getMimeEncoder().encodeToString(value.array());
     }
 
     private static Integer handleTime(final Time value) {

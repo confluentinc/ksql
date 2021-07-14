@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.BinaryNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.NumericNode;
@@ -215,14 +216,14 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
       if (context.val instanceof TextNode) {
         return DecimalUtil.ensureFit(new BigDecimal(context.val.textValue()), context.schema);
       }
-    } else {
+    } else if (context.val.isTextual()) {
       try {
         return ByteBuffer.wrap(context.val.binaryValue());
       } catch (IOException e) {
-        throw invalidConversionException(context.val, context.schema);
+        throw new IllegalArgumentException("Value is not a valid Base64 encoded string: "
+            + context.val.textValue());
       }
     }
-
     throw invalidConversionException(context.val, context.schema);
   }
 

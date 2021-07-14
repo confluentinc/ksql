@@ -707,6 +707,22 @@ public class KsqlJsonDeserializerTest {
   }
 
   @Test
+  public void shouldThrowOnInvalidBytes() {
+    // Given:
+    final KsqlJsonDeserializer<ByteBuffer> deserializer =
+        givenDeserializerForSchema(Schema.OPTIONAL_BYTES_SCHEMA, ByteBuffer.class);
+
+    final byte[] bytes = serializeJson("abc");
+
+    // When:
+    final Exception e = assertThrows(SerializationException.class,
+        () -> deserializer.deserialize(SOME_TOPIC, bytes));
+
+    // Then:
+    assertThat(e.getMessage(), containsString("Value is not a valid Base64 encoded string: abc"));
+  }
+
+  @Test
   public void shouldThrowIfCanNotCoerceToTime() {
     // Given:
     final KsqlJsonDeserializer<java.sql.Time> deserializer =

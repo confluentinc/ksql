@@ -131,7 +131,7 @@ You can get help, learn how to contribute to ksqlDB, and find the latest news by
 For more general questions about the Confluent Platform please post in the [Confluent Google group](https://groups.google.com/forum/#!forum/confluent-platform).
 
 
-# Contributing
+# Contributing and building from source
 
 Contributions to the code, examples, documentation, etc. are very much appreciated.
 

@@ -576,7 +576,7 @@
       }
     },
     {
-      "name": "should filter out columns with unsupported types",
+      "name": "should not filter out bytes",
       "statements": [
         "CREATE STREAM INPUT WITH (kafka_topic='input', value_format='AvRo');",
         "CREATE STREAM OUTPUT AS SELECT * FROM input;"
@@ -592,11 +592,11 @@
           ]}
         }
       ],
-      "inputs": [{"topic": "input", "value": {"expected": 1, "c2": null, "c3": null}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"EXPECTED": 1}}],
+      "inputs": [{"topic": "input", "value": {"expected": 1, "c1": null, "c2": null, "c3": null}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"EXPECTED": 1, "c1": null, "c2": null}}],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "schema": "EXPECTED INT"}
+          {"name": "OUTPUT", "type": "stream", "schema": "EXPECTED INT, C1 BYTES, C2 BYTES"}
         ]
       }
     },

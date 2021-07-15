@@ -38,6 +38,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;;
 import java.util.Arrays;
 import java.util.Collection;
@@ -82,6 +83,7 @@ public class KsqlJsonSerializerTest {
   private static final String TIMECOL = "TIMECOL";
   private static final String DATECOL = "DATECOL";
   private static final String TIMESTAMPCOL = "TIMESTAMPCOL";
+  private static final String BYTESCOL = "BYTESCOL";
 
   private static final Schema ORDER_SCHEMA = SchemaBuilder.struct()
       .field(ORDERTIME, Schema.OPTIONAL_INT64_SCHEMA)
@@ -100,6 +102,7 @@ public class KsqlJsonSerializerTest {
       .field(TIMECOL, Time.builder().optional().build())
       .field(DATECOL, Date.builder().optional().build())
       .field(TIMESTAMPCOL, Timestamp.builder().optional().build())
+      .field(BYTESCOL, Schema.OPTIONAL_BYTES_SCHEMA)
       .build();
 
   private static final Schema ADDRESS_SCHEMA = SchemaBuilder.struct()
@@ -205,7 +208,8 @@ public class KsqlJsonSerializerTest {
         .put(DECIMALCOL, new BigDecimal("1.12345"))
         .put(TIMECOL, new java.sql.Time(1000))
         .put(DATECOL, new java.sql.Date(864000000L))
-        .put(TIMESTAMPCOL, new java.sql.Timestamp(1000));
+        .put(TIMESTAMPCOL, new java.sql.Timestamp(1000))
+        .put(BYTESCOL, ByteBuffer.wrap(new byte[] {123}));
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, struct);
@@ -226,7 +230,8 @@ public class KsqlJsonSerializerTest {
             + "\"DECIMALCOL\":1.12345,"
             + "\"TIMECOL\":1000,"
             + "\"DATECOL\":10,"
-            + "\"TIMESTAMPCOL\":1000"
+            + "\"TIMESTAMPCOL\":1000,"
+            + "\"BYTESCOL\":\"ew==\""
             + "}"));
   }
 
@@ -411,6 +416,19 @@ public class KsqlJsonSerializerTest {
   }
 
   @Test
+  public void shouldSerializeBytes() {
+    // Given:
+    final Serializer<ByteBuffer> serializer =
+        givenSerializerForSchema(Schema.OPTIONAL_BYTES_SCHEMA, ByteBuffer.class);
+
+    // When:
+    final byte[] bytes = serializer.serialize(SOME_TOPIC, ByteBuffer.wrap(new byte[] {123}));
+
+    // Then:
+    assertThat(asJsonString(bytes), is("\"ew==\""));
+  }
+
+  @Test
   public void shouldSerializeArray() {
     // Given:
     final Serializer<List> serializer = givenSerializerForSchema(SchemaBuilder
@@ -582,7 +600,8 @@ public class KsqlJsonSerializerTest {
         .put(DECIMALCOL, null)
         .put(TIMECOL, null)
         .put(DATECOL, null)
-        .put(TIMESTAMPCOL, null);
+        .put(TIMESTAMPCOL, null)
+        .put(BYTESCOL, null);
 
     // When:
     final byte[] bytes = serializer.serialize(SOME_TOPIC, struct);
@@ -599,7 +618,8 @@ public class KsqlJsonSerializerTest {
             + "\"DECIMALCOL\":null,"
             + "\"TIMECOL\":null,"
             + "\"DATECOL\":null,"
-            + "\"TIMESTAMPCOL\":null"
+            + "\"TIMESTAMPCOL\":null,"
+            + "\"BYTESCOL\":null"
             + "}"));
   }
 

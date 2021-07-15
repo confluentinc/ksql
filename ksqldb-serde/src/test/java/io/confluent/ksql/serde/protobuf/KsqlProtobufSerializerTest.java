@@ -16,11 +16,14 @@
 package io.confluent.ksql.serde.protobuf;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.BytesValue;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Message;
 import com.google.protobuf.Timestamp;
 import com.google.type.Date;
 import com.google.type.TimeOfDay;
+import java.nio.ByteBuffer;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -45,6 +48,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.protobuf.type.Decimal;
 import io.confluent.protobuf.type.utils.DecimalUtils;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -148,6 +152,14 @@ public class KsqlProtobufSerializerTest {
     );
   }
 
+  @Test
+  public void shouldSerializeBytesField() {
+    final Message record = serializeValue(Schema.BYTES_SCHEMA, ByteBuffer.wrap("abc".getBytes(UTF_8)));
+    assertThat(record.getAllFields().size(), equalTo(1));
+    Descriptors.FieldDescriptor field = record.getDescriptorForType().findFieldByName("field0");
+    assertThat(((ByteString) record.getField(field)).toByteArray(), equalTo("abc".getBytes(UTF_8)));
+  }
+
 
   @SuppressWarnings("unchecked")
   private <T> T deserialize(final byte[] serializedRow) {
@@ -158,8 +170,15 @@ public class KsqlProtobufSerializerTest {
       final Schema ksqlSchema,
       final Object ksqlValue,
       final ParsedSchema parsedSchema,
-      final Message protobufValue
+      final Object protobufValue
   ) {
+    final Message record = serializeValue(ksqlSchema, ksqlValue);
+    assertThat(record.getAllFields().size(), equalTo(1));
+    Descriptors.FieldDescriptor field = record.getDescriptorForType().findFieldByName("field0");
+    assertThat(record.getField(field).toString(), equalTo(protobufValue.toString()));
+  }
+
+  private Message serializeValue(final Schema ksqlSchema, final Object ksqlValue) {
     // Given:
     final Schema schema = SchemaBuilder.struct()
         .field("field0", ksqlSchema)
@@ -174,10 +193,7 @@ public class KsqlProtobufSerializerTest {
     final byte[] bytes = serializer.serialize(SOME_TOPIC, ksqlRecord);
 
     // Then:
-    final Message record = deserialize(bytes);
-    assertThat(record.getAllFields().size(), equalTo(1));
-    Descriptors.FieldDescriptor field = record.getDescriptorForType().findFieldByName("field0");
-    assertThat(record.getField(field).toString(), equalTo(protobufValue.toString()));
+    return deserialize(bytes);
   }
 
   private <T> Serializer<T> givenSerializerForSchema(

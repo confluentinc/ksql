@@ -29,9 +29,12 @@ import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Base64.Decoder;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +46,8 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 
 class KsqlDelimitedDeserializer implements Deserializer<List<?>> {
+
+  private static Decoder BASE64_DECODER = Base64.getMimeDecoder();
 
   private interface Parser {
 
@@ -61,6 +66,7 @@ class KsqlDelimitedDeserializer implements Deserializer<List<?>> {
       .put(SqlBaseType.BIGINT, t -> Long::parseLong)
       .put(SqlBaseType.DOUBLE, t -> Double::parseDouble)
       .put(SqlBaseType.STRING, t -> v -> v)
+      .put(SqlBaseType.BYTES, KsqlDelimitedDeserializer::toBytes)
       .put(SqlBaseType.DECIMAL, KsqlDelimitedDeserializer::decimalParser)
       .put(SqlBaseType.TIME, KsqlDelimitedDeserializer::timeParser)
       .put(SqlBaseType.DATE, KsqlDelimitedDeserializer::dateParser)
@@ -143,6 +149,16 @@ class KsqlDelimitedDeserializer implements Deserializer<List<?>> {
 
   private static Parser timestampParser(final SqlType sqlType) {
     return v -> new Timestamp(Long.parseLong(v));
+  }
+
+  private static Parser toBytes(final SqlType sqlType) {
+    return v -> {
+      try {
+        return ByteBuffer.wrap(BASE64_DECODER.decode(v));
+      } catch (IllegalArgumentException e) {
+        throw new KsqlException("Value is not a valid Base64 encoded string: " + v);
+      }
+    };
   }
 
   private static List<Parser> buildParsers(final PersistenceSchema schema) {

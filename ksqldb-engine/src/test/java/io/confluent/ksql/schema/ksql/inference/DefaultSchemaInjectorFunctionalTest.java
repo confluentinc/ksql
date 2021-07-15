@@ -279,6 +279,7 @@ public class DefaultSchemaInjectorFunctionalTest {
             .nullableString("STRING", "bar")
             .endRecord(),
         SchemaBuilder.struct()
+            .field("FIXED_FIELD", Schema.OPTIONAL_BYTES_SCHEMA)
             .field("STRING", Schema.OPTIONAL_STRING_SCHEMA)
             .optional()
             .build()
@@ -286,13 +287,14 @@ public class DefaultSchemaInjectorFunctionalTest {
   }
 
   @Test
-  public void shouldIgnoreBytes() {
+  public void shouldInferBytes() {
     shouldInferType(
         org.apache.avro.SchemaBuilder.record("foo").fields()
             .nullableBytes("bytes", new byte[]{})
             .nullableString("STRING", "bar")
             .endRecord(),
         SchemaBuilder.struct()
+            .field("BYTES", Schema.OPTIONAL_BYTES_SCHEMA)
             .field("STRING", Schema.OPTIONAL_STRING_SCHEMA)
             .optional()
             .build()

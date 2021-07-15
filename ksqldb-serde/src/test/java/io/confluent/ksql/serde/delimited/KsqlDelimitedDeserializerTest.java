@@ -31,6 +31,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeFeatures;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Time;
@@ -55,7 +56,8 @@ public class KsqlDelimitedDeserializerTest {
       column("COST", SqlTypes.decimal(4, 2)),
       column("TIME", SqlTypes.TIME),
       column("DATE", SqlTypes.DATE),
-      column("TIMESTAMP", SqlTypes.TIMESTAMP)
+      column("TIMESTAMP", SqlTypes.TIMESTAMP),
+      column("BYTES", SqlTypes.BYTES)
   );
 
   private KsqlDelimitedDeserializer deserializer;
@@ -68,25 +70,26 @@ public class KsqlDelimitedDeserializerTest {
   @Test
   public void shouldDeserializeDelimitedCorrectly() {
     // Given:
-    final byte[] bytes = "1511897796092,1,item_1,10.0,10.10,100,10,100\r\n".getBytes(StandardCharsets.UTF_8);
+    final byte[] bytes = "1511897796092,1,item_1,10.0,10.10,100,10,100,ew==\r\n".getBytes(StandardCharsets.UTF_8);
 
     // When:
     final List<?> result = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(result, contains(1511897796092L, 1L, "item_1", 10.0, new BigDecimal("10.10"), new Time(100), new Date(864000000), new Timestamp(100)));
+    assertThat(result, contains(1511897796092L, 1L, "item_1", 10.0, new BigDecimal("10.10"), new Time(100), new Date(864000000), new Timestamp(100),
+        ByteBuffer.wrap(new byte[] {123})));
   }
 
   @Test
   public void shouldDeserializeJsonCorrectlyWithEmptyFields() {
     // Given:
-    final byte[] bytes = "1511897796092,1,item_1,,,,,\r\n".getBytes(StandardCharsets.UTF_8);
+    final byte[] bytes = "1511897796092,1,item_1,,,,,,\r\n".getBytes(StandardCharsets.UTF_8);
 
     // When:
     final List<?> result = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(result, contains(1511897796092L, 1L, "item_1", null, null, null, null, null));
+    assertThat(result, contains(1511897796092L, 1L, "item_1", null, null, null, null, null, null));
   }
 
   @Test
@@ -102,13 +105,13 @@ public class KsqlDelimitedDeserializerTest {
 
     // Then:
     assertThat(e.getCause().getMessage(),
-        is("Column count mismatch on deserialization. topic: t, expected: 8, got: 4"));
+        is("Column count mismatch on deserialization. topic: t, expected: 9, got: 4"));
   }
 
   @Test
   public void shouldThrowIfRowHasTooMayColumns() {
     // Given:
-    final byte[] bytes = "1511897796092,1,item_1,10.0,10.10,100,100,100,extra\r\n"
+    final byte[] bytes = "1511897796092,1,item_1,10.0,10.10,100,100,100,100,extra\r\n"
         .getBytes(StandardCharsets.UTF_8);
 
     // When:
@@ -119,7 +122,7 @@ public class KsqlDelimitedDeserializerTest {
 
     // Then:
     assertThat(e.getCause().getMessage(),
-        is("Column count mismatch on deserialization. topic: t, expected: 8, got: 9"));
+        is("Column count mismatch on deserialization. topic: t, expected: 9, got: 10"));
   }
 
   @Test
@@ -239,7 +242,7 @@ public class KsqlDelimitedDeserializerTest {
   @Test
   public void shouldDeserializeDelimitedCorrectlyWithTabDelimiter() {
     // Given:
-    final byte[] bytes = "1511897796092\t1\titem_1\t10.0\t10.10\t100\t10\t100\r\n"
+    final byte[] bytes = "1511897796092\t1\titem_1\t10.0\t10.10\t100\t10\t100\tew==\r\n"
         .getBytes(StandardCharsets.UTF_8);
 
     final KsqlDelimitedDeserializer deserializer =
@@ -249,13 +252,14 @@ public class KsqlDelimitedDeserializerTest {
     final List<?> result = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(result, contains(1511897796092L, 1L, "item_1", 10.0, new BigDecimal("10.10"), new Time(100), new Date(864000000), new Timestamp(100)));
+    assertThat(result, contains(1511897796092L, 1L, "item_1", 10.0, new BigDecimal("10.10"), new Time(100), new Date(864000000), new Timestamp(100),
+        ByteBuffer.wrap(new byte[] {123})));
   }
 
   @Test
   public void shouldDeserializeDelimitedCorrectlyWithBarDelimiter() {
     // Given:
-    final byte[] bytes = "1511897796092|1|item_1|10.0|10.10|100|10|100\r\n".getBytes(StandardCharsets.UTF_8);
+    final byte[] bytes = "1511897796092|1|item_1|10.0|10.10|100|10|100|ew==\r\n".getBytes(StandardCharsets.UTF_8);
 
     final KsqlDelimitedDeserializer deserializer =
         new KsqlDelimitedDeserializer(ORDER_SCHEMA, CSVFormat.DEFAULT.withDelimiter('|'));
@@ -264,7 +268,8 @@ public class KsqlDelimitedDeserializerTest {
     final List<?> result = deserializer.deserialize("", bytes);
 
     // Then:
-    assertThat(result, contains(1511897796092L, 1L, "item_1", 10.0d, new BigDecimal("10.10"), new Time(100), new Date(864000000), new Timestamp(100)));
+    assertThat(result, contains(1511897796092L, 1L, "item_1", 10.0d, new BigDecimal("10.10"), new Time(100), new Date(864000000), new Timestamp(100),
+        ByteBuffer.wrap(new byte[] {123})));
   }
 
   @Test
@@ -368,6 +373,28 @@ public class KsqlDelimitedDeserializerTest {
     // Then:
     assertThat(e.getCause().getMessage(),
         containsString("Time values must use number of milliseconds greater than 0 and less than 86400000."));
+  }
+
+  @Test
+  public void shouldThrowOnNonBase64Bytes() {
+    // Given:
+    KsqlDelimitedDeserializer deserializer = createDeserializer(persistenceSchema(
+        column(
+            "bytes",
+            SqlTypes.BYTES
+        )
+    ));
+    final byte[] bytes = "a".getBytes(StandardCharsets.UTF_8);
+
+    // When:
+    final Exception e = assertThrows(
+        SerializationException.class,
+        () -> deserializer.deserialize("", bytes)
+    );
+
+    // Then:
+    assertThat(e.getCause().getMessage(),
+        containsString("Value is not a valid Base64 encoded string: a"));
   }
 
   private static SimpleColumn column(final String name, final SqlType type) {

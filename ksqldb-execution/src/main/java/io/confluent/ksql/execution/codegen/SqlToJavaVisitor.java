@@ -139,6 +139,7 @@ public class SqlToJavaVisitor {
       "java.sql.Time",
       "java.sql.Date",
       "java.sql.Timestamp",
+      "java.nio.ByteBuffer",
       "java.util.Arrays",
       "java.util.HashMap",
       "java.util.Map",

@@ -132,8 +132,9 @@ public final class ConnectSchemaUtil {
   private static Schema toKsqlBytesSchema(final Schema schema) {
     if (DecimalUtil.isDecimal(schema)) {
       return schema;
+    } else {
+      return Schema.OPTIONAL_BYTES_SCHEMA;
     }
-    throw new UnsupportedTypeException("BYTES type must be DECIMAL schema.");
   }
 
   private static Schema toKsqlMapSchema(final Schema schema) {

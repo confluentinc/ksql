@@ -312,7 +312,8 @@ public final class KsqlRestApplication implements Executable {
     this.serverMetadataResource = ServerMetadataResource.create(serviceContext, ksqlConfigNoPort);
     final StatementParser statementParser = new StatementParser(ksqlEngine);
     final Optional<KsqlAuthorizationValidator> authorizationValidator =
-        KsqlAuthorizationValidatorFactory.create(ksqlConfigNoPort, serviceContext);
+        KsqlAuthorizationValidatorFactory.create(ksqlConfigNoPort, serviceContext,
+            securityExtension.getAuthorizationProvider());
     final Errors errorHandler = new Errors(restConfig.getConfiguredInstance(
         KsqlRestConfig.KSQL_SERVER_ERROR_MESSAGES,
         ErrorMessages.class
@@ -749,7 +750,8 @@ public final class KsqlRestApplication implements Executable {
         restConfig);
 
     final Optional<KsqlAuthorizationValidator> authorizationValidator =
-        KsqlAuthorizationValidatorFactory.create(ksqlConfig, serviceContext);
+        KsqlAuthorizationValidatorFactory.create(ksqlConfig, serviceContext,
+            securityExtension.getAuthorizationProvider());
 
     final Errors errorHandler = new Errors(restConfig.getConfiguredInstance(
         KsqlRestConfig.KSQL_SERVER_ERROR_MESSAGES,

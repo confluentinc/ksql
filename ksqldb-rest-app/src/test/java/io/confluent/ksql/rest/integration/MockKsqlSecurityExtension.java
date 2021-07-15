@@ -1,9 +1,13 @@
 package io.confluent.ksql.rest.integration;
 
+import io.confluent.ksql.security.AuthObjectType;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.security.KsqlUserContextProvider;
 import io.confluent.ksql.util.KsqlConfig;
+import org.apache.kafka.common.acl.AclOperation;
+import java.security.Principal;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -22,9 +26,23 @@ public class MockKsqlSecurityExtension implements KsqlSecurityExtension {
 
   @Override
   public Optional<KsqlAuthorizationProvider> getAuthorizationProvider() {
-    return Optional.of(
-        (user, method, path) -> MockKsqlSecurityExtension.provider
-            .checkEndpointAccess(user, method, path));
+    return Optional.of(new KsqlAuthorizationProvider() {
+      @Override
+      public void checkEndpointAccess(final Principal user,
+                                      final String method,
+                                      final String path) {
+        MockKsqlSecurityExtension.provider.checkEndpointAccess(user, method, path);
+      }
+
+      @Override
+      public void checkPrivileges(final Principal user,
+                                  final AuthObjectType objectType,
+                                  final String objectName,
+                                  final List<AclOperation> privileges) {
+        MockKsqlSecurityExtension.provider
+            .checkPrivileges(user, objectType, objectName, privileges);
+      }
+    });
   }
 
   @Override

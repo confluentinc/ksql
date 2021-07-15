@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.security;
 
-import static org.apache.kafka.common.acl.AclOperation.READ;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThrows;
@@ -72,7 +71,7 @@ public class KsqlBackendAccessValidatorTest {
     givenTopicPermissions(TOPIC_1, null);
 
     // When/Then:
-    accessValidator.checkAccess(securityContext, TOPIC_NAME_1, AclOperation.READ);
+    accessValidator.checkTopicAccess(securityContext, TOPIC_NAME_1, AclOperation.READ);
   }
 
   @Test
@@ -81,7 +80,7 @@ public class KsqlBackendAccessValidatorTest {
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
 
     // When/Then:
-    accessValidator.checkAccess(securityContext, TOPIC_NAME_1, AclOperation.READ);
+    accessValidator.checkTopicAccess(securityContext, TOPIC_NAME_1, AclOperation.READ);
   }
 
   @Test
@@ -92,7 +91,7 @@ public class KsqlBackendAccessValidatorTest {
     // When:
     final Exception e = assertThrows(
         KsqlTopicAuthorizationException.class,
-        () -> accessValidator.checkAccess(securityContext, TOPIC_NAME_1, AclOperation.READ)
+        () -> accessValidator.checkTopicAccess(securityContext, TOPIC_NAME_1, AclOperation.READ)
     );
 
     // Then:
@@ -110,7 +109,7 @@ public class KsqlBackendAccessValidatorTest {
     // When:
     assertThrows(
         KafkaResponseGetFailedException.class,
-        () -> accessValidator.checkAccess(securityContext, TOPIC_NAME_1, READ)
+        () -> accessValidator.checkTopicAccess(securityContext, TOPIC_NAME_1, AclOperation.READ)
     );
   }
 

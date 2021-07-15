@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -1166,7 +1167,7 @@ public class RecordFormatterTest {
     private void givenAvroSchemaRegistered() {
       try {
         final AvroSchema avroSchema = new AvroSchema(AVRO_SCHEMA);
-        when(schemaRegistryClient.getSchemaById(anyInt())).thenReturn(avroSchema);
+        when(schemaRegistryClient.getSchemaBySubjectAndId(any(), anyInt())).thenReturn(avroSchema);
       } catch (final Exception e) {
         fail("invalid test:" + e.getMessage());
       }
@@ -1174,7 +1175,7 @@ public class RecordFormatterTest {
 
     private void givenProtoSchemaRegistered() {
       try {
-        when(schemaRegistryClient.getSchemaById(anyInt())).thenReturn(PROTOBUF_SCHEMA);
+        when(schemaRegistryClient.getSchemaBySubjectAndId(any(), anyInt())).thenReturn(PROTOBUF_SCHEMA);
       } catch (final Exception e) {
         fail("invalid test:" + e.getMessage());
       }
@@ -1182,7 +1183,7 @@ public class RecordFormatterTest {
 
     private void givenJsonSrSchemaRegistered() {
       try {
-        when(schemaRegistryClient.getSchemaById(anyInt())).thenReturn(JSON_SCHEMA);
+        when(schemaRegistryClient.getSchemaBySubjectAndId(any(), anyInt())).thenReturn(JSON_SCHEMA);
       } catch (final Exception e) {
         fail("invalid test:" + e.getMessage());
       }

@@ -72,7 +72,7 @@ public class SharedKafkaStreamsRuntime {
           final PersistentQueriesInSharedRuntimesImpl persistentQueriesInSharedRuntimesImpl,
           final QueryId queryId) {
     this.errorClassifier = errorClassifier;
-    this.metadata.put(queryId.toString(), persistentQueriesInSharedRuntimesImpl);
+    metadata.put(queryId.toString(), persistentQueriesInSharedRuntimesImpl);
     LOG.debug("mapping {}", metadata);
   }
 
@@ -147,7 +147,7 @@ public class SharedKafkaStreamsRuntime {
   }
 
   public void close(final QueryId queryId) {
-    metadata.remove(queryId.toString());
+//    metadata.remove(queryId.toString());
     if (kafkaStreams.state() == KafkaStreams.State.RUNNING
             || kafkaStreams.state() == KafkaStreams.State.REBALANCING) {
       try {

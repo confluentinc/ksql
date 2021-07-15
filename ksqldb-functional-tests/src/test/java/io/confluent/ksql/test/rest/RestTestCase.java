@@ -43,6 +43,7 @@ class RestTestCase implements Test {
   private final ImmutableList<String> statements;
   private final ImmutableList<Response> responses;
   private final Optional<Matcher<RestResponse<?>>> expectedError;
+  private final Optional<InputConditions> inputConditions;
 
   RestTestCase(
       final TestLocation location,
@@ -53,7 +54,8 @@ class RestTestCase implements Test {
       final Collection<Record> outputRecords,
       final Collection<String> statements,
       final Collection<Response> responses,
-      final Optional<Matcher<RestResponse<?>>> expectedError
+      final Optional<Matcher<RestResponse<?>>> expectedError,
+      final Optional<InputConditions> inputConditions
   ) {
     this.name = requireNonNull(name, "name");
     this.location = requireNonNull(location, "testPath");
@@ -64,6 +66,7 @@ class RestTestCase implements Test {
     this.statements = immutableCopyOf(requireNonNull(statements, "statements"));
     this.responses = immutableCopyOf(requireNonNull(responses, "responses"));
     this.expectedError = requireNonNull(expectedError, "expectedError");
+    this.inputConditions = requireNonNull(inputConditions, "inputConditions");
   }
 
   @Override
@@ -112,5 +115,9 @@ class RestTestCase implements Test {
 
   public Map<String, Object> getProperties() {
     return properties;
+  }
+
+  public Optional<InputConditions> getInputConditions() {
+    return inputConditions;
   }
 }

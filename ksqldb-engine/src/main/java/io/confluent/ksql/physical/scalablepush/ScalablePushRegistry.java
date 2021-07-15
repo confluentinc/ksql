@@ -28,6 +28,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -116,13 +117,18 @@ public class ScalablePushRegistry implements ProcessorSupplier<Object, GenericRo
   @SuppressWarnings("unchecked")
   private void handleRow(
       final Object key, final GenericRow value, final long timestamp) {
+    // We don't currently handle null in either field
+    if ((key == null && !logicalSchema.key().isEmpty()) || value == null) {
+      return;
+    }
     for (ProcessingQueue queue : processingQueues.values()) {
       try {
         // The physical operators may modify the keys and values, so we make a copy to ensure
         // that there's no cross-query interference.
         final TableRow row;
         if (!windowed) {
-          final GenericKey keyCopy = GenericKey.fromList(((GenericKey) key).values());
+          final GenericKey keyCopy = GenericKey.fromList(
+              key != null ? ((GenericKey) key).values() : Collections.emptyList());
           final GenericRow valueCopy = GenericRow.fromList(value.values());
           row = Row.of(logicalSchema, keyCopy, valueCopy, timestamp);
         } else {

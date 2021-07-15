@@ -114,6 +114,7 @@ class QueryStreamWriter implements StreamingOutput {
   }
 
   private void write(final OutputStream output, final StreamedRow row) throws IOException {
+    System.out.println("Writing row: " + row);
     objectMapper.writeValue(output, row);
     output.write(",\n".getBytes(StandardCharsets.UTF_8));
     output.flush();

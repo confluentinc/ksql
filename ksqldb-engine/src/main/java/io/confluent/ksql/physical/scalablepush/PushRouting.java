@@ -78,7 +78,7 @@ public class PushRouting implements AutoCloseable {
         .collect(Collectors.toList());
 
     if (hosts.isEmpty()) {
-      LOG.debug("Unable to execute push query: {}. No nodes executing persistent queries",
+      LOG.error("Unable to execute push query: {}. No nodes executing persistent queries",
           statement.getStatementText());
       throw new KsqlException(String.format(
           "Unable to execute push query. No nodes executing persistent queries %s",

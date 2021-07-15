@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
@@ -424,7 +425,20 @@ public class ExpressionTypeManager {
       } else if (arrayMapType instanceof SqlArray) {
         valueType = ((SqlArray) arrayMapType).getItemType();
       } else {
-        throw new UnsupportedOperationException("Unsupported container type: " + arrayMapType);
+        final String structMessage = (arrayMapType instanceof SqlStruct)
+            ? String.format(
+                " Use the dereference operator for STRUCTS: %s",
+            new DereferenceExpression(
+                Optional.empty(),
+                node.getBase(),
+                ExpressionFormatter.formatExpression(node.getIndex())))
+            : "";
+
+        throw new UnsupportedOperationException(
+            String.format("Subscript expression (%s) do not apply to %s.%s",
+                node,
+                arrayMapType,
+                structMessage));
       }
 
       context.setSqlType(valueType);

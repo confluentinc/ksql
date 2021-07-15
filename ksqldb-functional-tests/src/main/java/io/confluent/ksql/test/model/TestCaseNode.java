@@ -60,7 +60,6 @@ public class TestCaseNode {
       @JsonProperty("properties") final Map<String, Object> properties,
       @JsonProperty("expectedException") final ExpectedExceptionNode expectedException,
       @JsonProperty("post") final PostConditionsNode postConditions,
-//      @JsonProperty("conditionalInputs") final ConditionalInputs conditionalInputs,
       @JsonProperty("enabled") final Boolean enabled
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck

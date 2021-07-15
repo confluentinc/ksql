@@ -43,12 +43,12 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class HighAvailabilityTestUtil {
+class HighAvailabilityTestUtil {
 
   private static final Logger LOG = LoggerFactory.getLogger(HighAvailabilityTestUtil.class);
   private static final Pattern QUERY_ID_PATTERN = Pattern.compile("query with ID (\\S+)");
 
-  public static ClusterStatusResponse sendClusterStatusRequest(
+  static ClusterStatusResponse sendClusterStatusRequest(
       final TestKsqlRestApp restApp) {
     return sendClusterStatusRequest(restApp, Optional.empty());
   }

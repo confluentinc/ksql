@@ -34,13 +34,11 @@ import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.StreamPublisher;
-import io.confluent.ksql.rest.entity.ClusterStatusResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.integration.HighAvailabilityTestUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.ExpectedRecordComparator;
@@ -69,13 +67,10 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -142,7 +137,6 @@ public class RestTestExecutor implements Closeable {
 
       final boolean waitForQueryHeaderToProduceInput = testCase.getInputConditions().isPresent()
           && testCase.getInputConditions().get().getWaitForQueryHeader();
-//      produceInputs(testCase.getInputsByTopic(), 0);
       final Optional<Runnable> postQueryHeaderRunnable;
       if (!waitForQueryHeaderToProduceInput) {
         produceInputs(testCase.getInputsByTopic());
@@ -158,9 +152,8 @@ public class RestTestExecutor implements Closeable {
             testCase.getExpectedResponses()
                 .subList(statements.admin.size(), testCase.getExpectedResponses().size())
         );
-        if (testCase.getInputConditions().isPresent()
-            && testCase.getInputConditions().get().getWaitForQueryHeader()) {
-          waitForRunningScalablePushQueries(statements.queries);
+        if (waitForQueryHeaderToProduceInput) {
+          waitForRunningPushQueries(statements.queries);
         }
       }
 
@@ -262,19 +255,6 @@ public class RestTestExecutor implements Closeable {
         throw new RuntimeException("Failed to send record to " + topicName, e);
       }
     });
-    System.out.println("Finished producing");
-//    inputs.forEach((topicName, records) -> {
-//      final TopicInfo topicInfo = topicInfoCache.get(topicName)
-//          .orElseThrow(() -> new KsqlException("No information found for topic: " + topicName));
-//      final List<? extends ConsumerRecord<?, ?>> received = kafkaCluster
-//          .verifyAvailableRecords(
-//              topicName,
-//              indexStart == 2 ? 4 : 2,
-//              topicInfo.getKeyDeserializer(),
-//              topicInfo.getValueDeserializer()
-//          );
-//      System.out.println("Received " + received);
-//    });
   }
 
   private static StatementSplit splitStatements(final RestTestCase testCase) {
@@ -381,13 +361,12 @@ public class RestTestExecutor implements Closeable {
       return Optional.empty();
     }
 
-    return handleRowPublisher(resp.getResponse(), afterHeader, testCase);
+    return handleRowPublisher(resp.getResponse(), afterHeader);
   }
 
   private Optional<List<StreamedRow>> handleRowPublisher(
       final StreamPublisher<StreamedRow> publisher,
-      final Runnable afterHeader,
-      final RestTestCase testCase
+      final Runnable afterHeader
   ) {
     final CompletableFuture<List<StreamedRow>> future = new CompletableFuture<>();
     final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
@@ -407,11 +386,6 @@ public class RestTestExecutor implements Closeable {
     } catch (Exception e) {
       LOG.error("Error doing after header", e);
     }
-//    try {
-//      Thread.sleep(120000);
-//    } catch (InterruptedException e) {
-//      e.printStackTrace();
-//    }
 
     try {
       return Optional.of(future.get());
@@ -641,20 +615,21 @@ public class RestTestExecutor implements Closeable {
     LOG.info("Timed out waiting for correct response");
   }
 
-private void waitForRunningScalablePushQueries(
+private void waitForRunningPushQueries(
       final List<String> queries
   ) {
     for (int i = 0; i != queries.size(); ++i) {
       final String queryStatement = queries.get(i);
-      waitForRunningScalablePush(queryStatement);
+      waitForRunningPush(queryStatement);
     }
   }
 
-  private void waitForRunningScalablePush(
+  private void waitForRunningPush(
       final String querySql
   ) {
-    // Special handling for pull queries is required, as they depend on materialized state stores
-    // being warmed up.  Initial requests may return no rows.
+    // Make sure push queries are ready to run if they're counting on running before data is
+    // produced.  This is most relevant for scalable push queries since their underlying
+    // persistent queries must be ready. If they're not, we'll get an error.
 
     if (!(querySql.contains("EMIT CHANGES"))) {
       // Not a scalable push query, so not needed
@@ -676,11 +651,6 @@ private void waitForRunningScalablePushQueries(
         return;
       }
     }
-//    while (System.currentTimeMillis() < threshold) {
-//      final RestResponse<ClusterStatusResponse> resp = restClient.makeClusterStatusRequest();
-//      System.out.println("FOo " + resp);
-//    }
-//    HighAvailabilityTestUtil.sendClusterStatusRequest();
     LOG.info("Timed out waiting for non error");
   }
 
@@ -882,7 +852,6 @@ private void waitForRunningScalablePushQueries(
       rows.add(row);
       if (row.isTerminal()) {
         future.complete(rows);
-//        close();
         return;
       }
       if (row.getHeader().isPresent()) {

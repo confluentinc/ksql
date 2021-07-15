@@ -52,7 +52,6 @@ import io.confluent.ksql.physical.scalablepush.PushPhysicalPlan;
 import io.confluent.ksql.physical.scalablepush.PushPhysicalPlanBuilder;
 import io.confluent.ksql.physical.scalablepush.PushQueryQueuePopulator;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
-import io.confluent.ksql.physical.scalablepush.PushRouting.PushConnectionsHandle;
 import io.confluent.ksql.physical.scalablepush.PushRoutingOptions;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
@@ -85,7 +84,6 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -295,13 +293,6 @@ final class EngineExecutor {
               : ResultType.TABLE
           : ResultType.STREAM;
 
-//      final PushQueryQueuePopulator populator = () -> {
-//        final CompletableFuture<Void> errorCallback = new CompletableFuture<>();
-//        CompletableFuture<PushConnectionsHandle> f = new CompletableFuture<>();
-//        final PushConnectionsHandle pushConnectionsHandle = new PushConnectionsHandle(errorCallback);
-//        f.complete(pushConnectionsHandle);
-//        return f;
-//      };
       final PushQueryQueuePopulator populator = () ->
           pushRouting.handlePushQuery(serviceContext, physicalPlan, statement, pushRoutingOptions,
               physicalPlan.getOutputSchema(), transientQueryQueue);

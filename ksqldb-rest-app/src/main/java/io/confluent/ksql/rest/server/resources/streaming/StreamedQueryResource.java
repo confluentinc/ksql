@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.PullQueryValidator;
@@ -31,7 +30,6 @@ import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.logging.query.QueryLogger;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
@@ -42,10 +40,6 @@ import io.confluent.ksql.physical.pull.PullPhysicalPlan.RoutingNodeType;
 import io.confluent.ksql.physical.pull.PullQueryResult;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
 import io.confluent.ksql.properties.DenyListPropertyValidator;
-import io.confluent.ksql.query.BlockingRowQueue;
-import io.confluent.ksql.query.LimitHandler;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.query.TransientQueryQueue;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.rest.EndpointResponse;
 import io.confluent.ksql.rest.Errors;
@@ -62,8 +56,6 @@ import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter.Decrementer;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.rest.util.ScalablePushUtil;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -71,7 +63,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.PushQueryMetadata;
 import io.confluent.ksql.util.ScalablePushQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
@@ -84,13 +75,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -314,14 +303,6 @@ public class StreamedQueryResource implements KsqlConfigurable {
           );
         }
 
-//        try {
-//          Thread.sleep(120000);
-//        } catch (InterruptedException e) {
-//          e.printStackTrace();
-//        }
-
-//        return EndpointResponse.ok("DONE");
-
         return handlePushQuery(
             securityContext.getServiceContext(),
             queryStmt,
@@ -479,59 +460,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final ScalablePushQueryMetadata query = ksqlEngine
         .executeScalablePushQuery(serviceContext, configured, pushRouting, routingOptions,
             plannerOptions, context);
-//
-//    final TransientQueryQueue rowQueue = new TransientQueryQueue(OptionalInt.of(1));
-////    rowQueue.acceptRowNonBlocking(null, GenericRow.fromList(ImmutableList.of(1, "bar")));
-//    final PushQueryMetadata meta = new PushQueryMetadata() {
-//
-//      @Override
-//      public void start() {
-//
-//      }
-//
-//      @Override
-//      public void close() {
-//
-//      }
-//
-//      @Override
-//      public boolean isRunning() {
-//        return true;
-//      }
-//
-//      @Override
-//      public BlockingRowQueue getRowQueue() {
-//        return rowQueue;
-//      }
-//
-//      @Override
-//      public void setLimitHandler(LimitHandler limitHandler) {
-//        rowQueue.setLimitHandler(limitHandler);
-//      }
-//
-//      @Override
-//      public void setUncaughtExceptionHandler(StreamsUncaughtExceptionHandler handler) {
-//
-//      }
-//
-//      @Override
-//      public LogicalSchema getLogicalSchema() {
-//        return LogicalSchema.builder()
-//            .keyColumn(ColumnName.of("Foo"), SqlTypes.INTEGER)
-//            .valueColumn(ColumnName.of("Bar"), SqlTypes.STRING)
-//            .build();
-//      }
-//
-//      @Override
-//      public QueryId getQueryId() {
-//        return new QueryId("query");
-//      }
-//
-//      @Override
-//      public ResultType getResultType() {
-//        return ResultType.STREAM;
-//      }
-//    };
+
 
     final QueryStreamWriter queryStreamWriter = new QueryStreamWriter(
         query,

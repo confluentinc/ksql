@@ -314,10 +314,6 @@ public class QueryEndpoint {
 
     KsqlQueryHandle(final PushQueryMetadata queryMetadata) {
       this.queryMetadata = Objects.requireNonNull(queryMetadata, "queryMetadata");
-      queryMetadata.setUncaughtExceptionHandler(throwable -> {
-        System.out.println("Blah ");
-        return null;
-      });
     }
 
     @Override

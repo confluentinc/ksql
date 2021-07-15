@@ -37,6 +37,7 @@ import static org.apache.kafka.common.resource.ResourceType.CLUSTER;
 import static org.apache.kafka.common.resource.ResourceType.GROUP;
 import static org.apache.kafka.common.resource.ResourceType.TOPIC;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
@@ -108,7 +109,7 @@ public class SecureIntegrationTest {
   private static final Credentials NORMAL_USER = VALID_USER2;
   private static final AtomicInteger COUNTER = new AtomicInteger(0);
   private static final String SERVICE_ID = "my-service-id_";
-  private static final String QUERY_ID_PREFIX = "_confluent-ksql-" + SERVICE_ID;
+  private static final String QUERY_ID_PREFIX = "_confluent-ksql-";
 
   public static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness
       .builder()
@@ -328,10 +329,10 @@ public class SecureIntegrationTest {
             INPUT_STREAM
         ),
         String.format(
-            "%s: Not authorized to access group: %squery_",
+            "%s: Not authorized to access group:",
             GroupAuthorizationException.class.getName(),
             QUERY_ID_PREFIX
-        ) + "%s"
+        )
     );
   }
 
@@ -483,7 +484,7 @@ public class SecureIntegrationTest {
         assertThat(error.getType(), is(Type.USER));
         assertThat(
             error.getErrorMessage().split("\n")[0],
-            is(String.format(errorMsg, queryMetadata.getQueryId()))
+            containsString(String.format(errorMsg, queryMetadata.getQueryId()))
         );
     }
   }

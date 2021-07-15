@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -57,6 +58,8 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.QueryMetadataImpl;
 import io.confluent.ksql.util.TransientQueryMetadata;
+
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +81,8 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.processor.internals.namedtopology.KafkaStreamsNamedTopologyWrapper;
+import org.apache.kafka.streams.processor.internals.namedtopology.NamedTopology;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -160,7 +165,9 @@ public class QueryExecutorTest {
   @Mock
   private KafkaStreams kafkaStreams;
   @Mock
-  private Topology topology;
+  private KafkaStreamsNamedTopologyWrapper kafkaStreamsNamedTopologyWrapper;
+  @Mock
+  private NamedTopology topology;
   @Mock
   private TopologyDescription topoDesc;
   @Mock
@@ -196,6 +203,7 @@ public class QueryExecutorTest {
     when(ksqlTopic.getKeyFormat()).thenReturn(KEY_FORMAT);
     when(ksqlTopic.getValueFormat()).thenReturn(VALUE_FORMAT);
     when(kafkaStreamsBuilder.build(any(), any())).thenReturn(kafkaStreams);
+    when(kafkaStreamsBuilder.build(any())).thenReturn(kafkaStreamsNamedTopologyWrapper);
     when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.of(materializationBuilder));
     when(materializationBuilder.build()).thenReturn(materializationInfo);
     when(materializationInfo.getStateStoreSchema()).thenReturn(aggregationSchema);
@@ -210,6 +218,7 @@ public class QueryExecutorTest {
     when(ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG))
         .thenReturn(PERSISTENT_PREFIX);
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn(SERVICE_ID);
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(false);
     when(physicalPlan.build(any())).thenReturn(tableHolder);
     when(streamsBuilder.build(any())).thenReturn(topology);
     when(config.getConfig(true)).thenReturn(ksqlConfig);
@@ -228,7 +237,8 @@ public class QueryExecutorTest {
             serviceContext,
             ksMaterializationFactory,
             ksqlMaterializationFactory
-        ));
+        ),
+        new ArrayList<>());
   }
 
   @Test
@@ -293,7 +303,6 @@ public class QueryExecutorTest {
     assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES));
     assertThat(queryMetadata.getDataSourceType(), equalTo(DataSourceType.KSTREAM));
     assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
-    assertThat(queryMetadata.getTopology(), is(topology));
     assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
     assertThat(queryMetadata.getStreamsProperties(), equalTo(capturedStreamsProperties()));
     assertThat(queryMetadata.getProcessingLogger(), equalTo(uncaughtProcessingLogger));
@@ -333,7 +342,7 @@ public class QueryExecutorTest {
     assertThat(queryMetadata.getSourceNames(), equalTo(SOURCES));
     assertThat(queryMetadata.getDataSourceType(), equalTo(DataSourceType.KSTREAM));
     assertThat(queryMetadata.getExecutionPlan(), equalTo(SUMMARY));
-    assertThat(queryMetadata.getTopology(), is(topology));
+//    assertThat(queryMetadata.getTopology(), is(topology));
     assertThat(queryMetadata.getOverriddenProperties(), equalTo(OVERRIDES));
     assertThat(queryMetadata.getStreamsProperties(), equalTo(capturedStreamsProperties()));
     assertThat(queryMetadata.getProcessingLogger(), equalTo(uncaughtProcessingLogger));
@@ -405,8 +414,8 @@ public class QueryExecutorTest {
     final Map<String, Object> properties = capturedStreamsProperties();
     verify(ksMaterializationFactory).create(
         eq(STORE_NAME),
-        same(kafkaStreams),
-        same(topology),
+        isA(KafkaStreams.class),
+        isA(Topology.class),
         same(aggregationSchema),
         any(),
         eq(Optional.empty()),
@@ -670,6 +679,64 @@ public class QueryExecutorTest {
             ConsumerCollector.class.getName()
         )
     );
+  }
+
+  @Test
+  public void shouldMakePersistentQueriesWithSameSources() {
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
+
+    // When:
+    queryBuilder.buildPersistentQuery(
+            KsqlConstants.PersistentQueryType.CREATE_AS,
+            STATEMENT_TEXT,
+            QUERY_ID,
+            sink,
+            SOURCES,
+            physicalPlan,
+            SUMMARY,
+            queryListener,
+            Collections::emptyList
+    ).start();
+    queryBuilder.buildPersistentQuery(
+            KsqlConstants.PersistentQueryType.CREATE_AS,
+            STATEMENT_TEXT,
+            QUERY_ID,
+            sink,
+            SOURCES,
+            physicalPlan,
+            SUMMARY,
+            queryListener,
+            Collections::emptyList
+    ).start();
+  }
+
+  @Test
+  public void shouldMakePersistentQueriesWithDifferentSources() {
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_SHARED_RUNTIME_ENABLED)).thenReturn(true);
+
+    // When:
+    queryBuilder.buildPersistentQuery(
+            KsqlConstants.PersistentQueryType.CREATE_AS,
+            STATEMENT_TEXT,
+            QUERY_ID,
+            sink,
+            SOURCES,
+            physicalPlan,
+            SUMMARY,
+            queryListener,
+            Collections::emptyList
+    ).start();
+    queryBuilder.buildPersistentQuery(
+            KsqlConstants.PersistentQueryType.CREATE_AS,
+            STATEMENT_TEXT,
+            QUERY_ID,
+            sink,
+            ImmutableSet.of(SourceName.of("food"), SourceName.of("bard")),
+            physicalPlan,
+            SUMMARY,
+            queryListener,
+            Collections::emptyList
+    ).start();
   }
 
   @Test

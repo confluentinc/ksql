@@ -30,12 +30,17 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.PersistentQueriesInSharedRuntimesImpl;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.PersistentQueryMetadataImpl;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SandboxedPersistentQueriesInSharedRuntimesImpl;
 import io.confluent.ksql.util.SandboxedPersistentQueryMetadataImpl;
 import io.confluent.ksql.util.SandboxedTransientQueryMetadata;
+import io.confluent.ksql.util.SharedKafkaStreamsRuntime;
 import io.confluent.ksql.util.TransientQueryMetadata;
+
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -60,6 +65,7 @@ public class QueryRegistryImpl implements QueryRegistry {
   private final Map<SourceName, Set<QueryId>> insertQueries;
   private final Collection<QueryEventListener> eventListeners;
   private final QueryExecutorFactory executorFactory;
+  private final ArrayList<SharedKafkaStreamsRuntime> streams;
 
   public QueryRegistryImpl(final Collection<QueryEventListener> eventListeners) {
     this(eventListeners, QueryExecutor::new);
@@ -75,6 +81,7 @@ public class QueryRegistryImpl implements QueryRegistry {
     this.insertQueries = new ConcurrentHashMap<>();
     this.eventListeners = Objects.requireNonNull(eventListeners);
     this.executorFactory = Objects.requireNonNull(executorFactory);
+    this.streams = new ArrayList<>();
   }
 
   // Used to construct a sandbox
@@ -85,14 +92,21 @@ public class QueryRegistryImpl implements QueryRegistry {
     createAsQueries = new ConcurrentHashMap<>();
     insertQueries = new ConcurrentHashMap<>();
     original.allLiveQueries.forEach(query -> {
-      if (query instanceof PersistentQueryMetadata) {
+      if (query instanceof PersistentQueryMetadataImpl) {
         final PersistentQueryMetadata sandboxed = SandboxedPersistentQueryMetadataImpl.of(
             (PersistentQueryMetadataImpl) query,
             new ListenerImpl()
         );
         persistentQueries.put(sandboxed.getQueryId(), sandboxed);
         allLiveQueries.add(sandboxed);
-      } else {
+      } else if (query instanceof PersistentQueriesInSharedRuntimesImpl) {
+        final PersistentQueryMetadata sandboxed = SandboxedPersistentQueriesInSharedRuntimesImpl.of(
+                (PersistentQueriesInSharedRuntimesImpl) query,
+                new ListenerImpl()
+        );
+        persistentQueries.put(sandboxed.getQueryId(), sandboxed);
+        allLiveQueries.add(sandboxed);
+      }  else {
         final TransientQueryMetadata sandboxed = SandboxedTransientQueryMetadata.of(
             (TransientQueryMetadata) query,
             new ListenerImpl()
@@ -111,6 +125,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         .filter(Optional::isPresent)
         .map(Optional::get)
         .collect(Collectors.toList());
+    this.streams = original.streams;
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -131,7 +146,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       final boolean excludeTombstones) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     final QueryExecutor executor
-        = executorFactory.create(config, processingLogContext, serviceContext, metaStore);
+        = executorFactory.create(config, processingLogContext, serviceContext, metaStore, streams);
     final TransientQueryMetadata query = executor.buildTransientQuery(
         statementText,
         queryId,
@@ -164,7 +179,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       final boolean createAsQuery) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     final QueryExecutor executor =
-        executorFactory.create(config, processingLogContext, serviceContext, metaStore);
+        executorFactory.create(config, processingLogContext, serviceContext, metaStore, streams);
     final PersistentQueryMetadata query = executor.buildPersistentQuery(
         createAsQuery
             ? KsqlConstants.PersistentQueryType.CREATE_AS
@@ -236,6 +251,9 @@ public class QueryRegistryImpl implements QueryRegistry {
 
   @Override
   public void close(final boolean closePersistent) {
+    for (SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime: streams) {
+      sharedKafkaStreamsRuntime.close();
+    }
     for (final QueryMetadata queryMetadata : getAllLiveQueries()) {
       // only persistent queries can be stopped - transient queries must be closed (destroyed)
       if (closePersistent || queryMetadata instanceof TransientQueryMetadata) {
@@ -343,7 +361,8 @@ public class QueryRegistryImpl implements QueryRegistry {
         SessionConfig config,
         ProcessingLogContext processingLogContext,
         ServiceContext serviceContext,
-        FunctionRegistry functionRegistry
+        FunctionRegistry functionRegistry,
+        ArrayList<SharedKafkaStreamsRuntime> streams
     );
   }
 

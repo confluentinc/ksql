@@ -72,11 +72,8 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.client.StreamPublisher;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.integration.RestIntegrationTestUtil;
 import io.confluent.ksql.rest.server.ConnectExecutable;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
@@ -172,7 +169,8 @@ public class ClientIntegrationTest {
   private static final String EMPTY_TEST_STREAM_2 = EMPTY_TEST_DATA_PROVIDER_2.sourceName();
 
   private static final String PUSH_QUERY = "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES;";
-  private static final String PULL_QUERY = "SELECT * from " + AGG_TABLE + " WHERE K=" + AN_AGG_KEY + ";";
+  private static final String PULL_QUERY_ON_TABLE = "SELECT * from " + AGG_TABLE + " WHERE K=" + AN_AGG_KEY + ";";
+  private static final String PULL_QUERY_ON_STREAM = "SELECT * from " + TEST_STREAM + ";";
   private static final int PUSH_QUERY_LIMIT_NUM_ROWS = 2;
   private static final String PUSH_QUERY_WITH_LIMIT =
       "SELECT * FROM " + TEST_STREAM + " EMIT CHANGES LIMIT " + PUSH_QUERY_LIMIT_NUM_ROWS + ";";
@@ -221,6 +219,7 @@ public class ClientIntegrationTest {
       .withProperty(KSQL_DEFAULT_KEY_FORMAT_CONFIG, "JSON")
       .withProperty("ksql.verticle.instances", EVENT_LOOP_POOL_SIZE)
       .withProperty("ksql.worker.pool.size", WORKER_POOL_SIZE)
+      .withProperty("ksql.query.pull.table.scan.enabled", true)
       .build();
 
   @ClassRule
@@ -368,9 +367,9 @@ public class ClientIntegrationTest {
   }
 
   @Test
-  public void shouldStreamPullQueryAsync() throws Exception {
+  public void shouldStreamPullQueryOnTableAsync() throws Exception {
     // When
-    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY).get();
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_TABLE).get();
 
     // Then
     assertThat(streamedQueryResult.columnNames(), is(PULL_QUERY_COLUMN_NAMES));
@@ -383,9 +382,41 @@ public class ClientIntegrationTest {
   }
 
   @Test
-  public void shouldStreamPullQuerySync() throws Exception {
+  public void shouldStreamPullQueryOnTableSync() throws Exception {
     // When
-    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY).get();
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_TABLE).get();
+
+    // Then
+    assertThat(streamedQueryResult.columnNames(), is(PULL_QUERY_COLUMN_NAMES));
+    assertThat(streamedQueryResult.columnTypes(), is(PULL_QUERY_COLUMN_TYPES));
+    assertThat(streamedQueryResult.queryID(), is(nullValue()));
+
+    final Row row = streamedQueryResult.poll();
+    verifyPullQueryRow(row);
+    assertThat(streamedQueryResult.poll(), is(nullValue()));
+
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
+  }
+
+  @Test
+  public void shouldStreamPullQueryOnStreamAsync() throws Exception {
+    // When
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_STREAM).get();
+
+    // Then
+    assertThat(streamedQueryResult.columnNames(), is(PULL_QUERY_COLUMN_NAMES));
+    assertThat(streamedQueryResult.columnTypes(), is(PULL_QUERY_COLUMN_TYPES));
+    assertThat(streamedQueryResult.queryID(), is(nullValue()));
+
+    shouldReceivePullQueryRow(streamedQueryResult);
+
+    assertThatEventually(streamedQueryResult::isComplete, is(true));
+  }
+
+  @Test
+  public void shouldStreamPullQueryOnStreamSync() throws Exception {
+    // When
+    final StreamedQueryResult streamedQueryResult = client.streamQuery(PULL_QUERY_ON_STREAM).get();
 
     // Then
     assertThat(streamedQueryResult.columnNames(), is(PULL_QUERY_COLUMN_NAMES));
@@ -481,7 +512,7 @@ public class ClientIntegrationTest {
   @Test
   public void shouldExecutePullQuery() throws Exception {
     // When
-    final BatchedQueryResult batchedQueryResult = client.executeQuery(PULL_QUERY);
+    final BatchedQueryResult batchedQueryResult = client.executeQuery(PULL_QUERY_ON_TABLE);
 
     // Then
     assertThat(batchedQueryResult.queryID().get(), is(nullValue()));

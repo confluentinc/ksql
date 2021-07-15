@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.scalablepush.PushRouting;
@@ -126,12 +127,14 @@ final class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>
               query.getSessionConfig().getConfig(false),
               query.getSessionConfig().getOverrides());
 
+      final ImmutableAnalysis analysis = ksqlEngine
+          .analyzeQueryWithNoOutput(query.getStatement(), query.getStatementText());
       queryMetadata = ksqlEngine
-          .executeScalablePushQuery(serviceContext, query, pushRouting, routingOptions,
+          .executeScalablePushQuery(analysis, serviceContext, query, pushRouting, routingOptions,
               plannerOptions, context);
     } else {
       queryMetadata = ksqlEngine
-          .executeQuery(serviceContext, query, true);
+          .executeTransientQuery(serviceContext, query, true);
 
       localCommands.ifPresent(lc -> lc.write((TransientQueryMetadata) queryMetadata));
     }

@@ -221,6 +221,11 @@ public class Analysis implements ImmutableAnalysis {
   }
 
   @Override
+  public DataSource getDataSource() {
+    return getFrom().getDataSource();
+  }
+
+  @Override
   public boolean getOrReplace() {
     return orReplace;
   }

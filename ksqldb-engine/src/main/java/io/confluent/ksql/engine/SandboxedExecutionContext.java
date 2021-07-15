@@ -17,6 +17,7 @@ package io.confluent.ksql.engine;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
@@ -45,10 +46,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
+import org.apache.commons.lang3.NotImplementedException;
 
 /**
- * An execution context that can execute statements without changing the core engine's state
- * or the state of external services.
+ * An execution context that can execute statements without changing the core engine's state or the
+ * state of external services.
  */
 @Sandbox
 final class SandboxedExecutionContext implements KsqlExecutionContext {
@@ -153,7 +156,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
   }
 
   @Override
-  public TransientQueryMetadata executeQuery(
+  public TransientQueryMetadata executeTransientQuery(
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
       final boolean excludeTombstones
@@ -162,11 +165,22 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
         engineContext,
         serviceContext,
         statement.getSessionConfig()
-    ).executeQuery(statement, excludeTombstones);
+    ).executeTransientQuery(statement, excludeTombstones);
   }
 
   @Override
-  public PullQueryResult executePullQuery(
+  public void executeStreamPullQuery(
+      final ServiceContext serviceContext,
+      final ImmutableAnalysis analysis,
+      final ConfiguredStatement<Query> statement,
+      final boolean excludeTombstones,
+      final Consumer<TransientQueryMetadata> queryResultHandler) {
+    throw new NotImplementedException("todo");
+  }
+
+  @Override
+  public PullQueryResult executeTablePullQuery(
+      final ImmutableAnalysis analysis,
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
       final HARouting routing,
@@ -179,7 +193,8 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
         engineContext,
         serviceContext,
         statement.getSessionConfig()
-    ).executePullQuery(
+    ).executeTablePullQuery(
+        analysis,
         statement,
         routing,
         routingOptions,
@@ -191,6 +206,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
 
   @Override
   public ScalablePushQueryMetadata executeScalablePushQuery(
+      final ImmutableAnalysis analysis,
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> statement,
       final PushRouting pushRouting,
@@ -203,6 +219,7 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
         serviceContext,
         statement.getSessionConfig()
     ).executeScalablePushQuery(
+        analysis,
         statement,
         pushRouting,
         pushRoutingOptions,

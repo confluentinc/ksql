@@ -20,6 +20,7 @@ import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.analyzer.RewrittenAnalysis;
@@ -29,6 +30,7 @@ import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.streams.RoutingOptions;
 import io.confluent.ksql.internal.PullQueryExecutorMetrics;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
@@ -165,7 +167,8 @@ final class EngineExecutor {
    * @param pullQueryMetrics JMX metrics
    * @return the rows that are the result of evaluating the pull query
    */
-  PullQueryResult executePullQuery(
+  PullQueryResult executeTablePullQuery(
+      final ImmutableAnalysis analysis,
       final ConfiguredStatement<Query> statement,
       final HARouting routing,
       final RoutingOptions routingOptions,
@@ -183,12 +186,6 @@ final class EngineExecutor {
     RoutingNodeType routingNodeType = null;
 
     try {
-      final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(engineContext.getMetaStore(),
-          NO_OUTPUT_TOPIC_PREFIX);
-      final ImmutableAnalysis analysis = new RewrittenAnalysis(
-          queryAnalyzer.analyze(statement.getStatement(), Optional.empty()),
-          new ColumnReferenceRewriter()::process
-      );
       // Do not set sessionConfig.getConfig to true! The copying is inefficient and slows down pull
       // query performance significantly.  Instead use QueryPlannerOptions which check overrides
       // deliberately.
@@ -263,6 +260,7 @@ final class EngineExecutor {
   }
 
   ScalablePushQueryMetadata executeScalablePushQuery(
+      final ImmutableAnalysis analysis,
       final ConfiguredStatement<Query> statement,
       final PushRouting pushRouting,
       final PushRoutingOptions pushRoutingOptions,
@@ -271,12 +269,6 @@ final class EngineExecutor {
   ) {
     final SessionConfig sessionConfig = statement.getSessionConfig();
     try {
-      final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(engineContext.getMetaStore(),
-          NO_OUTPUT_TOPIC_PREFIX);
-      final ImmutableAnalysis analysis = new RewrittenAnalysis(
-          queryAnalyzer.analyze(statement.getStatement(), Optional.empty()),
-          new ColumnReferenceRewriter()::process
-      );
       final KsqlConfig ksqlConfig = sessionConfig.getConfig(false);
       final LogicalPlanNode logicalPlan = buildAndValidateLogicalPlan(
           statement, analysis, ksqlConfig, queryPlannerOptions, true);
@@ -316,7 +308,7 @@ final class EngineExecutor {
 
 
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
-  TransientQueryMetadata executeQuery(
+  TransientQueryMetadata executeTransientQuery(
       final ConfiguredStatement<Query> statement,
       final boolean excludeTombstones
   ) {
@@ -413,12 +405,17 @@ final class EngineExecutor {
       final Optional<String> withQueryId) {
     final QueryEngine queryEngine = engineContext.createQueryEngine(serviceContext);
     final KsqlConfig ksqlConfig = config.getConfig(true);
-    final OutputNode outputNode = QueryEngine.buildQueryLogicalPlan(
-        query,
-        sink,
-        engineContext.getMetaStore(),
-        ksqlConfig
-    );
+    final MetaStore metaStore = engineContext.getMetaStore();
+    final String outputPrefix = ksqlConfig.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
+
+    final QueryAnalyzer queryAnalyzer =
+        new QueryAnalyzer(metaStore, outputPrefix);
+
+    final Analysis analysis = queryAnalyzer.analyze(query, sink);
+
+    final OutputNode outputNode = new LogicalPlanner(ksqlConfig, analysis, metaStore)
+        .buildPersistentLogicalPlan();
+
     final LogicalPlanNode logicalPlan = new LogicalPlanNode(
         statement.getStatementText(),
         Optional.of(outputNode)

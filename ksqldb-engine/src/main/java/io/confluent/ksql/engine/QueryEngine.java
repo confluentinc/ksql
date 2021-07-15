@@ -53,22 +53,6 @@ class QueryEngine {
     );
   }
 
-  static OutputNode buildQueryLogicalPlan(
-      final Query query,
-      final Optional<Sink> sink,
-      final MetaStore metaStore,
-      final KsqlConfig config
-  ) {
-    final String outputPrefix = config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
-
-    final QueryAnalyzer queryAnalyzer =
-        new QueryAnalyzer(metaStore, outputPrefix);
-
-    final Analysis analysis = queryAnalyzer.analyze(query, sink);
-
-    return new LogicalPlanner(config, analysis, metaStore).buildPersistentLogicalPlan();
-  }
-
   PhysicalPlan buildPhysicalPlan(
       final LogicalPlanNode logicalPlanNode,
       final SessionConfig config,

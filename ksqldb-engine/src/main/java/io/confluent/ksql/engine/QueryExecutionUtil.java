@@ -34,7 +34,7 @@ public class QueryExecutionUtil {
   public static final class ColumnReferenceRewriter
       extends VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
 
-    ColumnReferenceRewriter() {
+    public ColumnReferenceRewriter() {
       super(Optional.empty());
     }
 

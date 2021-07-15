@@ -49,15 +49,18 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.analyzer.ImmutableAnalysis;
 import io.confluent.ksql.api.server.MetricsCallbackHolder;
-import io.confluent.ksql.api.server.StreamingOutput;
 import io.confluent.ksql.api.server.SlidingWindowRateLimiter;
+import io.confluent.ksql.api.server.StreamingOutput;
 import io.confluent.ksql.config.SessionConfig;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.PullQueryExecutionUtil;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.streams.RoutingFilter.RoutingFilterFactory;
 import io.confluent.ksql.logging.query.QueryLogger;
+import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -125,6 +128,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -156,7 +160,8 @@ public class StreamedQueryResourceTest {
       .build();
 
   private static final KsqlConfig VALID_CONFIG = new KsqlConfig(ImmutableMap.of(
-      StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"
+      StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1",
+      CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "anything:2"
   ));
   private static final Long closeTimeout = KsqlConfig.KSQL_SHUTDOWN_TIMEOUT_MS_DEFAULT;
 
@@ -221,6 +226,10 @@ public class StreamedQueryResourceTest {
   private QueryMetadata.Listener listener;
   @Mock
   private Context context;
+  @Mock
+  private ImmutableAnalysis mockAnalysis;
+  @Mock
+  private DataSource mockDataSource;
 
   private StreamedQueryResource testResource;
   private PreparedStatement<Statement> invalid;
@@ -242,6 +251,9 @@ public class StreamedQueryResourceTest {
     when(errorsHandler.accessDeniedFromKafkaResponse(any(Exception.class))).thenReturn(AUTHORIZATION_ERROR_RESPONSE);
     when(errorsHandler.generateResponse(exception.capture(), any()))
         .thenReturn(EndpointResponse.failed(500));
+    when(mockKsqlEngine.analyzeQueryWithNoOutput(any(), any())).thenReturn(mockAnalysis);
+    when(mockAnalysis.getDataSource()).thenReturn(mockDataSource);
+    when(mockDataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
 
     securityContext = new KsqlSecurityContext(Optional.empty(), serviceContext);
 
@@ -270,10 +282,20 @@ public class StreamedQueryResourceTest {
   }
 
   @Test
-  public void shouldThrowExceptionIfConfigDisabled() {
+  public void shouldThrowExceptionIfConfigDisabledStream() {
+    shouldThrowExceptionIfConfigDisabled(DataSourceType.KSTREAM);
+  }
+
+  @Test
+  public void shouldThrowExceptionIfConfigDisabledTable() {
+    shouldThrowExceptionIfConfigDisabled(DataSourceType.KTABLE);
+  }
+
+  private void shouldThrowExceptionIfConfigDisabled(final DataSourceType dataSourceType) {
     // Given:
     when(ksqlConfig.getKsqlStreamConfigProps())
         .thenReturn(ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"));
+    when(mockDataSource.getDataSourceType()).thenReturn(dataSourceType);
     testResource.configure(ksqlConfig);
 
     final String errorMsg = "Pull queries are disabled. See https://cnfl.io/queries for more info.\n"
@@ -355,9 +377,10 @@ public class StreamedQueryResourceTest {
         Optional.empty()
     );
     testResource.configure(VALID_CONFIG);
-    when(mockKsqlEngine.executePullQuery(any(), any(), any(), any(), any(), any(), anyBoolean()))
+    when(mockKsqlEngine.executeTablePullQuery(any(), any(), any(), any(), any(), any(), any(), anyBoolean()))
         .thenReturn(pullQueryResult);
     when(pullQueryResult.getPullQueryQueue()).thenReturn(pullQueryQueue);
+    when(mockDataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
 
     // When:
     testResource.streamQuery(
@@ -414,6 +437,7 @@ public class StreamedQueryResourceTest {
     // Given:
     when(rateLimiter.tryAcquire()).thenReturn(true);
     when(concurrencyLimiter.increment()).thenThrow(new KsqlException("concurrencyLimiter Error!"));
+    when(mockDataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
 
     // When:
     final EndpointResponse response =
@@ -751,7 +775,7 @@ public class StreamedQueryResourceTest {
         );
     transientQueryMetadata.initialize();
 
-    when(mockKsqlEngine.executeQuery(serviceContext,
+    when(mockKsqlEngine.executeTransientQuery(serviceContext,
         ConfiguredStatement
             .of(query, SessionConfig.of(VALID_CONFIG, requestStreamsProperties)), false))
         .thenReturn(transientQueryMetadata);

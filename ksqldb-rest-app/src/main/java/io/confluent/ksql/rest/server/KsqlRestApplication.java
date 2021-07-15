@@ -88,6 +88,7 @@ import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.KsqlUncaughtExceptionHandler;
+import io.confluent.ksql.rest.util.PersistentQueryCleanup;
 import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
@@ -104,7 +105,6 @@ import io.confluent.ksql.util.AppInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
-import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.ReservedInternalTopics;
 import io.confluent.ksql.util.RetryUtil;
 import io.confluent.ksql.util.WelcomeMsgUtils;
@@ -118,19 +118,12 @@ import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.ext.dropwizard.Match;
 import java.io.Console;
 import java.io.File;
-import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -138,7 +131,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -482,14 +474,15 @@ public final class KsqlRestApplication implements Executable {
         processingLogContext.getConfig(),
         ksqlConfigNoPort
     );
-    commandRunner.processPriorCommands(
+    commandRunner.processPriorCommands(new PersistentQueryCleanup(
         configWithApplicationServer
-            .getKsqlStreamConfigProps()
-            .getOrDefault(
-                StreamsConfig.STATE_DIR_CONFIG,
-                StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
+        .getKsqlStreamConfigProps()
+        .getOrDefault(
+          StreamsConfig.STATE_DIR_CONFIG,
+          StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
         .toString(),
-        serviceContext);
+        serviceContext)
+    );
 
     commandRunner.start();
     maybeCreateProcessingLogStream(

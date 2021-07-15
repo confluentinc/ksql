@@ -63,6 +63,7 @@ import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
+import io.confluent.ksql.rest.util.PersistentQueryCleanup;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -170,6 +171,8 @@ public class KsqlRestApplicationTest {
 
   private final ArgumentCaptor<KsqlSecurityContext> securityContextArgumentCaptor =
       ArgumentCaptor.forClass(KsqlSecurityContext.class);
+  private final ArgumentCaptor<PersistentQueryCleanup> queryCleanupArgumentCaptor =
+    ArgumentCaptor.forClass(PersistentQueryCleanup.class);
 
   @SuppressWarnings({"unchecked", "rawtypes"})
   @Before
@@ -318,7 +321,7 @@ public class KsqlRestApplicationTest {
     // Then:
     final InOrder inOrder = Mockito.inOrder(commandQueue, commandRunner, ksqlResource);
     inOrder.verify(commandQueue).start();
-    inOrder.verify(commandRunner).processPriorCommands();
+    inOrder.verify(commandRunner).processPriorCommands(queryCleanupArgumentCaptor.capture());
     inOrder.verify(commandRunner).start();
     inOrder.verify(ksqlResource).handleKsqlStatements(
         securityContextArgumentCaptor.capture(),
@@ -353,7 +356,7 @@ public class KsqlRestApplicationTest {
     final InOrder inOrder = Mockito.inOrder(topicClient, commandQueue, commandRunner);
     inOrder.verify(topicClient).createTopic(eq(CMD_TOPIC_NAME), anyInt(), anyShort(), anyMap());
     inOrder.verify(commandQueue).start();
-    inOrder.verify(commandRunner).processPriorCommands();
+    inOrder.verify(commandRunner).processPriorCommands(queryCleanupArgumentCaptor.capture());
   }
 
   @Test
@@ -363,7 +366,7 @@ public class KsqlRestApplicationTest {
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(commandRunner, serverState);
-    inOrder.verify(commandRunner).processPriorCommands();
+    inOrder.verify(commandRunner).processPriorCommands(queryCleanupArgumentCaptor.capture());
     inOrder.verify(serverState).setReady();
   }
 
@@ -470,70 +473,6 @@ public class KsqlRestApplicationTest {
         ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.APPLICATION_SERVER_CONFIG),
         is("http://some.host:1244")
     );
-  }
-
-  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
-  @Test
-  public void shouldDeleteExtraStateStores() {
-    // Given:
-    givenAppWithRestConfig(
-            ImmutableMap.of(
-                    KsqlRestConfig.LISTENERS_CONFIG, "http://some.host:1244,https://some.other.host:1258"));
-
-    final TestAppender appender = new TestAppender();
-    final Logger logger = Logger.getRootLogger();
-    logger.addAppender(appender);
-
-    File tempFile = new File(ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.STATE_DIR_CONFIG).toString());
-    if (!tempFile.exists()){
-      tempFile.mkdirs();
-    }
-    File fakeStateStore = new File(tempFile.getAbsolutePath() + "/fakeStateStore");
-    if (!fakeStateStore.exists()){
-      fakeStateStore.mkdirs();
-    }
-    assertTrue(fakeStateStore.exists());
-
-    // When:
-    app.startKsql(ksqlConfig);
-
-    // Then:
-    final List<LoggingEvent> log = appender.getLog();
-    final LoggingEvent firstLogEntry = log.get(1);
-
-    assertThat(firstLogEntry.getLevel(), is(Level.WARN));
-    assertThat((String) firstLogEntry.getMessage(), is(
-            "Deleted local state store for non-existing query fakeStateStore. " +
-                    "This is not expected and was likely due to a race condition when the query was dropped before."));
-    assertFalse(fakeStateStore.exists());
-    assertTrue(tempFile.exists());
-  }
-
-  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
-  @Test
-  public void shouldKeepStateStoresBelongingToRunningQueries() {
-    // Given:
-    givenAppWithRestConfig(
-            ImmutableMap.of(
-                    KsqlRestConfig.LISTENERS_CONFIG, "http://some.host:1244,https://some.other.host:1258"));
-    final PersistentQueryMetadata runningQuery = mock(PersistentQueryMetadata.class);
-    when(runningQuery.getQueryId()).thenReturn(new QueryId("testQueryID"));
-    List<PersistentQueryMetadata> queryMocks = ImmutableList.of(runningQuery);
-    when(ksqlEngine.getPersistentQueries()).thenReturn(queryMocks);
-    File tempFile = new File(ksqlConfig.getKsqlStreamConfigProps().get(StreamsConfig.STATE_DIR_CONFIG).toString());
-    if (!tempFile.exists()){
-      tempFile.mkdirs();
-    }
-    File fakeStateStore = new File(tempFile.getAbsolutePath() + runningQuery.getQueryId().toString());
-    if (!fakeStateStore.exists()){
-      fakeStateStore.mkdirs();
-    }
-    // When:
-    app.startKsql(ksqlConfig);
-
-    // Then:
-    assertTrue(fakeStateStore.exists());
-    assertTrue(tempFile.exists());
   }
 
   private void givenAppWithRestConfig(final Map<String, Object> restConfigMap) {

@@ -22,7 +22,6 @@ import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.services.ServiceContext;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -40,8 +39,7 @@ import org.slf4j.LoggerFactory;
  * real/sandboxed engines.</p>
  */
 @SuppressWarnings("UnstableApiUsage")
-public
-class QueryCleanupService extends AbstractExecutionThreadService {
+public class QueryCleanupService extends AbstractExecutionThreadService {
 
   private static final Logger LOG = LoggerFactory.getLogger(QueryCleanupService.class);
   private static final Runnable SHUTDOWN_SENTINEL = () -> { };
@@ -116,19 +114,18 @@ class QueryCleanupService extends AbstractExecutionThreadService {
     public void run() {
       try {
         FileUtils.deleteDirectory(new File(stateDir + appId));
-        LOG.warn(
-            "Deleted local state store for non-existing query {}. "
-                + "This is not expected and was likely due to a "
-                + "race condition when the query was dropped before.",
+        LOG.warn("Deleted local state store for non-existing query {}. "
+            + "This is not expected and was likely due to a "
+            + "race condition when the query was dropped before.",
             appId);
-      } catch (IOException e) {
+      } catch (Exception e) {
         LOG.error("Error cleaning up state directory {}\n. {}", appId, e);
       }
       tryRun(
           () -> SchemaRegistryUtil.cleanupInternalTopicSchemas(
-              appId,
-              serviceContext.getSchemaRegistryClient(),
-              isTransient),
+            appId,
+            serviceContext.getSchemaRegistryClient(),
+            isTransient),
           "internal topic schemas"
       );
 
@@ -147,6 +144,7 @@ class QueryCleanupService extends AbstractExecutionThreadService {
         LOG.warn("Failed to cleanup {} for {}", resource, appId, e);
       }
     }
+
     public void setStateDir(final String newStateDir) {
       stateDir = newStateDir;
     }

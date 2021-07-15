@@ -117,7 +117,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final List<QueryEventListener> queryEventListeners
   ) {
     this.cleanupService = new QueryCleanupService();
-    this.orphanedTransientQueryCleaner = new OrphanedTransientQueryCleaner(this.cleanupService, ksqlConfig);
+    this.orphanedTransientQueryCleaner =
+      new OrphanedTransientQueryCleaner(this.cleanupService, ksqlConfig);
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.engineMetrics = engineMetricsFactory.apply(this);
     this.primaryContext = EngineContext.create(
@@ -396,7 +397,9 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
                 ksqlConfig.getKsqlStreamConfigProps()
                     .getOrDefault(
                         StreamsConfig.STATE_DIR_CONFIG,
-                        StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
+                        StreamsConfig.configDef()
+                          .defaultValues()
+                          .get(StreamsConfig.STATE_DIR_CONFIG))
                     .toString()
             ));
       }

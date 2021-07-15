@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.avro;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_BYTES_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_INT64_SCHEMA;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -1370,8 +1371,8 @@ public class KsqlAvroDeserializerTest {
 
     final Map<org.apache.avro.Schema, Object> validCoercions = ImmutableMap
         .<org.apache.avro.Schema, Object>builder()
-        .put(BYTES_AVRO_SCHEMA, "abc".getBytes())
-        .put(OPTIONAL_BYTES_AVRO_SCHEMA, "def".getBytes())
+        .put(BYTES_AVRO_SCHEMA, "abc".getBytes(UTF_8))
+        .put(OPTIONAL_BYTES_AVRO_SCHEMA, "def".getBytes(UTF_8))
         .build();
 
     validCoercions.forEach((schema, value) -> {

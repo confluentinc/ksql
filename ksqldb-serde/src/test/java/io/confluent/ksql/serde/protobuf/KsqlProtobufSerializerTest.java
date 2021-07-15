@@ -48,6 +48,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.protobuf.type.Decimal;
 import io.confluent.protobuf.type.utils.DecimalUtils;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -153,10 +154,10 @@ public class KsqlProtobufSerializerTest {
 
   @Test
   public void shouldSerializeBytesField() {
-    final Message record = serializeValue(Schema.BYTES_SCHEMA, ByteBuffer.wrap("abc".getBytes()));
+    final Message record = serializeValue(Schema.BYTES_SCHEMA, ByteBuffer.wrap("abc".getBytes(UTF_8)));
     assertThat(record.getAllFields().size(), equalTo(1));
     Descriptors.FieldDescriptor field = record.getDescriptorForType().findFieldByName("field0");
-    assertThat(((ByteString) record.getField(field)).toByteArray(), equalTo("abc".getBytes()));
+    assertThat(((ByteString) record.getField(field)).toByteArray(), equalTo("abc".getBytes(UTF_8)));
   }
 
 

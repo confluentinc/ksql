@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.avro;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_BOOLEAN_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_BYTES_SCHEMA;
 import static org.apache.kafka.connect.data.Schema.OPTIONAL_FLOAT64_SCHEMA;
@@ -906,9 +907,9 @@ public class KsqlAvroSerializerTest {
   public void shouldSerializeBytesField() {
     shouldSerializeFieldTypeCorrectly(
         OPTIONAL_BYTES_SCHEMA,
-        "abc".getBytes(),
+        "abc".getBytes(UTF_8),
         org.apache.avro.SchemaBuilder.builder().bytesType(),
-        ByteBuffer.wrap("abc".getBytes())
+        ByteBuffer.wrap("abc".getBytes(UTF_8))
     );
   }
 

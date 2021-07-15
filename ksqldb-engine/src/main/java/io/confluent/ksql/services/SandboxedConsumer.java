@@ -35,6 +35,8 @@ final class SandboxedConsumer {
   static <K, V> Consumer<K, V> createProxy() {
     return LimitedProxyBuilder.forClass(Consumer.class)
         .swallow("close", anyParams())
+        .swallow("subscribe", anyParams())
+        .swallow("enforceRebalance", noParams())
         .swallow("wakeup", noParams())
         .swallow("unsubscribe", noParams())
         .swallow("groupMetadata", noParams(), new ConsumerGroupMetadata("group"))

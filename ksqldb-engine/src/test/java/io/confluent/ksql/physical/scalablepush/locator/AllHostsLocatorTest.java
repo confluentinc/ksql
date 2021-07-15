@@ -11,7 +11,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 import org.apache.kafka.streams.state.HostInfo;
-import org.apache.kafka.streams.state.StreamsMetadata;
+import org.apache.kafka.streams.StreamsMetadata;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -41,7 +41,7 @@ public class AllHostsLocatorTest {
     when(metadata1.getAllMetadata())
         .thenReturn(ImmutableList.of(streamsMetadata1, streamsMetadata2));
     when(metadata2.getAllMetadata())
-        .thenReturn(ImmutableList.of(streamsMetadata3, StreamsMetadata.NOT_AVAILABLE));
+        .thenReturn(ImmutableList.of(streamsMetadata3));
     when(streamsMetadata1.hostInfo())
         .thenReturn(new HostInfo("abc", 101), new HostInfo("localhost", 8088));
     when(streamsMetadata2.hostInfo()).thenReturn(new HostInfo("localhost", 8088));

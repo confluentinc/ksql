@@ -34,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Base64.Decoder;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,8 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 
 class KsqlDelimitedDeserializer implements Deserializer<List<?>> {
+
+  private static Decoder BASE64_DECODER = Base64.getMimeDecoder();
 
   private interface Parser {
 
@@ -151,7 +154,7 @@ class KsqlDelimitedDeserializer implements Deserializer<List<?>> {
   private static Parser toBytes(final SqlType sqlType) {
     return v -> {
       try {
-        return ByteBuffer.wrap(Base64.getMimeDecoder().decode(v));
+        return ByteBuffer.wrap(BASE64_DECODER.decode(v));
       } catch (IllegalArgumentException e) {
         throw new KsqlException("Value is not a valid Base64 encoded string: " + v);
       }

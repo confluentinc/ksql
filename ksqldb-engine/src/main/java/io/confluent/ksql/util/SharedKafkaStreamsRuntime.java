@@ -151,7 +151,7 @@ public class SharedKafkaStreamsRuntime {
     if (kafkaStreams.state() == KafkaStreams.State.RUNNING
             || kafkaStreams.state() == KafkaStreams.State.REBALANCING) {
       try {
-        kafkaStreams.removeNamedTopology(queryId.toString());
+//        kafkaStreams.removeNamedTopology(queryId.toString());
       } catch (IllegalArgumentException e) {
           //don't block
       }

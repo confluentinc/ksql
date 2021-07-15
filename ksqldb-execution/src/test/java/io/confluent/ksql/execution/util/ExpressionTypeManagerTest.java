@@ -893,6 +893,63 @@ public class ExpressionTypeManagerTest {
   }
 
   @Test
+  public void shouldThrowGoodErrorMessageForSubscriptOnStruct() {
+    // Given:
+    final SqlStruct structType = SqlTypes.struct().field("IN0", SqlTypes.INTEGER).build();
+
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+        .valueColumn(COL0, structType)
+        .build();
+
+    expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
+
+    final Expression expression = new SubscriptExpression(
+        Optional.empty(),
+        TestExpressions.COL0,
+        new StringLiteral("IN0")
+    );
+
+    // When:
+    final UnsupportedOperationException e = assertThrows(
+        UnsupportedOperationException.class,
+        () -> expressionTypeManager.getExpressionSqlType(expression));
+
+    // Then:
+    assertThat(
+        e.getMessage(),
+        is("Subscript expression (COL0['IN0']) do not apply to STRUCT<`IN0` INTEGER>. "
+            + "Use the dereference operator for STRUCTS: COL0->'IN0'"));
+  }
+
+  @Test
+  public void shouldThrowGoodErrorMessageForSubscriptOnScalar() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(SystemColumns.ROWKEY_NAME, SqlTypes.STRING)
+        .valueColumn(COL0, SqlTypes.INTEGER)
+        .build();
+
+    expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
+
+    final Expression expression = new SubscriptExpression(
+        Optional.empty(),
+        TestExpressions.COL0,
+        new StringLiteral("IN0")
+    );
+
+    // When:
+    final UnsupportedOperationException e = assertThrows(
+        UnsupportedOperationException.class,
+        () -> expressionTypeManager.getExpressionSqlType(expression));
+
+    // Then:
+    assertThat(
+        e.getMessage(),
+        is("Subscript expression (COL0['IN0']) do not apply to INTEGER."));
+  }
+
+  @Test
   public void shouldEvaluateTypeForArrayReferenceInStruct() {
     // Given:
     final SqlStruct inner = SqlTypes

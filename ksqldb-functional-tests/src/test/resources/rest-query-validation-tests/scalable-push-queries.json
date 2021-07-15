@@ -640,6 +640,134 @@
         "message": "Error processing expression: (null * null). Arithmetic on types null and null are not supported.",
         "status": 400
       }
+    },
+    {
+      "name": "FILTER - key equals",
+      "statements": [
+        "CREATE STREAM I (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT * FROM INPUT WHERE K = 11 EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 9, "value": {"id": 99}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 12, "value": {"id": 101}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 102}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 103}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 104}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER"}},
+          {"row":{"columns":[11, 100]}},
+          {"row":{"columns":[11, 103]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "FILTER - key comparison",
+      "statements": [
+        "CREATE STREAM I (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT * FROM INPUT WHERE K > 11 EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 9, "value": {"id": 99}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 12, "value": {"id": 101}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 102}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER"}},
+          {"row":{"columns":[12, 101]}},
+          {"row":{"columns":[13, 102]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "FILTER - value comparison",
+      "statements": [
+        "CREATE STREAM I (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT * FROM INPUT WHERE ID <= 102 EMIT CHANGES LIMIT 4;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 9, "value": {"id": 99}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 12, "value": {"id": 101}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 102}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 103}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 104}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER"}},
+          {"row":{"columns":[9, 99]}},
+          {"row":{"columns":[11, 100]}},
+          {"row":{"columns":[12, 101]}},
+          {"row":{"columns":[13, 102]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
+    },
+    {
+      "name": "FILTER - multi column comparison",
+      "statements": [
+        "CREATE STREAM I (K INT KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
+        "SELECT * FROM INPUT WHERE K <= 12 AND ID > 100 EMIT CHANGES LIMIT 2;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": 9, "value": {"id": 99}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 100}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 12, "value": {"id": 101}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 102}},
+        {"topic": "test_topic", "timestamp": 12345, "key": 11, "value": {"id": 103}},
+        {"topic": "test_topic", "timestamp": 12365, "key": 13, "value": {"id": 104}}
+      ],
+      "inputConditions": {
+        "waitForQueryHeader": true
+      },
+      "properties": {
+        "auto.offset.reset" : "latest"
+      },
+      "responses": [
+        {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
+        {"query": [
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER"}},
+          {"row":{"columns":[12, 101]}},
+          {"row":{"columns":[11, 103]}},
+          {"finalMessage":"Limit Reached"}
+        ]}
+      ]
     }
   ]
 }

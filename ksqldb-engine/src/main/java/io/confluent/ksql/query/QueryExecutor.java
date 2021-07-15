@@ -464,6 +464,7 @@ final class QueryExecutor {
           final Set<SourceName> sources,
           final QueryId queryID) {
     for (final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
+      Set<SourceName> sourceNames = sharedKafkaStreamsRuntime.getSources();
       if (sharedKafkaStreamsRuntime.getSources().stream().noneMatch(sources::contains)) {
         return sharedKafkaStreamsRuntime;
       }

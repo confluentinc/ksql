@@ -137,6 +137,12 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
             ));
     this.classifier = requireNonNull(classifier, "classifier");
     this.streamsProperties = requireNonNull(streamsProperties, "streamsProperties");
+    sharedKafkaStreamsRuntime.addQuery(
+        classifier,
+        streamsProperties,
+        this,
+        queryId
+    );
   }
 
 
@@ -357,10 +363,10 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   public void start() {
     if (!everStarted) {
       sharedKafkaStreamsRuntime.addQuery(
-            classifier,
-            streamsProperties,
-            this,
-            queryId
+          classifier,
+          streamsProperties,
+          this,
+          queryId
       );
       sharedKafkaStreamsRuntime.start(queryId);
     }

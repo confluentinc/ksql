@@ -1542,7 +1542,7 @@ public class ClientTest extends BaseApiTest {
     javaClient.createConnector("name", true, Collections.emptyMap()).get();
 
     // Then:
-    assertThat(testEndpoints.getLastSql(), is("CREATE SOURCE CONNECTOR name WITH ();"));
+    assertThat(testEndpoints.getLastSql(), is("CREATE SOURCE CONNECTOR `name` WITH ();"));
   }
 
   @Test
@@ -1555,7 +1555,7 @@ public class ClientTest extends BaseApiTest {
     javaClient.dropConnector("name").get();
 
     // Then:
-    assertThat(testEndpoints.getLastSql(), is("drop connector name;"));
+    assertThat(testEndpoints.getLastSql(), is("drop connector `name`;"));
   }
 
   @Test

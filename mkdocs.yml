@@ -151,6 +151,7 @@ nav:
       - Introspect server status: developer-guide/ksqldb-rest-api/info-endpoint.md
       - Introspect cluster status: developer-guide/ksqldb-rest-api/cluster-status-endpoint.md
       - Terminate a cluster: developer-guide/ksqldb-rest-api/terminate-endpoint.md
+      - Get the validity of a property: developer-guide/ksqldb-rest-api/is_valid_property-endpoint.md
     - Clients:
       - Synopsis: developer-guide/ksqldb-clients/index.md
       - Java Client: developer-guide/ksqldb-clients/java-client.md

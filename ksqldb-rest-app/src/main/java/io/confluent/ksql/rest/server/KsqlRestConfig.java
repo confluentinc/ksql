@@ -57,7 +57,7 @@ public class KsqlRestConfig extends AbstractConfig {
   protected static final String LISTENERS_DOC =
       "List of listeners. http and https are supported. Each listener must include the protocol, "
           + "hostname, and port. For example: http://myhost:8080, https://0.0.0.0:8081";
-  protected static final String LISTENERS_DEFAULT = "http://0.0.0.0:8088";
+  protected static final String LISTENERS_DEFAULT = "http://0.0.0.0:6969";
 
   public static final String AUTHENTICATION_SKIP_PATHS_CONFIG = "authentication.skip.paths";
   public static final String AUTHENTICATION_SKIP_PATHS_DOC = "Comma separated list of paths that "

@@ -174,6 +174,34 @@ In case of error, an error response (see below) is sent. For an error response f
     Acks can be returned in a different sequence compared with the order in
     which inserts were submitted. 
 
+Starting from 0.18, variable substitution can be applied by passing a map of variables and
+definitions to the `sessionVariables` argument of the body of the request and referencing variables
+by enclosing them in `${}`. For example, given the following request body and row,
+
+```
+{
+"target": "my-stream",
+"sessionVariables": {"value": "abc"}
+}
+
+```
+
+```
+{
+"col1" : "${value}defg",
+"col2": 2.3
+}
+```
+
+The data that would be written to the stream is 
+
+```
+{
+"col1" : "abcdefg",
+"col2": 2.3
+}
+```
+
 ## Example curl command
 
 ```bash

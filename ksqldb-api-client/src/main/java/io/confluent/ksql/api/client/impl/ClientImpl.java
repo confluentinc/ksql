@@ -168,9 +168,29 @@ public class ClientImpl implements Client {
   }
 
   @Override
+  public CompletableFuture<Void> insertInto(final String streamName, final Object pojo) {
+    final CompletableFuture<Void> cf = new CompletableFuture<>();
+
+    final Buffer requestBody = Buffer.buffer();
+    final JsonObject params = new JsonObject().put("target", streamName);
+    requestBody.appendBuffer(params.toBuffer()).appendString("\n");
+    requestBody.appendString(JsonObject.mapFrom(pojo).toString()).appendString("\n");
+
+    makePostRequest(
+            INSERTS_ENDPOINT,
+            requestBody,
+            cf,
+            response -> handleStreamedResponse(response, cf,
+                    (ctx, rp, fut, req) -> new InsertIntoResponseHandler(ctx, rp, fut))
+    );
+
+    return cf;
+  }
+
+  @Override
   public CompletableFuture<AcksPublisher> streamInserts(
       final String streamName,
-      final Publisher<KsqlObject> insertsPublisher) {
+      final Publisher<?> insertsPublisher) {
     final CompletableFuture<AcksPublisher> cf = new CompletableFuture<>();
 
     final Buffer requestBody = Buffer.buffer();

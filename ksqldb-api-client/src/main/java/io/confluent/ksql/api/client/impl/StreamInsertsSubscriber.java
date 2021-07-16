@@ -20,12 +20,13 @@ import io.confluent.ksql.reactive.BaseSubscriber;
 import io.vertx.core.Context;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.Objects;
 import org.reactivestreams.Subscription;
 
-public class StreamInsertsSubscriber extends BaseSubscriber<KsqlObject> {
+public class StreamInsertsSubscriber extends BaseSubscriber<Object> {
 
   private static final Logger log = LoggerFactory.getLogger(StreamInsertsSubscriber.class);
 
@@ -46,10 +47,10 @@ public class StreamInsertsSubscriber extends BaseSubscriber<KsqlObject> {
   }
 
   @Override
-  protected void handleValue(final KsqlObject row) {
+  protected void handleValue(final Object row) {
     httpRequest.writeCustomFrame(
         0, 0,
-        Buffer.buffer().appendString(row.toJsonString()).appendString("\n")
+        Buffer.buffer().appendString(JsonObject.mapFrom(row).toString()).appendString("\n")
     );
     outstandingTokens--;
 

@@ -101,6 +101,18 @@ public interface Client extends Closeable {
   CompletableFuture<Void> insertInto(String streamName, KsqlObject row);
 
   /**
+   * Inserts a pojo into a ksqlDB stream.
+   *
+   * <p>The {@code CompletableFuture} will be failed if a non-200 response is received from the
+   * server, or if the server encounters an error while processing the insertion.
+   *
+   * @param streamName name of the target stream
+   * @param pojo the pojo to insert. Keys are column names and values are column values.
+   * @return a future that completes once the server response is received
+   */
+  CompletableFuture<Void> insertInto(String streamName, Object pojo);
+
+  /**
    * Inserts rows into a ksqlDB stream. Rows to insert are supplied by a
    * {@code org.reactivestreams.Publisher} and server acknowledgments are exposed similarly.
    *
@@ -116,7 +128,7 @@ public interface Client extends Closeable {
    *         publisher that publishes server acknowledgments for inserted rows.
    */
   CompletableFuture<AcksPublisher>
-      streamInserts(String streamName, Publisher<KsqlObject> insertsPublisher);
+      streamInserts(String streamName, Publisher<?> insertsPublisher);
 
   /**
    * Terminates a push query with the specified query ID.

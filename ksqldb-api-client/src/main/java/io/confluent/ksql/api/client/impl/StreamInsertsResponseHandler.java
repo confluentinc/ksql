@@ -43,7 +43,7 @@ public class StreamInsertsResponseHandler
       final RecordParser recordParser,
       final CompletableFuture<AcksPublisher> cf,
       final HttpClientRequest request,
-      final Publisher<KsqlObject> insertsPublisher
+      final Publisher<?> insertsPublisher
   ) {
     super(context, recordParser, cf);
 

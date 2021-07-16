@@ -19,7 +19,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -28,6 +30,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -35,13 +38,21 @@ import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.logging.query.TestAppender;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
+import io.confluent.ksql.rest.util.PersistentQueryCleanup;
 import io.confluent.ksql.rest.util.TerminateCluster;
+
+import java.io.File;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -54,10 +65,16 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.spi.LoggingEvent;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -108,6 +125,8 @@ public class CommandRunnerTest {
   private Supplier<Boolean> commandTopicExists;
   @Mock
   private Errors errorHandler;
+  @Mock
+  PersistentQueryCleanup persistentQueryCleanup;
   @Captor
   private ArgumentCaptor<Runnable> threadTaskCaptor;
   private CommandRunner commandRunner;
@@ -161,7 +180,7 @@ public class CommandRunnerTest {
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
 
     // When:
-    commandRunner.processPriorCommands();
+    commandRunner.processPriorCommands(persistentQueryCleanup);
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);
@@ -177,7 +196,7 @@ public class CommandRunnerTest {
     when(queuedCommand1.getAndDeserializeCommand(commandDeserializer)).thenReturn(clusterTerminate);
 
     // When:
-    commandRunner.processPriorCommands();
+    commandRunner.processPriorCommands(persistentQueryCleanup);
 
     // Then:
     final InOrder inOrder = inOrder(serverState, commandStore, clusterTerminator, statementExecutor);
@@ -195,7 +214,7 @@ public class CommandRunnerTest {
     when(queuedCommand2.getAndDeserializeCommand(commandDeserializer)).thenReturn(clusterTerminate);
 
     // When:
-    commandRunner.processPriorCommands();
+    commandRunner.processPriorCommands(persistentQueryCleanup);
 
     // Then:
     verify(statementExecutor, never()).handleRestore(any());
@@ -207,7 +226,7 @@ public class CommandRunnerTest {
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
 
     // When:
-    commandRunner.processPriorCommands();
+    commandRunner.processPriorCommands(persistentQueryCleanup);
 
     // Then:
     verify(compactor).apply(ImmutableList.of(queuedCommand1, queuedCommand2, queuedCommand3));
@@ -219,7 +238,7 @@ public class CommandRunnerTest {
     when(compactor.apply(any())).thenReturn(ImmutableList.of(queuedCommand1, queuedCommand3));
 
     // When:
-    commandRunner.processPriorCommands();
+    commandRunner.processPriorCommands(persistentQueryCleanup);
 
     // Then:
     final InOrder inOrder = inOrder(statementExecutor);
@@ -236,7 +255,7 @@ public class CommandRunnerTest {
     doThrow(new SerializationException()).when(incompatibleCommandChecker).accept(queuedCommand3);
 
     // When:
-    commandRunner.processPriorCommands();
+    commandRunner.processPriorCommands(persistentQueryCleanup);
     commandRunner.start();
     final Runnable threadTask = getThreadTask();
     threadTask.run();
@@ -279,7 +298,7 @@ public class CommandRunnerTest {
     doThrow(new IncompatibleKsqlCommandVersionException("")).when(incompatibleCommandChecker).accept(queuedCommand3);
 
     // When:
-    commandRunner.processPriorCommands();
+    commandRunner.processPriorCommands(persistentQueryCleanup);
     commandRunner.start();
     final Runnable threadTask = getThreadTask();
     threadTask.run();
@@ -512,7 +531,7 @@ public class CommandRunnerTest {
     doThrow(new SerializationException()).when(incompatibleCommandChecker).accept(queuedCommand3);
 
     // When:
-    commandRunner.processPriorCommands();
+    commandRunner.processPriorCommands(persistentQueryCleanup);
     commandRunner.start();
 
     final Runnable threadTask = getThreadTask();

@@ -1906,7 +1906,7 @@ public class KsqlEngineTest {
   private void awaitCleanupComplete() {
     // add a task to the end of the queue to make sure that
     // we've finished processing everything up until this point
-    ksqlEngine.getCleanupService().addCleanupTask(new QueryCleanupTask(serviceContext, "", false) {
+    ksqlEngine.getCleanupService().addCleanupTask(new QueryCleanupTask(serviceContext, "", false, "") {
       @Override
       public void run() {
         // do nothing

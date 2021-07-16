@@ -458,6 +458,100 @@
         {"topic": "OUTPUT", "key": 0.0, "value": {"ID": 2}},
         {"topic": "OUTPUT", "key": 0.1, "value": {"ID": 3}}
       ]
+    },
+    {
+      "name": "fail on STRING with parameter",
+      "statements": [
+        "CREATE STREAM INPUT (K STRING (KEY)) WITH (kafka_topic='input',value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "line 1:32: mismatched input 'KEY' expecting {'STRING', INTEGER_VALUE}\nStatement: CREATE STREAM INPUT (K STRING (KEY)) WITH (kafka_topic='input',value_format='JSON');"
+      }
+    },
+    {
+      "name": "fail on INTEGER with parameter",
+      "statements": [
+        "CREATE STREAM INPUT (K INTEGER (KEY)) WITH (kafka_topic='input',value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "line 1:33: mismatched input 'KEY' expecting {'STRING', INTEGER_VALUE}\nStatement: CREATE STREAM INPUT (K INTEGER (KEY)) WITH (kafka_topic='input',value_format='JSON');"
+      }
+    },
+    {
+      "name": "fail on DOUBLE with parameter",
+      "statements": [
+        "CREATE STREAM INPUT (K DOUBLE (KEY)) WITH (kafka_topic='input',value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "line 1:32: mismatched input 'KEY' expecting {'STRING', INTEGER_VALUE}\nStatement: CREATE STREAM INPUT (K DOUBLE (KEY)) WITH (kafka_topic='input',value_format='JSON');"
+      }
+    },
+    {
+      "name": "fail on VARCHAR with parameter",
+      "statements": [
+        "CREATE STREAM INPUT (K VARCHAR (KEY)) WITH (kafka_topic='input',value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "line 1:33: mismatched input 'KEY' expecting {'STRING', INTEGER_VALUE}\nStatement: CREATE STREAM INPUT (K VARCHAR (KEY)) WITH (kafka_topic='input',value_format='JSON');"
+      }
+    },
+    {
+      "name": "fail on INT with parameter",
+      "statements": [
+        "CREATE STREAM INPUT (K INT (KEY)) WITH (kafka_topic='input',value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "line 1:29: mismatched input 'KEY' expecting {'STRING', INTEGER_VALUE}\nStatement: CREATE STREAM INPUT (K INT (KEY)) WITH (kafka_topic='input',value_format='JSON');"
+      }
+    },
+    {
+      "name": "fail on BOOLEAN with parameter",
+      "statements": [
+        "CREATE STREAM INPUT (K BOOLEAN (KEY)) WITH (kafka_topic='input',value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "line 1:33: mismatched input 'KEY' expecting {'STRING', INTEGER_VALUE}\nStatement: CREATE STREAM INPUT (K BOOLEAN (KEY)) WITH (kafka_topic='input',value_format='JSON');"
+      }
+    },
+    {
+      "name": "fail on BIGINT with parameter",
+      "statements": [
+        "CREATE STREAM INPUT (K BIGINT (KEY)) WITH (kafka_topic='input',value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "line 1:32: mismatched input 'KEY' expecting {'STRING', INTEGER_VALUE}\nStatement: CREATE STREAM INPUT (K BIGINT (KEY)) WITH (kafka_topic='input',value_format='JSON');"
+      }
+    },
+    {
+      "name": "fail on VARCHAR(STRING) with parameter",
+      "statements": [
+        "CREATE STREAM INPUT (K VARCHAR(STRING) (KEY)) WITH (kafka_topic='input',value_format='JSON');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "line 1:40: mismatched input '(' expecting {',', ')'}\nStatement: CREATE STREAM INPUT (K VARCHAR(STRING) (KEY)) WITH (kafka_topic='input',value_format='JSON');"
+      }
+    },
+    {
+      "name": "VARCHAR(STRING) as key and value",
+      "statements": [
+        "CREATE STREAM INPUT (k VARCHAR(STRING) KEY, v1 VARCHAR(STRING)) WITH (kafka_topic='input',value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT * FROM INPUT;"
+      ],
+      "inputs": [
+        {"topic": "input", "key": "bob", "value": {"v1": "foo"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "bob", "value": {"V1": "foo"}}
+
+      ]
     }
   ]
 }

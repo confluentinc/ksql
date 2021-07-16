@@ -333,7 +333,7 @@ type
     ;
 
 typeParameter
-    : INTEGER_VALUE | type
+    : INTEGER_VALUE | 'STRING'
     ;
 
 baseType
@@ -387,7 +387,7 @@ literal
 nonReserved
     : SHOW | TABLES | COLUMNS | COLUMN | PARTITIONS | FUNCTIONS | FUNCTION | SESSION
     | STRUCT | MAP | ARRAY | PARTITION
-    | INTEGER | DATE | TIME | TIMESTAMP | INTERVAL | ZONE
+    | INTEGER | DATE | TIME | TIMESTAMP | INTERVAL | ZONE | 'STRING'
     | YEAR | MONTH | DAY | HOUR | MINUTE | SECOND
     | EXPLAIN | ANALYZE | TYPE | TYPES
     | SET | RESET

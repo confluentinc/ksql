@@ -686,7 +686,7 @@ public class SqlToJavaVisitor {
       }
     }
 
-    private String visitBytesComparisonExpression(
+    private String visitDecimalComparisonExpression(
         final ComparisonExpression.Type type, final SqlType left, final SqlType right
     ) {
       final String comparator = SQL_COMPARE_TO_JAVA.get(type);
@@ -793,10 +793,21 @@ public class SqlToJavaVisitor {
       }
     }
 
+    private String visitBytesComparisonExpression(final ComparisonExpression.Type type) {
+      final String comparator = SQL_COMPARE_TO_JAVA.get(type);
+      if (comparator == null) {
+        throw new KsqlException("Unexpected scalar comparison: " + type.getValue());
+      }
+
+      return "(%1$s.compareTo(%2$s) " + comparator + " 0)";
+    }
+
+    // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
     @Override
     public Pair<String, SqlType> visitComparisonExpression(
         final ComparisonExpression node, final Context context
     ) {
+      // CHECKSTYLE_RULES.ON: CyclomaticComplexity
       final Pair<String, SqlType> left = process(node.getLeft(), context);
       final Pair<String, SqlType> right = process(node.getRight(), context);
 
@@ -804,7 +815,7 @@ public class SqlToJavaVisitor {
 
       if (left.getRight().baseType() == SqlBaseType.DECIMAL
           || right.getRight().baseType() == SqlBaseType.DECIMAL) {
-        exprFormat += visitBytesComparisonExpression(
+        exprFormat += visitDecimalComparisonExpression(
             node.getType(), left.getRight(), right.getRight());
       } else if (left.getRight().baseType().isTime() || right.getRight().baseType().isTime()) {
         exprFormat += visitTimeComparisonExpression(
@@ -825,6 +836,9 @@ public class SqlToJavaVisitor {
             break;
           case BOOLEAN:
             exprFormat += visitBooleanComparisonExpression(node.getType());
+            break;
+          case BYTES:
+            exprFormat += visitBytesComparisonExpression(node.getType());
             break;
           default:
             exprFormat += visitScalarComparisonExpression(node.getType());

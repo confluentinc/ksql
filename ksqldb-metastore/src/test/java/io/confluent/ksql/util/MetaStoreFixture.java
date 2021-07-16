@@ -152,6 +152,7 @@ public final class MetaStoreFixture {
         .valueColumn(ColumnName.of("TIMESTAMPCOL"), SqlTypes.TIMESTAMP)
         .valueColumn(ColumnName.of("TIMECOL"), SqlTypes.TIME)
         .valueColumn(ColumnName.of("DATECOL"), SqlTypes.DATE)
+        .valueColumn(ColumnName.of("BYTESCOL"), SqlTypes.BYTES)
         .build();
 
     final KsqlTopic ksqlTopicOrders = new KsqlTopic(

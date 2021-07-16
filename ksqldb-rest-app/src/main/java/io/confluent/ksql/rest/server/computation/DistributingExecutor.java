@@ -219,6 +219,11 @@ public class DistributingExecutor {
           + insertInto.getTarget());
     }
 
+    if (dataSource.isSource()) {
+      throw new KsqlException(String.format("Insertion into %s is not allowed " +
+          "since it is source stream/table", insertInto.getTarget()));
+    }
+
     if (internalTopics.isReadOnly(dataSource.getKafkaTopicName())) {
       throw new KsqlException("Cannot insert into read-only topic: "
           + dataSource.getKafkaTopicName());

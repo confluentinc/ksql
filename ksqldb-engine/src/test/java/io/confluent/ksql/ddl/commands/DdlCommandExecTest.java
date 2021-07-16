@@ -512,7 +512,8 @@ public class DdlCommandExecTest {
             SerdeFeatures.of()
         ),
         Optional.empty(),
-        Optional.of(allowReplace)
+        Optional.of(allowReplace),
+        Optional.of(false)
     );
   }
 
@@ -529,7 +530,9 @@ public class DdlCommandExecTest {
             SerdeFeatures.of()
         ),
         Optional.of(windowInfo),
+        Optional.of(false),
         Optional.of(false)
+
     );
   }
 
@@ -546,6 +549,7 @@ public class DdlCommandExecTest {
             SerdeFeatures.of()
         ),
         Optional.of(windowInfo),
+        Optional.of(false),
         Optional.of(false)
     );
   }
@@ -574,7 +578,8 @@ public class DdlCommandExecTest {
             SerdeFeatures.of()
         ),
         Optional.empty(),
-        Optional.of(allowReplace)
+        Optional.of(allowReplace),
+        Optional.of(false)
     );
   }
 }

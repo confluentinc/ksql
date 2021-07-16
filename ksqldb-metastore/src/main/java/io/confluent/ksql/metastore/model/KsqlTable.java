@@ -31,6 +31,7 @@ public class KsqlTable<K> extends StructuredDataSource<K> {
       final LogicalSchema schema,
       final Optional<TimestampColumn> timestampExtractionPolicy,
       final boolean isKsqlSink,
+      final boolean isSource,
       final KsqlTopic ksqlTopic
   ) {
     super(
@@ -40,6 +41,7 @@ public class KsqlTable<K> extends StructuredDataSource<K> {
         timestampExtractionPolicy,
         DataSourceType.KTABLE,
         isKsqlSink,
+        isSource,
         ksqlTopic
     );
   }
@@ -52,6 +54,7 @@ public class KsqlTable<K> extends StructuredDataSource<K> {
         schema,
         getTimestampColumn(),
         isCasTarget(),
+        isSource(),
         getKsqlTopic()
     );
   }

@@ -19,7 +19,7 @@ many flavors and extensions to SQL so that it can express programs beyond
 what's possible with the SQL-92 grammar.
 
 [ksqlDB's SQL grammar](https://github.com/confluentinc/ksql/blob/master/ksqldb-parser/src/main/antlr4/io/confluent/ksql/parser/SqlBase.g4)
-was built  initially around Presto's grammar and has been
+was built initially around Presto's grammar and has been
 extended judiciously. ksqlDB goes beyond SQL-92, because the standard currently
 has no constructs for streaming queries, which are a core aspect of this project.
 

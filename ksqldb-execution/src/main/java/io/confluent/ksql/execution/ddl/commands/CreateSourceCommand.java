@@ -37,6 +37,7 @@ public abstract class CreateSourceCommand implements DdlCommand {
   private final Formats formats;
   private final Optional<WindowInfo> windowInfo;
   private final Boolean orReplace;
+  private final Boolean isSource;
 
   CreateSourceCommand(
       final SourceName sourceName,
@@ -45,7 +46,8 @@ public abstract class CreateSourceCommand implements DdlCommand {
       final String topicName,
       final Formats formats,
       final Optional<WindowInfo> windowInfo,
-      final Boolean orReplace
+      final Boolean orReplace,
+      final Boolean isSource
   ) {
     this.sourceName = Objects.requireNonNull(sourceName, "sourceName");
     this.schema = Objects.requireNonNull(schema, "schema");
@@ -55,6 +57,7 @@ public abstract class CreateSourceCommand implements DdlCommand {
     this.formats = Objects.requireNonNull(formats, "formats");
     this.windowInfo = Objects.requireNonNull(windowInfo, "windowInfo");
     this.orReplace = orReplace;
+    this.isSource = isSource;
 
     validate(schema, windowInfo.isPresent());
   }
@@ -85,6 +88,10 @@ public abstract class CreateSourceCommand implements DdlCommand {
 
   public Boolean isOrReplace() {
     return orReplace;
+  }
+
+  public Boolean isSource() {
+    return isSource;
   }
 
   private static void validate(final LogicalSchema schema, final boolean windowed) {

@@ -40,6 +40,7 @@ import io.confluent.ksql.parser.tree.ListVariables;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UndefineVariable;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.SessionProperties;
@@ -84,7 +85,8 @@ public enum CustomExecutors {
   INSERT_VALUES(InsertValues.class, insertValuesExecutor()),
   CREATE_CONNECTOR(CreateConnector.class, ConnectExecutor::execute),
   DROP_CONNECTOR(DropConnector.class, DropConnectorExecutor::execute),
-  DESCRIBE_CONNECTOR(DescribeConnector.class, new DescribeConnectorExecutor()::execute)
+  DESCRIBE_CONNECTOR(DescribeConnector.class, new DescribeConnectorExecutor()::execute),
+  TERMINATE_QUERY(TerminateQuery.class, TerminateQueryExecutor::execute)
   ;
 
   public static final Map<Class<? extends Statement>, StatementExecutor<?>> EXECUTOR_MAP =

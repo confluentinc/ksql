@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.test.serde;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -25,6 +27,7 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -197,8 +200,9 @@ public abstract class ConnectSerdeSupplier<T extends ParsedSchema>
             }
 
             throw new TestFrameworkException("DECIMAL type requires JSON number in test data");
+          } else {
+            return spec.toString().getBytes(UTF_8);
           }
-          throw new RuntimeException("Unexpected BYTES type " + schema.name());
         default:
           throw new RuntimeException(
               "This test does not support the data type yet: " + schema.type());
@@ -283,8 +287,14 @@ public abstract class ConnectSerdeSupplier<T extends ParsedSchema>
             if (data instanceof BigDecimal) {
               return data;
             }
+            throw new RuntimeException("Unexpected BYTES type " + schema.name());
+          } else {
+            if (data instanceof byte[]) {
+              return ByteBuffer.wrap((byte[]) data);
+            } else {
+              return data;
+            }
           }
-          throw new RuntimeException("Unexpected BYTES type " + schema.name());
         default:
           throw new RuntimeException("Test cannot handle data of type: " + schema.type());
       }

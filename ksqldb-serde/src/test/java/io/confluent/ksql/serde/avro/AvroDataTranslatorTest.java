@@ -347,4 +347,16 @@ public class AvroDataTranslatorTest {
         e.getMessage(),
         containsString("Cannot fit decimal '123.4' into DECIMAL(3, 0) without rounding. (Requires 4,1)"));
   }
+
+  @Test
+  public void shouldReturnBytes() {
+    // When:
+    final AvroDataTranslator translator =
+        new AvroDataTranslator(Schema.BYTES_SCHEMA, AvroProperties.DEFAULT_AVRO_SCHEMA_FULL_NAME);
+
+    // Then:
+    assertThat(
+        translator.toKsqlRow(Schema.BYTES_SCHEMA, new byte[] {123}),
+        is(new byte[] {123}));
+  }
 }

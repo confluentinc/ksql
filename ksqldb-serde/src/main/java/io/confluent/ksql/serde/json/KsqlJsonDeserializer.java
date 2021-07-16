@@ -36,7 +36,9 @@ import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.serde.SerdeUtils;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -205,8 +207,7 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
   }
 
   private static Object enforceValidBytes(final JsonValueContext context) {
-    final boolean isDecimal = DecimalUtil.isDecimal(context.schema);
-    if (isDecimal) {
+    if (DecimalUtil.isDecimal(context.schema)) {
       if (context.val instanceof NumericNode) {
         return DecimalUtil.ensureFit(context.val.decimalValue(), context.schema);
       }
@@ -214,8 +215,14 @@ public class KsqlJsonDeserializer<T> implements Deserializer<T> {
       if (context.val instanceof TextNode) {
         return DecimalUtil.ensureFit(new BigDecimal(context.val.textValue()), context.schema);
       }
+    } else if (context.val.isTextual()) {
+      try {
+        return ByteBuffer.wrap(context.val.binaryValue());
+      } catch (IOException e) {
+        throw new IllegalArgumentException("Value is not a valid Base64 encoded string: "
+            + context.val.textValue());
+      }
     }
-
     throw invalidConversionException(context.val, context.schema);
   }
 

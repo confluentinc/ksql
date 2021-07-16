@@ -25,6 +25,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import com.google.common.collect.ImmutableMap;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -371,5 +372,18 @@ public class ConnectDataTranslatorTest {
     // Then:
     assertTrue(row instanceof Long);
     assertThat(row, is(100L));
+  }
+
+  @Test
+  public void shouldReturnBytesType() {
+    // Given:
+    final ConnectDataTranslator connectToKsqlTranslator = new ConnectDataTranslator(SchemaBuilder.OPTIONAL_BYTES_SCHEMA);
+
+    // When:
+    final Object row = connectToKsqlTranslator.toKsqlRow(Schema.BYTES_SCHEMA, ByteBuffer.wrap(new byte[] {123}));
+
+    // Then:
+    assertTrue(row instanceof ByteBuffer);
+    assertThat(row, is(ByteBuffer.wrap(new byte[] {123})));
   }
 }

@@ -148,7 +148,7 @@
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
                 <includes>
-                    <include>ksql-version.streamsProperties</include>
+                    <include>version.properties</include>
                 </includes>
             </resource>
 
@@ -161,7 +161,7 @@
                 <directory>src/main/resources</directory>
                 <filtering>false</filtering>
                 <excludes>
-                    <exclude>ksql-version.streamsProperties</exclude>
+                    <exclude>version.properties</exclude>
                 </excludes>
             </resource>
         </resources>

@@ -119,8 +119,8 @@ public final class ValidatedCommandFactory {
     }
     context.getQuery(queryId.get())
         .orElseThrow(() -> new KsqlStatementException(
-          "Unknown queryId: " + queryId.get(),
-          statement.getStatementText()))
+            "Unknown queryId: " + queryId.get(),
+            statement.getStatementText()))
         .close();
 
     return Command.of(statement);

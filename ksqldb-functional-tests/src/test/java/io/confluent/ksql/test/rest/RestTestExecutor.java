@@ -822,7 +822,7 @@ private void waitForRunningPushQueries(
     }
   }
 
-  private class QueryStreamSubscriber extends BaseSubscriber<StreamedRow> {
+  private static final class QueryStreamSubscriber extends BaseSubscriber<StreamedRow> {
 
     private final CompletableFuture<List<StreamedRow>> future;
     private final CompletableFuture<StreamedRow> header;

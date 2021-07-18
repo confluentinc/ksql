@@ -27,7 +27,7 @@ import java.util.Map;
  */
 public final class Response {
 
-  private final ImmutableMap<String, Object> content;
+  private final Map<String, Object> content;
 
   @JsonCreator
   public Response(final Map<String, Object> content) {

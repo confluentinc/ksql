@@ -24,7 +24,7 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public final class InputRecordsNode {
 
-  private final ImmutableList<RecordNode> inputRecords;
+  private final List<RecordNode> inputRecords;
 
   public InputRecordsNode(
       @JsonProperty("inputs") final List<RecordNode> inputRecords

@@ -45,7 +45,7 @@ import org.hamcrest.Matcher;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public final class PostConditionsNode {
 
-  private final ImmutableList<SourceNode> sources;
+  private final List<SourceNode> sources;
   private final Optional<PostTopicsNode> topics;
 
   public PostConditionsNode(

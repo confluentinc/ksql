@@ -112,7 +112,7 @@ public class KsqlTesterTest {
 
   // parameterized
   private final Path file;
-  private final ImmutableList<TestStatement> statements;
+  private final List<TestStatement> statements;
 
   // initialized in setUp
   private ServiceContext serviceContext;

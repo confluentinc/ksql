@@ -29,7 +29,7 @@ import org.apache.kafka.common.TopicPartition;
 
 public class StubKafkaConsumerGroupClient implements KafkaConsumerGroupClient {
 
-  private static final ImmutableList<String> groups = ImmutableList.of("cg1", "cg2");
+  private static final List<String> groups = ImmutableList.of("cg1", "cg2");
 
   @Override
   @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "groups is ImmutableList")

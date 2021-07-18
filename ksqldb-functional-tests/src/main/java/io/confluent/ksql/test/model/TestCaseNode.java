@@ -39,12 +39,12 @@ public class TestCaseNode {
 
   private final String name;
   private final VersionBoundsNode versionBounds;
-  private final ImmutableList<String> formats;
-  private final ImmutableList<RecordNode> inputs;
-  private final ImmutableList<RecordNode> outputs;
-  private final ImmutableList<TopicNode> topics;
-  private final ImmutableList<String> statements;
-  private final ImmutableMap<String, Object> properties;
+  private final List<String> formats;
+  private final List<RecordNode> inputs;
+  private final List<RecordNode> outputs;
+  private final List<TopicNode> topics;
+  private final List<String> statements;
+  private final Map<String, Object> properties;
   private final Optional<ExpectedExceptionNode> expectedException;
   private final Optional<PostConditionsNode> postConditions;
   private final boolean enabled;

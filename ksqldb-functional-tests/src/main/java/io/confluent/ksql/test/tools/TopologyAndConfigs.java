@@ -19,6 +19,8 @@ import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.test.model.SchemaNode;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -28,8 +30,8 @@ public class TopologyAndConfigs {
 
   private final Optional<List<KsqlPlan>> plan;
   private final String topology;
-  private final ImmutableMap<String, SchemaNode> schemas;
-  private final ImmutableMap<String, String> configs;
+  private final Map<String, SchemaNode> schemas;
+  private final Map<String, String> configs;
 
   public TopologyAndConfigs(
       final Optional<List<KsqlPlan>> plan,
@@ -40,7 +42,8 @@ public class TopologyAndConfigs {
     this.plan = Objects.requireNonNull(plan, "plan");
     this.topology = Objects.requireNonNull(topology, "topology");
     this.schemas = ImmutableMap.copyOf(Objects.requireNonNull(schemas, "schemas"));
-    this.configs = ImmutableMap.copyOf(Objects.requireNonNull(configs, "configs"));
+    // cannot use ImmutableMap, because we need to handle `null`
+    this.configs = new HashMap<>(Objects.requireNonNull(configs, "configs"));
   }
 
   public String getTopology() {
@@ -52,9 +55,8 @@ public class TopologyAndConfigs {
     return schemas;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "configs is ImmutableMap")
   public Map<String, String> getConfigs() {
-    return configs;
+    return Collections.unmodifiableMap(configs);
   }
 
   public Optional<List<KsqlPlan>> getPlan() {

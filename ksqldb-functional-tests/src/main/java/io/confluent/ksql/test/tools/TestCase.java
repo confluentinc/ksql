@@ -43,14 +43,14 @@ public class TestCase implements VersionedTest {
   private final Path originalFileName;
   private final String name;
   private final VersionBounds versionBounds;
-  private final ImmutableMap<String, Object> properties;
-  private final ImmutableCollection<Topic> topics;
-  private final ImmutableList<Record> inputRecords;
-  private final ImmutableList<Record> outputRecords;
-  private final ImmutableList<String> statements;
+  private final Map<String, Object> properties;
+  private final Collection<Topic> topics;
+  private final List<Record> inputRecords;
+  private final List<Record> outputRecords;
+  private final List<String> statements;
   private final Optional<Matcher<Throwable>> expectedException;
-  private ImmutableList<String> generatedTopologies;
-  private ImmutableMap<String, QuerySchemas.SchemaInfo> generatedSchemas;
+  private List<String> generatedTopologies;
+  private Map<String, QuerySchemas.SchemaInfo> generatedSchemas;
   private final Optional<TopologyAndConfigs> expectedTopology;
   private final PostConditions postConditions;
 

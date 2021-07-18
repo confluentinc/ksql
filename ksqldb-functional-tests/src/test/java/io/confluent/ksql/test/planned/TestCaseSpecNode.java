@@ -32,7 +32,7 @@ public class TestCaseSpecNode {
   private final String version;
   private final long timestamp;
   private final String path;
-  private final ImmutableMap<String, SchemaNode> schemas;
+  private final Map<String, SchemaNode> schemas;
   private final TestCaseNode testCase;
 
   public TestCaseSpecNode(

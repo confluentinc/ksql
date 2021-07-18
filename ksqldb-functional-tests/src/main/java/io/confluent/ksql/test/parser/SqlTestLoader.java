@@ -118,7 +118,7 @@ public class SqlTestLoader implements TestLoader<SqlTest> {
 
     private final Path file;
     private final String name;
-    private final ImmutableList<TestStatement> statements;
+    private final List<TestStatement> statements;
 
     public SqlTest(final Path file, final String name, final List<TestStatement> statements) {
       this.file = file;

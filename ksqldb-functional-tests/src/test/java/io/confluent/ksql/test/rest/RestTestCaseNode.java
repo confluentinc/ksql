@@ -39,13 +39,13 @@ import java.util.Optional;
 public class RestTestCaseNode {
 
   private final String name;
-  private final ImmutableList<String> formats;
-  private final ImmutableList<RecordNode> inputs;
-  private final ImmutableList<RecordNode> outputs;
-  private final ImmutableList<TopicNode> topics;
-  private final ImmutableList<String> statements;
-  private final ImmutableList<Response> responses;
-  private final ImmutableMap<String, Object> properties;
+  private final List<String> formats;
+  private final List<RecordNode> inputs;
+  private final List<RecordNode> outputs;
+  private final List<TopicNode> topics;
+  private final List<String> statements;
+  private final List<Response> responses;
+  private final Map<String, Object> properties;
   private final Optional<ExpectedErrorNode> expectedError;
   private final boolean enabled;
 

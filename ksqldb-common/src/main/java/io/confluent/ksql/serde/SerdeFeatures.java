@@ -60,6 +60,7 @@ public final class SerdeFeatures {
   }
 
   @JsonValue
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "incompatibleWith is ImmutableSet")
   public Set<SerdeFeature> all() {
     return features;
   }

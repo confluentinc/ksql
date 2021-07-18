@@ -41,6 +41,6 @@ public enum ProcessingLoggingJsonMapper {
       .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
 
   public ObjectMapper get() {
-    return mapper;
+    return mapper.copy();
   }
 }

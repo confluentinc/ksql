@@ -16,6 +16,7 @@
 package io.confluent.ksql.schema.ksql;
 
 import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -53,6 +54,10 @@ public final class SystemColumns {
     return windowBoundsColumnNames().contains(columnName);
   }
 
+  @SuppressFBWarnings(
+      value = "MS_EXPOSE_REP",
+      justification = "WINDOW_BOUNDS_COLUMN_NAMES is ImmutableSet"
+  )
   public static Set<ColumnName> windowBoundsColumnNames() {
     return WINDOW_BOUNDS_COLUMN_NAMES;
   }
@@ -61,6 +66,10 @@ public final class SystemColumns {
     return pseudoColumnNames().contains(columnName);
   }
 
+  @SuppressFBWarnings(
+      value = "MS_EXPOSE_REP",
+      justification = "PSEUDO_COLUMN_NAMES is ImmutableSet"
+  )
   public static Set<ColumnName> pseudoColumnNames() {
     return PSEUDO_COLUMN_NAMES;
   }
@@ -69,6 +78,10 @@ public final class SystemColumns {
     return systemColumnNames().contains(columnName);
   }
 
+  @SuppressFBWarnings(
+      value = "MS_EXPOSE_REP",
+      justification = "SYSTEM_COLUMN_NAMES is ImmutableSet"
+  )
   public static Set<ColumnName> systemColumnNames() {
     return SYSTEM_COLUMN_NAMES;
   }

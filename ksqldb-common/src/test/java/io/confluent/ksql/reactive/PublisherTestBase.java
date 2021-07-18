@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import java.util.ArrayList;
@@ -223,6 +224,7 @@ public abstract class PublisherTestBase<T> {
     private final List<T> values = new ArrayList<>();
     private final Context subscriberContext;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public TestSubscriber(final Context subscriberContext) {
       this.subscriberContext = subscriberContext;
     }
@@ -240,6 +242,7 @@ public abstract class PublisherTestBase<T> {
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
     public synchronized void onError(final Throwable t) {
       checkContext();
       this.error = t;
@@ -255,10 +258,12 @@ public abstract class PublisherTestBase<T> {
       return completed;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public Throwable getError() {
       return error;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public List<T> getValues() {
       return values;
     }

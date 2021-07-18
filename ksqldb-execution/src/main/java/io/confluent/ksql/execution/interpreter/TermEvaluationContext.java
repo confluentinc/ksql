@@ -31,11 +31,11 @@ public final class TermEvaluationContext {
   private final Deque<Map<String, Object>> variableMappingsStack = new LinkedList<>();
 
   public TermEvaluationContext(final GenericRow row) {
-    this.row = row;
+    this.row = GenericRow.genericRow(row.values().toArray());
   }
 
   public GenericRow getRow() {
-    return row;
+    return GenericRow.genericRow(row.values().toArray());
   }
 
   /**

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.physical.pull;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
@@ -33,7 +34,7 @@ public class PullQueryRow {
       final List<?> row,
       final LogicalSchema schema,
       final Optional<KsqlNode> sourceNode) {
-    this.row = ImmutableList.copyOf(row);
+    this.row = row == null ? ImmutableList.of() : ImmutableList.copyOf(row);
     this.schema = schema;
     this.sourceNode = sourceNode;
   }

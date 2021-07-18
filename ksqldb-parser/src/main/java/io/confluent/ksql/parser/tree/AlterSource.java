@@ -17,6 +17,7 @@ package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
@@ -58,6 +59,7 @@ public class AlterSource extends Statement implements ExecutableDdlStatement {
     return dataSourceType;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "alterOptions is ImmutableList")
   public List<AlterOption> getAlterOptions() {
     return alterOptions;
   }

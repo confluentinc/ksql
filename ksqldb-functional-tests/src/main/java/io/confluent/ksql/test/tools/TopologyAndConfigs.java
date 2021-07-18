@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.test.tools;
 
+import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.KsqlPlan;
 import io.confluent.ksql.test.model.SchemaNode;
 import java.util.List;
@@ -26,8 +28,8 @@ public class TopologyAndConfigs {
 
   private final Optional<List<KsqlPlan>> plan;
   private final String topology;
-  private final Map<String, SchemaNode> schemas;
-  private final Map<String, String> configs;
+  private final ImmutableMap<String, SchemaNode> schemas;
+  private final ImmutableMap<String, String> configs;
 
   public TopologyAndConfigs(
       final Optional<List<KsqlPlan>> plan,
@@ -37,18 +39,20 @@ public class TopologyAndConfigs {
   ) {
     this.plan = Objects.requireNonNull(plan, "plan");
     this.topology = Objects.requireNonNull(topology, "topology");
-    this.schemas = Objects.requireNonNull(schemas, "schemas");
-    this.configs = Objects.requireNonNull(configs, "configs");
+    this.schemas = ImmutableMap.copyOf(Objects.requireNonNull(schemas, "schemas"));
+    this.configs = ImmutableMap.copyOf(Objects.requireNonNull(configs, "configs"));
   }
 
   public String getTopology() {
     return topology;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "schemas is ImmutableMap")
   public Map<String, SchemaNode> getSchemas() {
     return schemas;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "configs is ImmutableMap")
   public Map<String, String> getConfigs() {
     return configs;
   }

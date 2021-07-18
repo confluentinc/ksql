@@ -16,6 +16,7 @@
 package io.confluent.ksql.test.parser;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.test.KsqlTestException;
 import io.confluent.ksql.test.loader.TestLoader;
 import io.confluent.ksql.test.model.TestLocation;
@@ -117,12 +118,12 @@ public class SqlTestLoader implements TestLoader<SqlTest> {
 
     private final Path file;
     private final String name;
-    private final List<TestStatement> statements;
+    private final ImmutableList<TestStatement> statements;
 
     public SqlTest(final Path file, final String name, final List<TestStatement> statements) {
       this.file = file;
       this.name = name;
-      this.statements = statements;
+      this.statements = ImmutableList.copyOf(statements);
     }
 
     public Path getFile() {
@@ -138,6 +139,7 @@ public class SqlTestLoader implements TestLoader<SqlTest> {
       return () -> file;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "statements is ImmutableList")
     public List<TestStatement> getStatements() {
       return statements;
     }

@@ -16,6 +16,8 @@
 package io.confluent.ksql.test.rest.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -25,13 +27,14 @@ import java.util.Map;
  */
 public final class Response {
 
-  private final Map<String, Object> content;
+  private final ImmutableMap<String, Object> content;
 
   @JsonCreator
   public Response(final Map<String, Object> content) {
-    this.content = Collections.unmodifiableMap(new LinkedHashMap<>(content));
+    this.content = ImmutableMap.copyOf(content);
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "content is ImmutableMap")
   public Map<String, Object> getContent() {
     return content;
   }

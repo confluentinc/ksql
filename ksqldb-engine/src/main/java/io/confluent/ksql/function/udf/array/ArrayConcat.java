@@ -40,7 +40,7 @@ public class ArrayConcat {
     }
     final int leftSize = left != null ? left.size() : 0;
     final int rightSize = right != null ? right.size() : 0;
-    final List<T> result = new ArrayList(leftSize + rightSize);
+    final List<T> result = new ArrayList<>(leftSize + rightSize);
     if (left != null) {
       result.addAll(left);
     }

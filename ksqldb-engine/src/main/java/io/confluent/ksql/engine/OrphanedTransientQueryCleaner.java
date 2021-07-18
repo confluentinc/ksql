@@ -17,6 +17,7 @@ package io.confluent.ksql.engine;
 
 import static java.util.Objects.requireNonNull;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -36,6 +37,7 @@ public class OrphanedTransientQueryCleaner {
   private final QueryCleanupService cleanupService;
   private final KsqlConfig ksqlConfig;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public OrphanedTransientQueryCleaner(final QueryCleanupService cleanupService,
                                        final KsqlConfig ksqlConfig) {
     this.cleanupService = requireNonNull(cleanupService);

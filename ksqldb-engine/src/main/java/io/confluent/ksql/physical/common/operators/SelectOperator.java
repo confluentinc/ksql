@@ -16,6 +16,7 @@
 package io.confluent.ksql.physical.common.operators;
 
 import com.google.common.annotations.VisibleForTesting;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.SqlPredicateFactory;
 import io.confluent.ksql.execution.streams.materialization.PullProcessingContext;
@@ -39,7 +40,6 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
 
   private AbstractPhysicalOperator child;
   private KsqlTransformer<Object, Optional<GenericRow>> transformer;
-  private TableRow row;
 
   public SelectOperator(final QueryFilterNode logicalNode, final ProcessingLogger logger) {
     this(logicalNode, logger, SqlPredicate::new);
@@ -70,7 +70,7 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
   public Object next() {
     Optional<TableRow> result = Optional.empty();
     while (result.equals(Optional.empty())) {
-      row = (TableRow)child.next();
+      final TableRow row = (TableRow) child.next();
       if (row == null) {
         return null;
       }
@@ -109,6 +109,7 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public void addChild(final AbstractPhysicalOperator child) {
     if (this.child != null) {
       throw new UnsupportedOperationException("The select operator already has a child.");
@@ -118,6 +119,7 @@ public class SelectOperator extends AbstractPhysicalOperator implements UnaryPhy
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public AbstractPhysicalOperator getChild() {
     return child;
   }

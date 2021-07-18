@@ -36,9 +36,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class SandboxedTransientQueryMetadataTest {
   private static final String STATEMENT = "stmt";
-  private static final Map<String, Object> PROPERTIES = ImmutableMap.of("foo", "bar");
-  private static final Map<String, Object> OVERRIDES = ImmutableMap.of("biz", "baz");
-  private static final Set<SourceName> SOURCE_NAMES = ImmutableSet.of(SourceName.of("one"));
+  private static final ImmutableMap<String, Object> PROPERTIES = ImmutableMap.of("foo", "bar");
+  private static final ImmutableMap<String, Object> OVERRIDES = ImmutableMap.of("biz", "baz");
+  private static final ImmutableSet<SourceName> SOURCE_NAMES = ImmutableSet.of(SourceName.of("one"));
   private static final String PLAN = "plan";
   private static final String APP_ID = "appid";
   private static final ResultType RESULT_TYPE = ResultType.TABLE;

@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.util.ColumnExtractor;
@@ -44,6 +45,7 @@ public final class RequiredColumns {
         .copyOf(requireNonNull(requiredColumns, "requiredColumns"));
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "requiredColumns is ImmutableSet")
   public Collection<? extends ColumnReferenceExp> get() {
     return requiredColumns;
   }

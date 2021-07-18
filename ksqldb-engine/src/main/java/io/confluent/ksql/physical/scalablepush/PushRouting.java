@@ -17,6 +17,7 @@ package io.confluent.ksql.physical.scalablepush;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.physical.pull.HARouting;
@@ -381,6 +382,7 @@ public class PushRouting implements AutoCloseable {
     private final Map<KsqlNode, RoutingResult> results = new ConcurrentHashMap<>();
     private final CompletableFuture<Void> errorCallback;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP")
     public PushConnectionsHandle(final CompletableFuture<Void> errorCallback) {
       this.errorCallback = errorCallback;
 

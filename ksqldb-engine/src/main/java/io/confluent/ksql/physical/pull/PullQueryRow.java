@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.physical.pull;
 
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -23,7 +25,7 @@ import java.util.Optional;
 
 public class PullQueryRow {
 
-  private final List<?> row;
+  private final ImmutableList<?> row;
   private final LogicalSchema schema;
   private final Optional<KsqlNode> sourceNode;
 
@@ -31,11 +33,12 @@ public class PullQueryRow {
       final List<?> row,
       final LogicalSchema schema,
       final Optional<KsqlNode> sourceNode) {
-    this.row = row;
+    this.row = ImmutableList.copyOf(row);
     this.schema = schema;
     this.sourceNode = sourceNode;
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "row is ImmutableList")
   public List<?> getRow() {
     return row;
   }

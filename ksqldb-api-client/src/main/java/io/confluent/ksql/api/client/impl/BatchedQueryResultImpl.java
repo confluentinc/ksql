@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.client.BatchedQueryResult;
 import java.util.concurrent.CompletableFuture;
 
@@ -32,6 +33,7 @@ public class BatchedQueryResultImpl extends BatchedQueryResult {
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP")
   public CompletableFuture<String> queryID() {
     return queryId;
   }

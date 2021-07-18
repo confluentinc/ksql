@@ -33,11 +33,10 @@ public final class JsonMapper {
         .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
   }
 
-  private JsonMapper() {
-  }
+  private JsonMapper() {}
 
   public static ObjectMapper get() {
-    return MAPPER;
+    return MAPPER.copy();
   }
 
 }

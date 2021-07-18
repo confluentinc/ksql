@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.api.client.impl;
 
+import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.client.ConnectorDescription;
 import io.confluent.ksql.api.client.ConnectorType;
 import java.util.List;
@@ -24,8 +26,8 @@ public class ConnectorDescriptionImpl implements ConnectorDescription {
 
   private final String name;
   private final String className;
-  private final List<String> sources;
-  private final List<String> topics;
+  private final ImmutableList<String> sources;
+  private final ImmutableList<String> topics;
   private final ConnectorType type;
   private final String state;
 
@@ -40,18 +42,20 @@ public class ConnectorDescriptionImpl implements ConnectorDescription {
   ) {
     this.name = Objects.requireNonNull(name, "name");
     this.className = Objects.requireNonNull(className, "className");
-    this.sources = Objects.requireNonNull(sources, "sources");
-    this.topics = Objects.requireNonNull(topics, "topics");
+    this.sources = ImmutableList.copyOf(Objects.requireNonNull(sources, "sources"));
+    this.topics = ImmutableList.copyOf(Objects.requireNonNull(topics, "topics"));
     this.type = Objects.requireNonNull(type, "type");
     this.state = Objects.requireNonNull(state, "state");
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "sources is ImmutableList")
   public List<String> sources() {
     return sources;
   }
 
   @Override
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "topics is ImmutableList")
   public List<String> topics() {
     return topics;
   }

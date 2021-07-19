@@ -41,7 +41,7 @@ public enum PlanJsonMapper {
           new KsqlTypesDeserializationModule()
       )
       .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-      .enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+      .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
       .enable(DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES)
       .enable(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE)
       .setSerializationInclusion(Include.NON_EMPTY);

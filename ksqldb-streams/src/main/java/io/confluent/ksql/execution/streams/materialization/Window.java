@@ -50,11 +50,11 @@ public final class Window {
   }
 
   public Instant start() {
-    return start;
+    return Instant.from(start);
   }
 
   public Instant end() {
-    return end;
+    return Instant.from(end);
   }
 
   @Override

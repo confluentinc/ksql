@@ -89,7 +89,7 @@ public final class WindowedRow implements TableRow {
 
   @Override
   public GenericRow value() {
-    return value;
+    return GenericRow.genericRow(value);
   }
 
   @Override

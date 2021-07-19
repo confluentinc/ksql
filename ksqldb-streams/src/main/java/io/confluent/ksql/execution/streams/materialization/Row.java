@@ -81,7 +81,7 @@ public final class Row implements TableRow {
 
   @Override
   public GenericRow value() {
-    return value;
+    return GenericRow.genericRow(value);
   }
 
   @Override

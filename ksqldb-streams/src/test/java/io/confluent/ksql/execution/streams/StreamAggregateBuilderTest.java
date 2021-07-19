@@ -95,7 +95,7 @@ import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked", "deprecation"})
 @RunWith(MockitoJUnitRunner.class)
 public class StreamAggregateBuilderTest {
 

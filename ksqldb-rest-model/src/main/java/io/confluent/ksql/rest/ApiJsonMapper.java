@@ -62,7 +62,7 @@ public enum ApiJsonMapper {
       );
 
   public ObjectMapper get() {
-    return mapper;
+    return mapper.copy();
   }
 
   public static class TimeSerializer extends JsonSerializer<Time> {

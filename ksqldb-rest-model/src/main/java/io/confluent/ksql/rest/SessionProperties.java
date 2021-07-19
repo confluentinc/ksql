@@ -15,7 +15,9 @@
 
 package io.confluent.ksql.rest;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.util.KsqlHostInfo;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
@@ -80,6 +82,7 @@ public class SessionProperties {
     this(mutableScopedProperties, ksqlHostInfo, localUrl, internalRequest, Collections.emptyMap());
   }
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "should be mutable")
   public Map<String, Object> getMutableScopedProperties() {
     return mutableScopedProperties;
   }
@@ -89,7 +92,11 @@ public class SessionProperties {
   }
 
   public URL getLocalUrl() {
-    return localUrl;
+    try {
+      return new URL(localUrl.toString());
+    } catch (final MalformedURLException fatalError) {
+      throw new IllegalStateException("Could not deep copy URL: " + localUrl);
+    }
   }
 
   public boolean getInternalRequest() {

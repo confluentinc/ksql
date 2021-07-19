@@ -27,9 +27,11 @@ import io.confluent.ksql.api.client.ColumnType;
 import io.confluent.ksql.api.client.KsqlArray;
 import io.confluent.ksql.api.client.KsqlObject;
 import io.confluent.ksql.api.client.util.RowUtil;
+import io.netty.buffer.ByteBuf;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import org.junit.Before;
@@ -38,9 +40,11 @@ import org.junit.Test;
 public class RowImplTest {
 
   private static final List<String> COLUMN_NAMES =
-      ImmutableList.of("f_str", "f_int", "f_long", "f_double", "f_bool", "f_decimal", "f_array", "f_map", "f_struct", "f_null");
+      ImmutableList.of("f_str", "f_int", "f_long", "f_double", "f_bool", "f_decimal", "f_bytes",
+          "f_array", "f_map", "f_struct", "f_null");
   private static final List<ColumnType> COLUMN_TYPES = RowUtil.columnTypesFromStrings(
-      ImmutableList.of("STRING", "INTEGER", "BIGINT", "DOUBLE", "BOOLEAN", "DECIMAL", "ARRAY", "MAP", "STRUCT", "INTEGER"));
+      ImmutableList.of("STRING", "INTEGER", "BIGINT", "DOUBLE", "BOOLEAN", "DECIMAL", "BYTES",
+          "ARRAY", "MAP", "STRUCT", "INTEGER"));
   private static final Map<String, Integer> COLUMN_NAME_TO_INDEX = RowUtil.valueToIndexMap(COLUMN_NAMES);
   private static final JsonArray VALUES = new JsonArray()
       .add("foo")
@@ -49,6 +53,7 @@ public class RowImplTest {
       .add(34.43)
       .add(false)
       .add(12.21) // server endpoint returns decimals as doubles
+      .add(new byte[]{0, 1, 2})
       .add(new JsonArray("[\"e1\",\"e2\"]"))
       .add(new JsonObject("{\"k1\":\"v1\",\"k2\":\"v2\"}"))
       .add(new JsonObject("{\"f1\":\"baz\",\"f2\":12}"))
@@ -69,10 +74,15 @@ public class RowImplTest {
     assertThat(row.getValue(4), is(34.43));
     assertThat(row.getValue(5), is(false));
     assertThat(row.getValue(6), is(12.21));
-    assertThat(row.getValue(7), is(new JsonArray("[\"e1\",\"e2\"]")));
-    assertThat(row.getValue(8), is(new JsonObject("{\"k1\":\"v1\",\"k2\":\"v2\"}")));
-    assertThat(row.getValue(9), is(new JsonObject("{\"f1\":\"baz\",\"f2\":12}")));
-    assertThat(row.getValue(10), is(nullValue()));
+
+    // Base64 encoded byte. The getValue() does not know if the returned value is a String or
+    // byte (same as JsonArray), so it cannot be decoded to bytes. Only getBytes() will do the
+    // decoding. In this test, we only test that getValue() returns the encoded string.
+    assertThat(row.getValue(7), is("AAEC"));
+    assertThat(row.getValue(8), is(new JsonArray("[\"e1\",\"e2\"]")));
+    assertThat(row.getValue(9), is(new JsonObject("{\"k1\":\"v1\",\"k2\":\"v2\"}")));
+    assertThat(row.getValue(10), is(new JsonObject("{\"f1\":\"baz\",\"f2\":12}")));
+    assertThat(row.getValue(11), is(nullValue()));
   }
 
   @Test
@@ -105,6 +115,11 @@ public class RowImplTest {
   public void shouldGetDecimal() {
     assertThat(row.getDecimal("f_decimal"), is(new BigDecimal("12.21")));
   }
+  @Test
+  public void shouldGetBytes() {
+    assertThat(row.getBytes("f_bytes"), is(new byte[]{0, 1, 2}));
+  }
+
 
   @Test
   public void shouldGetKsqlArray() {
@@ -156,6 +171,7 @@ public class RowImplTest {
     assertThat(obj.getDouble("f_double"), is(34.43));
     assertThat(obj.getBoolean("f_bool"), is(false));
     assertThat(obj.getDecimal("f_decimal"), is(new BigDecimal("12.21")));
+    assertThat(obj.getBytes("f_bytes"), is(new byte[]{0, 1, 2}));
     assertThat(obj.getKsqlArray("f_array"), is(new KsqlArray(ImmutableList.of("e1", "e2"))));
     assertThat(obj.getKsqlObject("f_map"), is(new KsqlObject(ImmutableMap.of("k1", "v1", "k2", "v2"))));
     assertThat(obj.getKsqlObject("f_struct"), is(new KsqlObject(ImmutableMap.of("f1", "baz", "f2", 12))));

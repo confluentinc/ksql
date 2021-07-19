@@ -47,7 +47,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 
 class KsqlDelimitedDeserializer implements Deserializer<List<?>> {
 
-  private static Decoder BASE64_DECODER = Base64.getMimeDecoder();
+  private static Decoder BASE64_DECODER = Base64.getDecoder();
 
   private interface Parser {
 

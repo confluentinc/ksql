@@ -199,6 +199,19 @@ public class KsqlObject {
   }
 
   /**
+   * Returns the value associated with the specified key as a byte array. Returns null if
+   * the key is not present.
+   *
+   * @param key the key
+   * @return the value
+   * @throws ClassCastException if the value is not a {@code String}
+   * @throws IllegalArgumentException if the column value is not a base64 encoded string
+   */
+  public byte[] getBytes(final String key) {
+    return delegate.getBinary(key);
+  }
+
+  /**
    * Returns the value associated with the specified key as a {@link KsqlArray}. Returns null if the
    * key is not present.
    *
@@ -303,6 +316,11 @@ public class KsqlObject {
     // Vert.x JsonObject does not accept BigDecimal values. Instead we store the value as a string
     // so as to not lose precision.
     delegate.put(key, value.toString());
+    return this;
+  }
+
+  public KsqlObject put(final String key, final byte[] value) {
+    delegate.put(key, value);
     return this;
   }
 

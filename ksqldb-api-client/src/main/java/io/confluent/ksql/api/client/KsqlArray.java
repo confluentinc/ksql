@@ -176,6 +176,18 @@ public class KsqlArray {
   }
 
   /**
+   * Returns the value at a specified index as a byte array.
+   *
+   * @param pos the index
+   * @return the value
+   * @throws IndexOutOfBoundsException if the index is invalid
+   * @throws IllegalArgumentException if the array value is not a Base64 encoded string
+   */
+  public byte[] getBytes(final int pos) {
+    return delegate.getBinary(pos);
+  }
+
+  /**
    * Returns the value at a specified index as a {@code KsqlArray}.
    *
    * @param pos the index
@@ -285,6 +297,17 @@ public class KsqlArray {
     // Vert.x JsonArray does not accept BigDecimal values. Instead we store the value as a string
     // so as to not lose precision.
     delegate.add(value.toString());
+    return this;
+  }
+
+  /**
+   * Appends the specified value to the end of the array.
+   *
+   * @param value the value to append
+   * @return a reference to this
+   */
+  public KsqlArray add(final byte[] value) {
+    delegate.add(value);
     return this;
   }
 

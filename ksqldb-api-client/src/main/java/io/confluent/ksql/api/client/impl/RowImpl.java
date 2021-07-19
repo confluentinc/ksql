@@ -144,6 +144,16 @@ public class RowImpl implements Row {
   }
 
   @Override
+  public byte[] getBytes(final int columnIndex) {
+    return values.getBytes(columnIndex - 1);
+  }
+
+  @Override
+  public byte[] getBytes(final String columnName) {
+    return getBytes(indexFromName(columnName));
+  }
+
+  @Override
   public KsqlObject getKsqlObject(final int columnIndex) {
     return values.getKsqlObject(columnIndex - 1);
   }

@@ -28,7 +28,7 @@ import java.util.Objects;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class TypeList extends KsqlEntity {
 
-  private final Map<String, SchemaInfo> types;
+  private final ImmutableMap<String, SchemaInfo> types;
 
   @JsonCreator
   public TypeList(

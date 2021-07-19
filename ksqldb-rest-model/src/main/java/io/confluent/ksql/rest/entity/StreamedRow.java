@@ -33,6 +33,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.testing.EffectivelyImmutable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -295,6 +296,7 @@ public final class StreamedRow {
   @JsonIgnoreProperties(ignoreUnknown = true)
   public static final class DataRow extends BaseRow {
 
+    @EffectivelyImmutable
     private final ImmutableList<?> columns;
     private final boolean tombstone;
 

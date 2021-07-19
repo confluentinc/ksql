@@ -34,7 +34,9 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.ApiJsonMapper;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.testing.EffectivelyImmutable;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -297,7 +299,7 @@ public final class StreamedRow {
   public static final class DataRow extends BaseRow {
 
     @EffectivelyImmutable
-    private final ImmutableList<?> columns;
+    private final List<?> columns;
     private final boolean tombstone;
 
     public static DataRow row(
@@ -312,7 +314,7 @@ public final class StreamedRow {
       return new DataRow(columns, Optional.of(true));
     }
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columns is ImmutableList")
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "columns is unmodifiableList()")
     public List<?> getColumns() {
       return columns;
     }
@@ -327,7 +329,10 @@ public final class StreamedRow {
         @JsonProperty(value = "tombstone") final Optional<Boolean> tombstone
     ) {
       this.tombstone = tombstone.orElse(false);
-      this.columns = ImmutableList.copyOf(requireNonNull(columns, "columns"));
+      // cannot use ImmutableList, as we need to handle `null`
+      this.columns = Collections.unmodifiableList(
+          new ArrayList<>(requireNonNull(columns, "columns"))
+      );
     }
 
     @Override

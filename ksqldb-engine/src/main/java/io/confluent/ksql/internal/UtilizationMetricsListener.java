@@ -30,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.math.BigInteger;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,6 +45,7 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
   private final Time time;
   private long lastSampleTime;
   private final File baseDir;
+  private final List<MetricsReporter.DataPoint> dataPoints;
 
   public UtilizationMetricsListener(final KsqlConfig config) {
     this.kafkaStreams = new HashMap<>();
@@ -55,6 +57,7 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
         StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
       .toString());
     time = Time.SYSTEM;
+    dataPoints = new ArrayList<>();
   }
 
     // for testing
@@ -64,6 +67,7 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
     this.streamsDirectories = streamsDirectories;
     this.baseDir = baseDir;
     time = Time.SYSTEM;
+    dataPoints = new ArrayList<>();
   }
 
   @Override
@@ -89,6 +93,7 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
     logger.info("Reporting CSU thread level metrics");
     nodeDiskUsage();
     taskDiskUsage();
+    // here is where we would call report() for telemetry reporter
     lastSampleTime = currentTime;
   }
 
@@ -101,6 +106,8 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
       final long freeSpace = f.getFreeSpace();
       final long totalSpace = f.getTotalSpace();
       final double percFree = percentage((double) freeSpace, (double) totalSpace);
+      dataPoints.add(new MetricsReporter.DataPoint(Instant.now(),"ksql-disk-usage", freeSpace));
+      dataPoints.add(new MetricsReporter.DataPoint(Instant.now(),"ksql-perc-free", percFree));
       logger.info("The disk usage for {} is {}", f.getName(), freeSpace);
       logger.info("The % disk space free for {} is {}%", f.getName(), percFree);
     }
@@ -115,10 +122,12 @@ public class UtilizationMetricsListener implements Runnable, QueryEventListener 
       for (Metric m : fileSizePerTask) {
         logger.info("Recording task level disk usage for {}", streams.getKey());
         final BigInteger usage = (BigInteger) m.metricValue();
+        dataPoints.add(new MetricsReporter.DataPoint(Instant.now(),"disk-usage-" + m.metricName().tags().getOrDefault("task-id", ""), usage));
         logger.info("Disk usage for task {} is {}", m.metricName().tags().getOrDefault("task-id", ""), usage);
         totalDiskUsage.add(usage);
       }
       logger.info("Total disk usage for query {} is {}",streams.getKey(), totalDiskUsage);
+      dataPoints.add(new MetricsReporter.DataPoint(Instant.now(),"disk-usage-" + streams.getKey(), totalDiskUsage));
     }
   }
 }

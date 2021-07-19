@@ -325,6 +325,9 @@ public class RestTestExecutor implements Closeable {
             Optional<List<StreamedRow>> rows =
                 sendQueryStatement(testCase, stmt, afterHeader.get());
             return rows;
+          } else if (afterHeader.isPresent() && runAfterHeader[0]) {
+            throw new AssertionError(
+                "Can only have one query when using waitForQueryHeader");
           }
           return sendQueryStatement(testCase, stmt);
         })
@@ -376,27 +379,15 @@ public class RestTestExecutor implements Closeable {
 
     try {
       header.get();
-    } catch (Exception e) {
-      LOG.error("Error awaiting header", e);
-      throw new RuntimeException(e);
-    }
-
-    try {
       afterHeader.run();
-    } catch (Exception e) {
-      LOG.error("Error doing after header", e);
-    }
-
-    try {
       return Optional.of(future.get());
     } catch (Exception e) {
-      LOG.error("Error awaiting rows", e);
-      throw new RuntimeException(e);
+      LOG.error("Error waiting on header, calling afterHeader, or waiting on rows", e);
+      throw new AssertionError(e);
     } finally {
       subscriber.close();
       publisher.close();
     }
-//    return Optional.empty();
   }
 
   private void verifyOutput(final RestTestCase testCase) {

@@ -64,7 +64,8 @@ public final class KsqlConstants {
   }
 
   public static KsqlQueryStatus fromStreamsState(final KafkaStreams.State state) {
-    return state == State.ERROR || state == State.CREATED ? KsqlQueryStatus.ERROR : KsqlQueryStatus.RUNNING;
+    return state == State.ERROR || state == State.CREATED 
+        ? KsqlQueryStatus.ERROR : KsqlQueryStatus.RUNNING;
   }
 
   public static String getSRSubject(final String topicName, final boolean isKey) {

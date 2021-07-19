@@ -52,17 +52,17 @@ public class QueryStatusCountTest {
     queryStatusCount.updateStatusCount(KafkaStreams.State.CREATED, 2);
     assertThat(
         queryStatusCount.getStatuses().get(KsqlQueryStatus.RUNNING),
-        is(8));
+        is(6));
 
     queryStatusCount.updateStatusCount(KafkaStreams.State.ERROR, 1);
     assertThat(
         queryStatusCount.getStatuses().get(KsqlQueryStatus.ERROR),
-        is(1));
+        is(3));
 
     queryStatusCount.updateStatusCount(KsqlQueryStatus.ERROR, 3);
     assertThat(
         queryStatusCount.getStatuses().get(KsqlQueryStatus.ERROR),
-        is(4));
+        is(6));
   }
 
   @Test

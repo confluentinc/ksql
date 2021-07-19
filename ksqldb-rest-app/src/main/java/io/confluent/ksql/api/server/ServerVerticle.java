@@ -19,6 +19,7 @@ import static io.confluent.ksql.api.server.InternalEndpointHandler.CONTEXT_DATA_
 import static io.confluent.ksql.api.server.OldApiUtils.handleOldApiRequest;
 import static io.netty.handler.codec.http.HttpResponseStatus.TEMPORARY_REDIRECT;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.api.auth.ApiSecurityContext;
 import io.confluent.ksql.api.auth.DefaultApiSecurityContext;
 import io.confluent.ksql.api.spi.Endpoints;
@@ -70,6 +71,7 @@ public class ServerVerticle extends AbstractVerticle {
   private final Optional<PullQueryExecutorMetrics> pullQueryMetrics;
   private final LoggingRateLimiter loggingRateLimiter;
 
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public ServerVerticle(
       final Endpoints endpoints,
       final HttpServerOptions httpServerOptions,

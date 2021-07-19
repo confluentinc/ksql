@@ -154,19 +154,19 @@
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-streams</artifactId>
-                <version>v0.0.0-WALKER-5-SNAPSHOT</version>
+                <version>v0.0.0-WALKER-6-SNAPSHOT</version>
             </dependency>
 
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-clients</artifactId>
-                <version>v0.0.0-WALKER-5-SNAPSHOT</version>
+                <version>v0.0.0-WALKER-6-SNAPSHOT</version>
             </dependency>
 
             <dependency>
                 <groupId>org.apache.kafka</groupId>
                 <artifactId>kafka-streams-test-utils</artifactId>
-                <version>v0.0.0-WALKER-5-SNAPSHOT</version>
+                <version>v0.0.0-WALKER-6-SNAPSHOT</version>
             </dependency>
 
             <dependency>

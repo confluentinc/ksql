@@ -154,14 +154,14 @@ public void markSources(final QueryId queryId, final Set<SourceName> sourceNames
   }
 
   public void close(final QueryId queryId) {
-//    metadata.remove(queryId.toString());
+    //    metadata.remove(queryId.toString());
     if (kafkaStreams.state() == KafkaStreams.State.RUNNING
             || kafkaStreams.state() == KafkaStreams.State.REBALANCING) {
-      try {
-//        kafkaStreams.removeNamedTopology(queryId.toString());
-      } catch (IllegalArgumentException e) {
-          //don't block
-      }
+    //      try {
+    ////          kafkaStreams.removeNamedTopology(queryId.toString());
+    //      } catch (IllegalArgumentException e) {
+    //          //don't block
+    //      }
     }
   }
 

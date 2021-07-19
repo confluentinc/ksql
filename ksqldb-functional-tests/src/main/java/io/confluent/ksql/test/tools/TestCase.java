@@ -18,7 +18,6 @@ package io.confluent.ksql.test.tools;
 import static io.confluent.ksql.test.utils.ImmutableCollections.immutableCopyOf;
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

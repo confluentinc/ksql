@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.client;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.parser.json.KsqlTypesDeserializationModule;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.ApiJsonMapper;
@@ -94,6 +95,7 @@ public final class KsqlClient implements AutoCloseable {
    * @param socketAddressFactory A factoring for creating a SocketAddress, given the port and host
    *                             it's meant to represent
    */
+  @SuppressFBWarnings(value = "EI_EXPOSE_REP2")
   public KsqlClient(
       final Optional<BasicCredentials> credentials,
       final LocalProperties localProperties,

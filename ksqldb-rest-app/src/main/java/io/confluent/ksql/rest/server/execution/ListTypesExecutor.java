@@ -23,7 +23,9 @@ import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.TypeList;
+import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.rest.util.EntityUtil;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.Iterator;
@@ -39,7 +41,9 @@ public final class ListTypesExecutor {
       final ConfiguredStatement<ListTypes> configuredStatement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext
+      final ServiceContext serviceContext,
+      final DistributingExecutor distributingExecutor,
+      final KsqlSecurityContext securityContext
   ) {
     final ImmutableMap.Builder<String, SchemaInfo> types = ImmutableMap.builder();
 

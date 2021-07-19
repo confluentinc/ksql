@@ -305,11 +305,6 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
 
     final Optional<PersistentQueryMetadata> query = ksqlEngine.getPersistentQuery(queryId.get());
     query.ifPresent(PersistentQueryMetadata::close);
-
-    if (!query.isPresent()) {
-      final  Optional<QueryMetadata>  transientQuery = ksqlEngine.getQuery(queryId.get());
-      transientQuery.ifPresent(QueryMetadata::close);
-    }
   }
 
   private static void throwUnsupportedStatementError() {

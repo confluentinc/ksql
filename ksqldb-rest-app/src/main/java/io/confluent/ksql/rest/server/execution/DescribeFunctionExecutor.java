@@ -32,7 +32,9 @@ import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.IdentifierUtil;
@@ -53,7 +55,9 @@ public final class DescribeFunctionExecutor {
       final ConfiguredStatement<DescribeFunction> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext
+      final ServiceContext serviceContext,
+      final DistributingExecutor distributingExecutor,
+      final KsqlSecurityContext securityContext
   ) {
     final DescribeFunction describeFunction = statement.getStatement();
     final FunctionName functionName = FunctionName.of(describeFunction.getFunctionName());

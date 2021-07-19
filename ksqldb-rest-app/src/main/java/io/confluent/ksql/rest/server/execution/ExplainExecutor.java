@@ -28,6 +28,8 @@ import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
+import io.confluent.ksql.rest.server.computation.DistributingExecutor;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConstants;
@@ -51,7 +53,9 @@ public final class ExplainExecutor {
       final ConfiguredStatement<Explain> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext
+      final ServiceContext serviceContext,
+      final DistributingExecutor distributingExecutor,
+      final KsqlSecurityContext securityContext
   ) {
     return Optional
         .of(ExplainExecutor.explain(

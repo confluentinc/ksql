@@ -21,6 +21,8 @@ import io.confluent.ksql.parser.tree.UndefineVariable;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.WarningEntity;
+import io.confluent.ksql.rest.server.computation.DistributingExecutor;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.Optional;
@@ -33,7 +35,9 @@ public final class VariableExecutor {
       final ConfiguredStatement<DefineVariable> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext
+      final ServiceContext serviceContext,
+      final DistributingExecutor distributingExecutor,
+      final KsqlSecurityContext securityContext
   ) {
     final DefineVariable defineVariable = statement.getStatement();
     sessionProperties.setVariable(
@@ -48,7 +52,9 @@ public final class VariableExecutor {
       final ConfiguredStatement<UndefineVariable> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext
+      final ServiceContext serviceContext,
+      final DistributingExecutor distributingExecutor,
+      final KsqlSecurityContext securityContext
   ) {
     final String variableName = statement.getStatement().getVariableName();
 

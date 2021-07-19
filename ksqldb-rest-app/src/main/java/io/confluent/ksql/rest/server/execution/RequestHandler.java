@@ -119,14 +119,16 @@ public class RequestHandler {
 
     final StatementExecutor<T> executor = (StatementExecutor<T>) customExecutors.getOrDefault(
         statementClass,
-        (stmt, props, ctx, svcCtx) -> distributor.execute(stmt, ctx, securityContext)
+        (stmt, props, ctx, svcCtx, dstExc, seCtx) -> distributor.execute(stmt, ctx, securityContext)
     );
 
     return executor.execute(
         configured,
         sessionProperties,
         ksqlEngine,
-        securityContext.getServiceContext()
+        securityContext.getServiceContext(),
+        distributor,
+        securityContext
     );
   }
 

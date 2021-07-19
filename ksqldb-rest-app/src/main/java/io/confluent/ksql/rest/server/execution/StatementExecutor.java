@@ -19,6 +19,8 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.server.computation.DistributingExecutor;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.Optional;
@@ -36,12 +38,16 @@ public interface StatementExecutor<T extends Statement> {
    * @param sessionProperties the session properties
    * @param executionContext the context in which to execute it
    * @param serviceContext the services to use to execute it
+   * @param distributingExecutor the distributor to fall back on
+   * @param securityContext the security context to use for the distributor
    * @return the execution result, if present, else {@link Optional#empty()}
    */
   Optional<KsqlEntity> execute(
       ConfiguredStatement<T> statement,
       SessionProperties sessionProperties,
       KsqlExecutionContext executionContext,
-      ServiceContext serviceContext
+      ServiceContext serviceContext,
+      DistributingExecutor distributingExecutor,
+      KsqlSecurityContext securityContext
   );
 }

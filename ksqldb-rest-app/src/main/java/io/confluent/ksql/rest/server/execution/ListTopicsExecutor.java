@@ -23,6 +23,8 @@ import io.confluent.ksql.rest.entity.KafkaTopicInfoExtended;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KafkaTopicsListExtended;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.server.computation.DistributingExecutor;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.KafkaConsumerGroupClient;
 import io.confluent.ksql.services.KafkaConsumerGroupClient.ConsumerSummary;
 import io.confluent.ksql.services.KafkaConsumerGroupClientImpl;
@@ -55,7 +57,9 @@ public final class ListTopicsExecutor {
       final ConfiguredStatement<ListTopics> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext
+      final ServiceContext serviceContext,
+      final DistributingExecutor distributingExecutor,
+      final KsqlSecurityContext securityContext
   ) {
     final KafkaTopicClient client = serviceContext.getTopicClient();
     final Map<String, TopicDescription> topicDescriptions = listTopics(client, statement);

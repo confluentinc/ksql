@@ -21,6 +21,8 @@ import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.VariablesList;
 import io.confluent.ksql.rest.entity.VariablesList.Variable;
+import io.confluent.ksql.rest.server.computation.DistributingExecutor;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.List;
@@ -35,7 +37,9 @@ public final class ListVariablesExecutor {
       final ConfiguredStatement<ListVariables> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext
+      final ServiceContext serviceContext,
+      final DistributingExecutor distributingExecutor,
+      final KsqlSecurityContext securityContext
   ) {
     final List<Variable> sessionVariables = sessionProperties.getSessionVariables().entrySet()
         .stream()

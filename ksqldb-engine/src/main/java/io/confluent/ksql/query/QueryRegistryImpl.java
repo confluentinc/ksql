@@ -46,6 +46,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -55,8 +56,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       (sourceName, query) -> query.getSinkName().equals(sourceName);
 
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
-  private final Set<QueryMetadata> allLiveQueries;
-  private final Map<QueryId, QueryMetadata> allQueries;
+  private final Map<QueryId, QueryMetadata> allLiveQueries;
   private final Map<SourceName, QueryId> createAsQueries;
   private final Map<SourceName, Set<QueryId>> insertQueries;
   private final Collection<QueryEventListener> eventListeners;
@@ -71,8 +71,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       final QueryExecutorFactory executorFactory
   ) {
     this.persistentQueries = new ConcurrentHashMap<>();
-    this.allLiveQueries = ConcurrentHashMap.newKeySet();
-    this.allQueries = new ConcurrentHashMap<>();
+    this.allLiveQueries = new ConcurrentHashMap<>();
     this.createAsQueries = new ConcurrentHashMap<>();
     this.insertQueries = new ConcurrentHashMap<>();
     this.eventListeners = Objects.requireNonNull(eventListeners);
@@ -83,26 +82,26 @@ public class QueryRegistryImpl implements QueryRegistry {
   private QueryRegistryImpl(final QueryRegistryImpl original) {
     executorFactory = original.executorFactory;
     persistentQueries = new ConcurrentHashMap<>();
-    allLiveQueries = ConcurrentHashMap.newKeySet();
-    allQueries = new ConcurrentHashMap<>();
+    allLiveQueries = new ConcurrentHashMap<>();
     createAsQueries = new ConcurrentHashMap<>();
     insertQueries = new ConcurrentHashMap<>();
-    original.allLiveQueries.forEach(query -> {
-      if (query instanceof PersistentQueryMetadata) {
-        final PersistentQueryMetadata sandboxed = SandboxedPersistentQueryMetadataImpl.of(
-            (PersistentQueryMetadataImpl) query,
-            new ListenerImpl()
-        );
-        persistentQueries.put(sandboxed.getQueryId(), sandboxed);
-        allLiveQueries.add(sandboxed);
-        allQueries.put(sandboxed.getQueryId(), sandboxed);
-      } else {
-        final TransientQueryMetadata sandboxed = SandboxedTransientQueryMetadata.of(
-            (TransientQueryMetadata) query,
-            new ListenerImpl()
-        );
-        allLiveQueries.add(sandboxed);
-        allQueries.put(sandboxed.getQueryId(), sandboxed);
+    original.allLiveQueries.forEach(new BiConsumer<QueryId, QueryMetadata>() {
+      @Override
+      public void accept(QueryId queryId, QueryMetadata queryMetadata) {
+        if (queryMetadata instanceof PersistentQueryMetadata) {
+          final PersistentQueryMetadata sandboxed = SandboxedPersistentQueryMetadataImpl.of(
+              (PersistentQueryMetadataImpl) queryMetadata,
+              new ListenerImpl()
+          );
+          persistentQueries.put(sandboxed.getQueryId(), sandboxed);
+          allLiveQueries.put(sandboxed.getQueryId(), sandboxed);
+        } else {
+          final TransientQueryMetadata sandboxed = SandboxedTransientQueryMetadata.of(
+              (TransientQueryMetadata) queryMetadata,
+              new ListenerImpl()
+          );
+          allLiveQueries.put(sandboxed.getQueryId(), sandboxed);
+        }
       }
     });
     createAsQueries.putAll(original.createAsQueries);
@@ -194,7 +193,7 @@ public class QueryRegistryImpl implements QueryRegistry {
 
   @Override
   public Optional<QueryMetadata> getQuery(QueryId queryId) {
-    return Optional.ofNullable(allQueries.get(queryId));
+    return Optional.ofNullable(allLiveQueries.get(queryId));
   }
 
   @Override
@@ -216,7 +215,7 @@ public class QueryRegistryImpl implements QueryRegistry {
 
   @Override
   public List<QueryMetadata> getAllLiveQueries() {
-    return ImmutableList.copyOf(allLiveQueries);
+    return ImmutableList.copyOf(allLiveQueries.values());
   }
 
   @Override
@@ -298,7 +297,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       // Initialize the query before it's exposed to other threads via {@link allLiveQueries}.
       query.initialize();
     }
-    allLiveQueries.add(query);
+    allLiveQueries.put(query.getQueryId(), query);
     notifyCreate(serviceContext, metaStore, query);
   }
 
@@ -325,7 +324,7 @@ public class QueryRegistryImpl implements QueryRegistry {
       }
     }
 
-    allLiveQueries.remove(query);
+    allLiveQueries.remove(query.getQueryId(), query);
     notifyDeregister(query);
   }
 

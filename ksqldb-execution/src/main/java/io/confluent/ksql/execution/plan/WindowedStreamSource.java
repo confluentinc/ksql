@@ -37,8 +37,7 @@ public final class WindowedStreamSource extends SourceStep<KStreamHolder<Windowe
       @JsonProperty(value = "windowInfo", required = true) final WindowInfo windowInfo,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
       @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
-      @JsonProperty(value = "versionNumber", required = false) final int
-          versionNumber
+      @JsonProperty("versionNumber") final int versionNumber
   ) {
     super(props, topicName, formats, timestampColumn, sourceSchema, versionNumber);
     this.windowInfo = Objects.requireNonNull(windowInfo, "windowInfo");
@@ -71,7 +70,8 @@ public final class WindowedStreamSource extends SourceStep<KStreamHolder<Windowe
         && Objects.equals(topicName, that.topicName)
         && Objects.equals(formats, that.formats)
         && Objects.equals(timestampColumn, that.timestampColumn)
-        && Objects.equals(sourceSchema, that.sourceSchema);
+        && Objects.equals(sourceSchema, that.sourceSchema)
+        && Objects.equals(versionNumber, that.versionNumber);
   }
 
   @Override
@@ -81,7 +81,8 @@ public final class WindowedStreamSource extends SourceStep<KStreamHolder<Windowe
         topicName,
         formats,
         timestampColumn,
-        sourceSchema
+        sourceSchema,
+        versionNumber
     );
   }
 }

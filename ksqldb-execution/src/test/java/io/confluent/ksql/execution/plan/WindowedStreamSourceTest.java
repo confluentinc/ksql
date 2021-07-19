@@ -71,6 +71,9 @@ public class WindowedStreamSourceTest {
         .addEqualityGroup(
             new WindowedStreamSource(
                 properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema2, 0))
+        .addEqualityGroup(
+            new WindowedStreamSource(
+                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema2, 1))
         .testEquals();
   }
 }

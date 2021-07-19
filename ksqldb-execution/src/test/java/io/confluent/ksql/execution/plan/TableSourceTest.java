@@ -69,6 +69,9 @@ public class TableSourceTest {
         .addEqualityGroup(
             new TableSource(
                 properties1, "topic1", formats1, Optional.of(timestamp1), schema1, Optional.of(true), 0))
+        .addEqualityGroup(
+            new TableSource(
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, Optional.of(true), 1))
         .testEquals();
   }
 }

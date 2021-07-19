@@ -66,6 +66,9 @@ public class StreamSourceTest {
         .addEqualityGroup(
             new StreamSource(
                 properties1, "topic1", formats1, Optional.of(timestamp1), schema2, 0))
+        .addEqualityGroup(
+            new StreamSource(
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema2, 1))
         .testEquals();
   }
 }

@@ -33,8 +33,7 @@ public abstract class SourceStep<K> implements ExecutionStep<K> {
   final Formats formats;
   final Optional<TimestampColumn> timestampColumn;
   final LogicalSchema sourceSchema;
-
-  int versionNumber;
+  final int versionNumber;
 
   @VisibleForTesting
   public SourceStep(
@@ -52,7 +51,6 @@ public abstract class SourceStep<K> implements ExecutionStep<K> {
     this.sourceSchema = Objects.requireNonNull(sourceSchema, "sourceSchema");
     this.versionNumber = versionNumber;
   }
-
 
   @Override
   public ExecutionStepPropertiesV1 getProperties() {
@@ -80,6 +78,8 @@ public abstract class SourceStep<K> implements ExecutionStep<K> {
     return topicName;
   }
 
+  //Jsonignore here until KLIP-50 (add rowpartition and rowoffset pseudocolumns) is live.
+  //For now, we don't want to write versionNumber to the command topic
   @JsonIgnore
   public int getversionNumber() {
     return versionNumber;

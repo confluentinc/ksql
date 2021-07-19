@@ -48,24 +48,24 @@ public class StreamSourceTest {
     new EqualsTester()
         .addEqualityGroup(
             new StreamSource(
-                properties1, "topic1", formats1, Optional.of(timestamp1), schema1),
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, 0),
             new StreamSource(
-                properties1, "topic1", formats1, Optional.of(timestamp1), schema1))
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema1, 0))
         .addEqualityGroup(
             new StreamSource(
-                properties2, "topic1", formats1, Optional.of(timestamp1), schema1))
+                properties2, "topic1", formats1, Optional.of(timestamp1), schema1, 0))
         .addEqualityGroup(
             new StreamSource(
-                properties1, "topic2", formats1, Optional.of(timestamp1), schema1))
+                properties1, "topic2", formats1, Optional.of(timestamp1), schema1, 0))
         .addEqualityGroup(
             new StreamSource(
-                properties1, "topic1", formats2, Optional.of(timestamp1), schema1))
+                properties1, "topic1", formats2, Optional.of(timestamp1), schema1, 0))
         .addEqualityGroup(
             new StreamSource(
-                properties1, "topic1", formats1, Optional.of(timestamp2), schema1))
+                properties1, "topic1", formats1, Optional.of(timestamp2), schema1, 0))
         .addEqualityGroup(
             new StreamSource(
-                properties1, "topic1", formats1, Optional.of(timestamp1), schema2))
+                properties1, "topic1", formats1, Optional.of(timestamp1), schema2, 0))
         .testEquals();
   }
 }

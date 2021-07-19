@@ -53,24 +53,24 @@ public class WindowedStreamSourceTest {
     new EqualsTester()
         .addEqualityGroup(
             new WindowedStreamSource(
-                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema1),
+                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema1, 0),
             new WindowedStreamSource(
-                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema1))
+                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema1, 0))
         .addEqualityGroup(
             new WindowedStreamSource(
-                properties2, "topic1", formats1, window1, Optional.of(timestamp1), schema1))
+                properties2, "topic1", formats1, window1, Optional.of(timestamp1), schema1, 0))
         .addEqualityGroup(
             new WindowedStreamSource(
-                properties1, "topic2", formats1, window1, Optional.of(timestamp1), schema1))
+                properties1, "topic2", formats1, window1, Optional.of(timestamp1), schema1, 0))
         .addEqualityGroup(
             new WindowedStreamSource(
-                properties1, "topic1", formats2, window1, Optional.of(timestamp1), schema1))
+                properties1, "topic1", formats2, window1, Optional.of(timestamp1), schema1, 0))
         .addEqualityGroup(
             new WindowedStreamSource(
-                properties1, "topic1", formats1, window1, Optional.of(timestamp2), schema1))
+                properties1, "topic1", formats1, window1, Optional.of(timestamp2), schema1, 0))
         .addEqualityGroup(
             new WindowedStreamSource(
-                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema2))
+                properties1, "topic1", formats1, window1, Optional.of(timestamp1), schema2, 0))
         .testEquals();
   }
 }

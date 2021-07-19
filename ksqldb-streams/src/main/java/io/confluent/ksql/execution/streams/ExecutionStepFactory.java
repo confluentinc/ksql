@@ -87,7 +87,8 @@ public final class ExecutionStepFactory {
         formats,
         windowInfo,
         timestampColumn,
-        sourceSchema
+        sourceSchema,
+        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
     );
   }
 
@@ -123,7 +124,8 @@ public final class ExecutionStepFactory {
         formats,
         timestampColumn,
         sourceSchema,
-        Optional.of(true)
+        Optional.of(true),
+        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
     );
   }
 
@@ -142,7 +144,8 @@ public final class ExecutionStepFactory {
         formats,
         windowInfo,
         timestampColumn,
-        sourceSchema
+        sourceSchema,
+        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
     );
   }
 

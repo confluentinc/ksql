@@ -34,9 +34,11 @@ public final class WindowedTableSource extends SourceStep<KTableHolder<Windowed<
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty(value = "windowInfo", required = true) final WindowInfo windowInfo,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
-      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema
+      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
+      @JsonProperty(value = "versionNumber", required = false) final int
+          versionNumber
   ) {
-    super(props, topicName, formats, timestampColumn, sourceSchema);
+    super(props, topicName, formats, timestampColumn, sourceSchema, versionNumber);
     this.windowInfo = Objects.requireNonNull(windowInfo, "windowInfo");
   }
 

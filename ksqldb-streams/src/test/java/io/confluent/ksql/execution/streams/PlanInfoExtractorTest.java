@@ -33,6 +33,7 @@ import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.execution.plan.TableSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -70,7 +71,8 @@ public class PlanInfoExtractorTest {
         "s1",
         formats,
         Optional.empty(),
-        schema
+        schema,
+        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
     );
     tableSource = new TableSource(
         new ExecutionStepPropertiesV1(queryContext),
@@ -78,7 +80,8 @@ public class PlanInfoExtractorTest {
         formats,
         Optional.empty(),
         schema,
-        Optional.of(true)
+        Optional.of(true),
+        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
     );
     streamSourceRepartitioned = new StreamSelectKey<>(
         new ExecutionStepPropertiesV1(queryContext),

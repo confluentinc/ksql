@@ -16,13 +16,10 @@
 package io.confluent.ksql.execution.plan;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.timestamp.TimestampColumn;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SystemColumns;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -37,26 +34,10 @@ public abstract class SourceStep<K> implements ExecutionStep<K> {
   final Optional<TimestampColumn> timestampColumn;
   final LogicalSchema sourceSchema;
 
-  //I also tried using the @JsonIgnore field within concrete classes
-  @JsonIgnore
-  int versionNumber = -1;
+  int versionNumber;
 
   @VisibleForTesting
   public SourceStep(
-      final ExecutionStepPropertiesV1 properties,
-      final String topicName,
-      final Formats formats,
-      final Optional<TimestampColumn> timestampColumn,
-      final LogicalSchema sourceSchema
-  ) {
-    this.properties = Objects.requireNonNull(properties, "properties");
-    this.topicName = Objects.requireNonNull(topicName, "topicName");
-    this.formats = Objects.requireNonNull(formats, "formats");
-    this.timestampColumn = Objects.requireNonNull(timestampColumn, "timestampColumn");
-    this.sourceSchema = Objects.requireNonNull(sourceSchema, "sourceSchema");
-  }
-
-  SourceStep(
       final ExecutionStepPropertiesV1 properties,
       final String topicName,
       final Formats formats,

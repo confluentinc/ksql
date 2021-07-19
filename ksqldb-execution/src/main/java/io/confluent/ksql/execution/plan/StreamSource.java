@@ -55,23 +55,6 @@ public final class StreamSource extends SourceStep<KStreamHolder<GenericKey>> {
     );
   }
 
-  //while feature is being developed, continue to use old constructor for tests
-  public StreamSource(
-      final ExecutionStepPropertiesV1 props,
-      final String topicName,
-      final Formats formats,
-      final Optional<TimestampColumn> timestampColumn,
-      final LogicalSchema sourceSchema
-  ) {
-    super(
-        props,
-        topicName,
-        formats,
-        timestampColumn,
-        sourceSchema
-    );
-  }
-
   @Override
   public KStreamHolder<GenericKey> build(final PlanBuilder builder, final PlanInfo info) {
     return builder.visitStreamSource(this, info);

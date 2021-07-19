@@ -30,6 +30,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericKey;
@@ -54,6 +55,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SystemColumns;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
@@ -822,7 +824,8 @@ public class SourceBuilderTest {
         Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
         windowInfo,
         TIMESTAMP_COLUMN,
-        SOURCE_SCHEMA
+        SOURCE_SCHEMA,
+        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
     );
   }
 
@@ -834,7 +837,8 @@ public class SourceBuilderTest {
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
         TIMESTAMP_COLUMN,
-        SOURCE_SCHEMA
+        SOURCE_SCHEMA,
+        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
     );
   }
 
@@ -846,7 +850,8 @@ public class SourceBuilderTest {
         TOPIC_NAME,
         Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
         TIMESTAMP_COLUMN,
-        MULTI_COL_SOURCE_SCHEMA
+        MULTI_COL_SOURCE_SCHEMA,
+        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
     );
   }
 
@@ -860,7 +865,8 @@ public class SourceBuilderTest {
         Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
         windowInfo,
         TIMESTAMP_COLUMN,
-        SOURCE_SCHEMA
+        SOURCE_SCHEMA,
+        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
     );
   }
 
@@ -873,7 +879,8 @@ public class SourceBuilderTest {
         Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA,
-        Optional.of(forceChangelog)
+        Optional.of(forceChangelog),
+        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
     );
   }
 

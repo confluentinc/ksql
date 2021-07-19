@@ -337,7 +337,8 @@ public class StepSchemaResolverTest {
         "foo",
         formats,
         Optional.empty(),
-        SCHEMA
+        SCHEMA,
+        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
     );
 
     // When:
@@ -355,7 +356,8 @@ public class StepSchemaResolverTest {
         formats,
         WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(123))),
         Optional.empty(),
-        SCHEMA
+        SCHEMA,
+        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
     );
 
     // When:
@@ -538,7 +540,8 @@ public class StepSchemaResolverTest {
         formats,
         Optional.empty(),
         SCHEMA,
-        Optional.of(true)
+        Optional.of(true),
+        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
     );
 
     // When:
@@ -557,7 +560,8 @@ public class StepSchemaResolverTest {
         formats,
         mock(WindowInfo.class),
         Optional.empty(),
-        SCHEMA
+        SCHEMA,
+        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
     );
 
     // When:

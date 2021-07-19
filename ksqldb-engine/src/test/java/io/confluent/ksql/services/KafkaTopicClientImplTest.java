@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2021 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -102,7 +102,7 @@ public class KafkaTopicClientImplTest {
 
   private KafkaTopicClient kafkaTopicClient;
 
-  @SuppressWarnings("deprecation")
+  @SuppressWarnings({"deprecation", "unchecked"})
   @Before
   public void setUp() {
     topicPartitionInfo.clear();
@@ -433,6 +433,7 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldToCallOutToKafkaIfDeleteListIsEmpty() {
     // When:
     kafkaTopicClient.deleteTopics(ImmutableList.of());
@@ -463,6 +464,7 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldFailToDeleteOnTopicDeletionDisabledException() {
     // Given:
     when(adminClient.deleteTopics(any(Collection.class)))
@@ -476,6 +478,7 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldFailToDeleteOnTopicAuthorizationException() {
     // Given:
     when(adminClient.deleteTopics(any(Collection.class)))
@@ -493,6 +496,7 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldFailToDeleteOnKafkaDeleteTopicsException() {
     // Given:
     when(adminClient.deleteTopics(any(Collection.class)))
@@ -506,6 +510,7 @@ public class KafkaTopicClientImplTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldNotThrowKafkaDeleteTopicsExceptionWhenMissingTopic() {
     // Given:
     when(adminClient.deleteTopics(any(Collection.class)))
@@ -982,7 +987,7 @@ public class KafkaTopicClientImplTest {
           ));
 
       final DeleteTopicsResult deleteTopicsResult = mock(DeleteTopicsResult.class);
-      when(deleteTopicsResult.values()).thenReturn(result);
+      when(deleteTopicsResult.topicNameValues()).thenReturn(result);
       return deleteTopicsResult;
     };
   }
@@ -1002,7 +1007,7 @@ public class KafkaTopicClientImplTest {
           );
 
       final DeleteTopicsResult deleteTopicsResult = mock(DeleteTopicsResult.class);
-      when(deleteTopicsResult.values()).thenReturn(result);
+      when(deleteTopicsResult.topicNameValues()).thenReturn(result);
       return deleteTopicsResult;
     };
   }

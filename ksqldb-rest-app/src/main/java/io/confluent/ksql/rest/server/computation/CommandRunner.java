@@ -284,9 +284,12 @@ public class CommandRunner implements Closeable {
           .getKsqlEngine()
           .getPersistentQueries();
 
-      LOG.info("Restarting {} queries.", queries.size());
-
-      queries.forEach(PersistentQueryMetadata::start);
+      if (commandStore.corruptionDetected()) {
+        LOG.info("Corruption detected, queries will not be started.");
+      } else {
+        LOG.info("Restarting {} queries.", queries.size());
+        queries.forEach(PersistentQueryMetadata::start);
+      }
 
       LOG.info("Restore complete");
 

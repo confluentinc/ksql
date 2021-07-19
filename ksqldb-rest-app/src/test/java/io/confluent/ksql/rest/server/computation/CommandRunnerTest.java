@@ -42,6 +42,7 @@ import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionExc
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.TerminateCluster;
+import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -108,6 +109,12 @@ public class CommandRunnerTest {
   private Supplier<Boolean> commandTopicExists;
   @Mock
   private Errors errorHandler;
+  @Mock
+  private PersistentQueryMetadata queryMetadata1;
+  @Mock
+  private PersistentQueryMetadata queryMetadata2;
+  @Mock
+  private PersistentQueryMetadata queryMetadata3;
   @Captor
   private ArgumentCaptor<Runnable> threadTaskCaptor;
   private CommandRunner commandRunner;
@@ -159,6 +166,7 @@ public class CommandRunnerTest {
   public void shouldRunThePriorCommandsCorrectly() {
     // Given:
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    when(ksqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(queryMetadata1, queryMetadata2, queryMetadata3));
 
     // When:
     commandRunner.processPriorCommands();
@@ -168,6 +176,29 @@ public class CommandRunnerTest {
     inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
     inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
     inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand3));
+    verify(queryMetadata1).start();
+    verify(queryMetadata2).start();
+    verify(queryMetadata3).start();
+  }
+
+  @Test
+  public void shouldNotStartQueriesDuringRestoreWhenCorrupted() {
+    // Given:
+    givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+    when(ksqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(queryMetadata1, queryMetadata2, queryMetadata3));
+    when(commandStore.corruptionDetected()).thenReturn(true);
+
+    // When:
+    commandRunner.processPriorCommands();
+
+    // Then:
+    final InOrder inOrder = inOrder(statementExecutor);
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
+    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand3));
+    verify(queryMetadata1, never()).start();
+    verify(queryMetadata2, never()).start();
+    verify(queryMetadata3, never()).start();
   }
 
   @Test

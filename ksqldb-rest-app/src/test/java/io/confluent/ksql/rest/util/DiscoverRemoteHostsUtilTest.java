@@ -28,8 +28,8 @@ import io.confluent.ksql.util.PersistentQueryMetadata;
 import java.util.Collections;
 import java.util.Set;
 import org.apache.kafka.streams.KafkaStreams.State;
+import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.state.HostInfo;
-import org.apache.kafka.streams.state.StreamsMetadata;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,8 +39,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class DiscoverRemoteHostsUtilTest {
 
-  private static KsqlHostInfo THIS_HOST_INFO = new KsqlHostInfo("this_host", 8088);
-  private static HostInfo OTHER_HOST_INFO = new HostInfo("other_host", 8088);
+  private static final KsqlHostInfo THIS_HOST_INFO = new KsqlHostInfo("this_host", 8088);
+  private static final HostInfo OTHER_HOST_INFO = new HostInfo("other_host", 8088);
 
   @Mock
   private PersistentQueryMetadata runningQuery;

@@ -48,13 +48,13 @@ import java.util.stream.Stream;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyQueryMetadata;
+import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.TopologyDescription.Processor;
 import org.apache.kafka.streams.TopologyDescription.Source;
 import org.apache.kafka.streams.TopologyDescription.Subtopology;
 import org.apache.kafka.streams.state.HostInfo;
-import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -143,7 +143,7 @@ public final class KsLocator implements Locator {
           .queryMetadataForKey(stateStoreName, key.getKey(), keySerializer);
 
       // Fail fast if Streams not ready. Let client handle it
-      if (metadata == KeyQueryMetadata.NOT_AVAILABLE) {
+      if (metadata.equals(KeyQueryMetadata.NOT_AVAILABLE)) {
         LOG.debug("KeyQueryMetadata not available for state store '{}' and key {}",
             stateStoreName, key);
         throw new MaterializationException(String.format(
@@ -192,7 +192,7 @@ public final class KsLocator implements Locator {
     final Set<String> sourceTopicSuffixes = findSubtopologySourceTopicSuffixes();
     final Map<Integer, HostInfo> activeHostByPartition = new HashMap<>();
     final Map<Integer, Set<HostInfo>> standbyHostsByPartition = new HashMap<>();
-    for (final StreamsMetadata streamsMetadata : kafkaStreams.allMetadataForStore(stateStoreName)) {
+    for (final StreamsMetadata streamsMetadata : kafkaStreams.streamsMetadataForStore(stateStoreName)) {
       streamsMetadata.topicPartitions().forEach(
           tp -> {
             if (sourceTopicSuffixes.stream().anyMatch(suffix -> tp.topic().endsWith(suffix))) {

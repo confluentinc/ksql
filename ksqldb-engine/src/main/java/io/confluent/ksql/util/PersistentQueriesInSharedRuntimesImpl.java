@@ -82,7 +82,7 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
   private final Optional<MaterializationProviderBuilderFactory.MaterializationProviderBuilder>
       materializationProviderBuilder;
   private final Optional<MaterializationProvider> materializationProvider;
-  private boolean everStarted = false;
+  public boolean everStarted = false;
   private QueryErrorClassifier classifier;
   private Map<String, Object> streamsProperties;
 
@@ -137,12 +137,6 @@ public class PersistentQueriesInSharedRuntimesImpl implements PersistentQueryMet
             ));
     this.classifier = requireNonNull(classifier, "classifier");
     this.streamsProperties = requireNonNull(streamsProperties, "streamsProperties");
-    sharedKafkaStreamsRuntime.addQuery(
-        classifier,
-        streamsProperties,
-        this,
-        queryId
-    );
   }
 
 

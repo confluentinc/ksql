@@ -464,8 +464,9 @@ final class QueryExecutor {
           final Set<SourceName> sources,
           final QueryId queryID) {
     for (final SharedKafkaStreamsRuntime sharedKafkaStreamsRuntime : streams) {
-      Set<SourceName> sourceNames = sharedKafkaStreamsRuntime.getSources();
-      if (sharedKafkaStreamsRuntime.getSources().stream().noneMatch(sources::contains)) {
+      if (sharedKafkaStreamsRuntime.getSources().stream().noneMatch(sources::contains)
+          || sharedKafkaStreamsRuntime.sources.containsKey(queryID)) {
+        sharedKafkaStreamsRuntime.markSources(queryID, sources);
         return sharedKafkaStreamsRuntime;
       }
     }
@@ -474,6 +475,7 @@ final class QueryExecutor {
         config.getConfig(true).getInt(KsqlConfig.KSQL_QUERY_ERROR_MAX_QUEUE_SIZE),
         buildStreamsProperties("_confluent-ksql-" + streams.size() + UUID.randomUUID(), queryID)
     );
+    stream.markSources(queryID, sources);
     streams.add(stream);
     return stream;
   }

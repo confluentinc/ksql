@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import io.vertx.core.impl.ConcurrentHashSet;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.LagInfo;
 import org.apache.kafka.streams.StreamsMetadata;
@@ -52,6 +53,7 @@ public class SharedKafkaStreamsRuntime {
   private ImmutableMap<String, Object> streamsProperties;
   private final QueryMetadataImpl.TimeBoundedQueue queryErrors;
   private final Map<String, PersistentQueriesInSharedRuntimesImpl> metadata;
+  public final Map<QueryId, Set<SourceName>> sources;
 
   public SharedKafkaStreamsRuntime(final KafkaStreamsBuilder kafkaStreamsBuilder,
                                    final int maxQueryErrorsQueueSize,
@@ -62,8 +64,13 @@ public class SharedKafkaStreamsRuntime {
         = new QueryMetadataImpl.TimeBoundedQueue(Duration.ofHours(1), maxQueryErrorsQueueSize);
     this.streamsProperties = ImmutableMap.copyOf(streamsProperties);
     metadata = new ConcurrentHashMap<>();
+    sources = new ConcurrentHashMap<>();
     kafkaStreams.setUncaughtExceptionHandler(this::uncaughtHandler);
     kafkaStreams.start();
+  }
+
+public void markSources(final QueryId queryId, final Set<SourceName> sourceNames) {
+    sources.put(queryId, sourceNames);
   }
 
   public void addQuery(
@@ -166,7 +173,7 @@ public class SharedKafkaStreamsRuntime {
   }
 
   public void start(final QueryId queryId) {
-    if (metadata.containsKey(queryId.toString())) {
+    if (metadata.containsKey(queryId.toString()) && !metadata.get(queryId.toString()).everStarted) {
       kafkaStreams.addNamedTopology(metadata.get(queryId.toString()).getTopology());
     } else {
       throw new IllegalArgumentException("query not added to runtime");
@@ -191,11 +198,6 @@ public class SharedKafkaStreamsRuntime {
   }
 
   public Set<SourceName> getSources() {
-    return ImmutableSet.copyOf(
-        metadata.values()
-            .stream()
-            .flatMap(t -> t.getSourceNames().stream())
-            .collect(Collectors.toSet())
-    );
+    return ImmutableSet.copyOf(sources.values().stream().flatMap(Collection::stream).collect(Collectors.toSet()));
   }
 }

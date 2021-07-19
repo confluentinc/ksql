@@ -39,7 +39,6 @@ public class PullQueryRow {
     this.sourceNode = sourceNode;
   }
 
-  @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "row is ImmutableList")
   public List<?> getRow() {
     return Collections.unmodifiableList(row);
   }

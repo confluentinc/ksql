@@ -723,7 +723,7 @@ public class KsqlResourceTest {
         "SHOW QUERIES EXTENDED;", QueryDescriptionList.class);
 
     final Map<KsqlHostInfoEntity, KsqlConstants.KsqlQueryStatus> queryHostState =
-        ImmutableMap.of(new KsqlHostInfoEntity(APPLICATION_HOST, APPLICATION_PORT), KsqlConstants.KsqlQueryStatus.RUNNING);
+        ImmutableMap.of(new KsqlHostInfoEntity(APPLICATION_HOST, APPLICATION_PORT), KsqlConstants.KsqlQueryStatus.ERROR);
     // Then:
     assertThat(descriptionList.getQueryDescriptions(), containsInAnyOrder(
         QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(0), queryHostState),

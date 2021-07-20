@@ -25,8 +25,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.state.HostInfo;
-import org.apache.kafka.streams.state.StreamsMetadata;
+import org.apache.kafka.streams.state.internals.StreamsMetadataImpl;
 
 /**
  * This locator contacts all hosts since there currently isn't a mechanism to find which hosts own
@@ -54,7 +55,7 @@ public class AllHostsLocator implements PushLocator {
         .map(QueryMetadata::getAllMetadata)
         .filter(Objects::nonNull)
         .flatMap(Collection::stream)
-        .filter(streamsMetadata -> streamsMetadata != StreamsMetadata.NOT_AVAILABLE)
+        .filter(streamsMetadata -> !(streamsMetadata.equals(StreamsMetadataImpl.NOT_AVAILABLE)))
         .map(StreamsMetadata::hostInfo)
         .map(hi -> new Node(isLocalhost(hi), buildLocation(hi)))
         .distinct()

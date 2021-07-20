@@ -23,8 +23,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.state.HostInfo;
-import org.apache.kafka.streams.state.StreamsMetadata;
+import org.apache.kafka.streams.state.internals.StreamsMetadataImpl;
 
 public final class DiscoverRemoteHostsUtil {
 
@@ -40,7 +41,7 @@ public final class DiscoverRemoteHostsUtil {
         .map(QueryMetadata::getAllMetadata)
         .filter(Objects::nonNull)
         .flatMap(Collection::stream)
-        .filter(streamsMetadata -> streamsMetadata != StreamsMetadata.NOT_AVAILABLE)
+        .filter(streamsMetadata -> !(streamsMetadata.equals(StreamsMetadataImpl.NOT_AVAILABLE)))
         .map(StreamsMetadata::hostInfo)
         .filter(hostInfo -> !(hostInfo.host().equals(localHost.host())
             && hostInfo.port() == (localHost.port())))

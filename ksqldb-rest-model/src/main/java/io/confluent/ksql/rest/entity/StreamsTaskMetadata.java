@@ -25,7 +25,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.streams.processor.TaskMetadata;
+import org.apache.kafka.streams.TaskMetadata;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class StreamsTaskMetadata {
@@ -59,7 +59,7 @@ public class StreamsTaskMetadata {
       );
     }
     return new StreamsTaskMetadata(
-        taskMetadata.taskId(),
+        taskMetadata.taskId().toString(),
         topicOffsets,
         taskMetadata.timeCurrentIdlingStarted());
   }
@@ -71,7 +71,6 @@ public class StreamsTaskMetadata {
   public Set<TopicOffset> getTopicOffsets() {
     return topicOffsets;
   }
-
 
   public Optional<Long> getTimeCurrentIdlingStarted() {
     return timeCurrentIdlingStarted;

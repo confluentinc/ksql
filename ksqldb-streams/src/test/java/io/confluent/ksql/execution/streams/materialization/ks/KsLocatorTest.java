@@ -53,11 +53,11 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyQueryMetadata;
+import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.TopologyDescription.Subtopology;
 import org.apache.kafka.streams.state.HostInfo;
-import org.apache.kafka.streams.state.StreamsMetadata;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -94,18 +94,32 @@ public class KsLocatorTest {
   private static final TopicPartition BAD_TOPIC_PARTITION1 = new TopicPartition(BAD_TOPIC_NAME, 0);
   private static final TopicPartition BAD_TOPIC_PARTITION2 = new TopicPartition(BAD_TOPIC_NAME, 1);
   private static final TopicPartition BAD_TOPIC_PARTITION3 = new TopicPartition(BAD_TOPIC_NAME, 2);
-  private static final StreamsMetadata HOST1_STREAMS_MD1 = new StreamsMetadata(ACTIVE_HOST_INFO,
-      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION1, BAD_TOPIC_PARTITION3),
-      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION2, TOPIC_PARTITION3,
-      BAD_TOPIC_PARTITION1, BAD_TOPIC_PARTITION2));
-  private static final StreamsMetadata HOST1_STREAMS_MD2 = new StreamsMetadata(STANDBY_HOST_INFO1,
-      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION2, BAD_TOPIC_PARTITION1),
-      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION1, TOPIC_PARTITION3,
-      BAD_TOPIC_PARTITION2, BAD_TOPIC_PARTITION3));
-  private static final StreamsMetadata HOST1_STREAMS_MD3 = new StreamsMetadata(STANDBY_HOST_INFO2,
-      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION3, BAD_TOPIC_PARTITION2),
-      ImmutableSet.of(STORE_NAME), ImmutableSet.of(TOPIC_PARTITION1, TOPIC_PARTITION2,
-      BAD_TOPIC_PARTITION1, BAD_TOPIC_PARTITION3));
+
+  private static final StreamsMetadata HOST1_STREAMS_MD1 = mock(StreamsMetadata.class);
+  private static final StreamsMetadata HOST1_STREAMS_MD2 = mock(StreamsMetadata.class);
+  private static final StreamsMetadata HOST1_STREAMS_MD3 = mock(StreamsMetadata.class);
+  {
+    when(HOST1_STREAMS_MD1.hostInfo()).thenReturn(ACTIVE_HOST_INFO);
+    when(HOST1_STREAMS_MD1.stateStoreNames()).thenReturn(ImmutableSet.of(STORE_NAME));
+    when(HOST1_STREAMS_MD1.standbyStateStoreNames()).thenReturn(ImmutableSet.of(STORE_NAME));
+    when(HOST1_STREAMS_MD1.topicPartitions()).thenReturn(ImmutableSet.of(TOPIC_PARTITION1, BAD_TOPIC_PARTITION3));
+    when(HOST1_STREAMS_MD1.standbyTopicPartitions()).thenReturn(ImmutableSet.of(TOPIC_PARTITION2, TOPIC_PARTITION3,
+                                                                                BAD_TOPIC_PARTITION1, BAD_TOPIC_PARTITION2));
+
+    when(HOST1_STREAMS_MD2.hostInfo()).thenReturn(STANDBY_HOST_INFO1);
+    when(HOST1_STREAMS_MD2.stateStoreNames()).thenReturn(ImmutableSet.of(STORE_NAME));
+    when(HOST1_STREAMS_MD2.standbyStateStoreNames()).thenReturn(ImmutableSet.of(STORE_NAME));
+    when(HOST1_STREAMS_MD2.topicPartitions()).thenReturn(ImmutableSet.of(TOPIC_PARTITION2, BAD_TOPIC_PARTITION1));
+    when(HOST1_STREAMS_MD2.standbyTopicPartitions()).thenReturn(ImmutableSet.of(TOPIC_PARTITION1, TOPIC_PARTITION3,
+                                                                                BAD_TOPIC_PARTITION2, BAD_TOPIC_PARTITION3));
+
+    when(HOST1_STREAMS_MD3.hostInfo()).thenReturn(STANDBY_HOST_INFO2);
+    when(HOST1_STREAMS_MD3.stateStoreNames()).thenReturn(ImmutableSet.of(STORE_NAME));
+    when(HOST1_STREAMS_MD3.standbyStateStoreNames()).thenReturn(ImmutableSet.of(STORE_NAME));
+    when(HOST1_STREAMS_MD3.topicPartitions()).thenReturn(ImmutableSet.of(TOPIC_PARTITION3, BAD_TOPIC_PARTITION2));
+    when(HOST1_STREAMS_MD3.standbyTopicPartitions()).thenReturn(ImmutableSet.of(TOPIC_PARTITION1, TOPIC_PARTITION2,
+                                                                                BAD_TOPIC_PARTITION1, BAD_TOPIC_PARTITION3));
+  }
 
   @Mock
   private KafkaStreams kafkaStreams;
@@ -138,8 +152,6 @@ public class KsLocatorTest {
   private RoutingFilters routingActiveFilters;
   private RoutingFilterFactory routingFilterFactoryActive;
   private RoutingFilterFactory routingFilterFactoryStandby;
-  private static final HostStatus HOST_ALIVE = new HostStatus(true, 0L);
-  private static final HostStatus HOST_DEAD = new HostStatus(false, 0L);
 
   @Before
   public void setUp() {
@@ -427,7 +439,7 @@ public class KsLocatorTest {
     when(sub1.nodes()).thenReturn(ImmutableSet.of(source, processor));
     when(source.topicSet()).thenReturn(ImmutableSet.of(TOPIC_NAME));
     when(processor.stores()).thenReturn(ImmutableSet.of(STORE_NAME));
-    when(kafkaStreams.allMetadataForStore(any()))
+    when(kafkaStreams.streamsMetadataForStore(any()))
         .thenReturn(ImmutableList.of(HOST1_STREAMS_MD1, HOST1_STREAMS_MD2, HOST1_STREAMS_MD3));
 
     // When:

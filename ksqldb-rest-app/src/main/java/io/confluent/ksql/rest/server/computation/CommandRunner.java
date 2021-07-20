@@ -21,6 +21,7 @@ import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
+import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.Pair;
@@ -42,6 +43,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
 import org.apache.kafka.clients.consumer.OffsetOutOfRangeException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.WakeupException;
@@ -249,7 +251,7 @@ public class CommandRunner implements Closeable {
   /**
    * Read and execute all commands on the command topic, starting at the earliest offset.
    */
-  public void processPriorCommands() {
+  public void processPriorCommands(final PersistentQueryCleanupImpl queryCleanup) {
     try {
       final List<QueuedCommand> restoreCommands = commandStore.getRestoreCommands();
       final List<QueuedCommand> compatibleCommands = checkForIncompatibleCommands(restoreCommands);
@@ -284,6 +286,7 @@ public class CommandRunner implements Closeable {
           .getKsqlEngine()
           .getPersistentQueries();
 
+      queryCleanup.cleanupLeakedQueries(queries);
       LOG.info("Restarting {} queries.", queries.size());
 
       queries.forEach(PersistentQueryMetadata::start);

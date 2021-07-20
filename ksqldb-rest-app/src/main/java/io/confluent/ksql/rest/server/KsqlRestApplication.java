@@ -90,6 +90,7 @@ import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.ConcurrencyLimiter;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.KsqlUncaughtExceptionHandler;
+import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
@@ -477,7 +478,16 @@ public final class KsqlRestApplication implements Executable {
         processingLogContext.getConfig(),
         ksqlConfigNoPort
     );
-    commandRunner.processPriorCommands();
+    commandRunner.processPriorCommands(new PersistentQueryCleanupImpl(
+        configWithApplicationServer
+        .getKsqlStreamConfigProps()
+        .getOrDefault(
+          StreamsConfig.STATE_DIR_CONFIG,
+          StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG))
+        .toString(),
+        serviceContext)
+    );
+
     commandRunner.start();
     maybeCreateProcessingLogStream(
         processingLogContext.getConfig(),

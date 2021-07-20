@@ -42,10 +42,10 @@ import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.LagInfo;
+import org.apache.kafka.streams.StreamsMetadata;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
-import org.apache.kafka.streams.state.StreamsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -205,7 +205,7 @@ public class QueryMetadataImpl implements QueryMetadata {
   }
 
   public Set<StreamsTaskMetadata> getTaskMetadata() {
-    return kafkaStreams.localThreadsMetadata()
+    return kafkaStreams.metadataForLocalThreads()
                        .stream()
                        .flatMap(t -> t.activeTasks().stream())
                        .map(StreamsTaskMetadata::fromStreamsTaskMetadata)
@@ -251,7 +251,7 @@ public class QueryMetadataImpl implements QueryMetadata {
 
   public Collection<StreamsMetadata> getAllMetadata() {
     try {
-      return ImmutableList.copyOf(kafkaStreams.allMetadata());
+      return ImmutableList.copyOf(kafkaStreams.metadataForAllStreamsClients());
     } catch (IllegalStateException e) {
       LOG.error(e.getMessage());
     }

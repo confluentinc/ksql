@@ -49,8 +49,8 @@ types of ksqlDB statements:
 * `DROP TYPE`
 * `SET <property>`
 * `UNSET <property>`
-* `DEFINE <variable>`
-* `UNDEFINE <variable>`
+* `DEFINE <variable>` - available if both `ksql-migrations` and the server are version 0.18 or newer
+* `UNDEFINE <variable>` - available if both `ksql-migrations` and the server are version 0.18 or newer.
 
 Any properties or variables set using the `SET`, `UNSET`, `DEFINE` and `UNDEFINE` are applied in the 
 current migration file only. They do not carry over to the next migration file, even if multiple
@@ -241,7 +241,7 @@ to apply:
 In addition to selecting a mode for `ksql-migrations apply`, you must also provide
 the path to the config file of your migrations project as part of the command.
 
-You can define variables by passing the `--define` flag followed by a string of the form
+If both your ksqlDB server and migration tool are version 0.18 and newer, you can define variables by passing the `--define` flag followed by a string of the form
 `name=value` any number of times. For example, the following command
 
 ```bash
@@ -448,6 +448,7 @@ Troubleshooting
 
 Prior to applying new migrations, the `ksql-migrations` tool validates the current
 state of applied migrations including the following:
+
 - The latest migration version has completed, i.e., does not have status `RUNNING`.
 - The migration history is valid, i.e., starting from the latest applied migration
   version and repeatedly following the previous migration version saved in the

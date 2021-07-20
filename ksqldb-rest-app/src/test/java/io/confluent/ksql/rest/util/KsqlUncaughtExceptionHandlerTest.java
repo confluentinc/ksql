@@ -25,7 +25,7 @@ public class KsqlUncaughtExceptionHandlerTest {
     // When
     final CountDownLatch latch = new CountDownLatch(1);
     KsqlUncaughtExceptionHandler handler = new KsqlUncaughtExceptionHandler(LogManager::shutdown, Optional.of(latch));
-    handler.uncaughtException(new Thread(), new Exception());
+    handler.uncaughtException(streamThread, new Exception());
     // Then
     assertThat(latch.await(60000, TimeUnit.MILLISECONDS), is(true));
   }

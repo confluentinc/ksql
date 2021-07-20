@@ -16,52 +16,13 @@
 package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.engine.QueryCleanupService;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import java.io.File;
-import java.util.Arrays;
-import java.util.HashSet;
+
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class PersistentQueryCleanup {
-  private static final Logger LOG = LoggerFactory.getLogger(PersistentQueryCleanup.class);
+public interface PersistentQueryCleanup {
 
-  private final String stateDir;
-  private final ServiceContext serviceContext;
-  private final QueryCleanupService queryCleanupService;
+  void cleanupLeakedQueries(List<PersistentQueryMetadata> persistentQueries);
 
-  public PersistentQueryCleanup(final String stateDir, final ServiceContext serviceContext) {
-    this.stateDir = stateDir;
-    this.serviceContext = serviceContext;
-    queryCleanupService = new QueryCleanupService();
-    queryCleanupService.startAsync();
-  }
-
-  public void cleanupLeakedQueries(final List<PersistentQueryMetadata> persistentQueries) {
-    final Set<String> stateStoreNames =
-        persistentQueries
-        .stream()
-        .map(PersistentQueryMetadata::getQueryApplicationId)
-        .collect(Collectors.toSet());
-    try {
-      final Set<String> allStateStores = new HashSet<>(Arrays.asList(new File(stateDir).list()));
-      allStateStores.removeAll(stateStoreNames);
-      allStateStores.forEach((appId) -> queryCleanupService.addCleanupTask(
-          new QueryCleanupService.QueryCleanupTask(
-          serviceContext,
-          appId,
-          false,
-          stateDir)));
-    } catch (NullPointerException e) {
-      LOG.info("No state stores to clean up");
-    }
-  }
-
-  public QueryCleanupService getQueryCleanupService() {
-    return queryCleanupService;
-  }
+  QueryCleanupService getQueryCleanupService();
 }

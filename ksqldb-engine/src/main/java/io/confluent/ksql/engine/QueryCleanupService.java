@@ -22,6 +22,8 @@ import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.services.ServiceContext;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -113,7 +115,8 @@ public class QueryCleanupService extends AbstractExecutionThreadService {
     @Override
     public void run() {
       try {
-        FileUtils.deleteDirectory(new File(stateDir + appId));
+        final Path pathName = Paths.get(stateDir + "/" + appId);
+        FileUtils.deleteDirectory(new File(String.valueOf(pathName.normalize())));
         LOG.warn("Deleted local state store for non-existing query {}. "
             + "This is not expected and was likely due to a "
             + "race condition when the query was dropped before.",

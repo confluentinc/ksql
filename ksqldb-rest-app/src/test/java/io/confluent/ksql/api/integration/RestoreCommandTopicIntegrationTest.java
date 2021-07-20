@@ -18,6 +18,7 @@ package io.confluent.ksql.api.integration;
 import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_METASTORE_BACKUP_LOCATION;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
+import static java.lang.Thread.sleep;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
@@ -94,7 +95,7 @@ public class RestoreCommandTopicIntegrationTest {
         .builder(TEST_HARNESS::kafkaBootstrapServers)
         .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
         .withProperty(KSQL_METASTORE_BACKUP_LOCATION, BACKUP_LOCATION.getPath())
-        .withProperty(StreamsConfig.STATE_DIR_CONFIG, "/tmp/cat")
+        .withProperty(StreamsConfig.STATE_DIR_CONFIG, "/tmp/cat/")
         .build();
   }
 
@@ -215,9 +216,9 @@ public class RestoreCommandTopicIntegrationTest {
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE")
   @Test
-  public void shouldCleanUpLeftoverStateStores() throws SecurityException {
+  public void shouldCleanUpLeftoverStateStores() throws InterruptedException {
     // Given:
-    File tempDir = new File("/tmp/cat");
+    File tempDir = new File("/tmp/cat/");
     if (!tempDir.exists()){
       tempDir.mkdirs();
     }
@@ -225,10 +226,10 @@ public class RestoreCommandTopicIntegrationTest {
     if (!fakeStateStore.exists()){
       fakeStateStore.mkdirs();
     }
-    makeKsqlRequest("CREATE STREAM TOPIC3 (ID INT, price int) "
+    makeKsqlRequest("CREATE STREAM new_stream (ID INT, price int) "
             + "WITH (KAFKA_TOPIC='temp_top', partitions=3, VALUE_FORMAT='JSON');");
-    makeKsqlRequest("CREATE TABLE stream3 AS SELECT id, sum(price) FROM topic3 group by ID;");
-    File realStateStore = new File(tempDir.getAbsolutePath() + "/_confluent-ksql-default_query_CTAS_STREAM3_1");
+    makeKsqlRequest("CREATE TABLE new_stream_3 AS SELECT id, sum(price) FROM new_stream group by ID;");
+    File realStateStore = new File(tempDir.getAbsolutePath() + "/_confluent-ksql-default_query_CTAS_NEW_STREAM_3_1");
 
     assertTrue(tempDir.exists());
     assertTrue(fakeStateStore.exists());
@@ -237,6 +238,7 @@ public class RestoreCommandTopicIntegrationTest {
     // When:
     REST_APP.stop();
     REST_APP.start();
+    sleep(3000);
 
     // Then:
     assertFalse(fakeStateStore.exists());

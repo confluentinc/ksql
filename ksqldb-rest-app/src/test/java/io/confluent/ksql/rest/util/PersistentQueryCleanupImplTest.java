@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.QueryCleanupService;
 import io.confluent.ksql.logging.query.TestAppender;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import org.apache.log4j.Level;
@@ -43,9 +42,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class PersistentQueryCleanupTest {
+public class PersistentQueryCleanupImplTest {
   File tempFile;
-  PersistentQueryCleanup cleanup;
+  PersistentQueryCleanupImpl cleanup;
 
   @Mock
   ServiceContext context;
@@ -58,7 +57,7 @@ public class PersistentQueryCleanupTest {
       tempFile.mkdirs();
     }
 
-    cleanup = new PersistentQueryCleanup("/tmp/cat/", context);
+    cleanup = new PersistentQueryCleanupImpl("/tmp/cat/", context);
 
   }
 

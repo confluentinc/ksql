@@ -51,7 +51,7 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
-import io.confluent.ksql.rest.util.PersistentQueryCleanup;
+import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.serde.ValueFormat;
@@ -259,7 +259,7 @@ public class RecoveryTest {
     }
 
     void recover() {
-      this.commandRunner.processPriorCommands(new PersistentQueryCleanup(
+      this.commandRunner.processPriorCommands(new PersistentQueryCleanupImpl(
         ksqlConfig
           .getKsqlStreamConfigProps()
           .getOrDefault(

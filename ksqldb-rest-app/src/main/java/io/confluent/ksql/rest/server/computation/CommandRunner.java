@@ -21,7 +21,7 @@ import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.server.resources.IncompatibleKsqlCommandVersionException;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
-import io.confluent.ksql.rest.util.PersistentQueryCleanup;
+import io.confluent.ksql.rest.util.PersistentQueryCleanupImpl;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.util.Pair;
@@ -251,7 +251,7 @@ public class CommandRunner implements Closeable {
   /**
    * Read and execute all commands on the command topic, starting at the earliest offset.
    */
-  public void processPriorCommands(final PersistentQueryCleanup queryCleanup) {
+  public void processPriorCommands(final PersistentQueryCleanupImpl queryCleanup) {
     try {
       final List<QueuedCommand> restoreCommands = commandStore.getRestoreCommands();
       final List<QueuedCommand> compatibleCommands = checkForIncompatibleCommands(restoreCommands);

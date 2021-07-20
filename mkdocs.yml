@@ -250,7 +250,7 @@ extra:
         # Build-related string tokens
         kafkaversion: 2.8
         ksqldbversion: 0.19.0
-        kstreamsbetatag: 6.2.0-beta210310224144-cp8
+        kstreamsbetatag: 7.0.0-beta210604105212-cp7
         kstreamsbetabuild: 1
         cprelease: 6.2.0
         releasepostbranch: 6.2.0-post

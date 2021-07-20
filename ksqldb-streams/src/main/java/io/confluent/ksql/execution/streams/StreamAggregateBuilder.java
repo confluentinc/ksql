@@ -260,18 +260,16 @@ public final class StreamAggregateBuilder {
     }
 
     @Override
+    @SuppressWarnings("deprecation")  // can be fixed after GRACE clause is made mandatory
     public KTable<Windowed<GenericKey>, GenericRow>  visitHoppingWindowExpression(
         final HoppingWindowExpression window,
         final Void ctx) {
-
-      final Duration size = window.getSize().toDuration();
-      final Optional<WindowTimeClause> graceClause = window.getGracePeriod();
-
-      final TimeWindows windows = graceClause.map(
-          grace -> TimeWindows.ofSizeAndGrace(size, grace.toDuration())
-      ).orElseGet(
-          () -> TimeWindows.ofSizeWithNoGrace(size)
-      ).advanceBy(window.getAdvanceBy().toDuration());
+      TimeWindows windows = TimeWindows
+          .of(window.getSize().toDuration())
+          .advanceBy(window.getAdvanceBy().toDuration());
+      windows = window.getGracePeriod().map(WindowTimeClause::toDuration)
+          .map(windows::grace)
+          .orElse(windows);
 
       return groupedStream
           .windowedBy(windows)
@@ -286,18 +284,14 @@ public final class StreamAggregateBuilder {
     }
 
     @Override
+    @SuppressWarnings("deprecation")  // can be fixed after GRACE clause is made mandatory
     public KTable<Windowed<GenericKey>, GenericRow>  visitSessionWindowExpression(
         final SessionWindowExpression window,
         final Void ctx) {
-
-      final Duration gap = window.getGap().toDuration();
-      final Optional<WindowTimeClause> graceClause = window.getGracePeriod();
-
-      final SessionWindows windows = graceClause.map(
-          grace -> SessionWindows.ofInactivityGapAndGrace(gap, grace.toDuration())
-      ).orElseGet(
-          () -> SessionWindows.ofInactivityGapWithNoGrace(gap)
-      );
+      SessionWindows windows = SessionWindows.with(window.getGap().toDuration());
+      windows = window.getGracePeriod().map(WindowTimeClause::toDuration)
+          .map(windows::grace)
+          .orElse(windows);
 
       return groupedStream
           .windowedBy(windows)
@@ -313,18 +307,14 @@ public final class StreamAggregateBuilder {
     }
 
     @Override
+    @SuppressWarnings("deprecation")  // can be fixed after GRACE clause is made mandatory
     public KTable<Windowed<GenericKey>, GenericRow> visitTumblingWindowExpression(
         final TumblingWindowExpression window,
         final Void ctx) {
-
-      final Duration size = window.getSize().toDuration();
-      final Optional<WindowTimeClause> graceClause = window.getGracePeriod();
-
-      final TimeWindows windows = graceClause.map(
-          grace -> TimeWindows.ofSizeAndGrace(size, grace.toDuration())
-      ).orElseGet(
-          () -> TimeWindows.ofSizeWithNoGrace(size)
-      );
+      TimeWindows windows = TimeWindows.of(window.getSize().toDuration());
+      windows = window.getGracePeriod().map(WindowTimeClause::toDuration)
+          .map(windows::grace)
+          .orElse(windows);
 
       return groupedStream
           .windowedBy(windows)

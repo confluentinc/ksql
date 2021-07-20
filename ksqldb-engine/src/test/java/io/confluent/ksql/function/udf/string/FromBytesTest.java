@@ -37,24 +37,32 @@ public class FromBytesTest {
     public void shouldConvertBytesToHexString() {
         assertThat(udf.fromBytes(ByteBuffer.wrap(new byte[]{33}), "hex"),
             is("21"));
+        assertThat(udf.fromBytes(ByteBuffer.wrap(new byte[]{}), "hex"),
+            is(""));
     }
 
     @Test
     public void shouldConvertBytesToUtf8String() {
         assertThat(udf.fromBytes(ByteBuffer.wrap(new byte[]{33}), "utf8"),
             is("!"));
+        assertThat(udf.fromBytes(ByteBuffer.wrap(new byte[]{}), "utf8"),
+            is(""));
     }
 
     @Test
     public void shouldConvertAsciiStringToBytes() {
         assertThat(udf.fromBytes(ByteBuffer.wrap(new byte[]{33}), "ascii"),
             is("!"));
+        assertThat(udf.fromBytes(ByteBuffer.wrap(new byte[]{}), "ascii"),
+            is(""));
     }
 
     @Test
     public void shouldConvertBase64StringToBytes() {
         assertThat(udf.fromBytes(ByteBuffer.wrap(new byte[]{33}), "base64"),
             is("IQ=="));
+        assertThat(udf.fromBytes(ByteBuffer.wrap(new byte[]{}), "base64"),
+            is(""));
     }
 
     @Test

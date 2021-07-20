@@ -17,6 +17,7 @@ package io.confluent.ksql.util;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.BaseEncoding;
 
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
@@ -83,6 +84,22 @@ public final class BytesUtils {
     }
 
     return decoder.apply(value);
+  }
+
+  public static byte[] getByteArray(final ByteBuffer buffer) {
+    if (buffer == null) {
+      return null;
+    }
+
+    // ByteBuffer.array() throws an exception if it is in read-only state. Protobuf usually
+    // returns ByteBuffer in read-only, so this util allows us to get the internal byte array.
+    if (buffer.isReadOnly()) {
+      final byte[] internalByteArray = new byte[buffer.capacity()];
+      buffer.get(internalByteArray);
+      return internalByteArray;
+    }
+
+    return buffer.array();
   }
 
   private static String hexEncoding(final byte[] value) {

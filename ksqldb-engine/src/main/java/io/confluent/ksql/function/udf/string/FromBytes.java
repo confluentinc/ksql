@@ -33,6 +33,6 @@ public class FromBytes {
   @Udf(description = "Converts a BYTES value to STRING in the specified encoding. "
       + "The accepted encoders are 'hex', 'utf8', 'ascii', and 'base64'.")
   public String fromBytes(final ByteBuffer value, final String encoding) {
-    return (value == null) ? null : BytesUtils.encode(value.array(), encoding);
+    return (value == null) ? null : BytesUtils.encode(BytesUtils.getByteArray(value), encoding);
   }
 }

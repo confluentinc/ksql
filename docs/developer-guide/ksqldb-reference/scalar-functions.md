@@ -729,6 +729,17 @@ multiple elements, like those containing wildcards, aren't supported.
 
     `CREATE STREAM LOGS (LOG STRUCT<CLOUD STRING, APP STRING, INSTANCE INT>, ...) WITH (VALUE_FORMAT='JSON', ...)`
 
+### `FROM_BYTES`
+
+Since: - 0.21
+
+```sql
+FROM_BYTES(bytes, encoding)
+```
+
+Converts a BYTES column to a STRING in the specified encoding type.
+Supported encoding types are: 'hex', 'utf8', 'ascii', 'base64'.
+
 ### `INITCAP`
 
 Since: 0.6.0
@@ -1045,6 +1056,17 @@ the string.
 
 For example, `SUBSTRING("stream", 1, 4)`
 returns "stre".
+
+### `TO_BYTES`
+
+Since: - 0.21
+
+```sql
+TO_BYTES(string, encoding)
+```
+
+Converts a STRING column in the specified encoding type to a BYTES column.
+Supported encoding types are: 'hex', 'utf8', 'ascii', 'base64'.
 
 ### `TRIM`
 

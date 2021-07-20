@@ -42,7 +42,7 @@ public final class StreamSource extends SourceStep<KStreamHolder<GenericKey>> {
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
       @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
-      @JsonProperty("versionNumber") final int versionNumber
+      @JsonProperty("versionNumber") final int pseudoColumnVersion
   ) {
     super(
         props,
@@ -50,7 +50,7 @@ public final class StreamSource extends SourceStep<KStreamHolder<GenericKey>> {
         formats,
         timestampColumn,
         sourceSchema,
-        versionNumber
+        pseudoColumnVersion
     );
   }
 
@@ -104,7 +104,7 @@ public final class StreamSource extends SourceStep<KStreamHolder<GenericKey>> {
         && Objects.equals(formats, that.formats)
         && Objects.equals(timestampColumn, that.timestampColumn)
         && Objects.equals(sourceSchema, that.sourceSchema)
-        && Objects.equals(versionNumber, that.versionNumber);
+        && Objects.equals(pseudoColumnVersion, that.pseudoColumnVersion);
   }
 
   @Override
@@ -115,7 +115,7 @@ public final class StreamSource extends SourceStep<KStreamHolder<GenericKey>> {
         formats,
         timestampColumn,
         sourceSchema,
-        versionNumber
+        pseudoColumnVersion
     );
   }
 }

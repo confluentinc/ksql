@@ -48,9 +48,9 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
       @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
       @JsonProperty(value = "forceChangelog") final Optional<Boolean> forceChangelog,
-      @JsonProperty("versionNumber") final int versionNumber
+      @JsonProperty("versionNumber") final int pseudoColumnVersion
   ) {
-    super(properties, topicName, formats, timestampColumn, sourceSchema, versionNumber);
+    super(properties, topicName, formats, timestampColumn, sourceSchema, pseudoColumnVersion);
     this.forceChangelog = forceChangelog.orElse(false);
   }
 
@@ -104,7 +104,7 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
         && Objects.equals(timestampColumn, that.timestampColumn)
         && Objects.equals(sourceSchema, that.sourceSchema)
         && Objects.equals(forceChangelog, that.forceChangelog)
-        && Objects.equals(versionNumber, that.versionNumber);
+        && Objects.equals(pseudoColumnVersion, that.pseudoColumnVersion);
   }
 
   @Override
@@ -116,6 +116,6 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
         timestampColumn,
         sourceSchema,
         forceChangelog,
-        versionNumber);
+        pseudoColumnVersion);
   }
 }

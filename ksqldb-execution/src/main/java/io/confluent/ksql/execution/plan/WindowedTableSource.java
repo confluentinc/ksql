@@ -35,9 +35,9 @@ public final class WindowedTableSource extends SourceStep<KTableHolder<Windowed<
       @JsonProperty(value = "windowInfo", required = true) final WindowInfo windowInfo,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
       @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
-      @JsonProperty("versionNumber") final int versionNumber
+      @JsonProperty("versionNumber") final int pseudoColumnVersion
   ) {
-    super(props, topicName, formats, timestampColumn, sourceSchema, versionNumber);
+    super(props, topicName, formats, timestampColumn, sourceSchema, pseudoColumnVersion);
     this.windowInfo = Objects.requireNonNull(windowInfo, "windowInfo");
   }
 
@@ -69,7 +69,7 @@ public final class WindowedTableSource extends SourceStep<KTableHolder<Windowed<
         && Objects.equals(formats, that.formats)
         && Objects.equals(timestampColumn, that.timestampColumn)
         && Objects.equals(sourceSchema, that.sourceSchema)
-        && Objects.equals(versionNumber, that.versionNumber);
+        && Objects.equals(pseudoColumnVersion, that.pseudoColumnVersion);
   }
 
   @Override
@@ -80,7 +80,7 @@ public final class WindowedTableSource extends SourceStep<KTableHolder<Windowed<
         formats,
         timestampColumn,
         sourceSchema,
-        versionNumber
+        pseudoColumnVersion
     );
   }
 }

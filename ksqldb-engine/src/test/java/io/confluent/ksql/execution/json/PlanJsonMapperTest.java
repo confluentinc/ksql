@@ -19,11 +19,6 @@ public class PlanJsonMapperTest {
   }
 
   @Test
-  public void shouldEnableFailOnNullPrimitives() {
-    assertThat(MAPPER.isEnabled(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES), is(true));
-  }
-
-  @Test
   public void shouldEnableFailOnNullProperties() {
     assertThat(MAPPER.isEnabled(DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES), is(true));
   }

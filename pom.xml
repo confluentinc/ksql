@@ -134,7 +134,7 @@
         <jetty.version>9.4.28.v20200408</jetty.version>
         <git-commit-id-plugin.version>2.2.6</git-commit-id-plugin.version>
         <scala.version>2.13.2</scala.version>
-        <apache.io.version>2.6</apache.io.version>
+        <apache.io.version>2.7</apache.io.version>
         <io.confluent.ksql.version>7.0.0-0</io.confluent.ksql.version>
         <io.confluent.schema-registry.version>${confluent.version.range}</io.confluent.schema-registry.version>
         <mockito.version>3.8.0</mockito.version>

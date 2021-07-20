@@ -738,7 +738,7 @@ FROM_BYTES(bytes, encoding)
 ```
 
 Converts a BYTES column to a STRING in the specified encoding type.
-Supported encoding types are: 'hex', 'utf8', 'ascii', 'base64'.
+Supported encoding types are: `hex`, `utf8`, `ascii`, and `base64`.
 
 ### `INITCAP`
 

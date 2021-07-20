@@ -42,6 +42,6 @@ public class SingleColumnTest {
     );
 
     // Then:
-    assertThat(e.getMessage(), containsString("is a reserved system column name."));
+    assertThat(e.getMessage(), containsString("is a reserved column name."));
   }
 }

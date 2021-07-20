@@ -1066,7 +1066,7 @@ TO_BYTES(string, encoding)
 ```
 
 Converts a STRING column in the specified encoding type to a BYTES column.
-Supported encoding types are: 'hex', 'utf8', 'ascii', 'base64'.
+Supported encoding types are: `hex`, `utf8`, `ascii`, and `base64`.
 
 ### `TRIM`
 

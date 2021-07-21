@@ -58,7 +58,9 @@ public class VariableExecutorTest {
         engine.configure(sql),
         sessionProperties,
         engine.getEngine(),
-        engine.getServiceContext()
+        engine.getServiceContext(),
+        null,
+        null
     );
     assertThat(response, is(Optional.empty()));
   }
@@ -68,7 +70,9 @@ public class VariableExecutorTest {
         engine.configure(sql),
         sessionProperties,
         engine.getEngine(),
-        engine.getServiceContext()
+        engine.getServiceContext(),
+        null,
+        null
     );
   }
 

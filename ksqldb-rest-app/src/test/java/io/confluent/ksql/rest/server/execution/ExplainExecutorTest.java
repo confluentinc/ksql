@@ -35,6 +35,8 @@ import io.confluent.ksql.rest.entity.KsqlHostInfoEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.server.TemporaryEngine;
+import io.confluent.ksql.rest.server.computation.DistributingExecutor;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.serde.FormatFactory;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -64,6 +66,10 @@ public class ExplainExecutorTest {
   public final TemporaryEngine engine = new TemporaryEngine();
   @Mock
   private SessionProperties sessionProperties;
+  @Mock
+  private DistributingExecutor distributingExecutor;
+  @Mock
+  private KsqlSecurityContext ksqlSecurityContext;
 
   @Before
   public void setup() {
@@ -84,7 +90,9 @@ public class ExplainExecutorTest {
         explain,
         sessionProperties,
         engine,
-        this.engine.getServiceContext()
+        this.engine.getServiceContext(),
+        distributingExecutor,
+        ksqlSecurityContext
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -106,7 +114,9 @@ public class ExplainExecutorTest {
         explain,
         sessionProperties,
         engine.getEngine(),
-        engine.getServiceContext()
+        engine.getServiceContext(),
+        distributingExecutor,
+        ksqlSecurityContext
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -128,7 +138,9 @@ public class ExplainExecutorTest {
         explain,
         sessionProperties,
         engine.getEngine(),
-        engine.getServiceContext()
+        engine.getServiceContext(),
+        distributingExecutor,
+        ksqlSecurityContext
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -149,7 +161,9 @@ public class ExplainExecutorTest {
         explain,
         sessionProperties,
         engine.getEngine(),
-        engine.getServiceContext()
+        engine.getServiceContext(),
+        distributingExecutor,
+        ksqlSecurityContext
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -166,7 +180,9 @@ public class ExplainExecutorTest {
             engine.configure("Explain SHOW TOPICS;"),
             sessionProperties,
             engine.getEngine(),
-            engine.getServiceContext()
+            engine.getServiceContext(),
+            distributingExecutor,
+            ksqlSecurityContext
         )
     );
 

@@ -70,7 +70,9 @@ public class ListPropertiesExecutorTest {
         engine.configure("LIST PROPERTIES;"),
         mock(SessionProperties.class),
         engine.getEngine(),
-        engine.getServiceContext()
+        engine.getServiceContext(),
+        null,
+        null
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -88,7 +90,9 @@ public class ListPropertiesExecutorTest {
             .withConfigOverrides(ImmutableMap.of("ksql.streams.auto.offset.reset", "latest")),
         mock(SessionProperties.class),
         engine.getEngine(),
-        engine.getServiceContext()
+        engine.getServiceContext(),
+        null,
+        null
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -105,7 +109,9 @@ public class ListPropertiesExecutorTest {
         engine.configure("LIST PROPERTIES;"),
         mock(SessionProperties.class),
         engine.getEngine(),
-        engine.getServiceContext()
+        engine.getServiceContext(),
+        null,
+        null
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -123,7 +129,9 @@ public class ListPropertiesExecutorTest {
                 "ksql.streams.topic.min.insync.replicas", "2"))),
         mock(SessionProperties.class),
         engine.getEngine(),
-        engine.getServiceContext()
+        engine.getServiceContext(),
+        null,
+        null
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -153,7 +161,9 @@ public class ListPropertiesExecutorTest {
                 "ksql.connect.worker.config", connectPropsFile))),
         mock(SessionProperties.class),
         engine.getEngine(),
-        engine.getServiceContext()
+        engine.getServiceContext(),
+        null,
+        null
     ).orElseThrow(IllegalStateException::new);
 
     // Then:

@@ -30,6 +30,8 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.SessionProperties;
 import io.confluent.ksql.rest.server.TemporaryEngine;
+import io.confluent.ksql.rest.server.computation.DistributingExecutor;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlHostInfo;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -43,10 +45,16 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PropertyOverriderTest {
+
+  @Mock
+  private DistributingExecutor distributingExecutor;
+  @Mock
+  private KsqlSecurityContext ksqlSecurityContext;
 
   @Rule
   public final TemporaryEngine engine = new TemporaryEngine();
@@ -63,7 +71,9 @@ public class PropertyOverriderTest {
             SessionConfig.of(engine.getKsqlConfig(), ImmutableMap.of())),
             mock(SessionProperties.class),
             engine.getEngine(),
-            engine.getServiceContext()
+            engine.getServiceContext(),
+            distributingExecutor,
+            ksqlSecurityContext
         )
     );
 
@@ -87,7 +97,9 @@ public class PropertyOverriderTest {
             SessionConfig.of(engine.getKsqlConfig(), ImmutableMap.of())),
         sessionProperties,
         engine.getEngine(),
-        engine.getServiceContext()
+        engine.getServiceContext(),
+        distributingExecutor,
+        ksqlSecurityContext
     );
 
     // Then:
@@ -112,7 +124,9 @@ public class PropertyOverriderTest {
             ),
             sessionProperties,
             engine.getEngine(),
-            engine.getServiceContext()
+            engine.getServiceContext(),
+            distributingExecutor,
+            ksqlSecurityContext
         )
     );
 
@@ -138,7 +152,9 @@ public class PropertyOverriderTest {
                 SessionConfig.of(engine.getKsqlConfig(), new HashMap<>())),
             sessionProperties,
             engine.getEngine(),
-            engine.getServiceContext()
+            engine.getServiceContext(),
+            distributingExecutor,
+            ksqlSecurityContext
         )
     );
 
@@ -167,7 +183,9 @@ public class PropertyOverriderTest {
             SessionConfig.of(engine.getKsqlConfig(), ImmutableMap.of())),
         sessionProperties,
         engine.getEngine(),
-        engine.getServiceContext()
+        engine.getServiceContext(),
+        distributingExecutor,
+        ksqlSecurityContext
     );
 
     // Then:

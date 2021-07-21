@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.server.validation;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.engine.InsertValuesExecutor;
+import io.confluent.ksql.rest.server.execution.InsertValuesExecutor;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DescribeConnector;
@@ -46,6 +46,7 @@ import io.confluent.ksql.parser.tree.UndefineVariable;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.rest.server.execution.DescribeConnectorExecutor;
 import io.confluent.ksql.rest.server.execution.DescribeFunctionExecutor;
 import io.confluent.ksql.rest.server.execution.ExplainExecutor;
@@ -54,6 +55,7 @@ import io.confluent.ksql.rest.server.execution.ListVariablesExecutor;
 import io.confluent.ksql.rest.server.execution.PropertyExecutor;
 import io.confluent.ksql.rest.server.execution.VariableExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
@@ -70,7 +72,14 @@ import java.util.stream.Collectors;
  */
 @SuppressWarnings({"unchecked", "rawtypes"})
 public enum CustomValidators {
-  QUERY_ENDPOINT(Query.class, (statement, sessionProperties, executionContext, serviceContext) -> {
+  QUERY_ENDPOINT(Query.class,
+      (
+          statement,
+          sessionProperties,
+          executionContext,
+          serviceContext,
+          distributingExecutor,
+          securityContext) -> {
     throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
   }),
   PRINT_TOPIC(PrintTopic.class, PrintTopicValidator::validate),
@@ -132,7 +141,15 @@ public enum CustomValidators {
       final ConfiguredStatement<?> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext) throws KsqlException {
-    validator.validate(statement, sessionProperties, executionContext, serviceContext);
+      final ServiceContext serviceContext,
+      final DistributingExecutor distributingExecutor,
+      final KsqlSecurityContext securityContext) throws KsqlException {
+    validator.validate(
+        statement,
+        sessionProperties,
+        executionContext,
+        serviceContext,
+        distributingExecutor,
+        securityContext);
   }
 }

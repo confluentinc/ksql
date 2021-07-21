@@ -117,7 +117,9 @@ public class RequestHandlerTest {
             ksqlConfig))),
             eq(sessionProperties),
             eq(ksqlEngine),
-            eq(serviceContext)
+            eq(serviceContext),
+            null,
+            null
         );
   }
 
@@ -259,7 +261,9 @@ public class RequestHandlerTest {
         argThat(is(configured(preparedStatement(instanceOf(statementClass))))),
         any(),
         eq(ksqlEngine),
-        eq(serviceContext)
+        eq(serviceContext),
+        null,
+        null
     ))
         .thenAnswer(inv -> Optional.ofNullable(returnedEntities[scn.getAndIncrement()]));
     return customExecutor;

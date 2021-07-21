@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.engine.InsertValuesExecutor;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.DefineVariable;
 import io.confluent.ksql.parser.tree.DescribeConnector;
@@ -152,7 +151,9 @@ public enum CustomExecutors {
           statement,
           sessionProperties,
           executionContext,
-          serviceContext
+          serviceContext,
+          distributingExecutor,
+          securityContext
       );
       return Optional.empty();
     };

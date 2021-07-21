@@ -132,4 +132,8 @@ public class RequestHandler {
     );
   }
 
+  public DistributingExecutor getDistributor () {
+    return distributor;
+  }
+
 }

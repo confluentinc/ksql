@@ -28,8 +28,10 @@ import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.rest.server.computation.ValidatedCommandFactory;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
+import io.confluent.ksql.security.KsqlSecurityContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
@@ -107,7 +109,9 @@ public class RequestValidator {
       final ServiceContext serviceContext,
       final List<ParsedStatement> statements,
       final SessionProperties sessionProperties,
-      final String sql
+      final String sql,
+      final DistributingExecutor distributingExecutor,
+      final KsqlSecurityContext ksqlSecurityContext
   ) {
     requireSandbox(serviceContext);
 
@@ -127,7 +131,15 @@ public class RequestValidator {
       );
 
       numPersistentQueries +=
-          validate(serviceContext, configured, sessionProperties, ctx, injector);
+          validate(
+              serviceContext,
+              configured,
+              sessionProperties,
+              ctx,
+              injector,
+              distributingExecutor,
+              ksqlSecurityContext
+          );
 
       if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ctx, ksqlConfig)) {
         QueryCapacityUtil.throwTooManyActivePersistentQueriesException(ctx, ksqlConfig, sql);
@@ -148,7 +160,9 @@ public class RequestValidator {
       final ConfiguredStatement<T> configured,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
-      final Injector injector
+      final Injector injector,
+      final DistributingExecutor distributingExecutor,
+      final KsqlSecurityContext ksqlSecurityContext
   ) throws KsqlStatementException  {
     final Statement statement = configured.getStatement();
     final Class<? extends Statement> statementClass = statement.getClass();
@@ -156,8 +170,14 @@ public class RequestValidator {
         customValidators.get(statementClass);
 
     if (customValidator != null) {
-      customValidator
-          .validate(configured, sessionProperties, executionContext, serviceContext);
+      customValidator.validate(
+          configured,
+          sessionProperties,
+          executionContext,
+          serviceContext,
+          distributingExecutor,
+          ksqlSecurityContext
+      );
     } else if (KsqlEngine.isExecutableStatement(configured.getStatement())
         || configured.getStatement() instanceof TerminateQuery) {
       final ConfiguredStatement<?> statementInjected = injector.inject(configured);

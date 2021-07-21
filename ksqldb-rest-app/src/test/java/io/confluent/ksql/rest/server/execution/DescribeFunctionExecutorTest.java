@@ -48,7 +48,9 @@ public class DescribeFunctionExecutorTest {
                 "DESCRIBE FUNCTION TEST_UDF_1;"),
             mock(SessionProperties.class),
             engine.getEngine(),
-            engine.getServiceContext()
+            engine.getServiceContext(),
+            null,
+            null
         ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -74,7 +76,9 @@ public class DescribeFunctionExecutorTest {
             engine.configure("DESCRIBE FUNCTION MAX;"),
             mock(SessionProperties.class),
             engine.getEngine(),
-            engine.getServiceContext()
+            engine.getServiceContext(),
+            null,
+            null
         ).orElseThrow(IllegalStateException::new);
 
     // Then:
@@ -100,7 +104,9 @@ public class DescribeFunctionExecutorTest {
             engine.configure("DESCRIBE FUNCTION TEST_UDTF1;"),
             mock(SessionProperties.class),
             engine.getEngine(),
-            engine.getServiceContext()
+            engine.getServiceContext(),
+            null,
+            null
         ).orElseThrow(IllegalStateException::new);
 
     // Then:

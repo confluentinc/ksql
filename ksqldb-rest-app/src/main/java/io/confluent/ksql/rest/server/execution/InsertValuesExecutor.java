@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.engine;
+package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
@@ -31,6 +31,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.rest.SessionProperties;
+import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
@@ -137,7 +138,9 @@ public class InsertValuesExecutor {
       final ConfiguredStatement<InsertValues> statement,
       final SessionProperties sessionProperties,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext
+      final ServiceContext serviceContext,
+      final DistributingExecutor distributingExecutor,
+      final KsqlSecurityContext securityContext
 
   ) {
     final InsertValues insertValues = statement.getStatement();

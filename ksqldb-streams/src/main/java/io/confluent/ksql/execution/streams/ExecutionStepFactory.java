@@ -63,6 +63,7 @@ import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.apache.kafka.streams.kstream.JoinWindows;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -88,7 +89,7 @@ public final class ExecutionStepFactory {
         windowInfo,
         timestampColumn,
         sourceSchema,
-        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 
@@ -106,7 +107,7 @@ public final class ExecutionStepFactory {
         formats,
         timestampColumn,
         sourceSchema,
-        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 
@@ -125,7 +126,7 @@ public final class ExecutionStepFactory {
         timestampColumn,
         sourceSchema,
         Optional.of(true),
-        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 
@@ -145,7 +146,7 @@ public final class ExecutionStepFactory {
         windowInfo,
         timestampColumn,
         sourceSchema,
-        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 

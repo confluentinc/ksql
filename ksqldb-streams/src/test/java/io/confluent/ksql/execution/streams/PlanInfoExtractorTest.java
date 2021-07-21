@@ -35,6 +35,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SystemColumns;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -72,7 +73,7 @@ public class PlanInfoExtractorTest {
         formats,
         Optional.empty(),
         schema,
-        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
     tableSource = new TableSource(
         new ExecutionStepPropertiesV1(queryContext),
@@ -81,7 +82,7 @@ public class PlanInfoExtractorTest {
         Optional.empty(),
         schema,
         Optional.of(true),
-        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
     streamSourceRepartitioned = new StreamSelectKey<>(
         new ExecutionStepPropertiesV1(queryContext),

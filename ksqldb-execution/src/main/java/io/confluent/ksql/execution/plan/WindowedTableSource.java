@@ -22,6 +22,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.WindowInfo;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.apache.kafka.streams.kstream.Windowed;
 
 public final class WindowedTableSource extends SourceStep<KTableHolder<Windowed<GenericKey>>> {
@@ -35,9 +36,16 @@ public final class WindowedTableSource extends SourceStep<KTableHolder<Windowed<
       @JsonProperty(value = "windowInfo", required = true) final WindowInfo windowInfo,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
       @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
-      @JsonProperty("versionNumber") final int pseudoColumnVersion
+      @JsonProperty("pseudoColumnVersion") final OptionalInt pseudoColumnVersion
   ) {
-    super(props, topicName, formats, timestampColumn, sourceSchema, pseudoColumnVersion);
+    super(
+        props,
+        topicName,
+        formats,
+        timestampColumn,
+        sourceSchema,
+        pseudoColumnVersion.orElse(0)
+    );
     this.windowInfo = Objects.requireNonNull(windowInfo, "windowInfo");
   }
 

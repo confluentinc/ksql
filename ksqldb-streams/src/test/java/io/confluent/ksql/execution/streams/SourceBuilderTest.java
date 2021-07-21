@@ -30,7 +30,6 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericKey;
@@ -65,6 +64,7 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Serde;
@@ -825,7 +825,7 @@ public class SourceBuilderTest {
         windowInfo,
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA,
-        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 
@@ -838,7 +838,7 @@ public class SourceBuilderTest {
         Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA,
-        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 
@@ -851,7 +851,7 @@ public class SourceBuilderTest {
         Formats.of(keyFormatInfo, valueFormatInfo, KEY_FEATURES, VALUE_FEATURES),
         TIMESTAMP_COLUMN,
         MULTI_COL_SOURCE_SCHEMA,
-        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 
@@ -866,7 +866,7 @@ public class SourceBuilderTest {
         windowInfo,
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA,
-        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 
@@ -880,7 +880,7 @@ public class SourceBuilderTest {
         TIMESTAMP_COLUMN,
         SOURCE_SCHEMA,
         Optional.of(forceChangelog),
-        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
   }
 

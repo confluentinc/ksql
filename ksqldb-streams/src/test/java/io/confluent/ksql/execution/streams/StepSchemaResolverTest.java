@@ -72,6 +72,7 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.junit.Before;
@@ -338,7 +339,7 @@ public class StepSchemaResolverTest {
         formats,
         Optional.empty(),
         SCHEMA,
-        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
 
     // When:
@@ -357,7 +358,7 @@ public class StepSchemaResolverTest {
         WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(123))),
         Optional.empty(),
         SCHEMA,
-        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
 
     // When:
@@ -541,7 +542,7 @@ public class StepSchemaResolverTest {
         Optional.empty(),
         SCHEMA,
         Optional.of(true),
-        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
 
     // When:
@@ -561,7 +562,7 @@ public class StepSchemaResolverTest {
         mock(WindowInfo.class),
         Optional.empty(),
         SCHEMA,
-        SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER
+        OptionalInt.of(SystemColumns.CURRENT_PSEUDOCOLUMN_VERSION_NUMBER)
     );
 
     // When:

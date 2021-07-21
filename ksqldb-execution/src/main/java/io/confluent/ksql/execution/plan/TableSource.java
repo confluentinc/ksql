@@ -24,6 +24,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import javax.annotation.Nonnull;
 
 @Immutable
@@ -42,15 +43,22 @@ public final class TableSource extends SourceStep<KTableHolder<GenericKey>> {
 
   public TableSource(
       @JsonProperty(value = "properties", required = true)
-      final ExecutionStepPropertiesV1 properties,
+      final ExecutionStepPropertiesV1 props,
       @JsonProperty(value = "topicName", required = true) final String topicName,
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
       @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
       @JsonProperty(value = "forceChangelog") final Optional<Boolean> forceChangelog,
-      @JsonProperty("versionNumber") final int pseudoColumnVersion
+      @JsonProperty("pseudoColumnVersion") final OptionalInt pseudoColumnVersion
   ) {
-    super(properties, topicName, formats, timestampColumn, sourceSchema, pseudoColumnVersion);
+    super(
+        props,
+        topicName,
+        formats,
+        timestampColumn,
+        sourceSchema,
+        pseudoColumnVersion.orElse(0)
+    );
     this.forceChangelog = forceChangelog.orElse(false);
   }
 

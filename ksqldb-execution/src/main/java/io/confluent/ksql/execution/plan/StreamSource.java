@@ -23,6 +23,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import javax.annotation.Nonnull;
 
 @Immutable
@@ -42,7 +43,7 @@ public final class StreamSource extends SourceStep<KStreamHolder<GenericKey>> {
       @JsonProperty(value = "formats", required = true) final Formats formats,
       @JsonProperty("timestampColumn") final Optional<TimestampColumn> timestampColumn,
       @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
-      @JsonProperty("versionNumber") final int pseudoColumnVersion
+      @JsonProperty("pseudoColumnVersion") final OptionalInt pseudoColumnVersion
   ) {
     super(
         props,
@@ -50,7 +51,7 @@ public final class StreamSource extends SourceStep<KStreamHolder<GenericKey>> {
         formats,
         timestampColumn,
         sourceSchema,
-        pseudoColumnVersion
+        pseudoColumnVersion.orElse(0)
     );
   }
 

@@ -67,7 +67,7 @@ ksqlDB can use [Schema Inference](/operate-and-deploy/schema-registry-integratio
 spare you from defining columns manually in your `CREATE TABLE` statements.
 
 !!! note
-	  - To use Avro, Protobuf, or JSON_SR you must have {{ site.sr }} enabled and
+    - To use Avro, Protobuf, or JSON_SR you must have {{ site.sr }} enabled and
       `ksql.schema.registry.url` must be set in the ksqlDB server configuration
       file. For more information, see
       [Configure ksqlDB for Avro, Protobuf, and JSON schemas](../../operate-and-deploy/installation/server-config/avro-schema.md).

@@ -796,21 +796,21 @@ cluster to allow ksqlDB to operate:
 
 ```bash
 # Allow ksqlDB to discover the cluster:
-bin/kafka-acls bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation DescribeConfigs --cluster
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation DescribeConfigs --cluster
 
 # Allow ksqlDB to read the input topics (including output-topic1):
-bin/kafka-acls bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Read --topic input-topic1 --topic input-topic2 --topic output-topic1
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Read --topic input-topic1 --topic input-topic2 --topic output-topic1
 
 # Allow ksqlDB to write to the output topics:
-bin/kafka-acls bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Write --topic output-topic1 --topic output-topic2
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Write --topic output-topic1 --topic output-topic2
 # Or, if the output topics do not already exist, the 'create' operation is also required:
-bin/kafka-acls bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Create --operation Write --topic output-topic1 --topic output-topic2
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Create --operation Write --topic output-topic1 --topic output-topic2
 
 # Allow ksqlDB to manage its own internal topics and consumer groups:
-bin/kafka-acls bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic _confluent-ksql-production_ --group _confluent-ksql-production_
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic _confluent-ksql-production_ --group _confluent-ksql-production_
 
 # Allow ksqlDB to manage its record processing log topic, if configured:
-bin/kafka-acls bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic production_ksql_processing_log
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic production_ksql_processing_log
 ```
 
 #### Interactive ksqlDB clusters
@@ -852,22 +852,22 @@ cluster to allow ksqlDB to operate:
 
 ```bash
 # Allow ksqlDB to discover the cluster:
-bin/kafka-acls bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation DescribeConfigs --cluster
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation DescribeConfigs --cluster
 
 # Allow ksqlDB to read the input topics:
-bin/kafka-acls bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Read --resource-pattern-type prefixed --topic accounts- --topic orders- --topic payments-
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Read --resource-pattern-type prefixed --topic accounts- --topic orders- --topic payments-
 
 # Allow ksqlDB to manage output topics:
-bin/kafka-acls bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic ksql-fraud-
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic ksql-fraud-
 
 # Allow ksqlDB to manage its own internal topics and consumer groups:
-bin/kafka-acls bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic _confluent-ksql-fraud_ --group _confluent-ksql-fraud_
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic _confluent-ksql-fraud_ --group _confluent-ksql-fraud_
 
 # Allow ksqlDB to manage its record processing log topic, if configured:
-bin/kafka-acls bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic fraud_ksql_processing_log
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic fraud_ksql_processing_log
 
 # Allow ksqlDB to produce to the command topic:
-bin/kafka-acls bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --producer --transactional-id ksql-fraud_ --topic _confluent-ksql-fraud__command_topic
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --producer --transactional-id ksql-fraud_ --topic _confluent-ksql-fraud__command_topic
 ```
 
 The following table shows the necessary ACLs in the Kafka cluster to
@@ -1000,10 +1000,10 @@ cluster to allow ksqlDB to operate:
 
 ```bash
 # Allow ksqlDB to discover the cluster and create topics:
-bin/kafka-acls bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation DescribeConfigs --operation Create --cluster
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation DescribeConfigs --operation Create --cluster
 
 # Allow ksqlDB access to topics and consumer groups:
-bin/kafka-acls bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic '*' --group '*'
+bin/kafka-acls --bootstrap-server=localhost:9092 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic '*' --group '*'
 ```
 
 #### Non-Interactive (headless) ksqlDB clusters pre Kafka 2.0

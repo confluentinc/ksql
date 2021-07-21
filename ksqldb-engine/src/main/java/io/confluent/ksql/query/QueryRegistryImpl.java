@@ -67,6 +67,7 @@ public class QueryRegistryImpl implements QueryRegistry {
   private final QueryExecutorFactory executorFactory;
   private final ArrayList<SharedKafkaStreamsRuntime> streams;
   private final ArrayList<SharedKafkaStreamsRuntime> validationSet;
+  private final boolean sandbox;
 
   public QueryRegistryImpl(final Collection<QueryEventListener> eventListeners) {
     this(eventListeners, QueryExecutor::new);
@@ -84,6 +85,7 @@ public class QueryRegistryImpl implements QueryRegistry {
     this.executorFactory = Objects.requireNonNull(executorFactory);
     this.streams = new ArrayList<>();
     this.validationSet = new ArrayList<>();
+    this.sandbox = false;
   }
 
   // Used to construct a sandbox
@@ -128,6 +130,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         .collect(Collectors.toList());
     this.streams = original.streams;
     this.validationSet = original.validationSet;
+    sandbox = true;
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -148,12 +151,13 @@ public class QueryRegistryImpl implements QueryRegistry {
       final boolean excludeTombstones) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     final QueryExecutor executor = executorFactory.create(
-        config,
-        processingLogContext,
-        serviceContext,
-        metaStore,
-        streams,
-        validationSet);
+          config,
+          processingLogContext,
+          serviceContext,
+          metaStore,
+          validationSet,
+          !sandbox);
+
     final TransientQueryMetadata query = executor.buildTransientQuery(
         statementText,
         queryId,
@@ -185,8 +189,24 @@ public class QueryRegistryImpl implements QueryRegistry {
       final String planSummary,
       final boolean createAsQuery) {
     // CHECKSTYLE_RULES.ON: ParameterNumberCheck
-    final QueryExecutor executor =
-        executorFactory.create(config, processingLogContext, serviceContext, metaStore, streams, validationSet);
+    final QueryExecutor executor;
+    if (sandbox) {
+      executor = executorFactory.create(
+          config,
+          processingLogContext,
+          serviceContext,
+          metaStore,
+          validationSet,
+          false);
+    } else {
+      executor = executorFactory.create(
+          config,
+          processingLogContext,
+          serviceContext,
+          metaStore,
+          streams,
+          true);
+    }
     final PersistentQueryMetadata query = executor.buildPersistentQuery(
         createAsQuery
             ? KsqlConstants.PersistentQueryType.CREATE_AS
@@ -378,8 +398,7 @@ public class QueryRegistryImpl implements QueryRegistry {
         ServiceContext serviceContext,
         FunctionRegistry functionRegistry,
         ArrayList<SharedKafkaStreamsRuntime> streams,
-        ArrayList<SharedKafkaStreamsRuntime> validationSet
-    );
+        boolean real);
   }
 
   private class ListenerImpl implements QueryMetadata.Listener {

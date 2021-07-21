@@ -208,7 +208,7 @@ public class QueryProjectNode extends ProjectNode {
 
     if (someStars && projection.selectItems().size() != 1) {
       final String queryType = isScalablePush ? "Scalable push" : "Pull";
-      throw new KsqlException(queryType + "queries only support wildcards in the projects "
+      throw new KsqlException(queryType + " queries only support wildcards in the projects "
                                   + "if they are the only expression");
     }
 

@@ -44,6 +44,7 @@ public class RestTestCaseNode {
   private final List<Response> responses;
   private final Map<String, Object> properties;
   private final Optional<ExpectedErrorNode> expectedError;
+  private final Optional<InputConditions> inputConditions;
   private final boolean enabled;
 
   public RestTestCaseNode(
@@ -56,6 +57,7 @@ public class RestTestCaseNode {
       @JsonProperty("properties") final Map<String, Object> properties,
       @JsonProperty("expectedError") final ExpectedErrorNode expectedError,
       @JsonProperty("responses") final List<Response> responses,
+      @JsonProperty("inputConditions") final InputConditions inputConditions,
       @JsonProperty("enabled") final Boolean enabled
   ) {
     this.name = name == null ? "" : name;
@@ -67,6 +69,7 @@ public class RestTestCaseNode {
     this.properties = immutableCopyOf(properties);
     this.expectedError = Optional.ofNullable(expectedError);
     this.responses = immutableCopyOf(responses);
+    this.inputConditions = Optional.ofNullable(inputConditions);
     this.enabled = !Boolean.FALSE.equals(enabled);
 
     validate();
@@ -110,6 +113,10 @@ public class RestTestCaseNode {
 
   public Map<String, Object> properties() {
     return properties;
+  }
+
+  public Optional<InputConditions> getInputConditions() {
+    return inputConditions;
   }
 
   private void validate() {

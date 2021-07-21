@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -30,8 +31,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.TestFunctionRegistry;
+import io.confluent.ksql.reactive.BaseSubscriber;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.client.StreamPublisher;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -52,16 +55,19 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.RetryUtil;
+import io.vertx.core.Context;
 import java.io.Closeable;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -72,6 +78,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
+import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,6 +88,7 @@ public class RestTestExecutor implements Closeable {
 
   private static final String STATEMENT_MACRO = "\\{STATEMENT}";
   private static final Duration MAX_STATIC_WARM_UP = Duration.ofSeconds(30);
+  private static final String MATCH_OPERATOR_DELIMITER = "|";
 
   private final KsqlRestClient restClient;
   private final EmbeddedSingleNodeKafkaCluster kafkaCluster;
@@ -129,7 +137,15 @@ public class RestTestExecutor implements Closeable {
         return;
       }
 
-      produceInputs(testCase.getInputsByTopic());
+      final boolean waitForQueryHeaderToProduceInput = testCase.getInputConditions().isPresent()
+          && testCase.getInputConditions().get().getWaitForQueryHeader();
+      final Optional<Runnable> postQueryHeaderRunnable;
+      if (!waitForQueryHeaderToProduceInput) {
+        produceInputs(testCase.getInputsByTopic());
+        postQueryHeaderRunnable = Optional.empty();
+      } else {
+        postQueryHeaderRunnable = Optional.of(() -> produceInputs(testCase.getInputsByTopic()));
+      }
 
       if (!testCase.expectedError().isPresent()
           && testCase.getExpectedResponses().size() > statements.admin.size()) {
@@ -138,9 +154,13 @@ public class RestTestExecutor implements Closeable {
             testCase.getExpectedResponses()
                 .subList(statements.admin.size(), testCase.getExpectedResponses().size())
         );
+        if (waitForQueryHeaderToProduceInput) {
+          waitForRunningPushQueries(statements.queries);
+        }
       }
 
-      final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries);
+      final List<RqttResponse> queryResults = sendQueryStatements(testCase, statements.queries,
+          postQueryHeaderRunnable);
       if (!queryResults.isEmpty()) {
         failIfExpectingError(testCase);
       }
@@ -295,10 +315,24 @@ public class RestTestExecutor implements Closeable {
 
   private List<RqttResponse> sendQueryStatements(
       final RestTestCase testCase,
-      final List<String> statements
+      final List<String> statements,
+      final Optional<Runnable> afterHeader
   ) {
+    // We only produce inputs after the first query at the moment to simplify things
+    final boolean[] runAfterHeader = new boolean[1];
     return statements.stream()
-        .map(stmt -> sendQueryStatement(testCase, stmt))
+        .map(stmt -> {
+          if (afterHeader.isPresent() && !runAfterHeader[0]) {
+            runAfterHeader[0] = true;
+            Optional<List<StreamedRow>> rows =
+                sendQueryStatement(testCase, stmt, afterHeader.get());
+            return rows;
+          } else if (afterHeader.isPresent() && runAfterHeader[0]) {
+            throw new AssertionError(
+                "Can only have one query when using waitForQueryHeader");
+          }
+          return sendQueryStatement(testCase, stmt);
+        })
         .filter(Optional::isPresent)
         .map(Optional::get)
         .map(RqttResponse::query)
@@ -317,6 +351,45 @@ public class RestTestExecutor implements Closeable {
     }
 
     return Optional.of(resp.getResponse());
+  }
+
+  private Optional<List<StreamedRow>> sendQueryStatement(
+      final RestTestCase testCase,
+      final String sql,
+      final Runnable afterHeader
+  ) {
+    final RestResponse<StreamPublisher<StreamedRow>> resp
+        = restClient.makeQueryRequestStreamed(sql, null);
+
+    if (resp.isErroneous()) {
+      handleErrorResponse(testCase, resp);
+      return Optional.empty();
+    }
+
+    return handleRowPublisher(resp.getResponse(), afterHeader);
+  }
+
+  private Optional<List<StreamedRow>> handleRowPublisher(
+      final StreamPublisher<StreamedRow> publisher,
+      final Runnable afterHeader
+  ) {
+    final CompletableFuture<List<StreamedRow>> future = new CompletableFuture<>();
+    final CompletableFuture<StreamedRow> header = new CompletableFuture<>();
+    final QueryStreamSubscriber subscriber = new QueryStreamSubscriber(publisher.getContext(),
+        future, header);
+    publisher.subscribe(subscriber);
+
+    try {
+      header.get();
+      afterHeader.run();
+      return Optional.of(future.get());
+    } catch (Exception e) {
+      LOG.error("Error waiting on header, calling afterHeader, or waiting on rows", e);
+      throw new AssertionError(e);
+    } finally {
+      subscriber.close();
+      publisher.close();
+    }
   }
 
   private void verifyOutput(final RestTestCase testCase) {
@@ -535,6 +608,46 @@ public class RestTestExecutor implements Closeable {
     LOG.info("Timed out waiting for correct response");
   }
 
+private void waitForRunningPushQueries(
+      final List<String> queries
+  ) {
+    for (int i = 0; i != queries.size(); ++i) {
+      final String queryStatement = queries.get(i);
+      waitForRunningPush(queryStatement);
+    }
+  }
+
+  private void waitForRunningPush(
+      final String querySql
+  ) {
+    // Make sure push queries are ready to run if they're counting on running before data is
+    // produced.  This is most relevant for scalable push queries since their underlying
+    // persistent queries must be ready. If they're not, we'll get an error.
+
+    if (!(querySql.contains("EMIT CHANGES"))) {
+      // Not a scalable push query, so not needed
+      return;
+    }
+
+    final long threshold = System.currentTimeMillis() + MAX_STATIC_WARM_UP.toMillis();
+    while (System.currentTimeMillis() < threshold) {
+      final RestResponse<StreamPublisher<StreamedRow>> resp
+          = restClient.makeQueryRequestStreamed(querySql, null);
+      if (resp.isErroneous()) {
+        final KsqlErrorMessage errorMessage = resp.getErrorMessage();
+        LOG.info("Server responded with an error code to a scalable push query. "
+            + "This could be because the persistent query hasn't started yet"
+            + System.lineSeparator() + errorMessage);
+        threadYield();
+      } else {
+        resp.getResponse().close();
+        threadYield();
+        return;
+      }
+    }
+    LOG.info("Timed out waiting for non error");
+  }
+
   private static void threadYield() {
     try {
       // More reliable than Thread.yield
@@ -554,7 +667,12 @@ public class RestTestExecutor implements Closeable {
   ) {
     // Expected does not need to include everything, only keys that need to be tested:
     for (final Entry<String, Object> e : expected.entrySet()) {
-      final String expectedKey = e.getKey();
+      final int matchIndex = e.getKey().contains(MATCH_OPERATOR_DELIMITER)
+          ? e.getKey().indexOf(MATCH_OPERATOR_DELIMITER) : e.getKey().length();
+      final String expectedKey = e.getKey().substring(0, matchIndex);
+      final MatchOperator operator = e.getKey().contains(MATCH_OPERATOR_DELIMITER)
+          ? MatchOperator.valueOf(e.getKey().substring(matchIndex + 1).toUpperCase())
+          : MatchOperator.EQUALS;
       final Object expectedValue = replaceMacros(e.getValue(), statements, idx);
       final String baseReason = "Response mismatch at " + path;
       assertThat(baseReason, actual, hasKey(expectedKey));
@@ -572,7 +690,14 @@ public class RestTestExecutor implements Closeable {
             newPath
         );
       } else {
-        assertThat("Response mismatch at " + newPath, actualValue, is(expectedValue));
+        if (operator == MatchOperator.STARTS_WITH) {
+          assertThat(actualValue, instanceOf(String.class));
+          assertThat(expectedValue, instanceOf(String.class));
+          assertThat("Response mismatch at " + newPath,
+              (String) actualValue, startsWith((String) expectedValue));
+        } else {
+          assertThat("Response mismatch at " + newPath, actualValue, is(expectedValue));
+        }
       }
     }
   }
@@ -701,5 +826,65 @@ public class RestTestExecutor implements Closeable {
       this.admin = ImmutableList.copyOf(admin);
       this.queries = ImmutableList.copyOf(queries);
     }
+  }
+
+  private static final class QueryStreamSubscriber extends BaseSubscriber<StreamedRow> {
+
+    private final CompletableFuture<List<StreamedRow>> future;
+    private final CompletableFuture<StreamedRow> header;
+    private boolean closed;
+    private List<StreamedRow> rows = new ArrayList<>();
+
+    QueryStreamSubscriber(
+        final Context context,
+        final CompletableFuture<List<StreamedRow>> future,
+        final CompletableFuture<StreamedRow> header
+    ) {
+      super(context);
+      this.future = Objects.requireNonNull(future);
+      this.header = Objects.requireNonNull(header);
+    }
+
+    @Override
+    protected void afterSubscribe(final Subscription subscription) {
+      makeRequest(1);
+    }
+
+    @Override
+    protected synchronized void handleValue(final StreamedRow row) {
+      if (closed) {
+        return;
+      }
+      rows.add(row);
+      if (row.isTerminal()) {
+        future.complete(rows);
+        return;
+      }
+      if (row.getHeader().isPresent()) {
+        header.complete(row);
+      }
+      makeRequest(1);
+    }
+
+    @Override
+    protected void handleComplete() {
+      future.complete(rows);
+    }
+
+    @Override
+    protected void handleError(final Throwable t) {
+      header.completeExceptionally(t);
+      future.completeExceptionally(t);
+    }
+
+    private void close() {
+      closed = true;
+      context.runOnContext(v -> cancel());
+    }
+  }
+
+  private enum MatchOperator {
+    EQUALS,
+    STARTS_WITH
   }
 }

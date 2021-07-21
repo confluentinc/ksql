@@ -24,7 +24,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`K` STRING"}},
+          {"header":{"schema":"`K` STRING", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":["11"]}},
           {"row":{"columns":["12"]}},
           {"finalMessage":"Limit Reached"}
@@ -52,7 +52,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ID` INTEGER"}},
+          {"header":{"schema":"`ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":[100]}},
           {"row":{"columns":[101]}},
           {"finalMessage":"Limit Reached"}
@@ -80,7 +80,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`I` INTEGER"}},
+          {"header":{"schema":"`I` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":[1]}},
           {"row":{"columns":[1]}},
           {"finalMessage":"Limit Reached"}
@@ -108,7 +108,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWTIME` BIGINT, `K` STRING, `ID` INTEGER"}},
+          {"header":{"schema":"`ROWTIME` BIGINT, `K` STRING, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":[12345, "11", 100]}},
           {"row":{"columns":[12365, "11", 101]}},
           {"finalMessage":"Limit Reached"}
@@ -136,7 +136,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`K` STRING, `ID` INTEGER"}},
+          {"header":{"schema":"`K` STRING, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":["11", 100]}},
           {"row":{"columns":["11", 101]}},
           {"finalMessage":"Limit Reached"}
@@ -164,7 +164,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`K` INTEGER, `ID` INTEGER"}},
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":[11, 100]}},
           {"row":{"columns":[11, 101]}},
           {"finalMessage":"Limit Reached"}
@@ -192,7 +192,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`K` BIGINT, `ID` INTEGER"}},
+          {"header":{"schema":"`K` BIGINT, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":[11, 100]}},
           {"row":{"columns":[11, 101]}},
           {"finalMessage":"Limit Reached"}
@@ -220,7 +220,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`K` DOUBLE, `ID` INTEGER"}},
+          {"header":{"schema":"`K` DOUBLE, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":[11.0, 100]}},
           {"row":{"columns":[11.0, 101]}},
           {"finalMessage":"Limit Reached"}
@@ -248,7 +248,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`K` STRING, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `COUNT` BIGINT"}},
+          {"header":{"schema":"`K` STRING, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `COUNT` BIGINT", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":["11", 12000, 13000, 1]}},
           {"row":{"columns":["11", 12000, 13000, 2]}},
           {"finalMessage":"Limit Reached"}
@@ -276,7 +276,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`K` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `COUNT` BIGINT"}},
+          {"header":{"schema":"`K` INTEGER, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `COUNT` BIGINT", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":[11, 12000, 13000, 1]}},
           {"row":{"columns":[11, 12000, 13000, 2]}},
           {"finalMessage":"Limit Reached"}
@@ -304,7 +304,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`K` BIGINT, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `COUNT` BIGINT"}},
+          {"header":{"schema":"`K` BIGINT, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `COUNT` BIGINT", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":[11, 12000, 13000, 1]}},
           {"row":{"columns":[11, 12000, 13000, 2]}},
           {"finalMessage":"Limit Reached"}
@@ -332,7 +332,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`K` DOUBLE, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `COUNT` BIGINT"}},
+          {"header":{"schema":"`K` DOUBLE, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `COUNT` BIGINT", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":[11.1, 12000, 13000, 1]}},
           {"row":{"columns":[11.1, 12000, 13000, 2]}},
           {"finalMessage":"Limit Reached"}
@@ -359,7 +359,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`K` BIGINT, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `ID` INTEGER"}},
+          {"header":{"schema":"`K` BIGINT, `WINDOWSTART` BIGINT, `WINDOWEND` BIGINT, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":[11, 12345, 34555, 100]}},
           {"finalMessage":"Limit Reached"}
         ]}
@@ -386,7 +386,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`WSTART` STRING, `WEND` STRING, `COUNT` BIGINT"}},
+          {"header":{"schema":"`WSTART` STRING, `WEND` STRING, `COUNT` BIGINT", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":["2020-01-28 14:54:42 +0000", "2020-01-28 14:54:43 +0000", 1]}},
           {"row":{"columns":["2020-01-28 14:54:42 +0000", "2020-01-28 14:54:43 +0000", 2]}},
           {"finalMessage":"Limit Reached"}
@@ -414,7 +414,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ROWTIME` BIGINT, `K` INTEGER"}},
+          {"header":{"schema":"`ROWTIME` BIGINT, `K` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":[10345, 0]}},
           {"row":{"columns":[13251, 1]}},
           {"finalMessage":"Limit Reached"}
@@ -424,7 +424,8 @@
     {
       "name": "zero limit",
       "statements": [
-        "CREATE STREAM INPUT (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM I (K STRING KEY, ID INT) WITH (kafka_topic='test_topic', value_format='JSON', partitions=1);",
+        "CREATE STREAM INPUT as SELECT * FROM I;",
         "SELECT * FROM INPUT EMIT CHANGES LIMIT 0;"
       ],
       "inputs": [
@@ -438,8 +439,9 @@
       },
       "responses": [
         {"admin": {"@type": "currentStatus"}},
+        {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`K` STRING, `ID` INTEGER"}},
+          {"header":{"schema":"`K` STRING, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"finalMessage":"Limit Reached"}
         ]}
       ]
@@ -465,7 +467,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`ID` INTEGER, `K` STRING"}},
+          {"header":{"schema":"`ID` INTEGER, `K` STRING", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":[100, "11"]}},
           {"row":{"columns":[101, "11"]}},
           {"finalMessage":"Limit Reached"}
@@ -493,7 +495,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`K` STRING, `ID` INTEGER"}},
+          {"header":{"schema":"`K` STRING, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":["a", 100]}},
           {"row":{"columns":["b", 101]}},
           {"finalMessage":"Limit Reached"}
@@ -521,7 +523,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`K` INTEGER, `ID` INTEGER"}},
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":[11, 100]}},
           {"row":{"columns":[11, 101]}},
           {"finalMessage":"Limit Reached"}
@@ -553,7 +555,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`K` INTEGER, `ID` INTEGER"}},
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":[11, null]}},
           {"row":{"columns":[11, null]}},
           {"row":{"columns":[11, 111]}},
@@ -666,7 +668,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`K` INTEGER, `ID` INTEGER"}},
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":[11, 100]}},
           {"row":{"columns":[11, 103]}},
           {"finalMessage":"Limit Reached"}
@@ -696,7 +698,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`K` INTEGER, `ID` INTEGER"}},
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":[12, 101]}},
           {"row":{"columns":[13, 102]}},
           {"finalMessage":"Limit Reached"}
@@ -728,7 +730,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`K` INTEGER, `ID` INTEGER"}},
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":[9, 99]}},
           {"row":{"columns":[11, 100]}},
           {"row":{"columns":[12, 101]}},
@@ -762,7 +764,7 @@
         {"admin": {"@type": "currentStatus"}},
         {"admin": {"@type": "currentStatus"}},
         {"query": [
-          {"header":{"schema":"`K` INTEGER, `ID` INTEGER"}},
+          {"header":{"schema":"`K` INTEGER, `ID` INTEGER", "queryId|starts_with": "SCALABLE_PUSH_QUERY"}},
           {"row":{"columns":[12, 101]}},
           {"row":{"columns":[11, 103]}},
           {"finalMessage":"Limit Reached"}

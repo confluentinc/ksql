@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -87,6 +88,7 @@ public class RestTestExecutor implements Closeable {
 
   private static final String STATEMENT_MACRO = "\\{STATEMENT}";
   private static final Duration MAX_STATIC_WARM_UP = Duration.ofSeconds(30);
+  private static final String MATCH_OPERATOR_DELIMITER = "|";
 
   private final KsqlRestClient restClient;
   private final EmbeddedSingleNodeKafkaCluster kafkaCluster;
@@ -664,7 +666,12 @@ private void waitForRunningPushQueries(
   ) {
     // Expected does not need to include everything, only keys that need to be tested:
     for (final Entry<String, Object> e : expected.entrySet()) {
-      final String expectedKey = e.getKey();
+      final int matchIndex = e.getKey().contains(MATCH_OPERATOR_DELIMITER)
+          ? e.getKey().indexOf(MATCH_OPERATOR_DELIMITER) : e.getKey().length();
+      final String expectedKey = e.getKey().substring(0, matchIndex);
+      final MatchOperator operator = e.getKey().contains(MATCH_OPERATOR_DELIMITER)
+          ? MatchOperator.valueOf(e.getKey().substring(matchIndex + 1).toUpperCase())
+          : MatchOperator.EQUALS;
       final Object expectedValue = replaceMacros(e.getValue(), statements, idx);
       final String baseReason = "Response mismatch at " + path;
       assertThat(baseReason, actual, hasKey(expectedKey));
@@ -682,7 +689,14 @@ private void waitForRunningPushQueries(
             newPath
         );
       } else {
-        assertThat("Response mismatch at " + newPath, actualValue, is(expectedValue));
+        if (operator == MatchOperator.STARTS_WITH) {
+          assertThat(actualValue, instanceOf(String.class));
+          assertThat(expectedValue, instanceOf(String.class));
+          assertThat("Response mismatch at " + newPath,
+              (String) actualValue, startsWith((String) expectedValue));
+        } else {
+          assertThat("Response mismatch at " + newPath, actualValue, is(expectedValue));
+        }
       }
     }
   }
@@ -866,5 +880,10 @@ private void waitForRunningPushQueries(
       closed = true;
       context.runOnContext(v -> cancel());
     }
+  }
+
+  private enum MatchOperator {
+    EQUALS,
+    STARTS_WITH
   }
 }
